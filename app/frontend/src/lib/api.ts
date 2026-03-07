@@ -8,11 +8,12 @@ import {
   type CalculationResponse,
   type ExportFormat,
   type FullPayload,
+  type ProjectActivityMeta,
   type ReportResponse,
   type SavedProject
 } from "./experiment";
 
-export type ProjectRecordResponse = {
+export type ProjectRecordResponse = ProjectActivityMeta & {
   id: string;
   project_name: string;
   created_at: string;
@@ -33,6 +34,10 @@ export type SaveProjectResponse = {
   project_name?: string;
   created_at?: string;
   updated_at?: string;
+  payload_schema_version?: number;
+  last_analysis_at?: string | null;
+  last_exported_at?: string | null;
+  has_analysis_snapshot?: boolean;
   payload?: ExperimentInputPayload;
   detail?: string;
 };
@@ -136,6 +141,42 @@ export async function deleteProjectRequest(projectId: string): Promise<DeletePro
 
   if (!response.ok) {
     throw new Error(getErrorMessage(data, "Project delete failed"));
+  }
+
+  return data;
+}
+
+export async function recordProjectAnalysisRequest(
+  projectId: string,
+  analysis: AnalysisResponse
+): Promise<ProjectRecordResponse> {
+  const response = await fetch(apiUrl(`/api/v1/projects/${projectId}/analysis`), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(analysis)
+  });
+  const data = await readJson<ProjectRecordResponse & ApiErrorResponse>(response);
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(data, "Project analysis snapshot update failed"));
+  }
+
+  return data;
+}
+
+export async function recordProjectExportRequest(
+  projectId: string,
+  format: ExportFormat
+): Promise<ProjectRecordResponse> {
+  const response = await fetch(apiUrl(`/api/v1/projects/${projectId}/exports`), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ format })
+  });
+  const data = await readJson<ProjectRecordResponse & ApiErrorResponse>(response);
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(data, "Project export metadata update failed"));
   }
 
   return data;

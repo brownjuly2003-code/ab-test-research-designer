@@ -7,6 +7,8 @@ import {
   exportReportRequest,
   listProjectsRequest,
   loadProjectRequest,
+  recordProjectAnalysisRequest,
+  recordProjectExportRequest,
   requestHealth,
   requestAnalysis,
   saveProjectRequest
@@ -23,10 +25,10 @@ import {
   type FullPayloadSectionKey,
   hydrateLoadedPayload,
   parseImportedDraft,
+  type SavedProject,
   setSectionFieldValue,
   stepLabels,
   type ResultsState,
-  type SavedProject,
   validateForm
 } from "./lib/experiment";
 
@@ -131,11 +133,47 @@ export default function App() {
   const [savedProjects, setSavedProjects] = useState<SavedProject[]>([]);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [savedProjectSnapshot, setSavedProjectSnapshot] = useState<string | null>(null);
+  const [resultsProjectId, setResultsProjectId] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const lastStepIndex = stepLabels.length - 1;
   const serializedForm = JSON.stringify(buildApiPayload(form));
   const hasUnsavedChanges =
     activeProjectId !== null && savedProjectSnapshot !== null && savedProjectSnapshot !== serializedForm;
+  const activeProject =
+    activeProjectId !== null
+      ? savedProjects.find((project) => project.id === activeProjectId) ?? null
+      : null;
+
+  function toSavedProject(project: {
+    id?: string;
+    project_name?: string;
+    created_at?: string;
+    updated_at?: string;
+    payload_schema_version?: number;
+    last_analysis_at?: string | null;
+    last_exported_at?: string | null;
+    has_analysis_snapshot?: boolean;
+  }): SavedProject | null {
+    if (
+      typeof project.id !== "string" ||
+      typeof project.project_name !== "string" ||
+      typeof project.created_at !== "string" ||
+      typeof project.updated_at !== "string"
+    ) {
+      return null;
+    }
+
+    return {
+      id: project.id,
+      project_name: project.project_name,
+      created_at: project.created_at,
+      updated_at: project.updated_at,
+      payload_schema_version: project.payload_schema_version ?? 1,
+      last_analysis_at: project.last_analysis_at ?? null,
+      last_exported_at: project.last_exported_at ?? null,
+      has_analysis_snapshot: project.has_analysis_snapshot ?? false
+    };
+  }
 
   function upsertSavedProject(project: SavedProject) {
     setSavedProjects((current) =>
@@ -146,6 +184,7 @@ export default function App() {
   }
 
   function invalidateResults() {
+    setResultsProjectId(null);
     setResults((current) => (Object.keys(current).length > 0 ? {} : current));
     setStatusMessage((current) => (current ? "" : current));
     setError((current) => (current ? "" : current));
@@ -160,6 +199,7 @@ export default function App() {
   function startNewProject() {
     setForm(cloneInitialState());
     setResults({});
+    setResultsProjectId(null);
     setError("");
     setStatusMessage("Started a new local draft.");
     setActiveProjectId(null);
@@ -204,6 +244,7 @@ export default function App() {
       const imported = parseImportedDraft(await file.text());
       setForm(imported);
       setResults({});
+      setResultsProjectId(null);
       setActiveProjectId(null);
       setSavedProjectSnapshot(null);
       setValidationErrors([]);
@@ -269,16 +310,34 @@ export default function App() {
       return;
     }
 
+    const snapshotEligibleProjectId = activeProjectId !== null && !hasUnsavedChanges ? activeProjectId : null;
     setLoading(true);
     setError("");
     setStatusMessage("");
 
     try {
       const analysis = await requestAnalysis(form);
-
       setResults(analysis);
+      setResultsProjectId(snapshotEligibleProjectId);
       setStep(lastStepIndex);
-      setStatusMessage("Analysis completed. Deterministic output and optional AI advice are shown below.");
+
+      if (snapshotEligibleProjectId) {
+        try {
+          const updatedProject = await recordProjectAnalysisRequest(snapshotEligibleProjectId, analysis);
+          const savedProject = toSavedProject(updatedProject);
+          if (savedProject) {
+            upsertSavedProject(savedProject);
+          }
+          setStatusMessage("Analysis completed and the latest snapshot was recorded for this saved project.");
+        } catch (metadataError) {
+          setStatusMessage("Analysis completed, but project snapshot metadata could not be persisted.");
+          setError(metadataError instanceof Error ? metadataError.message : "Unexpected analysis snapshot error");
+        }
+      } else if (activeProjectId) {
+        setStatusMessage("Analysis completed for draft changes. Save the project to persist this analysis snapshot.");
+      } else {
+        setStatusMessage("Analysis completed. Deterministic output and optional AI advice are shown below.");
+      }
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Unexpected request error");
     } finally {
@@ -299,24 +358,18 @@ export default function App() {
       const isUpdate = activeProjectId !== null;
       const normalizedPayload = buildApiPayload(form);
       const data = await saveProjectRequest(form, activeProjectId);
+      const savedProject = toSavedProject(data);
 
       setActiveProjectId(typeof data.id === "string" ? data.id : activeProjectId);
       setSavedProjectSnapshot(
         data.payload ? JSON.stringify(data.payload) : JSON.stringify(normalizedPayload)
       );
+      if (results.report && typeof data.id === "string") {
+        setResultsProjectId(data.id);
+      }
 
-      if (
-        typeof data.id === "string" &&
-        typeof data.project_name === "string" &&
-        typeof data.created_at === "string" &&
-        typeof data.updated_at === "string"
-      ) {
-        upsertSavedProject({
-          id: data.id,
-          project_name: data.project_name,
-          created_at: data.created_at,
-          updated_at: data.updated_at
-        });
+      if (savedProject) {
+        upsertSavedProject(savedProject);
       } else {
         await loadProjects();
       }
@@ -352,12 +405,17 @@ export default function App() {
 
     try {
       const data = await loadProjectRequest(projectId);
+      const savedProject = toSavedProject(data);
 
       setForm(hydrateLoadedPayload(data.payload));
       setResults({});
+      setResultsProjectId(null);
       setActiveProjectId(typeof data.id === "string" ? data.id : projectId);
       setSavedProjectSnapshot(JSON.stringify(data.payload));
       setValidationErrors([]);
+      if (savedProject) {
+        upsertSavedProject(savedProject);
+      }
       setStatusMessage(`Loaded project ${String(data.project_name)} into the wizard.`);
       setStep(0);
     } catch (requestError) {
@@ -411,7 +469,22 @@ export default function App() {
       anchor.download = `experiment-report.${extension}`;
       anchor.click();
       URL.revokeObjectURL(url);
-      setStatusMessage(`Exported report as ${extension.toUpperCase()}.`);
+
+      if (resultsProjectId) {
+        try {
+          const updatedProject = await recordProjectExportRequest(resultsProjectId, format);
+          const savedProject = toSavedProject(updatedProject);
+          if (savedProject) {
+            upsertSavedProject(savedProject);
+          }
+          setStatusMessage(`Exported report as ${extension.toUpperCase()} and updated project export metadata.`);
+        } catch (metadataError) {
+          setStatusMessage(`Exported report as ${extension.toUpperCase()}, but project export metadata was not updated.`);
+          setError(metadataError instanceof Error ? metadataError.message : "Unexpected export metadata error");
+        }
+      } else {
+        setStatusMessage(`Exported report as ${extension.toUpperCase()}.`);
+      }
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Unexpected export error");
     }
@@ -470,6 +543,7 @@ export default function App() {
               healthError={healthError}
               savedProjects={savedProjects}
               activeProjectId={activeProjectId}
+              activeProject={activeProject}
               hasUnsavedChanges={hasUnsavedChanges}
               onRefreshHealth={loadBackendHealth}
               onLoadProjects={loadProjects}

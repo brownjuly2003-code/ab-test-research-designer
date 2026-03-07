@@ -141,17 +141,22 @@ Post-phase cleanup completed
 - added a Playwright-based local smoke script covering save, reload, analysis, and export in a real browser
 - split the large frontend wizard rendering into focused draft, review, and results components
 - added a combined backend analysis endpoint and switched the frontend analysis flow to a single request
+- hardened orchestrator response parsing for fenced JSON, normalized text lists, and structured fallback error codes
+- added repository migrations for project activity metadata and payload schema versioning
+- added saved-project analysis snapshot and export timestamp routes
+- wired frontend analysis/export flows to persist saved-project metadata when the draft is in sync
+- added repository migration tests plus frontend regressions for project activity metadata
 
 ---
 
 ## Next Phase
 
-Optional manual end-to-end validation
+Backend and product capability expansion
 
 Goals:
 
-- run the UI against a live backend in a browser
-- optionally validate the AI advice path with the local orchestrator running
+- deepen repository history and reporting capabilities
+- continue hardening the optional orchestrator integration path
 
 ---
 

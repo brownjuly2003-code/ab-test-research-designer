@@ -19,6 +19,7 @@ from app.backend.app.schemas.api import (
     LlmAdviceRequest,
     LlmAdviceResponse,
     ProjectDeleteResponse,
+    ProjectExportMarkRequest,
     ProjectListResponse,
     ProjectRecord,
 )
@@ -155,6 +156,20 @@ def create_app() -> FastAPI:
     @app.put("/api/v1/projects/{project_id}", response_model=ProjectRecord)
     def update_project(project_id: str, payload: ExperimentInput) -> ProjectRecord:
         project = repository.update_project(project_id, payload.model_dump())
+        if project is None:
+            raise HTTPException(status_code=404, detail="Project not found")
+        return ProjectRecord.model_validate(project)
+
+    @app.post("/api/v1/projects/{project_id}/analysis", response_model=ProjectRecord)
+    def record_project_analysis(project_id: str, payload: AnalysisResponse) -> ProjectRecord:
+        project = repository.record_analysis(project_id, payload.model_dump())
+        if project is None:
+            raise HTTPException(status_code=404, detail="Project not found")
+        return ProjectRecord.model_validate(project)
+
+    @app.post("/api/v1/projects/{project_id}/exports", response_model=ProjectRecord)
+    def record_project_export(project_id: str, payload: ProjectExportMarkRequest) -> ProjectRecord:
+        project = repository.record_export(project_id)
         if project is None:
             raise HTTPException(status_code=404, detail="Project not found")
         return ProjectRecord.model_validate(project)

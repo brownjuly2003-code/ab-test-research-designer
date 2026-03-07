@@ -9,7 +9,7 @@ Local web service for planning A/B experiments.
 - generate deterministic experiment design
 - analyze risks with rules
 - request optional recommendations from a local LLM orchestrator
-- save projects locally in SQLite
+- save projects locally in SQLite with activity metadata
 
 LLM provider target:
 Claude Sonnet 4.6 Thinking
@@ -31,6 +31,7 @@ Implemented:
 - backend API routes
 - Pydantic-validated request/response contracts for core API routes
 - local SQLite project storage
+- project payload schema versioning plus last-analysis and last-export metadata in SQLite
 - frontend wizard and results page
 - local save, load, update, and export flow verified
 - client-side validation before save and analysis requests
@@ -52,6 +53,9 @@ Implemented:
 - backend can optionally serve the built frontend dist for same-origin local smoke and prod-like runs
 - Playwright-based local smoke script now verifies a real browser flow against the backend-served frontend
 - frontend analysis flow now uses a single combined backend endpoint
+- saved-project analysis runs now persist the latest combined analysis snapshot back into SQLite
+- report export can now stamp the saved project with the latest export timestamp
+- orchestrator parsing now tolerates fenced JSON and returns structured `error_code` values on fallback
 - frontend production build verified after dependency install
 
 Remaining:
@@ -166,8 +170,10 @@ The frontend currently supports:
 - run deterministic calculations and report generation
 - optional AI advice request
 - one-request combined analysis flow via `POST /api/v1/analyze`
+- saved project activity routes for analysis snapshots and export metadata
 - full AI advice rendering for risks, metric recommendations, pitfalls, and checks
 - local project save, update, and delete
+- saved project metadata for payload schema, last analysis, and last export timestamps
 - local project list/load with automatic load on app start
 - startup backend health check with manual refresh in the sidebar
 - draft JSON import/export from the wizard without backend round-trips
@@ -175,6 +181,7 @@ The frontend currently supports:
 - dirty-state feedback when editing a loaded project
 - saved project search/filter with updated-at context in the sidebar
 - sidebar updates immediately after save/update from the backend save response
+- saved-project analysis runs update snapshot metadata in the sidebar when the draft is in sync
 - local browser smoke coverage for save, reload, analysis, and export through the backend-served frontend
 - Markdown and HTML export from the results block
 - full deterministic recommendation rendering for before/during/after test phases

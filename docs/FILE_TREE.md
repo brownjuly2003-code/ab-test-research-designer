@@ -37,6 +37,7 @@ AB_TEST/
         test_health.py
         test_llm_adapter.py
         test_projects_api.py
+        test_repository.py
         test_rules_engine.py
       requirements.txt
     frontend/

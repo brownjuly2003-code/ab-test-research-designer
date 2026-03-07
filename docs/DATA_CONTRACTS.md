@@ -228,7 +228,8 @@
     "model": "Claude Sonnet 4.6",
     "advice": null,
     "raw_text": null,
-    "error": "offline"
+    "error": "offline",
+    "error_code": "request_error"
   }
 }
 ```
@@ -337,3 +338,57 @@ This is the preferred frontend analysis route because it replaces separate brows
 - `POST /api/v1/calculate`
 - `POST /api/v1/design`
 - `POST /api/v1/llm/advice`
+
+## 10. Project storage metadata
+
+Saved project records now include storage metadata in both list and record responses:
+
+```json
+{
+  "id": "project-id",
+  "project_name": "Checkout redesign",
+  "payload_schema_version": 1,
+  "last_analysis_at": "2026-03-07T12:30:00+00:00",
+  "last_exported_at": "2026-03-07T12:45:00+00:00",
+  "has_analysis_snapshot": true,
+  "created_at": "2026-03-07T10:00:00+00:00",
+  "updated_at": "2026-03-07T10:15:00+00:00"
+}
+```
+
+The full `GET /api/v1/projects/{project_id}` and `POST`/`PUT /api/v1/projects` record payload also includes:
+
+```json
+{
+  "payload": {
+    "project": {"project_name": "Checkout redesign"}
+  }
+}
+```
+
+## 11. Project activity endpoints
+
+### POST `/api/v1/projects/{project_id}/analysis`
+
+Request body: the same combined analysis object returned by `POST /api/v1/analyze`.
+
+Purpose:
+
+- persist the last successful combined analysis snapshot for a saved project
+- stamp `last_analysis_at`
+- set `has_analysis_snapshot=true`
+
+### POST `/api/v1/projects/{project_id}/exports`
+
+Request body:
+
+```json
+{
+  "format": "markdown"
+}
+```
+
+Purpose:
+
+- stamp `last_exported_at` after a successful report export
+- keep export tracking separate from report generation

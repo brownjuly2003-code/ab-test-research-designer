@@ -212,6 +212,13 @@ export type AdviceResponse = {
   error_code: string | null;
 };
 
+export type ProjectActivityMeta = {
+  payload_schema_version?: number;
+  last_analysis_at?: string | null;
+  last_exported_at?: string | null;
+  has_analysis_snapshot?: boolean;
+};
+
 export type ApiHealthResponse = {
   status: string;
   service: string;
@@ -225,7 +232,7 @@ export type ResultsState = {
   advice?: AdviceResponse;
 };
 
-export type SavedProject = {
+export type SavedProject = ProjectActivityMeta & {
   id: string;
   project_name: string;
   created_at: string;

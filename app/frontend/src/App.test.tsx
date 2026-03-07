@@ -7,6 +7,8 @@ vi.mock("./lib/api", () => ({
   exportReportRequest: vi.fn(),
   listProjectsRequest: vi.fn(),
   loadProjectRequest: vi.fn(),
+  recordProjectAnalysisRequest: vi.fn(),
+  recordProjectExportRequest: vi.fn(),
   requestHealth: vi.fn(),
   requestAnalysis: vi.fn(),
   saveProjectRequest: vi.fn()
@@ -18,6 +20,8 @@ import {
   deleteProjectRequest,
   listProjectsRequest,
   loadProjectRequest,
+  recordProjectAnalysisRequest,
+  recordProjectExportRequest,
   requestHealth,
   requestAnalysis,
   saveProjectRequest
@@ -127,6 +131,8 @@ describe("App UI flow", () => {
     vi.mocked(deleteProjectRequest).mockReset();
     vi.mocked(listProjectsRequest).mockResolvedValue([]);
     vi.mocked(loadProjectRequest).mockReset();
+    vi.mocked(recordProjectAnalysisRequest).mockReset();
+    vi.mocked(recordProjectExportRequest).mockReset();
     vi.mocked(requestHealth).mockResolvedValue({
       status: "ok",
       service: "AB Test Research Designer API",
@@ -148,6 +154,10 @@ describe("App UI flow", () => {
       {
         id: "p-1",
         project_name: "Stored checkout test",
+        payload_schema_version: 1,
+        last_analysis_at: null,
+        last_exported_at: null,
+        has_analysis_snapshot: false,
         created_at: "2026-03-07T10:00:00Z",
         updated_at: "2026-03-07T10:00:00Z"
       }
@@ -155,6 +165,10 @@ describe("App UI flow", () => {
     vi.mocked(loadProjectRequest).mockResolvedValueOnce({
       id: "p-1",
       project_name: "Stored checkout test",
+      payload_schema_version: 1,
+      last_analysis_at: "2026-03-07T10:30:00Z",
+      last_exported_at: "2026-03-07T11:00:00Z",
+      has_analysis_snapshot: true,
       created_at: "2026-03-07T10:00:00Z",
       updated_at: "2026-03-07T10:00:00Z",
       payload: buildApiPayload(buildLoadedPayload())
@@ -177,6 +191,9 @@ describe("App UI flow", () => {
       expect(view.container.textContent).toContain("Project id: p-1");
       expect(view.container.textContent).toContain("All changes saved locally.");
       expect(view.container.textContent).toContain("In sync with SQLite");
+      expect(view.container.textContent).toContain("Last analysis:");
+      expect(view.container.textContent).toContain("Last export:");
+      expect(view.container.textContent).toContain("Snapshot stored:");
 
       const projectNameInput = view.container.querySelector("#project-project_name");
       if (!(projectNameInput instanceof HTMLInputElement)) {
@@ -198,12 +215,20 @@ describe("App UI flow", () => {
       {
         id: "p-1",
         project_name: "Stored checkout test",
+        payload_schema_version: 1,
+        last_analysis_at: null,
+        last_exported_at: null,
+        has_analysis_snapshot: false,
         created_at: "2026-03-07T10:00:00Z",
         updated_at: "2026-03-07T10:00:00Z"
       },
       {
         id: "p-2",
         project_name: "Pricing experiment",
+        payload_schema_version: 1,
+        last_analysis_at: null,
+        last_exported_at: null,
+        has_analysis_snapshot: false,
         created_at: "2026-03-07T11:00:00Z",
         updated_at: "2026-03-07T11:00:00Z"
       }
@@ -271,6 +296,10 @@ describe("App UI flow", () => {
       {
         id: "p-1",
         project_name: "Stored checkout test",
+        payload_schema_version: 1,
+        last_analysis_at: null,
+        last_exported_at: null,
+        has_analysis_snapshot: false,
         created_at: "2026-03-07T10:00:00Z",
         updated_at: "2026-03-07T10:00:00Z"
       }
@@ -278,6 +307,10 @@ describe("App UI flow", () => {
     vi.mocked(loadProjectRequest).mockResolvedValueOnce({
       id: "p-1",
       project_name: "Stored checkout test",
+      payload_schema_version: 1,
+      last_analysis_at: null,
+      last_exported_at: null,
+      has_analysis_snapshot: false,
       created_at: "2026-03-07T10:00:00Z",
       updated_at: "2026-03-07T10:00:00Z",
       payload: buildApiPayload(buildLoadedPayload())
@@ -308,6 +341,10 @@ describe("App UI flow", () => {
       {
         id: "p-1",
         project_name: "Stored checkout test",
+        payload_schema_version: 1,
+        last_analysis_at: null,
+        last_exported_at: null,
+        has_analysis_snapshot: false,
         created_at: "2026-03-07T10:00:00Z",
         updated_at: "2026-03-07T10:00:00Z"
       }
@@ -353,6 +390,10 @@ describe("App UI flow", () => {
     vi.mocked(saveProjectRequest).mockResolvedValueOnce({
       id: "p-new",
       project_name: "Checkout redesign",
+      payload_schema_version: 1,
+      last_analysis_at: null,
+      last_exported_at: null,
+      has_analysis_snapshot: false,
       created_at: "2026-03-07T12:00:00Z",
       updated_at: "2026-03-07T12:00:00Z",
       payload: buildApiPayload(cloneInitialState())
@@ -466,6 +507,65 @@ describe("App UI flow", () => {
       expect(view.container.textContent).toContain("Watch SRM");
       expect(view.container.textContent).toContain("After test");
       expect(view.container.textContent).toContain("Segment the result");
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("records an analysis snapshot for a saved project that is in sync", async () => {
+    vi.mocked(listProjectsRequest).mockResolvedValueOnce([
+      {
+        id: "p-1",
+        project_name: "Stored checkout test",
+        payload_schema_version: 1,
+        last_analysis_at: null,
+        last_exported_at: null,
+        has_analysis_snapshot: false,
+        created_at: "2026-03-07T10:00:00Z",
+        updated_at: "2026-03-07T10:00:00Z"
+      }
+    ]);
+    vi.mocked(loadProjectRequest).mockResolvedValueOnce({
+      id: "p-1",
+      project_name: "Stored checkout test",
+      payload_schema_version: 1,
+      last_analysis_at: null,
+      last_exported_at: null,
+      has_analysis_snapshot: false,
+      created_at: "2026-03-07T10:00:00Z",
+      updated_at: "2026-03-07T10:00:00Z",
+      payload: buildApiPayload(buildLoadedPayload())
+    });
+    vi.mocked(requestAnalysis).mockResolvedValueOnce(buildAnalysisResult());
+    vi.mocked(recordProjectAnalysisRequest).mockResolvedValueOnce({
+      id: "p-1",
+      project_name: "Stored checkout test",
+      payload_schema_version: 1,
+      last_analysis_at: "2026-03-07T12:30:00Z",
+      last_exported_at: null,
+      has_analysis_snapshot: true,
+      created_at: "2026-03-07T10:00:00Z",
+      updated_at: "2026-03-07T10:00:00Z",
+      payload: buildApiPayload(buildLoadedPayload())
+    });
+
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+      await click(findButton(view.container, "Stored checkout test"));
+      await flushEffects();
+
+      for (let stepIndex = 0; stepIndex < 5; stepIndex += 1) {
+        await click(findButton(view.container, "Next"));
+      }
+
+      await click(findButton(view.container, "Run analysis"));
+      await flushEffects();
+
+      expect(recordProjectAnalysisRequest).toHaveBeenCalledTimes(1);
+      expect(recordProjectAnalysisRequest).toHaveBeenCalledWith("p-1", expect.any(Object));
+      expect(view.container.textContent).toContain("Analysis completed and the latest snapshot was recorded for this saved project.");
+      expect(view.container.textContent).toContain("Snapshot stored: Yes");
     } finally {
       await view.unmount();
     }

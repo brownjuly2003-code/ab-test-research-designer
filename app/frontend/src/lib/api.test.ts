@@ -5,6 +5,8 @@ import {
   exportReportRequest,
   listProjectsRequest,
   loadProjectRequest,
+  recordProjectAnalysisRequest,
+  recordProjectExportRequest,
   requestHealth,
   requestAnalysis,
   saveProjectRequest
@@ -155,6 +157,10 @@ describe("frontend api wrapper", () => {
       jsonResponse({
         id: "1",
         project_name: "Checkout redesign",
+        payload_schema_version: 1,
+        last_analysis_at: null,
+        last_exported_at: null,
+        has_analysis_snapshot: false,
         created_at: "x",
         updated_at: "y",
         payload: buildApiPayload(cloneInitialState())
@@ -167,6 +173,56 @@ describe("frontend api wrapper", () => {
     expect(project.payload.project.project_name).toBe("Checkout redesign");
   });
 
+  it("records an analysis snapshot for a saved project", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      jsonResponse({
+        id: "1",
+        project_name: "Checkout redesign",
+        payload_schema_version: 1,
+        last_analysis_at: "2026-03-07T12:30:00Z",
+        last_exported_at: null,
+        has_analysis_snapshot: true,
+        created_at: "x",
+        updated_at: "y",
+        payload: buildApiPayload(cloneInitialState())
+      })
+    );
+
+    const result = await recordProjectAnalysisRequest("1", {
+      calculations: {
+        calculation_summary: {
+          metric_type: "binary",
+          baseline_value: 0.042,
+          mde_pct: 5,
+          mde_absolute: 0.0021,
+          alpha: 0.05,
+          power: 0.8
+        },
+        results: {
+          sample_size_per_variant: 100,
+          total_sample_size: 200,
+          effective_daily_traffic: 5000,
+          estimated_duration_days: 10
+        },
+        assumptions: [],
+        warnings: []
+      },
+      report: buildReportPayload(),
+      advice: {
+        available: false,
+        provider: "local_orchestrator",
+        model: "offline",
+        advice: null,
+        raw_text: null,
+        error: "offline",
+        error_code: "request_error"
+      }
+    });
+
+    expect(result.has_analysis_snapshot).toBe(true);
+    expect(result.last_analysis_at).toBe("2026-03-07T12:30:00Z");
+  });
+
   it("deletes a saved project", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(
       jsonResponse({ id: "1", deleted: true })
@@ -175,6 +231,26 @@ describe("frontend api wrapper", () => {
     const result = await deleteProjectRequest("1");
 
     expect(result).toEqual({ id: "1", deleted: true });
+  });
+
+  it("records an export timestamp for a saved project", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      jsonResponse({
+        id: "1",
+        project_name: "Checkout redesign",
+        payload_schema_version: 1,
+        last_analysis_at: "2026-03-07T12:30:00Z",
+        last_exported_at: "2026-03-07T12:45:00Z",
+        has_analysis_snapshot: true,
+        created_at: "x",
+        updated_at: "y",
+        payload: buildApiPayload(cloneInitialState())
+      })
+    );
+
+    const result = await recordProjectExportRequest("1", "markdown");
+
+    expect(result.last_exported_at).toBe("2026-03-07T12:45:00Z");
   });
 
   it("exports report content", async () => {

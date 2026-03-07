@@ -10,6 +10,7 @@ type SidebarPanelProps = {
   healthError: string;
   savedProjects: SavedProject[];
   activeProjectId: string | null;
+  activeProject: SavedProject | null;
   hasUnsavedChanges: boolean;
   onRefreshHealth: () => void;
   onLoadProjects: () => void;
@@ -29,6 +30,10 @@ function formatProjectTimestamp(timestamp: string): string {
   }).format(parsed);
 }
 
+function formatOptionalTimestamp(timestamp: string | null | undefined): string {
+  return timestamp ? formatProjectTimestamp(timestamp) : "Not recorded yet";
+}
+
 export default function SidebarPanel({
   loadingHealth,
   loadingProjects,
@@ -37,6 +42,7 @@ export default function SidebarPanel({
   healthError,
   savedProjects,
   activeProjectId,
+  activeProject,
   hasUnsavedChanges,
   onRefreshHealth,
   onLoadProjects,
@@ -102,6 +108,18 @@ export default function SidebarPanel({
               <li>
                 <strong>Status:</strong> {hasUnsavedChanges ? "Needs local update" : "In sync with SQLite"}
               </li>
+              <li>
+                <strong>Payload schema:</strong> {String(activeProject?.payload_schema_version ?? 1)}
+              </li>
+              <li>
+                <strong>Last analysis:</strong> {formatOptionalTimestamp(activeProject?.last_analysis_at)}
+              </li>
+              <li>
+                <strong>Last export:</strong> {formatOptionalTimestamp(activeProject?.last_exported_at)}
+              </li>
+              <li>
+                <strong>Snapshot stored:</strong> {activeProject?.has_analysis_snapshot ? "Yes" : "No"}
+              </li>
             </ul>
           </>
         ) : (
@@ -135,6 +153,8 @@ export default function SidebarPanel({
               <li key={project.id}>
                 <div className="muted">
                   Updated {formatProjectTimestamp(project.updated_at)}
+                  {project.last_analysis_at ? ` | Analyzed ${formatProjectTimestamp(project.last_analysis_at)}` : ""}
+                  {project.last_exported_at ? ` | Exported ${formatProjectTimestamp(project.last_exported_at)}` : ""}
                   {project.id === activeProjectId ? " | Loaded in wizard" : ""}
                 </div>
                 <div className="actions">
@@ -142,6 +162,7 @@ export default function SidebarPanel({
                     {project.project_name}
                   </button>
                   {project.id === activeProjectId ? <span className="pill">Loaded</span> : null}
+                  {project.has_analysis_snapshot ? <span className="pill">Snapshot</span> : null}
                   <button
                     className="btn secondary"
                     disabled={deletingProjectId === project.id}
@@ -171,10 +192,12 @@ export default function SidebarPanel({
       <div className="card">
         <h3>Backend endpoints</h3>
         <ul className="list">
-          <li>`POST /api/v1/calculate`</li>
-          <li>`POST /api/v1/design`</li>
-          <li>`POST /api/v1/llm/advice`</li>
-          <li>`GET/POST/PUT/DELETE /api/v1/projects`</li>
+          <li><code>POST /api/v1/calculate</code></li>
+          <li><code>POST /api/v1/design</code></li>
+          <li><code>POST /api/v1/llm/advice</code></li>
+          <li><code>POST /api/v1/projects/{'{id}'}/analysis</code></li>
+          <li><code>POST /api/v1/projects/{'{id}'}/exports</code></li>
+          <li><code>GET/POST/PUT/DELETE /api/v1/projects</code></li>
         </ul>
       </div>
     </aside>

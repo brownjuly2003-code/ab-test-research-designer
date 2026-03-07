@@ -191,6 +191,10 @@ class AnalysisResponse(BaseModel):
 class ProjectRecord(BaseModel):
     id: str
     project_name: str
+    payload_schema_version: int
+    last_analysis_at: str | None = None
+    last_exported_at: str | None = None
+    has_analysis_snapshot: bool = False
     created_at: str
     updated_at: str
     payload: ExperimentInput
@@ -199,6 +203,10 @@ class ProjectRecord(BaseModel):
 class ProjectListItem(BaseModel):
     id: str
     project_name: str
+    payload_schema_version: int
+    last_analysis_at: str | None = None
+    last_exported_at: str | None = None
+    has_analysis_snapshot: bool = False
     created_at: str
     updated_at: str
 
@@ -210,6 +218,10 @@ class ProjectListResponse(BaseModel):
 class ProjectDeleteResponse(BaseModel):
     id: str
     deleted: bool
+
+
+class ProjectExportMarkRequest(BaseModel):
+    format: Literal["markdown", "html"]
 
 
 class ExportResponse(BaseModel):
@@ -226,6 +238,7 @@ __all__ = [
     "LlmAdviceRequest",
     "LlmAdviceResponse",
     "ProjectDeleteResponse",
+    "ProjectExportMarkRequest",
     "ProjectListResponse",
     "ProjectRecord",
 ]
