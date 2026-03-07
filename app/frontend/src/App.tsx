@@ -332,6 +332,10 @@ export default function App() {
   }
 
   async function deleteProject(projectId: string, projectName: string) {
+    if (!window.confirm(`Delete project "${projectName}" from local storage?`)) {
+      return;
+    }
+
     setDeletingProjectId(projectId);
     setError("");
     setStatusMessage("");

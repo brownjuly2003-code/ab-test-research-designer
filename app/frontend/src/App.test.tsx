@@ -107,6 +107,7 @@ function buildLoadedPayload(): FullPayload {
 describe("App UI flow", () => {
   beforeEach(() => {
     window.localStorage.clear();
+    vi.spyOn(window, "confirm").mockReturnValue(true);
     vi.mocked(deleteProjectRequest).mockReset();
     vi.mocked(listProjectsRequest).mockResolvedValue([]);
     vi.mocked(loadProjectRequest).mockReset();
@@ -122,6 +123,7 @@ describe("App UI flow", () => {
   afterEach(() => {
     window.localStorage.clear();
     vi.clearAllMocks();
+    vi.restoreAllMocks();
   });
 
   it("loads saved projects on startup and can hydrate a selected project", async () => {
@@ -218,10 +220,36 @@ describe("App UI flow", () => {
       await click(findButtonByAriaLabel(view.container, "Delete Stored checkout test"));
       await flushEffects();
 
+      expect(window.confirm).toHaveBeenCalledWith('Delete project "Stored checkout test" from local storage?');
       expect(deleteProjectRequest).toHaveBeenCalledWith("p-1");
       expect(view.container.textContent).toContain("Project Stored checkout test deleted. Current form remains as a new local draft.");
       expect(view.container.textContent).not.toContain("Project id: p-1");
       expect(view.container.querySelector('button[aria-label="Delete Stored checkout test"]')).toBeNull();
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("does not delete a project when the confirmation dialog is rejected", async () => {
+    vi.mocked(listProjectsRequest).mockResolvedValueOnce([
+      {
+        id: "p-1",
+        project_name: "Stored checkout test",
+        created_at: "2026-03-07T10:00:00Z",
+        updated_at: "2026-03-07T10:00:00Z"
+      }
+    ]);
+    vi.mocked(window.confirm).mockReturnValueOnce(false);
+
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+
+      await click(findButtonByAriaLabel(view.container, "Delete Stored checkout test"));
+      await flushEffects();
+
+      expect(deleteProjectRequest).not.toHaveBeenCalled();
+      expect(view.container.querySelector('button[aria-label="Delete Stored checkout test"]')).not.toBeNull();
     } finally {
       await view.unmount();
     }

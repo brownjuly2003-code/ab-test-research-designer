@@ -45,6 +45,7 @@ Implemented:
 - frontend shows live backend health, version, and environment status in the sidebar
 - frontend supports draft JSON import/export for payload transfer outside SQLite
 - frontend restores and autosaves unsaved browser drafts via localStorage
+- destructive project deletion in the frontend now asks for confirmation
 - frontend production build verified after dependency install
 
 Remaining:
