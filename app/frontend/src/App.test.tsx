@@ -19,7 +19,7 @@ import {
 import { cloneInitialState, type FullPayload } from "./lib/experiment";
 import { changeValue, click, findButton, flushEffects, renderIntoDocument } from "./test/dom";
 
-function buildAnalysisResult() {
+function buildAnalysisResult(adviceAvailable = false) {
   return {
     calculations: {
       calculation_summary: {},
@@ -73,12 +73,21 @@ function buildAnalysisResult() {
       open_questions: ["Will mobile respond differently?"]
     },
     advice: {
-      available: false,
+      available: adviceAvailable,
       provider: "local_orchestrator",
-      model: "offline",
-      advice: null,
+      model: adviceAvailable ? "Claude Sonnet 4.6" : "offline",
+      advice: adviceAvailable
+        ? {
+            brief_assessment: "The experiment is feasible with careful monitoring.",
+            key_risks: ["Tracking quality may skew results."],
+            design_improvements: ["Validate assignment logging before launch."],
+            metric_recommendations: ["Track checkout step completion by segment."],
+            interpretation_pitfalls: ["Do not over-read the first 48 hours."],
+            additional_checks: ["Verify exposure balance by traffic source."]
+          }
+        : null,
       raw_text: null,
-      error: "offline"
+      error: adviceAvailable ? null : "offline"
     }
   };
 }
@@ -192,6 +201,31 @@ describe("App UI flow", () => {
       expect(requestAnalysis).not.toHaveBeenCalled();
       expect(view.container.textContent).toContain("Fix these fields before saving or running analysis:");
       expect(view.container.textContent).toContain("Project name is required.");
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("renders the full AI advice payload when the orchestrator response is available", async () => {
+    vi.mocked(requestAnalysis).mockResolvedValueOnce(buildAnalysisResult(true));
+
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+
+      for (let stepIndex = 0; stepIndex < 5; stepIndex += 1) {
+        await click(findButton(view.container, "Next"));
+      }
+
+      await click(findButton(view.container, "Run analysis"));
+      await flushEffects();
+
+      expect(view.container.textContent).toContain("Provider: local_orchestrator | Model: Claude Sonnet 4.6");
+      expect(view.container.textContent).toContain("The experiment is feasible with careful monitoring.");
+      expect(view.container.textContent).toContain("Tracking quality may skew results.");
+      expect(view.container.textContent).toContain("Track checkout step completion by segment.");
+      expect(view.container.textContent).toContain("Do not over-read the first 48 hours.");
+      expect(view.container.textContent).toContain("Verify exposure balance by traffic source.");
     } finally {
       await view.unmount();
     }

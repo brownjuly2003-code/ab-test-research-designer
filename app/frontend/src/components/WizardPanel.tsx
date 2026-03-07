@@ -434,20 +434,57 @@ export default function WizardPanel({
             <span className="pill">AI advice</span>
             <h3>Local orchestrator output</h3>
             {results.advice?.available ? (
-              <div className="two-col">
-                <div className="card">
-                  <strong>Assessment</strong>
-                  <p className="muted">{String(results.advice.advice?.brief_assessment ?? "")}</p>
+              <>
+                <p className="muted">
+                  Provider: {String(results.advice.provider)} | Model: {String(results.advice.model)}
+                </p>
+                <div className="two-col">
+                  <div className="card">
+                    <strong>Assessment</strong>
+                    <p className="muted">{String(results.advice.advice?.brief_assessment ?? "")}</p>
+                  </div>
+                  <div className="card">
+                    <strong>Design improvements</strong>
+                    <ul className="list">
+                      {(results.advice.advice?.design_improvements ?? []).map((item) => (
+                        <li key={String(item)}>{String(item)}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="card">
+                    <strong>Key risks</strong>
+                    <ul className="list">
+                      {(results.advice.advice?.key_risks ?? []).map((item) => (
+                        <li key={String(item)}>{String(item)}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="card">
+                    <strong>Metric recommendations</strong>
+                    <ul className="list">
+                      {(results.advice.advice?.metric_recommendations ?? []).map((item) => (
+                        <li key={String(item)}>{String(item)}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="card">
+                    <strong>Interpretation pitfalls</strong>
+                    <ul className="list">
+                      {(results.advice.advice?.interpretation_pitfalls ?? []).map((item) => (
+                        <li key={String(item)}>{String(item)}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="card">
+                    <strong>Additional checks</strong>
+                    <ul className="list">
+                      {(results.advice.advice?.additional_checks ?? []).map((item) => (
+                        <li key={String(item)}>{String(item)}</li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
-                <div className="card">
-                  <strong>Design improvements</strong>
-                  <ul className="list">
-                    {(results.advice.advice?.design_improvements ?? []).map((item) => (
-                      <li key={String(item)}>{String(item)}</li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
+              </>
             ) : (
               <div className="status">
                 AI advice unavailable. Core deterministic output still works. {String(results.advice?.error ?? "")}
