@@ -7,6 +7,7 @@ vi.mock("./lib/api", () => ({
   exportReportRequest: vi.fn(),
   listProjectsRequest: vi.fn(),
   loadProjectRequest: vi.fn(),
+  requestHealth: vi.fn(),
   requestAnalysis: vi.fn(),
   saveProjectRequest: vi.fn()
 }));
@@ -16,6 +17,7 @@ import {
   deleteProjectRequest,
   listProjectsRequest,
   loadProjectRequest,
+  requestHealth,
   requestAnalysis
 } from "./lib/api";
 import { cloneInitialState, type FullPayload } from "./lib/experiment";
@@ -107,6 +109,12 @@ describe("App UI flow", () => {
     vi.mocked(deleteProjectRequest).mockReset();
     vi.mocked(listProjectsRequest).mockResolvedValue([]);
     vi.mocked(loadProjectRequest).mockReset();
+    vi.mocked(requestHealth).mockResolvedValue({
+      status: "ok",
+      service: "AB Test Research Designer API",
+      version: "0.1.0",
+      environment: "local"
+    });
     vi.mocked(requestAnalysis).mockReset();
   });
 
@@ -133,6 +141,9 @@ describe("App UI flow", () => {
     try {
       await flushEffects();
 
+      expect(view.container.textContent).toContain("Backend status");
+      expect(view.container.textContent).toContain("API online");
+      expect(view.container.textContent).toContain("AB Test Research Designer API");
       expect(view.container.textContent).toContain("Stored checkout test");
 
       await click(findButton(view.container, "Stored checkout test"));
@@ -141,6 +152,20 @@ describe("App UI flow", () => {
       expect(view.container.textContent).toContain("Loaded project Stored checkout test into the wizard.");
       expect((view.container.querySelector("#project-project_name") as HTMLInputElement).value).toBe("Loaded experiment");
       expect(view.container.textContent).toContain("Project id: p-1");
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("shows backend health errors when the API is unavailable", async () => {
+    vi.mocked(requestHealth).mockRejectedValueOnce(new Error("fetch failed"));
+
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+
+      expect(view.container.textContent).toContain("Backend status");
+      expect(view.container.textContent).toContain("API unavailable. fetch failed");
     } finally {
       await view.unmount();
     }

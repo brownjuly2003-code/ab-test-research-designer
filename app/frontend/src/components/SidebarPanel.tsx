@@ -1,18 +1,26 @@
-import type { SavedProject } from "../lib/experiment";
+import type { ApiHealthResponse, SavedProject } from "../lib/experiment";
 
 type SidebarPanelProps = {
+  loadingHealth: boolean;
   loadingProjects: boolean;
   deletingProjectId: string | null;
+  backendHealth: ApiHealthResponse | null;
+  healthError: string;
   savedProjects: SavedProject[];
+  onRefreshHealth: () => void;
   onLoadProjects: () => void;
   onLoadProject: (projectId: string) => void;
   onDeleteProject: (projectId: string, projectName: string) => void;
 };
 
 export default function SidebarPanel({
+  loadingHealth,
   loadingProjects,
   deletingProjectId,
+  backendHealth,
+  healthError,
   savedProjects,
+  onRefreshHealth,
   onLoadProjects,
   onLoadProject,
   onDeleteProject
@@ -26,6 +34,36 @@ export default function SidebarPanel({
           <li>Warnings come from the rules engine layered on top of deterministic inputs.</li>
           <li>AI advice is optional and pulled separately from the local orchestrator.</li>
         </ul>
+      </div>
+      <div className="card">
+        <div className="actions">
+          <button className="btn ghost" disabled={loadingHealth} onClick={onRefreshHealth}>
+            {loadingHealth ? "Checking..." : "Refresh backend status"}
+          </button>
+        </div>
+        <h3>Backend status</h3>
+        {backendHealth ? (
+          <>
+            <span className="pill">API online</span>
+            <ul className="list">
+              <li>
+                <strong>Service:</strong> {backendHealth.service}
+              </li>
+              <li>
+                <strong>Version:</strong> {backendHealth.version}
+              </li>
+              <li>
+                <strong>Environment:</strong> {backendHealth.environment}
+              </li>
+            </ul>
+          </>
+        ) : healthError ? (
+          <div className="status">
+            API unavailable. {healthError}
+          </div>
+        ) : (
+          <p className="muted">No backend status loaded yet.</p>
+        )}
       </div>
       <div className="card">
         <div className="actions">

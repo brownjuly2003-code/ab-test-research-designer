@@ -1,5 +1,6 @@
 import {
   apiUrl,
+  type ApiHealthResponse,
   buildApiPayload,
   buildCalculationPayload,
   type AdviceResponse,
@@ -49,6 +50,17 @@ async function readJson<T>(response: Response): Promise<T> {
 
 function getErrorMessage(payload: ApiErrorResponse, fallback: string): string {
   return typeof payload.detail === "string" ? payload.detail : fallback;
+}
+
+export async function requestHealth(): Promise<ApiHealthResponse> {
+  const response = await fetch(apiUrl("/health"));
+  const data = await readJson<ApiHealthResponse & ApiErrorResponse>(response);
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(data, "Health check failed"));
+  }
+
+  return data;
 }
 
 export async function requestAnalysis(form: FullPayload): Promise<AnalysisResponse> {

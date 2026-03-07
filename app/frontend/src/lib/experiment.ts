@@ -89,6 +89,13 @@ export type AdviceResponse = {
   error: string | null;
 };
 
+export type ApiHealthResponse = {
+  status: string;
+  service: string;
+  version: string;
+  environment: string;
+};
+
 export type ResultsState = {
   calculations?: CalculationResponse;
   report?: ReportResponse;

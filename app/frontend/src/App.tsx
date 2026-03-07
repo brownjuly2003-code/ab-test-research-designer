@@ -7,10 +7,12 @@ import {
   exportReportRequest,
   listProjectsRequest,
   loadProjectRequest,
+  requestHealth,
   requestAnalysis,
   saveProjectRequest
 } from "./lib/api";
 import {
+  type ApiHealthResponse,
   cloneInitialState,
   type ExportFormat,
   type FullPayload,
@@ -84,8 +86,11 @@ export default function App() {
   const [results, setResults] = useState<ResultsState>({});
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [loadingHealth, setLoadingHealth] = useState(false);
   const [loadingProjects, setLoadingProjects] = useState(false);
   const [deletingProjectId, setDeletingProjectId] = useState<string | null>(null);
+  const [backendHealth, setBackendHealth] = useState<ApiHealthResponse | null>(null);
+  const [healthError, setHealthError] = useState("");
   const [error, setError] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
   const [savedProjects, setSavedProjects] = useState<SavedProject[]>([]);
@@ -135,8 +140,23 @@ export default function App() {
   }
 
   useEffect(() => {
+    void loadBackendHealth();
     void loadProjects();
   }, []);
+
+  async function loadBackendHealth() {
+    setLoadingHealth(true);
+
+    try {
+      setBackendHealth(await requestHealth());
+      setHealthError("");
+    } catch (requestError) {
+      setBackendHealth(null);
+      setHealthError(requestError instanceof Error ? requestError.message : "Unexpected backend health error");
+    } finally {
+      setLoadingHealth(false);
+    }
+  }
 
   async function runAnalysis() {
     if (!ensureValidForm()) {
@@ -299,9 +319,13 @@ export default function App() {
               onExportReport={exportReport}
             />
             <SidebarPanel
+              loadingHealth={loadingHealth}
               loadingProjects={loadingProjects}
               deletingProjectId={deletingProjectId}
+              backendHealth={backendHealth}
+              healthError={healthError}
               savedProjects={savedProjects}
+              onRefreshHealth={loadBackendHealth}
               onLoadProjects={loadProjects}
               onLoadProject={loadProject}
               onDeleteProject={deleteProject}

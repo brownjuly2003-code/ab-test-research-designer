@@ -5,6 +5,7 @@ import {
   exportReportRequest,
   listProjectsRequest,
   loadProjectRequest,
+  requestHealth,
   requestAnalysis,
   saveProjectRequest
 } from "./api";
@@ -102,6 +103,22 @@ describe("frontend api wrapper", () => {
     expect(result.report.executive_summary).toBe("summary");
     expect(result.report.metrics_plan.secondary).toEqual(["add_to_cart_rate"]);
     expect(result.advice.available).toBe(false);
+  });
+
+  it("loads backend health", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      jsonResponse({
+        status: "ok",
+        service: "AB Test Research Designer API",
+        version: "0.1.0",
+        environment: "local"
+      })
+    );
+
+    const result = await requestHealth();
+
+    expect(result.service).toBe("AB Test Research Designer API");
+    expect(result.environment).toBe("local");
   });
 
   it("throws the backend detail when save project fails", async () => {
