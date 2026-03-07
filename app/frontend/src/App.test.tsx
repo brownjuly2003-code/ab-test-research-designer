@@ -14,19 +14,33 @@ vi.mock("./lib/api", () => ({
 
 import App from "./App";
 import {
+  type AnalysisResponse,
   deleteProjectRequest,
   listProjectsRequest,
   loadProjectRequest,
   requestHealth,
   requestAnalysis
 } from "./lib/api";
-import { buildDraftTransferFile, browserDraftStorageKey, cloneInitialState, type FullPayload } from "./lib/experiment";
+import {
+  buildApiPayload,
+  buildDraftTransferFile,
+  browserDraftStorageKey,
+  cloneInitialState,
+  type FullPayload
+} from "./lib/experiment";
 import { changeFiles, changeValue, click, findButton, findButtonByAriaLabel, flushEffects, renderIntoDocument } from "./test/dom";
 
-function buildAnalysisResult(adviceAvailable = false) {
+function buildAnalysisResult(adviceAvailable = false): AnalysisResponse {
   return {
     calculations: {
-      calculation_summary: {},
+      calculation_summary: {
+        metric_type: "binary",
+        baseline_value: 0.042,
+        mde_pct: 5,
+        mde_absolute: 0.0021,
+        alpha: 0.05,
+        power: 0.8
+      },
       results: {
         sample_size_per_variant: 100,
         total_sample_size: 300,
@@ -138,7 +152,7 @@ describe("App UI flow", () => {
     vi.mocked(loadProjectRequest).mockResolvedValueOnce({
       id: "p-1",
       project_name: "Stored checkout test",
-      payload: buildLoadedPayload()
+      payload: buildApiPayload(buildLoadedPayload())
     });
 
     const view = await renderIntoDocument(<App />);
@@ -207,7 +221,7 @@ describe("App UI flow", () => {
     vi.mocked(loadProjectRequest).mockResolvedValueOnce({
       id: "p-1",
       project_name: "Stored checkout test",
-      payload: buildLoadedPayload()
+      payload: buildApiPayload(buildLoadedPayload())
     });
     vi.mocked(deleteProjectRequest).mockResolvedValueOnce({ id: "p-1", deleted: true });
 

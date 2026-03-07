@@ -1,6 +1,7 @@
 import {
   apiUrl,
   type ApiHealthResponse,
+  type ExperimentInputPayload,
   buildApiPayload,
   buildCalculationPayload,
   type AdviceResponse,
@@ -12,10 +13,10 @@ import {
   type SavedProject
 } from "./experiment";
 
-type ProjectRecordResponse = {
+export type ProjectRecordResponse = {
   id: string;
   project_name: string;
-  payload: FullPayload;
+  payload: ExperimentInputPayload;
 };
 
 type ProjectListResponse = {
@@ -26,19 +27,19 @@ type ExportResponse = {
   content?: string;
 };
 
-type SaveProjectResponse = {
+export type SaveProjectResponse = {
   id?: string;
   project_name?: string;
   detail?: string;
 };
 
-type DeleteProjectResponse = {
+export type DeleteProjectResponse = {
   id?: string;
   deleted?: boolean;
   detail?: string;
 };
 
-type AnalysisResponse = {
+export type AnalysisResponse = {
   calculations: CalculationResponse;
   report: ReportResponse;
   advice: AdviceResponse;
@@ -110,7 +111,10 @@ export async function requestAnalysis(form: FullPayload): Promise<AnalysisRespon
   };
 }
 
-export async function saveProjectRequest(form: FullPayload, activeProjectId: string | null): Promise<SaveProjectResponse> {
+export async function saveProjectRequest(
+  form: FullPayload,
+  activeProjectId: string | null
+): Promise<SaveProjectResponse> {
   const isUpdate = activeProjectId !== null;
   const response = await fetch(
     isUpdate ? apiUrl(`/api/v1/projects/${activeProjectId}`) : apiUrl("/api/v1/projects"),

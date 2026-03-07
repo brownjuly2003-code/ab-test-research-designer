@@ -1,9 +1,12 @@
 import {
+  getSectionFieldValue,
   getReviewSections,
   sections,
   stepLabels,
+  type DraftFieldValue,
   type ExportFormat,
   type FullPayload,
+  type FullPayloadSectionKey,
   type ResultsState
 } from "../lib/experiment";
 
@@ -18,7 +21,7 @@ type WizardPanelProps = {
   results: ResultsState;
   statusMessage: string;
   error: string;
-  onUpdateSection: (section: keyof FullPayload, key: string, value: unknown) => void;
+  onUpdateSection: (section: FullPayloadSectionKey, key: string, value: DraftFieldValue) => void;
   onBack: () => void;
   onNext: () => void;
   onSave: () => void;
@@ -84,20 +87,20 @@ export default function WizardPanel({
             </div>
           ) : null}
           <div className="fields">
-            {current.fields.map(([label, key, kind, explicitSection]) => {
-              const targetSection = explicitSection ?? current.section;
-              const value = form[targetSection][key as keyof typeof form[typeof targetSection]];
-              const fieldType = kind ?? "text";
-              const fieldId = `${String(targetSection)}-${key}`;
+            {current.fields.map((field) => {
+              const targetSection = field.section ?? current.section;
+              const value = getSectionFieldValue(form, targetSection, field.key);
+              const fieldType = field.kind ?? "text";
+              const fieldId = `${String(targetSection)}-${field.key}`;
 
               if (fieldType === "textarea") {
                 return (
-                  <div key={key} className="field full">
-                    <label htmlFor={fieldId}>{label}</label>
+                  <div key={fieldId} className="field full">
+                    <label htmlFor={fieldId}>{field.label}</label>
                     <textarea
                       id={fieldId}
                       value={String(value ?? "")}
-                      onChange={(event) => onUpdateSection(targetSection, key, event.target.value)}
+                      onChange={(event) => onUpdateSection(targetSection, field.key, event.target.value)}
                     />
                   </div>
                 );
@@ -105,12 +108,12 @@ export default function WizardPanel({
 
               if (fieldType === "boolean") {
                 return (
-                  <div key={key} className="field">
-                    <label htmlFor={fieldId}>{label}</label>
+                  <div key={fieldId} className="field">
+                    <label htmlFor={fieldId}>{field.label}</label>
                     <select
                       id={fieldId}
                       value={String(value)}
-                      onChange={(event) => onUpdateSection(targetSection, key, event.target.value === "true")}
+                      onChange={(event) => onUpdateSection(targetSection, field.key, event.target.value === "true")}
                     >
                       <option value="true">Yes</option>
                       <option value="false">No</option>
@@ -120,8 +123,8 @@ export default function WizardPanel({
               }
 
               return (
-                <div key={key} className={`field ${label.includes("description") || label.includes("constraints") ? "full" : ""}`}>
-                  <label htmlFor={fieldId}>{label}</label>
+                <div key={fieldId} className={`field ${field.fullWidth ? "full" : ""}`}>
+                  <label htmlFor={fieldId}>{field.label}</label>
                   <input
                     id={fieldId}
                     type={fieldType === "number" ? "number" : "text"}
@@ -130,7 +133,7 @@ export default function WizardPanel({
                     onChange={(event) =>
                       onUpdateSection(
                         targetSection,
-                        key,
+                        field.key,
                         fieldType === "number" ? Number(event.target.value) : event.target.value
                       )
                     }

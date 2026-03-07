@@ -9,7 +9,7 @@ import {
   requestAnalysis,
   saveProjectRequest
 } from "./api";
-import { cloneInitialState } from "./experiment";
+import { buildApiPayload, cloneInitialState } from "./experiment";
 
 function jsonResponse(payload: unknown, init?: ResponseInit): Response {
   return new Response(JSON.stringify(payload), {
@@ -71,7 +71,14 @@ describe("frontend api wrapper", () => {
     fetchMock
       .mockResolvedValueOnce(
         jsonResponse({
-          calculation_summary: {},
+          calculation_summary: {
+            metric_type: "binary",
+            baseline_value: 0.042,
+            mde_pct: 5,
+            mde_absolute: 0.0021,
+            alpha: 0.05,
+            power: 0.8
+          },
           results: {
             sample_size_per_variant: 100,
             total_sample_size: 200,
@@ -149,7 +156,7 @@ describe("frontend api wrapper", () => {
       jsonResponse({
         id: "1",
         project_name: "Checkout redesign",
-        payload: cloneInitialState()
+        payload: buildApiPayload(cloneInitialState())
       })
     );
 

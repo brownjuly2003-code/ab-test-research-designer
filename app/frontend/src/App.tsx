@@ -16,10 +16,13 @@ import {
   browserDraftStorageKey,
   type ApiHealthResponse,
   cloneInitialState,
+  type DraftFieldValue,
   type ExportFormat,
   type FullPayload,
+  type FullPayloadSectionKey,
   hydrateLoadedPayload,
   parseImportedDraft,
+  setSectionFieldValue,
   stepLabels,
   type ResultsState,
   type SavedProject,
@@ -127,6 +130,7 @@ export default function App() {
   const [savedProjects, setSavedProjects] = useState<SavedProject[]>([]);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const lastStepIndex = stepLabels.length - 1;
 
   function invalidateResults() {
     setResults((current) => (Object.keys(current).length > 0 ? {} : current));
@@ -135,14 +139,8 @@ export default function App() {
     setValidationErrors((current) => (current.length > 0 ? [] : current));
   }
 
-  function updateSection(section: keyof FullPayload, key: string, value: unknown) {
-    setForm((current) => ({
-      ...current,
-      [section]: {
-        ...current[section],
-        [key]: value
-      }
-    }));
+  function updateSection(section: FullPayloadSectionKey, key: string, value: DraftFieldValue) {
+    setForm((current) => setSectionFieldValue(current, section, key, value));
     invalidateResults();
   }
 
@@ -264,7 +262,7 @@ export default function App() {
       const analysis = await requestAnalysis(form);
 
       setResults(analysis);
-      setStep(stepLabels.length - 1);
+      setStep(lastStepIndex);
       setStatusMessage("Analysis completed. Deterministic output and optional AI advice are shown below.");
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Unexpected request error");
@@ -417,8 +415,8 @@ export default function App() {
               statusMessage={statusMessage}
               error={error}
               onUpdateSection={updateSection}
-              onBack={() => setStep((currentStep) => currentStep - 1)}
-              onNext={() => setStep((currentStep) => currentStep + 1)}
+              onBack={() => setStep((currentStep) => Math.max(0, currentStep - 1))}
+              onNext={() => setStep((currentStep) => Math.min(lastStepIndex, currentStep + 1))}
               onSave={saveProject}
               onStartNew={startNewProject}
               onImportDraft={openImportDraft}

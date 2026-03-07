@@ -1,10 +1,123 @@
+export type MetricType = "binary" | "continuous";
+
+export type ProjectSection = {
+  project_name: string;
+  domain: string;
+  product_type: string;
+  platform: string;
+  market: string;
+  project_description: string;
+};
+
+export type HypothesisSection = {
+  change_description: string;
+  target_audience: string;
+  business_problem: string;
+  hypothesis_statement: string;
+  what_to_validate: string;
+  desired_result: string;
+};
+
+export type SetupDraftSection = {
+  experiment_type: string;
+  randomization_unit: string;
+  traffic_split: string;
+  expected_daily_traffic: number;
+  audience_share_in_test: number;
+  variants_count: number;
+  inclusion_criteria: string;
+  exclusion_criteria: string;
+};
+
+export type SetupPayloadSection = Omit<SetupDraftSection, "traffic_split"> & {
+  traffic_split: number[];
+};
+
+export type MetricsDraftSection = {
+  primary_metric_name: string;
+  metric_type: MetricType;
+  baseline_value: number;
+  expected_uplift_pct: number | null;
+  mde_pct: number;
+  alpha: number;
+  power: number;
+  std_dev: number | "";
+  secondary_metrics: string;
+  guardrail_metrics: string;
+};
+
+export type MetricsPayloadSection = Omit<
+  MetricsDraftSection,
+  "std_dev" | "secondary_metrics" | "guardrail_metrics"
+> & {
+  std_dev: number | null;
+  secondary_metrics: string[];
+  guardrail_metrics: string[];
+};
+
+export type ConstraintsSection = {
+  seasonality_present: boolean;
+  active_campaigns_present: boolean;
+  returning_users_present: boolean;
+  interference_risk: string;
+  technical_constraints: string;
+  legal_or_ethics_constraints: string;
+  known_risks: string;
+  deadline_pressure: string;
+  long_test_possible: boolean;
+};
+
+export type AdditionalContextSection = {
+  llm_context: string;
+};
+
 export type FullPayload = {
-  project: Record<string, unknown>;
-  hypothesis: Record<string, unknown>;
-  setup: Record<string, unknown>;
-  metrics: Record<string, unknown>;
-  constraints: Record<string, unknown>;
-  additional_context: Record<string, unknown>;
+  project: ProjectSection;
+  hypothesis: HypothesisSection;
+  setup: SetupDraftSection;
+  metrics: MetricsDraftSection;
+  constraints: ConstraintsSection;
+  additional_context: AdditionalContextSection;
+};
+
+export type ExperimentInputPayload = {
+  project: ProjectSection;
+  hypothesis: HypothesisSection;
+  setup: SetupPayloadSection;
+  metrics: MetricsPayloadSection;
+  constraints: ConstraintsSection;
+  additional_context: AdditionalContextSection;
+};
+
+export type LoadedPayload = {
+  project: ProjectSection;
+  hypothesis: HypothesisSection;
+  setup: Omit<SetupDraftSection, "traffic_split"> & {
+    traffic_split: string | number[];
+  };
+  metrics: Omit<MetricsDraftSection, "std_dev" | "secondary_metrics" | "guardrail_metrics"> & {
+    std_dev: number | "" | null;
+    secondary_metrics: string | string[];
+    guardrail_metrics: string | string[];
+  };
+  constraints: ConstraintsSection;
+  additional_context: AdditionalContextSection;
+};
+
+export type CalculationRequestPayload = {
+  metric_type: MetricType;
+  baseline_value: number;
+  std_dev: number | null;
+  mde_pct: number;
+  alpha: number;
+  power: number;
+  expected_daily_traffic: number;
+  audience_share_in_test: number;
+  traffic_split: number[];
+  variants_count: number;
+  seasonality_present: boolean;
+  active_campaigns_present: boolean;
+  long_test_possible: boolean;
 };
 
 export type ApiErrorResponse = {
@@ -18,8 +131,17 @@ export type WarningItem = {
   source?: string;
 };
 
+export type CalculationSummary = {
+  metric_type: MetricType;
+  baseline_value: number;
+  mde_pct: number;
+  mde_absolute: number;
+  alpha: number;
+  power: number;
+};
+
 export type CalculationResponse = {
-  calculation_summary: Record<string, unknown>;
+  calculation_summary: CalculationSummary;
   results: {
     sample_size_per_variant: number;
     total_sample_size: number;
@@ -111,13 +233,18 @@ export type SavedProject = {
 
 export type ExportFormat = "markdown" | "html";
 export type FieldKind = "text" | "textarea" | "number" | "boolean";
-export type SectionField =
-  | [string, string]
-  | [string, string, FieldKind]
-  | [string, string, FieldKind, keyof FullPayload];
+export type FullPayloadSectionKey = keyof FullPayload;
+export type DraftFieldValue = string | number | boolean;
+export type SectionField = {
+  label: string;
+  key: string;
+  kind?: FieldKind;
+  section?: FullPayloadSectionKey;
+  fullWidth?: boolean;
+};
 export type SectionConfig = {
   title: string;
-  section: keyof FullPayload;
+  section: FullPayloadSectionKey;
   fields: SectionField[];
 };
 
@@ -133,7 +260,7 @@ export type ReviewSection = {
 
 export type DraftTransferFile = {
   schema_version: number;
-  payload: FullPayload;
+  payload: ExperimentInputPayload;
 };
 
 export const browserDraftStorageKey = "ab-test-research-designer:draft:v1";
@@ -150,7 +277,7 @@ export function apiUrl(path: string): string {
   return `${apiBase}${path}`;
 }
 
-export const stepLabels = ["Project", "Hypothesis", "Setup", "Metrics", "Constraints", "Review"];
+export const stepLabels = ["Project", "Hypothesis", "Setup", "Metrics", "Constraints", "Review"] as const;
 
 export const initialState: FullPayload = {
   project: {
@@ -211,13 +338,45 @@ export function cloneInitialState(): FullPayload {
   return structuredClone(initialState) as FullPayload;
 }
 
-function readString(section: Record<string, unknown>, key: string): string {
+type ImportedPayloadLike = {
+  project: Record<string, unknown>;
+  hypothesis: Record<string, unknown>;
+  setup: Record<string, unknown>;
+  metrics: Record<string, unknown>;
+  constraints: Record<string, unknown>;
+  additional_context?: Record<string, unknown>;
+};
+
+function readString<T extends object, K extends keyof T>(section: T, key: K): string {
   return String(section[key] ?? "").trim();
 }
 
-function readNumber(section: Record<string, unknown>, key: string): number {
+function readNumber<T extends object, K extends keyof T>(section: T, key: K): number {
   const value = section[key];
   return typeof value === "number" ? value : Number(value);
+}
+
+export function getSectionFieldValue(
+  state: FullPayload,
+  section: FullPayloadSectionKey,
+  key: string
+): unknown {
+  return (state[section] as Record<string, unknown>)[key];
+}
+
+export function setSectionFieldValue(
+  state: FullPayload,
+  section: FullPayloadSectionKey,
+  key: string,
+  value: DraftFieldValue
+): FullPayload {
+  return {
+    ...state,
+    [section]: {
+      ...(state[section] as Record<string, unknown>),
+      [key]: value
+    }
+  } as FullPayload;
 }
 
 export function parseTrafficSplit(raw: unknown): number[] {
@@ -239,7 +398,7 @@ export function parseMetricList(raw: unknown): string[] {
     .filter((value) => value.length > 0);
 }
 
-export function buildApiPayload(state: FullPayload): FullPayload {
+export function buildApiPayload(state: FullPayload): ExperimentInputPayload {
   return {
     ...state,
     setup: {
@@ -255,7 +414,7 @@ export function buildApiPayload(state: FullPayload): FullPayload {
   };
 }
 
-export function buildCalculationPayload(state: FullPayload): Record<string, unknown> {
+export function buildCalculationPayload(state: FullPayload): CalculationRequestPayload {
   const payload = buildApiPayload(state);
 
   return {
@@ -286,7 +445,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function hasPayloadSections(value: unknown): value is FullPayload {
+function hasPayloadSections(value: unknown): value is ImportedPayloadLike {
   if (!isRecord(value)) {
     return false;
   }
@@ -294,6 +453,35 @@ function hasPayloadSections(value: unknown): value is FullPayload {
   return ["project", "hypothesis", "setup", "metrics", "constraints"].every(
     (key) => isRecord(value[key])
   );
+}
+
+function normalizeImportedPayload(payload: ImportedPayloadLike): LoadedPayload {
+  return {
+    project: {
+      ...initialState.project,
+      ...payload.project
+    },
+    hypothesis: {
+      ...initialState.hypothesis,
+      ...payload.hypothesis
+    },
+    setup: {
+      ...initialState.setup,
+      ...payload.setup
+    } as LoadedPayload["setup"],
+    metrics: {
+      ...initialState.metrics,
+      ...payload.metrics
+    } as LoadedPayload["metrics"],
+    constraints: {
+      ...initialState.constraints,
+      ...payload.constraints
+    },
+    additional_context: {
+      ...initialState.additional_context,
+      ...(isRecord(payload.additional_context) ? payload.additional_context : {})
+    }
+  };
 }
 
 export function parseImportedDraft(raw: string): FullPayload {
@@ -315,13 +503,10 @@ export function parseImportedDraft(raw: string): FullPayload {
     throw new Error("Imported JSON does not match the experiment payload format.");
   }
 
-  return hydrateLoadedPayload({
-    ...directPayload,
-    additional_context: isRecord(directPayload.additional_context) ? directPayload.additional_context : {}
-  });
+  return hydrateLoadedPayload(normalizeImportedPayload(directPayload));
 }
 
-export function hydrateLoadedPayload(payload: FullPayload): FullPayload {
+export function hydrateLoadedPayload(payload: LoadedPayload | ExperimentInputPayload): FullPayload {
   return {
     ...payload,
     setup: {
@@ -335,7 +520,7 @@ export function hydrateLoadedPayload(payload: FullPayload): FullPayload {
       std_dev:
         payload.metrics.std_dev === null || payload.metrics.std_dev === undefined
           ? ""
-          : String(payload.metrics.std_dev),
+          : Number(payload.metrics.std_dev),
       secondary_metrics: parseMetricList(payload.metrics.secondary_metrics).join(", "),
       guardrail_metrics: parseMetricList(payload.metrics.guardrail_metrics).join(", ")
     }
@@ -357,11 +542,11 @@ export function formatReviewValue(value: unknown): string {
 export function getReviewSections(state: FullPayload): ReviewSection[] {
   return sections.map((section) => ({
     title: section.title,
-    items: section.fields.map(([label, key, _kind, explicitSection]) => {
-      const targetSection = explicitSection ?? section.section;
+    items: section.fields.map((field) => {
+      const targetSection = field.section ?? section.section;
       return {
-        label,
-        value: formatReviewValue(state[targetSection][key])
+        label: field.label,
+        value: formatReviewValue(getSectionFieldValue(state, targetSection, field.key))
       };
     })
   }));
@@ -441,70 +626,76 @@ export const sections: SectionConfig[] = [
     title: "Project context",
     section: "project",
     fields: [
-      ["Project name", "project_name"],
-      ["Domain", "domain"],
-      ["Product type", "product_type"],
-      ["Platform", "platform"],
-      ["Market", "market"],
-      ["Project description", "project_description", "textarea"]
+      { label: "Project name", key: "project_name" },
+      { label: "Domain", key: "domain" },
+      { label: "Product type", key: "product_type" },
+      { label: "Platform", key: "platform" },
+      { label: "Market", key: "market" },
+      { label: "Project description", key: "project_description", kind: "textarea", fullWidth: true }
     ]
   },
   {
     title: "Hypothesis",
     section: "hypothesis",
     fields: [
-      ["Change description", "change_description"],
-      ["Target audience", "target_audience"],
-      ["Business problem", "business_problem"],
-      ["Hypothesis statement", "hypothesis_statement", "textarea"],
-      ["What to validate", "what_to_validate"],
-      ["Desired result", "desired_result"]
+      { label: "Change description", key: "change_description", fullWidth: true },
+      { label: "Target audience", key: "target_audience" },
+      { label: "Business problem", key: "business_problem" },
+      { label: "Hypothesis statement", key: "hypothesis_statement", kind: "textarea", fullWidth: true },
+      { label: "What to validate", key: "what_to_validate" },
+      { label: "Desired result", key: "desired_result" }
     ]
   },
   {
     title: "Experiment setup",
     section: "setup",
     fields: [
-      ["Experiment type", "experiment_type"],
-      ["Randomization unit", "randomization_unit"],
-      ["Traffic split", "traffic_split"],
-      ["Expected daily traffic", "expected_daily_traffic", "number"],
-      ["Audience share in test", "audience_share_in_test", "number"],
-      ["Variants count", "variants_count", "number"],
-      ["Inclusion criteria", "inclusion_criteria"],
-      ["Exclusion criteria", "exclusion_criteria"]
+      { label: "Experiment type", key: "experiment_type" },
+      { label: "Randomization unit", key: "randomization_unit" },
+      { label: "Traffic split", key: "traffic_split" },
+      { label: "Expected daily traffic", key: "expected_daily_traffic", kind: "number" },
+      { label: "Audience share in test", key: "audience_share_in_test", kind: "number" },
+      { label: "Variants count", key: "variants_count", kind: "number" },
+      { label: "Inclusion criteria", key: "inclusion_criteria" },
+      { label: "Exclusion criteria", key: "exclusion_criteria" }
     ]
   },
   {
     title: "Metrics",
     section: "metrics",
     fields: [
-      ["Primary metric", "primary_metric_name"],
-      ["Metric type", "metric_type"],
-      ["Baseline value", "baseline_value", "number"],
-      ["Expected uplift %", "expected_uplift_pct", "number"],
-      ["MDE %", "mde_pct", "number"],
-      ["Alpha", "alpha", "number"],
-      ["Power", "power", "number"],
-      ["Std dev", "std_dev", "number"],
-      ["Secondary metrics", "secondary_metrics", "textarea"],
-      ["Guardrail metrics", "guardrail_metrics", "textarea"]
+      { label: "Primary metric", key: "primary_metric_name" },
+      { label: "Metric type", key: "metric_type" },
+      { label: "Baseline value", key: "baseline_value", kind: "number" },
+      { label: "Expected uplift %", key: "expected_uplift_pct", kind: "number" },
+      { label: "MDE %", key: "mde_pct", kind: "number" },
+      { label: "Alpha", key: "alpha", kind: "number" },
+      { label: "Power", key: "power", kind: "number" },
+      { label: "Std dev", key: "std_dev", kind: "number" },
+      { label: "Secondary metrics", key: "secondary_metrics", kind: "textarea", fullWidth: true },
+      { label: "Guardrail metrics", key: "guardrail_metrics", kind: "textarea", fullWidth: true }
     ]
   },
   {
     title: "Constraints",
     section: "constraints",
     fields: [
-      ["Seasonality present", "seasonality_present", "boolean"],
-      ["Active campaigns present", "active_campaigns_present", "boolean"],
-      ["Returning users present", "returning_users_present", "boolean"],
-      ["Interference risk", "interference_risk"],
-      ["Technical constraints", "technical_constraints"],
-      ["Legal / ethics constraints", "legal_or_ethics_constraints"],
-      ["Known risks", "known_risks"],
-      ["Deadline pressure", "deadline_pressure"],
-      ["Long test possible", "long_test_possible", "boolean"],
-      ["AI context", "llm_context", "textarea", "additional_context"]
+      { label: "Seasonality present", key: "seasonality_present", kind: "boolean" },
+      { label: "Active campaigns present", key: "active_campaigns_present", kind: "boolean" },
+      { label: "Returning users present", key: "returning_users_present", kind: "boolean" },
+      { label: "Interference risk", key: "interference_risk" },
+      { label: "Technical constraints", key: "technical_constraints", fullWidth: true },
+      { label: "Legal / ethics constraints", key: "legal_or_ethics_constraints", fullWidth: true },
+      { label: "Known risks", key: "known_risks", fullWidth: true },
+      { label: "Deadline pressure", key: "deadline_pressure" },
+      { label: "Long test possible", key: "long_test_possible", kind: "boolean" },
+      {
+        label: "AI context",
+        key: "llm_context",
+        kind: "textarea",
+        section: "additional_context",
+        fullWidth: true
+      }
     ]
   }
 ];
