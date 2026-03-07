@@ -179,6 +179,7 @@ class LlmAdviceResponse(BaseModel):
     advice: AdvicePayload | None
     raw_text: str | None
     error: str | None
+    error_code: str | None = None
 
 
 class AnalysisResponse(BaseModel):

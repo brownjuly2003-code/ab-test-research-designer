@@ -115,6 +115,7 @@ def test_analyze_endpoint_returns_combined_payload(monkeypatch) -> None:
             },
             "raw_text": "{\"brief_assessment\": \"Combined analysis available.\"}",
             "error": None,
+            "error_code": None,
         },
     )
     client = TestClient(create_app())
@@ -136,6 +137,7 @@ def test_llm_advice_endpoint_returns_graceful_fallback_when_orchestrator_unavail
 
     assert response.status_code == 200
     assert response.json()["available"] is False
+    assert response.json()["error_code"] is not None
 
 
 def test_calculate_endpoint_rejects_mismatched_variant_configuration() -> None:

@@ -106,7 +106,8 @@ function buildAnalysisResult(adviceAvailable = false): AnalysisResponse {
           }
         : null,
       raw_text: null,
-      error: adviceAvailable ? null : "offline"
+      error: adviceAvailable ? null : "offline",
+      error_code: adviceAvailable ? null : "request_error"
     }
   };
 }

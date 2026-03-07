@@ -209,6 +209,7 @@ export type AdviceResponse = {
   advice: AdvicePayload | null;
   raw_text: string | null;
   error: string | null;
+  error_code: string | null;
 };
 
 export type ApiHealthResponse = {

@@ -96,7 +96,8 @@ describe("frontend api wrapper", () => {
             model: "Claude Sonnet 4.6",
             advice: null,
             raw_text: null,
-            error: "offline"
+            error: "offline",
+            error_code: "request_error"
           }
         })
       );
