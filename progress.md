@@ -116,6 +116,7 @@ Post-phase cleanup completed
 - added client-side form validation before save and analysis requests
 - split frontend app into focused modules and centralized API calls
 - auto-loaded saved projects on frontend startup
+- added frontend unit tests for experiment helpers and API wrapper
 - updated frontend save flow to update loaded projects instead of always creating duplicates
 - made frontend API base configurable through `VITE_API_BASE_URL`
 

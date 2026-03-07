@@ -35,6 +35,7 @@ Implemented:
 - local save, load, update, and export flow verified
 - client-side validation before save and analysis requests
 - frontend API requests centralized in a dedicated module
+- frontend unit tests for helpers and API wrapper
 - frontend production build verified after dependency install
 
 Remaining:
@@ -104,6 +105,12 @@ Start Vite:
 
 ```bash
 npm run dev
+```
+
+Run frontend unit tests:
+
+```bash
+npm run test:unit
 ```
 
 Optional frontend env var:
