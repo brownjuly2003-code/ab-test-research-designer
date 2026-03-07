@@ -1,24 +1,84 @@
-import type { ExportFormat, ResultsState } from "../lib/experiment";
+import type { ExportFormat, ProjectHistory, SavedProject, ResultsState } from "../lib/experiment";
 
 type ResultsPanelProps = {
   results: ResultsState;
   loading: boolean;
   statusMessage: string;
   error: string;
+  activeProject: SavedProject | null;
+  projectHistory: ProjectHistory | null;
+  loadingProjectHistory: boolean;
   onExportReport: (format: ExportFormat) => void;
 };
+
+function formatResultTimestamp(timestamp: string): string {
+  const parsed = new Date(timestamp);
+  if (Number.isNaN(parsed.getTime())) {
+    return timestamp;
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short"
+  }).format(parsed);
+}
 
 export default function ResultsPanel({
   results,
   loading,
   statusMessage,
   error,
+  activeProject,
+  projectHistory,
+  loadingProjectHistory,
   onExportReport
 }: ResultsPanelProps) {
+  const latestRun = projectHistory?.analysis_runs[0] ?? null;
+  const latestExport = projectHistory?.export_events[0] ?? null;
+
   return (
     <>
       {results.report ? (
         <div className="results">
+          {activeProject ? (
+            <div className="result-block">
+              <span className="pill">Saved activity</span>
+              <h3>Project history context</h3>
+              {loadingProjectHistory && !projectHistory ? (
+                <p className="muted">Loading history for the current saved project...</p>
+              ) : (
+                <div className="two-col">
+                  <div className="card">
+                    <strong>Saved project</strong>
+                    <div>{activeProject.project_name}</div>
+                    <p className="muted">
+                      {projectHistory?.analysis_runs.length ?? 0} analysis run(s) | {projectHistory?.export_events.length ?? 0} export event(s)
+                    </p>
+                  </div>
+                  <div className="card">
+                    <strong>Latest analysis run</strong>
+                    <div>{latestRun ? formatResultTimestamp(latestRun.created_at) : "No saved analysis run yet"}</div>
+                    {latestRun ? (
+                      <p className="muted">
+                        {String(latestRun.summary.metric_type ?? "unknown metric")} | warnings {String(latestRun.summary.warnings_count)}
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="card">
+                    <strong>Latest export</strong>
+                    <div>{latestExport ? formatResultTimestamp(latestExport.created_at) : "No export event yet"}</div>
+                    {latestExport ? (
+                      <p className="muted">
+                        {latestExport.format.toUpperCase()}
+                        {latestExport.analysis_run_id ? " | linked snapshot" : " | unlinked export"}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : null}
+
           <div className="result-block">
             <span className="pill">Deterministic calculations</span>
             <h3>Calculation summary</h3>

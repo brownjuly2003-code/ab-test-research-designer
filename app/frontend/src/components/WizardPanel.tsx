@@ -1,4 +1,4 @@
-import { sections, stepLabels, type DraftFieldValue, type ExportFormat, type FullPayload, type FullPayloadSectionKey, type ResultsState } from "../lib/experiment";
+import { sections, stepLabels, type DraftFieldValue, type ExportFormat, type FullPayload, type FullPayloadSectionKey, type ProjectHistory, type ResultsState, type SavedProject } from "../lib/experiment";
 import ResultsPanel from "./ResultsPanel";
 import WizardDraftStep from "./WizardDraftStep";
 import WizardReviewStep from "./WizardReviewStep";
@@ -13,6 +13,9 @@ type WizardPanelProps = {
   loading: boolean;
   saving: boolean;
   results: ResultsState;
+  activeProject: SavedProject | null;
+  projectHistory: ProjectHistory | null;
+  loadingProjectHistory: boolean;
   statusMessage: string;
   error: string;
   onUpdateSection: (section: FullPayloadSectionKey, key: string, value: DraftFieldValue) => void;
@@ -36,6 +39,9 @@ export default function WizardPanel({
   loading,
   saving,
   results,
+  activeProject,
+  projectHistory,
+  loadingProjectHistory,
   statusMessage,
   error,
   onUpdateSection,
@@ -100,6 +106,9 @@ export default function WizardPanel({
       <ResultsPanel
         results={results}
         loading={loading}
+        activeProject={activeProject}
+        projectHistory={projectHistory}
+        loadingProjectHistory={loadingProjectHistory}
         statusMessage={statusMessage}
         error={error}
         onExportReport={onExportReport}

@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import type { ApiHealthResponse, SavedProject } from "../lib/experiment";
+import type { ApiHealthResponse, ProjectHistory, SavedProject } from "../lib/experiment";
 
 type SidebarPanelProps = {
   loadingHealth: boolean;
@@ -11,8 +11,12 @@ type SidebarPanelProps = {
   savedProjects: SavedProject[];
   activeProjectId: string | null;
   activeProject: SavedProject | null;
+  projectHistory: ProjectHistory | null;
+  projectHistoryError: string;
+  loadingProjectHistory: boolean;
   hasUnsavedChanges: boolean;
   onRefreshHealth: () => void;
+  onRefreshProjectHistory: (projectId: string) => void;
   onLoadProjects: () => void;
   onLoadProject: (projectId: string) => void;
   onDeleteProject: (projectId: string, projectName: string) => void;
@@ -43,8 +47,12 @@ export default function SidebarPanel({
   savedProjects,
   activeProjectId,
   activeProject,
+  projectHistory,
+  projectHistoryError,
+  loadingProjectHistory,
   hasUnsavedChanges,
   onRefreshHealth,
+  onRefreshProjectHistory,
   onLoadProjects,
   onLoadProject,
   onDeleteProject
@@ -128,6 +136,77 @@ export default function SidebarPanel({
       </div>
       <div className="card">
         <div className="actions">
+          <button
+            className="btn ghost"
+            disabled={loadingProjectHistory || !activeProjectId}
+            onClick={() => {
+              if (activeProjectId) {
+                onRefreshProjectHistory(activeProjectId);
+              }
+            }}
+          >
+            {loadingProjectHistory ? "Refreshing..." : "Refresh project history"}
+          </button>
+        </div>
+        <h3>Recent project history</h3>
+        {!activeProjectId ? (
+          <p className="muted">Load a saved project to inspect recent analysis runs and export events.</p>
+        ) : projectHistoryError ? (
+          <div className="status">Project history unavailable. {projectHistoryError}</div>
+        ) : loadingProjectHistory && !projectHistory ? (
+          <p className="muted">Loading saved-project history...</p>
+        ) : projectHistory ? (
+          <>
+            <p className="muted">
+              {projectHistory.analysis_runs.length} analysis run(s) and {projectHistory.export_events.length} export event(s).
+            </p>
+            <div className="card">
+              <h3>Analysis runs</h3>
+              <ul className="list">
+                {projectHistory.analysis_runs.length > 0 ? (
+                  projectHistory.analysis_runs.slice(0, 3).map((run) => (
+                    <li key={run.id}>
+                      <strong>{formatProjectTimestamp(run.created_at)}</strong>
+                      {" | "}
+                      {String(run.summary.metric_type ?? "unknown metric")}
+                      {" | "}
+                      n={String(run.summary.total_sample_size ?? "-")}
+                      {" | "}
+                      {String(run.summary.estimated_duration_days ?? "-")}d
+                      {" | "}
+                      warnings {String(run.summary.warnings_count)}
+                      {run.summary.advice_available ? " | AI advice" : ""}
+                    </li>
+                  ))
+                ) : (
+                  <li>No analysis history recorded yet.</li>
+                )}
+              </ul>
+            </div>
+            <div className="card">
+              <h3>Export events</h3>
+              <ul className="list">
+                {projectHistory.export_events.length > 0 ? (
+                  projectHistory.export_events.slice(0, 3).map((event) => (
+                    <li key={event.id}>
+                      <strong>{formatProjectTimestamp(event.created_at)}</strong>
+                      {" | "}
+                      {event.format.toUpperCase()}
+                      {event.analysis_run_id ? " | linked snapshot" : " | unlinked export"}
+                    </li>
+                  ))
+                ) : (
+                  <li>No export history recorded yet.</li>
+                )}
+              </ul>
+            </div>
+          </>
+        ) : (
+          <p className="muted">No project history loaded yet.</p>
+        )}
+      </div>
+      <div className="card">
+        <div className="actions">
           <button className="btn ghost" disabled={loadingProjects} onClick={onLoadProjects}>
             {loadingProjects ? "Loading..." : "Load saved projects"}
           </button>
@@ -197,6 +276,7 @@ export default function SidebarPanel({
           <li><code>POST /api/v1/llm/advice</code></li>
           <li><code>POST /api/v1/projects/{'{id}'}/analysis</code></li>
           <li><code>POST /api/v1/projects/{'{id}'}/exports</code></li>
+          <li><code>GET /api/v1/projects/{'{id}'}/history</code></li>
           <li><code>GET/POST/PUT/DELETE /api/v1/projects</code></li>
         </ul>
       </div>

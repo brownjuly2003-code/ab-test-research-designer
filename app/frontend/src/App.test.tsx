@@ -6,6 +6,7 @@ vi.mock("./lib/api", () => ({
   deleteProjectRequest: vi.fn(),
   exportReportRequest: vi.fn(),
   listProjectsRequest: vi.fn(),
+  loadProjectHistoryRequest: vi.fn(),
   loadProjectRequest: vi.fn(),
   recordProjectAnalysisRequest: vi.fn(),
   recordProjectExportRequest: vi.fn(),
@@ -18,7 +19,9 @@ import App from "./App";
 import {
   type AnalysisResponse,
   deleteProjectRequest,
+  exportReportRequest,
   listProjectsRequest,
+  loadProjectHistoryRequest,
   loadProjectRequest,
   recordProjectAnalysisRequest,
   recordProjectExportRequest,
@@ -124,12 +127,54 @@ function buildLoadedPayload(): FullPayload {
   return state;
 }
 
+function buildProjectHistory(projectId = "p-1") {
+  return {
+    project_id: projectId,
+    analysis_runs: [
+      {
+        id: "run-1",
+        project_id: projectId,
+        created_at: "2026-03-07T12:30:00Z",
+        summary: {
+          metric_type: "binary",
+          sample_size_per_variant: 100,
+          total_sample_size: 300,
+          estimated_duration_days: 12,
+          warnings_count: 1,
+          advice_available: false
+        },
+        analysis: buildAnalysisResult()
+      }
+    ],
+    export_events: [
+      {
+        id: "export-1",
+        project_id: projectId,
+        analysis_run_id: "run-1",
+        format: "markdown" as const,
+        created_at: "2026-03-07T12:45:00Z"
+      }
+    ]
+  };
+}
+
 describe("App UI flow", () => {
   beforeEach(() => {
+    vi.stubGlobal("URL", {
+      createObjectURL: vi.fn(() => "blob:test"),
+      revokeObjectURL: vi.fn()
+    });
     window.localStorage.clear();
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
     vi.spyOn(window, "confirm").mockReturnValue(true);
     vi.mocked(deleteProjectRequest).mockReset();
     vi.mocked(listProjectsRequest).mockResolvedValue([]);
+    vi.mocked(loadProjectHistoryRequest).mockReset();
+    vi.mocked(loadProjectHistoryRequest).mockResolvedValue({
+      project_id: "p-1",
+      analysis_runs: [],
+      export_events: []
+    });
     vi.mocked(loadProjectRequest).mockReset();
     vi.mocked(recordProjectAnalysisRequest).mockReset();
     vi.mocked(recordProjectExportRequest).mockReset();
@@ -144,6 +189,7 @@ describe("App UI flow", () => {
   });
 
   afterEach(() => {
+    vi.unstubAllGlobals();
     window.localStorage.clear();
     vi.clearAllMocks();
     vi.restoreAllMocks();
@@ -167,12 +213,14 @@ describe("App UI flow", () => {
       project_name: "Stored checkout test",
       payload_schema_version: 1,
       last_analysis_at: "2026-03-07T10:30:00Z",
+      last_analysis_run_id: "run-1",
       last_exported_at: "2026-03-07T11:00:00Z",
       has_analysis_snapshot: true,
       created_at: "2026-03-07T10:00:00Z",
       updated_at: "2026-03-07T10:00:00Z",
       payload: buildApiPayload(buildLoadedPayload())
     });
+    vi.mocked(loadProjectHistoryRequest).mockResolvedValueOnce(buildProjectHistory("p-1"));
 
     const view = await renderIntoDocument(<App />);
     try {
@@ -194,6 +242,9 @@ describe("App UI flow", () => {
       expect(view.container.textContent).toContain("Last analysis:");
       expect(view.container.textContent).toContain("Last export:");
       expect(view.container.textContent).toContain("Snapshot stored:");
+      expect(view.container.textContent).toContain("Recent project history");
+      expect(view.container.textContent).toContain("1 analysis run(s) and 1 export event(s).");
+      expect(view.container.textContent).toContain("linked snapshot");
 
       const projectNameInput = view.container.querySelector("#project-project_name");
       if (!(projectNameInput instanceof HTMLInputElement)) {
@@ -309,6 +360,7 @@ describe("App UI flow", () => {
       project_name: "Stored checkout test",
       payload_schema_version: 1,
       last_analysis_at: null,
+      last_analysis_run_id: null,
       last_exported_at: null,
       has_analysis_snapshot: false,
       created_at: "2026-03-07T10:00:00Z",
@@ -530,18 +582,27 @@ describe("App UI flow", () => {
       project_name: "Stored checkout test",
       payload_schema_version: 1,
       last_analysis_at: null,
+      last_analysis_run_id: null,
       last_exported_at: null,
       has_analysis_snapshot: false,
       created_at: "2026-03-07T10:00:00Z",
       updated_at: "2026-03-07T10:00:00Z",
       payload: buildApiPayload(buildLoadedPayload())
     });
+    vi.mocked(loadProjectHistoryRequest)
+      .mockResolvedValueOnce({
+        project_id: "p-1",
+        analysis_runs: [],
+        export_events: []
+      })
+      .mockResolvedValueOnce(buildProjectHistory("p-1"));
     vi.mocked(requestAnalysis).mockResolvedValueOnce(buildAnalysisResult());
     vi.mocked(recordProjectAnalysisRequest).mockResolvedValueOnce({
       id: "p-1",
       project_name: "Stored checkout test",
       payload_schema_version: 1,
       last_analysis_at: "2026-03-07T12:30:00Z",
+      last_analysis_run_id: "run-1",
       last_exported_at: null,
       has_analysis_snapshot: true,
       created_at: "2026-03-07T10:00:00Z",
@@ -564,8 +625,142 @@ describe("App UI flow", () => {
 
       expect(recordProjectAnalysisRequest).toHaveBeenCalledTimes(1);
       expect(recordProjectAnalysisRequest).toHaveBeenCalledWith("p-1", expect.any(Object));
+      expect(loadProjectHistoryRequest).toHaveBeenCalledWith("p-1");
       expect(view.container.textContent).toContain("Analysis completed and the latest snapshot was recorded for this saved project.");
       expect(view.container.textContent).toContain("Snapshot stored: Yes");
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("records analysis history after saving a draft that was analyzed before persistence", async () => {
+    vi.mocked(requestAnalysis).mockResolvedValueOnce(buildAnalysisResult());
+    vi.mocked(saveProjectRequest).mockResolvedValueOnce({
+      id: "p-new",
+      project_name: "Checkout redesign",
+      payload_schema_version: 1,
+      last_analysis_at: null,
+      last_analysis_run_id: null,
+      last_exported_at: null,
+      has_analysis_snapshot: false,
+      created_at: "2026-03-07T12:00:00Z",
+      updated_at: "2026-03-07T12:00:00Z",
+      payload: buildApiPayload(cloneInitialState())
+    });
+    vi.mocked(recordProjectAnalysisRequest).mockResolvedValueOnce({
+      id: "p-new",
+      project_name: "Checkout redesign",
+      payload_schema_version: 1,
+      last_analysis_at: "2026-03-07T12:30:00Z",
+      last_analysis_run_id: "run-1",
+      last_exported_at: null,
+      has_analysis_snapshot: true,
+      created_at: "2026-03-07T12:00:00Z",
+      updated_at: "2026-03-07T12:00:00Z",
+      payload: buildApiPayload(cloneInitialState())
+    });
+    vi.mocked(loadProjectHistoryRequest).mockResolvedValueOnce(buildProjectHistory("p-new"));
+
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+
+      for (let stepIndex = 0; stepIndex < 5; stepIndex += 1) {
+        await click(findButton(view.container, "Next"));
+      }
+
+      await click(findButton(view.container, "Run analysis"));
+      await flushEffects();
+      await click(findButton(view.container, "Save project"));
+      await flushEffects();
+
+      expect(saveProjectRequest).toHaveBeenCalledTimes(1);
+      expect(recordProjectAnalysisRequest).toHaveBeenCalledWith("p-new", expect.any(Object));
+      expect(view.container.textContent).toContain("Latest analysis snapshot was recorded for this saved project.");
+      expect(view.container.textContent).toContain("Project id: p-new");
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("links export metadata to the latest saved analysis run", async () => {
+    vi.mocked(listProjectsRequest).mockResolvedValueOnce([
+      {
+        id: "p-1",
+        project_name: "Stored checkout test",
+        payload_schema_version: 1,
+        last_analysis_at: null,
+        last_analysis_run_id: null,
+        last_exported_at: null,
+        has_analysis_snapshot: false,
+        created_at: "2026-03-07T10:00:00Z",
+        updated_at: "2026-03-07T10:00:00Z"
+      }
+    ]);
+    vi.mocked(loadProjectRequest).mockResolvedValueOnce({
+      id: "p-1",
+      project_name: "Stored checkout test",
+      payload_schema_version: 1,
+      last_analysis_at: null,
+      last_analysis_run_id: null,
+      last_exported_at: null,
+      has_analysis_snapshot: false,
+      created_at: "2026-03-07T10:00:00Z",
+      updated_at: "2026-03-07T10:00:00Z",
+      payload: buildApiPayload(buildLoadedPayload())
+    });
+    vi.mocked(loadProjectHistoryRequest)
+      .mockResolvedValueOnce({
+        project_id: "p-1",
+        analysis_runs: [],
+        export_events: []
+      })
+      .mockResolvedValueOnce(buildProjectHistory("p-1"))
+      .mockResolvedValueOnce(buildProjectHistory("p-1"));
+    vi.mocked(requestAnalysis).mockResolvedValueOnce(buildAnalysisResult());
+    vi.mocked(recordProjectAnalysisRequest).mockResolvedValueOnce({
+      id: "p-1",
+      project_name: "Stored checkout test",
+      payload_schema_version: 1,
+      last_analysis_at: "2026-03-07T12:30:00Z",
+      last_analysis_run_id: "run-1",
+      last_exported_at: null,
+      has_analysis_snapshot: true,
+      created_at: "2026-03-07T10:00:00Z",
+      updated_at: "2026-03-07T10:00:00Z",
+      payload: buildApiPayload(buildLoadedPayload())
+    });
+    vi.mocked(exportReportRequest).mockResolvedValueOnce("# Experiment Report");
+    vi.mocked(recordProjectExportRequest).mockResolvedValueOnce({
+      id: "p-1",
+      project_name: "Stored checkout test",
+      payload_schema_version: 1,
+      last_analysis_at: "2026-03-07T12:30:00Z",
+      last_analysis_run_id: "run-1",
+      last_exported_at: "2026-03-07T12:45:00Z",
+      has_analysis_snapshot: true,
+      created_at: "2026-03-07T10:00:00Z",
+      updated_at: "2026-03-07T10:00:00Z",
+      payload: buildApiPayload(buildLoadedPayload())
+    });
+
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+      await click(findButton(view.container, "Stored checkout test"));
+      await flushEffects();
+
+      for (let stepIndex = 0; stepIndex < 5; stepIndex += 1) {
+        await click(findButton(view.container, "Next"));
+      }
+
+      await click(findButton(view.container, "Run analysis"));
+      await flushEffects();
+      await click(findButton(view.container, "Export Markdown"));
+      await flushEffects();
+
+      expect(recordProjectExportRequest).toHaveBeenCalledWith("p-1", "markdown", "run-1");
+      expect(view.container.textContent).toContain("updated project export metadata");
     } finally {
       await view.unmount();
     }

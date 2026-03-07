@@ -149,6 +149,9 @@ Post-phase cleanup completed
 - backfilled legacy `last_analysis_json` snapshots into analysis run history during migration
 - wired frontend analysis/export flows to persist saved-project metadata when the draft is in sync
 - added repository migration tests plus frontend regressions for project activity metadata
+- rendered saved-project history in the frontend sidebar and results view
+- linked export metadata to the latest saved analysis run when available
+- persisted a current analysis snapshot right after first save when the analysis was done before project creation
 
 ---
 
@@ -158,7 +161,7 @@ Backend and product capability expansion
 
 Goals:
 
-- bring saved-project history into the UI and result views
+- compare saved experiments and surface meaningful diffs in the UI
 - deepen repository history and reporting capabilities beyond the basic event log
 - continue hardening the optional orchestrator integration path
 

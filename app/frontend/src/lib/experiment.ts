@@ -215,8 +215,44 @@ export type AdviceResponse = {
 export type ProjectActivityMeta = {
   payload_schema_version?: number;
   last_analysis_at?: string | null;
+  last_analysis_run_id?: string | null;
   last_exported_at?: string | null;
   has_analysis_snapshot?: boolean;
+};
+
+export type AnalysisRunSummary = {
+  metric_type?: string | null;
+  sample_size_per_variant?: number | null;
+  total_sample_size?: number | null;
+  estimated_duration_days?: number | null;
+  warnings_count: number;
+  advice_available: boolean;
+};
+
+export type ProjectAnalysisRun = {
+  id: string;
+  project_id: string;
+  created_at: string;
+  summary: AnalysisRunSummary;
+  analysis: {
+    calculations: CalculationResponse;
+    report: ReportResponse;
+    advice: AdviceResponse;
+  };
+};
+
+export type ProjectExportEvent = {
+  id: string;
+  project_id: string;
+  analysis_run_id: string | null;
+  format: ExportFormat;
+  created_at: string;
+};
+
+export type ProjectHistory = {
+  project_id: string;
+  analysis_runs: ProjectAnalysisRun[];
+  export_events: ProjectExportEvent[];
 };
 
 export type ApiHealthResponse = {

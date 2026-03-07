@@ -4,6 +4,7 @@ import {
   deleteProjectRequest,
   exportReportRequest,
   listProjectsRequest,
+  loadProjectHistoryRequest,
   loadProjectRequest,
   recordProjectAnalysisRequest,
   recordProjectExportRequest,
@@ -159,6 +160,7 @@ describe("frontend api wrapper", () => {
         project_name: "Checkout redesign",
         payload_schema_version: 1,
         last_analysis_at: null,
+        last_analysis_run_id: null,
         last_exported_at: null,
         has_analysis_snapshot: false,
         created_at: "x",
@@ -180,6 +182,7 @@ describe("frontend api wrapper", () => {
         project_name: "Checkout redesign",
         payload_schema_version: 1,
         last_analysis_at: "2026-03-07T12:30:00Z",
+        last_analysis_run_id: "run-1",
         last_exported_at: null,
         has_analysis_snapshot: true,
         created_at: "x",
@@ -221,6 +224,75 @@ describe("frontend api wrapper", () => {
 
     expect(result.has_analysis_snapshot).toBe(true);
     expect(result.last_analysis_at).toBe("2026-03-07T12:30:00Z");
+    expect(result.last_analysis_run_id).toBe("run-1");
+  });
+
+  it("loads saved project history", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      jsonResponse({
+        project_id: "1",
+        analysis_runs: [
+          {
+            id: "run-1",
+            project_id: "1",
+            created_at: "2026-03-07T12:30:00Z",
+            summary: {
+              metric_type: "binary",
+              sample_size_per_variant: 100,
+              total_sample_size: 200,
+              estimated_duration_days: 10,
+              warnings_count: 1,
+              advice_available: false
+            },
+            analysis: {
+              calculations: {
+                calculation_summary: {
+                  metric_type: "binary",
+                  baseline_value: 0.042,
+                  mde_pct: 5,
+                  mde_absolute: 0.0021,
+                  alpha: 0.05,
+                  power: 0.8
+                },
+                results: {
+                  sample_size_per_variant: 100,
+                  total_sample_size: 200,
+                  effective_daily_traffic: 5000,
+                  estimated_duration_days: 10
+                },
+                assumptions: [],
+                warnings: []
+              },
+              report: buildReportPayload(),
+              advice: {
+                available: false,
+                provider: "local_orchestrator",
+                model: "offline",
+                advice: null,
+                raw_text: null,
+                error: "offline",
+                error_code: "request_error"
+              }
+            }
+          }
+        ],
+        export_events: [
+          {
+            id: "export-1",
+            project_id: "1",
+            analysis_run_id: "run-1",
+            format: "markdown",
+            created_at: "2026-03-07T12:45:00Z"
+          }
+        ]
+      })
+    );
+
+    const result = await loadProjectHistoryRequest("1");
+
+    expect(result.project_id).toBe("1");
+    expect(result.analysis_runs[0]?.id).toBe("run-1");
+    expect(result.export_events[0]?.analysis_run_id).toBe("run-1");
   });
 
   it("deletes a saved project", async () => {
@@ -240,6 +312,7 @@ describe("frontend api wrapper", () => {
         project_name: "Checkout redesign",
         payload_schema_version: 1,
         last_analysis_at: "2026-03-07T12:30:00Z",
+        last_analysis_run_id: "run-1",
         last_exported_at: "2026-03-07T12:45:00Z",
         has_analysis_snapshot: true,
         created_at: "x",
@@ -248,9 +321,10 @@ describe("frontend api wrapper", () => {
       })
     );
 
-    const result = await recordProjectExportRequest("1", "markdown");
+    const result = await recordProjectExportRequest("1", "markdown", "run-1");
 
     expect(result.last_exported_at).toBe("2026-03-07T12:45:00Z");
+    expect(result.last_analysis_run_id).toBe("run-1");
   });
 
   it("exports report content", async () => {

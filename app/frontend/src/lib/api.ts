@@ -1,5 +1,6 @@
 import {
   apiUrl,
+  type ProjectHistory,
   type ApiHealthResponse,
   type ExperimentInputPayload,
   buildApiPayload,
@@ -36,6 +37,7 @@ export type SaveProjectResponse = {
   updated_at?: string;
   payload_schema_version?: number;
   last_analysis_at?: string | null;
+  last_analysis_run_id?: string | null;
   last_exported_at?: string | null;
   has_analysis_snapshot?: boolean;
   payload?: ExperimentInputPayload;
@@ -133,6 +135,17 @@ export async function loadProjectRequest(projectId: string): Promise<ProjectReco
   return data;
 }
 
+export async function loadProjectHistoryRequest(projectId: string): Promise<ProjectHistory> {
+  const response = await fetch(apiUrl(`/api/v1/projects/${projectId}/history`));
+  const data = await readJson<ProjectHistory & ApiErrorResponse>(response);
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(data, "Project history load failed"));
+  }
+
+  return data;
+}
+
 export async function deleteProjectRequest(projectId: string): Promise<DeleteProjectResponse> {
   const response = await fetch(apiUrl(`/api/v1/projects/${projectId}`), {
     method: "DELETE"
@@ -166,12 +179,13 @@ export async function recordProjectAnalysisRequest(
 
 export async function recordProjectExportRequest(
   projectId: string,
-  format: ExportFormat
+  format: ExportFormat,
+  analysisRunId: string | null = null
 ): Promise<ProjectRecordResponse> {
   const response = await fetch(apiUrl(`/api/v1/projects/${projectId}/exports`), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ format })
+    body: JSON.stringify({ format, analysis_run_id: analysisRunId })
   });
   const data = await readJson<ProjectRecordResponse & ApiErrorResponse>(response);
 
