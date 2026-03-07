@@ -113,6 +113,7 @@ Post-phase cleanup completed
 - added explicit Pydantic request/response schemas for core backend routes
 - corrected multi-variant total sample size calculation and payload validation
 - escaped user-provided content in HTML export
+- added client-side form validation before save and analysis requests
 - updated frontend save flow to update loaded projects instead of always creating duplicates
 - made frontend API base configurable through `VITE_API_BASE_URL`
 

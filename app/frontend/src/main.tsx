@@ -202,6 +202,84 @@ function cloneInitialState(): FullPayload {
   return structuredClone(initialState) as FullPayload;
 }
 
+function readString(section: Record<string, unknown>, key: string): string {
+  return String(section[key] ?? "").trim();
+}
+
+function readNumber(section: Record<string, unknown>, key: string): number {
+  const value = section[key];
+  return typeof value === "number" ? value : Number(value);
+}
+
+function validateForm(state: FullPayload): string[] {
+  const issues: string[] = [];
+  const projectName = readString(state.project, "project_name");
+  const changeDescription = readString(state.hypothesis, "change_description");
+  const primaryMetricName = readString(state.metrics, "primary_metric_name");
+  const metricType = readString(state.metrics, "metric_type");
+  const trafficSplit = parseTrafficSplit(state.setup.traffic_split);
+  const variantsCount = readNumber(state.setup, "variants_count");
+  const expectedDailyTraffic = readNumber(state.setup, "expected_daily_traffic");
+  const audienceShareInTest = readNumber(state.setup, "audience_share_in_test");
+  const baselineValue = readNumber(state.metrics, "baseline_value");
+  const mdePct = readNumber(state.metrics, "mde_pct");
+  const alpha = readNumber(state.metrics, "alpha");
+  const power = readNumber(state.metrics, "power");
+  const stdDevRaw = state.metrics.std_dev;
+  const stdDev =
+    stdDevRaw === "" || stdDevRaw === null || stdDevRaw === undefined ? null : Number(stdDevRaw);
+
+  if (!projectName) {
+    issues.push("Project name is required.");
+  }
+  if (!changeDescription) {
+    issues.push("Change description is required.");
+  }
+  if (!primaryMetricName) {
+    issues.push("Primary metric name is required.");
+  }
+  if (!Number.isInteger(variantsCount) || variantsCount < 2) {
+    issues.push("Variants count must be an integer greater than or equal to 2.");
+  }
+  if (trafficSplit.length < 2) {
+    issues.push("Traffic split must contain at least two positive weights.");
+  } else if (Number.isInteger(variantsCount) && trafficSplit.length !== variantsCount) {
+    issues.push("Traffic split length must match variants count.");
+  }
+  if (!(expectedDailyTraffic > 0)) {
+    issues.push("Expected daily traffic must be greater than 0.");
+  }
+  if (!(audienceShareInTest > 0 && audienceShareInTest <= 1)) {
+    issues.push("Audience share in test must be between 0 and 1.");
+  }
+  if (!(mdePct > 0)) {
+    issues.push("MDE % must be greater than 0.");
+  }
+  if (!(alpha > 0 && alpha < 1)) {
+    issues.push("Alpha must be between 0 and 1.");
+  }
+  if (!(power > 0 && power < 1)) {
+    issues.push("Power must be between 0 and 1.");
+  }
+
+  if (metricType === "binary") {
+    if (!(baselineValue > 0 && baselineValue < 1)) {
+      issues.push("Binary baseline value must be between 0 and 1.");
+    }
+  } else if (metricType === "continuous") {
+    if (!(baselineValue > 0)) {
+      issues.push("Continuous baseline value must be greater than 0.");
+    }
+    if (stdDev === null || !(stdDev > 0)) {
+      issues.push("Continuous metrics require a positive std dev.");
+    }
+  } else {
+    issues.push("Metric type must be either binary or continuous.");
+  }
+
+  return issues;
+}
+
 function parseTrafficSplit(raw: unknown): number[] {
   if (Array.isArray(raw)) return raw.map(Number);
   return String(raw)
@@ -235,10 +313,13 @@ function App() {
   const [statusMessage, setStatusMessage] = useState("");
   const [savedProjects, setSavedProjects] = useState<SavedProject[]>([]);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   function invalidateResults() {
     setResults((current) => (Object.keys(current).length > 0 ? {} : current));
     setStatusMessage((current) => (current ? "" : current));
+    setError((current) => (current ? "" : current));
+    setValidationErrors((current) => (current.length > 0 ? [] : current));
   }
 
   function updateSection(section: keyof FullPayload, key: string, value: unknown) {
@@ -258,10 +339,29 @@ function App() {
     setError("");
     setStatusMessage("Started a new local draft.");
     setActiveProjectId(null);
+    setValidationErrors([]);
     setStep(0);
   }
 
+  function ensureValidForm(): boolean {
+    const issues = validateForm(form);
+
+    if (issues.length > 0) {
+      setValidationErrors(issues);
+      setError("");
+      setStatusMessage("");
+      return false;
+    }
+
+    setValidationErrors([]);
+    return true;
+  }
+
   async function runAnalysis() {
+    if (!ensureValidForm()) {
+      return;
+    }
+
     setLoading(true);
     setError("");
     setStatusMessage("");
@@ -337,6 +437,10 @@ function App() {
   }
 
   async function saveProject() {
+    if (!ensureValidForm()) {
+      return;
+    }
+
     setSaving(true);
     setError("");
     setStatusMessage("");
@@ -422,6 +526,7 @@ function App() {
       });
       setResults({});
       setActiveProjectId(typeof data.id === "string" ? data.id : projectId);
+      setValidationErrors([]);
       setStatusMessage(`Loaded project ${String(data.project_name)} into the wizard.`);
       setStep(0);
     } catch (requestError) {
@@ -568,6 +673,16 @@ function App() {
                       {activeProjectId ? `Project id: ${activeProjectId}` : "Saving will create a new local project record."}
                     </div>
                   </div>
+                  {validationErrors.length > 0 ? (
+                    <div className="status">
+                      <strong>Fix these fields before saving or running analysis:</strong>
+                      <ul className="list">
+                        {validationErrors.map((issue) => (
+                          <li key={issue}>{issue}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
                   <div className="fields">
                     {current.fields.map(([label, key, kind, explicitSection]) => {
                       const targetSection = (explicitSection as keyof FullPayload | undefined) ?? current.section;

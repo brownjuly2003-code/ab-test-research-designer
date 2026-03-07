@@ -33,6 +33,7 @@ Implemented:
 - local SQLite project storage
 - frontend wizard and results page
 - local save, load, update, and export flow verified
+- client-side validation before save and analysis requests
 - frontend production build verified after dependency install
 
 Remaining:
@@ -124,6 +125,7 @@ http://127.0.0.1:5173
 The frontend currently supports:
 
 - wizard-based experiment input
+- client-side validation for the main experiment inputs
 - run deterministic calculations and report generation
 - optional AI advice request
 - local project save and update
