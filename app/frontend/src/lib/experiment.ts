@@ -235,12 +235,18 @@ export type ExportFormat = "markdown" | "html";
 export type FieldKind = "text" | "textarea" | "number" | "boolean";
 export type FullPayloadSectionKey = keyof FullPayload;
 export type DraftFieldValue = string | number | boolean;
+export type SelectOption = {
+  label: string;
+  value: string;
+};
 export type SectionField = {
   label: string;
   key: string;
   kind?: FieldKind;
   section?: FullPayloadSectionKey;
   fullWidth?: boolean;
+  options?: SelectOption[];
+  visibleWhen?: (state: FullPayload) => boolean;
 };
 export type SectionConfig = {
   title: string;
@@ -542,13 +548,15 @@ export function formatReviewValue(value: unknown): string {
 export function getReviewSections(state: FullPayload): ReviewSection[] {
   return sections.map((section) => ({
     title: section.title,
-    items: section.fields.map((field) => {
+    items: section.fields
+      .filter((field) => (field.visibleWhen ? field.visibleWhen(state) : true))
+      .map((field) => {
       const targetSection = field.section ?? section.section;
       return {
         label: field.label,
         value: formatReviewValue(getSectionFieldValue(state, targetSection, field.key))
       };
-    })
+      })
   }));
 }
 
@@ -651,7 +659,16 @@ export const sections: SectionConfig[] = [
     section: "setup",
     fields: [
       { label: "Experiment type", key: "experiment_type" },
-      { label: "Randomization unit", key: "randomization_unit" },
+      {
+        label: "Randomization unit",
+        key: "randomization_unit",
+        options: [
+          { label: "User", value: "user" },
+          { label: "Session", value: "session" },
+          { label: "Device", value: "device" },
+          { label: "Account", value: "account" }
+        ]
+      },
       { label: "Traffic split", key: "traffic_split" },
       { label: "Expected daily traffic", key: "expected_daily_traffic", kind: "number" },
       { label: "Audience share in test", key: "audience_share_in_test", kind: "number" },
@@ -665,13 +682,25 @@ export const sections: SectionConfig[] = [
     section: "metrics",
     fields: [
       { label: "Primary metric", key: "primary_metric_name" },
-      { label: "Metric type", key: "metric_type" },
+      {
+        label: "Metric type",
+        key: "metric_type",
+        options: [
+          { label: "Binary", value: "binary" },
+          { label: "Continuous", value: "continuous" }
+        ]
+      },
       { label: "Baseline value", key: "baseline_value", kind: "number" },
       { label: "Expected uplift %", key: "expected_uplift_pct", kind: "number" },
       { label: "MDE %", key: "mde_pct", kind: "number" },
       { label: "Alpha", key: "alpha", kind: "number" },
       { label: "Power", key: "power", kind: "number" },
-      { label: "Std dev", key: "std_dev", kind: "number" },
+      {
+        label: "Std dev",
+        key: "std_dev",
+        kind: "number",
+        visibleWhen: (state) => state.metrics.metric_type === "continuous"
+      },
       { label: "Secondary metrics", key: "secondary_metrics", kind: "textarea", fullWidth: true },
       { label: "Guardrail metrics", key: "guardrail_metrics", kind: "textarea", fullWidth: true }
     ]
@@ -683,11 +712,27 @@ export const sections: SectionConfig[] = [
       { label: "Seasonality present", key: "seasonality_present", kind: "boolean" },
       { label: "Active campaigns present", key: "active_campaigns_present", kind: "boolean" },
       { label: "Returning users present", key: "returning_users_present", kind: "boolean" },
-      { label: "Interference risk", key: "interference_risk" },
+      {
+        label: "Interference risk",
+        key: "interference_risk",
+        options: [
+          { label: "Low", value: "low" },
+          { label: "Medium", value: "medium" },
+          { label: "High", value: "high" }
+        ]
+      },
       { label: "Technical constraints", key: "technical_constraints", fullWidth: true },
       { label: "Legal / ethics constraints", key: "legal_or_ethics_constraints", fullWidth: true },
       { label: "Known risks", key: "known_risks", fullWidth: true },
-      { label: "Deadline pressure", key: "deadline_pressure" },
+      {
+        label: "Deadline pressure",
+        key: "deadline_pressure",
+        options: [
+          { label: "Low", value: "low" },
+          { label: "Medium", value: "medium" },
+          { label: "High", value: "high" }
+        ]
+      },
       { label: "Long test possible", key: "long_test_possible", kind: "boolean" },
       {
         label: "AI context",

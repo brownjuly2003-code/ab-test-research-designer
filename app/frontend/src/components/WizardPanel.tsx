@@ -55,6 +55,7 @@ export default function WizardPanel({
 }: WizardPanelProps) {
   const isReviewStep = step >= sections.length;
   const current = sections[Math.min(step, sections.length - 1)];
+  const visibleFields = current.fields.filter((field) => (field.visibleWhen ? field.visibleWhen(form) : true));
   const reviewSections = getReviewSections(form);
 
   return (
@@ -87,7 +88,7 @@ export default function WizardPanel({
             </div>
           ) : null}
           <div className="fields">
-            {current.fields.map((field) => {
+            {visibleFields.map((field) => {
               const targetSection = field.section ?? current.section;
               const value = getSectionFieldValue(form, targetSection, field.key);
               const fieldType = field.kind ?? "text";
@@ -117,6 +118,25 @@ export default function WizardPanel({
                     >
                       <option value="true">Yes</option>
                       <option value="false">No</option>
+                    </select>
+                  </div>
+                );
+              }
+
+              if (Array.isArray(field.options) && field.options.length > 0) {
+                return (
+                  <div key={fieldId} className={`field ${field.fullWidth ? "full" : ""}`}>
+                    <label htmlFor={fieldId}>{field.label}</label>
+                    <select
+                      id={fieldId}
+                      value={String(value ?? "")}
+                      onChange={(event) => onUpdateSection(targetSection, field.key, event.target.value)}
+                    >
+                      {field.options.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 );

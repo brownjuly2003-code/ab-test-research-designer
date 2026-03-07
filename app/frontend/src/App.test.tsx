@@ -362,6 +362,43 @@ describe("App UI flow", () => {
     }
   });
 
+  it("shows std dev only for continuous metrics and hides it from binary review", async () => {
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+
+      for (let stepIndex = 0; stepIndex < 3; stepIndex += 1) {
+        await click(findButton(view.container, "Next"));
+      }
+
+      expect(view.container.querySelector("#metrics-std_dev")).toBeNull();
+
+      const metricType = view.container.querySelector("#metrics-metric_type");
+      if (!(metricType instanceof HTMLSelectElement)) {
+        throw new Error("Metric type select was not rendered");
+      }
+
+      await changeValue(metricType, "continuous");
+      await flushEffects();
+
+      expect(view.container.querySelector("#metrics-std_dev")).toBeInstanceOf(HTMLInputElement);
+
+      await changeValue(metricType, "binary");
+      await flushEffects();
+
+      expect(view.container.querySelector("#metrics-std_dev")).toBeNull();
+
+      for (let stepIndex = 0; stepIndex < 2; stepIndex += 1) {
+        await click(findButton(view.container, "Next"));
+      }
+
+      expect(view.container.textContent).toContain("Review inputs");
+      expect(view.container.textContent).not.toContain("Std dev:");
+    } finally {
+      await view.unmount();
+    }
+  });
+
   it("shows validation errors in review instead of calling analysis for an invalid form", async () => {
     const view = await renderIntoDocument(<App />);
     try {
