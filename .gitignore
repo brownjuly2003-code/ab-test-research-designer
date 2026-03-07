@@ -1,0 +1,33 @@
+# python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# virtualenv
+.venv/
+venv/
+
+# env
+.env
+
+# caches
+.pytest_cache/
+.mypy_cache/
+pytest-cache-files-*/
+app/backend/tests/.tmp/
+
+# node
+node_modules/
+
+# builds
+dist/
+build/
+
+# db
+*.sqlite3
+*.db
+
+# exports
+exports/*
+!exports/.gitkeep
