@@ -1,88 +1,93 @@
-# Recommended File Tree
+# Current File Tree
 
 ```text
-ab-test-research-designer/
-  docs/
-    IMPLEMENTATION_SPEC.md
-    DATA_CONTRACTS.md
-    AGENT_INSTRUCTIONS.md
-    BUILD_PLAN.md
-    PROJECT_CONTEXT.md
-    progress.md
-
-  frontend/
-    src/
+AB_TEST/
+  app/
+    backend/
       app/
-      components/
-      features/
-        experiment-form/
-        results/
-        saved-projects/
-      lib/
-      api/
-      types/
-      pages/
-      styles/
-    package.json
-    tsconfig.json
-    vite.config.ts
-
-  backend/
-    app/
-      main.py
-      config.py
-      api/
-        routes/
-          calculate.py
-          design.py
-          llm.py
-          projects.py
-          export.py
-      schemas/
-        project.py
-        metrics.py
-        calculations.py
-        report.py
-        warnings.py
-      services/
-        calculations_service.py
-        design_service.py
-        export_service.py
-        project_service.py
-      stats/
-        binary.py
-        continuous.py
-        duration.py
-      rules/
-        engine.py
-        catalog.py
-      llm/
-        adapter.py
-        prompt_builder.py
-        parser.py
-      storage/
-        db.py
-        models.py
+        config.py
+        main.py
         repository.py
-      utils/
-    tests/
-      test_binary_calculations.py
-      test_continuous_calculations.py
-      test_rules_engine.py
-      test_api_calculate.py
-      test_api_design.py
-    requirements.txt
-    pyproject.toml
-
+        llm/
+          adapter.py
+          parser.py
+          prompt_builder.py
+        rules/
+          catalog.py
+          engine.py
+        schemas/
+          api.py
+          report.py
+        services/
+          calculations_service.py
+          design_service.py
+          export_service.py
+        stats/
+          binary.py
+          continuous.py
+          duration.py
+      data/
+        projects.sqlite3
+      tests/
+        test_api_routes.py
+        test_calculations.py
+        test_design_service.py
+        test_export_api.py
+        test_health.py
+        test_llm_adapter.py
+        test_projects_api.py
+        test_rules_engine.py
+      requirements.txt
+    frontend/
+      src/
+        App.tsx
+        App.test.tsx
+        main.tsx
+        vite-env.d.ts
+        components/
+          SidebarPanel.tsx
+          WizardPanel.tsx
+        lib/
+          api.ts
+          api.test.ts
+          experiment.ts
+          experiment.test.ts
+        test/
+          dom.ts
+      index.html
+      package.json
+      package-lock.json
+      tsconfig.json
+      vite.config.ts
+  archive/
+    2026-03-07-workspace-cleanup/
+      docs/
+      generated-test-dbs/
+      pytest-cache-files/
+  docs/
+    BUILD_PLAN.md
+    DATA_CONTRACTS.md
+    FILE_TREE.md
+    IMPLEMENTATION_SPEC.md
+    PROJECT_CONTEXT.md
+    dev_plan.md
   exports/
-  data/
+  prompts/
+    PROMPTS.md
   scripts/
-  .env
+  setup/
+    CLI_SETUP_WINDOWS.md
+    SKILLS_FOR_CLI.md
+  tests/
   .gitignore
+  AGENT_INSTRUCTIONS.md
+  env-example.md
+  progress.md
   README.md
 ```
 
 ## Notes
-- `docs/progress.md` обновляется после каждой фазы.
-- Реальная интеграция с оркестратором должна лежать в `backend/app/llm/adapter.py`.
-- Путь `D:\Perplexity_Orchestrator2` не должен быть жестко зашит без конфигурации.
+
+- `archive/` keeps non-runtime artifacts that were moved out of the working tree instead of being deleted.
+- Generated directories such as `node_modules/`, `dist/`, `__pycache__/`, `.pytest_cache/`, and `app/backend/tests/.tmp/` are ignored by git.
+- The root-level `pytest-cache-files-*` directories were moved into `archive/2026-03-07-workspace-cleanup/pytest-cache-files/` instead of being deleted.

@@ -58,6 +58,7 @@ Remaining:
 ## Project structure
 
 - `docs/` specifications and plans
+- `archive/` archived non-runtime artifacts moved out of the active tree
 - `app/backend/` FastAPI backend
 - `app/frontend/` Vite + React frontend
 - `exports/` generated reports
