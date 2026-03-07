@@ -37,6 +37,7 @@ Implemented:
 - frontend API requests centralized in a dedicated module
 - frontend unit tests for helpers and API wrapper
 - dedicated review step before analysis with fuller frontend report rendering
+- frontend component tests for startup, review, validation, and result rendering flows
 - frontend production build verified after dependency install
 
 Remaining:
@@ -136,6 +137,7 @@ The frontend currently supports:
 - wizard-based experiment input
 - explicit review step before analysis
 - client-side validation for the main experiment inputs
+- label-to-input bindings for better keyboard/accessibility behavior
 - run deterministic calculations and report generation
 - optional AI advice request
 - local project save and update

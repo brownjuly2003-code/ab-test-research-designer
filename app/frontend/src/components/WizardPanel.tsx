@@ -82,12 +82,17 @@ export default function WizardPanel({
               const targetSection = explicitSection ?? current.section;
               const value = form[targetSection][key as keyof typeof form[typeof targetSection]];
               const fieldType = kind ?? "text";
+              const fieldId = `${String(targetSection)}-${key}`;
 
               if (fieldType === "textarea") {
                 return (
                   <div key={key} className="field full">
-                    <label>{label}</label>
-                    <textarea value={String(value ?? "")} onChange={(event) => onUpdateSection(targetSection, key, event.target.value)} />
+                    <label htmlFor={fieldId}>{label}</label>
+                    <textarea
+                      id={fieldId}
+                      value={String(value ?? "")}
+                      onChange={(event) => onUpdateSection(targetSection, key, event.target.value)}
+                    />
                   </div>
                 );
               }
@@ -95,8 +100,12 @@ export default function WizardPanel({
               if (fieldType === "boolean") {
                 return (
                   <div key={key} className="field">
-                    <label>{label}</label>
-                    <select value={String(value)} onChange={(event) => onUpdateSection(targetSection, key, event.target.value === "true")}>
+                    <label htmlFor={fieldId}>{label}</label>
+                    <select
+                      id={fieldId}
+                      value={String(value)}
+                      onChange={(event) => onUpdateSection(targetSection, key, event.target.value === "true")}
+                    >
                       <option value="true">Yes</option>
                       <option value="false">No</option>
                     </select>
@@ -106,8 +115,9 @@ export default function WizardPanel({
 
               return (
                 <div key={key} className={`field ${label.includes("description") || label.includes("constraints") ? "full" : ""}`}>
-                  <label>{label}</label>
+                  <label htmlFor={fieldId}>{label}</label>
                   <input
+                    id={fieldId}
                     type={fieldType === "number" ? "number" : "text"}
                     step={fieldType === "number" ? "any" : undefined}
                     value={String(value ?? "")}

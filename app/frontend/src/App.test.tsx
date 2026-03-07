@@ -1,0 +1,162 @@
+// @vitest-environment jsdom
+
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("./lib/api", () => ({
+  exportReportRequest: vi.fn(),
+  listProjectsRequest: vi.fn(),
+  loadProjectRequest: vi.fn(),
+  requestAnalysis: vi.fn(),
+  saveProjectRequest: vi.fn()
+}));
+
+import App from "./App";
+import {
+  listProjectsRequest,
+  loadProjectRequest,
+  requestAnalysis
+} from "./lib/api";
+import { cloneInitialState, type FullPayload } from "./lib/experiment";
+import { changeValue, click, findButton, flushEffects, renderIntoDocument } from "./test/dom";
+
+function buildAnalysisResult() {
+  return {
+    calculations: {
+      calculation_summary: {},
+      results: {
+        sample_size_per_variant: 100,
+        total_sample_size: 300,
+        effective_daily_traffic: 5000,
+        estimated_duration_days: 12
+      },
+      assumptions: [],
+      warnings: []
+    },
+    report: {
+      executive_summary: "Deterministic summary",
+      recommendations: {
+        before_launch: ["Verify tracking"],
+        during_test: ["Watch SRM"],
+        after_test: ["Segment the result"]
+      },
+      open_questions: ["Will mobile respond differently?"]
+    },
+    advice: {
+      available: false,
+      provider: "local_orchestrator",
+      model: "offline",
+      advice: null,
+      raw_text: null,
+      error: "offline"
+    }
+  };
+}
+
+function buildLoadedPayload(): FullPayload {
+  const state = cloneInitialState();
+  state.project.project_name = "Loaded experiment";
+  state.constraints.legal_or_ethics_constraints = "legal review required";
+  state.constraints.deadline_pressure = "high";
+  return state;
+}
+
+describe("App UI flow", () => {
+  beforeEach(() => {
+    vi.mocked(listProjectsRequest).mockResolvedValue([]);
+    vi.mocked(loadProjectRequest).mockReset();
+    vi.mocked(requestAnalysis).mockReset();
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("loads saved projects on startup and can hydrate a selected project", async () => {
+    vi.mocked(listProjectsRequest).mockResolvedValueOnce([
+      {
+        id: "p-1",
+        project_name: "Stored checkout test",
+        created_at: "2026-03-07T10:00:00Z",
+        updated_at: "2026-03-07T10:00:00Z"
+      }
+    ]);
+    vi.mocked(loadProjectRequest).mockResolvedValueOnce({
+      id: "p-1",
+      project_name: "Stored checkout test",
+      payload: buildLoadedPayload()
+    });
+
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+
+      expect(view.container.textContent).toContain("Stored checkout test");
+
+      await click(findButton(view.container, "Stored checkout test"));
+      await flushEffects();
+
+      expect(view.container.textContent).toContain("Loaded project Stored checkout test into the wizard.");
+      expect((view.container.querySelector("#project-project_name") as HTMLInputElement).value).toBe("Loaded experiment");
+      expect(view.container.textContent).toContain("Project id: p-1");
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("reaches the review step and renders the full deterministic report after analysis", async () => {
+    vi.mocked(requestAnalysis).mockResolvedValueOnce(buildAnalysisResult());
+
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+
+      for (let stepIndex = 0; stepIndex < 5; stepIndex += 1) {
+        await click(findButton(view.container, "Next"));
+      }
+
+      expect(view.container.textContent).toContain("Review inputs");
+      expect(view.container.textContent).toContain("Legal / ethics constraints: none");
+      expect(view.container.textContent).toContain("Deadline pressure: medium");
+
+      await click(findButton(view.container, "Run analysis"));
+      await flushEffects();
+
+      expect(requestAnalysis).toHaveBeenCalledTimes(1);
+      expect(view.container.textContent).toContain("Analysis completed.");
+      expect(view.container.textContent).toContain("Deterministic summary");
+      expect(view.container.textContent).toContain("During test");
+      expect(view.container.textContent).toContain("Watch SRM");
+      expect(view.container.textContent).toContain("After test");
+      expect(view.container.textContent).toContain("Segment the result");
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("shows validation errors in review instead of calling analysis for an invalid form", async () => {
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+
+      const projectNameInput = view.container.querySelector("#project-project_name");
+      if (!(projectNameInput instanceof HTMLInputElement)) {
+        throw new Error("Project name input was not rendered");
+      }
+
+      await changeValue(projectNameInput, "");
+
+      for (let stepIndex = 0; stepIndex < 5; stepIndex += 1) {
+        await click(findButton(view.container, "Next"));
+      }
+
+      await click(findButton(view.container, "Run analysis"));
+      await flushEffects();
+
+      expect(requestAnalysis).not.toHaveBeenCalled();
+      expect(view.container.textContent).toContain("Fix these fields before saving or running analysis:");
+      expect(view.container.textContent).toContain("Project name is required.");
+    } finally {
+      await view.unmount();
+    }
+  });
+});
