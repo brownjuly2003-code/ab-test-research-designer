@@ -137,6 +137,9 @@ Post-phase cleanup completed
 - cleaned up optional numeric field handling so blank values do not silently coerce to zero
 - added dirty-state feedback for loaded projects plus sidebar search/filter and update timestamps
 - tightened frontend save/update flow to use the returned project record and refresh the sidebar without a follow-up list request
+- added optional backend serving for the built frontend dist
+- added a Playwright-based local smoke script covering save, reload, analysis, and export in a real browser
+- split the large frontend wizard rendering into focused draft, review, and results components
 
 ---
 

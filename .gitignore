@@ -31,3 +31,8 @@ build/
 # exports
 exports/*
 !exports/.gitkeep
+
+# archived smoke artifacts
+archive/smoke-runs/*
+!archive/smoke-runs/.gitkeep
+!archive/smoke-runs/README.md

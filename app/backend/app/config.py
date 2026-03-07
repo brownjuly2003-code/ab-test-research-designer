@@ -13,11 +13,14 @@ class Settings:
     port: int
     db_path: str
     cors_origins: tuple[str, ...]
+    frontend_dist_path: str
+    serve_frontend_dist: bool
 
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
     default_db_path = Path(__file__).resolve().parents[1] / "data" / "projects.sqlite3"
+    default_frontend_dist_path = Path(__file__).resolve().parents[3] / "app" / "frontend" / "dist"
     cors_origins = tuple(
         origin.strip()
         for origin in os.getenv(
@@ -34,4 +37,6 @@ def get_settings() -> Settings:
         port=int(os.getenv("AB_PORT", "8008")),
         db_path=os.getenv("AB_DB_PATH", str(default_db_path)),
         cors_origins=cors_origins,
+        frontend_dist_path=os.getenv("AB_FRONTEND_DIST_PATH", str(default_frontend_dist_path)),
+        serve_frontend_dist=os.getenv("AB_SERVE_FRONTEND_DIST", "true").lower() not in {"0", "false", "no"},
     )

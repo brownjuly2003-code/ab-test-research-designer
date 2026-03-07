@@ -33,6 +33,7 @@ AB_TEST/
         test_calculations.py
         test_design_service.py
         test_export_api.py
+        test_frontend_serving.py
         test_health.py
         test_llm_adapter.py
         test_projects_api.py
@@ -45,8 +46,11 @@ AB_TEST/
         main.tsx
         vite-env.d.ts
         components/
+          ResultsPanel.tsx
           SidebarPanel.tsx
+          WizardDraftStep.tsx
           WizardPanel.tsx
+          WizardReviewStep.tsx
         lib/
           api.ts
           api.test.ts
@@ -64,6 +68,7 @@ AB_TEST/
       docs/
       generated-test-dbs/
       pytest-cache-files/
+    smoke-runs/
   docs/
     BUILD_PLAN.md
     DATA_CONTRACTS.md
@@ -75,6 +80,7 @@ AB_TEST/
   prompts/
     PROMPTS.md
   scripts/
+    run_local_smoke.py
   setup/
     CLI_SETUP_WINDOWS.md
     SKILLS_FOR_CLI.md
@@ -89,5 +95,6 @@ AB_TEST/
 ## Notes
 
 - `archive/` keeps non-runtime artifacts that were moved out of the working tree instead of being deleted.
+- `archive/smoke-runs/` stores local browser smoke artifacts such as temporary SQLite files, screenshots, and downloaded reports.
 - Generated directories such as `node_modules/`, `dist/`, `__pycache__/`, `.pytest_cache/`, and `app/backend/tests/.tmp/` are ignored by git.
 - The root-level `pytest-cache-files-*` directories were moved into `archive/2026-03-07-workspace-cleanup/pytest-cache-files/` instead of being deleted.

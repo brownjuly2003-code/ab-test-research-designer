@@ -49,6 +49,8 @@ Implemented:
 - saved project editing now surfaces dirty-state before local update
 - saved project sidebar now supports search/filter and shows recent update timestamps
 - save/update now refreshes the sidebar locally from the returned project record without an extra list round-trip
+- backend can optionally serve the built frontend dist for same-origin local smoke and prod-like runs
+- Playwright-based local smoke script now verifies a real browser flow against the backend-served frontend
 - frontend production build verified after dependency install
 
 Remaining:
@@ -93,6 +95,8 @@ Optional backend env vars:
 ```text
 AB_DB_PATH=D:\AB_TEST\app\backend\data\projects.sqlite3
 AB_CORS_ORIGINS=http://127.0.0.1:5173,http://localhost:5173
+AB_FRONTEND_DIST_PATH=D:\AB_TEST\app\frontend\dist
+AB_SERVE_FRONTEND_DIST=true
 ```
 
 Health check:
@@ -127,6 +131,12 @@ Run frontend unit tests:
 npm run test:unit
 ```
 
+Run the local browser smoke flow:
+
+```bash
+npm run test:smoke
+```
+
 Optional frontend env var:
 
 ```text
@@ -137,6 +147,7 @@ Behavior:
 
 - in development, frontend defaults to `http://127.0.0.1:8008` if `VITE_API_BASE_URL` is not set
 - in production builds, frontend defaults to same-origin requests unless `VITE_API_BASE_URL` is provided
+- when `app/frontend/dist` exists, the backend can serve the built frontend from `/`
 
 Open:
 
@@ -162,6 +173,7 @@ The frontend currently supports:
 - dirty-state feedback when editing a loaded project
 - saved project search/filter with updated-at context in the sidebar
 - sidebar updates immediately after save/update from the backend save response
+- local browser smoke coverage for save, reload, analysis, and export through the backend-served frontend
 - Markdown and HTML export from the results block
 - full deterministic recommendation rendering for before/during/after test phases
 - experiment design, metrics plan, and risks rendering from the backend report
