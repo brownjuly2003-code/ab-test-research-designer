@@ -34,6 +34,37 @@ function buildAnalysisResult() {
     },
     report: {
       executive_summary: "Deterministic summary",
+      calculations: {
+        sample_size_per_variant: 100,
+        total_sample_size: 300,
+        estimated_duration_days: 12,
+        assumptions: []
+      },
+      experiment_design: {
+        variants: [
+          { name: "A", description: "current experience" },
+          { name: "B", description: "new checkout" }
+        ],
+        randomization_unit: "user",
+        traffic_split: [50, 50],
+        target_audience: "new users on web",
+        inclusion_criteria: "new users only",
+        exclusion_criteria: "internal staff",
+        recommended_duration_days: 12,
+        stopping_conditions: ["planned duration reached"]
+      },
+      metrics_plan: {
+        primary: ["purchase_conversion"],
+        secondary: ["add_to_cart_rate"],
+        guardrail: ["payment_error_rate"],
+        diagnostic: ["assignment_rate"]
+      },
+      risks: {
+        statistical: ["No major deterministic warnings identified at this stage."],
+        product: ["Expected result depends on the hypothesis."],
+        technical: ["legacy event logging"],
+        operational: ["tracking quality"]
+      },
       recommendations: {
         before_launch: ["Verify tracking"],
         during_test: ["Watch SRM"],
@@ -124,6 +155,12 @@ describe("App UI flow", () => {
       expect(requestAnalysis).toHaveBeenCalledTimes(1);
       expect(view.container.textContent).toContain("Analysis completed.");
       expect(view.container.textContent).toContain("Deterministic summary");
+      expect(view.container.textContent).toContain("Variant and rollout structure");
+      expect(view.container.textContent).toContain("new checkout");
+      expect(view.container.textContent).toContain("Primary, secondary, and guardrail coverage");
+      expect(view.container.textContent).toContain("payment_error_rate");
+      expect(view.container.textContent).toContain("Statistical and operational considerations");
+      expect(view.container.textContent).toContain("legacy event logging");
       expect(view.container.textContent).toContain("During test");
       expect(view.container.textContent).toContain("Watch SRM");
       expect(view.container.textContent).toContain("After test");

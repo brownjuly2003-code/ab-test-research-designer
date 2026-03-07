@@ -121,6 +121,8 @@ Post-phase cleanup completed
 - restored missing constraint fields and fuller deterministic recommendation rendering in the UI
 - added frontend component tests for startup, review, validation, and result rendering flows
 - linked form labels to inputs for better accessibility and DOM-test stability
+- added secondary and guardrail metric inputs to the frontend wizard
+- expanded frontend report rendering to include experiment design, metrics plan, and risks
 - updated frontend save flow to update loaded projects instead of always creating duplicates
 - made frontend API base configurable through `VITE_API_BASE_URL`
 

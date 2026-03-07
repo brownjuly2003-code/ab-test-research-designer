@@ -38,6 +38,8 @@ Implemented:
 - frontend unit tests for helpers and API wrapper
 - dedicated review step before analysis with fuller frontend report rendering
 - frontend component tests for startup, review, validation, and result rendering flows
+- frontend metric inputs now support secondary and guardrail lists
+- frontend renders experiment design, metrics plan, and risks from backend reports
 - frontend production build verified after dependency install
 
 Remaining:
@@ -138,12 +140,14 @@ The frontend currently supports:
 - explicit review step before analysis
 - client-side validation for the main experiment inputs
 - label-to-input bindings for better keyboard/accessibility behavior
+- optional secondary and guardrail metrics in the wizard
 - run deterministic calculations and report generation
 - optional AI advice request
 - local project save and update
 - local project list/load with automatic load on app start
 - Markdown and HTML export from the results block
 - full deterministic recommendation rendering for before/during/after test phases
+- experiment design, metrics plan, and risks rendering from the backend report
 
 ### Optional AI advice
 

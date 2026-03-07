@@ -289,6 +289,148 @@ export default function WizardPanel({
           </div>
 
           <div className="result-block">
+            <span className="pill">Experiment design</span>
+            <h3>Variant and rollout structure</h3>
+            <div className="two-col">
+              <div className="card">
+                <h3>Variants</h3>
+                <ul className="list">
+                  {(results.report.experiment_design?.variants ?? []).map((variant) => (
+                    <li key={variant.name}>
+                      <strong>{variant.name}</strong>: {variant.description}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="card">
+                <h3>Setup</h3>
+                <ul className="list">
+                  <li>
+                    <strong>Randomization unit:</strong> {String(results.report.experiment_design?.randomization_unit ?? "-")}
+                  </li>
+                  <li>
+                    <strong>Traffic split:</strong> {String(results.report.experiment_design?.traffic_split?.join(", ") ?? "-")}
+                  </li>
+                  <li>
+                    <strong>Target audience:</strong> {String(results.report.experiment_design?.target_audience ?? "-")}
+                  </li>
+                  <li>
+                    <strong>Inclusion:</strong> {String(results.report.experiment_design?.inclusion_criteria ?? "-")}
+                  </li>
+                  <li>
+                    <strong>Exclusion:</strong> {String(results.report.experiment_design?.exclusion_criteria ?? "-")}
+                  </li>
+                  <li>
+                    <strong>Recommended duration:</strong> {String(results.report.experiment_design?.recommended_duration_days ?? "-")} days
+                  </li>
+                </ul>
+              </div>
+              <div className="card">
+                <h3>Stopping conditions</h3>
+                <ul className="list">
+                  {(results.report.experiment_design?.stopping_conditions ?? []).map((item) => (
+                    <li key={String(item)}>{String(item)}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className="card">
+                <h3>Assumptions</h3>
+                <ul className="list">
+                  {(results.report.calculations?.assumptions ?? []).map((item) => (
+                    <li key={String(item)}>{String(item)}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div className="result-block">
+            <span className="pill">Metrics plan</span>
+            <h3>Primary, secondary, and guardrail coverage</h3>
+            <div className="two-col">
+              <div className="card">
+                <h3>Primary</h3>
+                <ul className="list">
+                  {(results.report.metrics_plan?.primary ?? []).map((item) => (
+                    <li key={String(item)}>{String(item)}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className="card">
+                <h3>Secondary</h3>
+                <ul className="list">
+                  {(results.report.metrics_plan?.secondary ?? []).length > 0 ? (
+                    (results.report.metrics_plan?.secondary ?? []).map((item) => (
+                      <li key={String(item)}>{String(item)}</li>
+                    ))
+                  ) : (
+                    <li>No secondary metrics provided.</li>
+                  )}
+                </ul>
+              </div>
+              <div className="card">
+                <h3>Guardrail</h3>
+                <ul className="list">
+                  {(results.report.metrics_plan?.guardrail ?? []).length > 0 ? (
+                    (results.report.metrics_plan?.guardrail ?? []).map((item) => (
+                      <li key={String(item)}>{String(item)}</li>
+                    ))
+                  ) : (
+                    <li>No guardrail metrics provided.</li>
+                  )}
+                </ul>
+              </div>
+              <div className="card">
+                <h3>Diagnostic</h3>
+                <ul className="list">
+                  {(results.report.metrics_plan?.diagnostic ?? []).map((item) => (
+                    <li key={String(item)}>{String(item)}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div className="result-block">
+            <span className="pill">Risks</span>
+            <h3>Statistical and operational considerations</h3>
+            <div className="two-col">
+              <div className="card">
+                <h3>Statistical</h3>
+                <ul className="list">
+                  {(results.report.risks?.statistical ?? []).map((item) => (
+                    <li key={String(item)}>{String(item)}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className="card">
+                <h3>Product</h3>
+                <ul className="list">
+                  {(results.report.risks?.product ?? []).map((item) => (
+                    <li key={String(item)}>{String(item)}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className="card">
+                <h3>Technical</h3>
+                <ul className="list">
+                  {(results.report.risks?.technical ?? []).map((item) => (
+                    <li key={String(item)}>{String(item)}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className="card">
+                <h3>Operational</h3>
+                <ul className="list">
+                  {(results.report.risks?.operational ?? []).map((item) => (
+                    <li key={String(item)}>{String(item)}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div className="result-block">
             <span className="pill">AI advice</span>
             <h3>Local orchestrator output</h3>
             {results.advice?.available ? (

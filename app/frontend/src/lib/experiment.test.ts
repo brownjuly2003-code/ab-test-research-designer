@@ -6,6 +6,7 @@ import {
   cloneInitialState,
   getReviewSections,
   hydrateLoadedPayload,
+  parseMetricList,
   parseTrafficSplit,
   validateForm
 } from "./experiment";
@@ -15,15 +16,26 @@ describe("experiment helpers", () => {
     expect(parseTrafficSplit("50, 30,20")).toEqual([50, 30, 20]);
   });
 
-  it("builds API payload with parsed traffic split and nullable std dev", () => {
+  it("parses optional metric lists from comma-separated strings", () => {
+    expect(parseMetricList("add_to_cart_rate, refund_rate , ")).toEqual([
+      "add_to_cart_rate",
+      "refund_rate"
+    ]);
+  });
+
+  it("builds API payload with parsed traffic split, metric lists, and nullable std dev", () => {
     const state = cloneInitialState();
     state.setup.traffic_split = "60,40";
     state.metrics.std_dev = "";
+    state.metrics.secondary_metrics = "add_to_cart_rate, checkout_start_rate";
+    state.metrics.guardrail_metrics = "payment_error_rate";
 
     const payload = buildApiPayload(state);
 
     expect(payload.setup.traffic_split).toEqual([60, 40]);
     expect(payload.metrics.std_dev).toBeNull();
+    expect(payload.metrics.secondary_metrics).toEqual(["add_to_cart_rate", "checkout_start_rate"]);
+    expect(payload.metrics.guardrail_metrics).toEqual(["payment_error_rate"]);
   });
 
   it("builds calculation payload from the normalized state", () => {
@@ -45,6 +57,8 @@ describe("experiment helpers", () => {
 
     expect(hydrated.setup.traffic_split).toBe("50,50");
     expect(hydrated.metrics.std_dev).toBe("");
+    expect(hydrated.metrics.secondary_metrics).toBe("add_to_cart_rate");
+    expect(hydrated.metrics.guardrail_metrics).toBe("payment_error_rate, refund_rate");
   });
 
   it("builds review sections with formatted values and required constraint fields", () => {

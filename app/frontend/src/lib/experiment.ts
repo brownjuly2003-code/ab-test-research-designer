@@ -32,6 +32,37 @@ export type CalculationResponse = {
 
 export type ReportResponse = {
   executive_summary: string;
+  calculations: {
+    sample_size_per_variant: number;
+    total_sample_size: number;
+    estimated_duration_days: number;
+    assumptions: string[];
+  };
+  experiment_design: {
+    variants: {
+      name: string;
+      description: string;
+    }[];
+    randomization_unit: string;
+    traffic_split: number[];
+    target_audience: string;
+    inclusion_criteria: string;
+    exclusion_criteria: string;
+    recommended_duration_days: number;
+    stopping_conditions: string[];
+  };
+  metrics_plan: {
+    primary: string[];
+    secondary: string[];
+    guardrail: string[];
+    diagnostic: string[];
+  };
+  risks: {
+    statistical: string[];
+    product: string[];
+    technical: string[];
+    operational: string[];
+  };
   recommendations: {
     before_launch: string[];
     during_test: string[];
@@ -142,7 +173,9 @@ export const initialState: FullPayload = {
     mde_pct: 5,
     alpha: 0.05,
     power: 0.8,
-    std_dev: ""
+    std_dev: "",
+    secondary_metrics: "add_to_cart_rate",
+    guardrail_metrics: "payment_error_rate, refund_rate"
   },
   constraints: {
     seasonality_present: true,
@@ -181,6 +214,17 @@ export function parseTrafficSplit(raw: unknown): number[] {
     .filter((value) => !Number.isNaN(value) && value > 0);
 }
 
+export function parseMetricList(raw: unknown): string[] {
+  if (Array.isArray(raw)) {
+    return raw.map((value) => String(value).trim()).filter((value) => value.length > 0);
+  }
+
+  return String(raw ?? "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0);
+}
+
 export function buildApiPayload(state: FullPayload): FullPayload {
   return {
     ...state,
@@ -190,7 +234,9 @@ export function buildApiPayload(state: FullPayload): FullPayload {
     },
     metrics: {
       ...state.metrics,
-      std_dev: state.metrics.std_dev === "" ? null : Number(state.metrics.std_dev)
+      std_dev: state.metrics.std_dev === "" ? null : Number(state.metrics.std_dev),
+      secondary_metrics: parseMetricList(state.metrics.secondary_metrics),
+      guardrail_metrics: parseMetricList(state.metrics.guardrail_metrics)
     }
   };
 }
@@ -229,7 +275,9 @@ export function hydrateLoadedPayload(payload: FullPayload): FullPayload {
       std_dev:
         payload.metrics.std_dev === null || payload.metrics.std_dev === undefined
           ? ""
-          : String(payload.metrics.std_dev)
+          : String(payload.metrics.std_dev),
+      secondary_metrics: parseMetricList(payload.metrics.secondary_metrics).join(", "),
+      guardrail_metrics: parseMetricList(payload.metrics.guardrail_metrics).join(", ")
     }
   };
 }
@@ -378,7 +426,9 @@ export const sections: SectionConfig[] = [
       ["MDE %", "mde_pct", "number"],
       ["Alpha", "alpha", "number"],
       ["Power", "power", "number"],
-      ["Std dev", "std_dev", "number"]
+      ["Std dev", "std_dev", "number"],
+      ["Secondary metrics", "secondary_metrics", "textarea"],
+      ["Guardrail metrics", "guardrail_metrics", "textarea"]
     ]
   },
   {
