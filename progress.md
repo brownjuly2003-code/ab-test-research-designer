@@ -126,6 +126,7 @@ Post-phase cleanup completed
 - expanded frontend AI advice rendering to include risks, metric recommendations, pitfalls, and additional checks
 - added project delete support across repository, API, frontend sidebar, and tests
 - added frontend backend-health status card with startup check and manual refresh
+- added draft JSON import/export support for frontend payload transfer
 - updated frontend save flow to update loaded projects instead of always creating duplicates
 - made frontend API base configurable through `VITE_API_BASE_URL`
 

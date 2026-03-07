@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 
 import SidebarPanel from "./components/SidebarPanel";
 import WizardPanel from "./components/WizardPanel";
@@ -12,11 +12,13 @@ import {
   saveProjectRequest
 } from "./lib/api";
 import {
+  buildDraftTransferFile,
   type ApiHealthResponse,
   cloneInitialState,
   type ExportFormat,
   type FullPayload,
   hydrateLoadedPayload,
+  parseImportedDraft,
   stepLabels,
   type ResultsState,
   type SavedProject,
@@ -81,9 +83,11 @@ const styles = `
 `;
 
 export default function App() {
+  const draftImportRef = useRef<HTMLInputElement | null>(null);
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<FullPayload>(cloneInitialState);
   const [results, setResults] = useState<ResultsState>({});
+  const [importingDraft, setImportingDraft] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loadingHealth, setLoadingHealth] = useState(false);
@@ -123,6 +127,54 @@ export default function App() {
     setActiveProjectId(null);
     setValidationErrors([]);
     setStep(0);
+  }
+
+  function exportDraft() {
+    setError("");
+    const safeName = String(form.project.project_name ?? "experiment-draft")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "experiment-draft";
+    const content = JSON.stringify(buildDraftTransferFile(form), null, 2);
+    const blob = new Blob([content], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `${safeName}.json`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    setStatusMessage("Draft exported as JSON.");
+  }
+
+  function openImportDraft() {
+    draftImportRef.current?.click();
+  }
+
+  async function importDraftFromFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    setImportingDraft(true);
+    setError("");
+
+    try {
+      const imported = parseImportedDraft(await file.text());
+      setForm(imported);
+      setResults({});
+      setActiveProjectId(null);
+      setValidationErrors([]);
+      setStatusMessage(`Imported draft from ${file.name}. Save it to create a new local project record.`);
+      setStep(0);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Unexpected draft import error");
+    } finally {
+      event.target.value = "";
+      setImportingDraft(false);
+    }
   }
 
   function ensureValidForm(): boolean {
@@ -287,6 +339,14 @@ export default function App() {
 
   return (
     <>
+      <input
+        ref={draftImportRef}
+        type="file"
+        accept="application/json,.json"
+        style={{ display: "none" }}
+        aria-label="Import draft file"
+        onChange={importDraftFromFile}
+      />
       <style>{styles}</style>
       <div className="page">
         <div className="shell">
@@ -305,6 +365,7 @@ export default function App() {
               form={form}
               activeProjectId={activeProjectId}
               validationErrors={validationErrors}
+              importingDraft={importingDraft}
               loading={loading}
               saving={saving}
               results={results}
@@ -315,6 +376,8 @@ export default function App() {
               onNext={() => setStep((currentStep) => currentStep + 1)}
               onSave={saveProject}
               onStartNew={startNewProject}
+              onImportDraft={openImportDraft}
+              onExportDraft={exportDraft}
               onRunAnalysis={runAnalysis}
               onExportReport={exportReport}
             />

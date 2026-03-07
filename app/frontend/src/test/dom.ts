@@ -87,3 +87,14 @@ export async function changeValue(element: HTMLInputElement | HTMLTextAreaElemen
     element.dispatchEvent(new Event("change", { bubbles: true }));
   });
 }
+
+export async function changeFiles(element: HTMLInputElement, files: File[]): Promise<void> {
+  Object.defineProperty(element, "files", {
+    configurable: true,
+    value: files
+  });
+
+  await act(async () => {
+    element.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+}

@@ -131,6 +131,11 @@ export type ReviewSection = {
   items: ReviewItem[];
 };
 
+export type DraftTransferFile = {
+  schema_version: number;
+  payload: FullPayload;
+};
+
 const configuredApiBase = import.meta.env.VITE_API_BASE_URL?.trim();
 const apiBase =
   configuredApiBase && configuredApiBase.length > 0
@@ -266,6 +271,52 @@ export function buildCalculationPayload(state: FullPayload): Record<string, unkn
     active_campaigns_present: payload.constraints.active_campaigns_present,
     long_test_possible: payload.constraints.long_test_possible
   };
+}
+
+export function buildDraftTransferFile(state: FullPayload): DraftTransferFile {
+  return {
+    schema_version: 1,
+    payload: buildApiPayload(state)
+  };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function hasPayloadSections(value: unknown): value is FullPayload {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return ["project", "hypothesis", "setup", "metrics", "constraints"].every(
+    (key) => isRecord(value[key])
+  );
+}
+
+export function parseImportedDraft(raw: string): FullPayload {
+  let parsed: unknown;
+
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new Error("Draft JSON is invalid.");
+  }
+
+  const directPayload = hasPayloadSections(parsed)
+    ? parsed
+    : isRecord(parsed) && hasPayloadSections(parsed.payload)
+      ? parsed.payload
+      : null;
+
+  if (!directPayload) {
+    throw new Error("Imported JSON does not match the experiment payload format.");
+  }
+
+  return hydrateLoadedPayload({
+    ...directPayload,
+    additional_context: isRecord(directPayload.additional_context) ? directPayload.additional_context : {}
+  });
 }
 
 export function hydrateLoadedPayload(payload: FullPayload): FullPayload {

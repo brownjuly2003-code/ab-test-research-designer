@@ -20,8 +20,8 @@ import {
   requestHealth,
   requestAnalysis
 } from "./lib/api";
-import { cloneInitialState, type FullPayload } from "./lib/experiment";
-import { changeValue, click, findButton, findButtonByAriaLabel, flushEffects, renderIntoDocument } from "./test/dom";
+import { buildDraftTransferFile, cloneInitialState, type FullPayload } from "./lib/experiment";
+import { changeFiles, changeValue, click, findButton, findButtonByAriaLabel, flushEffects, renderIntoDocument } from "./test/dom";
 
 function buildAnalysisResult(adviceAvailable = false) {
   return {
@@ -200,6 +200,42 @@ describe("App UI flow", () => {
       expect(view.container.textContent).toContain("Project Stored checkout test deleted. Current form remains as a new local draft.");
       expect(view.container.textContent).not.toContain("Project id: p-1");
       expect(view.container.querySelector('button[aria-label="Delete Stored checkout test"]')).toBeNull();
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("imports a draft json file into a new local draft", async () => {
+    const imported = buildLoadedPayload();
+    imported.project.project_name = "Imported checkout";
+    imported.setup.traffic_split = "30,70";
+
+    const file = new File(
+      [
+        JSON.stringify(buildDraftTransferFile(imported))
+      ],
+      "imported-draft.json",
+      { type: "application/json" }
+    );
+
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+
+      const input = view.container.parentElement?.querySelector('input[type="file"][aria-label="Import draft file"]');
+      if (!(input instanceof HTMLInputElement)) {
+        throw new Error("Draft import input was not rendered");
+      }
+
+      await changeFiles(input, [file]);
+      await flushEffects();
+
+      expect(view.container.textContent).toContain(
+        "Imported draft from imported-draft.json. Save it to create a new local project record."
+      );
+      expect((view.container.querySelector("#project-project_name") as HTMLInputElement).value).toBe("Imported checkout");
+      expect(view.container.textContent).toContain("Working on a new draft");
+      expect(view.container.textContent).not.toContain("Project id:");
     } finally {
       await view.unmount();
     }

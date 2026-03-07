@@ -12,6 +12,7 @@ type WizardPanelProps = {
   form: FullPayload;
   activeProjectId: string | null;
   validationErrors: string[];
+  importingDraft: boolean;
   loading: boolean;
   saving: boolean;
   results: ResultsState;
@@ -22,6 +23,8 @@ type WizardPanelProps = {
   onNext: () => void;
   onSave: () => void;
   onStartNew: () => void;
+  onImportDraft: () => void;
+  onExportDraft: () => void;
   onRunAnalysis: () => void;
   onExportReport: (format: ExportFormat) => void;
 };
@@ -31,6 +34,7 @@ export default function WizardPanel({
   form,
   activeProjectId,
   validationErrors,
+  importingDraft,
   loading,
   saving,
   results,
@@ -41,6 +45,8 @@ export default function WizardPanel({
   onNext,
   onSave,
   onStartNew,
+  onImportDraft,
+  onExportDraft,
   onRunAnalysis,
   onExportReport
 }: WizardPanelProps) {
@@ -141,6 +147,12 @@ export default function WizardPanel({
             <button className="btn ghost" disabled={loading || saving} onClick={onStartNew}>
               New draft
             </button>
+            <button className="btn ghost" disabled={loading || saving || importingDraft} onClick={onImportDraft}>
+              {importingDraft ? "Importing..." : "Import draft JSON"}
+            </button>
+            <button className="btn ghost" disabled={loading || saving || importingDraft} onClick={onExportDraft}>
+              Export draft JSON
+            </button>
             <button className="btn ghost" disabled={loading || saving} onClick={onSave}>
               {saving ? "Saving..." : activeProjectId ? "Update project" : "Save project"}
             </button>
@@ -188,6 +200,12 @@ export default function WizardPanel({
             </button>
             <button className="btn ghost" disabled={loading || saving} onClick={onStartNew}>
               New draft
+            </button>
+            <button className="btn ghost" disabled={loading || saving || importingDraft} onClick={onImportDraft}>
+              {importingDraft ? "Importing..." : "Import draft JSON"}
+            </button>
+            <button className="btn ghost" disabled={loading || saving || importingDraft} onClick={onExportDraft}>
+              Export draft JSON
             </button>
             <button className="btn ghost" disabled={loading || saving} onClick={onSave}>
               {saving ? "Saving..." : activeProjectId ? "Update project" : "Save project"}

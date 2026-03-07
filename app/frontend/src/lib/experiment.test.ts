@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildDraftTransferFile,
   buildApiPayload,
   buildCalculationPayload,
   cloneInitialState,
   getReviewSections,
   hydrateLoadedPayload,
+  parseImportedDraft,
   parseMetricList,
   parseTrafficSplit,
   validateForm
@@ -49,6 +51,16 @@ describe("experiment helpers", () => {
     expect(payload.long_test_possible).toBe(true);
   });
 
+  it("builds a normalized draft transfer file", () => {
+    const state = cloneInitialState();
+    state.setup.traffic_split = "60,40";
+
+    const draft = buildDraftTransferFile(state);
+
+    expect(draft.schema_version).toBe(1);
+    expect(draft.payload.setup.traffic_split).toEqual([60, 40]);
+  });
+
   it("hydrates a saved payload back into wizard-friendly string fields", () => {
     const state = cloneInitialState();
     const normalized = buildApiPayload(state);
@@ -59,6 +71,25 @@ describe("experiment helpers", () => {
     expect(hydrated.metrics.std_dev).toBe("");
     expect(hydrated.metrics.secondary_metrics).toBe("add_to_cart_rate");
     expect(hydrated.metrics.guardrail_metrics).toBe("payment_error_rate, refund_rate");
+  });
+
+  it("parses imported draft wrappers and restores wizard-friendly fields", () => {
+    const imported = parseImportedDraft(
+      JSON.stringify({
+        schema_version: 1,
+        payload: buildDraftTransferFile(cloneInitialState()).payload
+      })
+    );
+
+    expect(imported.setup.traffic_split).toBe("50,50");
+    expect(imported.metrics.secondary_metrics).toBe("add_to_cart_rate");
+  });
+
+  it("rejects malformed imported draft json", () => {
+    expect(() => parseImportedDraft("{bad json")).toThrow("Draft JSON is invalid.");
+    expect(() => parseImportedDraft(JSON.stringify({ nope: true }))).toThrow(
+      "Imported JSON does not match the experiment payload format."
+    );
   });
 
   it("builds review sections with formatted values and required constraint fields", () => {

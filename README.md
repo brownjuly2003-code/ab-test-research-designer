@@ -43,6 +43,7 @@ Implemented:
 - frontend renders the full AI advice payload when the orchestrator returns structured output
 - local project management now supports delete from backend to sidebar UI
 - frontend shows live backend health, version, and environment status in the sidebar
+- frontend supports draft JSON import/export for payload transfer outside SQLite
 - frontend production build verified after dependency install
 
 Remaining:
@@ -150,6 +151,7 @@ The frontend currently supports:
 - local project save, update, and delete
 - local project list/load with automatic load on app start
 - startup backend health check with manual refresh in the sidebar
+- draft JSON import/export from the wizard without backend round-trips
 - Markdown and HTML export from the results block
 - full deterministic recommendation rendering for before/during/after test phases
 - experiment design, metrics plan, and risks rendering from the backend report
