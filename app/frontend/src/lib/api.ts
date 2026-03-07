@@ -16,6 +16,8 @@ import {
 export type ProjectRecordResponse = {
   id: string;
   project_name: string;
+  created_at: string;
+  updated_at: string;
   payload: ExperimentInputPayload;
 };
 
@@ -30,6 +32,9 @@ type ExportResponse = {
 export type SaveProjectResponse = {
   id?: string;
   project_name?: string;
+  created_at?: string;
+  updated_at?: string;
+  payload?: ExperimentInputPayload;
   detail?: string;
 };
 
@@ -124,7 +129,7 @@ export async function saveProjectRequest(
       body: JSON.stringify(buildApiPayload(form))
     }
   );
-  const data = await readJson<SaveProjectResponse>(response);
+  const data = await readJson<SaveProjectResponse & ApiErrorResponse>(response);
 
   if (!response.ok) {
     throw new Error(getErrorMessage(data, "Project save failed"));

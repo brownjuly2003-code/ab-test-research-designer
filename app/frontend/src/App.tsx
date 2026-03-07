@@ -137,6 +137,14 @@ export default function App() {
   const hasUnsavedChanges =
     activeProjectId !== null && savedProjectSnapshot !== null && savedProjectSnapshot !== serializedForm;
 
+  function upsertSavedProject(project: SavedProject) {
+    setSavedProjects((current) =>
+      [project, ...current.filter((candidate) => candidate.id !== project.id)].sort((left, right) =>
+        right.updated_at.localeCompare(left.updated_at)
+      )
+    );
+  }
+
   function invalidateResults() {
     setResults((current) => (Object.keys(current).length > 0 ? {} : current));
     setStatusMessage((current) => (current ? "" : current));
@@ -293,13 +301,31 @@ export default function App() {
       const data = await saveProjectRequest(form, activeProjectId);
 
       setActiveProjectId(typeof data.id === "string" ? data.id : activeProjectId);
-      setSavedProjectSnapshot(JSON.stringify(normalizedPayload));
+      setSavedProjectSnapshot(
+        data.payload ? JSON.stringify(data.payload) : JSON.stringify(normalizedPayload)
+      );
+
+      if (
+        typeof data.id === "string" &&
+        typeof data.project_name === "string" &&
+        typeof data.created_at === "string" &&
+        typeof data.updated_at === "string"
+      ) {
+        upsertSavedProject({
+          id: data.id,
+          project_name: data.project_name,
+          created_at: data.created_at,
+          updated_at: data.updated_at
+        });
+      } else {
+        await loadProjects();
+      }
+
       setStatusMessage(
         isUpdate
           ? `Project ${String(data.project_name)} updated locally.`
           : `Project saved locally with id ${String(data.id)}.`
       );
-      await loadProjects();
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Unexpected save error");
     } finally {

@@ -19,7 +19,8 @@ import {
   listProjectsRequest,
   loadProjectRequest,
   requestHealth,
-  requestAnalysis
+  requestAnalysis,
+  saveProjectRequest
 } from "./lib/api";
 import {
   buildApiPayload,
@@ -132,6 +133,7 @@ describe("App UI flow", () => {
       environment: "local"
     });
     vi.mocked(requestAnalysis).mockReset();
+    vi.mocked(saveProjectRequest).mockReset();
   });
 
   afterEach(() => {
@@ -152,6 +154,8 @@ describe("App UI flow", () => {
     vi.mocked(loadProjectRequest).mockResolvedValueOnce({
       id: "p-1",
       project_name: "Stored checkout test",
+      created_at: "2026-03-07T10:00:00Z",
+      updated_at: "2026-03-07T10:00:00Z",
       payload: buildApiPayload(buildLoadedPayload())
     });
 
@@ -273,6 +277,8 @@ describe("App UI flow", () => {
     vi.mocked(loadProjectRequest).mockResolvedValueOnce({
       id: "p-1",
       project_name: "Stored checkout test",
+      created_at: "2026-03-07T10:00:00Z",
+      updated_at: "2026-03-07T10:00:00Z",
       payload: buildApiPayload(buildLoadedPayload())
     });
     vi.mocked(deleteProjectRequest).mockResolvedValueOnce({ id: "p-1", deleted: true });
@@ -337,6 +343,32 @@ describe("App UI flow", () => {
       const stored = window.localStorage.getItem(browserDraftStorageKey);
       expect(stored).toBeTruthy();
       expect(stored).toContain("Autosaved checkout");
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("updates the sidebar immediately after saving without reloading the project list", async () => {
+    vi.mocked(saveProjectRequest).mockResolvedValueOnce({
+      id: "p-new",
+      project_name: "Checkout redesign",
+      created_at: "2026-03-07T12:00:00Z",
+      updated_at: "2026-03-07T12:00:00Z",
+      payload: buildApiPayload(cloneInitialState())
+    });
+
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+
+      await click(findButton(view.container, "Save project"));
+      await flushEffects();
+
+      expect(saveProjectRequest).toHaveBeenCalledTimes(1);
+      expect(listProjectsRequest).toHaveBeenCalledTimes(1);
+      expect(view.container.textContent).toContain("Project saved locally with id p-new.");
+      expect(view.container.textContent).toContain("Checkout redesign");
+      expect(view.container.textContent).toContain("Project id: p-new");
     } finally {
       await view.unmount();
     }

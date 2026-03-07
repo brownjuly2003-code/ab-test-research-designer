@@ -136,6 +136,7 @@ Post-phase cleanup completed
 - added select-based controls and conditional field visibility in the wizard
 - cleaned up optional numeric field handling so blank values do not silently coerce to zero
 - added dirty-state feedback for loaded projects plus sidebar search/filter and update timestamps
+- tightened frontend save/update flow to use the returned project record and refresh the sidebar without a follow-up list request
 
 ---
 
