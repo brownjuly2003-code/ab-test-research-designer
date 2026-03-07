@@ -31,11 +31,13 @@ Implemented:
 - backend API routes
 - local SQLite project storage
 - frontend wizard and results page
+- local save, load, update, and export flow verified
+- frontend production build verified after dependency install
 
 Remaining:
 
-- final manual verification of frontend build
-- optional deeper frontend validation after dependency install
+- optional manual browser walkthrough with a live backend and optional orchestrator
+- optional stronger frontend validation beyond build verification
 
 ---
 
@@ -68,6 +70,13 @@ cd D:\AB_TEST
 python -m uvicorn app.backend.app.main:app --host 127.0.0.1 --port 8008
 ```
 
+Optional backend env vars:
+
+```text
+AB_DB_PATH=D:\AB_TEST\app\backend\data\projects.sqlite3
+AB_CORS_ORIGINS=http://127.0.0.1:5173,http://localhost:5173
+```
+
 Health check:
 
 ```text
@@ -89,6 +98,17 @@ Start Vite:
 npm run dev
 ```
 
+Optional frontend env var:
+
+```text
+VITE_API_BASE_URL=http://127.0.0.1:8008
+```
+
+Behavior:
+
+- in development, frontend defaults to `http://127.0.0.1:8008` if `VITE_API_BASE_URL` is not set
+- in production builds, frontend defaults to same-origin requests unless `VITE_API_BASE_URL` is provided
+
 Open:
 
 ```text
@@ -100,7 +120,7 @@ The frontend currently supports:
 - wizard-based experiment input
 - run deterministic calculations and report generation
 - optional AI advice request
-- local project save
+- local project save and update
 - local project list/load
 - Markdown and HTML export from the results block
 

@@ -10,10 +10,61 @@ type FullPayload = {
   additional_context: Record<string, unknown>;
 };
 
+type ApiErrorResponse = {
+  detail?: string;
+};
+
+type WarningItem = {
+  code: string;
+  message: string;
+  severity: string;
+  source?: string;
+};
+
+type CalculationResponse = {
+  calculation_summary: Record<string, unknown>;
+  results: {
+    sample_size_per_variant: number;
+    total_sample_size: number;
+    effective_daily_traffic: number;
+    estimated_duration_days: number;
+  };
+  assumptions: string[];
+  warnings: WarningItem[];
+};
+
+type ReportResponse = {
+  executive_summary: string;
+  recommendations: {
+    before_launch: string[];
+    during_test: string[];
+    after_test: string[];
+  };
+  open_questions: string[];
+};
+
+type AdvicePayload = {
+  brief_assessment: string;
+  key_risks: string[];
+  design_improvements: string[];
+  metric_recommendations: string[];
+  interpretation_pitfalls: string[];
+  additional_checks: string[];
+};
+
+type AdviceResponse = {
+  available: boolean;
+  provider: string;
+  model: string;
+  advice: AdvicePayload | null;
+  raw_text: string | null;
+  error: string | null;
+};
+
 type ResultsState = {
-  calculations?: Record<string, unknown>;
-  report?: Record<string, unknown>;
-  advice?: Record<string, unknown>;
+  calculations?: CalculationResponse;
+  report?: ReportResponse;
+  advice?: AdviceResponse;
 };
 
 type SavedProject = {
@@ -23,7 +74,17 @@ type SavedProject = {
   updated_at: string;
 };
 
-const apiBase = "http://127.0.0.1:8008";
+const configuredApiBase = import.meta.env.VITE_API_BASE_URL?.trim();
+const apiBase =
+  configuredApiBase && configuredApiBase.length > 0
+    ? configuredApiBase.replace(/\/$/, "")
+    : import.meta.env.DEV
+      ? "http://127.0.0.1:8008"
+      : "";
+
+function apiUrl(path: string): string {
+  return `${apiBase}${path}`;
+}
 
 const styles = `
   :root {
@@ -137,6 +198,10 @@ const initialState: FullPayload = {
   }
 };
 
+function cloneInitialState(): FullPayload {
+  return structuredClone(initialState) as FullPayload;
+}
+
 function parseTrafficSplit(raw: unknown): number[] {
   if (Array.isArray(raw)) return raw.map(Number);
   return String(raw)
@@ -161,7 +226,7 @@ function buildApiPayload(state: FullPayload): FullPayload {
 
 function App() {
   const [step, setStep] = useState(0);
-  const [form, setForm] = useState<FullPayload>(initialState);
+  const [form, setForm] = useState<FullPayload>(cloneInitialState);
   const [results, setResults] = useState<ResultsState>({});
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -169,6 +234,7 @@ function App() {
   const [error, setError] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
   const [savedProjects, setSavedProjects] = useState<SavedProject[]>([]);
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
 
   function invalidateResults() {
     setResults((current) => (Object.keys(current).length > 0 ? {} : current));
@@ -184,6 +250,15 @@ function App() {
       }
     }));
     invalidateResults();
+  }
+
+  function startNewProject() {
+    setForm(cloneInitialState());
+    setResults({});
+    setError("");
+    setStatusMessage("Started a new local draft.");
+    setActiveProjectId(null);
+    setStep(0);
   }
 
   async function runAnalysis() {
@@ -210,17 +285,17 @@ function App() {
 
     try {
       const [calculationsRes, reportRes, adviceRes] = await Promise.all([
-        fetch(`${apiBase}/api/v1/calculate`, {
+        fetch(apiUrl("/api/v1/calculate"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(calculationPayload)
         }),
-        fetch(`${apiBase}/api/v1/design`, {
+        fetch(apiUrl("/api/v1/design"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload)
         }),
-        fetch(`${apiBase}/api/v1/llm/advice`, {
+        fetch(apiUrl("/api/v1/llm/advice"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -234,18 +309,24 @@ function App() {
         })
       ]);
 
-      const calculations = await calculationsRes.json();
-      const report = await reportRes.json();
-      const advice = await adviceRes.json();
+      const calculations = await calculationsRes.json() as CalculationResponse | ApiErrorResponse;
+      const report = await reportRes.json() as ReportResponse | ApiErrorResponse;
+      const advice = await adviceRes.json() as AdviceResponse;
 
       if (!calculationsRes.ok) {
-        throw new Error(typeof calculations.detail === "string" ? calculations.detail : "Calculation request failed");
+        const calculationError = calculations as ApiErrorResponse;
+        throw new Error(typeof calculationError.detail === "string" ? calculationError.detail : "Calculation request failed");
       }
       if (!reportRes.ok) {
-        throw new Error(typeof report.detail === "string" ? report.detail : "Design request failed");
+        const reportError = report as ApiErrorResponse;
+        throw new Error(typeof reportError.detail === "string" ? reportError.detail : "Design request failed");
       }
 
-      setResults({ calculations, report, advice });
+      setResults({
+        calculations: calculations as CalculationResponse,
+        report: report as ReportResponse,
+        advice
+      });
       setStep(stepLabels.length - 1);
       setStatusMessage("Analysis completed. Deterministic output and optional AI advice are shown below.");
     } catch (requestError) {
@@ -261,18 +342,27 @@ function App() {
     setStatusMessage("");
 
     try {
-      const response = await fetch(`${apiBase}/api/v1/projects`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(buildApiPayload(form))
-      });
+      const isUpdate = activeProjectId !== null;
+      const response = await fetch(
+        isUpdate ? apiUrl(`/api/v1/projects/${activeProjectId}`) : apiUrl("/api/v1/projects"),
+        {
+          method: isUpdate ? "PUT" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(buildApiPayload(form))
+        }
+      );
       const data = await response.json();
 
       if (!response.ok) {
         throw new Error(typeof data.detail === "string" ? data.detail : "Project save failed");
       }
 
-      setStatusMessage(`Project saved locally with id ${String(data.id)}.`);
+      setActiveProjectId(typeof data.id === "string" ? data.id : activeProjectId);
+      setStatusMessage(
+        isUpdate
+          ? `Project ${String(data.project_name)} updated locally.`
+          : `Project saved locally with id ${String(data.id)}.`
+      );
       await loadProjects();
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Unexpected save error");
@@ -286,7 +376,7 @@ function App() {
     setError("");
 
     try {
-      const response = await fetch(`${apiBase}/api/v1/projects`);
+      const response = await fetch(apiUrl("/api/v1/projects"));
       const data = await response.json();
 
       if (!response.ok) {
@@ -306,7 +396,7 @@ function App() {
     setStatusMessage("");
 
     try {
-      const response = await fetch(`${apiBase}/api/v1/projects/${projectId}`);
+      const response = await fetch(apiUrl(`/api/v1/projects/${projectId}`));
       const data = await response.json();
 
       if (!response.ok) {
@@ -331,6 +421,7 @@ function App() {
         }
       });
       setResults({});
+      setActiveProjectId(typeof data.id === "string" ? data.id : projectId);
       setStatusMessage(`Loaded project ${String(data.project_name)} into the wizard.`);
       setStep(0);
     } catch (requestError) {
@@ -348,7 +439,7 @@ function App() {
     setStatusMessage("");
 
     try {
-      const response = await fetch(`${apiBase}/api/v1/export/${format}`, {
+      const response = await fetch(apiUrl(`/api/v1/export/${format}`), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(results.report)
@@ -471,6 +562,12 @@ function App() {
               {step < sections.length ? (
                 <div className="section">
                   <h2>{current.title}</h2>
+                  <div className="note">
+                    <strong>{activeProjectId ? "Editing saved project" : "Working on a new draft"}</strong>
+                    <div className="muted">
+                      {activeProjectId ? `Project id: ${activeProjectId}` : "Saving will create a new local project record."}
+                    </div>
+                  </div>
                   <div className="fields">
                     {current.fields.map(([label, key, kind, explicitSection]) => {
                       const targetSection = (explicitSection as keyof FullPayload | undefined) ?? current.section;
@@ -522,8 +619,11 @@ function App() {
                     <button className="btn secondary" disabled={step === 0 || loading} onClick={() => setStep((currentStep) => currentStep - 1)}>
                       Back
                     </button>
+                    <button className="btn ghost" disabled={loading || saving} onClick={startNewProject}>
+                      New draft
+                    </button>
                     <button className="btn ghost" disabled={loading || saving} onClick={saveProject}>
-                      {saving ? "Saving..." : "Save project"}
+                      {saving ? "Saving..." : activeProjectId ? "Update project" : "Save project"}
                     </button>
                     {step < sections.length - 1 ? (
                       <button className="btn primary" disabled={loading} onClick={() => setStep((currentStep) => currentStep + 1)}>

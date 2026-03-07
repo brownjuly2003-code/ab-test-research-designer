@@ -1,11 +1,7 @@
-APP_ENV=development
+AB_ENV=local
+AB_HOST=127.0.0.1
+AB_PORT=8008
+AB_DB_PATH=D:\AB_TEST\app\backend\data\projects.sqlite3
+AB_CORS_ORIGINS=http://127.0.0.1:5173,http://localhost:5173
 
-APP_HOST=127.0.0.1
-APP_PORT=8000
-
-ORCHESTRATOR_PATH=D:\Perplexity_Orchestrator2
-
-LLM_PROVIDER=local_orchestrator
-CLAUDE_MODEL=sonnet-4.6-thinking
-
-DATABASE_URL=sqlite:///abtest.db
+VITE_API_BASE_URL=http://127.0.0.1:8008

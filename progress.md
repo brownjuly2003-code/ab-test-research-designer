@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-Export functionality completed
+Post-phase cleanup completed
 
 ---
 
@@ -105,22 +105,32 @@ Export functionality completed
 - added report export buttons for Markdown and HTML
 - completed a closed local workflow: fill form, run analysis, save project, reload project, export report
 
+### Post-phase cleanup completed
+
+- verified backend tests locally after recent hardening changes
+- verified frontend production build locally after dependency install
+- added backend CORS support for the local Vite frontend
+- corrected multi-variant total sample size calculation and payload validation
+- escaped user-provided content in HTML export
+- updated frontend save flow to update loaded projects instead of always creating duplicates
+- made frontend API base configurable through `VITE_API_BASE_URL`
+
 ---
 
 ## Next Phase
 
-Post-phase cleanup
+Optional manual end-to-end validation
 
 Goals:
 
-- verify frontend build once dependencies are installed
-- refine documentation after manual end-to-end run
+- run the UI against a live backend in a browser
+- optionally validate the AI advice path with the local orchestrator running
 
 ---
 
 ## Future Phases
 
-Phase 7 - export functionality
+No mandatory MVP phases left
 
 ---
 
