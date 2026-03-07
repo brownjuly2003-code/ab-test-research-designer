@@ -29,6 +29,7 @@ Implemented:
 - deterministic design composer
 - local orchestrator adapter
 - backend API routes
+- Pydantic-validated request/response contracts for core API routes
 - local SQLite project storage
 - frontend wizard and results page
 - local save, load, update, and export flow verified
@@ -82,6 +83,11 @@ Health check:
 ```text
 http://127.0.0.1:8008/health
 ```
+
+API validation:
+
+- request bodies for calculation, design, projects, and export routes are validated by Pydantic
+- malformed payloads fail early with `422 Unprocessable Entity`
 
 ### Frontend
 

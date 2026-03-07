@@ -110,6 +110,7 @@ Post-phase cleanup completed
 - verified backend tests locally after recent hardening changes
 - verified frontend production build locally after dependency install
 - added backend CORS support for the local Vite frontend
+- added explicit Pydantic request/response schemas for core backend routes
 - corrected multi-variant total sample size calculation and payload validation
 - escaped user-provided content in HTML export
 - updated frontend save flow to update loaded projects instead of always creating duplicates

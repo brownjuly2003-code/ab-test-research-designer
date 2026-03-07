@@ -123,8 +123,8 @@ def test_calculate_endpoint_rejects_mismatched_variant_configuration() -> None:
         },
     )
 
-    assert response.status_code == 400
-    assert "traffic_split length must match variants_count" in response.json()["detail"]
+    assert response.status_code == 422
+    assert "traffic_split length must match variants_count" in str(response.json()["detail"])
 
 
 def test_calculate_endpoint_allows_vite_preflight_origin() -> None:

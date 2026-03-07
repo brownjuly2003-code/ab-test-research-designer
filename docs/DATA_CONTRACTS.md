@@ -170,9 +170,11 @@
 ## 6. API endpoints
 
 ### POST `/api/v1/calculate`
+Validation: request schema violations return `422 Unprocessable Entity`.
 Назначение: вернуть deterministic calculations и warnings.
 
 ### POST `/api/v1/design`
+Validation: request schema violations return `422 Unprocessable Entity`.
 Назначение: собрать полный report из user input + calculations + warnings + optional LLM advice.
 
 ### POST `/api/v1/llm/advice`
@@ -182,12 +184,14 @@
 Список проектов.
 
 ### POST `/api/v1/projects`
+Validation: uses the same structured payload as `POST /api/v1/design`.
 Создание проекта.
 
 ### GET `/api/v1/projects/{project_id}`
 Чтение проекта.
 
 ### PUT `/api/v1/projects/{project_id}`
+Validation: uses the same structured payload as `POST /api/v1/design`.
 Обновление проекта.
 
 ### POST `/api/v1/export/markdown`

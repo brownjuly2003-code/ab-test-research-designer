@@ -5,6 +5,17 @@ from pydantic import BaseModel
 from app.backend.app.config import get_settings
 from app.backend.app.llm.adapter import LocalOrchestratorAdapter
 from app.backend.app.repository import ProjectRepository
+from app.backend.app.schemas.api import (
+    CalculationRequest,
+    CalculationResponse,
+    ExperimentInput,
+    ExperimentReport,
+    ExportResponse,
+    LlmAdviceRequest,
+    LlmAdviceResponse,
+    ProjectListResponse,
+    ProjectRecord,
+)
 from app.backend.app.services.calculations_service import calculate_experiment_metrics
 from app.backend.app.services.design_service import build_experiment_report
 from app.backend.app.services.export_service import export_report_to_html, export_report_to_markdown
@@ -17,22 +28,22 @@ class HealthResponse(BaseModel):
     environment: str
 
 
-def _build_calculation_payload(payload: dict) -> dict:
-    return {
-        "metric_type": payload["metrics"]["metric_type"],
-        "baseline_value": payload["metrics"]["baseline_value"],
-        "std_dev": payload["metrics"].get("std_dev"),
-        "mde_pct": payload["metrics"]["mde_pct"],
-        "alpha": payload["metrics"]["alpha"],
-        "power": payload["metrics"]["power"],
-        "expected_daily_traffic": payload["setup"]["expected_daily_traffic"],
-        "audience_share_in_test": payload["setup"]["audience_share_in_test"],
-        "traffic_split": payload["setup"]["traffic_split"],
-        "variants_count": payload["setup"]["variants_count"],
-        "seasonality_present": payload.get("constraints", {}).get("seasonality_present"),
-        "active_campaigns_present": payload.get("constraints", {}).get("active_campaigns_present"),
-        "long_test_possible": payload.get("constraints", {}).get("long_test_possible"),
-    }
+def _build_calculation_payload(payload: ExperimentInput) -> CalculationRequest:
+    return CalculationRequest(
+        metric_type=payload.metrics.metric_type,
+        baseline_value=payload.metrics.baseline_value,
+        std_dev=payload.metrics.std_dev,
+        mde_pct=payload.metrics.mde_pct,
+        alpha=payload.metrics.alpha,
+        power=payload.metrics.power,
+        expected_daily_traffic=payload.setup.expected_daily_traffic,
+        audience_share_in_test=payload.setup.audience_share_in_test,
+        traffic_split=payload.setup.traffic_split,
+        variants_count=payload.setup.variants_count,
+        seasonality_present=payload.constraints.seasonality_present,
+        active_campaigns_present=payload.constraints.active_campaigns_present,
+        long_test_possible=payload.constraints.long_test_possible,
+    )
 
 
 def create_app() -> FastAPI:
@@ -62,71 +73,62 @@ def create_app() -> FastAPI:
             environment=settings.environment,
         )
 
-    @app.post("/api/v1/calculate")
-    def calculate(payload: dict) -> dict:
+    @app.post("/api/v1/calculate", response_model=CalculationResponse)
+    def calculate(payload: CalculationRequest) -> CalculationResponse:
         try:
-            return calculate_experiment_metrics(payload)
-        except (KeyError, TypeError, ValueError) as exc:
+            result = calculate_experiment_metrics(payload.model_dump())
+            return CalculationResponse.model_validate(result)
+        except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    @app.post("/api/v1/design")
-    def design(payload: dict) -> dict:
+    @app.post("/api/v1/design", response_model=ExperimentReport)
+    def design(payload: ExperimentInput) -> ExperimentReport:
         try:
             calculation_payload = _build_calculation_payload(payload)
-            calculation_result = calculate_experiment_metrics(calculation_payload)
-            return build_experiment_report(payload, calculation_result)
-        except (KeyError, TypeError, ValueError) as exc:
+            calculation_result = calculate_experiment_metrics(calculation_payload.model_dump())
+            report = build_experiment_report(payload.model_dump(), calculation_result)
+            return ExperimentReport.model_validate(report)
+        except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    @app.post("/api/v1/llm/advice")
-    def llm_advice(payload: dict) -> dict:
+    @app.post("/api/v1/llm/advice", response_model=LlmAdviceResponse)
+    def llm_advice(payload: LlmAdviceRequest) -> LlmAdviceResponse:
         try:
-            return llm_adapter.request_advice(payload)
+            result = llm_adapter.request_advice(payload.model_dump(exclude_none=True))
+            return LlmAdviceResponse.model_validate(result)
         except Exception as exc:
             raise HTTPException(status_code=500, detail=str(exc)) from exc
 
-    @app.get("/api/v1/projects")
-    def list_projects() -> dict:
-        return {"projects": repository.list_projects()}
+    @app.get("/api/v1/projects", response_model=ProjectListResponse)
+    def list_projects() -> ProjectListResponse:
+        return ProjectListResponse.model_validate({"projects": repository.list_projects()})
 
-    @app.post("/api/v1/projects")
-    def create_project(payload: dict) -> dict:
-        try:
-            return repository.create_project(payload)
-        except (KeyError, TypeError) as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
+    @app.post("/api/v1/projects", response_model=ProjectRecord)
+    def create_project(payload: ExperimentInput) -> ProjectRecord:
+        project = repository.create_project(payload.model_dump())
+        return ProjectRecord.model_validate(project)
 
-    @app.get("/api/v1/projects/{project_id}")
-    def get_project(project_id: str) -> dict:
+    @app.get("/api/v1/projects/{project_id}", response_model=ProjectRecord)
+    def get_project(project_id: str) -> ProjectRecord:
         project = repository.get_project(project_id)
         if project is None:
             raise HTTPException(status_code=404, detail="Project not found")
-        return project
+        return ProjectRecord.model_validate(project)
 
-    @app.put("/api/v1/projects/{project_id}")
-    def update_project(project_id: str, payload: dict) -> dict:
-        try:
-            project = repository.update_project(project_id, payload)
-        except (KeyError, TypeError) as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
-
+    @app.put("/api/v1/projects/{project_id}", response_model=ProjectRecord)
+    def update_project(project_id: str, payload: ExperimentInput) -> ProjectRecord:
+        project = repository.update_project(project_id, payload.model_dump())
         if project is None:
             raise HTTPException(status_code=404, detail="Project not found")
-        return project
+        return ProjectRecord.model_validate(project)
 
-    @app.post("/api/v1/export/markdown")
-    def export_markdown(payload: dict) -> dict:
-        try:
-            return {"content": export_report_to_markdown(payload)}
-        except KeyError as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
+    @app.post("/api/v1/export/markdown", response_model=ExportResponse)
+    def export_markdown(payload: ExperimentReport) -> ExportResponse:
+        return ExportResponse(content=export_report_to_markdown(payload.model_dump()))
 
-    @app.post("/api/v1/export/html")
-    def export_html(payload: dict) -> dict:
-        try:
-            return {"content": export_report_to_html(payload)}
-        except KeyError as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
+    @app.post("/api/v1/export/html", response_model=ExportResponse)
+    def export_html(payload: ExperimentReport) -> ExportResponse:
+        return ExportResponse(content=export_report_to_html(payload.model_dump()))
 
     return app
 
