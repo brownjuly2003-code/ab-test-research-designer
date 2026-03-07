@@ -290,6 +290,30 @@ describe("App UI flow", () => {
     }
   });
 
+  it("keeps optional expected uplift empty instead of coercing it to zero", async () => {
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+
+      for (let stepIndex = 0; stepIndex < 3; stepIndex += 1) {
+        await click(findButton(view.container, "Next"));
+      }
+
+      const expectedUpliftInput = view.container.querySelector("#metrics-expected_uplift_pct");
+      if (!(expectedUpliftInput instanceof HTMLInputElement)) {
+        throw new Error("Expected uplift input was not rendered");
+      }
+
+      await changeValue(expectedUpliftInput, "");
+      await flushEffects();
+
+      expect(expectedUpliftInput.value).toBe("");
+      expect(window.localStorage.getItem(browserDraftStorageKey)).toContain('"expected_uplift_pct":null');
+    } finally {
+      await view.unmount();
+    }
+  });
+
   it("imports a draft json file into a new local draft", async () => {
     const imported = buildLoadedPayload();
     imported.project.project_name = "Imported checkout";
@@ -381,12 +405,19 @@ describe("App UI flow", () => {
       await changeValue(metricType, "continuous");
       await flushEffects();
 
-      expect(view.container.querySelector("#metrics-std_dev")).toBeInstanceOf(HTMLInputElement);
+      const stdDevInput = view.container.querySelector("#metrics-std_dev");
+      if (!(stdDevInput instanceof HTMLInputElement)) {
+        throw new Error("Std dev input was not rendered for continuous metrics");
+      }
+
+      await changeValue(stdDevInput, "12");
+      await flushEffects();
 
       await changeValue(metricType, "binary");
       await flushEffects();
 
       expect(view.container.querySelector("#metrics-std_dev")).toBeNull();
+      expect(window.localStorage.getItem(browserDraftStorageKey)).toContain('"std_dev":null');
 
       for (let stepIndex = 0; stepIndex < 2; stepIndex += 1) {
         await click(findButton(view.container, "Next"));

@@ -58,6 +58,14 @@ export default function WizardPanel({
   const visibleFields = current.fields.filter((field) => (field.visibleWhen ? field.visibleWhen(form) : true));
   const reviewSections = getReviewSections(form);
 
+  function readNextNumberValue(rawValue: string, emptyValue?: number | "" | null): number | "" | null {
+    if (rawValue === "") {
+      return emptyValue !== undefined ? emptyValue : 0;
+    }
+
+    return Number(rawValue);
+  }
+
   return (
     <section className="panel">
       <div className="steps">
@@ -154,7 +162,9 @@ export default function WizardPanel({
                       onUpdateSection(
                         targetSection,
                         field.key,
-                        fieldType === "number" ? Number(event.target.value) : event.target.value
+                        fieldType === "number"
+                          ? readNextNumberValue(event.target.value, field.emptyValue)
+                          : event.target.value
                       )
                     }
                   />

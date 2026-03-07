@@ -234,7 +234,7 @@ export type SavedProject = {
 export type ExportFormat = "markdown" | "html";
 export type FieldKind = "text" | "textarea" | "number" | "boolean";
 export type FullPayloadSectionKey = keyof FullPayload;
-export type DraftFieldValue = string | number | boolean;
+export type DraftFieldValue = string | number | boolean | null;
 export type SelectOption = {
   label: string;
   value: string;
@@ -247,6 +247,7 @@ export type SectionField = {
   fullWidth?: boolean;
   options?: SelectOption[];
   visibleWhen?: (state: FullPayload) => boolean;
+  emptyValue?: number | "" | null;
 };
 export type SectionConfig = {
   title: string;
@@ -376,13 +377,25 @@ export function setSectionFieldValue(
   key: string,
   value: DraftFieldValue
 ): FullPayload {
-  return {
+  const nextState = {
     ...state,
     [section]: {
       ...(state[section] as Record<string, unknown>),
       [key]: value
     }
   } as FullPayload;
+
+  if (section === "metrics" && key === "metric_type" && value === "binary") {
+    return {
+      ...nextState,
+      metrics: {
+        ...nextState.metrics,
+        std_dev: ""
+      }
+    };
+  }
+
+  return nextState;
 }
 
 export function parseTrafficSplit(raw: unknown): number[] {
@@ -691,7 +704,7 @@ export const sections: SectionConfig[] = [
         ]
       },
       { label: "Baseline value", key: "baseline_value", kind: "number" },
-      { label: "Expected uplift %", key: "expected_uplift_pct", kind: "number" },
+      { label: "Expected uplift %", key: "expected_uplift_pct", kind: "number", emptyValue: null },
       { label: "MDE %", key: "mde_pct", kind: "number" },
       { label: "Alpha", key: "alpha", kind: "number" },
       { label: "Power", key: "power", kind: "number" },
@@ -699,6 +712,7 @@ export const sections: SectionConfig[] = [
         label: "Std dev",
         key: "std_dev",
         kind: "number",
+        emptyValue: "",
         visibleWhen: (state) => state.metrics.metric_type === "continuous"
       },
       { label: "Secondary metrics", key: "secondary_metrics", kind: "textarea", fullWidth: true },
