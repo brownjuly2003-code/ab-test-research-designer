@@ -36,6 +36,7 @@ Implemented:
 - client-side validation before save and analysis requests
 - frontend API requests centralized in a dedicated module
 - frontend unit tests for helpers and API wrapper
+- dedicated review step before analysis with fuller frontend report rendering
 - frontend production build verified after dependency install
 
 Remaining:
@@ -133,12 +134,14 @@ http://127.0.0.1:5173
 The frontend currently supports:
 
 - wizard-based experiment input
+- explicit review step before analysis
 - client-side validation for the main experiment inputs
 - run deterministic calculations and report generation
 - optional AI advice request
 - local project save and update
 - local project list/load with automatic load on app start
 - Markdown and HTML export from the results block
+- full deterministic recommendation rendering for before/during/after test phases
 
 ### Optional AI advice
 

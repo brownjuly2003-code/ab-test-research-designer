@@ -117,6 +117,8 @@ Post-phase cleanup completed
 - split frontend app into focused modules and centralized API calls
 - auto-loaded saved projects on frontend startup
 - added frontend unit tests for experiment helpers and API wrapper
+- added a real frontend review step before analysis
+- restored missing constraint fields and fuller deterministic recommendation rendering in the UI
 - updated frontend save flow to update loaded projects instead of always creating duplicates
 - made frontend API base configurable through `VITE_API_BASE_URL`
 

@@ -4,6 +4,7 @@ import {
   buildApiPayload,
   buildCalculationPayload,
   cloneInitialState,
+  getReviewSections,
   hydrateLoadedPayload,
   parseTrafficSplit,
   validateForm
@@ -44,6 +45,19 @@ describe("experiment helpers", () => {
 
     expect(hydrated.setup.traffic_split).toBe("50,50");
     expect(hydrated.metrics.std_dev).toBe("");
+  });
+
+  it("builds review sections with formatted values and required constraint fields", () => {
+    const sections = getReviewSections(cloneInitialState());
+    const constraints = sections.find((section) => section.title === "Constraints");
+
+    expect(constraints?.items).toEqual(
+      expect.arrayContaining([
+        { label: "Seasonality present", value: "Yes" },
+        { label: "Legal / ethics constraints", value: "none" },
+        { label: "Deadline pressure", value: "medium" }
+      ])
+    );
   });
 
   it("returns validation errors for mismatched variants and missing std dev", () => {

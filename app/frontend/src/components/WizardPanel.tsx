@@ -1,4 +1,11 @@
-import { sections, stepLabels, type ExportFormat, type FullPayload, type ResultsState } from "../lib/experiment";
+import {
+  getReviewSections,
+  sections,
+  stepLabels,
+  type ExportFormat,
+  type FullPayload,
+  type ResultsState
+} from "../lib/experiment";
 
 type WizardPanelProps = {
   step: number;
@@ -37,7 +44,9 @@ export default function WizardPanel({
   onRunAnalysis,
   onExportReport
 }: WizardPanelProps) {
+  const isReviewStep = step >= sections.length;
   const current = sections[Math.min(step, sections.length - 1)];
+  const reviewSections = getReviewSections(form);
 
   return (
     <section className="panel">
@@ -49,7 +58,7 @@ export default function WizardPanel({
         ))}
       </div>
 
-      {step < sections.length ? (
+      {!isReviewStep ? (
         <div className="section">
           <h2>{current.title}</h2>
           <div className="note">
@@ -125,18 +134,60 @@ export default function WizardPanel({
             <button className="btn ghost" disabled={loading || saving} onClick={onSave}>
               {saving ? "Saving..." : activeProjectId ? "Update project" : "Save project"}
             </button>
-            {step < sections.length - 1 ? (
-              <button className="btn primary" disabled={loading} onClick={onNext}>
-                Next
-              </button>
-            ) : (
-              <button className="btn primary" disabled={loading} onClick={onRunAnalysis}>
-                {loading ? "Running analysis..." : "Run analysis"}
-              </button>
-            )}
+            <button className="btn primary" disabled={loading} onClick={onNext}>
+              Next
+            </button>
           </div>
         </div>
-      ) : null}
+      ) : (
+        <div className="section">
+          <h2>Review inputs</h2>
+          <div className="note">
+            <strong>{activeProjectId ? "Reviewing a saved project" : "Reviewing a new draft"}</strong>
+            <div className="muted">
+              Check the values below before saving or running the deterministic backend flow.
+            </div>
+          </div>
+          {validationErrors.length > 0 ? (
+            <div className="status">
+              <strong>Fix these fields before saving or running analysis:</strong>
+              <ul className="list">
+                {validationErrors.map((issue) => (
+                  <li key={issue}>{issue}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          <div className="two-col">
+            {reviewSections.map((section) => (
+              <div key={section.title} className="card">
+                <h3>{section.title}</h3>
+                <ul className="list">
+                  {section.items.map((item) => (
+                    <li key={`${section.title}-${item.label}`}>
+                      <strong>{item.label}:</strong> {item.value}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+          <div className="actions">
+            <button className="btn secondary" disabled={loading} onClick={onBack}>
+              Back
+            </button>
+            <button className="btn ghost" disabled={loading || saving} onClick={onStartNew}>
+              New draft
+            </button>
+            <button className="btn ghost" disabled={loading || saving} onClick={onSave}>
+              {saving ? "Saving..." : activeProjectId ? "Update project" : "Save project"}
+            </button>
+            <button className="btn primary" disabled={loading} onClick={onRunAnalysis}>
+              {loading ? "Running analysis..." : "Run analysis"}
+            </button>
+          </div>
+        </div>
+      )}
 
       {results.report ? (
         <div className="results">
@@ -196,6 +247,22 @@ export default function WizardPanel({
                 <h3>Before launch</h3>
                 <ul className="list">
                   {(results.report.recommendations?.before_launch ?? []).map((item) => (
+                    <li key={String(item)}>{String(item)}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className="card">
+                <h3>During test</h3>
+                <ul className="list">
+                  {(results.report.recommendations?.during_test ?? []).map((item) => (
+                    <li key={String(item)}>{String(item)}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className="card">
+                <h3>After test</h3>
+                <ul className="list">
+                  {(results.report.recommendations?.after_test ?? []).map((item) => (
                     <li key={String(item)}>{String(item)}</li>
                   ))}
                 </ul>

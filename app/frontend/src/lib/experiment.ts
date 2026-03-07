@@ -83,6 +83,16 @@ export type SectionConfig = {
   fields: SectionField[];
 };
 
+export type ReviewItem = {
+  label: string;
+  value: string;
+};
+
+export type ReviewSection = {
+  title: string;
+  items: ReviewItem[];
+};
+
 const configuredApiBase = import.meta.env.VITE_API_BASE_URL?.trim();
 const apiBase =
   configuredApiBase && configuredApiBase.length > 0
@@ -224,6 +234,31 @@ export function hydrateLoadedPayload(payload: FullPayload): FullPayload {
   };
 }
 
+export function formatReviewValue(value: unknown): string {
+  if (typeof value === "boolean") {
+    return value ? "Yes" : "No";
+  }
+  if (Array.isArray(value)) {
+    return value.join(", ");
+  }
+
+  const normalized = String(value ?? "").trim();
+  return normalized.length > 0 ? normalized : "-";
+}
+
+export function getReviewSections(state: FullPayload): ReviewSection[] {
+  return sections.map((section) => ({
+    title: section.title,
+    items: section.fields.map(([label, key, _kind, explicitSection]) => {
+      const targetSection = explicitSection ?? section.section;
+      return {
+        label,
+        value: formatReviewValue(state[targetSection][key])
+      };
+    })
+  }));
+}
+
 export function validateForm(state: FullPayload): string[] {
   const issues: string[] = [];
   const projectName = readString(state.project, "project_name");
@@ -355,7 +390,9 @@ export const sections: SectionConfig[] = [
       ["Returning users present", "returning_users_present", "boolean"],
       ["Interference risk", "interference_risk"],
       ["Technical constraints", "technical_constraints"],
+      ["Legal / ethics constraints", "legal_or_ethics_constraints"],
       ["Known risks", "known_risks"],
+      ["Deadline pressure", "deadline_pressure"],
       ["Long test possible", "long_test_possible", "boolean"],
       ["AI context", "llm_context", "textarea", "additional_context"]
     ]
