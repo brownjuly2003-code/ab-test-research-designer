@@ -12,6 +12,7 @@ import {
   saveProjectRequest
 } from "./lib/api";
 import {
+  buildApiPayload,
   buildDraftTransferFile,
   browserDraftStorageKey,
   type ApiHealthResponse,
@@ -129,8 +130,12 @@ export default function App() {
   const [statusMessage, setStatusMessage] = useState("");
   const [savedProjects, setSavedProjects] = useState<SavedProject[]>([]);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
+  const [savedProjectSnapshot, setSavedProjectSnapshot] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const lastStepIndex = stepLabels.length - 1;
+  const serializedForm = JSON.stringify(buildApiPayload(form));
+  const hasUnsavedChanges =
+    activeProjectId !== null && savedProjectSnapshot !== null && savedProjectSnapshot !== serializedForm;
 
   function invalidateResults() {
     setResults((current) => (Object.keys(current).length > 0 ? {} : current));
@@ -150,6 +155,7 @@ export default function App() {
     setError("");
     setStatusMessage("Started a new local draft.");
     setActiveProjectId(null);
+    setSavedProjectSnapshot(null);
     setValidationErrors([]);
     setStep(0);
   }
@@ -191,6 +197,7 @@ export default function App() {
       setForm(imported);
       setResults({});
       setActiveProjectId(null);
+      setSavedProjectSnapshot(null);
       setValidationErrors([]);
       setStatusMessage(`Imported draft from ${file.name}. Save it to create a new local project record.`);
       setStep(0);
@@ -282,9 +289,11 @@ export default function App() {
 
     try {
       const isUpdate = activeProjectId !== null;
+      const normalizedPayload = buildApiPayload(form);
       const data = await saveProjectRequest(form, activeProjectId);
 
       setActiveProjectId(typeof data.id === "string" ? data.id : activeProjectId);
+      setSavedProjectSnapshot(JSON.stringify(normalizedPayload));
       setStatusMessage(
         isUpdate
           ? `Project ${String(data.project_name)} updated locally.`
@@ -321,6 +330,7 @@ export default function App() {
       setForm(hydrateLoadedPayload(data.payload));
       setResults({});
       setActiveProjectId(typeof data.id === "string" ? data.id : projectId);
+      setSavedProjectSnapshot(JSON.stringify(data.payload));
       setValidationErrors([]);
       setStatusMessage(`Loaded project ${String(data.project_name)} into the wizard.`);
       setStep(0);
@@ -344,6 +354,7 @@ export default function App() {
 
       if (activeProjectId === projectId) {
         setActiveProjectId(null);
+        setSavedProjectSnapshot(null);
         setStatusMessage(`Project ${projectName} deleted. Current form remains as a new local draft.`);
       } else {
         setStatusMessage(`Project ${projectName} deleted locally.`);
@@ -407,6 +418,7 @@ export default function App() {
               step={step}
               form={form}
               activeProjectId={activeProjectId}
+              hasUnsavedChanges={hasUnsavedChanges}
               validationErrors={validationErrors}
               importingDraft={importingDraft}
               loading={loading}
@@ -431,6 +443,8 @@ export default function App() {
               backendHealth={backendHealth}
               healthError={healthError}
               savedProjects={savedProjects}
+              activeProjectId={activeProjectId}
+              hasUnsavedChanges={hasUnsavedChanges}
               onRefreshHealth={loadBackendHealth}
               onLoadProjects={loadProjects}
               onLoadProject={loadProject}

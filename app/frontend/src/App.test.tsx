@@ -170,6 +170,58 @@ describe("App UI flow", () => {
       expect(view.container.textContent).toContain("Loaded project Stored checkout test into the wizard.");
       expect((view.container.querySelector("#project-project_name") as HTMLInputElement).value).toBe("Loaded experiment");
       expect(view.container.textContent).toContain("Project id: p-1");
+      expect(view.container.textContent).toContain("All changes saved locally.");
+      expect(view.container.textContent).toContain("In sync with SQLite");
+
+      const projectNameInput = view.container.querySelector("#project-project_name");
+      if (!(projectNameInput instanceof HTMLInputElement)) {
+        throw new Error("Project name input was not rendered");
+      }
+
+      await changeValue(projectNameInput, "Loaded experiment v2");
+      await flushEffects();
+
+      expect(view.container.textContent).toContain("Unsaved changes pending local update.");
+      expect(view.container.textContent).toContain("Needs local update");
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("filters saved projects in the sidebar by search query", async () => {
+    vi.mocked(listProjectsRequest).mockResolvedValueOnce([
+      {
+        id: "p-1",
+        project_name: "Stored checkout test",
+        created_at: "2026-03-07T10:00:00Z",
+        updated_at: "2026-03-07T10:00:00Z"
+      },
+      {
+        id: "p-2",
+        project_name: "Pricing experiment",
+        created_at: "2026-03-07T11:00:00Z",
+        updated_at: "2026-03-07T11:00:00Z"
+      }
+    ]);
+
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+
+      const searchInput = view.container.querySelector("#saved-projects-search");
+      if (!(searchInput instanceof HTMLInputElement)) {
+        throw new Error("Saved projects search input was not rendered");
+      }
+
+      expect(view.container.textContent).toContain("Stored checkout test");
+      expect(view.container.textContent).toContain("Pricing experiment");
+
+      await changeValue(searchInput, "pricing");
+      await flushEffects();
+
+      expect(view.container.textContent).not.toContain("Stored checkout test");
+      expect(view.container.textContent).toContain("Pricing experiment");
+      expect(view.container.textContent).toContain("Showing 1 of 2 saved projects.");
     } finally {
       await view.unmount();
     }

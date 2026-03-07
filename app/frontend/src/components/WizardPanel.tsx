@@ -14,6 +14,7 @@ type WizardPanelProps = {
   step: number;
   form: FullPayload;
   activeProjectId: string | null;
+  hasUnsavedChanges: boolean;
   validationErrors: string[];
   importingDraft: boolean;
   loading: boolean;
@@ -36,6 +37,7 @@ export default function WizardPanel({
   step,
   form,
   activeProjectId,
+  hasUnsavedChanges,
   validationErrors,
   importingDraft,
   loading,
@@ -82,7 +84,9 @@ export default function WizardPanel({
           <div className="note">
             <strong>{activeProjectId ? "Editing saved project" : "Working on a new draft"}</strong>
             <div className="muted">
-              {activeProjectId ? `Project id: ${activeProjectId}` : "Saving will create a new local project record."}
+              {activeProjectId
+                ? `Project id: ${activeProjectId}. ${hasUnsavedChanges ? "Unsaved changes pending local update." : "All changes saved locally."}`
+                : "Saving will create a new local project record."}
             </div>
           </div>
           {validationErrors.length > 0 ? (
@@ -200,7 +204,9 @@ export default function WizardPanel({
           <div className="note">
             <strong>{activeProjectId ? "Reviewing a saved project" : "Reviewing a new draft"}</strong>
             <div className="muted">
-              Check the values below before saving or running the deterministic backend flow.
+              {activeProjectId
+                ? `${hasUnsavedChanges ? "Unsaved changes are present." : "This loaded project is in sync with local storage."} Check the values below before saving or running the deterministic backend flow.`
+                : "Check the values below before saving or running the deterministic backend flow."}
             </div>
           </div>
           {validationErrors.length > 0 ? (

@@ -132,6 +132,10 @@ Post-phase cleanup completed
 - archived outdated workspace artifacts and refreshed `docs/FILE_TREE.md`
 - updated frontend save flow to update loaded projects instead of always creating duplicates
 - made frontend API base configurable through `VITE_API_BASE_URL`
+- tightened frontend payload typing and aligned test fixtures with normalized API payloads
+- added select-based controls and conditional field visibility in the wizard
+- cleaned up optional numeric field handling so blank values do not silently coerce to zero
+- added dirty-state feedback for loaded projects plus sidebar search/filter and update timestamps
 
 ---
 

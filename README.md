@@ -46,6 +46,8 @@ Implemented:
 - frontend supports draft JSON import/export for payload transfer outside SQLite
 - frontend restores and autosaves unsaved browser drafts via localStorage
 - destructive project deletion in the frontend now asks for confirmation
+- saved project editing now surfaces dirty-state before local update
+- saved project sidebar now supports search/filter and shows recent update timestamps
 - frontend production build verified after dependency install
 
 Remaining:
@@ -156,6 +158,8 @@ The frontend currently supports:
 - startup backend health check with manual refresh in the sidebar
 - draft JSON import/export from the wizard without backend round-trips
 - browser-local draft restore and autosave between page reloads
+- dirty-state feedback when editing a loaded project
+- saved project search/filter with updated-at context in the sidebar
 - Markdown and HTML export from the results block
 - full deterministic recommendation rendering for before/during/after test phases
 - experiment design, metrics plan, and risks rendering from the backend report
