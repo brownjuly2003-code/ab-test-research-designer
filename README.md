@@ -34,6 +34,7 @@ Implemented:
 - frontend wizard and results page
 - local save, load, update, and export flow verified
 - client-side validation before save and analysis requests
+- frontend API requests centralized in a dedicated module
 - frontend production build verified after dependency install
 
 Remaining:
@@ -129,7 +130,7 @@ The frontend currently supports:
 - run deterministic calculations and report generation
 - optional AI advice request
 - local project save and update
-- local project list/load
+- local project list/load with automatic load on app start
 - Markdown and HTML export from the results block
 
 ### Optional AI advice

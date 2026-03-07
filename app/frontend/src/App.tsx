@@ -1,20 +1,20 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import SidebarPanel from "./components/SidebarPanel";
 import WizardPanel from "./components/WizardPanel";
 import {
-  apiUrl,
-  buildApiPayload,
-  buildCalculationPayload,
+  exportReportRequest,
+  listProjectsRequest,
+  loadProjectRequest,
+  requestAnalysis,
+  saveProjectRequest
+} from "./lib/api";
+import {
   cloneInitialState,
-  type AdviceResponse,
-  type ApiErrorResponse,
-  type CalculationResponse,
   type ExportFormat,
   type FullPayload,
   hydrateLoadedPayload,
   stepLabels,
-  type ReportResponse,
   type ResultsState,
   type SavedProject,
   validateForm
@@ -132,6 +132,10 @@ export default function App() {
     return true;
   }
 
+  useEffect(() => {
+    void loadProjects();
+  }, []);
+
   async function runAnalysis() {
     if (!ensureValidForm()) {
       return;
@@ -141,53 +145,10 @@ export default function App() {
     setError("");
     setStatusMessage("");
 
-    const payload = buildApiPayload(form);
-    const calculationPayload = buildCalculationPayload(form);
-
     try {
-      const [calculationsRes, reportRes, adviceRes] = await Promise.all([
-        fetch(apiUrl("/api/v1/calculate"), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(calculationPayload)
-        }),
-        fetch(apiUrl("/api/v1/design"), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        }),
-        fetch(apiUrl("/api/v1/llm/advice"), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            project_context: payload.project,
-            hypothesis: payload.hypothesis,
-            setup: payload.setup,
-            metrics: payload.metrics,
-            constraints: payload.constraints,
-            additional_context: payload.additional_context
-          })
-        })
-      ]);
+      const analysis = await requestAnalysis(form);
 
-      const calculations = await calculationsRes.json() as CalculationResponse | ApiErrorResponse;
-      const report = await reportRes.json() as ReportResponse | ApiErrorResponse;
-      const advice = await adviceRes.json() as AdviceResponse;
-
-      if (!calculationsRes.ok) {
-        const calculationError = calculations as ApiErrorResponse;
-        throw new Error(typeof calculationError.detail === "string" ? calculationError.detail : "Calculation request failed");
-      }
-      if (!reportRes.ok) {
-        const reportError = report as ApiErrorResponse;
-        throw new Error(typeof reportError.detail === "string" ? reportError.detail : "Design request failed");
-      }
-
-      setResults({
-        calculations: calculations as CalculationResponse,
-        report: report as ReportResponse,
-        advice
-      });
+      setResults(analysis);
       setStep(stepLabels.length - 1);
       setStatusMessage("Analysis completed. Deterministic output and optional AI advice are shown below.");
     } catch (requestError) {
@@ -208,19 +169,7 @@ export default function App() {
 
     try {
       const isUpdate = activeProjectId !== null;
-      const response = await fetch(
-        isUpdate ? apiUrl(`/api/v1/projects/${activeProjectId}`) : apiUrl("/api/v1/projects"),
-        {
-          method: isUpdate ? "PUT" : "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(buildApiPayload(form))
-        }
-      );
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(typeof data.detail === "string" ? data.detail : "Project save failed");
-      }
+      const data = await saveProjectRequest(form, activeProjectId);
 
       setActiveProjectId(typeof data.id === "string" ? data.id : activeProjectId);
       setStatusMessage(
@@ -241,14 +190,7 @@ export default function App() {
     setError("");
 
     try {
-      const response = await fetch(apiUrl("/api/v1/projects"));
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(typeof data.detail === "string" ? data.detail : "Project list request failed");
-      }
-
-      setSavedProjects(Array.isArray(data.projects) ? data.projects : []);
+      setSavedProjects(await listProjectsRequest());
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Unexpected project list error");
     } finally {
@@ -261,14 +203,9 @@ export default function App() {
     setStatusMessage("");
 
     try {
-      const response = await fetch(apiUrl(`/api/v1/projects/${projectId}`));
-      const data = await response.json();
+      const data = await loadProjectRequest(projectId);
 
-      if (!response.ok) {
-        throw new Error(typeof data.detail === "string" ? data.detail : "Project load failed");
-      }
-
-      setForm(hydrateLoadedPayload(data.payload as FullPayload));
+      setForm(hydrateLoadedPayload(data.payload));
       setResults({});
       setActiveProjectId(typeof data.id === "string" ? data.id : projectId);
       setValidationErrors([]);
@@ -289,19 +226,9 @@ export default function App() {
     setStatusMessage("");
 
     try {
-      const response = await fetch(apiUrl(`/api/v1/export/${format}`), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(results.report)
-      });
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(typeof data.detail === "string" ? data.detail : "Export failed");
-      }
-
       const extension = format === "markdown" ? "md" : "html";
-      const blob = new Blob([String(data.content)], { type: format === "markdown" ? "text/markdown" : "text/html" });
+      const content = await exportReportRequest(results.report, format);
+      const blob = new Blob([content], { type: format === "markdown" ? "text/markdown" : "text/html" });
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
