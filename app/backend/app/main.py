@@ -10,6 +10,7 @@ from app.backend.app.config import get_settings
 from app.backend.app.llm.adapter import LocalOrchestratorAdapter
 from app.backend.app.repository import ProjectRepository
 from app.backend.app.schemas.api import (
+    AnalysisResponse,
     CalculationRequest,
     CalculationResponse,
     ExperimentInput,
@@ -49,6 +50,20 @@ def _build_calculation_payload(payload: ExperimentInput) -> CalculationRequest:
         active_campaigns_present=payload.constraints.active_campaigns_present,
         long_test_possible=payload.constraints.long_test_possible,
     )
+
+
+def _build_llm_advice_payload(payload: ExperimentInput, calculation_result: dict) -> dict:
+    normalized_payload = payload.model_dump()
+    return {
+        "project_context": normalized_payload["project"],
+        "hypothesis": normalized_payload["hypothesis"],
+        "setup": normalized_payload["setup"],
+        "metrics": normalized_payload["metrics"],
+        "constraints": normalized_payload["constraints"],
+        "additional_context": normalized_payload["additional_context"],
+        "calculation_results": calculation_result["results"],
+        "warnings": calculation_result.get("warnings", []),
+    }
 
 
 def create_app() -> FastAPI:
@@ -95,6 +110,21 @@ def create_app() -> FastAPI:
             calculation_result = calculate_experiment_metrics(calculation_payload.model_dump())
             report = build_experiment_report(payload.model_dump(), calculation_result)
             return ExperimentReport.model_validate(report)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @app.post("/api/v1/analyze", response_model=AnalysisResponse)
+    def analyze(payload: ExperimentInput) -> AnalysisResponse:
+        try:
+            calculation_payload = _build_calculation_payload(payload)
+            calculation_result = calculate_experiment_metrics(calculation_payload.model_dump())
+            report = build_experiment_report(payload.model_dump(), calculation_result)
+            advice = llm_adapter.request_advice(_build_llm_advice_payload(payload, calculation_result))
+            return AnalysisResponse(
+                calculations=CalculationResponse.model_validate(calculation_result),
+                report=ExperimentReport.model_validate(report),
+                advice=LlmAdviceResponse.model_validate(advice),
+            )
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 

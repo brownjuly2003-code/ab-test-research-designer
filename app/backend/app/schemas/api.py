@@ -181,6 +181,12 @@ class LlmAdviceResponse(BaseModel):
     error: str | None
 
 
+class AnalysisResponse(BaseModel):
+    calculations: CalculationResponse
+    report: ExperimentReport
+    advice: LlmAdviceResponse
+
+
 class ProjectRecord(BaseModel):
     id: str
     project_name: str
@@ -210,6 +216,7 @@ class ExportResponse(BaseModel):
 
 
 __all__ = [
+    "AnalysisResponse",
     "CalculationRequest",
     "CalculationResponse",
     "ExperimentInput",

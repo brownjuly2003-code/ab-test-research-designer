@@ -156,6 +156,83 @@
 }
 ```
 
+## 4.1 Combined analysis response schema
+
+```json
+{
+  "calculations": {
+    "calculation_summary": {
+      "metric_type": "binary",
+      "baseline_value": 0.042,
+      "mde_pct": 5,
+      "mde_absolute": 0.0021,
+      "alpha": 0.05,
+      "power": 0.8
+    },
+    "results": {
+      "sample_size_per_variant": 41234,
+      "total_sample_size": 82468,
+      "effective_daily_traffic": 7200,
+      "estimated_duration_days": 12
+    },
+    "assumptions": ["..."],
+    "warnings": [
+      {
+        "code": "LONG_DURATION",
+        "severity": "high",
+        "message": "...",
+        "source": "rules_engine"
+      }
+    ]
+  },
+  "report": {
+    "executive_summary": "...",
+    "calculations": {
+      "sample_size_per_variant": 41234,
+      "total_sample_size": 82468,
+      "estimated_duration_days": 12,
+      "assumptions": ["..."]
+    },
+    "experiment_design": {
+      "variants": [{"name": "A", "description": "current checkout"}],
+      "randomization_unit": "user",
+      "traffic_split": [50, 50],
+      "target_audience": "new users on web",
+      "inclusion_criteria": "new users only",
+      "exclusion_criteria": "internal staff",
+      "recommended_duration_days": 12,
+      "stopping_conditions": ["planned duration reached", "critical instrumentation failure"]
+    },
+    "metrics_plan": {
+      "primary": ["purchase_conversion"],
+      "secondary": ["add_to_cart_rate"],
+      "guardrail": ["payment_error_rate"],
+      "diagnostic": ["assignment_rate"]
+    },
+    "risks": {
+      "statistical": ["..."],
+      "product": ["..."],
+      "technical": ["..."],
+      "operational": ["..."]
+    },
+    "recommendations": {
+      "before_launch": ["..."],
+      "during_test": ["..."],
+      "after_test": ["..."]
+    },
+    "open_questions": ["..."]
+  },
+  "advice": {
+    "available": false,
+    "provider": "local_orchestrator",
+    "model": "Claude Sonnet 4.6",
+    "advice": null,
+    "raw_text": null,
+    "error": "offline"
+  }
+}
+```
+
 ## 5. Warning object
 
 ```json
@@ -242,3 +319,21 @@ Validation: uses the same structured payload as `POST /api/v1/design`.
   ]
 }
 ```
+
+## 9. Combined analysis endpoint
+
+### POST `/api/v1/analyze`
+
+Validation: request schema violations return `422 Unprocessable Entity`.
+
+Purpose:
+
+- return deterministic calculations
+- return the deterministic report
+- return optional AI advice in the same response payload
+
+This is the preferred frontend analysis route because it replaces separate browser requests to:
+
+- `POST /api/v1/calculate`
+- `POST /api/v1/design`
+- `POST /api/v1/llm/advice`

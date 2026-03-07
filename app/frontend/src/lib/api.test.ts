@@ -71,41 +71,39 @@ describe("frontend api wrapper", () => {
     fetchMock
       .mockResolvedValueOnce(
         jsonResponse({
-          calculation_summary: {
-            metric_type: "binary",
-            baseline_value: 0.042,
-            mde_pct: 5,
-            mde_absolute: 0.0021,
-            alpha: 0.05,
-            power: 0.8
+          calculations: {
+            calculation_summary: {
+              metric_type: "binary",
+              baseline_value: 0.042,
+              mde_pct: 5,
+              mde_absolute: 0.0021,
+              alpha: 0.05,
+              power: 0.8
+            },
+            results: {
+              sample_size_per_variant: 100,
+              total_sample_size: 200,
+              effective_daily_traffic: 5000,
+              estimated_duration_days: 10
+            },
+            assumptions: [],
+            warnings: []
           },
-          results: {
-            sample_size_per_variant: 100,
-            total_sample_size: 200,
-            effective_daily_traffic: 5000,
-            estimated_duration_days: 10
-          },
-          assumptions: [],
-          warnings: []
-        })
-      )
-      .mockResolvedValueOnce(
-        jsonResponse(buildReportPayload())
-      )
-      .mockResolvedValueOnce(
-        jsonResponse({
-          available: false,
-          provider: "local_orchestrator",
-          model: "Claude Sonnet 4.6",
-          advice: null,
-          raw_text: null,
-          error: "offline"
+          report: buildReportPayload(),
+          advice: {
+            available: false,
+            provider: "local_orchestrator",
+            model: "Claude Sonnet 4.6",
+            advice: null,
+            raw_text: null,
+            error: "offline"
+          }
         })
       );
 
     const result = await requestAnalysis(cloneInitialState());
 
-    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(result.calculations.results.total_sample_size).toBe(200);
     expect(result.report.executive_summary).toBe("summary");
     expect(result.report.metrics_plan.secondary).toEqual(["add_to_cart_rate"]);
@@ -156,6 +154,8 @@ describe("frontend api wrapper", () => {
       jsonResponse({
         id: "1",
         project_name: "Checkout redesign",
+        created_at: "x",
+        updated_at: "y",
         payload: buildApiPayload(cloneInitialState())
       })
     );

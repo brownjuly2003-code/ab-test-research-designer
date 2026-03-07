@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
 from app.backend.app.main import create_app
+from app.backend.app.llm.adapter import LocalOrchestratorAdapter
 
 
 def _full_payload() -> dict:
@@ -94,6 +95,38 @@ def test_design_endpoint_builds_report_without_llm() -> None:
 
     assert response.status_code == 200
     assert response.json()["metrics_plan"]["primary"] == ["purchase_conversion"]
+
+
+def test_analyze_endpoint_returns_combined_payload(monkeypatch) -> None:
+    monkeypatch.setattr(
+        LocalOrchestratorAdapter,
+        "request_advice",
+        lambda self, payload: {
+            "available": True,
+            "provider": "local_orchestrator",
+            "model": "Claude Sonnet 4.6",
+            "advice": {
+                "brief_assessment": "Combined analysis available.",
+                "key_risks": ["Tracking quality"],
+                "design_improvements": ["Validate event schema"],
+                "metric_recommendations": ["Track checkout step completion"],
+                "interpretation_pitfalls": ["Do not stop early"],
+                "additional_checks": ["Verify exposure balance"],
+            },
+            "raw_text": "{\"brief_assessment\": \"Combined analysis available.\"}",
+            "error": None,
+        },
+    )
+    client = TestClient(create_app())
+
+    response = client.post("/api/v1/analyze", json=_full_payload())
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["calculations"]["calculation_summary"]["metric_type"] == "binary"
+    assert payload["report"]["metrics_plan"]["primary"] == ["purchase_conversion"]
+    assert payload["advice"]["available"] is True
+    assert payload["advice"]["advice"]["brief_assessment"] == "Combined analysis available."
 
 
 def test_llm_advice_endpoint_returns_graceful_fallback_when_orchestrator_unavailable() -> None:

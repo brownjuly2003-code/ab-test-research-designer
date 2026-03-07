@@ -51,6 +51,7 @@ Implemented:
 - save/update now refreshes the sidebar locally from the returned project record without an extra list round-trip
 - backend can optionally serve the built frontend dist for same-origin local smoke and prod-like runs
 - Playwright-based local smoke script now verifies a real browser flow against the backend-served frontend
+- frontend analysis flow now uses a single combined backend endpoint
 - frontend production build verified after dependency install
 
 Remaining:
@@ -164,6 +165,7 @@ The frontend currently supports:
 - optional secondary and guardrail metrics in the wizard
 - run deterministic calculations and report generation
 - optional AI advice request
+- one-request combined analysis flow via `POST /api/v1/analyze`
 - full AI advice rendering for risks, metric recommendations, pitfalls, and checks
 - local project save, update, and delete
 - local project list/load with automatic load on app start

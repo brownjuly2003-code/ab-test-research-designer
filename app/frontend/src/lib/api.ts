@@ -3,7 +3,6 @@ import {
   type ApiHealthResponse,
   type ExperimentInputPayload,
   buildApiPayload,
-  buildCalculationPayload,
   type AdviceResponse,
   type ApiErrorResponse,
   type CalculationResponse,
@@ -71,49 +70,18 @@ export async function requestHealth(): Promise<ApiHealthResponse> {
 
 export async function requestAnalysis(form: FullPayload): Promise<AnalysisResponse> {
   const payload = buildApiPayload(form);
-  const calculationPayload = buildCalculationPayload(form);
+  const response = await fetch(apiUrl("/api/v1/analyze"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+  const data = await readJson<AnalysisResponse & ApiErrorResponse>(response);
 
-  const [calculationsRes, reportRes, adviceRes] = await Promise.all([
-    fetch(apiUrl("/api/v1/calculate"), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(calculationPayload)
-    }),
-    fetch(apiUrl("/api/v1/design"), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    }),
-    fetch(apiUrl("/api/v1/llm/advice"), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        project_context: payload.project,
-        hypothesis: payload.hypothesis,
-        setup: payload.setup,
-        metrics: payload.metrics,
-        constraints: payload.constraints,
-        additional_context: payload.additional_context
-      })
-    })
-  ]);
-
-  const calculations = await readJson<CalculationResponse | ApiErrorResponse>(calculationsRes);
-  const report = await readJson<ReportResponse | ApiErrorResponse>(reportRes);
-  const advice = await readJson<AdviceResponse>(adviceRes);
-
-  if (!calculationsRes.ok) {
-    throw new Error(getErrorMessage(calculations as ApiErrorResponse, "Calculation request failed"));
-  }
-  if (!reportRes.ok) {
-    throw new Error(getErrorMessage(report as ApiErrorResponse, "Design request failed"));
+  if (!response.ok) {
+    throw new Error(getErrorMessage(data, "Analysis request failed"));
   }
 
-  return {
-    calculations: calculations as CalculationResponse,
-    report: report as ReportResponse,
-    advice
-  };
+  return data;
 }
 
 export async function saveProjectRequest(

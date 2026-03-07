@@ -140,6 +140,7 @@ Post-phase cleanup completed
 - added optional backend serving for the built frontend dist
 - added a Playwright-based local smoke script covering save, reload, analysis, and export in a real browser
 - split the large frontend wizard rendering into focused draft, review, and results components
+- added a combined backend analysis endpoint and switched the frontend analysis flow to a single request
 
 ---
 
