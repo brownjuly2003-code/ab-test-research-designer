@@ -136,6 +136,8 @@ export type DraftTransferFile = {
   payload: FullPayload;
 };
 
+export const browserDraftStorageKey = "ab-test-research-designer:draft:v1";
+
 const configuredApiBase = import.meta.env.VITE_API_BASE_URL?.trim();
 const apiBase =
   configuredApiBase && configuredApiBase.length > 0

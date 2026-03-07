@@ -13,6 +13,7 @@ import {
 } from "./lib/api";
 import {
   buildDraftTransferFile,
+  browserDraftStorageKey,
   type ApiHealthResponse,
   cloneInitialState,
   type ExportFormat,
@@ -83,9 +84,35 @@ const styles = `
 `;
 
 export default function App() {
+  const [draftBootstrap] = useState(() => {
+    const fallback = { form: cloneInitialState(), restored: false };
+
+    if (typeof window === "undefined") {
+      return fallback;
+    }
+
+    try {
+      const storedDraft = window.localStorage.getItem(browserDraftStorageKey);
+      if (!storedDraft) {
+        return fallback;
+      }
+
+      return {
+        form: parseImportedDraft(storedDraft),
+        restored: true
+      };
+    } catch {
+      try {
+        window.localStorage.removeItem(browserDraftStorageKey);
+      } catch {
+        // Ignore storage cleanup failures and fall back to the built-in initial draft.
+      }
+      return fallback;
+    }
+  });
   const draftImportRef = useRef<HTMLInputElement | null>(null);
   const [step, setStep] = useState(0);
-  const [form, setForm] = useState<FullPayload>(cloneInitialState);
+  const [form, setForm] = useState<FullPayload>(draftBootstrap.form);
   const [results, setResults] = useState<ResultsState>({});
   const [importingDraft, setImportingDraft] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -190,6 +217,20 @@ export default function App() {
     setValidationErrors([]);
     return true;
   }
+
+  useEffect(() => {
+    if (draftBootstrap.restored) {
+      setStatusMessage("Restored unsaved browser draft.");
+    }
+  }, [draftBootstrap.restored]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(browserDraftStorageKey, JSON.stringify(buildDraftTransferFile(form)));
+    } catch {
+      // Ignore localStorage persistence failures and keep the in-memory draft usable.
+    }
+  }, [form]);
 
   useEffect(() => {
     void loadBackendHealth();

@@ -127,6 +127,7 @@ Post-phase cleanup completed
 - added project delete support across repository, API, frontend sidebar, and tests
 - added frontend backend-health status card with startup check and manual refresh
 - added draft JSON import/export support for frontend payload transfer
+- added browser-local draft restore/autosave on the frontend
 - updated frontend save flow to update loaded projects instead of always creating duplicates
 - made frontend API base configurable through `VITE_API_BASE_URL`
 

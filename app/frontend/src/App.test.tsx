@@ -20,7 +20,7 @@ import {
   requestHealth,
   requestAnalysis
 } from "./lib/api";
-import { buildDraftTransferFile, cloneInitialState, type FullPayload } from "./lib/experiment";
+import { buildDraftTransferFile, browserDraftStorageKey, cloneInitialState, type FullPayload } from "./lib/experiment";
 import { changeFiles, changeValue, click, findButton, findButtonByAriaLabel, flushEffects, renderIntoDocument } from "./test/dom";
 
 function buildAnalysisResult(adviceAvailable = false) {
@@ -106,6 +106,7 @@ function buildLoadedPayload(): FullPayload {
 
 describe("App UI flow", () => {
   beforeEach(() => {
+    window.localStorage.clear();
     vi.mocked(deleteProjectRequest).mockReset();
     vi.mocked(listProjectsRequest).mockResolvedValue([]);
     vi.mocked(loadProjectRequest).mockReset();
@@ -119,6 +120,7 @@ describe("App UI flow", () => {
   });
 
   afterEach(() => {
+    window.localStorage.clear();
     vi.clearAllMocks();
   });
 
@@ -171,6 +173,26 @@ describe("App UI flow", () => {
     }
   });
 
+  it("restores an unsaved browser draft on startup", async () => {
+    const restored = buildLoadedPayload();
+    restored.project.project_name = "Browser draft";
+
+    window.localStorage.setItem(
+      browserDraftStorageKey,
+      JSON.stringify(buildDraftTransferFile(restored))
+    );
+
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+
+      expect(view.container.textContent).toContain("Restored unsaved browser draft.");
+      expect((view.container.querySelector("#project-project_name") as HTMLInputElement).value).toBe("Browser draft");
+    } finally {
+      await view.unmount();
+    }
+  });
+
   it("deletes a saved project from the sidebar and keeps the current form as draft", async () => {
     vi.mocked(listProjectsRequest).mockResolvedValueOnce([
       {
@@ -200,6 +222,27 @@ describe("App UI flow", () => {
       expect(view.container.textContent).toContain("Project Stored checkout test deleted. Current form remains as a new local draft.");
       expect(view.container.textContent).not.toContain("Project id: p-1");
       expect(view.container.querySelector('button[aria-label="Delete Stored checkout test"]')).toBeNull();
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("autosaves form changes into browser local storage", async () => {
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+
+      const projectNameInput = view.container.querySelector("#project-project_name");
+      if (!(projectNameInput instanceof HTMLInputElement)) {
+        throw new Error("Project name input was not rendered");
+      }
+
+      await changeValue(projectNameInput, "Autosaved checkout");
+      await flushEffects();
+
+      const stored = window.localStorage.getItem(browserDraftStorageKey);
+      expect(stored).toBeTruthy();
+      expect(stored).toContain("Autosaved checkout");
     } finally {
       await view.unmount();
     }
