@@ -144,6 +144,9 @@ Post-phase cleanup completed
 - hardened orchestrator response parsing for fenced JSON, normalized text lists, and structured fallback error codes
 - added repository migrations for project activity metadata and payload schema versioning
 - added saved-project analysis snapshot and export timestamp routes
+- added separate SQLite history tables for analysis runs and export events
+- added `GET /api/v1/projects/{project_id}/history` for saved-project activity history
+- backfilled legacy `last_analysis_json` snapshots into analysis run history during migration
 - wired frontend analysis/export flows to persist saved-project metadata when the draft is in sync
 - added repository migration tests plus frontend regressions for project activity metadata
 
@@ -155,7 +158,8 @@ Backend and product capability expansion
 
 Goals:
 
-- deepen repository history and reporting capabilities
+- bring saved-project history into the UI and result views
+- deepen repository history and reporting capabilities beyond the basic event log
 - continue hardening the optional orchestrator integration path
 
 ---

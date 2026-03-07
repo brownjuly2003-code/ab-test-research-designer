@@ -78,6 +78,7 @@ def test_projects_crud_flow(monkeypatch) -> None:
         created = create_response.json()
         assert created["payload_schema_version"] == 1
         assert created["last_analysis_at"] is None
+        assert created["last_analysis_run_id"] is None
         assert created["last_exported_at"] is None
         assert created["has_analysis_snapshot"] is False
 
@@ -172,6 +173,15 @@ def test_projects_crud_flow(monkeypatch) -> None:
         assert analysis_response.status_code == 200
         assert analysis_response.json()["has_analysis_snapshot"] is True
         assert analysis_response.json()["last_analysis_at"] is not None
+        assert analysis_response.json()["last_analysis_run_id"] is not None
+
+        history_response = client.get(f"/api/v1/projects/{created['id']}/history")
+        assert history_response.status_code == 200
+        history_payload = history_response.json()
+        assert history_payload["project_id"] == created["id"]
+        assert len(history_payload["analysis_runs"]) == 1
+        assert history_payload["analysis_runs"][0]["summary"]["metric_type"] == "binary"
+        assert history_payload["analysis_runs"][0]["analysis"]["report"]["executive_summary"] == "Summary"
 
         export_response = client.post(
             f"/api/v1/projects/{created['id']}/exports",
@@ -179,6 +189,13 @@ def test_projects_crud_flow(monkeypatch) -> None:
         )
         assert export_response.status_code == 200
         assert export_response.json()["last_exported_at"] is not None
+
+        updated_history_response = client.get(f"/api/v1/projects/{created['id']}/history")
+        assert updated_history_response.status_code == 200
+        updated_history_payload = updated_history_response.json()
+        assert len(updated_history_payload["export_events"]) == 1
+        assert updated_history_payload["export_events"][0]["format"] == "markdown"
+        assert updated_history_payload["export_events"][0]["analysis_run_id"] is None
 
         delete_response = client.delete(f"/api/v1/projects/{created['id']}")
         assert delete_response.status_code == 200

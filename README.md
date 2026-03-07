@@ -32,6 +32,7 @@ Implemented:
 - Pydantic-validated request/response contracts for core API routes
 - local SQLite project storage
 - project payload schema versioning plus last-analysis and last-export metadata in SQLite
+- separate SQLite history for analysis runs and export events
 - frontend wizard and results page
 - local save, load, update, and export flow verified
 - client-side validation before save and analysis requests
@@ -55,6 +56,7 @@ Implemented:
 - frontend analysis flow now uses a single combined backend endpoint
 - saved-project analysis runs now persist the latest combined analysis snapshot back into SQLite
 - report export can now stamp the saved project with the latest export timestamp
+- backend exposes saved-project history via `GET /api/v1/projects/{id}/history`
 - orchestrator parsing now tolerates fenced JSON and returns structured `error_code` values on fallback
 - frontend production build verified after dependency install
 
@@ -171,6 +173,7 @@ The frontend currently supports:
 - optional AI advice request
 - one-request combined analysis flow via `POST /api/v1/analyze`
 - saved project activity routes for analysis snapshots and export metadata
+- saved project history endpoint for analysis runs and export events
 - full AI advice rendering for risks, metric recommendations, pitfalls, and checks
 - local project save, update, and delete
 - saved project metadata for payload schema, last analysis, and last export timestamps

@@ -188,11 +188,43 @@ class AnalysisResponse(BaseModel):
     advice: LlmAdviceResponse
 
 
+class AnalysisRunSummary(BaseModel):
+    metric_type: str | None = None
+    sample_size_per_variant: int | None = None
+    total_sample_size: int | None = None
+    estimated_duration_days: int | None = None
+    warnings_count: int = 0
+    advice_available: bool = False
+
+
+class AnalysisRunRecord(BaseModel):
+    id: str
+    project_id: str
+    created_at: str
+    summary: AnalysisRunSummary
+    analysis: AnalysisResponse
+
+
+class ExportEventRecord(BaseModel):
+    id: str
+    project_id: str
+    analysis_run_id: str | None = None
+    format: Literal["markdown", "html"]
+    created_at: str
+
+
+class ProjectHistoryResponse(BaseModel):
+    project_id: str
+    analysis_runs: list[AnalysisRunRecord]
+    export_events: list[ExportEventRecord]
+
+
 class ProjectRecord(BaseModel):
     id: str
     project_name: str
     payload_schema_version: int
     last_analysis_at: str | None = None
+    last_analysis_run_id: str | None = None
     last_exported_at: str | None = None
     has_analysis_snapshot: bool = False
     created_at: str
@@ -205,6 +237,7 @@ class ProjectListItem(BaseModel):
     project_name: str
     payload_schema_version: int
     last_analysis_at: str | None = None
+    last_analysis_run_id: str | None = None
     last_exported_at: str | None = None
     has_analysis_snapshot: bool = False
     created_at: str
@@ -222,6 +255,7 @@ class ProjectDeleteResponse(BaseModel):
 
 class ProjectExportMarkRequest(BaseModel):
     format: Literal["markdown", "html"]
+    analysis_run_id: str | None = None
 
 
 class ExportResponse(BaseModel):
@@ -235,6 +269,7 @@ __all__ = [
     "ExperimentInput",
     "ExperimentReport",
     "ExportResponse",
+    "ProjectHistoryResponse",
     "LlmAdviceRequest",
     "LlmAdviceResponse",
     "ProjectDeleteResponse",

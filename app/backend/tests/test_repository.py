@@ -41,15 +41,74 @@ def test_repository_migrates_legacy_projects_table() -> None:
 
     repository = ProjectRepository(str(db_path))
     project = repository.get_project("legacy-project")
+    history = repository.get_project_history("legacy-project")
 
     assert project is not None
     assert project["payload_schema_version"] == 1
     assert project["last_analysis_at"] is None
     assert project["last_exported_at"] is None
     assert project["has_analysis_snapshot"] is False
+    assert history is not None
+    assert history["analysis_runs"] == []
+    assert history["export_events"] == []
 
 
-def test_repository_records_analysis_and_export_metadata() -> None:
+def test_repository_backfills_legacy_analysis_snapshot_into_history() -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+
+    with sqlite3.connect(db_path) as connection:
+        connection.execute(
+            """
+            CREATE TABLE projects (
+                id TEXT PRIMARY KEY,
+                project_name TEXT NOT NULL,
+                payload_json TEXT NOT NULL,
+                last_analysis_json TEXT,
+                last_analysis_at TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            """
+        )
+        connection.execute(
+            """
+            INSERT INTO projects (
+                id,
+                project_name,
+                payload_json,
+                last_analysis_json,
+                last_analysis_at,
+                created_at,
+                updated_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                "legacy-project",
+                "Legacy checkout",
+                '{"project":{"project_name":"Legacy checkout"}}',
+                '{"calculations":{"calculation_summary":{"metric_type":"binary"},"results":{"sample_size_per_variant":100,"total_sample_size":200,"estimated_duration_days":10},"warnings":[]},"report":{"executive_summary":"summary","calculations":{"sample_size_per_variant":100,"total_sample_size":200,"estimated_duration_days":10,"assumptions":[]},"experiment_design":{"variants":[{"name":"A","description":"current"}],"randomization_unit":"user","traffic_split":[50,50],"target_audience":"new users","inclusion_criteria":"new users","exclusion_criteria":"staff","recommended_duration_days":10,"stopping_conditions":["planned duration reached"]},"metrics_plan":{"primary":["purchase_conversion"],"secondary":[],"guardrail":[],"diagnostic":[]},"risks":{"statistical":[],"product":[],"technical":[],"operational":[]},"recommendations":{"before_launch":[],"during_test":[],"after_test":[]},"open_questions":[]},"advice":{"available":false,"provider":"local_orchestrator","model":"offline","advice":null,"raw_text":null,"error":"offline","error_code":"request_error"}}',
+                "2026-03-07T10:30:00+00:00",
+                "2026-03-07T10:00:00+00:00",
+                "2026-03-07T10:00:00+00:00",
+            ),
+        )
+
+    repository = ProjectRepository(str(db_path))
+    project = repository.get_project("legacy-project")
+    history = repository.get_project_history("legacy-project")
+
+    assert project is not None
+    assert project["last_analysis_run_id"] is not None
+    assert history is not None
+    assert len(history["analysis_runs"]) == 1
+    assert history["analysis_runs"][0]["summary"]["metric_type"] == "binary"
+    assert history["analysis_runs"][0]["summary"]["sample_size_per_variant"] == 100
+
+
+def test_repository_records_analysis_and_export_history() -> None:
     temp_dir = Path(__file__).resolve().parent / ".tmp"
     temp_dir.mkdir(exist_ok=True)
     db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
@@ -67,13 +126,33 @@ def test_repository_records_analysis_and_export_metadata() -> None:
 
     recorded_analysis = repository.record_analysis(
         project["id"],
-        {"calculations": {"results": {"sample_size_per_variant": 100}}},
+        {
+            "calculations": {
+                "calculation_summary": {"metric_type": "binary"},
+                "results": {
+                    "sample_size_per_variant": 100,
+                    "total_sample_size": 200,
+                    "estimated_duration_days": 10,
+                },
+                "warnings": [{"code": "LONG_DURATION"}],
+            },
+            "report": {"executive_summary": "Summary"},
+            "advice": {"available": False},
+        },
     )
-    recorded_export = repository.record_export(project["id"])
+    recorded_export = repository.record_export(project["id"], "markdown")
+    history = repository.get_project_history(project["id"])
 
     assert recorded_analysis is not None
     assert recorded_analysis["has_analysis_snapshot"] is True
     assert recorded_analysis["last_analysis_at"] is not None
+    assert recorded_analysis["last_analysis_run_id"] is not None
 
     assert recorded_export is not None
     assert recorded_export["last_exported_at"] is not None
+    assert history is not None
+    assert len(history["analysis_runs"]) == 1
+    assert len(history["export_events"]) == 1
+    assert history["analysis_runs"][0]["summary"]["warnings_count"] == 1
+    assert history["export_events"][0]["format"] == "markdown"
+    assert history["export_events"][0]["analysis_run_id"] is None

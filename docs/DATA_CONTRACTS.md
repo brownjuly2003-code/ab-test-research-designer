@@ -384,7 +384,8 @@ Request body:
 
 ```json
 {
-  "format": "markdown"
+  "format": "markdown",
+  "analysis_run_id": null
 }
 ```
 
@@ -392,3 +393,49 @@ Purpose:
 
 - stamp `last_exported_at` after a successful report export
 - keep export tracking separate from report generation
+
+## 12. Project history endpoint
+
+### GET `/api/v1/projects/{project_id}/history`
+
+Response shape:
+
+```json
+{
+  "project_id": "project-id",
+  "analysis_runs": [
+    {
+      "id": "analysis-run-id",
+      "project_id": "project-id",
+      "created_at": "2026-03-07T12:30:00+00:00",
+      "summary": {
+        "metric_type": "binary",
+        "sample_size_per_variant": 41234,
+        "total_sample_size": 82468,
+        "estimated_duration_days": 12,
+        "warnings_count": 1,
+        "advice_available": false
+      },
+      "analysis": {
+        "calculations": {"results": {"sample_size_per_variant": 41234}},
+        "report": {"executive_summary": "..."},
+        "advice": {"available": false}
+      }
+    }
+  ],
+  "export_events": [
+    {
+      "id": "export-event-id",
+      "project_id": "project-id",
+      "analysis_run_id": null,
+      "format": "markdown",
+      "created_at": "2026-03-07T12:45:00+00:00"
+    }
+  ]
+}
+```
+
+Purpose:
+
+- fetch saved-project analysis history without re-running the backend
+- fetch export-event history separately from the current project summary fields
