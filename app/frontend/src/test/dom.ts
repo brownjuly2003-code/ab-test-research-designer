@@ -56,6 +56,16 @@ export function findButton(container: HTMLElement, label: string): HTMLButtonEle
   return button;
 }
 
+export function findButtonByAriaLabel(container: HTMLElement, label: string): HTMLButtonElement {
+  const button = container.querySelector(`button[aria-label="${label}"]`);
+
+  if (!(button instanceof HTMLButtonElement)) {
+    throw new Error(`Button with aria-label not found: ${label}`);
+  }
+
+  return button;
+}
+
 export async function click(element: HTMLElement): Promise<void> {
   await act(async () => {
     element.dispatchEvent(new MouseEvent("click", { bubbles: true }));

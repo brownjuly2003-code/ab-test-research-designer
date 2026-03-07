@@ -200,6 +200,11 @@ class ProjectListResponse(BaseModel):
     projects: list[ProjectListItem]
 
 
+class ProjectDeleteResponse(BaseModel):
+    id: str
+    deleted: bool
+
+
 class ExportResponse(BaseModel):
     content: str
 
@@ -212,6 +217,7 @@ __all__ = [
     "ExportResponse",
     "LlmAdviceRequest",
     "LlmAdviceResponse",
+    "ProjectDeleteResponse",
     "ProjectListResponse",
     "ProjectRecord",
 ]

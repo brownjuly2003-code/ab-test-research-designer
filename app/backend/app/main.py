@@ -13,6 +13,7 @@ from app.backend.app.schemas.api import (
     ExportResponse,
     LlmAdviceRequest,
     LlmAdviceResponse,
+    ProjectDeleteResponse,
     ProjectListResponse,
     ProjectRecord,
 )
@@ -121,6 +122,13 @@ def create_app() -> FastAPI:
         if project is None:
             raise HTTPException(status_code=404, detail="Project not found")
         return ProjectRecord.model_validate(project)
+
+    @app.delete("/api/v1/projects/{project_id}", response_model=ProjectDeleteResponse)
+    def delete_project(project_id: str) -> ProjectDeleteResponse:
+        deleted = repository.delete_project(project_id)
+        if not deleted:
+            raise HTTPException(status_code=404, detail="Project not found")
+        return ProjectDeleteResponse(id=project_id, deleted=True)
 
     @app.post("/api/v1/export/markdown", response_model=ExportResponse)
     def export_markdown(payload: ExperimentReport) -> ExportResponse:

@@ -85,3 +85,12 @@ class ProjectRepository:
             return None
 
         return self.get_project(project_id)
+
+    def delete_project(self, project_id: str) -> bool:
+        with self._connect() as connection:
+            cursor = connection.execute(
+                "DELETE FROM projects WHERE id = ?",
+                (project_id,),
+            )
+
+        return cursor.rowcount > 0

@@ -41,6 +41,7 @@ Implemented:
 - frontend metric inputs now support secondary and guardrail lists
 - frontend renders experiment design, metrics plan, and risks from backend reports
 - frontend renders the full AI advice payload when the orchestrator returns structured output
+- local project management now supports delete from backend to sidebar UI
 - frontend production build verified after dependency install
 
 Remaining:
@@ -145,7 +146,7 @@ The frontend currently supports:
 - run deterministic calculations and report generation
 - optional AI advice request
 - full AI advice rendering for risks, metric recommendations, pitfalls, and checks
-- local project save and update
+- local project save, update, and delete
 - local project list/load with automatic load on app start
 - Markdown and HTML export from the results block
 - full deterministic recommendation rendering for before/during/after test phases

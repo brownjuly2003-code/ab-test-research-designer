@@ -31,6 +31,12 @@ type SaveProjectResponse = {
   detail?: string;
 };
 
+type DeleteProjectResponse = {
+  id?: string;
+  deleted?: boolean;
+  detail?: string;
+};
+
 type AnalysisResponse = {
   calculations: CalculationResponse;
   report: ReportResponse;
@@ -128,6 +134,19 @@ export async function loadProjectRequest(projectId: string): Promise<ProjectReco
 
   if (!response.ok) {
     throw new Error(getErrorMessage(data, "Project load failed"));
+  }
+
+  return data;
+}
+
+export async function deleteProjectRequest(projectId: string): Promise<DeleteProjectResponse> {
+  const response = await fetch(apiUrl(`/api/v1/projects/${projectId}`), {
+    method: "DELETE"
+  });
+  const data = await readJson<DeleteProjectResponse & ApiErrorResponse>(response);
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(data, "Project delete failed"));
   }
 
   return data;

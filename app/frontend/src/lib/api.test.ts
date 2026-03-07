@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  deleteProjectRequest,
   exportReportRequest,
   listProjectsRequest,
   loadProjectRequest,
@@ -139,6 +140,16 @@ describe("frontend api wrapper", () => {
 
     expect(project.id).toBe("1");
     expect(project.payload.project.project_name).toBe("Checkout redesign");
+  });
+
+  it("deletes a saved project", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      jsonResponse({ id: "1", deleted: true })
+    );
+
+    const result = await deleteProjectRequest("1");
+
+    expect(result).toEqual({ id: "1", deleted: true });
   });
 
   it("exports report content", async () => {

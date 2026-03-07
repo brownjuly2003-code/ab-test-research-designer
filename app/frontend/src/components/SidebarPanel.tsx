@@ -2,16 +2,20 @@ import type { SavedProject } from "../lib/experiment";
 
 type SidebarPanelProps = {
   loadingProjects: boolean;
+  deletingProjectId: string | null;
   savedProjects: SavedProject[];
   onLoadProjects: () => void;
   onLoadProject: (projectId: string) => void;
+  onDeleteProject: (projectId: string, projectName: string) => void;
 };
 
 export default function SidebarPanel({
   loadingProjects,
+  deletingProjectId,
   savedProjects,
   onLoadProjects,
-  onLoadProject
+  onLoadProject,
+  onDeleteProject
 }: SidebarPanelProps) {
   return (
     <aside className="panel meta">
@@ -34,14 +38,24 @@ export default function SidebarPanel({
           <ul className="list">
             {savedProjects.map((project) => (
               <li key={project.id}>
-                <button className="btn ghost" onClick={() => onLoadProject(project.id)}>
-                  {project.project_name}
-                </button>
+                <div className="actions">
+                  <button className="btn ghost" onClick={() => onLoadProject(project.id)}>
+                    {project.project_name}
+                  </button>
+                  <button
+                    className="btn secondary"
+                    disabled={deletingProjectId === project.id}
+                    aria-label={`Delete ${project.project_name}`}
+                    onClick={() => onDeleteProject(project.id, project.project_name)}
+                  >
+                    {deletingProjectId === project.id ? "Deleting..." : "Delete"}
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
         ) : (
-          <p className="muted">No saved projects loaded yet.</p>
+          <p className="muted">No saved projects available.</p>
         )}
       </div>
       <div className="card">
@@ -56,7 +70,7 @@ export default function SidebarPanel({
           <li>`POST /api/v1/calculate`</li>
           <li>`POST /api/v1/design`</li>
           <li>`POST /api/v1/llm/advice`</li>
-          <li>`GET/POST/PUT /api/v1/projects`</li>
+          <li>`GET/POST/PUT/DELETE /api/v1/projects`</li>
         </ul>
       </div>
     </aside>

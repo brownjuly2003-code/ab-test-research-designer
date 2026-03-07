@@ -3,6 +3,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("./lib/api", () => ({
+  deleteProjectRequest: vi.fn(),
   exportReportRequest: vi.fn(),
   listProjectsRequest: vi.fn(),
   loadProjectRequest: vi.fn(),
@@ -12,12 +13,13 @@ vi.mock("./lib/api", () => ({
 
 import App from "./App";
 import {
+  deleteProjectRequest,
   listProjectsRequest,
   loadProjectRequest,
   requestAnalysis
 } from "./lib/api";
 import { cloneInitialState, type FullPayload } from "./lib/experiment";
-import { changeValue, click, findButton, flushEffects, renderIntoDocument } from "./test/dom";
+import { changeValue, click, findButton, findButtonByAriaLabel, flushEffects, renderIntoDocument } from "./test/dom";
 
 function buildAnalysisResult(adviceAvailable = false) {
   return {
@@ -102,6 +104,7 @@ function buildLoadedPayload(): FullPayload {
 
 describe("App UI flow", () => {
   beforeEach(() => {
+    vi.mocked(deleteProjectRequest).mockReset();
     vi.mocked(listProjectsRequest).mockResolvedValue([]);
     vi.mocked(loadProjectRequest).mockReset();
     vi.mocked(requestAnalysis).mockReset();
@@ -138,6 +141,40 @@ describe("App UI flow", () => {
       expect(view.container.textContent).toContain("Loaded project Stored checkout test into the wizard.");
       expect((view.container.querySelector("#project-project_name") as HTMLInputElement).value).toBe("Loaded experiment");
       expect(view.container.textContent).toContain("Project id: p-1");
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("deletes a saved project from the sidebar and keeps the current form as draft", async () => {
+    vi.mocked(listProjectsRequest).mockResolvedValueOnce([
+      {
+        id: "p-1",
+        project_name: "Stored checkout test",
+        created_at: "2026-03-07T10:00:00Z",
+        updated_at: "2026-03-07T10:00:00Z"
+      }
+    ]);
+    vi.mocked(loadProjectRequest).mockResolvedValueOnce({
+      id: "p-1",
+      project_name: "Stored checkout test",
+      payload: buildLoadedPayload()
+    });
+    vi.mocked(deleteProjectRequest).mockResolvedValueOnce({ id: "p-1", deleted: true });
+
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+      await click(findButton(view.container, "Stored checkout test"));
+      await flushEffects();
+
+      await click(findButtonByAriaLabel(view.container, "Delete Stored checkout test"));
+      await flushEffects();
+
+      expect(deleteProjectRequest).toHaveBeenCalledWith("p-1");
+      expect(view.container.textContent).toContain("Project Stored checkout test deleted. Current form remains as a new local draft.");
+      expect(view.container.textContent).not.toContain("Project id: p-1");
+      expect(view.container.querySelector('button[aria-label="Delete Stored checkout test"]')).toBeNull();
     } finally {
       await view.unmount();
     }

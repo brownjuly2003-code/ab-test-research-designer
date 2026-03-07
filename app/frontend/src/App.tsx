@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import SidebarPanel from "./components/SidebarPanel";
 import WizardPanel from "./components/WizardPanel";
 import {
+  deleteProjectRequest,
   exportReportRequest,
   listProjectsRequest,
   loadProjectRequest,
@@ -84,6 +85,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loadingProjects, setLoadingProjects] = useState(false);
+  const [deletingProjectId, setDeletingProjectId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
   const [savedProjects, setSavedProjects] = useState<SavedProject[]>([]);
@@ -216,6 +218,28 @@ export default function App() {
     }
   }
 
+  async function deleteProject(projectId: string, projectName: string) {
+    setDeletingProjectId(projectId);
+    setError("");
+    setStatusMessage("");
+
+    try {
+      await deleteProjectRequest(projectId);
+      setSavedProjects((current) => current.filter((project) => project.id !== projectId));
+
+      if (activeProjectId === projectId) {
+        setActiveProjectId(null);
+        setStatusMessage(`Project ${projectName} deleted. Current form remains as a new local draft.`);
+      } else {
+        setStatusMessage(`Project ${projectName} deleted locally.`);
+      }
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Unexpected project delete error");
+    } finally {
+      setDeletingProjectId(null);
+    }
+  }
+
   async function exportReport(format: ExportFormat) {
     if (!results.report) {
       setError("Run analysis before exporting a report.");
@@ -276,9 +300,11 @@ export default function App() {
             />
             <SidebarPanel
               loadingProjects={loadingProjects}
+              deletingProjectId={deletingProjectId}
               savedProjects={savedProjects}
               onLoadProjects={loadProjects}
               onLoadProject={loadProject}
+              onDeleteProject={deleteProject}
             />
           </div>
         </div>

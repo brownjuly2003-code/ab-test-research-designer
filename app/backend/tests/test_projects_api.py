@@ -91,3 +91,10 @@ def test_projects_crud_flow(monkeypatch) -> None:
         )
         assert update_response.status_code == 200
         assert update_response.json()["payload"]["project"]["project_name"] == "Checkout redesign v2"
+
+        delete_response = client.delete(f"/api/v1/projects/{created['id']}")
+        assert delete_response.status_code == 200
+        assert delete_response.json() == {"id": created["id"], "deleted": True}
+
+        missing_response = client.get(f"/api/v1/projects/{created['id']}")
+        assert missing_response.status_code == 404

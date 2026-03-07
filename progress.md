@@ -124,6 +124,7 @@ Post-phase cleanup completed
 - added secondary and guardrail metric inputs to the frontend wizard
 - expanded frontend report rendering to include experiment design, metrics plan, and risks
 - expanded frontend AI advice rendering to include risks, metric recommendations, pitfalls, and additional checks
+- added project delete support across repository, API, frontend sidebar, and tests
 - updated frontend save flow to update loaded projects instead of always creating duplicates
 - made frontend API base configurable through `VITE_API_BASE_URL`
 
