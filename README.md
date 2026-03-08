@@ -206,7 +206,9 @@ Archived planning/setup files live under `archive/`.
 - optional write-token auth is available through `AB_API_TOKEN`; the frontend can send it through `VITE_API_TOKEN`
 - optional read-only auth is available through `AB_READONLY_API_TOKEN` for safe `GET/HEAD/OPTIONS` runtime access
 - API responses now include `X-Request-ID` and `X-Process-Time-Ms` headers for lightweight local observability
+- error responses now also include `error_code`, `status_code`, `request_id`, and `X-Error-Code`
 - `GET /readyz` gives a simple readiness view over storage, frontend-dist serving, and runtime config
+- `GET /api/v1/diagnostics` now also exposes in-memory runtime counters for total requests, error classes, and auth rejections
 - workspace backup/import now works from the UI and through `GET /api/v1/workspace/export` plus `POST /api/v1/workspace/import`
 - workspace backup bundles now include integrity counts and a SHA-256 checksum, and imports reject tampered bundles
 - saved projects now retain revision history and can restore older payload snapshots from the UI

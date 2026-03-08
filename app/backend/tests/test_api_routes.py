@@ -188,6 +188,10 @@ def test_calculate_endpoint_rejects_mismatched_variant_configuration() -> None:
 
     assert response.status_code == 422
     assert "traffic_split length must match variants_count" in str(response.json()["detail"])
+    assert response.json()["error_code"] == "validation_error"
+    assert response.json()["status_code"] == 422
+    assert response.json()["request_id"]
+    assert response.headers["x-error-code"] == "validation_error"
 
 
 def test_calculate_endpoint_allows_vite_preflight_origin() -> None:
@@ -264,6 +268,9 @@ def test_design_endpoint_returns_internal_error_for_unexpected_exception(monkeyp
 
     assert response.status_code == 500
     assert response.json()["detail"] == "Internal server error"
+    assert response.json()["error_code"] == "internal_error"
+    assert response.json()["status_code"] == 500
+    assert response.json()["request_id"]
 
 
 def test_diagnostics_endpoint_returns_runtime_summary(monkeypatch) -> None:
@@ -299,6 +306,9 @@ def test_diagnostics_endpoint_returns_runtime_summary(monkeypatch) -> None:
     assert payload["auth"]["mode"] == "open"
     assert payload["auth"]["write_enabled"] is False
     assert payload["auth"]["readonly_enabled"] is False
+    assert payload["runtime"]["total_requests"] >= 0
+    assert payload["runtime"]["success_responses"] >= 0
+    assert payload["runtime"]["auth_rejections"] == 0
     assert response.headers["x-request-id"]
     assert float(response.headers["x-process-time-ms"]) >= 0
     get_settings.cache_clear()
@@ -346,6 +356,7 @@ def test_api_token_protects_runtime_and_api_routes(monkeypatch) -> None:
     assert health_response.status_code == 200
     assert unauthorized_diagnostics.status_code == 401
     assert unauthorized_diagnostics.json()["detail"] == "Unauthorized"
+    assert unauthorized_diagnostics.json()["error_code"] == "unauthorized"
     assert unauthorized_readyz.status_code == 401
     assert authorized_diagnostics.status_code == 200
     assert authorized_diagnostics.json()["auth"]["enabled"] is True
@@ -393,6 +404,7 @@ def test_readonly_api_token_allows_safe_requests_but_blocks_mutations(monkeypatc
     assert project_list_response.status_code == 200
     assert forbidden_calculation.status_code == 403
     assert forbidden_calculation.json()["detail"] == "Forbidden"
+    assert forbidden_calculation.json()["error_code"] == "forbidden"
     get_settings.cache_clear()
 
 
@@ -412,6 +424,49 @@ def test_dual_token_auth_mode_reports_both_scopes(monkeypatch) -> None:
     assert diagnostics_response.json()["auth"]["mode"] == "dual_token"
     assert diagnostics_response.json()["auth"]["write_enabled"] is True
     assert diagnostics_response.json()["auth"]["readonly_enabled"] is True
+    get_settings.cache_clear()
+
+
+def test_diagnostics_runtime_counters_track_errors_and_auth_rejections(monkeypatch) -> None:
+    monkeypatch.setenv("AB_API_TOKEN", "super-secret-token")
+    monkeypatch.setenv("AB_READONLY_API_TOKEN", "readonly-secret")
+    monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")
+    get_settings.cache_clear()
+
+    with TestClient(create_app()) as client:
+        client.get("/health")
+        client.get("/api/v1/diagnostics")
+        client.get("/api/v1/projects", headers={"Authorization": "Bearer readonly-secret"})
+        client.post(
+            "/api/v1/calculate",
+            headers={"Authorization": "Bearer readonly-secret"},
+            json={
+                "metric_type": "binary",
+                "baseline_value": 0.042,
+                "mde_pct": 5,
+                "alpha": 0.05,
+                "power": 0.8,
+                "expected_daily_traffic": 12000,
+                "audience_share_in_test": 0.6,
+                "traffic_split": [50, 50],
+                "variants_count": 2,
+            },
+        )
+        diagnostics_response = client.get(
+            "/api/v1/diagnostics",
+            headers={"Authorization": "Bearer super-secret-token"},
+        )
+
+    assert diagnostics_response.status_code == 200
+    runtime = diagnostics_response.json()["runtime"]
+    assert runtime["total_requests"] >= 4
+    assert runtime["success_responses"] >= 2
+    assert runtime["client_error_responses"] >= 1
+    assert runtime["server_error_responses"] == 0
+    assert runtime["auth_rejections"] >= 1
+    assert runtime["last_error_code"] == "forbidden"
+    assert runtime["last_error_at"] is not None
+    assert runtime["last_request_at"] is not None
     get_settings.cache_clear()
 
 

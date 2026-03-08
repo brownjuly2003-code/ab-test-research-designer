@@ -55,7 +55,13 @@ async function readJson<T>(response: Response): Promise<T> {
 }
 
 function getErrorMessage(payload: ApiErrorResponse, fallback: string): string {
-  return typeof payload.detail === "string" ? payload.detail : fallback;
+  if (typeof payload.detail === "string") {
+    return payload.detail;
+  }
+  if (typeof payload.error_code === "string" && payload.error_code.length > 0) {
+    return `${fallback} (${payload.error_code})`;
+  }
+  return fallback;
 }
 
 export async function requestHealth(): Promise<ApiHealthResponse> {

@@ -5,6 +5,8 @@ from pathlib import Path
 import sqlite3
 import uuid
 
+from app.backend.app.errors import ApiError
+
 
 class ProjectRepository:
     schema_version = 2
@@ -490,7 +492,10 @@ class ProjectRepository:
                     (analysis_run_id, project_id),
                 ).fetchone()
                 if linked_run is None:
-                    raise ValueError("Analysis run not found for project")
+                    raise ApiError(
+                        "Analysis run not found for project",
+                        error_code="analysis_run_not_found",
+                    )
 
             connection.execute(
                 """
@@ -797,12 +802,18 @@ class ProjectRepository:
     def _validate_workspace_bundle(cls, bundle: dict) -> None:
         schema_version = int(bundle.get("schema_version", 1))
         if schema_version not in {1, 2}:
-            raise ValueError("Unsupported workspace bundle schema_version")
+            raise ApiError(
+                "Unsupported workspace bundle schema_version",
+                error_code="workspace_schema_unsupported",
+            )
 
         integrity = bundle.get("integrity")
         if integrity is None:
             if schema_version >= 2:
-                raise ValueError("Workspace bundle integrity block is required for schema_version 2")
+                raise ApiError(
+                    "Workspace bundle integrity block is required for schema_version 2",
+                    error_code="workspace_integrity_required",
+                )
             return
 
         actual_counts = cls._workspace_counts(bundle)
@@ -813,13 +824,22 @@ class ProjectRepository:
             "export_events": int(expected_counts.get("export_events", -1)),
             "project_revisions": int(expected_counts.get("project_revisions", -1)),
         } != actual_counts:
-            raise ValueError("Workspace bundle integrity counts mismatch")
+            raise ApiError(
+                "Workspace bundle integrity counts mismatch",
+                error_code="workspace_integrity_counts_mismatch",
+            )
 
         expected_checksum = str(integrity.get("checksum_sha256", "")).strip()
         if not expected_checksum:
-            raise ValueError("Workspace bundle checksum is missing")
+            raise ApiError(
+                "Workspace bundle checksum is missing",
+                error_code="workspace_integrity_checksum_missing",
+            )
         if expected_checksum != cls._workspace_checksum(bundle):
-            raise ValueError("Workspace bundle checksum mismatch")
+            raise ApiError(
+                "Workspace bundle checksum mismatch",
+                error_code="workspace_integrity_checksum_mismatch",
+            )
 
     def import_workspace(self, bundle: dict) -> dict:
         self._validate_workspace_bundle(bundle)
@@ -889,7 +909,10 @@ class ProjectRepository:
             for analysis_run in imported_analysis_runs:
                 new_project_id = project_id_map.get(analysis_run["project_id"])
                 if new_project_id is None:
-                    raise ValueError("Workspace bundle references an unknown project in analysis_runs")
+                    raise ApiError(
+                        "Workspace bundle references an unknown project in analysis_runs",
+                        error_code="workspace_analysis_unknown_project",
+                    )
                 connection.execute(
                     """
                     INSERT INTO analysis_runs (id, project_id, analysis_json, created_at)
@@ -906,11 +929,17 @@ class ProjectRepository:
             for export_event in imported_export_events:
                 new_project_id = project_id_map.get(export_event["project_id"])
                 if new_project_id is None:
-                    raise ValueError("Workspace bundle references an unknown project in export_events")
+                    raise ApiError(
+                        "Workspace bundle references an unknown project in export_events",
+                        error_code="workspace_export_unknown_project",
+                    )
                 old_analysis_run_id = export_event.get("analysis_run_id")
                 new_analysis_run_id = analysis_run_id_map.get(old_analysis_run_id) if old_analysis_run_id else None
                 if old_analysis_run_id and new_analysis_run_id is None:
-                    raise ValueError("Workspace bundle references an unknown analysis run in export_events")
+                    raise ApiError(
+                        "Workspace bundle references an unknown analysis run in export_events",
+                        error_code="workspace_export_unknown_analysis_run",
+                    )
                 connection.execute(
                     """
                     INSERT INTO export_events (id, project_id, analysis_run_id, format, created_at)
@@ -928,7 +957,10 @@ class ProjectRepository:
             for revision in imported_project_revisions:
                 new_project_id = project_id_map.get(revision["project_id"])
                 if new_project_id is None:
-                    raise ValueError("Workspace bundle references an unknown project in project_revisions")
+                    raise ApiError(
+                        "Workspace bundle references an unknown project in project_revisions",
+                        error_code="workspace_revision_unknown_project",
+                    )
                 self._create_revision(
                     connection,
                     new_project_id,

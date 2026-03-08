@@ -66,6 +66,9 @@ export type CalculationRequestPayload = ApiCalculationRequest;
 
 export type ApiErrorResponse = {
   detail?: string | unknown;
+  error_code?: string;
+  status_code?: number;
+  request_id?: string;
 };
 
 export type WarningItem = ApiCalculationResponse["warnings"][number];

@@ -269,6 +269,20 @@ const SidebarPanel = memo(function SidebarPanel({
                 {backendDiagnostics.logging.format}
               </li>
               <li>
+                <strong>Runtime counters:</strong> {String(backendDiagnostics.runtime.total_requests)} requests
+                {" | ok "}
+                {String(backendDiagnostics.runtime.success_responses)}
+                {" | 4xx "}
+                {String(backendDiagnostics.runtime.client_error_responses)}
+                {" | 5xx "}
+                {String(backendDiagnostics.runtime.server_error_responses)}
+              </li>
+              <li>
+                <strong>Last runtime error:</strong> {backendDiagnostics.runtime.last_error_code ?? "none"}
+                {" | auth rejects "}
+                {String(backendDiagnostics.runtime.auth_rejections)}
+              </li>
+              <li>
                 <strong>API auth:</strong> {backendDiagnostics.auth.enabled ? backendDiagnostics.auth.mode : "disabled"}
                 {" | "}
                 {backendDiagnostics.auth.write_enabled ? "write token" : "no write token"}

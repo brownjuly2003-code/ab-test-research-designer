@@ -134,6 +134,8 @@ Frontend loads but backend requests fail:
 - if write-token auth is enabled, confirm `VITE_API_TOKEN`
 - if read-only auth is enabled, verify diagnostics/docs work while mutations still reject with `403`
 - verify CORS env values if frontend is on another origin
+- use `request_id` and `X-Error-Code` from API failures to correlate UI errors with backend logs
+- use diagnostics runtime counters to confirm whether failures are isolated or systemic across the current process lifetime
 
 Workspace import fails:
 

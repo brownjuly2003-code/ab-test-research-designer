@@ -181,6 +181,8 @@ curl -X POST http://127.0.0.1:8008/api/v1/export/markdown ^
 - when `AB_API_TOKEN` or `AB_READONLY_API_TOKEN` is configured, `/api/v1/*`, `/readyz`, `/docs`, `/openapi.json`, and `/redoc` require `Authorization: Bearer` or `X-API-Key`
 - `AB_READONLY_API_TOKEN` is valid only for `GET`, `HEAD`, and `OPTIONS`; mutating routes still require `AB_API_TOKEN`
 - all API responses include `X-Request-ID` and `X-Process-Time-Ms` headers
+- error responses also include `error_code`, `status_code`, `request_id`, and `X-Error-Code`
+- diagnostics expose in-memory runtime counters for request volume, error classes, and auth rejections
 - `GET /readyz` returns `503` when required runtime dependencies are degraded
 
 ## Contract generation

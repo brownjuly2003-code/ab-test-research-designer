@@ -6,6 +6,13 @@ from app.backend.app.constants import MAX_SUPPORTED_VARIANTS
 from app.backend.app.schemas.report import ExperimentReport
 
 
+class ErrorResponse(BaseModel):
+    detail: Any
+    error_code: str
+    status_code: int
+    request_id: str
+
+
 class ProjectContext(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -356,6 +363,17 @@ class DiagnosticsAuthSummary(BaseModel):
     read_only_methods: list[str]
 
 
+class DiagnosticsRuntimeSummary(BaseModel):
+    total_requests: int
+    success_responses: int
+    client_error_responses: int
+    server_error_responses: int
+    auth_rejections: int
+    last_request_at: str | None = None
+    last_error_at: str | None = None
+    last_error_code: str | None = None
+
+
 class DiagnosticsResponse(BaseModel):
     status: str
     generated_at: str
@@ -369,6 +387,7 @@ class DiagnosticsResponse(BaseModel):
     llm: DiagnosticsLlmSummary
     logging: DiagnosticsLoggingSummary
     auth: DiagnosticsAuthSummary
+    runtime: DiagnosticsRuntimeSummary
 
 
 class ReadinessCheck(BaseModel):
@@ -500,6 +519,7 @@ __all__ = [
     "CalculationRequest",
     "CalculationResponse",
     "DiagnosticsResponse",
+    "ErrorResponse",
     "ExperimentInput",
     "ExperimentReport",
     "ExportResponse",

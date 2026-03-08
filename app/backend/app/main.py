@@ -6,12 +6,15 @@ from time import perf_counter
 import uuid
 
 from fastapi import FastAPI, HTTPException, Query, Request, Response, status
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from app.backend.app.config import get_settings
+from app.backend.app.errors import ApiError
 from app.backend.app.llm.adapter import LocalOrchestratorAdapter
 from app.backend.app.logging_utils import configure_logging, log_event
 from app.backend.app.repository import ProjectRepository
@@ -20,6 +23,7 @@ from app.backend.app.schemas.api import (
     CalculationRequest,
     CalculationResponse,
     DiagnosticsResponse,
+    ErrorResponse,
     ExperimentInput,
     ExperimentReport,
     ExportResponse,
@@ -86,15 +90,62 @@ def _get_auth_mode(write_token: str | None, readonly_token: str | None) -> str:
     return "open"
 
 
-def _build_auth_failure_response(request_id: str, process_time_ms: float, detail: str, status_code: int) -> JSONResponse:
+def _get_request_id(request: Request) -> str:
+    return getattr(request.state, "request_id", str(uuid.uuid4()))
+
+
+def _get_process_time_ms(request: Request) -> float:
+    started = getattr(request.state, "request_started", None)
+    if started is None:
+        return 0.0
+    return (perf_counter() - started) * 1000
+
+
+def _build_error_response(
+    request: Request,
+    *,
+    detail: str | list[dict] | dict,
+    error_code: str,
+    status_code: int,
+    extra_headers: dict[str, str] | None = None,
+) -> JSONResponse:
+    request_id = _get_request_id(request)
+    process_time_ms = _get_process_time_ms(request)
     response = JSONResponse(
         status_code=status_code,
-        content={"detail": detail},
-        headers={"WWW-Authenticate": "Bearer"},
+        content=ErrorResponse(
+            detail=detail,
+            error_code=error_code,
+            status_code=status_code,
+            request_id=request_id,
+        ).model_dump(),
+        headers=extra_headers or {},
     )
     response.headers["X-Request-ID"] = request_id
     response.headers["X-Process-Time-Ms"] = f"{process_time_ms:.2f}"
+    response.headers["X-Error-Code"] = error_code
     return response
+
+
+def _build_auth_failure_response(request: Request, detail: str, status_code: int, error_code: str) -> JSONResponse:
+    extra_headers = {"WWW-Authenticate": "Bearer"} if status_code == status.HTTP_401_UNAUTHORIZED else None
+    return _build_error_response(
+        request,
+        detail=detail,
+        error_code=error_code,
+        status_code=status_code,
+        extra_headers=extra_headers,
+    )
+
+
+def _get_http_error_code(status_code: int) -> str:
+    if status_code == status.HTTP_401_UNAUTHORIZED:
+        return "unauthorized"
+    if status_code == status.HTTP_403_FORBIDDEN:
+        return "forbidden"
+    if status_code == status.HTTP_404_NOT_FOUND:
+        return "not_found"
+    return "http_error"
 
 
 def _build_calculation_payload(payload: ExperimentInput) -> CalculationRequest:
@@ -148,6 +199,16 @@ def create_app() -> FastAPI:
     )
     frontend_dist_path = Path(settings.frontend_dist_path)
     frontend_index_path = frontend_dist_path / "index.html"
+    runtime_counters = {
+        "total_requests": 0,
+        "success_responses": 0,
+        "client_error_responses": 0,
+        "server_error_responses": 0,
+        "auth_rejections": 0,
+        "last_request_at": None,
+        "last_error_at": None,
+        "last_error_code": None,
+    }
     cors_headers = list(settings.cors_headers)
     if settings.api_token or settings.readonly_api_token:
         for header_name in ("Authorization", "X-API-Key"):
@@ -185,10 +246,30 @@ def create_app() -> FastAPI:
         allow_headers=cors_headers,
     )
 
+    def record_runtime_response(status_code: int, error_code: str | None = None, *, auth_rejection: bool = False) -> None:
+        timestamp = datetime.now(timezone.utc).isoformat()
+        runtime_counters["total_requests"] += 1
+        runtime_counters["last_request_at"] = timestamp
+        if status_code >= 500:
+            runtime_counters["server_error_responses"] += 1
+        elif status_code >= 400:
+            runtime_counters["client_error_responses"] += 1
+        else:
+            runtime_counters["success_responses"] += 1
+
+        if auth_rejection:
+            runtime_counters["auth_rejections"] += 1
+
+        if error_code:
+            runtime_counters["last_error_at"] = timestamp
+            runtime_counters["last_error_code"] = error_code
+
     @app.middleware("http")
     async def add_request_metadata(request: Request, call_next):
         request_id = request.headers.get("x-request-id", str(uuid.uuid4()))
         started = perf_counter()
+        request.state.request_id = request_id
+        request.state.request_started = started
 
         if (
             (settings.api_token or settings.readonly_api_token)
@@ -196,17 +277,16 @@ def create_app() -> FastAPI:
             and _is_protected_path(request.url.path)
         ):
             presented_token = _extract_presented_token(request)
-            process_time_ms = (perf_counter() - started) * 1000
 
             if settings.api_token and presented_token == settings.api_token:
                 pass
             elif settings.readonly_api_token and presented_token == settings.readonly_api_token:
                 if request.method not in AUTH_READ_ONLY_METHODS:
                     response = _build_auth_failure_response(
-                        request_id,
-                        process_time_ms,
+                        request,
                         "Forbidden",
                         status.HTTP_403_FORBIDDEN,
+                        "forbidden",
                     )
                     log_event(
                         logger,
@@ -217,17 +297,19 @@ def create_app() -> FastAPI:
                         method=request.method,
                         path=request.url.path,
                         status_code=response.status_code,
-                        process_time_ms=round(process_time_ms, 2),
+                        process_time_ms=round(_get_process_time_ms(request), 2),
                         auth_mode=_get_auth_mode(settings.api_token, settings.readonly_api_token),
                         auth_scope="readonly",
+                        error_code="forbidden",
                     )
+                    record_runtime_response(response.status_code, "forbidden", auth_rejection=True)
                     return response
             else:
                 response = _build_auth_failure_response(
-                    request_id,
-                    process_time_ms,
+                    request,
                     "Unauthorized",
                     status.HTTP_401_UNAUTHORIZED,
+                    "unauthorized",
                 )
                 log_event(
                     logger,
@@ -238,15 +320,16 @@ def create_app() -> FastAPI:
                     method=request.method,
                     path=request.url.path,
                     status_code=response.status_code,
-                    process_time_ms=round(process_time_ms, 2),
+                    process_time_ms=round(_get_process_time_ms(request), 2),
                     auth_mode=_get_auth_mode(settings.api_token, settings.readonly_api_token),
+                    error_code="unauthorized",
                 )
+                record_runtime_response(response.status_code, "unauthorized", auth_rejection=True)
                 return response
 
         try:
             response = await call_next(request)
         except Exception:
-            process_time_ms = (perf_counter() - started) * 1000
             log_event(
                 logger,
                 logging.ERROR,
@@ -255,13 +338,17 @@ def create_app() -> FastAPI:
                 request_id=request_id,
                 method=request.method,
                 path=request.url.path,
-                process_time_ms=round(process_time_ms, 2),
+                process_time_ms=round(_get_process_time_ms(request), 2),
             )
             raise
 
         process_time_ms = (perf_counter() - started) * 1000
         response.headers["X-Request-ID"] = request_id
         response.headers["X-Process-Time-Ms"] = f"{process_time_ms:.2f}"
+        record_runtime_response(
+            response.status_code,
+            response.headers.get("X-Error-Code"),
+        )
         log_event(
             logger,
             logging.INFO,
@@ -275,9 +362,66 @@ def create_app() -> FastAPI:
         )
         return response
 
+    @app.exception_handler(ApiError)
+    async def handle_api_error(request: Request, exc: ApiError) -> JSONResponse:
+        log_event(
+            logger,
+            logging.WARNING if exc.status_code < 500 else logging.ERROR,
+            "api error handled",
+            event="http_request_error",
+            request_id=_get_request_id(request),
+            method=request.method,
+            path=request.url.path,
+            status_code=exc.status_code,
+            error_code=exc.error_code,
+            process_time_ms=round(_get_process_time_ms(request), 2),
+        )
+        return _build_error_response(
+            request,
+            detail=exc.detail,
+            error_code=exc.error_code,
+            status_code=exc.status_code,
+        )
+
     @app.exception_handler(ValueError)
     async def handle_value_error(request: Request, exc: ValueError) -> JSONResponse:
-        return JSONResponse(status_code=400, content={"detail": str(exc)})
+        log_event(
+            logger,
+            logging.WARNING,
+            "value error handled",
+            event="http_request_error",
+            request_id=_get_request_id(request),
+            method=request.method,
+            path=request.url.path,
+            status_code=400,
+            error_code="bad_request",
+            process_time_ms=round(_get_process_time_ms(request), 2),
+        )
+        return _build_error_response(
+            request,
+            detail=str(exc),
+            error_code="bad_request",
+            status_code=400,
+        )
+
+    @app.exception_handler(RequestValidationError)
+    async def handle_validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:
+        return _build_error_response(
+            request,
+            detail=jsonable_encoder(exc.errors()),
+            error_code="validation_error",
+            status_code=422,
+        )
+
+    @app.exception_handler(HTTPException)
+    async def handle_http_exception(request: Request, exc: HTTPException) -> JSONResponse:
+        error_code = _get_http_error_code(exc.status_code)
+        return _build_error_response(
+            request,
+            detail=exc.detail,
+            error_code=error_code,
+            status_code=exc.status_code,
+        )
 
     @app.exception_handler(Exception)
     async def handle_unexpected_exception(request: Request, exc: Exception) -> JSONResponse:
@@ -287,7 +431,12 @@ def create_app() -> FastAPI:
             request.url.path,
             exc_info=exc,
         )
-        return JSONResponse(status_code=500, content={"detail": "Internal server error"})
+        return _build_error_response(
+            request,
+            detail="Internal server error",
+            error_code="internal_error",
+            status_code=500,
+        )
 
     @app.get("/health", response_model=HealthResponse)
     def health() -> HealthResponse:
@@ -412,6 +561,7 @@ def create_app() -> FastAPI:
                 "accepted_headers": ["Authorization: Bearer", "X-API-Key"],
                 "read_only_methods": sorted(AUTH_READ_ONLY_METHODS),
             },
+            runtime=runtime_counters,
         )
 
     @app.get("/api/v1/workspace/export", response_model=WorkspaceBundle)

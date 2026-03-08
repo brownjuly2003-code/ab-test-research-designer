@@ -52,6 +52,8 @@ The current stack:
 - optional read-only token protection added for safe runtime access while mutations stay behind the write token
 - Docker packaging now includes built-in healthchecks, secure compose verification, and documented split-token runtime mode
 - workspace backup bundles now carry integrity counts and SHA-256 checksums, and imports reject tampered archives
+- API failures now return structured error payloads that carry `error_code`, `status_code`, and `request_id`
+- diagnostics now expose in-memory runtime counters for requests, error classes, and auth rejections
 
 ### Product polish
 

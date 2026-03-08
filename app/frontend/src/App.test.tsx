@@ -252,6 +252,16 @@ function buildDiagnostics() {
       readonly_enabled: false,
       accepted_headers: ["Authorization: Bearer", "X-API-Key"],
       read_only_methods: ["GET", "HEAD", "OPTIONS"]
+    },
+    runtime: {
+      total_requests: 4,
+      success_responses: 4,
+      client_error_responses: 0,
+      server_error_responses: 0,
+      auth_rejections: 0,
+      last_request_at: "2026-03-08T14:00:00Z",
+      last_error_at: null,
+      last_error_code: null
     }
   };
 }

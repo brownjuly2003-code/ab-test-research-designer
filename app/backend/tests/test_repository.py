@@ -8,6 +8,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
 from app.backend.app.repository import ProjectRepository
+from app.backend.app.errors import ApiError
 
 
 def test_repository_migrates_legacy_projects_table() -> None:
@@ -445,5 +446,6 @@ def test_repository_rejects_workspace_bundle_with_invalid_checksum() -> None:
 
     target_repository = ProjectRepository(str(target_db_path))
 
-    with pytest.raises(ValueError, match="Workspace bundle checksum mismatch"):
+    with pytest.raises(ApiError, match="Workspace bundle checksum mismatch") as exc_info:
         target_repository.import_workspace(bundle)
+    assert exc_info.value.error_code == "workspace_integrity_checksum_mismatch"

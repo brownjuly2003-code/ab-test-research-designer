@@ -144,6 +144,18 @@ export type DiagnosticsResponse = {
   llm: DiagnosticsLlmSummary;
   logging: DiagnosticsLoggingSummary;
   auth: DiagnosticsAuthSummary;
+  runtime: DiagnosticsRuntimeSummary;
+};
+
+export type DiagnosticsRuntimeSummary = {
+  total_requests: number;
+  success_responses: number;
+  client_error_responses: number;
+  server_error_responses: number;
+  auth_rejections: number;
+  last_request_at?: string | null;
+  last_error_at?: string | null;
+  last_error_code?: string | null;
 };
 
 export type DiagnosticsStorageSummary = {

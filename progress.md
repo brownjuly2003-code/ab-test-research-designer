@@ -201,6 +201,8 @@ Post-phase cleanup completed
 - added optional read-only API token support for safe runtime access while write routes still require the main API token
 - hardened Docker/compose packaging with build-time frontend token injection, runtime defaults, healthchecks, and secure compose verification
 - added integrity manifests with entity counts and SHA-256 checksum validation for workspace backup/import bundles
+- added structured API error payloads with explicit `error_code`, `status_code`, and `request_id`
+- added runtime diagnostics counters for request volume, error classes, and auth rejections
 
 ---
 

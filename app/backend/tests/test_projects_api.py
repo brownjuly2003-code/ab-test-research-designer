@@ -309,6 +309,8 @@ def test_projects_crud_flow(monkeypatch) -> None:
 
         missing_response = client.get(f"/api/v1/projects/{created['id']}")
         assert missing_response.status_code == 404
+        assert missing_response.json()["error_code"] == "not_found"
+        assert missing_response.json()["status_code"] == 404
 
 
 def test_projects_compare_endpoint_returns_saved_snapshot_differences(monkeypatch) -> None:
@@ -496,3 +498,4 @@ def test_workspace_import_rejects_tampered_bundle(monkeypatch) -> None:
         assert created_project["project_name"] == "Workspace source"
         assert workspace_import.status_code == 400
         assert workspace_import.json()["detail"] == "Workspace bundle checksum mismatch"
+        assert workspace_import.json()["error_code"] == "workspace_integrity_checksum_mismatch"

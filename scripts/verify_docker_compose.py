@@ -126,6 +126,11 @@ def main() -> int:
             raise SystemExit(
                 f"Readonly token should be rejected for POST /api/v1/calculate, got {readonly_calc_status} {readonly_calc_body}"
             )
+        readonly_error_payload = json.loads(readonly_calc_body)
+        if readonly_error_payload.get("error_code") != "forbidden":
+            raise SystemExit(
+                f"Readonly POST should return forbidden error code, got {readonly_error_payload}"
+            )
 
         write_calc_status, write_calc_body = http_request(
             "POST",
