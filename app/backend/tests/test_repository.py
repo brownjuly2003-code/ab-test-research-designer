@@ -156,3 +156,63 @@ def test_repository_records_analysis_and_export_history() -> None:
     assert history["analysis_runs"][0]["summary"]["warnings_count"] == 1
     assert history["export_events"][0]["format"] == "markdown"
     assert history["export_events"][0]["analysis_run_id"] is None
+
+
+def test_repository_returns_latest_analysis_run_and_clamps_history_limits() -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+    repository = ProjectRepository(str(db_path))
+    project = repository.create_project(
+        {
+            "project": {"project_name": "Checkout redesign"},
+            "hypothesis": {},
+            "setup": {},
+            "metrics": {},
+            "constraints": {},
+            "additional_context": {},
+        }
+    )
+
+    repository.record_analysis(
+        project["id"],
+        {
+            "calculations": {
+                "calculation_summary": {"metric_type": "binary"},
+                "results": {
+                    "sample_size_per_variant": 100,
+                    "total_sample_size": 200,
+                    "estimated_duration_days": 10,
+                },
+                "warnings": [],
+            },
+            "report": {"executive_summary": "First summary"},
+            "advice": {"available": False},
+        },
+    )
+    second_record = repository.record_analysis(
+        project["id"],
+        {
+            "calculations": {
+                "calculation_summary": {"metric_type": "binary"},
+                "results": {
+                    "sample_size_per_variant": 120,
+                    "total_sample_size": 240,
+                    "estimated_duration_days": 12,
+                },
+                "warnings": [{"code": "LOW_TRAFFIC"}],
+            },
+            "report": {"executive_summary": "Second summary"},
+            "advice": {"available": True},
+        },
+    )
+
+    latest_run = repository.get_latest_analysis_run(project["id"])
+    history = repository.get_project_history(project["id"], analysis_limit=0, export_limit=0)
+
+    assert second_record is not None
+    assert latest_run is not None
+    assert latest_run["id"] == second_record["last_analysis_run_id"]
+    assert latest_run["analysis"]["report"]["executive_summary"] == "Second summary"
+    assert history is not None
+    assert len(history["analysis_runs"]) == 1

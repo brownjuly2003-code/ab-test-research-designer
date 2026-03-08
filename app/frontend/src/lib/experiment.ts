@@ -1,98 +1,51 @@
-export type MetricType = "binary" | "continuous";
+import type {
+  AnalysisResponse_Output as ApiAnalysisResponse,
+  AnalysisRunRecord as ApiAnalysisRunRecord,
+  CalculationRequest as ApiCalculationRequest,
+  CalculationResponse as ApiCalculationResponse,
+  ExperimentInput as ApiExperimentInput,
+  ExperimentReport_Output as ApiExperimentReport,
+  ExportEventRecord as ApiExportEventRecord,
+  HealthResponse as ApiHealthResponseContract,
+  LlmAdviceResponse as ApiLlmAdviceResponse,
+  ProjectComparisonResponse as ApiProjectComparisonResponse,
+  ProjectHistoryResponse as ApiProjectHistoryResponse,
+  ProjectListItem as ApiProjectListItem,
+  ProjectRecord as ApiProjectRecord
+} from "./generated/api-contract";
 
-export type ProjectSection = {
-  project_name: string;
-  domain: string;
-  product_type: string;
-  platform: string;
-  market: string;
-  project_description: string;
+export type AdditionalContextSection = NonNullable<ApiExperimentInput["additional_context"]>;
+export type ExperimentInputPayload = Omit<ApiExperimentInput, "additional_context"> & {
+  additional_context: AdditionalContextSection;
 };
+export type ProjectSection = ExperimentInputPayload["project"];
+export type HypothesisSection = ExperimentInputPayload["hypothesis"];
+export type SetupPayloadSection = ExperimentInputPayload["setup"];
+export type MetricsPayloadSection = ExperimentInputPayload["metrics"];
+export type ConstraintsSection = ExperimentInputPayload["constraints"];
+export type MetricType = MetricsPayloadSection["metric_type"];
 
-export type HypothesisSection = {
-  change_description: string;
-  target_audience: string;
-  business_problem: string;
-  hypothesis_statement: string;
-  what_to_validate: string;
-  desired_result: string;
-};
-
-export type SetupDraftSection = {
-  experiment_type: string;
-  randomization_unit: string;
+export type SetupDraftSection = Omit<SetupPayloadSection, "traffic_split"> & {
   traffic_split: string;
-  expected_daily_traffic: number;
-  audience_share_in_test: number;
-  variants_count: number;
-  inclusion_criteria: string;
-  exclusion_criteria: string;
 };
 
-export type SetupPayloadSection = Omit<SetupDraftSection, "traffic_split"> & {
-  traffic_split: number[];
-};
-
-export type MetricsDraftSection = {
-  primary_metric_name: string;
-  metric_type: MetricType;
-  baseline_value: number;
-  expected_uplift_pct: number | null;
-  mde_pct: number;
-  alpha: number;
-  power: number;
+export type MetricsDraftSection = Omit<
+  MetricsPayloadSection,
+  "std_dev" | "secondary_metrics" | "guardrail_metrics"
+> & {
   std_dev: number | "";
   secondary_metrics: string;
   guardrail_metrics: string;
 };
 
-export type MetricsPayloadSection = Omit<
-  MetricsDraftSection,
-  "std_dev" | "secondary_metrics" | "guardrail_metrics"
-> & {
-  std_dev: number | null;
-  secondary_metrics: string[];
-  guardrail_metrics: string[];
-};
-
-export type ConstraintsSection = {
-  seasonality_present: boolean;
-  active_campaigns_present: boolean;
-  returning_users_present: boolean;
-  interference_risk: string;
-  technical_constraints: string;
-  legal_or_ethics_constraints: string;
-  known_risks: string;
-  deadline_pressure: string;
-  long_test_possible: boolean;
-};
-
-export type AdditionalContextSection = {
-  llm_context: string;
-};
-
-export type FullPayload = {
-  project: ProjectSection;
-  hypothesis: HypothesisSection;
+export type FullPayload = Omit<ExperimentInputPayload, "setup" | "metrics" | "additional_context"> & {
   setup: SetupDraftSection;
   metrics: MetricsDraftSection;
-  constraints: ConstraintsSection;
   additional_context: AdditionalContextSection;
 };
 
-export type ExperimentInputPayload = {
-  project: ProjectSection;
-  hypothesis: HypothesisSection;
-  setup: SetupPayloadSection;
-  metrics: MetricsPayloadSection;
-  constraints: ConstraintsSection;
-  additional_context: AdditionalContextSection;
-};
-
-export type LoadedPayload = {
-  project: ProjectSection;
-  hypothesis: HypothesisSection;
-  setup: Omit<SetupDraftSection, "traffic_split"> & {
+export type LoadedPayload = Omit<ExperimentInputPayload, "setup" | "metrics" | "additional_context"> & {
+  setup: Omit<SetupPayloadSection, "traffic_split"> & {
     traffic_split: string | number[];
   };
   metrics: Omit<MetricsDraftSection, "std_dev" | "secondary_metrics" | "guardrail_metrics"> & {
@@ -100,181 +53,37 @@ export type LoadedPayload = {
     secondary_metrics: string | string[];
     guardrail_metrics: string | string[];
   };
-  constraints: ConstraintsSection;
   additional_context: AdditionalContextSection;
 };
 
-export type CalculationRequestPayload = {
-  metric_type: MetricType;
-  baseline_value: number;
-  std_dev: number | null;
-  mde_pct: number;
-  alpha: number;
-  power: number;
-  expected_daily_traffic: number;
-  audience_share_in_test: number;
-  traffic_split: number[];
-  variants_count: number;
-  seasonality_present: boolean;
-  active_campaigns_present: boolean;
-  long_test_possible: boolean;
-};
+export type CalculationRequestPayload = ApiCalculationRequest;
 
 export type ApiErrorResponse = {
-  detail?: string;
+  detail?: string | unknown;
 };
 
-export type WarningItem = {
-  code: string;
-  message: string;
-  severity: string;
-  source?: string;
+export type WarningItem = ApiCalculationResponse["warnings"][number];
+export type CalculationSummary = ApiCalculationResponse["calculation_summary"];
+export type CalculationResponse = ApiCalculationResponse;
+export type ReportResponse = ApiExperimentReport;
+export type AdvicePayload = NonNullable<ApiLlmAdviceResponse["advice"]>;
+export type AdviceResponse = ApiLlmAdviceResponse;
+export type ProjectActivityMeta = Pick<
+  ApiProjectRecord,
+  "payload_schema_version" | "last_analysis_at" | "last_analysis_run_id" | "last_exported_at" | "has_analysis_snapshot"
+>;
+export type AnalysisRunSummary = ApiAnalysisRunRecord["summary"];
+export type ProjectAnalysisRun = ApiAnalysisRunRecord;
+export type ProjectExportEvent = ApiExportEventRecord;
+export type ProjectComparison = ApiProjectComparisonResponse;
+export type ProjectHistory = ApiProjectHistoryResponse;
+export type ApiHealthResponse = ApiHealthResponseContract;
+export type AnalysisResponsePayload = ApiAnalysisResponse;
+export type ResultsState = Partial<Pick<ApiAnalysisResponse, "calculations" | "report" | "advice">>;
+export type SavedProject = ApiProjectListItem;
+export type ProjectRecordPayload = Omit<ApiProjectRecord, "payload"> & {
+  payload: ExperimentInputPayload;
 };
-
-export type CalculationSummary = {
-  metric_type: MetricType;
-  baseline_value: number;
-  mde_pct: number;
-  mde_absolute: number;
-  alpha: number;
-  power: number;
-};
-
-export type CalculationResponse = {
-  calculation_summary: CalculationSummary;
-  results: {
-    sample_size_per_variant: number;
-    total_sample_size: number;
-    effective_daily_traffic: number;
-    estimated_duration_days: number;
-  };
-  assumptions: string[];
-  warnings: WarningItem[];
-};
-
-export type ReportResponse = {
-  executive_summary: string;
-  calculations: {
-    sample_size_per_variant: number;
-    total_sample_size: number;
-    estimated_duration_days: number;
-    assumptions: string[];
-  };
-  experiment_design: {
-    variants: {
-      name: string;
-      description: string;
-    }[];
-    randomization_unit: string;
-    traffic_split: number[];
-    target_audience: string;
-    inclusion_criteria: string;
-    exclusion_criteria: string;
-    recommended_duration_days: number;
-    stopping_conditions: string[];
-  };
-  metrics_plan: {
-    primary: string[];
-    secondary: string[];
-    guardrail: string[];
-    diagnostic: string[];
-  };
-  risks: {
-    statistical: string[];
-    product: string[];
-    technical: string[];
-    operational: string[];
-  };
-  recommendations: {
-    before_launch: string[];
-    during_test: string[];
-    after_test: string[];
-  };
-  open_questions: string[];
-};
-
-export type AdvicePayload = {
-  brief_assessment: string;
-  key_risks: string[];
-  design_improvements: string[];
-  metric_recommendations: string[];
-  interpretation_pitfalls: string[];
-  additional_checks: string[];
-};
-
-export type AdviceResponse = {
-  available: boolean;
-  provider: string;
-  model: string;
-  advice: AdvicePayload | null;
-  raw_text: string | null;
-  error: string | null;
-  error_code: string | null;
-};
-
-export type ProjectActivityMeta = {
-  payload_schema_version?: number;
-  last_analysis_at?: string | null;
-  last_analysis_run_id?: string | null;
-  last_exported_at?: string | null;
-  has_analysis_snapshot?: boolean;
-};
-
-export type AnalysisRunSummary = {
-  metric_type?: string | null;
-  sample_size_per_variant?: number | null;
-  total_sample_size?: number | null;
-  estimated_duration_days?: number | null;
-  warnings_count: number;
-  advice_available: boolean;
-};
-
-export type ProjectAnalysisRun = {
-  id: string;
-  project_id: string;
-  created_at: string;
-  summary: AnalysisRunSummary;
-  analysis: {
-    calculations: CalculationResponse;
-    report: ReportResponse;
-    advice: AdviceResponse;
-  };
-};
-
-export type ProjectExportEvent = {
-  id: string;
-  project_id: string;
-  analysis_run_id: string | null;
-  format: ExportFormat;
-  created_at: string;
-};
-
-export type ProjectHistory = {
-  project_id: string;
-  analysis_runs: ProjectAnalysisRun[];
-  export_events: ProjectExportEvent[];
-};
-
-export type ApiHealthResponse = {
-  status: string;
-  service: string;
-  version: string;
-  environment: string;
-};
-
-export type ResultsState = {
-  calculations?: CalculationResponse;
-  report?: ReportResponse;
-  advice?: AdviceResponse;
-};
-
-export type SavedProject = ProjectActivityMeta & {
-  id: string;
-  project_name: string;
-  created_at: string;
-  updated_at: string;
-};
-
 export type ExportFormat = "markdown" | "html";
 export type FieldKind = "text" | "textarea" | "number" | "boolean";
 export type FullPayloadSectionKey = keyof FullPayload;

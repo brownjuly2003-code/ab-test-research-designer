@@ -1,60 +1,27 @@
 import {
   apiUrl,
   type ProjectHistory,
+  type ProjectComparison,
   type ApiHealthResponse,
-  type ExperimentInputPayload,
   buildApiPayload,
-  type AdviceResponse,
+  type AnalysisResponsePayload,
   type ApiErrorResponse,
-  type CalculationResponse,
   type ExportFormat,
   type FullPayload,
-  type ProjectActivityMeta,
+  type ProjectRecordPayload,
   type ReportResponse,
   type SavedProject
 } from "./experiment";
+import type {
+  ExportResponse,
+  ProjectDeleteResponse as GeneratedProjectDeleteResponse,
+  ProjectListResponse as GeneratedProjectListResponse
+} from "./generated/api-contract";
 
-export type ProjectRecordResponse = ProjectActivityMeta & {
-  id: string;
-  project_name: string;
-  created_at: string;
-  updated_at: string;
-  payload: ExperimentInputPayload;
-};
-
-type ProjectListResponse = {
-  projects?: SavedProject[];
-};
-
-type ExportResponse = {
-  content?: string;
-};
-
-export type SaveProjectResponse = {
-  id?: string;
-  project_name?: string;
-  created_at?: string;
-  updated_at?: string;
-  payload_schema_version?: number;
-  last_analysis_at?: string | null;
-  last_analysis_run_id?: string | null;
-  last_exported_at?: string | null;
-  has_analysis_snapshot?: boolean;
-  payload?: ExperimentInputPayload;
-  detail?: string;
-};
-
-export type DeleteProjectResponse = {
-  id?: string;
-  deleted?: boolean;
-  detail?: string;
-};
-
-export type AnalysisResponse = {
-  calculations: CalculationResponse;
-  report: ReportResponse;
-  advice: AdviceResponse;
-};
+export type ProjectRecordResponse = ProjectRecordPayload;
+export type SaveProjectResponse = ProjectRecordPayload;
+export type DeleteProjectResponse = GeneratedProjectDeleteResponse;
+export type AnalysisResponse = AnalysisResponsePayload;
 
 async function readJson<T>(response: Response): Promise<T> {
   return await response.json() as T;
@@ -115,7 +82,7 @@ export async function saveProjectRequest(
 
 export async function listProjectsRequest(): Promise<SavedProject[]> {
   const response = await fetch(apiUrl("/api/v1/projects"));
-  const data = await readJson<ProjectListResponse & ApiErrorResponse>(response);
+  const data = await readJson<GeneratedProjectListResponse & ApiErrorResponse>(response);
 
   if (!response.ok) {
     throw new Error(getErrorMessage(data, "Project list request failed"));
@@ -141,6 +108,21 @@ export async function loadProjectHistoryRequest(projectId: string): Promise<Proj
 
   if (!response.ok) {
     throw new Error(getErrorMessage(data, "Project history load failed"));
+  }
+
+  return data;
+}
+
+export async function compareProjectsRequest(baseProjectId: string, candidateProjectId: string): Promise<ProjectComparison> {
+  const params = new URLSearchParams({
+    base_id: baseProjectId,
+    candidate_id: candidateProjectId
+  });
+  const response = await fetch(apiUrl(`/api/v1/projects/compare?${params.toString()}`));
+  const data = await readJson<ProjectComparison & ApiErrorResponse>(response);
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(data, "Project comparison failed"));
   }
 
   return data;

@@ -7,6 +7,18 @@ import uuid
 
 class ProjectRepository:
     payload_schema_version = 1
+    project_select_columns = """
+        id,
+        project_name,
+        payload_json,
+        payload_schema_version,
+        last_analysis_json,
+        last_analysis_at,
+        last_analysis_run_id,
+        last_exported_at,
+        created_at,
+        updated_at
+    """
 
     def __init__(self, db_path: str) -> None:
         self.db_path = Path(db_path)
@@ -184,6 +196,20 @@ class ProjectRepository:
     def _export_row_to_record(row: sqlite3.Row) -> dict:
         return dict(row)
 
+    def _get_project_row(self, connection: sqlite3.Connection, project_id: str) -> sqlite3.Row | None:
+        return connection.execute(
+            f"""
+            SELECT {self.project_select_columns}
+            FROM projects
+            WHERE id = ?
+            """,
+            (project_id,),
+        ).fetchone()
+
+    @staticmethod
+    def _normalize_history_limit(limit: int) -> int:
+        return max(1, min(int(limit), 100))
+
     def list_projects(self) -> list[dict]:
         with self._connect() as connection:
             rows = connection.execute(
@@ -236,10 +262,7 @@ class ProjectRepository:
 
     def get_project(self, project_id: str) -> dict | None:
         with self._connect() as connection:
-            row = connection.execute(
-                "SELECT * FROM projects WHERE id = ?",
-                (project_id,),
-            ).fetchone()
+            row = self._get_project_row(connection, project_id)
 
         if row is None:
             return None
@@ -356,6 +379,9 @@ class ProjectRepository:
         analysis_limit: int = 20,
         export_limit: int = 20,
     ) -> dict | None:
+        analysis_limit = self._normalize_history_limit(analysis_limit)
+        export_limit = self._normalize_history_limit(export_limit)
+
         with self._connect() as connection:
             project_row = connection.execute(
                 "SELECT 1 FROM projects WHERE id = ?",
@@ -390,6 +416,24 @@ class ProjectRepository:
             "analysis_runs": [self._analysis_row_to_record(row) for row in analysis_rows],
             "export_events": [self._export_row_to_record(row) for row in export_rows],
         }
+
+    def get_latest_analysis_run(self, project_id: str) -> dict | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT id, project_id, analysis_json, created_at
+                FROM analysis_runs
+                WHERE project_id = ?
+                ORDER BY created_at DESC
+                LIMIT 1
+                """,
+                (project_id,),
+            ).fetchone()
+
+        if row is None:
+            return None
+
+        return self._analysis_row_to_record(row)
 
     def delete_project(self, project_id: str) -> bool:
         with self._connect() as connection:

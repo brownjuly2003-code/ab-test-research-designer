@@ -63,6 +63,10 @@ Implemented:
 - backend now enforces tighter experiment validation for continuous metrics and supported variant counts
 - backend CORS methods and headers are now explicit instead of wildcard-based
 - local orchestrator requests now retry transient failures with exponential backoff
+- frontend API contracts are now generated from FastAPI OpenAPI
+- saved projects can now be compared by their latest persisted analysis snapshots
+- repository project reads now use explicit column selection instead of `SELECT *`
+- one-command verification is available via `scripts/verify_all.cmd`
 - frontend production build verified after dependency install
 
 Remaining:
@@ -147,6 +151,12 @@ Run frontend unit tests:
 npm run test:unit
 ```
 
+Refresh generated frontend API contracts from FastAPI OpenAPI:
+
+```bash
+npm run generate:types
+```
+
 Run the local browser smoke flow:
 
 ```bash
@@ -196,6 +206,7 @@ The frontend currently supports:
 - sidebar updates immediately after save/update from the backend save response
 - saved-project analysis runs update snapshot metadata in the sidebar when the draft is in sync
 - saved-project history is loaded after project open and refreshed after analysis/export events
+- saved-project comparison against another persisted snapshot from the sidebar
 - local browser smoke coverage for save, reload, analysis, and export through the backend-served frontend
 - Markdown and HTML export from the results block
 - full deterministic recommendation rendering for before/during/after test phases
@@ -212,6 +223,19 @@ python -m uvicorn api.main:app --host 0.0.0.0 --port 8001
 
 If the orchestrator is unavailable, deterministic calculations, warnings, design generation, and local project storage still work.
 Transient orchestrator failures are retried locally with short exponential backoff before the API falls back to an unavailable AI block.
+
+## Verification
+
+Run the full local verification pipeline:
+
+```bash
+cmd /c scripts\verify_all.cmd
+```
+
+Useful flags:
+
+- `cmd /c scripts\verify_all.cmd --skip-smoke`
+- `cmd /c scripts\verify_all.cmd --skip-build`
 
 ---
 

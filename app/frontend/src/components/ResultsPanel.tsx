@@ -1,4 +1,4 @@
-import type { ExportFormat, ProjectHistory, SavedProject, ResultsState } from "../lib/experiment";
+import type { ExportFormat, ProjectComparison, ProjectHistory, SavedProject, ResultsState } from "../lib/experiment";
 
 type ResultsPanelProps = {
   results: ResultsState;
@@ -7,6 +7,7 @@ type ResultsPanelProps = {
   error: string;
   activeProject: SavedProject | null;
   projectHistory: ProjectHistory | null;
+  projectComparison: ProjectComparison | null;
   loadingProjectHistory: boolean;
   onExportReport: (format: ExportFormat) => void;
 };
@@ -23,6 +24,11 @@ function formatResultTimestamp(timestamp: string): string {
   }).format(parsed);
 }
 
+function formatDelta(value: number, suffix = ""): string {
+  const prefix = value > 0 ? "+" : "";
+  return `${prefix}${value}${suffix}`;
+}
+
 export default function ResultsPanel({
   results,
   loading,
@@ -30,6 +36,7 @@ export default function ResultsPanel({
   error,
   activeProject,
   projectHistory,
+  projectComparison,
   loadingProjectHistory,
   onExportReport
 }: ResultsPanelProps) {
@@ -38,6 +45,51 @@ export default function ResultsPanel({
 
   return (
     <>
+      {projectComparison ? (
+        <div className="result-block">
+          <span className="pill">Saved comparison</span>
+          <h3>Latest analysis snapshot comparison</h3>
+          <p className="muted">{projectComparison.summary}</p>
+          <div className="two-col">
+            <div className="card">
+              <strong>{projectComparison.base_project.project_name}</strong>
+              <ul className="list">
+                <li>Primary metric: {projectComparison.base_project.primary_metric}</li>
+                <li>Total sample size: {String(projectComparison.base_project.total_sample_size)}</li>
+                <li>Duration: {String(projectComparison.base_project.estimated_duration_days)} days</li>
+                <li>Warnings: {String(projectComparison.base_project.warnings_count)}</li>
+              </ul>
+            </div>
+            <div className="card">
+              <strong>{projectComparison.candidate_project.project_name}</strong>
+              <ul className="list">
+                <li>Primary metric: {projectComparison.candidate_project.primary_metric}</li>
+                <li>Total sample size: {String(projectComparison.candidate_project.total_sample_size)}</li>
+                <li>Duration: {String(projectComparison.candidate_project.estimated_duration_days)} days</li>
+                <li>Warnings: {String(projectComparison.candidate_project.warnings_count)}</li>
+              </ul>
+            </div>
+            <div className="card">
+              <strong>Deltas</strong>
+              <ul className="list">
+                <li>Total sample size: {formatDelta(projectComparison.deltas.total_sample_size)}</li>
+                <li>Per variant: {formatDelta(projectComparison.deltas.sample_size_per_variant)}</li>
+                <li>Duration: {formatDelta(projectComparison.deltas.estimated_duration_days, " days")}</li>
+                <li>Warnings: {formatDelta(projectComparison.deltas.warnings_count)}</li>
+              </ul>
+            </div>
+            <div className="card">
+              <strong>Warning overlap</strong>
+              <ul className="list">
+                <li>Shared: {projectComparison.shared_warning_codes.join(", ") || "None"}</li>
+                <li>Base only: {projectComparison.base_only_warning_codes.join(", ") || "None"}</li>
+                <li>Candidate only: {projectComparison.candidate_only_warning_codes.join(", ") || "None"}</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {results.report ? (
         <div className="results">
           {activeProject ? (
@@ -372,7 +424,7 @@ export default function ResultsPanel({
         </div>
       ) : null}
 
-      {!results.report && !loading ? (
+      {!results.report && !loading && !projectComparison ? (
         <div className="status">
           No analysis yet. Complete the wizard and run the deterministic backend flow first.
         </div>

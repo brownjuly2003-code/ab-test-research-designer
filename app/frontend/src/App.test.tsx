@@ -3,6 +3,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("./lib/api", () => ({
+  compareProjectsRequest: vi.fn(),
   deleteProjectRequest: vi.fn(),
   exportReportRequest: vi.fn(),
   listProjectsRequest: vi.fn(),
@@ -18,6 +19,7 @@ vi.mock("./lib/api", () => ({
 import App from "./App";
 import {
   type AnalysisResponse,
+  compareProjectsRequest,
   deleteProjectRequest,
   exportReportRequest,
   listProjectsRequest,
@@ -158,6 +160,55 @@ function buildProjectHistory(projectId = "p-1") {
   };
 }
 
+function buildProjectComparison() {
+  return {
+    base_project: {
+      id: "p-1",
+      project_name: "Stored checkout test",
+      updated_at: "2026-03-07T10:00:00Z",
+      last_analysis_at: "2026-03-07T12:30:00Z",
+      analysis_run_id: "run-1",
+      metric_type: "binary",
+      primary_metric: "purchase_conversion",
+      sample_size_per_variant: 100,
+      total_sample_size: 300,
+      estimated_duration_days: 12,
+      warnings_count: 1,
+      warning_codes: ["SEASONALITY_PRESENT"],
+      risk_highlights: ["tracking quality"],
+      assumptions: ["Baseline is stable"],
+      advice_available: false
+    },
+    candidate_project: {
+      id: "p-2",
+      project_name: "Pricing challenger",
+      updated_at: "2026-03-07T11:00:00Z",
+      last_analysis_at: "2026-03-07T13:00:00Z",
+      analysis_run_id: "run-2",
+      metric_type: "binary",
+      primary_metric: "purchase_conversion",
+      sample_size_per_variant: 140,
+      total_sample_size: 360,
+      estimated_duration_days: 15,
+      warnings_count: 2,
+      warning_codes: ["LONG_DURATION", "LOW_TRAFFIC"],
+      risk_highlights: ["tracking quality"],
+      assumptions: ["Baseline is stable"],
+      advice_available: false
+    },
+    deltas: {
+      sample_size_per_variant: 40,
+      total_sample_size: 60,
+      estimated_duration_days: 3,
+      warnings_count: 1
+    },
+    shared_warning_codes: [],
+    base_only_warning_codes: ["SEASONALITY_PRESENT"],
+    candidate_only_warning_codes: ["LONG_DURATION", "LOW_TRAFFIC"],
+    summary: "Pricing challenger needs larger total sample size and a longer test window than Stored checkout test."
+  };
+}
+
 describe("App UI flow", () => {
   beforeEach(() => {
     vi.stubGlobal("URL", {
@@ -167,6 +218,7 @@ describe("App UI flow", () => {
     window.localStorage.clear();
     vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
     vi.spyOn(window, "confirm").mockReturnValue(true);
+    vi.mocked(compareProjectsRequest).mockReset();
     vi.mocked(deleteProjectRequest).mockReset();
     vi.mocked(listProjectsRequest).mockResolvedValue([]);
     vi.mocked(loadProjectHistoryRequest).mockReset();
@@ -303,6 +355,64 @@ describe("App UI flow", () => {
       expect(view.container.textContent).not.toContain("Stored checkout test");
       expect(view.container.textContent).toContain("Pricing experiment");
       expect(view.container.textContent).toContain("Showing 1 of 2 saved projects.");
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("compares the loaded project with another saved snapshot", async () => {
+    vi.mocked(listProjectsRequest).mockResolvedValueOnce([
+      {
+        id: "p-1",
+        project_name: "Stored checkout test",
+        payload_schema_version: 1,
+        last_analysis_at: "2026-03-07T12:30:00Z",
+        last_analysis_run_id: "run-1",
+        last_exported_at: null,
+        has_analysis_snapshot: true,
+        created_at: "2026-03-07T10:00:00Z",
+        updated_at: "2026-03-07T10:00:00Z"
+      },
+      {
+        id: "p-2",
+        project_name: "Pricing challenger",
+        payload_schema_version: 1,
+        last_analysis_at: "2026-03-07T13:00:00Z",
+        last_analysis_run_id: "run-2",
+        last_exported_at: null,
+        has_analysis_snapshot: true,
+        created_at: "2026-03-07T11:00:00Z",
+        updated_at: "2026-03-07T11:00:00Z"
+      }
+    ]);
+    vi.mocked(loadProjectRequest).mockResolvedValueOnce({
+      id: "p-1",
+      project_name: "Stored checkout test",
+      payload_schema_version: 1,
+      last_analysis_at: "2026-03-07T12:30:00Z",
+      last_analysis_run_id: "run-1",
+      last_exported_at: null,
+      has_analysis_snapshot: true,
+      created_at: "2026-03-07T10:00:00Z",
+      updated_at: "2026-03-07T10:00:00Z",
+      payload: buildApiPayload(buildLoadedPayload())
+    });
+    vi.mocked(loadProjectHistoryRequest).mockResolvedValueOnce(buildProjectHistory("p-1"));
+    vi.mocked(compareProjectsRequest).mockResolvedValueOnce(buildProjectComparison());
+
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+      await click(findButton(view.container, "Stored checkout test"));
+      await flushEffects();
+
+      await click(findButton(view.container, "Compare"));
+      await flushEffects();
+
+      expect(compareProjectsRequest).toHaveBeenCalledWith("p-1", "p-2");
+      expect(view.container.textContent).toContain("Latest analysis snapshot comparison");
+      expect(view.container.textContent).toContain("Pricing challenger");
+      expect(view.container.textContent).toContain("Candidate only: LONG_DURATION, LOW_TRAFFIC");
     } finally {
       await view.unmount();
     }

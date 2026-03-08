@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "generate:types": "python ../../scripts/generate_frontend_api_types.py",
     "build": "vite build",
     "preview": "vite preview",
     "test:unit": "vitest run",

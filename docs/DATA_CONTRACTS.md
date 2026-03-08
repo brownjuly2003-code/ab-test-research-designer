@@ -445,3 +445,53 @@ Purpose:
 
 - fetch saved-project analysis history without re-running the backend
 - fetch export-event history separately from the current project summary fields
+
+## 13. Project comparison endpoint
+
+### GET `/api/v1/projects/compare`
+
+Query params:
+
+- `base_id`
+- `candidate_id`
+
+Response shape:
+
+```json
+{
+  "base_project": {
+    "id": "project-a",
+    "project_name": "Checkout baseline",
+    "analysis_run_id": "run-a",
+    "primary_metric": "purchase_conversion",
+    "total_sample_size": 82468,
+    "estimated_duration_days": 12,
+    "warning_codes": ["SEASONALITY_PRESENT"]
+  },
+  "candidate_project": {
+    "id": "project-b",
+    "project_name": "Checkout challenger",
+    "analysis_run_id": "run-b",
+    "primary_metric": "purchase_conversion",
+    "total_sample_size": 91000,
+    "estimated_duration_days": 15,
+    "warning_codes": ["LONG_DURATION", "LOW_TRAFFIC"]
+  },
+  "deltas": {
+    "sample_size_per_variant": 4266,
+    "total_sample_size": 8532,
+    "estimated_duration_days": 3,
+    "warnings_count": 1
+  },
+  "shared_warning_codes": [],
+  "base_only_warning_codes": ["SEASONALITY_PRESENT"],
+  "candidate_only_warning_codes": ["LONG_DURATION", "LOW_TRAFFIC"],
+  "summary": "Checkout challenger needs larger total sample size and a longer test window than Checkout baseline."
+}
+```
+
+Purpose:
+
+- compare two saved projects without re-running calculations
+- use the latest persisted analysis snapshot for each project
+- surface delta in size, duration, and warning footprint for frontend rendering

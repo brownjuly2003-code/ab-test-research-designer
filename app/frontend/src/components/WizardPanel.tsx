@@ -1,4 +1,4 @@
-import { sections, stepLabels, type DraftFieldValue, type ExportFormat, type FullPayload, type FullPayloadSectionKey, type ProjectHistory, type ResultsState, type SavedProject } from "../lib/experiment";
+import { sections, stepLabels, type DraftFieldValue, type ExportFormat, type FullPayload, type FullPayloadSectionKey, type ProjectComparison, type ProjectHistory, type ResultsState, type SavedProject } from "../lib/experiment";
 import ResultsPanel from "./ResultsPanel";
 import WizardDraftStep from "./WizardDraftStep";
 import WizardReviewStep from "./WizardReviewStep";
@@ -15,6 +15,7 @@ type WizardPanelProps = {
   results: ResultsState;
   activeProject: SavedProject | null;
   projectHistory: ProjectHistory | null;
+  projectComparison: ProjectComparison | null;
   loadingProjectHistory: boolean;
   statusMessage: string;
   error: string;
@@ -41,6 +42,7 @@ export default function WizardPanel({
   results,
   activeProject,
   projectHistory,
+  projectComparison,
   loadingProjectHistory,
   statusMessage,
   error,
@@ -108,6 +110,7 @@ export default function WizardPanel({
         loading={loading}
         activeProject={activeProject}
         projectHistory={projectHistory}
+        projectComparison={projectComparison}
         loadingProjectHistory={loadingProjectHistory}
         statusMessage={statusMessage}
         error={error}

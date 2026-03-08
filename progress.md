@@ -158,18 +158,23 @@ Post-phase cleanup completed
 - added shared backend constants for supported variant count and long-duration warning threshold
 - added global backend exception handling for structured 400 and 500 API responses
 - added local orchestrator retries with exponential backoff for transient request failures
+- added generated frontend API contracts from FastAPI OpenAPI components
+- added `python scripts/generate_frontend_api_types.py` and a generated TS contract file in the frontend
+- added `scripts/verify_all.cmd` as a single local verification entrypoint for the Windows workflow
+- added saved-project comparison by latest persisted analysis snapshots across backend and frontend
+- replaced repository `SELECT *` usage with explicit project column selection and added latest-analysis lookup
 
 ---
 
 ## Next Phase
 
-Backend and product capability expansion
+Contract automation and product comparison UX
 
 Goals:
 
-- compare saved experiments and surface meaningful diffs in the UI
-- deepen repository history and reporting capabilities beyond the basic event log
-- continue hardening the optional orchestrator integration path
+- continue reducing duplicated contracts and manual sync points
+- deepen compare/report capabilities beyond the current latest-snapshot diff
+- continue hardening optional orchestrator and local-storage edge cases
 
 ---
 

@@ -4,6 +4,7 @@ import SidebarPanel from "./components/SidebarPanel";
 import WizardPanel from "./components/WizardPanel";
 import {
   type AnalysisResponse,
+  compareProjectsRequest,
   deleteProjectRequest,
   exportReportRequest,
   listProjectsRequest,
@@ -27,6 +28,7 @@ import {
   type FullPayloadSectionKey,
   hydrateLoadedPayload,
   parseImportedDraft,
+  type ProjectComparison,
   type ProjectHistory,
   type SavedProject,
   setSectionFieldValue,
@@ -139,6 +141,10 @@ export default function App() {
   const [projectHistory, setProjectHistory] = useState<ProjectHistory | null>(null);
   const [projectHistoryError, setProjectHistoryError] = useState("");
   const [loadingProjectHistory, setLoadingProjectHistory] = useState(false);
+  const [projectComparison, setProjectComparison] = useState<ProjectComparison | null>(null);
+  const [projectComparisonError, setProjectComparisonError] = useState("");
+  const [loadingProjectComparison, setLoadingProjectComparison] = useState(false);
+  const [comparingProjectId, setComparingProjectId] = useState<string | null>(null);
   const [resultsProjectId, setResultsProjectId] = useState<string | null>(null);
   const [resultsAnalysisRunId, setResultsAnalysisRunId] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
@@ -213,6 +219,13 @@ export default function App() {
     setValidationErrors((current) => (current.length > 0 ? [] : current));
   }
 
+  function clearProjectComparison() {
+    setProjectComparison(null);
+    setProjectComparisonError("");
+    setLoadingProjectComparison(false);
+    setComparingProjectId(null);
+  }
+
   function updateSection(section: FullPayloadSectionKey, key: string, value: DraftFieldValue) {
     setForm((current) => setSectionFieldValue(current, section, key, value));
     invalidateResults();
@@ -230,6 +243,7 @@ export default function App() {
     setLoadingProjectHistory(false);
     setProjectHistory(null);
     setProjectHistoryError("");
+    clearProjectComparison();
     setValidationErrors([]);
     setStep(0);
   }
@@ -277,6 +291,7 @@ export default function App() {
       setLoadingProjectHistory(false);
       setProjectHistory(null);
       setProjectHistoryError("");
+      clearProjectComparison();
       setValidationErrors([]);
       setStatusMessage(`Imported draft from ${file.name}. Save it to create a new local project record.`);
       setStep(0);
@@ -350,6 +365,31 @@ export default function App() {
       if (!silent) {
         setLoadingProjectHistory(false);
       }
+    }
+  }
+
+  async function compareProject(candidateProjectId: string) {
+    if (!activeProjectId) {
+      return;
+    }
+
+    const candidateName = savedProjects.find((project) => project.id === candidateProjectId)?.project_name ?? candidateProjectId;
+    setLoadingProjectComparison(true);
+    setComparingProjectId(candidateProjectId);
+    setProjectComparisonError("");
+
+    try {
+      const comparison = await compareProjectsRequest(activeProjectId, candidateProjectId);
+      setProjectComparison(comparison);
+      setStatusMessage(`Loaded saved-project comparison against ${candidateName}.`);
+    } catch (requestError) {
+      setProjectComparison(null);
+      setProjectComparisonError(
+        requestError instanceof Error ? requestError.message : "Unexpected project comparison error"
+      );
+    } finally {
+      setLoadingProjectComparison(false);
+      setComparingProjectId(null);
     }
   }
 
@@ -444,6 +484,7 @@ export default function App() {
       if (savedProjectId) {
         await refreshProjectHistory(savedProjectId, true);
       }
+      clearProjectComparison();
 
       setStatusMessage(saveStatus);
     } catch (requestError) {
@@ -482,6 +523,7 @@ export default function App() {
       setSavedProjectSnapshot(JSON.stringify(data.payload));
       setProjectHistory(null);
       setProjectHistoryError("");
+      clearProjectComparison();
       setValidationErrors([]);
       if (savedProject) {
         upsertSavedProject(savedProject);
@@ -515,6 +557,7 @@ export default function App() {
         setProjectHistoryError("");
         setLoadingProjectHistory(false);
         setResultsAnalysisRunId(null);
+        clearProjectComparison();
         setStatusMessage(`Project ${projectName} deleted. Current form remains as a new local draft.`);
       } else {
         setStatusMessage(`Project ${projectName} deleted locally.`);
@@ -605,6 +648,7 @@ export default function App() {
               results={results}
               activeProject={activeProject}
               projectHistory={projectHistory}
+              projectComparison={projectComparison}
               loadingProjectHistory={loadingProjectHistory}
               statusMessage={statusMessage}
               error={error}
@@ -630,10 +674,17 @@ export default function App() {
               projectHistory={projectHistory}
               projectHistoryError={projectHistoryError}
               loadingProjectHistory={loadingProjectHistory}
+              projectComparison={projectComparison}
+              projectComparisonError={projectComparisonError}
+              loadingProjectComparison={loadingProjectComparison}
+              comparingProjectId={comparingProjectId}
               hasUnsavedChanges={hasUnsavedChanges}
               onRefreshHealth={loadBackendHealth}
               onRefreshProjectHistory={(projectId) => {
                 void refreshProjectHistory(projectId);
+              }}
+              onCompareProject={(projectId) => {
+                void compareProject(projectId);
               }}
               onLoadProjects={loadProjects}
               onLoadProject={loadProject}

@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import type { ApiHealthResponse, ProjectHistory, SavedProject } from "../lib/experiment";
+import type { ApiHealthResponse, ProjectComparison, ProjectHistory, SavedProject } from "../lib/experiment";
 
 type SidebarPanelProps = {
   loadingHealth: boolean;
@@ -14,9 +14,14 @@ type SidebarPanelProps = {
   projectHistory: ProjectHistory | null;
   projectHistoryError: string;
   loadingProjectHistory: boolean;
+  projectComparison: ProjectComparison | null;
+  projectComparisonError: string;
+  loadingProjectComparison: boolean;
+  comparingProjectId: string | null;
   hasUnsavedChanges: boolean;
   onRefreshHealth: () => void;
   onRefreshProjectHistory: (projectId: string) => void;
+  onCompareProject: (projectId: string) => void;
   onLoadProjects: () => void;
   onLoadProject: (projectId: string) => void;
   onDeleteProject: (projectId: string, projectName: string) => void;
@@ -50,15 +55,21 @@ export default function SidebarPanel({
   projectHistory,
   projectHistoryError,
   loadingProjectHistory,
+  projectComparison,
+  projectComparisonError,
+  loadingProjectComparison,
+  comparingProjectId,
   hasUnsavedChanges,
   onRefreshHealth,
   onRefreshProjectHistory,
+  onCompareProject,
   onLoadProjects,
   onLoadProject,
   onDeleteProject
 }: SidebarPanelProps) {
   const [projectQuery, setProjectQuery] = useState("");
   const normalizedQuery = projectQuery.trim().toLowerCase();
+  const compareEnabled = Boolean(activeProjectId && activeProject?.has_analysis_snapshot);
   const filteredProjects =
     normalizedQuery.length > 0
       ? savedProjects.filter((project) => project.project_name.toLowerCase().includes(normalizedQuery))
@@ -227,6 +238,23 @@ export default function SidebarPanel({
             <p className="muted">
               Showing {filteredProjects.length} of {savedProjects.length} saved projects.
             </p>
+            {compareEnabled ? (
+              <>
+                <p className="muted">
+                  Compare buttons use the latest saved analysis snapshots for the loaded project and another saved project.
+                </p>
+                {projectComparison ? (
+                  <p className="muted">
+                    Current comparison: {projectComparison.base_project.project_name} vs {projectComparison.candidate_project.project_name}.
+                  </p>
+                ) : null}
+                {projectComparisonError ? (
+                  <div className="status">Project comparison unavailable. {projectComparisonError}</div>
+                ) : null}
+              </>
+            ) : activeProjectId ? (
+              <p className="muted">Save at least one analysis snapshot before comparing saved projects.</p>
+            ) : null}
           <ul className="list">
             {filteredProjects.map((project) => (
               <li key={project.id}>
@@ -242,6 +270,15 @@ export default function SidebarPanel({
                   </button>
                   {project.id === activeProjectId ? <span className="pill">Loaded</span> : null}
                   {project.has_analysis_snapshot ? <span className="pill">Snapshot</span> : null}
+                  {compareEnabled && project.id !== activeProjectId && project.has_analysis_snapshot ? (
+                    <button
+                      className="btn secondary"
+                      disabled={loadingProjectComparison || deletingProjectId === project.id}
+                      onClick={() => onCompareProject(project.id)}
+                    >
+                      {comparingProjectId === project.id ? "Comparing..." : "Compare"}
+                    </button>
+                  ) : null}
                   <button
                     className="btn secondary"
                     disabled={deletingProjectId === project.id}
@@ -276,6 +313,7 @@ export default function SidebarPanel({
           <li><code>POST /api/v1/llm/advice</code></li>
           <li><code>POST /api/v1/projects/{'{id}'}/analysis</code></li>
           <li><code>POST /api/v1/projects/{'{id}'}/exports</code></li>
+          <li><code>GET /api/v1/projects/compare</code></li>
           <li><code>GET /api/v1/projects/{'{id}'}/history</code></li>
           <li><code>GET/POST/PUT/DELETE /api/v1/projects</code></li>
         </ul>

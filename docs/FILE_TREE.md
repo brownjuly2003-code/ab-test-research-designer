@@ -6,6 +6,7 @@ AB_TEST/
     backend/
       app/
         config.py
+        constants.py
         main.py
         repository.py
         llm/
@@ -20,6 +21,7 @@ AB_TEST/
           report.py
         services/
           calculations_service.py
+          comparison_service.py
           design_service.py
           export_service.py
         stats/
@@ -57,6 +59,8 @@ AB_TEST/
           api.test.ts
           experiment.ts
           experiment.test.ts
+          generated/
+            api-contract.ts
         test/
           dom.ts
       index.html
@@ -81,7 +85,11 @@ AB_TEST/
   prompts/
     PROMPTS.md
   scripts/
+    generate_frontend_api_types.py
     run_local_smoke.py
+    verify_all.cmd
+    verify_all.ps1
+    verify_all.py
   setup/
     CLI_SETUP_WINDOWS.md
     SKILLS_FOR_CLI.md

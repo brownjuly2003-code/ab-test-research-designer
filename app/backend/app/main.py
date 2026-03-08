@@ -19,6 +19,7 @@ from app.backend.app.schemas.api import (
     ExportResponse,
     LlmAdviceRequest,
     LlmAdviceResponse,
+    ProjectComparisonResponse,
     ProjectDeleteResponse,
     ProjectExportMarkRequest,
     ProjectHistoryResponse,
@@ -26,6 +27,7 @@ from app.backend.app.schemas.api import (
     ProjectRecord,
 )
 from app.backend.app.services.calculations_service import calculate_experiment_metrics
+from app.backend.app.services.comparison_service import build_project_comparison
 from app.backend.app.services.design_service import build_experiment_report
 from app.backend.app.services.export_service import export_report_to_html, export_report_to_markdown
 
@@ -151,6 +153,35 @@ def create_app() -> FastAPI:
     def create_project(payload: ExperimentInput) -> ProjectRecord:
         project = repository.create_project(payload.model_dump())
         return ProjectRecord.model_validate(project)
+
+    @app.get("/api/v1/projects/compare", response_model=ProjectComparisonResponse)
+    def compare_projects(base_id: str, candidate_id: str) -> ProjectComparisonResponse:
+        if base_id == candidate_id:
+            raise ValueError("base_id and candidate_id must be different")
+
+        base_project = repository.get_project(base_id)
+        if base_project is None:
+            raise HTTPException(status_code=404, detail="Base project not found")
+
+        candidate_project = repository.get_project(candidate_id)
+        if candidate_project is None:
+            raise HTTPException(status_code=404, detail="Candidate project not found")
+
+        base_analysis_run = repository.get_latest_analysis_run(base_id)
+        if base_analysis_run is None:
+            raise ValueError("Base project has no saved analysis snapshot")
+
+        candidate_analysis_run = repository.get_latest_analysis_run(candidate_id)
+        if candidate_analysis_run is None:
+            raise ValueError("Candidate project has no saved analysis snapshot")
+
+        comparison = build_project_comparison(
+            base_project,
+            base_analysis_run,
+            candidate_project,
+            candidate_analysis_run,
+        )
+        return ProjectComparisonResponse.model_validate(comparison)
 
     @app.get("/api/v1/projects/{project_id}", response_model=ProjectRecord)
     def get_project(project_id: str) -> ProjectRecord:

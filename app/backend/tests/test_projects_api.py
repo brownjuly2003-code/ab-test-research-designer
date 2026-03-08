@@ -64,6 +64,92 @@ def _payload(name: str) -> dict:
     }
 
 
+def _analysis_payload(
+    *,
+    total_sample_size: int,
+    estimated_duration_days: int,
+    executive_summary: str,
+    warning_codes: list[str],
+) -> dict:
+    return {
+        "calculations": {
+            "calculation_summary": {
+                "metric_type": "binary",
+                "baseline_value": 0.042,
+                "mde_pct": 5,
+                "mde_absolute": 0.0021,
+                "alpha": 0.05,
+                "power": 0.8,
+            },
+            "results": {
+                "sample_size_per_variant": total_sample_size // 2,
+                "total_sample_size": total_sample_size,
+                "effective_daily_traffic": 5000,
+                "estimated_duration_days": estimated_duration_days,
+            },
+            "assumptions": ["Baseline is stable"],
+            "warnings": [
+                {
+                    "code": code,
+                    "severity": "medium",
+                    "message": f"{code} warning",
+                    "source": "rules_engine",
+                }
+                for code in warning_codes
+            ],
+        },
+        "report": {
+            "executive_summary": executive_summary,
+            "calculations": {
+                "sample_size_per_variant": total_sample_size // 2,
+                "total_sample_size": total_sample_size,
+                "estimated_duration_days": estimated_duration_days,
+                "assumptions": ["Baseline is stable"],
+            },
+            "experiment_design": {
+                "variants": [
+                    {"name": "A", "description": "current"},
+                    {"name": "B", "description": "new"},
+                ],
+                "randomization_unit": "user",
+                "traffic_split": [50, 50],
+                "target_audience": "new users on web",
+                "inclusion_criteria": "new users only",
+                "exclusion_criteria": "internal staff",
+                "recommended_duration_days": estimated_duration_days,
+                "stopping_conditions": ["planned duration reached"],
+            },
+            "metrics_plan": {
+                "primary": ["purchase_conversion"],
+                "secondary": ["add_to_cart_rate"],
+                "guardrail": ["payment_error_rate"],
+                "diagnostic": ["assignment_rate"],
+            },
+            "risks": {
+                "statistical": ["Power tradeoff"],
+                "product": ["Expected result depends on user behavior."],
+                "technical": ["legacy event logging"],
+                "operational": ["tracking quality"],
+            },
+            "recommendations": {
+                "before_launch": ["Verify tracking"],
+                "during_test": ["Watch SRM"],
+                "after_test": ["Segment the result"],
+            },
+            "open_questions": ["Will mobile respond differently?"],
+        },
+        "advice": {
+            "available": False,
+            "provider": "local_orchestrator",
+            "model": "offline",
+            "advice": None,
+            "raw_text": None,
+            "error": "offline",
+            "error_code": "request_error",
+        },
+    }
+
+
 def test_projects_crud_flow(monkeypatch) -> None:
     temp_dir = Path(__file__).resolve().parent / ".tmp"
     temp_dir.mkdir(exist_ok=True)
@@ -203,3 +289,56 @@ def test_projects_crud_flow(monkeypatch) -> None:
 
         missing_response = client.get(f"/api/v1/projects/{created['id']}")
         assert missing_response.status_code == 404
+
+
+def test_projects_compare_endpoint_returns_saved_snapshot_differences(monkeypatch) -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+
+    monkeypatch.setenv("AB_DB_PATH", str(db_path))
+    get_settings.cache_clear()
+
+    with TestClient(create_app()) as client:
+        base_project = client.post("/api/v1/projects", json=_payload("Checkout baseline")).json()
+        candidate_project = client.post("/api/v1/projects", json=_payload("Checkout challenger")).json()
+
+        base_analysis = client.post(
+            f"/api/v1/projects/{base_project['id']}/analysis",
+            json=_analysis_payload(
+                total_sample_size=200,
+                estimated_duration_days=10,
+                executive_summary="Base summary",
+                warning_codes=["SEASONALITY_PRESENT"],
+            ),
+        )
+        candidate_analysis = client.post(
+            f"/api/v1/projects/{candidate_project['id']}/analysis",
+            json=_analysis_payload(
+                total_sample_size=280,
+                estimated_duration_days=14,
+                executive_summary="Candidate summary",
+                warning_codes=["LONG_DURATION", "LOW_TRAFFIC"],
+            ),
+        )
+
+        assert base_analysis.status_code == 200
+        assert candidate_analysis.status_code == 200
+
+        compare_response = client.get(
+            "/api/v1/projects/compare",
+            params={
+                "base_id": base_project["id"],
+                "candidate_id": candidate_project["id"],
+            },
+        )
+
+        assert compare_response.status_code == 200
+        payload = compare_response.json()
+        assert payload["base_project"]["project_name"] == "Checkout baseline"
+        assert payload["candidate_project"]["project_name"] == "Checkout challenger"
+        assert payload["deltas"]["total_sample_size"] == 80
+        assert payload["deltas"]["estimated_duration_days"] == 4
+        assert payload["shared_warning_codes"] == []
+        assert payload["base_only_warning_codes"] == ["SEASONALITY_PRESENT"]
+        assert payload["candidate_only_warning_codes"] == ["LONG_DURATION", "LOW_TRAFFIC"]

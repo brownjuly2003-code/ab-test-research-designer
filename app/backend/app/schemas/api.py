@@ -242,6 +242,41 @@ class ProjectHistoryResponse(BaseModel):
     export_events: list[ExportEventRecord]
 
 
+class ProjectComparisonItem(BaseModel):
+    id: str
+    project_name: str
+    updated_at: str
+    last_analysis_at: str | None = None
+    analysis_run_id: str
+    metric_type: str
+    primary_metric: str
+    sample_size_per_variant: int
+    total_sample_size: int
+    estimated_duration_days: int
+    warnings_count: int
+    warning_codes: list[str]
+    risk_highlights: list[str]
+    assumptions: list[str]
+    advice_available: bool
+
+
+class ProjectComparisonDelta(BaseModel):
+    sample_size_per_variant: int
+    total_sample_size: int
+    estimated_duration_days: int
+    warnings_count: int
+
+
+class ProjectComparisonResponse(BaseModel):
+    base_project: ProjectComparisonItem
+    candidate_project: ProjectComparisonItem
+    deltas: ProjectComparisonDelta
+    shared_warning_codes: list[str]
+    base_only_warning_codes: list[str]
+    candidate_only_warning_codes: list[str]
+    summary: str
+
+
 class ProjectRecord(BaseModel):
     id: str
     project_name: str
@@ -292,6 +327,7 @@ __all__ = [
     "ExperimentInput",
     "ExperimentReport",
     "ExportResponse",
+    "ProjectComparisonResponse",
     "ProjectHistoryResponse",
     "LlmAdviceRequest",
     "LlmAdviceResponse",

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  compareProjectsRequest,
   deleteProjectRequest,
   exportReportRequest,
   listProjectsRequest,
@@ -293,6 +294,62 @@ describe("frontend api wrapper", () => {
     expect(result.project_id).toBe("1");
     expect(result.analysis_runs[0]?.id).toBe("run-1");
     expect(result.export_events[0]?.analysis_run_id).toBe("run-1");
+  });
+
+  it("loads a comparison between saved projects", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      jsonResponse({
+        base_project: {
+          id: "base-1",
+          project_name: "Checkout baseline",
+          updated_at: "2026-03-07T10:00:00Z",
+          last_analysis_at: "2026-03-07T10:30:00Z",
+          analysis_run_id: "run-base",
+          metric_type: "binary",
+          primary_metric: "purchase_conversion",
+          sample_size_per_variant: 100,
+          total_sample_size: 200,
+          estimated_duration_days: 10,
+          warnings_count: 1,
+          warning_codes: ["SEASONALITY_PRESENT"],
+          risk_highlights: ["tracking quality"],
+          assumptions: ["Baseline is stable"],
+          advice_available: false
+        },
+        candidate_project: {
+          id: "cand-1",
+          project_name: "Checkout challenger",
+          updated_at: "2026-03-07T11:00:00Z",
+          last_analysis_at: "2026-03-07T11:30:00Z",
+          analysis_run_id: "run-candidate",
+          metric_type: "binary",
+          primary_metric: "purchase_conversion",
+          sample_size_per_variant: 140,
+          total_sample_size: 280,
+          estimated_duration_days: 14,
+          warnings_count: 2,
+          warning_codes: ["LONG_DURATION", "LOW_TRAFFIC"],
+          risk_highlights: ["tracking quality"],
+          assumptions: ["Baseline is stable"],
+          advice_available: false
+        },
+        deltas: {
+          sample_size_per_variant: 40,
+          total_sample_size: 80,
+          estimated_duration_days: 4,
+          warnings_count: 1
+        },
+        shared_warning_codes: [],
+        base_only_warning_codes: ["SEASONALITY_PRESENT"],
+        candidate_only_warning_codes: ["LONG_DURATION", "LOW_TRAFFIC"],
+        summary: "Checkout challenger needs larger total sample size and a longer test window than Checkout baseline."
+      })
+    );
+
+    const result = await compareProjectsRequest("base-1", "cand-1");
+
+    expect(result.deltas.total_sample_size).toBe(80);
+    expect(result.candidate_project.project_name).toBe("Checkout challenger");
   });
 
   it("deletes a saved project", async () => {
