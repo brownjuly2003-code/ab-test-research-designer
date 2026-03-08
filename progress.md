@@ -198,6 +198,9 @@ Post-phase cleanup completed
 - added structured backend logging with configurable plain/json output
 - added `scripts/verify_workspace_backup.py` and wired backup roundtrip verification into local/CI checks
 - added optional API token auth for backend runtime/project routes plus frontend bearer-token support via env
+- added optional read-only API token support for safe runtime access while write routes still require the main API token
+- hardened Docker/compose packaging with build-time frontend token injection, runtime defaults, healthchecks, and secure compose verification
+- added integrity manifests with entity counts and SHA-256 checksum validation for workspace backup/import bundles
 
 ---
 

@@ -3,6 +3,8 @@ import sqlite3
 import sys
 import uuid
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
 from app.backend.app.repository import ProjectRepository
@@ -375,11 +377,18 @@ def test_repository_can_export_and_import_workspace_bundle() -> None:
 
     bundle = source_repository.export_workspace()
 
-    assert bundle["schema_version"] == 1
+    assert bundle["schema_version"] == 2
     assert len(bundle["projects"]) == 1
     assert len(bundle["analysis_runs"]) == 1
     assert len(bundle["export_events"]) == 1
     assert len(bundle["project_revisions"]) == 1
+    assert bundle["integrity"]["counts"] == {
+        "projects": 1,
+        "analysis_runs": 1,
+        "export_events": 1,
+        "project_revisions": 1,
+    }
+    assert len(bundle["integrity"]["checksum_sha256"]) == 64
 
     target_repository = ProjectRepository(str(target_db_path))
     import_summary = target_repository.import_workspace(bundle)
@@ -412,3 +421,29 @@ def test_repository_can_export_and_import_workspace_bundle() -> None:
     assert revisions is not None
     assert revisions["total"] == 1
     assert revisions["revisions"][0]["source"] == "create"
+
+
+def test_repository_rejects_workspace_bundle_with_invalid_checksum() -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    source_db_path = temp_dir / f"{uuid.uuid4()}-source.sqlite3"
+    target_db_path = temp_dir / f"{uuid.uuid4()}-target.sqlite3"
+
+    source_repository = ProjectRepository(str(source_db_path))
+    source_repository.create_project(
+        {
+            "project": {"project_name": "Checksum source"},
+            "hypothesis": {},
+            "setup": {},
+            "metrics": {},
+            "constraints": {},
+            "additional_context": {},
+        }
+    )
+    bundle = source_repository.export_workspace()
+    bundle["projects"][0]["project_name"] = "Tampered source"
+
+    target_repository = ProjectRepository(str(target_db_path))
+
+    with pytest.raises(ValueError, match="Workspace bundle checksum mismatch"):
+        target_repository.import_workspace(bundle)

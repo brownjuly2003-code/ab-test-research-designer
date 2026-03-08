@@ -67,7 +67,7 @@ function buildReportPayload() {
 
 function buildWorkspaceBundle() {
   return {
-    schema_version: 1,
+    schema_version: 2,
     generated_at: "2026-03-09T00:30:00Z",
     projects: [
       {
@@ -136,7 +136,16 @@ function buildWorkspaceBundle() {
         created_at: "2026-03-09T00:10:00Z",
         payload: buildApiPayload(cloneInitialState())
       }
-    ]
+    ],
+    integrity: {
+      counts: {
+        projects: 1,
+        analysis_runs: 1,
+        export_events: 1,
+        project_revisions: 1
+      },
+      checksum_sha256: "a".repeat(64)
+    }
   };
 }
 
@@ -274,7 +283,11 @@ describe("frontend api wrapper", () => {
         },
         auth: {
           enabled: false,
-          accepted_headers: ["Authorization: Bearer", "X-API-Key"]
+          mode: "open",
+          write_enabled: false,
+          readonly_enabled: false,
+          accepted_headers: ["Authorization: Bearer", "X-API-Key"],
+          read_only_methods: ["GET", "HEAD", "OPTIONS"]
         }
       })
     );

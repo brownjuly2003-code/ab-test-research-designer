@@ -104,7 +104,11 @@ export type ConstraintsConfig = {
 
 export type DiagnosticsAuthSummary = {
   enabled: boolean;
+  mode: string;
+  write_enabled: boolean;
+  readonly_enabled: boolean;
   accepted_headers: string[];
+  read_only_methods: string[];
 };
 
 export type DiagnosticsFrontendSummary = {
@@ -475,6 +479,7 @@ export type WorkspaceBundle_Input = {
   analysis_runs: WorkspaceAnalysisRunRecord_Input[];
   export_events: WorkspaceExportEventRecord[];
   project_revisions?: WorkspaceProjectRevisionRecord_Input[];
+  integrity?: WorkspaceIntegrity | null;
 };
 
 export type WorkspaceBundle_Output = {
@@ -484,6 +489,7 @@ export type WorkspaceBundle_Output = {
   analysis_runs: WorkspaceAnalysisRunRecord_Output[];
   export_events: WorkspaceExportEventRecord[];
   project_revisions?: WorkspaceProjectRevisionRecord_Output[];
+  integrity?: WorkspaceIntegrity | null;
 };
 
 export type WorkspaceExportEventRecord = {
@@ -500,6 +506,18 @@ export type WorkspaceImportResponse = {
   imported_analysis_runs: number;
   imported_export_events: number;
   imported_project_revisions?: number;
+};
+
+export type WorkspaceIntegrity = {
+  counts: WorkspaceIntegrityCounts;
+  checksum_sha256: string;
+};
+
+export type WorkspaceIntegrityCounts = {
+  projects: number;
+  analysis_runs: number;
+  export_events: number;
+  project_revisions: number;
 };
 
 export type WorkspaceProjectRecord_Input = {

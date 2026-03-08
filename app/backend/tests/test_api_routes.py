@@ -296,6 +296,9 @@ def test_diagnostics_endpoint_returns_runtime_summary(monkeypatch) -> None:
     assert payload["llm"]["provider"] == "local_orchestrator"
     assert payload["logging"]["format"] == "json"
     assert payload["auth"]["enabled"] is False
+    assert payload["auth"]["mode"] == "open"
+    assert payload["auth"]["write_enabled"] is False
+    assert payload["auth"]["readonly_enabled"] is False
     assert response.headers["x-request-id"]
     assert float(response.headers["x-process-time-ms"]) >= 0
     get_settings.cache_clear()
@@ -346,7 +349,69 @@ def test_api_token_protects_runtime_and_api_routes(monkeypatch) -> None:
     assert unauthorized_readyz.status_code == 401
     assert authorized_diagnostics.status_code == 200
     assert authorized_diagnostics.json()["auth"]["enabled"] is True
+    assert authorized_diagnostics.json()["auth"]["mode"] == "token"
+    assert authorized_diagnostics.json()["auth"]["write_enabled"] is True
+    assert authorized_diagnostics.json()["auth"]["readonly_enabled"] is False
     assert api_key_diagnostics.status_code == 200
+    get_settings.cache_clear()
+
+
+def test_readonly_api_token_allows_safe_requests_but_blocks_mutations(monkeypatch) -> None:
+    monkeypatch.setenv("AB_READONLY_API_TOKEN", "readonly-secret")
+    monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")
+    get_settings.cache_clear()
+
+    with TestClient(create_app()) as client:
+        diagnostics_response = client.get(
+            "/api/v1/diagnostics",
+            headers={"Authorization": "Bearer readonly-secret"},
+        )
+        project_list_response = client.get(
+            "/api/v1/projects",
+            headers={"Authorization": "Bearer readonly-secret"},
+        )
+        forbidden_calculation = client.post(
+            "/api/v1/calculate",
+            headers={"Authorization": "Bearer readonly-secret"},
+            json={
+                "metric_type": "binary",
+                "baseline_value": 0.042,
+                "mde_pct": 5,
+                "alpha": 0.05,
+                "power": 0.8,
+                "expected_daily_traffic": 12000,
+                "audience_share_in_test": 0.6,
+                "traffic_split": [50, 50],
+                "variants_count": 2,
+            },
+        )
+
+    assert diagnostics_response.status_code == 200
+    assert diagnostics_response.json()["auth"]["mode"] == "readonly"
+    assert diagnostics_response.json()["auth"]["write_enabled"] is False
+    assert diagnostics_response.json()["auth"]["readonly_enabled"] is True
+    assert project_list_response.status_code == 200
+    assert forbidden_calculation.status_code == 403
+    assert forbidden_calculation.json()["detail"] == "Forbidden"
+    get_settings.cache_clear()
+
+
+def test_dual_token_auth_mode_reports_both_scopes(monkeypatch) -> None:
+    monkeypatch.setenv("AB_API_TOKEN", "super-secret-token")
+    monkeypatch.setenv("AB_READONLY_API_TOKEN", "readonly-secret")
+    monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")
+    get_settings.cache_clear()
+
+    with TestClient(create_app()) as client:
+        diagnostics_response = client.get(
+            "/api/v1/diagnostics",
+            headers={"Authorization": "Bearer super-secret-token"},
+        )
+
+    assert diagnostics_response.status_code == 200
+    assert diagnostics_response.json()["auth"]["mode"] == "dual_token"
+    assert diagnostics_response.json()["auth"]["write_enabled"] is True
+    assert diagnostics_response.json()["auth"]["readonly_enabled"] is True
     get_settings.cache_clear()
 
 

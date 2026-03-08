@@ -3,11 +3,28 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-}
+        VITE_API_TOKEN: ${VITE_API_TOKEN:-}
     image: ab-test-research-designer:local
+    restart: unless-stopped
     ports:
       - "8008:8008"
     environment:
-      AB_ENV: docker
-      AB_CORS_ORIGINS: http://127.0.0.1:8008,http://localhost:8008
+      AB_ENV: ${AB_ENV:-docker}
+      AB_CORS_ORIGINS: ${AB_CORS_ORIGINS:-http://127.0.0.1:8008,http://localhost:8008}
+      AB_API_TOKEN: ${AB_API_TOKEN:-}
+      AB_READONLY_API_TOKEN: ${AB_READONLY_API_TOKEN:-}
+      AB_LOG_LEVEL: ${AB_LOG_LEVEL:-INFO}
+      AB_LOG_FORMAT: ${AB_LOG_FORMAT:-plain}
+      AB_SQLITE_BUSY_TIMEOUT_MS: ${AB_SQLITE_BUSY_TIMEOUT_MS:-5000}
+      AB_SQLITE_JOURNAL_MODE: ${AB_SQLITE_JOURNAL_MODE:-WAL}
+      AB_SQLITE_SYNCHRONOUS: ${AB_SQLITE_SYNCHRONOUS:-NORMAL}
     volumes:
       - ./app/backend/data:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8008/health', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

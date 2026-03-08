@@ -69,27 +69,17 @@ jobs:
 
   docker:
     runs-on: ubuntu-latest
+    env:
+      AB_API_TOKEN: verify-write-token
+      AB_READONLY_API_TOKEN: verify-readonly-token
+      VITE_API_TOKEN: verify-write-token
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build Docker image
-        run: docker build -t ab-test-research-designer:ci .
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
 
-      - name: Start Docker compose stack
-        run: docker compose up -d --build
-
-      - name: Wait for readiness endpoint
-        run: |
-          for i in $(seq 1 30); do
-            if curl --fail --silent http://127.0.0.1:8008/readyz > /tmp/ready.json; then
-              cat /tmp/ready.json
-              exit 0
-            fi
-            sleep 2
-          done
-          exit 1
-
-      - name: Stop Docker compose stack
-        if: always()
-        run: docker compose down -v
+      - name: Verify secure Docker compose flow
+        run: python scripts/verify_docker_compose.py

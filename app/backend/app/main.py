@@ -54,6 +54,7 @@ class HealthResponse(BaseModel):
 
 AUTH_EXEMPT_PREFIXES = ("/assets",)
 AUTH_PROTECTED_EXACT_PATHS = {"/readyz", "/docs", "/openapi.json", "/redoc"}
+AUTH_READ_ONLY_METHODS = {"GET", "HEAD", "OPTIONS"}
 
 
 def _is_protected_path(path: str) -> bool:
@@ -66,11 +67,34 @@ def _is_protected_path(path: str) -> bool:
     return False
 
 
-def _is_authorized(request: Request, api_token: str) -> bool:
+def _extract_presented_token(request: Request) -> str | None:
     authorization = request.headers.get("authorization", "")
     if authorization.startswith("Bearer "):
-        return authorization.removeprefix("Bearer ").strip() == api_token
-    return request.headers.get("x-api-key", "").strip() == api_token
+        token = authorization.removeprefix("Bearer ").strip()
+        return token or None
+    api_key = request.headers.get("x-api-key", "").strip()
+    return api_key or None
+
+
+def _get_auth_mode(write_token: str | None, readonly_token: str | None) -> str:
+    if write_token and readonly_token:
+        return "dual_token"
+    if write_token:
+        return "token"
+    if readonly_token:
+        return "readonly"
+    return "open"
+
+
+def _build_auth_failure_response(request_id: str, process_time_ms: float, detail: str, status_code: int) -> JSONResponse:
+    response = JSONResponse(
+        status_code=status_code,
+        content={"detail": detail},
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    response.headers["X-Request-ID"] = request_id
+    response.headers["X-Process-Time-Ms"] = f"{process_time_ms:.2f}"
+    return response
 
 
 def _build_calculation_payload(payload: ExperimentInput) -> CalculationRequest:
@@ -125,7 +149,7 @@ def create_app() -> FastAPI:
     frontend_dist_path = Path(settings.frontend_dist_path)
     frontend_index_path = frontend_dist_path / "index.html"
     cors_headers = list(settings.cors_headers)
-    if settings.api_token:
+    if settings.api_token or settings.readonly_api_token:
         for header_name in ("Authorization", "X-API-Key"):
             if header_name not in cors_headers:
                 cors_headers.append(header_name)
@@ -143,7 +167,7 @@ def create_app() -> FastAPI:
             sqlite_journal_mode=settings.sqlite_journal_mode,
             sqlite_synchronous=settings.sqlite_synchronous,
             log_format=settings.log_format,
-            auth_enabled=settings.api_token is not None,
+            auth_mode=_get_auth_mode(settings.api_token, settings.readonly_api_token),
         )
         yield
 
@@ -167,31 +191,57 @@ def create_app() -> FastAPI:
         started = perf_counter()
 
         if (
-            settings.api_token
+            (settings.api_token or settings.readonly_api_token)
             and request.method != "OPTIONS"
             and _is_protected_path(request.url.path)
-            and not _is_authorized(request, settings.api_token)
         ):
+            presented_token = _extract_presented_token(request)
             process_time_ms = (perf_counter() - started) * 1000
-            response = JSONResponse(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                content={"detail": "Unauthorized"},
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-            response.headers["X-Request-ID"] = request_id
-            response.headers["X-Process-Time-Ms"] = f"{process_time_ms:.2f}"
-            log_event(
-                logger,
-                logging.WARNING,
-                "request rejected",
-                event="http_request_auth",
-                request_id=request_id,
-                method=request.method,
-                path=request.url.path,
-                status_code=response.status_code,
-                process_time_ms=round(process_time_ms, 2),
-            )
-            return response
+
+            if settings.api_token and presented_token == settings.api_token:
+                pass
+            elif settings.readonly_api_token and presented_token == settings.readonly_api_token:
+                if request.method not in AUTH_READ_ONLY_METHODS:
+                    response = _build_auth_failure_response(
+                        request_id,
+                        process_time_ms,
+                        "Forbidden",
+                        status.HTTP_403_FORBIDDEN,
+                    )
+                    log_event(
+                        logger,
+                        logging.WARNING,
+                        "request rejected",
+                        event="http_request_auth",
+                        request_id=request_id,
+                        method=request.method,
+                        path=request.url.path,
+                        status_code=response.status_code,
+                        process_time_ms=round(process_time_ms, 2),
+                        auth_mode=_get_auth_mode(settings.api_token, settings.readonly_api_token),
+                        auth_scope="readonly",
+                    )
+                    return response
+            else:
+                response = _build_auth_failure_response(
+                    request_id,
+                    process_time_ms,
+                    "Unauthorized",
+                    status.HTTP_401_UNAUTHORIZED,
+                )
+                log_event(
+                    logger,
+                    logging.WARNING,
+                    "request rejected",
+                    event="http_request_auth",
+                    request_id=request_id,
+                    method=request.method,
+                    path=request.url.path,
+                    status_code=response.status_code,
+                    process_time_ms=round(process_time_ms, 2),
+                    auth_mode=_get_auth_mode(settings.api_token, settings.readonly_api_token),
+                )
+                return response
 
         try:
             response = await call_next(request)
@@ -355,8 +405,12 @@ def create_app() -> FastAPI:
                 "format": settings.log_format,
             },
             auth={
-                "enabled": settings.api_token is not None,
+                "enabled": settings.api_token is not None or settings.readonly_api_token is not None,
+                "mode": _get_auth_mode(settings.api_token, settings.readonly_api_token),
+                "write_enabled": settings.api_token is not None,
+                "readonly_enabled": settings.readonly_api_token is not None,
                 "accepted_headers": ["Authorization: Bearer", "X-API-Key"],
+                "read_only_methods": sorted(AUTH_READ_ONLY_METHODS),
             },
         )
 

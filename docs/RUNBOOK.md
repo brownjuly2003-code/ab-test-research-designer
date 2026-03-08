@@ -23,16 +23,35 @@ Docker:
 docker compose up --build
 ```
 
+Docker with API auth:
+
+```bash
+set AB_API_TOKEN=your-secret-token
+set VITE_API_TOKEN=your-secret-token
+docker compose up --build
+```
+
+Docker with split write/read tokens:
+
+```bash
+set AB_API_TOKEN=write-secret-token
+set AB_READONLY_API_TOKEN=readonly-secret-token
+set VITE_API_TOKEN=write-secret-token
+docker compose up --build
+```
+
 ## Quick checks
 
 - health: `http://127.0.0.1:8008/health`
 - readiness: `http://127.0.0.1:8008/readyz`
 - diagnostics: `http://127.0.0.1:8008/api/v1/diagnostics`
 
-If `AB_API_TOKEN` is enabled, send either:
+If `AB_API_TOKEN` or `AB_READONLY_API_TOKEN` is enabled, send either:
 
 - `Authorization: Bearer <token>`
 - `X-API-Key: <token>`
+
+Read-only tokens are valid only for `GET`, `HEAD`, and `OPTIONS`. Mutating routes still require the write token.
 
 ## Full verification
 
@@ -40,6 +59,12 @@ Primary Windows entrypoint:
 
 ```bash
 cmd /c scripts\verify_all.cmd
+```
+
+With secure Docker compose verification:
+
+```bash
+cmd /c scripts\verify_all.cmd --with-docker
 ```
 
 Focused checks:
@@ -76,6 +101,7 @@ The backup contains:
 - analysis run history
 - export events
 - saved project revisions
+- integrity counts and a SHA-256 checksum
 
 Round-trip verification against a live DB file:
 
@@ -105,13 +131,15 @@ Readiness returns `503`:
 Frontend loads but backend requests fail:
 
 - confirm `VITE_API_BASE_URL`
-- if API auth is enabled, confirm `VITE_API_TOKEN`
+- if write-token auth is enabled, confirm `VITE_API_TOKEN`
+- if read-only auth is enabled, verify diagnostics/docs work while mutations still reject with `403`
 - verify CORS env values if frontend is on another origin
 
 Workspace import fails:
 
 - validate JSON shape against `docs/API.md`
 - ensure referenced analysis runs and projects are consistent
+- ensure the integrity checksum still matches and that the bundle was not edited after export
 
 ## Release hygiene
 

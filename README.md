@@ -12,7 +12,7 @@ It combines:
 - lightweight runtime diagnostics plus request-id / process-time headers
 - SQLite schema versioning plus configurable WAL/busy-timeout runtime settings
 - optional API token protection for runtime and project APIs
-- workspace backup and restore for saved projects plus history
+- workspace backup and restore for saved projects plus history, integrity counts, and checksums
 
 ## Demo
 
@@ -62,7 +62,8 @@ Prerequisites:
 Environment template:
 
 - start from [.env.example](/D:/AB_TEST/.env.example)
-- set `AB_API_TOKEN` and matching `VITE_API_TOKEN` if you want the UI and `/api/v1/*` routes protected
+- set `AB_API_TOKEN` and matching `VITE_API_TOKEN` if you want the UI and write-capable `/api/v1/*` routes protected
+- optionally set `AB_READONLY_API_TOKEN` for read-only access to diagnostics, readiness, docs, and `GET` project routes
 
 ### Backend
 
@@ -113,6 +114,29 @@ Build and run the full stack through the backend-served frontend:
 docker compose up --build
 ```
 
+Secure local container mode:
+
+```bash
+set AB_API_TOKEN=your-secret-token
+set VITE_API_TOKEN=your-secret-token
+docker compose up --build
+```
+
+Dual-token container mode:
+
+```bash
+set AB_API_TOKEN=write-secret-token
+set AB_READONLY_API_TOKEN=readonly-secret-token
+set VITE_API_TOKEN=write-secret-token
+docker compose up --build
+```
+
+Secure Docker verification:
+
+```bash
+cmd /c scripts\verify_all.cmd --with-docker
+```
+
 Then open:
 
 ```text
@@ -132,6 +156,7 @@ Useful variants:
 - `cmd /c scripts\verify_all.cmd --skip-smoke`
 - `cmd /c scripts\verify_all.cmd --skip-build`
 - `cmd /c scripts\verify_all.cmd --with-e2e`
+- `cmd /c scripts\verify_all.cmd --with-docker`
 
 Workspace backup roundtrip drill:
 
@@ -178,8 +203,10 @@ Archived planning/setup files live under `archive/`.
 - the Playwright E2E command starts a backend-served frontend automatically through `scripts/run_backend_for_e2e.py`
 - LLM adapter timeout/retry behavior can be tuned through `.env.example`
 - SQLite busy timeout, journal mode, synchronous mode, and backend log format are configurable through `.env.example`
-- optional API token auth is available through `AB_API_TOKEN`; the frontend can send it through `VITE_API_TOKEN`
+- optional write-token auth is available through `AB_API_TOKEN`; the frontend can send it through `VITE_API_TOKEN`
+- optional read-only auth is available through `AB_READONLY_API_TOKEN` for safe `GET/HEAD/OPTIONS` runtime access
 - API responses now include `X-Request-ID` and `X-Process-Time-Ms` headers for lightweight local observability
 - `GET /readyz` gives a simple readiness view over storage, frontend-dist serving, and runtime config
 - workspace backup/import now works from the UI and through `GET /api/v1/workspace/export` plus `POST /api/v1/workspace/import`
+- workspace backup bundles now include integrity counts and a SHA-256 checksum, and imports reject tampered bundles
 - saved projects now retain revision history and can restore older payload snapshots from the UI

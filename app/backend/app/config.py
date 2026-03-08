@@ -30,6 +30,7 @@ class Settings:
     log_level: str
     log_format: str
     api_token: str | None
+    readonly_api_token: str | None
 
 
 def _read_csv_env(name: str, default: tuple[str, ...]) -> tuple[str, ...]:
@@ -100,6 +101,8 @@ def _validate_settings(settings: Settings) -> Settings:
         raise ValueError("AB_LOG_FORMAT must be one of plain, json")
     if settings.api_token is not None and len(settings.api_token.strip()) < 8:
         raise ValueError("AB_API_TOKEN must be at least 8 characters when configured")
+    if settings.readonly_api_token is not None and len(settings.readonly_api_token.strip()) < 8:
+        raise ValueError("AB_READONLY_API_TOKEN must be at least 8 characters when configured")
     return settings
 
 
@@ -134,5 +137,6 @@ def get_settings() -> Settings:
         log_level=os.getenv("AB_LOG_LEVEL", "INFO").strip().upper(),
         log_format=os.getenv("AB_LOG_FORMAT", "plain").strip().lower(),
         api_token=(os.getenv("AB_API_TOKEN") or "").strip() or None,
+        readonly_api_token=(os.getenv("AB_READONLY_API_TOKEN") or "").strip() or None,
     )
     return _validate_settings(settings)

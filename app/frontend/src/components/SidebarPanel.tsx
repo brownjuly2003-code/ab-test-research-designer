@@ -269,9 +269,16 @@ const SidebarPanel = memo(function SidebarPanel({
                 {backendDiagnostics.logging.format}
               </li>
               <li>
-                <strong>API auth:</strong> {backendDiagnostics.auth.enabled ? "enabled" : "disabled"}
+                <strong>API auth:</strong> {backendDiagnostics.auth.enabled ? backendDiagnostics.auth.mode : "disabled"}
                 {" | "}
-                {backendDiagnostics.auth.accepted_headers.join(", ")}
+                {backendDiagnostics.auth.write_enabled ? "write token" : "no write token"}
+                {" | "}
+                {backendDiagnostics.auth.readonly_enabled ? "read-only token" : "no read-only token"}
+              </li>
+              <li>
+                <strong>Auth headers:</strong> {backendDiagnostics.auth.accepted_headers.join(", ")}
+                {" | read methods "}
+                {backendDiagnostics.auth.read_only_methods.join(", ")}
               </li>
             </ul>
           </>

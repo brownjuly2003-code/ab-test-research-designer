@@ -444,11 +444,18 @@ def test_workspace_export_and_import_routes_round_trip_history(monkeypatch) -> N
         workspace_export = client.get("/api/v1/workspace/export")
         assert workspace_export.status_code == 200
         workspace_bundle = workspace_export.json()
-        assert workspace_bundle["schema_version"] == 1
+        assert workspace_bundle["schema_version"] == 2
         assert len(workspace_bundle["projects"]) == 1
         assert len(workspace_bundle["analysis_runs"]) == 1
         assert len(workspace_bundle["export_events"]) == 1
         assert len(workspace_bundle["project_revisions"]) == 1
+        assert workspace_bundle["integrity"]["counts"] == {
+            "projects": 1,
+            "analysis_runs": 1,
+            "export_events": 1,
+            "project_revisions": 1,
+        }
+        assert len(workspace_bundle["integrity"]["checksum_sha256"]) == 64
 
         workspace_import = client.post("/api/v1/workspace/import", json=workspace_bundle)
         assert workspace_import.status_code == 200
@@ -467,3 +474,25 @@ def test_workspace_export_and_import_routes_round_trip_history(monkeypatch) -> N
         assert len(projects) == 2
         assert sum(1 for project in projects if project["project_name"] == "Workspace source") == 2
         assert all(project["revision_count"] == 1 for project in projects)
+
+
+def test_workspace_import_rejects_tampered_bundle(monkeypatch) -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+
+    monkeypatch.setenv("AB_DB_PATH", str(db_path))
+    get_settings.cache_clear()
+
+    with TestClient(create_app()) as client:
+        created_project = client.post("/api/v1/projects", json=_payload("Workspace source")).json()
+        workspace_export = client.get("/api/v1/workspace/export")
+        assert workspace_export.status_code == 200
+        workspace_bundle = workspace_export.json()
+        workspace_bundle["projects"][0]["project_name"] = "Tampered source"
+
+        workspace_import = client.post("/api/v1/workspace/import", json=workspace_bundle)
+
+        assert created_project["project_name"] == "Workspace source"
+        assert workspace_import.status_code == 400
+        assert workspace_import.json()["detail"] == "Workspace bundle checksum mismatch"

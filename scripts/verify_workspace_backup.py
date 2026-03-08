@@ -121,6 +121,17 @@ def main() -> int:
 
     bundle = source_repository.export_workspace()
     counts = bundle_counts(bundle)
+    integrity = bundle.get("integrity")
+
+    if not isinstance(integrity, dict):
+        raise SystemExit("Workspace backup verification failed: integrity block is missing")
+    if integrity.get("counts") != counts:
+        raise SystemExit(
+            f"Workspace backup verification failed: integrity counts mismatch {integrity.get('counts')} vs {counts}"
+        )
+    checksum = str(integrity.get("checksum_sha256", ""))
+    if len(checksum) != 64:
+        raise SystemExit("Workspace backup verification failed: checksum is missing or malformed")
 
     if args.output:
         output_path = Path(args.output)
@@ -161,6 +172,7 @@ def main() -> int:
                 "artifacts": str(artifact_dir),
                 "source_db": str(source_db),
                 "counts": counts,
+                "checksum_sha256": checksum,
             },
             ensure_ascii=True,
             sort_keys=True,

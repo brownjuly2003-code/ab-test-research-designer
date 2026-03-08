@@ -349,7 +349,11 @@ class DiagnosticsLoggingSummary(BaseModel):
 
 class DiagnosticsAuthSummary(BaseModel):
     enabled: bool
+    mode: str
+    write_enabled: bool
+    readonly_enabled: bool
     accepted_headers: list[str]
+    read_only_methods: list[str]
 
 
 class DiagnosticsResponse(BaseModel):
@@ -414,13 +418,26 @@ class WorkspaceProjectRevisionRecord(BaseModel):
     payload: ExperimentInput
 
 
+class WorkspaceIntegrityCounts(BaseModel):
+    projects: int
+    analysis_runs: int
+    export_events: int
+    project_revisions: int
+
+
+class WorkspaceIntegrity(BaseModel):
+    counts: WorkspaceIntegrityCounts
+    checksum_sha256: str
+
+
 class WorkspaceBundle(BaseModel):
-    schema_version: int = 1
+    schema_version: int = 2
     generated_at: str
     projects: list[WorkspaceProjectRecord]
     analysis_runs: list[WorkspaceAnalysisRunRecord]
     export_events: list[WorkspaceExportEventRecord]
     project_revisions: list[WorkspaceProjectRevisionRecord] = Field(default_factory=list)
+    integrity: WorkspaceIntegrity | None = None
 
 
 class WorkspaceImportResponse(BaseModel):

@@ -4,12 +4,14 @@ setlocal
 set "SKIP_SMOKE=0"
 set "SKIP_BUILD=0"
 set "WITH_E2E=0"
+set "WITH_DOCKER=0"
 
 :parse_args
 if "%~1"=="" goto args_done
 if /I "%~1"=="--skip-smoke" set "SKIP_SMOKE=1"
 if /I "%~1"=="--skip-build" set "SKIP_BUILD=1"
 if /I "%~1"=="--with-e2e" set "WITH_E2E=1"
+if /I "%~1"=="--with-docker" set "WITH_DOCKER=1"
 shift
 goto parse_args
 
@@ -67,6 +69,12 @@ cd /d "%ROOT_DIR%"
 if "%SKIP_SMOKE%"=="0" (
   echo [verify] local smoke
   python "%ROOT_DIR%scripts\run_local_smoke.py" --skip-build
+  if errorlevel 1 exit /b %errorlevel%
+)
+
+if "%WITH_DOCKER%"=="1" (
+  echo [verify] docker compose secure flow
+  python "%ROOT_DIR%scripts\verify_docker_compose.py"
   if errorlevel 1 exit /b %errorlevel%
 )
 

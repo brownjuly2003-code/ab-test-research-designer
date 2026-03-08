@@ -71,11 +71,14 @@ Runtime persistence is centered around:
 - Dev mode: Vite serves the frontend, FastAPI serves the backend on `127.0.0.1:8008`.
 - Smoke / demo mode: FastAPI can serve the built frontend dist same-origin.
 - Docker mode: one container serves both the backend API and the built frontend.
+- Secure Docker mode: the same container path can be protected with `AB_API_TOKEN`, while the built frontend injects `VITE_API_TOKEN` at image build time.
+- Split-access mode: `AB_READONLY_API_TOKEN` can expose read-only diagnostics/docs/project reads while mutations stay behind the write token.
 
 ## Design principles
 
 - deterministic math is always available, even when AI is offline
 - warnings are heuristic and explicitly separated from calculations
 - advisory AI stays optional and never replaces the deterministic report
+- optional token protection is transport-level hardening with write and read-only scopes, not a user/role system
 - local persistence is first-class, with project history and export auditability
 - the UI keeps current in-memory analysis separate from historical saved snapshots

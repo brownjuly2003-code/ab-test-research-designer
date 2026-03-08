@@ -49,6 +49,9 @@ The current stack:
 - SQLite runtime hardening added through schema versioning, WAL mode, busy-timeout, and synchronous-mode diagnostics
 - structured backend logging added with configurable plain/json formats
 - optional API token protection added for runtime and project APIs, with frontend bearer-token support
+- optional read-only token protection added for safe runtime access while mutations stay behind the write token
+- Docker packaging now includes built-in healthchecks, secure compose verification, and documented split-token runtime mode
+- workspace backup bundles now carry integrity counts and SHA-256 checksums, and imports reject tampered archives
 
 ### Product polish
 

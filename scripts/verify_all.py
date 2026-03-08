@@ -43,6 +43,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--skip-smoke", action="store_true", help="Skip the Playwright smoke flow.")
     parser.add_argument("--skip-build", action="store_true", help="Skip the frontend production build.")
+    parser.add_argument("--with-docker", action="store_true", help="Run the secure docker compose verification flow.")
     args = parser.parse_args()
 
     if os.name == "nt":
@@ -91,6 +92,13 @@ def main() -> int:
         if args.skip_build:
             smoke_command.append("--skip-build")
         run_step("local smoke", smoke_command, ROOT_DIR)
+
+    if args.with_docker:
+        run_step(
+            "docker compose secure flow",
+            [sys.executable, "scripts/verify_docker_compose.py"],
+            ROOT_DIR,
+        )
 
     print("[verify] all checks passed")
     return 0

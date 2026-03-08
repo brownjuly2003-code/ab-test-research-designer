@@ -56,3 +56,13 @@ def test_settings_reject_too_short_api_token(monkeypatch) -> None:
         get_settings()
 
     get_settings.cache_clear()
+
+
+def test_settings_reject_too_short_readonly_api_token(monkeypatch) -> None:
+    monkeypatch.setenv("AB_READONLY_API_TOKEN", "short")
+    get_settings.cache_clear()
+
+    with pytest.raises(ValueError, match="AB_READONLY_API_TOKEN must be at least 8 characters when configured"):
+        get_settings()
+
+    get_settings.cache_clear()

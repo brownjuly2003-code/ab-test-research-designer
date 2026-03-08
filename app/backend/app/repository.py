@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+import hashlib
 import json
 from pathlib import Path
 import sqlite3
@@ -8,6 +9,7 @@ import uuid
 class ProjectRepository:
     schema_version = 2
     payload_schema_version = 1
+    workspace_schema_version = 2
     project_select_columns = """
         projects.id,
         projects.project_name,
@@ -263,6 +265,15 @@ class ProjectRepository:
         }
 
     @staticmethod
+    def _analysis_row_to_workspace_record(row: sqlite3.Row) -> dict:
+        return {
+            "id": row["id"],
+            "project_id": row["project_id"],
+            "created_at": row["created_at"],
+            "analysis": json.loads(row["analysis_json"]),
+        }
+
+    @staticmethod
     def _export_row_to_record(row: sqlite3.Row) -> dict:
         return dict(row)
 
@@ -275,6 +286,14 @@ class ProjectRepository:
             "created_at": row["created_at"],
             "payload": json.loads(row["payload_json"]),
         }
+
+    @classmethod
+    def _project_row_to_workspace_record(cls, row: sqlite3.Row) -> dict:
+        project = cls._row_to_project(row)
+        project.pop("revision_count", None)
+        project.pop("last_revision_at", None)
+        project.pop("has_analysis_snapshot", None)
+        return project
 
     @staticmethod
     def _create_revision(
@@ -726,16 +745,84 @@ class ProjectRepository:
                 """
             ).fetchall()
 
-        return {
-            "schema_version": 1,
+        bundle = {
+            "schema_version": self.workspace_schema_version,
             "generated_at": datetime.now(timezone.utc).isoformat(),
-            "projects": [self._row_to_project(row) for row in project_rows],
-            "analysis_runs": [self._analysis_row_to_record(row) for row in analysis_rows],
+            "projects": [self._project_row_to_workspace_record(row) for row in project_rows],
+            "analysis_runs": [self._analysis_row_to_workspace_record(row) for row in analysis_rows],
             "export_events": [self._export_row_to_record(row) for row in export_rows],
             "project_revisions": [self._revision_row_to_record(row) for row in revision_rows],
         }
+        bundle["integrity"] = self._build_workspace_integrity(bundle)
+        return bundle
+
+    @classmethod
+    def _workspace_integrity_source(cls, bundle: dict) -> dict:
+        return {
+            "schema_version": bundle.get("schema_version"),
+            "generated_at": bundle.get("generated_at"),
+            "projects": bundle.get("projects", []),
+            "analysis_runs": bundle.get("analysis_runs", []),
+            "export_events": bundle.get("export_events", []),
+            "project_revisions": bundle.get("project_revisions", []),
+        }
+
+    @classmethod
+    def _workspace_counts(cls, bundle: dict) -> dict[str, int]:
+        source = cls._workspace_integrity_source(bundle)
+        return {
+            "projects": len(source["projects"]),
+            "analysis_runs": len(source["analysis_runs"]),
+            "export_events": len(source["export_events"]),
+            "project_revisions": len(source["project_revisions"]),
+        }
+
+    @classmethod
+    def _workspace_checksum(cls, bundle: dict) -> str:
+        serialized = json.dumps(
+            cls._workspace_integrity_source(bundle),
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
+
+    @classmethod
+    def _build_workspace_integrity(cls, bundle: dict) -> dict:
+        return {
+            "counts": cls._workspace_counts(bundle),
+            "checksum_sha256": cls._workspace_checksum(bundle),
+        }
+
+    @classmethod
+    def _validate_workspace_bundle(cls, bundle: dict) -> None:
+        schema_version = int(bundle.get("schema_version", 1))
+        if schema_version not in {1, 2}:
+            raise ValueError("Unsupported workspace bundle schema_version")
+
+        integrity = bundle.get("integrity")
+        if integrity is None:
+            if schema_version >= 2:
+                raise ValueError("Workspace bundle integrity block is required for schema_version 2")
+            return
+
+        actual_counts = cls._workspace_counts(bundle)
+        expected_counts = integrity.get("counts", {})
+        if {
+            "projects": int(expected_counts.get("projects", -1)),
+            "analysis_runs": int(expected_counts.get("analysis_runs", -1)),
+            "export_events": int(expected_counts.get("export_events", -1)),
+            "project_revisions": int(expected_counts.get("project_revisions", -1)),
+        } != actual_counts:
+            raise ValueError("Workspace bundle integrity counts mismatch")
+
+        expected_checksum = str(integrity.get("checksum_sha256", "")).strip()
+        if not expected_checksum:
+            raise ValueError("Workspace bundle checksum is missing")
+        if expected_checksum != cls._workspace_checksum(bundle):
+            raise ValueError("Workspace bundle checksum mismatch")
 
     def import_workspace(self, bundle: dict) -> dict:
+        self._validate_workspace_bundle(bundle)
         imported_projects = bundle.get("projects", [])
         imported_analysis_runs = bundle.get("analysis_runs", [])
         imported_export_events = bundle.get("export_events", [])

@@ -29,6 +29,9 @@
 - added workspace backup roundtrip verification to the local/CI verify path
 - added optional API token auth for `/api/v1/*`, `/readyz`, and local API docs
 - added frontend bearer-token support through `VITE_API_TOKEN`
+- added optional read-only API token support for safe runtime requests while keeping mutations behind the write token
+- hardened Docker packaging with build-time frontend token injection, runtime defaults, container healthchecks, and secure compose verification
+- added workspace backup integrity manifests with entity counts and SHA-256 checksum validation on import
 
 ### Documentation and packaging
 
