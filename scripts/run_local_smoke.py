@@ -17,6 +17,8 @@ from playwright.sync_api import sync_playwright
 ROOT_DIR = Path(__file__).resolve().parents[1]
 FRONTEND_DIR = ROOT_DIR / "app" / "frontend"
 FRONTEND_DIST_DIR = FRONTEND_DIR / "dist"
+DEMO_DIR = ROOT_DIR / "docs" / "demo"
+SAMPLE_PROJECT_PATH = DEMO_DIR / "sample-project.json"
 BACKEND_HOST = "127.0.0.1"
 BACKEND_PORT = 8010
 BACKEND_URL = f"http://{BACKEND_HOST}:{BACKEND_PORT}"
@@ -100,14 +102,14 @@ def read_process_output(process: subprocess.Popen[str]) -> str:
 
 
 def run_browser_smoke(download_dir: Path, screenshot_path: Path, failure_dom_path: Path) -> None:
-    demo_dir = ROOT_DIR / "docs" / "demo"
-    demo_dir.mkdir(parents=True, exist_ok=True)
+    DEMO_DIR.mkdir(parents=True, exist_ok=True)
     archive_screenshots_dir = download_dir.parent / "screenshots"
     archive_screenshots_dir.mkdir(parents=True, exist_ok=True)
 
     def capture_success_screenshot(page, archive_name: str, stable_name: str) -> None:
+        page.wait_for_timeout(400)
         archive_target = archive_screenshots_dir / archive_name
-        stable_target = demo_dir / stable_name
+        stable_target = DEMO_DIR / stable_name
         page.screenshot(path=str(archive_target), full_page=True)
         stable_target.write_bytes(archive_target.read_bytes())
 
@@ -120,13 +122,29 @@ def run_browser_smoke(download_dir: Path, screenshot_path: Path, failure_dom_pat
             page.goto(BACKEND_URL, wait_until="networkidle")
             page.get_by_role("heading", name="AB Test Research Designer").wait_for(timeout=15000)
             page.get_by_text("API online").wait_for(timeout=15000)
+            if not SAMPLE_PROJECT_PATH.exists():
+                raise RuntimeError(f"Smoke sample project is missing: {SAMPLE_PROJECT_PATH}")
+
+            page.get_by_label("Import draft file").set_input_files(str(SAMPLE_PROJECT_PATH))
+            page.get_by_text(
+                "Imported draft from sample-project.json. Save it to create a new local project record.",
+                exact=False,
+            ).wait_for(timeout=15000)
+
+            project_name_input = page.locator("#project-project_name")
+            if project_name_input.input_value() != "Checkout redesign":
+                raise RuntimeError("Smoke import did not populate the demo project name.")
+
+            project_description_input = page.locator("#project-project_description")
+            if "simplified checkout flow" not in project_description_input.input_value():
+                raise RuntimeError("Smoke import did not populate the demo project description.")
+
             capture_success_screenshot(page, "wizard-overview.png", "wizard-overview.png")
 
             page.get_by_role("button", name="Save project").click()
             page.get_by_text("Project saved locally with id", exact=False).wait_for(timeout=15000)
             page.get_by_role("button", name="Checkout redesign", exact=True).wait_for(timeout=15000)
 
-            project_name_input = page.locator("#project-project_name")
             project_name_input.fill("Smoke restored draft")
             page.reload(wait_until="networkidle")
 

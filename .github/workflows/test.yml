@@ -1,0 +1,73 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: app/frontend/package-lock.json
+
+      - name: Install backend dependencies
+        run: python -m pip install -r app/backend/requirements.txt
+
+      - name: Install frontend dependencies
+        run: npm --prefix app/frontend ci
+
+      - name: Check generated API contracts
+        run: python scripts/generate_frontend_api_types.py --check
+
+      - name: Run backend tests
+        run: python -m pytest app/backend/tests -q
+
+      - name: Run backend benchmark assertion
+        run: python scripts/benchmark_backend.py --payload binary --assert-ms 100
+
+      - name: Run frontend typecheck
+        run: npm --prefix app/frontend exec tsc -- --noEmit -p .
+
+      - name: Run frontend unit tests
+        run: npm --prefix app/frontend run test:unit
+
+      - name: Run frontend build
+        run: npm --prefix app/frontend run build
+
+  docker:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t ab-test-research-designer:ci .
+
+      - name: Start Docker compose stack
+        run: docker compose up -d --build
+
+      - name: Wait for health endpoint
+        run: |
+          for i in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:8008/health > /tmp/health.json; then
+              cat /tmp/health.json
+              exit 0
+            fi
+            sleep 2
+          done
+          exit 1
+
+      - name: Stop Docker compose stack
+        if: always()
+        run: docker compose down -v

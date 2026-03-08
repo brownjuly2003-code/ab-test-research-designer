@@ -39,6 +39,8 @@ The current stack:
 - paginated history metadata and snapshot-based comparison
 - runtime snapshot state normalized around `analysis_runs` and `last_analysis_run_id`
 - repo-level pytest cache suppression to stop root cache artifacts from reappearing
+- quota-specific browser draft autosave warnings instead of a single generic storage failure message
+- backend performance regression coverage with deterministic latency thresholds
 
 ### Product polish
 
@@ -48,6 +50,8 @@ The current stack:
 - dismissible storage warning UI for local draft autosave failures
 - Docker packaging and deterministic benchmark script
 - architecture, API, rules, changelog, and demo assets added for portfolio-style documentation
+- smoke automation now verifies `docs/demo/sample-project.json` import before refreshing README screenshots
+- GitHub Actions verification covers contracts, backend tests, frontend checks, benchmark assertion, and Docker startup
 
 ## Verification baseline
 

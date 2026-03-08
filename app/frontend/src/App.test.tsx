@@ -667,8 +667,7 @@ describe("App UI flow", () => {
       await flushEffects();
 
       expect(setItemSpy).toHaveBeenCalled();
-      expect(view.container.textContent).toContain("Browser draft could not be saved locally:");
-      expect(view.container.textContent).toContain("Quota exceeded");
+      expect(view.container.textContent).toContain("Storage full - draft not saved. Clear old data or use Export.");
     } finally {
       setItemSpy.mockRestore();
       await view.unmount();
@@ -700,13 +699,41 @@ describe("App UI flow", () => {
       await changeValue(projectNameInput, "First failing save");
       await flushEffects();
 
-      expect(view.container.textContent).toContain("Browser draft could not be saved locally:");
+      expect(view.container.textContent).toContain("Storage full - draft not saved. Clear old data or use Export.");
 
       await changeValue(projectNameInput, "Second successful save");
       await flushEffects();
 
       expect(setItemSpy).toHaveBeenCalled();
-      expect(view.container.textContent).not.toContain("Browser draft could not be saved locally:");
+      expect(view.container.textContent).not.toContain("Storage full - draft not saved. Clear old data or use Export.");
+    } finally {
+      setItemSpy.mockRestore();
+      await view.unmount();
+    }
+  });
+
+  it("keeps generic storage error details for non-quota localStorage failures", async () => {
+    const setItemSpy = vi
+      .spyOn(Storage.prototype, "setItem")
+      .mockImplementation(() => {
+        throw new Error("Storage backend unavailable");
+      });
+
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+
+      const projectNameInput = view.container.querySelector("#project-project_name");
+      if (!(projectNameInput instanceof HTMLInputElement)) {
+        throw new Error("Project name input was not rendered");
+      }
+
+      await changeValue(projectNameInput, "Generic storage warning");
+      await flushEffects();
+
+      expect(view.container.textContent).toContain(
+        "Browser draft could not be saved locally: Storage backend unavailable"
+      );
     } finally {
       setItemSpy.mockRestore();
       await view.unmount();

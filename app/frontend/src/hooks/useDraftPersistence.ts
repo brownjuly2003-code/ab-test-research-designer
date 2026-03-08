@@ -28,6 +28,22 @@ function describeStorageError(error: unknown): string {
   return "Unknown storage error";
 }
 
+function isQuotaExceededError(error: unknown): boolean {
+  if (error instanceof DOMException) {
+    return error.name === "QuotaExceededError";
+  }
+
+  return error instanceof Error && error.name === "QuotaExceededError";
+}
+
+function buildDraftSaveWarning(error: unknown): string {
+  if (isQuotaExceededError(error)) {
+    return "Storage full - draft not saved. Clear old data or use Export.";
+  }
+
+  return `Browser draft could not be saved locally: ${describeStorageError(error)}`;
+}
+
 export function readDraftBootstrap(): DraftBootstrap {
   const fallback = { form: cloneInitialState(), restored: false, warning: "" };
 
@@ -74,7 +90,7 @@ export function useDraftPersistence(form: FullPayload, initialWarning = "") {
       setDraftStorageWarning((current) => (current ? "" : current));
     } catch (error) {
       console.warn("localStorage save failed:", error);
-      setDraftStorageWarning(`Browser draft could not be saved locally: ${describeStorageError(error)}`);
+      setDraftStorageWarning(buildDraftSaveWarning(error));
     }
   }, [form]);
 

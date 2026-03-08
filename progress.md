@@ -178,6 +178,11 @@ Post-phase cleanup completed
 - added explicit `bonferroni_note` to calculation responses for multivariant sizing
 - added architecture, API, rules, and changelog documentation plus demo import payload assets
 - added a deterministic backend benchmark script and Docker packaging for the full stack
+- added a quota-specific localStorage autosave warning for browser storage exhaustion
+- updated the smoke flow to import `docs/demo/sample-project.json` before save, reload, analysis, export, and screenshot refresh
+- added backend performance regression tests for binary and continuous deterministic calculations
+- added a GitHub Actions workflow covering generated contracts, pytest, benchmark assertion, frontend checks, and Docker startup
+- archived root `recommendations*.md` audit files into a dedicated archive folder after the checklist was applied
 
 ---
 
@@ -187,9 +192,9 @@ Optional production hardening
 
 Goals:
 
-- extend demo automation and screenshot refresh flow
-- decide whether benchmark assertions should become part of CI
+- optional Node-side Playwright runner parity with the existing Python smoke flow
 - expand Docker usage into a fuller deployment/devcontainer story
+- broader deployment/ops hardening if the project moves beyond local-demo scope
 
 ---
 
