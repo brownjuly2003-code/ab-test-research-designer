@@ -1,3 +1,4 @@
+from app.backend.app.constants import MAX_RECOMMENDED_DURATION_DAYS
 from app.backend.app.rules.catalog import WARNING_CATALOG
 
 
@@ -19,7 +20,7 @@ def evaluate_warnings(payload: dict, results: dict | None = None) -> list[dict]:
         warnings.append(_warning("MISSING_VARIANCE"))
 
     estimated_duration_days = results.get("estimated_duration_days")
-    if estimated_duration_days and estimated_duration_days > 56:
+    if estimated_duration_days and estimated_duration_days > MAX_RECOMMENDED_DURATION_DAYS:
         warnings.append(_warning("LONG_DURATION"))
 
     effective_daily_traffic = results.get("effective_daily_traffic")

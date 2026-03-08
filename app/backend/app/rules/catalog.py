@@ -1,7 +1,13 @@
+from app.backend.app.constants import MAX_RECOMMENDED_DURATION_DAYS
+
+
 WARNING_CATALOG = {
     "LONG_DURATION": {
         "severity": "high",
-        "message": "Estimated duration exceeds 56 days. Consider increasing traffic or relaxing MDE.",
+        "message": (
+            f"Estimated duration exceeds {MAX_RECOMMENDED_DURATION_DAYS} days. "
+            "Consider increasing traffic or relaxing MDE."
+        ),
     },
     "LOW_TRAFFIC": {
         "severity": "medium",

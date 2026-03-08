@@ -1,6 +1,8 @@
 from math import ceil, sqrt
 from statistics import NormalDist
 
+from app.backend.app.constants import MAX_SUPPORTED_VARIANTS
+
 
 def calculate_binary_sample_size(
     baseline_rate: float,
@@ -17,8 +19,8 @@ def calculate_binary_sample_size(
         raise ValueError("alpha must be between 0 and 1")
     if not 0 < power < 1:
         raise ValueError("power must be between 0 and 1")
-    if variants_count < 2:
-        raise ValueError("variants_count must be at least 2")
+    if not 2 <= variants_count <= MAX_SUPPORTED_VARIANTS:
+        raise ValueError(f"variants_count must be between 2 and {MAX_SUPPORTED_VARIANTS}")
 
     mde_absolute = baseline_rate * (mde_pct / 100)
     variant_rate = baseline_rate + mde_absolute
@@ -53,7 +55,8 @@ def calculate_binary_sample_size(
             "Two-sided fixed-horizon test with equal variance approximation.",
             "MDE is interpreted as a relative uplift over the baseline rate.",
             (
-                "Bonferroni-adjusted alpha is applied across treatment-vs-control comparisons."
+                "Bonferroni-adjusted alpha is applied across treatment-vs-control comparisons. "
+                "This is conservative for multi-variant designs."
                 if variants_count > 2
                 else "Nominal alpha is used for a single treatment-vs-control comparison."
             ),

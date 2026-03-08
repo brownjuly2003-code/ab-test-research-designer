@@ -1,7 +1,15 @@
+from app.backend.app.constants import MAX_SUPPORTED_VARIANTS
 from app.backend.app.stats.binary import calculate_binary_sample_size
 from app.backend.app.stats.continuous import calculate_continuous_sample_size
 from app.backend.app.stats.duration import estimate_experiment_duration_days
 from app.backend.app.rules.engine import evaluate_warnings
+
+
+def _validate_variant_configuration(variants_count: int, traffic_split: list[int]) -> None:
+    if not 2 <= variants_count <= MAX_SUPPORTED_VARIANTS:
+        raise ValueError(f"variants_count must be between 2 and {MAX_SUPPORTED_VARIANTS}")
+    if len(traffic_split) != variants_count:
+        raise ValueError("traffic_split length must match variants_count")
 
 
 def calculate_experiment_metrics(payload: dict) -> dict:
@@ -9,10 +17,7 @@ def calculate_experiment_metrics(payload: dict) -> dict:
     variants_count = int(payload.get("variants_count", len(payload["traffic_split"])))
     traffic_split = payload["traffic_split"]
 
-    if variants_count < 2:
-        raise ValueError("variants_count must be at least 2")
-    if len(traffic_split) != variants_count:
-        raise ValueError("traffic_split length must match variants_count")
+    _validate_variant_configuration(variants_count, traffic_split)
 
     if metric_type == "binary":
         calculation_summary = calculate_binary_sample_size(
@@ -23,6 +28,8 @@ def calculate_experiment_metrics(payload: dict) -> dict:
             variants_count=variants_count,
         )
     elif metric_type == "continuous":
+        if payload.get("std_dev") is None:
+            raise ValueError("std_dev must be positive for continuous metrics")
         calculation_summary = calculate_continuous_sample_size(
             baseline_mean=payload["baseline_value"],
             std_dev=payload["std_dev"],

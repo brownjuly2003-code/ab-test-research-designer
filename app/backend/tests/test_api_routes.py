@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
+import app.backend.app.main as main_module
 from app.backend.app.main import create_app
 from app.backend.app.llm.adapter import LocalOrchestratorAdapter
 
@@ -176,3 +177,63 @@ def test_calculate_endpoint_allows_vite_preflight_origin() -> None:
 
     assert response.status_code == 200
     assert response.headers["access-control-allow-origin"] == "http://127.0.0.1:5173"
+    assert response.headers["access-control-allow-methods"] == "GET, POST, PUT, DELETE, OPTIONS"
+    assert response.headers["access-control-allow-headers"] == "Accept, Accept-Language, Content-Language, Content-Type"
+
+
+def test_calculate_endpoint_rejects_too_many_variants() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/calculate",
+        json={
+            "metric_type": "binary",
+            "baseline_value": 0.042,
+            "mde_pct": 5,
+            "alpha": 0.05,
+            "power": 0.8,
+            "expected_daily_traffic": 12000,
+            "audience_share_in_test": 0.6,
+            "traffic_split": [10] * 11,
+            "variants_count": 11,
+        },
+    )
+
+    assert response.status_code == 422
+    assert "less than or equal to 10" in str(response.json()["detail"])
+
+
+def test_calculate_endpoint_rejects_zero_std_dev_for_continuous_metric() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/calculate",
+        json={
+            "metric_type": "continuous",
+            "baseline_value": 15.0,
+            "std_dev": 0,
+            "mde_pct": 5,
+            "alpha": 0.05,
+            "power": 0.8,
+            "expected_daily_traffic": 12000,
+            "audience_share_in_test": 0.6,
+            "traffic_split": [50, 50],
+            "variants_count": 2,
+        },
+    )
+
+    assert response.status_code == 422
+    assert "std_dev must be positive for continuous metrics" in str(response.json()["detail"])
+
+
+def test_design_endpoint_returns_internal_error_for_unexpected_exception(monkeypatch) -> None:
+    def explode(*args, **kwargs):
+        raise KeyError("missing")
+
+    monkeypatch.setattr(main_module, "build_experiment_report", explode)
+    client = TestClient(create_app(), raise_server_exceptions=False)
+
+    response = client.post("/api/v1/design", json=_full_payload())
+
+    assert response.status_code == 500
+    assert response.json()["detail"] == "Internal server error"

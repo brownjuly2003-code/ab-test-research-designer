@@ -152,6 +152,12 @@ Post-phase cleanup completed
 - rendered saved-project history in the frontend sidebar and results view
 - linked export metadata to the latest saved analysis run when available
 - persisted a current analysis snapshot right after first save when the analysis was done before project creation
+- added edge-case statistical regression tests for boundary baselines, invalid MDE, zero std dev, unsupported variant counts, and zero traffic
+- tightened backend request validation for continuous metrics and supported variant counts
+- replaced wildcard CORS methods and headers with explicit backend configuration
+- added shared backend constants for supported variant count and long-duration warning threshold
+- added global backend exception handling for structured 400 and 500 API responses
+- added local orchestrator retries with exponential backoff for transient request failures
 
 ---
 

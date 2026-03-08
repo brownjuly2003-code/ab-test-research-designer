@@ -644,8 +644,8 @@ export function validateForm(state: FullPayload): string[] {
   if (!primaryMetricName) {
     issues.push("Primary metric name is required.");
   }
-  if (!Number.isInteger(variantsCount) || variantsCount < 2) {
-    issues.push("Variants count must be an integer greater than or equal to 2.");
+  if (!Number.isInteger(variantsCount) || variantsCount < 2 || variantsCount > 10) {
+    issues.push("Variants count must be an integer between 2 and 10.");
   }
   if (trafficSplit.length < 2) {
     issues.push("Traffic split must contain at least two positive weights.");

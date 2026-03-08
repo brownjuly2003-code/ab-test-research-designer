@@ -2,6 +2,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from app.backend.app.constants import MAX_SUPPORTED_VARIANTS
 from app.backend.app.schemas.report import ExperimentReport
 
 
@@ -35,7 +36,7 @@ class ExperimentSetup(BaseModel):
     traffic_split: list[int] = Field(min_length=2)
     expected_daily_traffic: int = Field(gt=0)
     audience_share_in_test: float = Field(gt=0, le=1)
-    variants_count: int = Field(ge=2)
+    variants_count: int = Field(ge=2, le=MAX_SUPPORTED_VARIANTS)
     inclusion_criteria: str
     exclusion_criteria: str
 
@@ -61,6 +62,17 @@ class MetricsConfig(BaseModel):
     std_dev: float | None = None
     secondary_metrics: list[str] = Field(default_factory=list)
     guardrail_metrics: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_metric_specific_fields(self) -> "MetricsConfig":
+        if self.metric_type == "binary" and not 0 < self.baseline_value < 1:
+            raise ValueError("baseline_value must be between 0 and 1 for binary metrics")
+        if self.metric_type == "continuous":
+            if self.baseline_value <= 0:
+                raise ValueError("baseline_value must be positive for continuous metrics")
+            if self.std_dev is None or self.std_dev <= 0:
+                raise ValueError("std_dev must be positive for continuous metrics")
+        return self
 
 
 class ConstraintsConfig(BaseModel):
@@ -106,7 +118,7 @@ class CalculationRequest(BaseModel):
     expected_daily_traffic: int = Field(gt=0)
     audience_share_in_test: float = Field(gt=0, le=1)
     traffic_split: list[int] = Field(min_length=2)
-    variants_count: int = Field(ge=2)
+    variants_count: int = Field(ge=2, le=MAX_SUPPORTED_VARIANTS)
     seasonality_present: bool | None = None
     active_campaigns_present: bool | None = None
     long_test_possible: bool | None = None
@@ -117,6 +129,17 @@ class CalculationRequest(BaseModel):
             raise ValueError("traffic_split length must match variants_count")
         if any(weight <= 0 for weight in self.traffic_split):
             raise ValueError("traffic_split must contain positive values")
+        return self
+
+    @model_validator(mode="after")
+    def validate_metric_specific_fields(self) -> "CalculationRequest":
+        if self.metric_type == "binary" and not 0 < self.baseline_value < 1:
+            raise ValueError("baseline_value must be between 0 and 1 for binary metrics")
+        if self.metric_type == "continuous":
+            if self.baseline_value <= 0:
+                raise ValueError("baseline_value must be positive for continuous metrics")
+            if self.std_dev is None or self.std_dev <= 0:
+                raise ValueError("std_dev must be positive for continuous metrics")
         return self
 
 

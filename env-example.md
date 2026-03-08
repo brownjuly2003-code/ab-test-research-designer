@@ -3,6 +3,8 @@ AB_HOST=127.0.0.1
 AB_PORT=8008
 AB_DB_PATH=D:\AB_TEST\app\backend\data\projects.sqlite3
 AB_CORS_ORIGINS=http://127.0.0.1:5173,http://localhost:5173
+AB_CORS_METHODS=GET,POST,PUT,DELETE,OPTIONS
+AB_CORS_HEADERS=Accept,Content-Type
 AB_FRONTEND_DIST_PATH=D:\AB_TEST\app\frontend\dist
 AB_SERVE_FRONTEND_DIST=true
 

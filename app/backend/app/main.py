@@ -1,8 +1,9 @@
+import logging
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -27,6 +28,8 @@ from app.backend.app.schemas.api import (
 from app.backend.app.services.calculations_service import calculate_experiment_metrics
 from app.backend.app.services.design_service import build_experiment_report
 from app.backend.app.services.export_service import export_report_to_html, export_report_to_markdown
+
+logger = logging.getLogger(__name__)
 
 
 class HealthResponse(BaseModel):
@@ -84,9 +87,23 @@ def create_app() -> FastAPI:
         CORSMiddleware,
         allow_origins=list(settings.cors_origins),
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=list(settings.cors_methods),
+        allow_headers=list(settings.cors_headers),
     )
+
+    @app.exception_handler(ValueError)
+    async def handle_value_error(request: Request, exc: ValueError) -> JSONResponse:
+        return JSONResponse(status_code=400, content={"detail": str(exc)})
+
+    @app.exception_handler(Exception)
+    async def handle_unexpected_exception(request: Request, exc: Exception) -> JSONResponse:
+        logger.exception(
+            "Unhandled exception while serving %s %s",
+            request.method,
+            request.url.path,
+            exc_info=exc,
+        )
+        return JSONResponse(status_code=500, content={"detail": "Internal server error"})
 
     @app.get("/health", response_model=HealthResponse)
     def health() -> HealthResponse:
@@ -99,44 +116,32 @@ def create_app() -> FastAPI:
 
     @app.post("/api/v1/calculate", response_model=CalculationResponse)
     def calculate(payload: CalculationRequest) -> CalculationResponse:
-        try:
-            result = calculate_experiment_metrics(payload.model_dump())
-            return CalculationResponse.model_validate(result)
-        except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        result = calculate_experiment_metrics(payload.model_dump())
+        return CalculationResponse.model_validate(result)
 
     @app.post("/api/v1/design", response_model=ExperimentReport)
     def design(payload: ExperimentInput) -> ExperimentReport:
-        try:
-            calculation_payload = _build_calculation_payload(payload)
-            calculation_result = calculate_experiment_metrics(calculation_payload.model_dump())
-            report = build_experiment_report(payload.model_dump(), calculation_result)
-            return ExperimentReport.model_validate(report)
-        except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        calculation_payload = _build_calculation_payload(payload)
+        calculation_result = calculate_experiment_metrics(calculation_payload.model_dump())
+        report = build_experiment_report(payload.model_dump(), calculation_result)
+        return ExperimentReport.model_validate(report)
 
     @app.post("/api/v1/analyze", response_model=AnalysisResponse)
     def analyze(payload: ExperimentInput) -> AnalysisResponse:
-        try:
-            calculation_payload = _build_calculation_payload(payload)
-            calculation_result = calculate_experiment_metrics(calculation_payload.model_dump())
-            report = build_experiment_report(payload.model_dump(), calculation_result)
-            advice = llm_adapter.request_advice(_build_llm_advice_payload(payload, calculation_result))
-            return AnalysisResponse(
-                calculations=CalculationResponse.model_validate(calculation_result),
-                report=ExperimentReport.model_validate(report),
-                advice=LlmAdviceResponse.model_validate(advice),
-            )
-        except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        calculation_payload = _build_calculation_payload(payload)
+        calculation_result = calculate_experiment_metrics(calculation_payload.model_dump())
+        report = build_experiment_report(payload.model_dump(), calculation_result)
+        advice = llm_adapter.request_advice(_build_llm_advice_payload(payload, calculation_result))
+        return AnalysisResponse(
+            calculations=CalculationResponse.model_validate(calculation_result),
+            report=ExperimentReport.model_validate(report),
+            advice=LlmAdviceResponse.model_validate(advice),
+        )
 
     @app.post("/api/v1/llm/advice", response_model=LlmAdviceResponse)
     def llm_advice(payload: LlmAdviceRequest) -> LlmAdviceResponse:
-        try:
-            result = llm_adapter.request_advice(payload.model_dump(exclude_none=True))
-            return LlmAdviceResponse.model_validate(result)
-        except Exception as exc:
-            raise HTTPException(status_code=500, detail=str(exc)) from exc
+        result = llm_adapter.request_advice(payload.model_dump(exclude_none=True))
+        return LlmAdviceResponse.model_validate(result)
 
     @app.get("/api/v1/projects", response_model=ProjectListResponse)
     def list_projects() -> ProjectListResponse:
@@ -177,10 +182,7 @@ def create_app() -> FastAPI:
 
     @app.post("/api/v1/projects/{project_id}/exports", response_model=ProjectRecord)
     def record_project_export(project_id: str, payload: ProjectExportMarkRequest) -> ProjectRecord:
-        try:
-            project = repository.record_export(project_id, payload.format, payload.analysis_run_id)
-        except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        project = repository.record_export(project_id, payload.format, payload.analysis_run_id)
         if project is None:
             raise HTTPException(status_code=404, detail="Project not found")
         return ProjectRecord.model_validate(project)

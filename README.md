@@ -60,6 +60,9 @@ Implemented:
 - frontend now renders saved-project history, recent analysis runs, and export events in the sidebar and results view
 - if analysis is run before the project is first saved, the frontend now records that snapshot right after save
 - orchestrator parsing now tolerates fenced JSON and returns structured `error_code` values on fallback
+- backend now enforces tighter experiment validation for continuous metrics and supported variant counts
+- backend CORS methods and headers are now explicit instead of wildcard-based
+- local orchestrator requests now retry transient failures with exponential backoff
 - frontend production build verified after dependency install
 
 Remaining:
@@ -104,6 +107,8 @@ Optional backend env vars:
 ```text
 AB_DB_PATH=D:\AB_TEST\app\backend\data\projects.sqlite3
 AB_CORS_ORIGINS=http://127.0.0.1:5173,http://localhost:5173
+AB_CORS_METHODS=GET,POST,PUT,DELETE,OPTIONS
+AB_CORS_HEADERS=Accept,Content-Type
 AB_FRONTEND_DIST_PATH=D:\AB_TEST\app\frontend\dist
 AB_SERVE_FRONTEND_DIST=true
 ```
@@ -118,6 +123,8 @@ API validation:
 
 - request bodies for calculation, design, projects, and export routes are validated by Pydantic
 - malformed payloads fail early with `422 Unprocessable Entity`
+- supported experiment variants are constrained to `2..10`
+- continuous metrics require a positive `std_dev`
 
 ### Frontend
 
@@ -204,6 +211,7 @@ python -m uvicorn api.main:app --host 0.0.0.0 --port 8001
 ```
 
 If the orchestrator is unavailable, deterministic calculations, warnings, design generation, and local project storage still work.
+Transient orchestrator failures are retried locally with short exponential backoff before the API falls back to an unavailable AI block.
 
 ---
 

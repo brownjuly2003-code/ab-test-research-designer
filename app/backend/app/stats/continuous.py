@@ -1,6 +1,8 @@
 from math import ceil
 from statistics import NormalDist
 
+from app.backend.app.constants import MAX_SUPPORTED_VARIANTS
+
 
 def calculate_continuous_sample_size(
     baseline_mean: float,
@@ -20,8 +22,8 @@ def calculate_continuous_sample_size(
         raise ValueError("alpha must be between 0 and 1")
     if not 0 < power < 1:
         raise ValueError("power must be between 0 and 1")
-    if variants_count < 2:
-        raise ValueError("variants_count must be at least 2")
+    if not 2 <= variants_count <= MAX_SUPPORTED_VARIANTS:
+        raise ValueError(f"variants_count must be between 2 and {MAX_SUPPORTED_VARIANTS}")
 
     mde_absolute = baseline_mean * (mde_pct / 100)
     comparison_count = max(1, variants_count - 1)
@@ -48,7 +50,8 @@ def calculate_continuous_sample_size(
             "Two-sample comparison of means with equal-sized variants.",
             "MDE is interpreted as a relative uplift over the baseline mean.",
             (
-                "Bonferroni-adjusted alpha is applied across treatment-vs-control comparisons."
+                "Bonferroni-adjusted alpha is applied across treatment-vs-control comparisons. "
+                "This is conservative for multi-variant designs."
                 if variants_count > 2
                 else "Nominal alpha is used for a single treatment-vs-control comparison."
             ),

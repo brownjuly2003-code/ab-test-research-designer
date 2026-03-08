@@ -76,6 +76,12 @@
 }
 ```
 
+Validation notes:
+
+- `variants_count` must stay within `2..10`
+- `traffic_split` length must match `variants_count`
+- for `metric_type = "continuous"`, `std_dev` must be present and strictly positive
+
 ## 3. Calculation response schema
 
 ```json

@@ -1,3 +1,6 @@
+from collections.abc import Callable
+import time
+
 import httpx
 
 from app.backend.app.llm.parser import LlmAdviceParseError, parse_llm_advice
@@ -13,6 +16,10 @@ class LocalOrchestratorAdapter:
         model: str = "Claude Sonnet 4.6",
         reasoning: bool = True,
         transport: httpx.BaseTransport | None = None,
+        max_attempts: int = 3,
+        initial_backoff_seconds: float = 0.1,
+        backoff_multiplier: float = 2.0,
+        sleep_func: Callable[[float], None] | None = None,
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.timeout_seconds = timeout_seconds
@@ -20,6 +27,10 @@ class LocalOrchestratorAdapter:
         self.model = model
         self.reasoning = reasoning
         self.transport = transport
+        self.max_attempts = max_attempts
+        self.initial_backoff_seconds = initial_backoff_seconds
+        self.backoff_multiplier = backoff_multiplier
+        self.sleep_func = sleep_func or time.sleep
 
     def _fallback(self, error: str, *, raw_text: str | None = None, error_code: str | None = None) -> dict:
         return {
@@ -49,6 +60,45 @@ class LocalOrchestratorAdapter:
 
         return max(candidate_texts, key=len)
 
+    @staticmethod
+    def _is_retryable_status(status_code: int) -> bool:
+        return status_code in {408, 429, 500, 502, 503, 504}
+
+    def _sleep_before_retry(self, attempt: int) -> None:
+        delay_seconds = self.initial_backoff_seconds * (self.backoff_multiplier ** (attempt - 1))
+        if delay_seconds > 0:
+            self.sleep_func(delay_seconds)
+
+    def _send_request(self, client: httpx.Client, request_payload: dict) -> dict:
+        last_error: httpx.HTTPError | None = None
+
+        for attempt in range(1, self.max_attempts + 1):
+            try:
+                response = client.post(
+                    f"{self.base_url}/api/gk/orchestrate",
+                    json=request_payload,
+                )
+                response.raise_for_status()
+                return response.json()
+            except httpx.TimeoutException as exc:
+                last_error = exc
+                if attempt == self.max_attempts:
+                    raise
+            except httpx.HTTPStatusError as exc:
+                last_error = exc
+                if attempt == self.max_attempts or not self._is_retryable_status(exc.response.status_code):
+                    raise
+            except httpx.RequestError as exc:
+                last_error = exc
+                if attempt == self.max_attempts:
+                    raise
+
+            self._sleep_before_retry(attempt)
+
+        if last_error is not None:
+            raise last_error
+        raise RuntimeError("Failed to complete orchestrator request")
+
     def request_advice(self, payload: dict) -> dict:
         prompt = build_llm_advice_prompt(payload)
         request_payload = {
@@ -60,12 +110,7 @@ class LocalOrchestratorAdapter:
 
         try:
             with httpx.Client(timeout=self.timeout_seconds, transport=self.transport) as client:
-                response = client.post(
-                    f"{self.base_url}/api/gk/orchestrate",
-                    json=request_payload,
-                )
-                response.raise_for_status()
-                data = response.json()
+                data = self._send_request(client, request_payload)
         except httpx.TimeoutException as exc:
             return self._fallback(str(exc), error_code="timeout")
         except httpx.HTTPStatusError as exc:
