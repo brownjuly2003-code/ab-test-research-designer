@@ -29,6 +29,11 @@ docker compose up --build
 - readiness: `http://127.0.0.1:8008/readyz`
 - diagnostics: `http://127.0.0.1:8008/api/v1/diagnostics`
 
+If `AB_API_TOKEN` is enabled, send either:
+
+- `Authorization: Bearer <token>`
+- `X-API-Key: <token>`
+
 ## Full verification
 
 Primary Windows entrypoint:
@@ -100,6 +105,7 @@ Readiness returns `503`:
 Frontend loads but backend requests fail:
 
 - confirm `VITE_API_BASE_URL`
+- if API auth is enabled, confirm `VITE_API_TOKEN`
 - verify CORS env values if frontend is on another origin
 
 Workspace import fails:

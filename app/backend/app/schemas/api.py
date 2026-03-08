@@ -347,6 +347,11 @@ class DiagnosticsLoggingSummary(BaseModel):
     format: str
 
 
+class DiagnosticsAuthSummary(BaseModel):
+    enabled: bool
+    accepted_headers: list[str]
+
+
 class DiagnosticsResponse(BaseModel):
     status: str
     generated_at: str
@@ -359,6 +364,7 @@ class DiagnosticsResponse(BaseModel):
     frontend: DiagnosticsFrontendSummary
     llm: DiagnosticsLlmSummary
     logging: DiagnosticsLoggingSummary
+    auth: DiagnosticsAuthSummary
 
 
 class ReadinessCheck(BaseModel):

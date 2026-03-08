@@ -244,6 +244,10 @@ function buildDiagnostics() {
     logging: {
       level: "INFO",
       format: "plain"
+    },
+    auth: {
+      enabled: false,
+      accepted_headers: ["Authorization: Bearer", "X-API-Key"]
     }
   };
 }

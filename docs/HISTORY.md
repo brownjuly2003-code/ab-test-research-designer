@@ -48,6 +48,7 @@ The current stack:
 - saved-project revision history exposed through API and UI restore flow
 - SQLite runtime hardening added through schema versioning, WAL mode, busy-timeout, and synchronous-mode diagnostics
 - structured backend logging added with configurable plain/json formats
+- optional API token protection added for runtime and project APIs, with frontend bearer-token support
 
 ### Product polish
 

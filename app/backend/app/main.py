@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 import logging
 from pathlib import Path
@@ -51,6 +52,27 @@ class HealthResponse(BaseModel):
     environment: str
 
 
+AUTH_EXEMPT_PREFIXES = ("/assets",)
+AUTH_PROTECTED_EXACT_PATHS = {"/readyz", "/docs", "/openapi.json", "/redoc"}
+
+
+def _is_protected_path(path: str) -> bool:
+    if path.startswith("/api/v1"):
+        return True
+    if path in AUTH_PROTECTED_EXACT_PATHS:
+        return True
+    if any(path.startswith(prefix) for prefix in AUTH_EXEMPT_PREFIXES):
+        return False
+    return False
+
+
+def _is_authorized(request: Request, api_token: str) -> bool:
+    authorization = request.headers.get("authorization", "")
+    if authorization.startswith("Bearer "):
+        return authorization.removeprefix("Bearer ").strip() == api_token
+    return request.headers.get("x-api-key", "").strip() == api_token
+
+
 def _build_calculation_payload(payload: ExperimentInput) -> CalculationRequest:
     return CalculationRequest(
         metric_type=payload.metrics.metric_type,
@@ -102,24 +124,75 @@ def create_app() -> FastAPI:
     )
     frontend_dist_path = Path(settings.frontend_dist_path)
     frontend_index_path = frontend_dist_path / "index.html"
+    cors_headers = list(settings.cors_headers)
+    if settings.api_token:
+        for header_name in ("Authorization", "X-API-Key"):
+            if header_name not in cors_headers:
+                cors_headers.append(header_name)
+
+    @asynccontextmanager
+    async def lifespan(_: FastAPI):
+        log_event(
+            logger,
+            logging.INFO,
+            "application started",
+            event="startup",
+            environment=settings.environment,
+            version=settings.app_version,
+            db_path=settings.db_path,
+            sqlite_journal_mode=settings.sqlite_journal_mode,
+            sqlite_synchronous=settings.sqlite_synchronous,
+            log_format=settings.log_format,
+            auth_enabled=settings.api_token is not None,
+        )
+        yield
 
     app = FastAPI(
         title=settings.app_name,
         version=settings.app_version,
         description="Local backend for A/B experiment planning.",
+        lifespan=lifespan,
     )
     app.add_middleware(
         CORSMiddleware,
         allow_origins=list(settings.cors_origins),
         allow_credentials=True,
         allow_methods=list(settings.cors_methods),
-        allow_headers=list(settings.cors_headers),
+        allow_headers=cors_headers,
     )
 
     @app.middleware("http")
     async def add_request_metadata(request: Request, call_next):
         request_id = request.headers.get("x-request-id", str(uuid.uuid4()))
         started = perf_counter()
+
+        if (
+            settings.api_token
+            and request.method != "OPTIONS"
+            and _is_protected_path(request.url.path)
+            and not _is_authorized(request, settings.api_token)
+        ):
+            process_time_ms = (perf_counter() - started) * 1000
+            response = JSONResponse(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                content={"detail": "Unauthorized"},
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+            response.headers["X-Request-ID"] = request_id
+            response.headers["X-Process-Time-Ms"] = f"{process_time_ms:.2f}"
+            log_event(
+                logger,
+                logging.WARNING,
+                "request rejected",
+                event="http_request_auth",
+                request_id=request_id,
+                method=request.method,
+                path=request.url.path,
+                status_code=response.status_code,
+                process_time_ms=round(process_time_ms, 2),
+            )
+            return response
+
         try:
             response = await call_next(request)
         except Exception:
@@ -280,6 +353,10 @@ def create_app() -> FastAPI:
             logging={
                 "level": settings.log_level,
                 "format": settings.log_format,
+            },
+            auth={
+                "enabled": settings.api_token is not None,
+                "accepted_headers": ["Authorization: Bearer", "X-API-Key"],
             },
         )
 
@@ -469,18 +546,6 @@ def create_app() -> FastAPI:
 
             return FileResponse(frontend_index_path)
 
-    log_event(
-        logger,
-        logging.INFO,
-        "application started",
-        event="startup",
-        environment=settings.environment,
-        version=settings.app_version,
-        db_path=settings.db_path,
-        sqlite_journal_mode=settings.sqlite_journal_mode,
-        sqlite_synchronous=settings.sqlite_synchronous,
-        log_format=settings.log_format,
-    )
     return app
 
 

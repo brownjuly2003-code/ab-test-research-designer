@@ -268,6 +268,11 @@ const SidebarPanel = memo(function SidebarPanel({
                 {" | "}
                 {backendDiagnostics.logging.format}
               </li>
+              <li>
+                <strong>API auth:</strong> {backendDiagnostics.auth.enabled ? "enabled" : "disabled"}
+                {" | "}
+                {backendDiagnostics.auth.accepted_headers.join(", ")}
+              </li>
             </ul>
           </>
         ) : diagnosticsError ? (

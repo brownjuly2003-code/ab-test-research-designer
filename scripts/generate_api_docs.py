@@ -151,6 +151,7 @@ def generate_api_markdown() -> str:
             "- `traffic_split` length must match `variants_count`",
             "- malformed request bodies return `422`",
             "- domain errors return structured `400`",
+            "- when `AB_API_TOKEN` is configured, `/api/v1/*`, `/readyz`, `/docs`, `/openapi.json`, and `/redoc` require `Authorization: Bearer` or `X-API-Key`",
             "- all API responses include `X-Request-ID` and `X-Process-Time-Ms` headers",
             "- `GET /readyz` returns `503` when required runtime dependencies are degraded",
             "",

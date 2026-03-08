@@ -102,6 +102,11 @@ export type ConstraintsConfig = {
   long_test_possible: boolean;
 };
 
+export type DiagnosticsAuthSummary = {
+  enabled: boolean;
+  accepted_headers: string[];
+};
+
 export type DiagnosticsFrontendSummary = {
   serve_frontend_dist: boolean;
   dist_path: string;
@@ -134,6 +139,7 @@ export type DiagnosticsResponse = {
   frontend: DiagnosticsFrontendSummary;
   llm: DiagnosticsLlmSummary;
   logging: DiagnosticsLoggingSummary;
+  auth: DiagnosticsAuthSummary;
 };
 
 export type DiagnosticsStorageSummary = {

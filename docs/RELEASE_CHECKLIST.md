@@ -4,6 +4,7 @@
 
 - confirm working tree is clean
 - review `.env.example` and any new runtime settings
+- confirm whether `AB_API_TOKEN` should be enabled for the target deployment
 - regenerate OpenAPI-derived artifacts:
   - `python scripts/generate_frontend_api_types.py`
   - `python scripts/generate_api_docs.py`

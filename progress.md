@@ -197,6 +197,7 @@ Post-phase cleanup completed
 - added SQLite schema versioning and runtime diagnostics for journal mode, synchronous mode, and busy-timeout
 - added structured backend logging with configurable plain/json output
 - added `scripts/verify_workspace_backup.py` and wired backup roundtrip verification into local/CI checks
+- added optional API token auth for backend runtime/project routes plus frontend bearer-token support via env
 
 ---
 

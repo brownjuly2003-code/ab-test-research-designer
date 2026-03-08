@@ -27,6 +27,8 @@
 - added config validation for invalid ports and broken LLM retry/backoff settings
 - expanded CI to also verify the repo on Windows and to check generated API docs
 - added workspace backup roundtrip verification to the local/CI verify path
+- added optional API token auth for `/api/v1/*`, `/readyz`, and local API docs
+- added frontend bearer-token support through `VITE_API_TOKEN`
 
 ### Documentation and packaging
 

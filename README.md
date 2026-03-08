@@ -11,6 +11,7 @@ It combines:
 - SQLite-backed project storage with history and export metadata
 - lightweight runtime diagnostics plus request-id / process-time headers
 - SQLite schema versioning plus configurable WAL/busy-timeout runtime settings
+- optional API token protection for runtime and project APIs
 - workspace backup and restore for saved projects plus history
 
 ## Demo
@@ -61,6 +62,7 @@ Prerequisites:
 Environment template:
 
 - start from [.env.example](/D:/AB_TEST/.env.example)
+- set `AB_API_TOKEN` and matching `VITE_API_TOKEN` if you want the UI and `/api/v1/*` routes protected
 
 ### Backend
 
@@ -176,6 +178,7 @@ Archived planning/setup files live under `archive/`.
 - the Playwright E2E command starts a backend-served frontend automatically through `scripts/run_backend_for_e2e.py`
 - LLM adapter timeout/retry behavior can be tuned through `.env.example`
 - SQLite busy timeout, journal mode, synchronous mode, and backend log format are configurable through `.env.example`
+- optional API token auth is available through `AB_API_TOKEN`; the frontend can send it through `VITE_API_TOKEN`
 - API responses now include `X-Request-ID` and `X-Process-Time-Ms` headers for lightweight local observability
 - `GET /readyz` gives a simple readiness view over storage, frontend-dist serving, and runtime config
 - workspace backup/import now works from the UI and through `GET /api/v1/workspace/export` plus `POST /api/v1/workspace/import`

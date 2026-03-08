@@ -146,6 +146,7 @@ describe("frontend api wrapper", () => {
   });
 
   afterEach(() => {
+    (import.meta.env as Record<string, string | undefined>).VITE_API_TOKEN = undefined;
     vi.unstubAllGlobals();
   });
 
@@ -210,6 +211,26 @@ describe("frontend api wrapper", () => {
     expect(result.environment).toBe("local");
   });
 
+  it("injects bearer auth when VITE_API_TOKEN is configured", async () => {
+    (import.meta.env as Record<string, string | undefined>).VITE_API_TOKEN = "frontend-secret";
+    vi.mocked(fetch).mockResolvedValueOnce(
+      jsonResponse({
+        status: "ok",
+        service: "AB Test Research Designer API",
+        version: "0.1.0",
+        environment: "local"
+      })
+    );
+
+    await requestHealth();
+
+    expect(vi.mocked(fetch).mock.calls[0]?.[1]).toMatchObject({
+      headers: {
+        Authorization: "Bearer frontend-secret"
+      }
+    });
+  });
+
   it("loads backend diagnostics", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(
       jsonResponse({
@@ -250,6 +271,10 @@ describe("frontend api wrapper", () => {
         logging: {
           level: "INFO",
           format: "plain"
+        },
+        auth: {
+          enabled: false,
+          accepted_headers: ["Authorization: Bearer", "X-API-Key"]
         }
       })
     );

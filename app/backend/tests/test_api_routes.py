@@ -295,6 +295,7 @@ def test_diagnostics_endpoint_returns_runtime_summary(monkeypatch) -> None:
     assert payload["frontend"]["serve_frontend_dist"] is False
     assert payload["llm"]["provider"] == "local_orchestrator"
     assert payload["logging"]["format"] == "json"
+    assert payload["auth"]["enabled"] is False
     assert response.headers["x-request-id"]
     assert float(response.headers["x-process-time-ms"]) >= 0
     get_settings.cache_clear()
@@ -318,4 +319,51 @@ def test_readyz_returns_degraded_when_frontend_dist_is_missing(monkeypatch) -> N
     assert any(check["name"] == "frontend_dist" and check["ok"] is False for check in payload["checks"])
     assert any(check["name"] == "sqlite_schema_version" and check["ok"] is True for check in payload["checks"])
     assert any(check["name"] == "sqlite_journal_mode" and check["ok"] is True for check in payload["checks"])
+    get_settings.cache_clear()
+
+
+def test_api_token_protects_runtime_and_api_routes(monkeypatch) -> None:
+    monkeypatch.setenv("AB_API_TOKEN", "super-secret-token")
+    monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")
+    get_settings.cache_clear()
+
+    with TestClient(create_app()) as client:
+        health_response = client.get("/health")
+        unauthorized_diagnostics = client.get("/api/v1/diagnostics")
+        unauthorized_readyz = client.get("/readyz")
+        authorized_diagnostics = client.get(
+            "/api/v1/diagnostics",
+            headers={"Authorization": "Bearer super-secret-token"},
+        )
+        api_key_diagnostics = client.get(
+            "/api/v1/diagnostics",
+            headers={"X-API-Key": "super-secret-token"},
+        )
+
+    assert health_response.status_code == 200
+    assert unauthorized_diagnostics.status_code == 401
+    assert unauthorized_diagnostics.json()["detail"] == "Unauthorized"
+    assert unauthorized_readyz.status_code == 401
+    assert authorized_diagnostics.status_code == 200
+    assert authorized_diagnostics.json()["auth"]["enabled"] is True
+    assert api_key_diagnostics.status_code == 200
+    get_settings.cache_clear()
+
+
+def test_api_token_does_not_break_cors_preflight(monkeypatch) -> None:
+    monkeypatch.setenv("AB_API_TOKEN", "super-secret-token")
+    get_settings.cache_clear()
+
+    with TestClient(create_app()) as client:
+        response = client.options(
+            "/api/v1/calculate",
+            headers={
+                "Origin": "http://127.0.0.1:5173",
+                "Access-Control-Request-Method": "POST",
+                "Access-Control-Request-Headers": "authorization,content-type",
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "http://127.0.0.1:5173"
     get_settings.cache_clear()

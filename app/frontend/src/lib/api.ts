@@ -41,6 +41,15 @@ export type ProjectRevisionRequestOptions = {
   offset?: number;
 };
 
+function buildHeaders(additionalHeaders: Record<string, string> = {}): Record<string, string> {
+  const headers = { ...additionalHeaders };
+  const apiToken = String(import.meta.env.VITE_API_TOKEN ?? "").trim();
+  if (apiToken) {
+    headers.Authorization = `Bearer ${apiToken}`;
+  }
+  return headers;
+}
+
 async function readJson<T>(response: Response): Promise<T> {
   return await response.json() as T;
 }
@@ -50,7 +59,9 @@ function getErrorMessage(payload: ApiErrorResponse, fallback: string): string {
 }
 
 export async function requestHealth(): Promise<ApiHealthResponse> {
-  const response = await fetch(apiUrl("/health"));
+  const response = await fetch(apiUrl("/health"), {
+    headers: buildHeaders()
+  });
   const data = await readJson<ApiHealthResponse & ApiErrorResponse>(response);
 
   if (!response.ok) {
@@ -61,7 +72,9 @@ export async function requestHealth(): Promise<ApiHealthResponse> {
 }
 
 export async function requestDiagnostics(): Promise<ApiDiagnosticsResponse> {
-  const response = await fetch(apiUrl("/api/v1/diagnostics"));
+  const response = await fetch(apiUrl("/api/v1/diagnostics"), {
+    headers: buildHeaders()
+  });
   const data = await readJson<ApiDiagnosticsResponse & ApiErrorResponse>(response);
 
   if (!response.ok) {
@@ -72,7 +85,9 @@ export async function requestDiagnostics(): Promise<ApiDiagnosticsResponse> {
 }
 
 export async function exportWorkspaceRequest(): Promise<WorkspaceBundle> {
-  const response = await fetch(apiUrl("/api/v1/workspace/export"));
+  const response = await fetch(apiUrl("/api/v1/workspace/export"), {
+    headers: buildHeaders()
+  });
   const data = await readJson<WorkspaceBundle & ApiErrorResponse>(response);
 
   if (!response.ok) {
@@ -85,7 +100,7 @@ export async function exportWorkspaceRequest(): Promise<WorkspaceBundle> {
 export async function importWorkspaceRequest(bundle: WorkspaceBundleInput | WorkspaceBundle): Promise<WorkspaceImportResponse> {
   const response = await fetch(apiUrl("/api/v1/workspace/import"), {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: buildHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(bundle)
   });
   const data = await readJson<WorkspaceImportResponse & ApiErrorResponse>(response);
@@ -101,7 +116,7 @@ export async function requestAnalysis(form: FullPayload): Promise<AnalysisRespon
   const payload = buildApiPayload(form);
   const response = await fetch(apiUrl("/api/v1/analyze"), {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: buildHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(payload)
   });
   const data = await readJson<AnalysisResponse & ApiErrorResponse>(response);
@@ -122,7 +137,7 @@ export async function saveProjectRequest(
     isUpdate ? apiUrl(`/api/v1/projects/${activeProjectId}`) : apiUrl("/api/v1/projects"),
     {
       method: isUpdate ? "PUT" : "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: buildHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify(buildApiPayload(form))
     }
   );
@@ -136,7 +151,9 @@ export async function saveProjectRequest(
 }
 
 export async function listProjectsRequest(): Promise<SavedProject[]> {
-  const response = await fetch(apiUrl("/api/v1/projects"));
+  const response = await fetch(apiUrl("/api/v1/projects"), {
+    headers: buildHeaders()
+  });
   const data = await readJson<GeneratedProjectListResponse & ApiErrorResponse>(response);
 
   if (!response.ok) {
@@ -147,7 +164,9 @@ export async function listProjectsRequest(): Promise<SavedProject[]> {
 }
 
 export async function loadProjectRequest(projectId: string): Promise<ProjectRecordResponse> {
-  const response = await fetch(apiUrl(`/api/v1/projects/${projectId}`));
+  const response = await fetch(apiUrl(`/api/v1/projects/${projectId}`), {
+    headers: buildHeaders()
+  });
   const data = await readJson<ProjectRecordResponse & ApiErrorResponse>(response);
 
   if (!response.ok) {
@@ -179,7 +198,9 @@ export async function loadProjectHistoryRequest(
   const path = params.size > 0
     ? `/api/v1/projects/${projectId}/history?${params.toString()}`
     : `/api/v1/projects/${projectId}/history`;
-  const response = await fetch(apiUrl(path));
+  const response = await fetch(apiUrl(path), {
+    headers: buildHeaders()
+  });
   const data = await readJson<ProjectHistory & ApiErrorResponse>(response);
 
   if (!response.ok) {
@@ -205,7 +226,9 @@ export async function loadProjectRevisionsRequest(
   const path = params.size > 0
     ? `/api/v1/projects/${projectId}/revisions?${params.toString()}`
     : `/api/v1/projects/${projectId}/revisions`;
-  const response = await fetch(apiUrl(path));
+  const response = await fetch(apiUrl(path), {
+    headers: buildHeaders()
+  });
   const data = await readJson<ProjectRevisionHistory & ApiErrorResponse>(response);
 
   if (!response.ok) {
@@ -231,7 +254,9 @@ export async function compareProjectsRequest(
   if (candidateRunId) {
     params.set("candidate_run_id", candidateRunId);
   }
-  const response = await fetch(apiUrl(`/api/v1/projects/compare?${params.toString()}`));
+  const response = await fetch(apiUrl(`/api/v1/projects/compare?${params.toString()}`), {
+    headers: buildHeaders()
+  });
   const data = await readJson<ProjectComparison & ApiErrorResponse>(response);
 
   if (!response.ok) {
@@ -243,7 +268,8 @@ export async function compareProjectsRequest(
 
 export async function deleteProjectRequest(projectId: string): Promise<DeleteProjectResponse> {
   const response = await fetch(apiUrl(`/api/v1/projects/${projectId}`), {
-    method: "DELETE"
+    method: "DELETE",
+    headers: buildHeaders()
   });
   const data = await readJson<DeleteProjectResponse & ApiErrorResponse>(response);
 
@@ -260,7 +286,7 @@ export async function recordProjectAnalysisRequest(
 ): Promise<ProjectRecordResponse> {
   const response = await fetch(apiUrl(`/api/v1/projects/${projectId}/analysis`), {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: buildHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(analysis)
   });
   const data = await readJson<ProjectRecordResponse & ApiErrorResponse>(response);
@@ -279,7 +305,7 @@ export async function recordProjectExportRequest(
 ): Promise<ProjectRecordResponse> {
   const response = await fetch(apiUrl(`/api/v1/projects/${projectId}/exports`), {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: buildHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ format, analysis_run_id: analysisRunId })
   });
   const data = await readJson<ProjectRecordResponse & ApiErrorResponse>(response);
@@ -294,7 +320,7 @@ export async function recordProjectExportRequest(
 export async function exportReportRequest(report: ReportResponse, format: ExportFormat): Promise<string> {
   const response = await fetch(apiUrl(`/api/v1/export/${format}`), {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: buildHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(report)
   });
   const data = await readJson<ExportResponse & ApiErrorResponse>(response);
