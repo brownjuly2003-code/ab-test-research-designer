@@ -65,6 +65,7 @@ The current stack:
 - richer saved-snapshot comparison with overlap sections, summaries, and recommendation highlights
 - full workspace backup/import covering saved projects, analysis runs, and export events
 - dismissible storage warning UI for local draft autosave failures
+- workspace status board now gives a one-glance summary of saved-project coverage, snapshots, exports, and current draft sync
 - Docker packaging and deterministic benchmark script
 - architecture, API, rules, changelog, and demo assets added for portfolio-style documentation
 - smoke automation now verifies `docs/demo/sample-project.json` import before refreshing README screenshots

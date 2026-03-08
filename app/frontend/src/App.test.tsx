@@ -492,6 +492,9 @@ describe("App UI flow", () => {
       expect(view.container.textContent).toContain("API online");
       expect(view.container.textContent).toContain("AB Test Research Designer API");
       expect(view.container.textContent).toContain("Runtime diagnostics");
+      expect(view.container.textContent).toContain("Workspace status board");
+      expect(view.container.textContent).toContain("1 saved");
+      expect(view.container.textContent).toContain("1 without saved analysis");
       expect(view.container.textContent).toContain("Storage:");
       expect(view.container.textContent).toContain("Storage footprint:");
       expect(view.container.textContent).toContain("SQLite write probe:");

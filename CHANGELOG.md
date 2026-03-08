@@ -5,6 +5,7 @@
 ### UI modernization
 
 - redesigned the frontend into a dashboard-style interface with metric cards, accordion sections, timeline history, live backend status, progress bar, tooltips, and loading spinners
+- added a workspace status board that summarizes saved-project coverage, snapshot depth, export reach, revision depth, and current draft sync state
 - upgraded typography to Inter + JetBrains Mono and added dark-mode support
 - surfaced browser draft storage issues as dismissible UI toasts
 - added a quota-specific autosave warning for `QuotaExceededError` while keeping generic storage failure details for other browser-local errors

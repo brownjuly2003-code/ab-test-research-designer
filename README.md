@@ -52,6 +52,7 @@ runs analysis, and exports a report:
 - full workspace export/import for project, analysis, export-history, and revision backup
 - workspace import preflight validation with checksum/reference verification before writes begin
 - browser draft restore/autosave plus JSON draft import/export
+- workspace status board summarizing saved-project coverage, snapshot depth, exports, and current draft sync state
 
 ## Local setup
 

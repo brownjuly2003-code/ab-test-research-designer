@@ -165,6 +165,14 @@ const SidebarPanel = memo(function SidebarPanel({
     normalizedQuery.length > 0
       ? savedProjects.filter((project) => project.project_name.toLowerCase().includes(normalizedQuery))
       : savedProjects;
+  const savedProjectsTotal = savedProjects.length;
+  const projectsWithSnapshots = savedProjects.filter((project) => project.has_analysis_snapshot).length;
+  const projectsWithoutSnapshots = savedProjectsTotal - projectsWithSnapshots;
+  const projectsWithExports = savedProjects.filter((project) => Boolean(project.last_exported_at)).length;
+  const projectsWithMultipleRevisions = savedProjects.filter((project) => (project.revision_count ?? 0) > 1).length;
+  const latestWorkspaceUpdate =
+    backendDiagnostics?.storage.latest_project_updated_at ??
+    (savedProjects[0]?.updated_at ?? null);
   const hasMoreAnalysisHistory = Boolean(
     projectHistory && projectHistory.analysis_runs.length < projectHistory.analysis_total
   );
@@ -331,6 +339,45 @@ const SidebarPanel = memo(function SidebarPanel({
         ) : (
           <p className="muted">No diagnostics loaded yet.</p>
         )}
+      </div>
+
+      <div className="card">
+        <div className="section-heading">
+          <div>
+            <h3>Workspace status board</h3>
+            <p className="muted compact-text">
+              One-glance summary of saved-project coverage, snapshot depth, and whether the current draft is in sync.
+            </p>
+          </div>
+        </div>
+        <div className="actions">
+          <span className="pill">{savedProjectsTotal} saved</span>
+          <span className="pill">{projectsWithSnapshots} with snapshots</span>
+          {hasUnsavedChanges ? <span className="pill">Draft changed</span> : null}
+          {backendDiagnostics?.storage.write_probe_ok ? <span className="pill">SQLite writable</span> : null}
+        </div>
+        <ul className="list">
+          <li>
+            <strong>Saved projects:</strong> {String(savedProjectsTotal)}
+          </li>
+          <li>
+            <strong>Snapshot coverage:</strong> {String(projectsWithSnapshots)} ready
+            {" | "}
+            {String(projectsWithoutSnapshots)} without saved analysis
+          </li>
+          <li>
+            <strong>Export coverage:</strong> {String(projectsWithExports)} exported at least once
+          </li>
+          <li>
+            <strong>Revision depth:</strong> {String(projectsWithMultipleRevisions)} project(s) with more than one saved revision
+          </li>
+          <li>
+            <strong>Current draft:</strong> {activeProjectId ? (hasUnsavedChanges ? "loaded project with unsaved changes" : "loaded project in sync") : "new local draft"}
+          </li>
+          <li>
+            <strong>Latest workspace update:</strong> {formatOptionalTimestamp(latestWorkspaceUpdate)}
+          </li>
+        </ul>
       </div>
 
       <div className="card">
