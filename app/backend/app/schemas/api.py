@@ -266,6 +266,9 @@ class ProjectComparisonItem(BaseModel):
     risk_highlights: list[str]
     assumptions: list[str]
     advice_available: bool
+    executive_summary: str
+    warning_severity: str
+    recommendation_highlights: list[str]
 
 
 class ProjectComparisonDelta(BaseModel):
@@ -282,7 +285,52 @@ class ProjectComparisonResponse(BaseModel):
     shared_warning_codes: list[str]
     base_only_warning_codes: list[str]
     candidate_only_warning_codes: list[str]
+    shared_assumptions: list[str]
+    base_only_assumptions: list[str]
+    candidate_only_assumptions: list[str]
+    shared_risk_highlights: list[str]
+    base_only_risk_highlights: list[str]
+    candidate_only_risk_highlights: list[str]
+    metric_alignment_note: str
+    highlights: list[str]
     summary: str
+
+
+class DiagnosticsStorageSummary(BaseModel):
+    db_path: str
+    db_exists: bool
+    projects_total: int
+    analysis_runs_total: int
+    export_events_total: int
+    latest_project_updated_at: str | None = None
+
+
+class DiagnosticsFrontendSummary(BaseModel):
+    serve_frontend_dist: bool
+    dist_path: str
+    dist_exists: bool
+
+
+class DiagnosticsLlmSummary(BaseModel):
+    provider: str
+    base_url: str
+    timeout_seconds: float
+    max_attempts: int
+    initial_backoff_seconds: float
+    backoff_multiplier: float
+
+
+class DiagnosticsResponse(BaseModel):
+    status: str
+    generated_at: str
+    started_at: str
+    uptime_seconds: float
+    environment: str
+    app_version: str
+    request_timing_headers_enabled: bool
+    storage: DiagnosticsStorageSummary
+    frontend: DiagnosticsFrontendSummary
+    llm: DiagnosticsLlmSummary
 
 
 class ProjectRecord(BaseModel):
@@ -332,6 +380,7 @@ __all__ = [
     "AnalysisResponse",
     "CalculationRequest",
     "CalculationResponse",
+    "DiagnosticsResponse",
     "ExperimentInput",
     "ExperimentReport",
     "ExportResponse",

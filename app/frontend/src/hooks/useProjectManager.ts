@@ -6,11 +6,13 @@ import {
   listProjectsRequest,
   loadProjectHistoryRequest,
   loadProjectRequest,
+  requestDiagnostics,
   requestHealth,
   type ProjectHistoryRequestOptions,
   type ProjectRecordResponse
 } from "../lib/api";
 import type {
+  ApiDiagnosticsResponse,
   ApiHealthResponse,
   ProjectAnalysisRun,
   ProjectComparison,
@@ -58,10 +60,13 @@ function toSavedProject(project: {
 
 export function useProjectManager(serializedForm: string) {
   const [loadingHealth, setLoadingHealth] = useState(false);
+  const [loadingDiagnostics, setLoadingDiagnostics] = useState(false);
   const [loadingProjects, setLoadingProjects] = useState(false);
   const [deletingProjectId, setDeletingProjectId] = useState<string | null>(null);
   const [backendHealth, setBackendHealth] = useState<ApiHealthResponse | null>(null);
+  const [backendDiagnostics, setBackendDiagnostics] = useState<ApiDiagnosticsResponse | null>(null);
   const [healthError, setHealthError] = useState("");
+  const [diagnosticsError, setDiagnosticsError] = useState("");
   const [savedProjects, setSavedProjects] = useState<SavedProject[]>([]);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [savedProjectSnapshot, setSavedProjectSnapshot] = useState<string | null>(null);
@@ -129,6 +134,20 @@ export function useProjectManager(serializedForm: string) {
       setHealthError(requestError instanceof Error ? requestError.message : "Unexpected backend health error");
     } finally {
       setLoadingHealth(false);
+    }
+  }
+
+  async function loadBackendDiagnostics() {
+    setLoadingDiagnostics(true);
+
+    try {
+      setBackendDiagnostics(await requestDiagnostics());
+      setDiagnosticsError("");
+    } catch (requestError) {
+      setBackendDiagnostics(null);
+      setDiagnosticsError(requestError instanceof Error ? requestError.message : "Unexpected backend diagnostics error");
+    } finally {
+      setLoadingDiagnostics(false);
     }
   }
 
@@ -296,10 +315,13 @@ export function useProjectManager(serializedForm: string) {
 
   return {
     loadingHealth,
+    loadingDiagnostics,
     loadingProjects,
     deletingProjectId,
     backendHealth,
+    backendDiagnostics,
     healthError,
+    diagnosticsError,
     savedProjects,
     activeProjectId,
     savedProjectSnapshot,
@@ -327,6 +349,7 @@ export function useProjectManager(serializedForm: string) {
     clearProjectComparison,
     resetProjectSelection,
     loadBackendHealth,
+    loadBackendDiagnostics,
     loadProjects,
     refreshProjectHistory,
     compareProject,

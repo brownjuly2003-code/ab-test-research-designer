@@ -13,6 +13,7 @@ OUTPUT_PATH = ROOT_DIR / "docs" / "API.md"
 
 ROUTE_EXAMPLES = {
     "/health": 'curl http://127.0.0.1:8008/health',
+    "/api/v1/diagnostics": 'curl http://127.0.0.1:8008/api/v1/diagnostics',
     "/api/v1/calculate": (
         'curl -X POST http://127.0.0.1:8008/api/v1/calculate ^\n'
         '  -H "Content-Type: application/json" ^\n'
@@ -39,6 +40,7 @@ ROUTE_EXAMPLES = {
 
 SECTION_ORDER = [
     "Health",
+    "Diagnostics",
     "Deterministic analysis",
     "Project storage",
     "Project activity",
@@ -51,6 +53,8 @@ SECTION_ORDER = [
 def classify_route(path: str) -> str:
     if path == "/health":
         return "Health"
+    if path == "/api/v1/diagnostics":
+        return "Diagnostics"
     if path in {"/api/v1/calculate", "/api/v1/design", "/api/v1/analyze", "/api/v1/llm/advice"}:
         return "Deterministic analysis"
     if path in {"/api/v1/projects", "/api/v1/projects/{project_id}"}:
@@ -125,6 +129,7 @@ def generate_api_markdown() -> str:
             "- `traffic_split` length must match `variants_count`",
             "- malformed request bodies return `422`",
             "- domain errors return structured `400`",
+            "- all API responses include `X-Request-ID` and `X-Process-Time-Ms` headers",
             "",
             "## Contract generation",
             "",

@@ -38,6 +38,7 @@ The current stack:
 - retry/backoff for transient orchestrator failures
 - paginated history metadata and snapshot-based comparison
 - runtime snapshot state normalized around `analysis_runs` and `last_analysis_run_id`
+- lightweight runtime diagnostics endpoint plus request-id / process-time headers
 - repo-level pytest cache suppression to stop root cache artifacts from reappearing
 - quota-specific browser draft autosave warnings instead of a single generic storage failure message
 - backend performance regression coverage with deterministic latency thresholds
@@ -48,6 +49,7 @@ The current stack:
 - dashboard-style results with metric cards, accordion sections, and severity styling
 - improved form UX with tooltips, inline validation, progress bar, and loading micro-interactions
 - sidebar modernization with live backend indicator, project cards, and history timeline
+- richer saved-snapshot comparison with overlap sections, summaries, and recommendation highlights
 - dismissible storage warning UI for local draft autosave failures
 - Docker packaging and deterministic benchmark script
 - architecture, API, rules, changelog, and demo assets added for portfolio-style documentation

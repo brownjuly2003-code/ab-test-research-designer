@@ -1,5 +1,8 @@
+from datetime import datetime, timezone
 import logging
 from pathlib import Path
+from time import perf_counter
+import uuid
 
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,6 +17,7 @@ from app.backend.app.schemas.api import (
     AnalysisResponse,
     CalculationRequest,
     CalculationResponse,
+    DiagnosticsResponse,
     ExperimentInput,
     ExperimentReport,
     ExportResponse,
@@ -75,6 +79,7 @@ def _build_llm_advice_payload(payload: ExperimentInput, calculation_result: dict
 
 def create_app() -> FastAPI:
     settings = get_settings()
+    started_at = datetime.now(timezone.utc)
     llm_adapter = LocalOrchestratorAdapter(
         base_url=settings.llm_base_url,
         timeout_seconds=settings.llm_timeout_seconds,
@@ -99,6 +104,15 @@ def create_app() -> FastAPI:
         allow_headers=list(settings.cors_headers),
     )
 
+    @app.middleware("http")
+    async def add_request_metadata(request: Request, call_next):
+        request_id = request.headers.get("x-request-id", str(uuid.uuid4()))
+        started = perf_counter()
+        response = await call_next(request)
+        response.headers["X-Request-ID"] = request_id
+        response.headers["X-Process-Time-Ms"] = f"{(perf_counter() - started) * 1000:.2f}"
+        return response
+
     @app.exception_handler(ValueError)
     async def handle_value_error(request: Request, exc: ValueError) -> JSONResponse:
         return JSONResponse(status_code=400, content={"detail": str(exc)})
@@ -120,6 +134,35 @@ def create_app() -> FastAPI:
             service=settings.app_name,
             version=settings.app_version,
             environment=settings.environment,
+        )
+
+    @app.get("/api/v1/diagnostics", response_model=DiagnosticsResponse)
+    def diagnostics() -> DiagnosticsResponse:
+        diagnostics_generated_at = datetime.now(timezone.utc)
+        storage_summary = repository.get_diagnostics_summary()
+
+        return DiagnosticsResponse(
+            status="ok",
+            generated_at=diagnostics_generated_at.isoformat(),
+            started_at=started_at.isoformat(),
+            uptime_seconds=round((diagnostics_generated_at - started_at).total_seconds(), 3),
+            environment=settings.environment,
+            app_version=settings.app_version,
+            request_timing_headers_enabled=True,
+            storage=storage_summary,
+            frontend={
+                "serve_frontend_dist": settings.serve_frontend_dist,
+                "dist_path": settings.frontend_dist_path,
+                "dist_exists": frontend_dist_path.exists(),
+            },
+            llm={
+                "provider": "local_orchestrator",
+                "base_url": settings.llm_base_url,
+                "timeout_seconds": settings.llm_timeout_seconds,
+                "max_attempts": settings.llm_max_attempts,
+                "initial_backoff_seconds": settings.llm_initial_backoff_seconds,
+                "backoff_multiplier": settings.llm_backoff_multiplier,
+            },
         )
 
     @app.post("/api/v1/calculate", response_model=CalculationResponse)

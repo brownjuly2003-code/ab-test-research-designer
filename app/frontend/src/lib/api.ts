@@ -3,6 +3,7 @@ import {
   type ProjectHistory,
   type ProjectComparison,
   type ApiHealthResponse,
+  type ApiDiagnosticsResponse,
   buildApiPayload,
   type AnalysisResponsePayload,
   type ApiErrorResponse,
@@ -22,6 +23,7 @@ export type ProjectRecordResponse = ProjectRecordPayload;
 export type SaveProjectResponse = ProjectRecordPayload;
 export type DeleteProjectResponse = GeneratedProjectDeleteResponse;
 export type AnalysisResponse = AnalysisResponsePayload;
+export type DiagnosticsResponse = ApiDiagnosticsResponse;
 export type ProjectHistoryRequestOptions = {
   analysisLimit?: number;
   analysisOffset?: number;
@@ -43,6 +45,17 @@ export async function requestHealth(): Promise<ApiHealthResponse> {
 
   if (!response.ok) {
     throw new Error(getErrorMessage(data, "Health check failed"));
+  }
+
+  return data;
+}
+
+export async function requestDiagnostics(): Promise<ApiDiagnosticsResponse> {
+  const response = await fetch(apiUrl("/api/v1/diagnostics"));
+  const data = await readJson<ApiDiagnosticsResponse & ApiErrorResponse>(response);
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(data, "Diagnostics request failed"));
   }
 
   return data;

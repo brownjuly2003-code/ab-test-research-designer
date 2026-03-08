@@ -15,6 +15,9 @@
 - regenerated frontend API contracts from FastAPI OpenAPI
 - kept deterministic calculations, warnings, saved-project history, and comparison flows aligned with the new UI
 - added backend performance regression coverage with a `<100ms` p95 guard for deterministic calculations
+- added `GET /api/v1/diagnostics` with storage/frontend/LLM runtime summary
+- added `X-Request-ID` and `X-Process-Time-Ms` headers for lightweight request tracing
+- expanded saved-project comparison contracts with executive summaries, warning severity, overlap sections, and comparison highlights
 
 ### Documentation and packaging
 

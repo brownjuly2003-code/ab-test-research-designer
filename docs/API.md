@@ -18,6 +18,16 @@ Health
 curl http://127.0.0.1:8008/health
 ```
 
+## Diagnostics
+
+### `GET /api/v1/diagnostics`
+
+Diagnostics
+
+```bash
+curl http://127.0.0.1:8008/api/v1/diagnostics
+```
+
 ## Deterministic analysis
 
 ### `POST /api/v1/analyze`
@@ -130,6 +140,7 @@ curl -X POST http://127.0.0.1:8008/api/v1/export/markdown ^
 - `traffic_split` length must match `variants_count`
 - malformed request bodies return `422`
 - domain errors return structured `400`
+- all API responses include `X-Request-ID` and `X-Process-Time-Ms` headers
 
 ## Contract generation
 

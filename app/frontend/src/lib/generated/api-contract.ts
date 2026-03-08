@@ -102,6 +102,43 @@ export type ConstraintsConfig = {
   long_test_possible: boolean;
 };
 
+export type DiagnosticsFrontendSummary = {
+  serve_frontend_dist: boolean;
+  dist_path: string;
+  dist_exists: boolean;
+};
+
+export type DiagnosticsLlmSummary = {
+  provider: string;
+  base_url: string;
+  timeout_seconds: number;
+  max_attempts: number;
+  initial_backoff_seconds: number;
+  backoff_multiplier: number;
+};
+
+export type DiagnosticsResponse = {
+  status: string;
+  generated_at: string;
+  started_at: string;
+  uptime_seconds: number;
+  environment: string;
+  app_version: string;
+  request_timing_headers_enabled: boolean;
+  storage: DiagnosticsStorageSummary;
+  frontend: DiagnosticsFrontendSummary;
+  llm: DiagnosticsLlmSummary;
+};
+
+export type DiagnosticsStorageSummary = {
+  db_path: string;
+  db_exists: boolean;
+  projects_total: number;
+  analysis_runs_total: number;
+  export_events_total: number;
+  latest_project_updated_at?: string | null;
+};
+
 export type ExperimentDesignSection = {
   variants: VariantDefinition[];
   randomization_unit: string;
@@ -251,6 +288,9 @@ export type ProjectComparisonItem = {
   risk_highlights: string[];
   assumptions: string[];
   advice_available: boolean;
+  executive_summary: string;
+  warning_severity: string;
+  recommendation_highlights: string[];
 };
 
 export type ProjectComparisonResponse = {
@@ -260,6 +300,14 @@ export type ProjectComparisonResponse = {
   shared_warning_codes: string[];
   base_only_warning_codes: string[];
   candidate_only_warning_codes: string[];
+  shared_assumptions: string[];
+  base_only_assumptions: string[];
+  candidate_only_assumptions: string[];
+  shared_risk_highlights: string[];
+  base_only_risk_highlights: string[];
+  candidate_only_risk_highlights: string[];
+  metric_alignment_note: string;
+  highlights: string[];
   summary: string;
 };
 

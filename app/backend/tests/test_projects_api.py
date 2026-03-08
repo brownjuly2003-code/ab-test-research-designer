@@ -359,6 +359,18 @@ def test_projects_compare_endpoint_returns_saved_snapshot_differences(monkeypatc
         assert payload["shared_warning_codes"] == []
         assert payload["base_only_warning_codes"] == ["SEASONALITY_PRESENT"]
         assert payload["candidate_only_warning_codes"] == ["LONG_DURATION", "LOW_TRAFFIC"]
+        assert payload["shared_assumptions"] == ["Baseline is stable"]
+        assert payload["shared_risk_highlights"] == [
+            "Power tradeoff",
+            "Expected result depends on user behavior.",
+            "legacy event logging",
+            "tracking quality",
+        ]
+        assert payload["metric_alignment_note"] == "Both snapshots evaluate the same primary metric and metric family."
+        assert payload["base_project"]["executive_summary"] == "Base summary"
+        assert payload["candidate_project"]["warning_severity"] == "medium"
+        assert payload["candidate_project"]["recommendation_highlights"] == ["Verify tracking", "Watch SRM", "Segment the result"]
+        assert any("Checkout challenger" in item for item in payload["highlights"])
 
         latest_base_history = client.get(
             f"/api/v1/projects/{base_project['id']}/history",
@@ -383,3 +395,4 @@ def test_projects_compare_endpoint_returns_saved_snapshot_differences(monkeypatc
         assert specific_payload["deltas"]["total_sample_size"] == 120
         assert specific_payload["base_only_warning_codes"] == []
         assert specific_payload["candidate_only_warning_codes"] == ["LONG_DURATION", "LOW_TRAFFIC"]
+        assert specific_payload["metric_alignment_note"] == "Both snapshots evaluate the same primary metric and metric family."

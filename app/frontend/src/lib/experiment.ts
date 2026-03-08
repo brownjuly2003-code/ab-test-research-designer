@@ -3,6 +3,7 @@ import type {
   AnalysisRunRecord as ApiAnalysisRunRecord,
   CalculationRequest as ApiCalculationRequest,
   CalculationResponse as ApiCalculationResponse,
+  DiagnosticsResponse as ApiDiagnosticsResponseContract,
   ExperimentInput as ApiExperimentInput,
   ExperimentReport_Output as ApiExperimentReport,
   ExportEventRecord as ApiExportEventRecord,
@@ -78,6 +79,7 @@ export type ProjectExportEvent = ApiExportEventRecord;
 export type ProjectComparison = ApiProjectComparisonResponse;
 export type ProjectHistory = ApiProjectHistoryResponse;
 export type ApiHealthResponse = ApiHealthResponseContract;
+export type ApiDiagnosticsResponse = ApiDiagnosticsResponseContract;
 export type AnalysisResponsePayload = ApiAnalysisResponse;
 export type ResultsState = Partial<Pick<ApiAnalysisResponse, "calculations" | "report" | "advice">>;
 export type SavedProject = ApiProjectListItem;

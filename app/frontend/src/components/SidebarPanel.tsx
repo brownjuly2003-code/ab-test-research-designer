@@ -1,15 +1,24 @@
 import { memo, useState } from "react";
 
-import type { ApiHealthResponse, ProjectComparison, ProjectHistory, SavedProject } from "../lib/experiment";
+import type {
+  ApiDiagnosticsResponse,
+  ApiHealthResponse,
+  ProjectComparison,
+  ProjectHistory,
+  SavedProject
+} from "../lib/experiment";
 import Icon from "./Icon";
 import StatusDot from "./StatusDot";
 
 type SidebarPanelProps = {
   loadingHealth: boolean;
+  loadingDiagnostics: boolean;
   loadingProjects: boolean;
   deletingProjectId: string | null;
   backendHealth: ApiHealthResponse | null;
+  backendDiagnostics: ApiDiagnosticsResponse | null;
   healthError: string;
+  diagnosticsError: string;
   savedProjects: SavedProject[];
   activeProjectId: string | null;
   activeProject: SavedProject | null;
@@ -23,6 +32,7 @@ type SidebarPanelProps = {
   comparingProjectId: string | null;
   hasUnsavedChanges: boolean;
   onRefreshHealth: () => void;
+  onRefreshDiagnostics: () => void;
   onRefreshProjectHistory: (projectId: string) => void;
   onLoadMoreAnalysisHistory: (projectId: string) => void;
   onLoadMoreExportHistory: (projectId: string) => void;
@@ -50,12 +60,35 @@ function formatOptionalTimestamp(timestamp: string | null | undefined): string {
   return timestamp ? formatProjectTimestamp(timestamp) : "Not recorded yet";
 }
 
+function formatUptime(seconds: number): string {
+  if (!(seconds >= 0)) {
+    return "0s";
+  }
+
+  if (seconds < 60) {
+    return `${seconds.toFixed(1)}s`;
+  }
+
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = Math.floor(seconds % 60);
+  if (minutes < 60) {
+    return `${minutes}m ${remainingSeconds}s`;
+  }
+
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  return `${hours}h ${remainingMinutes}m`;
+}
+
 const SidebarPanel = memo(function SidebarPanel({
   loadingHealth,
+  loadingDiagnostics,
   loadingProjects,
   deletingProjectId,
   backendHealth,
+  backendDiagnostics,
   healthError,
+  diagnosticsError,
   savedProjects,
   activeProjectId,
   activeProject,
@@ -69,6 +102,7 @@ const SidebarPanel = memo(function SidebarPanel({
   comparingProjectId,
   hasUnsavedChanges,
   onRefreshHealth,
+  onRefreshDiagnostics,
   onRefreshProjectHistory,
   onLoadMoreAnalysisHistory,
   onLoadMoreExportHistory,
@@ -138,6 +172,60 @@ const SidebarPanel = memo(function SidebarPanel({
           <div className="status">API unavailable. {healthError}</div>
         ) : (
           <p className="muted">No backend status loaded yet.</p>
+        )}
+      </div>
+
+      <div className="card">
+        <div className="section-heading">
+          <div>
+            <h3>Runtime diagnostics</h3>
+            <p className="muted compact-text">
+              Lightweight observability for storage, frontend serving, orchestrator settings, and uptime.
+            </p>
+          </div>
+          <button className="btn ghost" disabled={loadingDiagnostics} onClick={onRefreshDiagnostics}>
+            {loadingDiagnostics ? "Refreshing..." : "Refresh diagnostics"}
+          </button>
+        </div>
+        {backendDiagnostics ? (
+          <>
+            <span className="pill">Diagnostics online</span>
+            <ul className="list">
+              <li>
+                <strong>Uptime:</strong> {formatUptime(backendDiagnostics.uptime_seconds)}
+              </li>
+              <li>
+                <strong>Storage:</strong> {String(backendDiagnostics.storage.projects_total)} projects,{" "}
+                {String(backendDiagnostics.storage.analysis_runs_total)} analysis runs,{" "}
+                {String(backendDiagnostics.storage.export_events_total)} export events
+              </li>
+              <li>
+                <strong>Latest project update:</strong> {formatOptionalTimestamp(backendDiagnostics.storage.latest_project_updated_at)}
+              </li>
+              <li>
+                <strong>SQLite path:</strong> <code>{backendDiagnostics.storage.db_path}</code>
+              </li>
+              <li>
+                <strong>Frontend dist:</strong> {backendDiagnostics.frontend.serve_frontend_dist ? "enabled" : "disabled"}
+                {" | "}
+                {backendDiagnostics.frontend.dist_exists ? "present" : "missing"}
+              </li>
+              <li>
+                <strong>Timing headers:</strong> {backendDiagnostics.request_timing_headers_enabled ? "enabled" : "disabled"}
+              </li>
+              <li>
+                <strong>LLM adapter:</strong> {backendDiagnostics.llm.provider}
+                {" | timeout "}
+                {String(backendDiagnostics.llm.timeout_seconds)}s
+                {" | attempts "}
+                {String(backendDiagnostics.llm.max_attempts)}
+              </li>
+            </ul>
+          </>
+        ) : diagnosticsError ? (
+          <div className="status">Diagnostics unavailable. {diagnosticsError}</div>
+        ) : (
+          <p className="muted">No diagnostics loaded yet.</p>
         )}
       </div>
 
@@ -386,6 +474,7 @@ const SidebarPanel = memo(function SidebarPanel({
         <h3>Backend endpoints</h3>
         <ul className="list">
           <li><code>POST /api/v1/analyze</code></li>
+          <li><code>GET /api/v1/diagnostics</code></li>
           <li><code>POST /api/v1/projects/{'{id}'}/analysis</code></li>
           <li><code>POST /api/v1/projects/{'{id}'}/exports</code></li>
           <li><code>GET /api/v1/projects/compare</code></li>

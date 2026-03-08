@@ -9,6 +9,7 @@ It combines:
 - deterministic experiment design output
 - optional local LLM recommendations
 - SQLite-backed project storage with history and export metadata
+- lightweight runtime diagnostics plus request-id / process-time headers
 
 ## Demo
 
@@ -42,6 +43,7 @@ runs analysis, and exports a report:
 - deterministic report with design, metrics plan, risks, and recommendations
 - optional AI advice kept separate from the hard-math output
 - local project save, load, update, delete, compare, history, and export flows
+- richer snapshot comparison with assumption/risk overlap and recommendation highlights
 - browser draft restore/autosave plus JSON draft import/export
 
 ## Local setup
@@ -69,6 +71,12 @@ Health:
 
 ```text
 http://127.0.0.1:8008/health
+```
+
+Diagnostics:
+
+```text
+http://127.0.0.1:8008/api/v1/diagnostics
 ```
 
 ### Frontend
@@ -149,3 +157,4 @@ Archived planning/setup files live under `archive/`.
 - the smoke flow now verifies the sample import payload before refreshing screenshots
 - the Playwright E2E command starts a backend-served frontend automatically through `scripts/run_backend_for_e2e.py`
 - LLM adapter timeout/retry behavior can be tuned through `.env.example`
+- API responses now include `X-Request-ID` and `X-Process-Time-Ms` headers for lightweight local observability

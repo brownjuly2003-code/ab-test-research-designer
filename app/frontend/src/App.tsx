@@ -48,6 +48,7 @@ export default function App() {
 
   useEffect(() => {
     void projectManager.loadBackendHealth();
+    void projectManager.loadBackendDiagnostics();
     void loadProjects();
   }, []);
 
@@ -391,10 +392,13 @@ export default function App() {
             />
             <SidebarPanel
               loadingHealth={projectManager.loadingHealth}
+              loadingDiagnostics={projectManager.loadingDiagnostics}
               loadingProjects={projectManager.loadingProjects}
               deletingProjectId={projectManager.deletingProjectId}
               backendHealth={projectManager.backendHealth}
+              backendDiagnostics={projectManager.backendDiagnostics}
               healthError={projectManager.healthError}
+              diagnosticsError={projectManager.diagnosticsError}
               savedProjects={projectManager.savedProjects}
               activeProjectId={projectManager.activeProjectId}
               activeProject={projectManager.activeProject}
@@ -408,6 +412,7 @@ export default function App() {
               comparingProjectId={projectManager.comparingProjectId}
               hasUnsavedChanges={projectManager.hasUnsavedChanges}
               onRefreshHealth={projectManager.loadBackendHealth}
+              onRefreshDiagnostics={projectManager.loadBackendDiagnostics}
               onRefreshProjectHistory={(projectId) => {
                 void projectManager.refreshProjectHistory(projectId);
               }}

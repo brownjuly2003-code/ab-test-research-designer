@@ -481,6 +481,34 @@ class ProjectRepository:
 
         return self._analysis_row_to_record(row)
 
+    def get_diagnostics_summary(self) -> dict:
+        with self._connect() as connection:
+            projects_total = connection.execute(
+                "SELECT COUNT(*) FROM projects"
+            ).fetchone()[0]
+            analysis_runs_total = connection.execute(
+                "SELECT COUNT(*) FROM analysis_runs"
+            ).fetchone()[0]
+            export_events_total = connection.execute(
+                "SELECT COUNT(*) FROM export_events"
+            ).fetchone()[0]
+            latest_project_updated_at_row = connection.execute(
+                "SELECT MAX(updated_at) AS updated_at FROM projects"
+            ).fetchone()
+
+        return {
+            "db_path": str(self.db_path),
+            "db_exists": self.db_path.exists(),
+            "projects_total": projects_total,
+            "analysis_runs_total": analysis_runs_total,
+            "export_events_total": export_events_total,
+            "latest_project_updated_at": (
+                latest_project_updated_at_row["updated_at"]
+                if latest_project_updated_at_row is not None
+                else None
+            ),
+        }
+
     def delete_project(self, project_id: str) -> bool:
         with self._connect() as connection:
             cursor = connection.execute(

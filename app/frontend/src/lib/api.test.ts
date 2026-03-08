@@ -9,6 +9,7 @@ import {
   loadProjectRequest,
   recordProjectAnalysisRequest,
   recordProjectExportRequest,
+  requestDiagnostics,
   requestHealth,
   requestAnalysis,
   saveProjectRequest
@@ -129,6 +130,46 @@ describe("frontend api wrapper", () => {
 
     expect(result.service).toBe("AB Test Research Designer API");
     expect(result.environment).toBe("local");
+  });
+
+  it("loads backend diagnostics", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      jsonResponse({
+        status: "ok",
+        generated_at: "2026-03-08T14:00:00Z",
+        started_at: "2026-03-08T13:30:00Z",
+        uptime_seconds: 1800,
+        environment: "local",
+        app_version: "0.1.0",
+        request_timing_headers_enabled: true,
+        storage: {
+          db_path: "D:/AB_TEST/app/backend/data/projects.sqlite3",
+          db_exists: true,
+          projects_total: 2,
+          analysis_runs_total: 3,
+          export_events_total: 1,
+          latest_project_updated_at: "2026-03-08T13:55:00Z"
+        },
+        frontend: {
+          serve_frontend_dist: true,
+          dist_path: "D:/AB_TEST/app/frontend/dist",
+          dist_exists: true
+        },
+        llm: {
+          provider: "local_orchestrator",
+          base_url: "http://localhost:8001",
+          timeout_seconds: 60,
+          max_attempts: 3,
+          initial_backoff_seconds: 0.1,
+          backoff_multiplier: 2
+        }
+      })
+    );
+
+    const result = await requestDiagnostics();
+
+    expect(result.storage.projects_total).toBe(2);
+    expect(result.request_timing_headers_enabled).toBe(true);
   });
 
   it("throws the backend detail when save project fails", async () => {
@@ -328,7 +369,10 @@ describe("frontend api wrapper", () => {
           warning_codes: ["SEASONALITY_PRESENT"],
           risk_highlights: ["tracking quality"],
           assumptions: ["Baseline is stable"],
-          advice_available: false
+          advice_available: false,
+          executive_summary: "Checkout baseline summary",
+          warning_severity: "medium",
+          recommendation_highlights: ["Verify tracking", "Watch SRM"]
         },
         candidate_project: {
           id: "cand-1",
@@ -346,7 +390,10 @@ describe("frontend api wrapper", () => {
           warning_codes: ["LONG_DURATION", "LOW_TRAFFIC"],
           risk_highlights: ["tracking quality"],
           assumptions: ["Baseline is stable"],
-          advice_available: false
+          advice_available: false,
+          executive_summary: "Checkout challenger summary",
+          warning_severity: "high",
+          recommendation_highlights: ["Validate traffic quality", "Watch SRM"]
         },
         deltas: {
           sample_size_per_variant: 40,
@@ -357,6 +404,17 @@ describe("frontend api wrapper", () => {
         shared_warning_codes: [],
         base_only_warning_codes: ["SEASONALITY_PRESENT"],
         candidate_only_warning_codes: ["LONG_DURATION", "LOW_TRAFFIC"],
+        shared_assumptions: ["Baseline is stable"],
+        base_only_assumptions: [],
+        candidate_only_assumptions: [],
+        shared_risk_highlights: ["tracking quality"],
+        base_only_risk_highlights: [],
+        candidate_only_risk_highlights: [],
+        metric_alignment_note: "Both snapshots evaluate the same primary metric and metric family.",
+        highlights: [
+          "Checkout challenger changes total sample size by +80 and estimated duration by +4 days versus Checkout baseline.",
+          "Both snapshots evaluate the same primary metric and metric family."
+        ],
         summary: "Checkout challenger needs larger total sample size and a longer test window than Checkout baseline."
       })
     );
@@ -366,6 +424,7 @@ describe("frontend api wrapper", () => {
     expect(result.deltas.total_sample_size).toBe(80);
     expect(result.candidate_project.project_name).toBe("Checkout challenger");
     expect(result.base_project.analysis_created_at).toBe("2026-03-07T09:30:00Z");
+    expect(result.metric_alignment_note).toContain("same primary metric");
     expect(String(vi.mocked(fetch).mock.calls[0]?.[0])).toContain(
       "/api/v1/projects/compare?base_id=base-1&candidate_id=cand-1&base_run_id=run-base-old"
     );

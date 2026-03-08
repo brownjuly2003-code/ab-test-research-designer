@@ -11,6 +11,7 @@ vi.mock("./lib/api", () => ({
   loadProjectRequest: vi.fn(),
   recordProjectAnalysisRequest: vi.fn(),
   recordProjectExportRequest: vi.fn(),
+  requestDiagnostics: vi.fn(),
   requestHealth: vi.fn(),
   requestAnalysis: vi.fn(),
   saveProjectRequest: vi.fn()
@@ -27,6 +28,7 @@ import {
   loadProjectRequest,
   recordProjectAnalysisRequest,
   recordProjectExportRequest,
+  requestDiagnostics,
   requestHealth,
   requestAnalysis,
   saveProjectRequest
@@ -166,6 +168,39 @@ function buildProjectHistory(projectId = "p-1") {
   };
 }
 
+function buildDiagnostics() {
+  return {
+    status: "ok",
+    generated_at: "2026-03-08T14:00:00Z",
+    started_at: "2026-03-08T13:30:00Z",
+    uptime_seconds: 1800,
+    environment: "local",
+    app_version: "0.1.0",
+    request_timing_headers_enabled: true,
+    storage: {
+      db_path: "D:/AB_TEST/app/backend/data/projects.sqlite3",
+      db_exists: true,
+      projects_total: 2,
+      analysis_runs_total: 3,
+      export_events_total: 1,
+      latest_project_updated_at: "2026-03-08T13:55:00Z"
+    },
+    frontend: {
+      serve_frontend_dist: true,
+      dist_path: "D:/AB_TEST/app/frontend/dist",
+      dist_exists: true
+    },
+    llm: {
+      provider: "local_orchestrator",
+      base_url: "http://localhost:8001",
+      timeout_seconds: 60,
+      max_attempts: 3,
+      initial_backoff_seconds: 0.1,
+      backoff_multiplier: 2
+    }
+  };
+}
+
 function buildProjectComparison() {
   return {
     base_project: {
@@ -184,7 +219,10 @@ function buildProjectComparison() {
       warning_codes: ["SEASONALITY_PRESENT"],
       risk_highlights: ["tracking quality"],
       assumptions: ["Baseline is stable"],
-      advice_available: false
+      advice_available: false,
+      executive_summary: "Stored checkout summary",
+      warning_severity: "medium",
+      recommendation_highlights: ["Verify tracking", "Watch SRM"]
     },
     candidate_project: {
       id: "p-2",
@@ -202,7 +240,10 @@ function buildProjectComparison() {
       warning_codes: ["LONG_DURATION", "LOW_TRAFFIC"],
       risk_highlights: ["tracking quality"],
       assumptions: ["Baseline is stable"],
-      advice_available: false
+      advice_available: false,
+      executive_summary: "Pricing challenger summary",
+      warning_severity: "high",
+      recommendation_highlights: ["Validate traffic quality", "Watch SRM"]
     },
     deltas: {
       sample_size_per_variant: 40,
@@ -213,6 +254,17 @@ function buildProjectComparison() {
     shared_warning_codes: [],
     base_only_warning_codes: ["SEASONALITY_PRESENT"],
     candidate_only_warning_codes: ["LONG_DURATION", "LOW_TRAFFIC"],
+    shared_assumptions: ["Baseline is stable"],
+    base_only_assumptions: [],
+    candidate_only_assumptions: [],
+    shared_risk_highlights: ["tracking quality"],
+    base_only_risk_highlights: [],
+    candidate_only_risk_highlights: [],
+    metric_alignment_note: "Both snapshots evaluate the same primary metric and metric family.",
+    highlights: [
+      "Pricing challenger changes total sample size by +60 and estimated duration by +3 days versus Stored checkout test.",
+      "Both snapshots evaluate the same primary metric and metric family."
+    ],
     summary: "Pricing challenger needs larger total sample size and a longer test window than Stored checkout test."
   };
 }
@@ -244,6 +296,7 @@ describe("App UI flow", () => {
     vi.mocked(loadProjectRequest).mockReset();
     vi.mocked(recordProjectAnalysisRequest).mockReset();
     vi.mocked(recordProjectExportRequest).mockReset();
+    vi.mocked(requestDiagnostics).mockResolvedValue(buildDiagnostics());
     vi.mocked(requestHealth).mockResolvedValue({
       status: "ok",
       service: "AB Test Research Designer API",
@@ -295,6 +348,9 @@ describe("App UI flow", () => {
       expect(view.container.textContent).toContain("Backend status");
       expect(view.container.textContent).toContain("API online");
       expect(view.container.textContent).toContain("AB Test Research Designer API");
+      expect(view.container.textContent).toContain("Runtime diagnostics");
+      expect(view.container.textContent).toContain("Storage:");
+      expect(view.container.textContent).toContain("Timing headers:");
       expect(view.container.textContent).toContain("Stored checkout test");
 
       await click(findButton(view.container, "Stored checkout test"));
@@ -446,6 +502,8 @@ describe("App UI flow", () => {
       expect(view.container.textContent).toContain("Saved snapshot comparison");
       expect(view.container.textContent).toContain("Pricing challenger");
       expect(view.container.textContent).toContain("Candidate only: LONG_DURATION, LOW_TRAFFIC");
+      expect(view.container.textContent).toContain("Assumptions overlap");
+      expect(view.container.textContent).toContain("Recommendation highlights");
     } finally {
       await view.unmount();
     }
@@ -524,6 +582,20 @@ describe("App UI flow", () => {
 
       expect(view.container.textContent).toContain("Backend status");
       expect(view.container.textContent).toContain("API unavailable. fetch failed");
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("shows backend diagnostics errors when the diagnostics endpoint is unavailable", async () => {
+    vi.mocked(requestDiagnostics).mockRejectedValueOnce(new Error("diagnostics failed"));
+
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+
+      expect(view.container.textContent).toContain("Runtime diagnostics");
+      expect(view.container.textContent).toContain("Diagnostics unavailable. diagnostics failed");
     } finally {
       await view.unmount();
     }

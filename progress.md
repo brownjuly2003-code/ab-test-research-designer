@@ -185,6 +185,9 @@ Post-phase cleanup completed
 - archived root `recommendations*.md` audit files into a dedicated archive folder after the checklist was applied
 - turned the Node-side Playwright smoke spec into a real `npm run test:e2e` path with a dedicated backend launcher and CI browser step
 - added extra backend boundary regressions for invalid variant uplift, invalid audience share, invalid baseline mean, and invalid traffic weights
+- added `GET /api/v1/diagnostics` for runtime visibility into SQLite state, frontend-dist serving, LLM adapter settings, and uptime
+- added request-level `X-Request-ID` and `X-Process-Time-Ms` headers for lightweight local observability
+- expanded saved-project comparison output with executive summaries, warning severity, overlap sections, recommendation highlights, and frontend rendering for those deltas
 
 ---
 

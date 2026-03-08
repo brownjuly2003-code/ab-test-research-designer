@@ -1,11 +1,13 @@
 from pathlib import Path
 import sys
+import uuid
 
 from fastapi.testclient import TestClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
 import app.backend.app.main as main_module
+from app.backend.app.config import get_settings
 from app.backend.app.main import create_app
 from app.backend.app.llm.adapter import LocalOrchestratorAdapter
 
@@ -88,6 +90,8 @@ def test_calculate_endpoint_returns_deterministic_payload() -> None:
     assert response.status_code == 200
     assert response.json()["calculation_summary"]["metric_type"] == "binary"
     assert response.json()["bonferroni_note"] is None
+    assert response.headers["x-request-id"]
+    assert float(response.headers["x-process-time-ms"]) >= 0
 
 
 def test_calculate_endpoint_surfaces_bonferroni_note_for_multivariant_design() -> None:
@@ -260,3 +264,30 @@ def test_design_endpoint_returns_internal_error_for_unexpected_exception(monkeyp
 
     assert response.status_code == 500
     assert response.json()["detail"] == "Internal server error"
+
+
+def test_diagnostics_endpoint_returns_runtime_summary(monkeypatch) -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+
+    monkeypatch.setenv("AB_DB_PATH", str(db_path))
+    monkeypatch.setenv("AB_ENV", "test")
+    monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")
+    get_settings.cache_clear()
+
+    with TestClient(create_app()) as client:
+        response = client.get("/api/v1/diagnostics")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "ok"
+    assert payload["environment"] == "test"
+    assert payload["request_timing_headers_enabled"] is True
+    assert payload["storage"]["db_path"] == str(db_path)
+    assert payload["storage"]["projects_total"] == 0
+    assert payload["frontend"]["serve_frontend_dist"] is False
+    assert payload["llm"]["provider"] == "local_orchestrator"
+    assert response.headers["x-request-id"]
+    assert float(response.headers["x-process-time-ms"]) >= 0
+    get_settings.cache_clear()
