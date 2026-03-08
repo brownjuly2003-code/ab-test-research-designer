@@ -30,6 +30,9 @@ ROUTE_EXAMPLES = {
     "/api/v1/projects/{project_id}/history": (
         'curl "http://127.0.0.1:8008/api/v1/projects/PROJECT_ID/history?analysis_limit=5&export_limit=5"'
     ),
+    "/api/v1/projects/{project_id}/revisions": (
+        'curl "http://127.0.0.1:8008/api/v1/projects/PROJECT_ID/revisions?limit=5"'
+    ),
     "/api/v1/projects/compare": (
         'curl "http://127.0.0.1:8008/api/v1/projects/compare?base_id=BASE&candidate_id=CANDIDATE"'
     ),
@@ -71,7 +74,12 @@ def classify_route(path: str) -> str:
         return "Deterministic analysis"
     if path in {"/api/v1/projects", "/api/v1/projects/{project_id}"}:
         return "Project storage"
-    if path in {"/api/v1/projects/{project_id}/history", "/api/v1/projects/{project_id}/analysis", "/api/v1/projects/{project_id}/exports"}:
+    if path in {
+        "/api/v1/projects/{project_id}/history",
+        "/api/v1/projects/{project_id}/revisions",
+        "/api/v1/projects/{project_id}/analysis",
+        "/api/v1/projects/{project_id}/exports",
+    }:
         return "Project activity"
     if path == "/api/v1/projects/compare":
         return "Comparison"

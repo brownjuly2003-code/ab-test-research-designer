@@ -116,6 +116,14 @@ Get Project History
 curl "http://127.0.0.1:8008/api/v1/projects/PROJECT_ID/history?analysis_limit=5&export_limit=5"
 ```
 
+### `GET /api/v1/projects/{project_id}/revisions`
+
+Get Project Revisions
+
+```bash
+curl "http://127.0.0.1:8008/api/v1/projects/PROJECT_ID/revisions?limit=5"
+```
+
 ## Comparison
 
 ### `GET /api/v1/projects/compare`

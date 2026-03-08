@@ -45,6 +45,8 @@ def test_repository_migrates_legacy_projects_table() -> None:
 
     assert project is not None
     assert project["payload_schema_version"] == 1
+    assert project["revision_count"] == 1
+    assert project["last_revision_at"] == "2026-03-07T10:00:00+00:00"
     assert project["last_analysis_at"] is None
     assert project["last_exported_at"] is None
     assert project["has_analysis_snapshot"] is False
@@ -171,6 +173,49 @@ def test_repository_records_analysis_and_export_history() -> None:
     assert history["analysis_runs"][0]["summary"]["warnings_count"] == 1
     assert history["export_events"][0]["format"] == "markdown"
     assert history["export_events"][0]["analysis_run_id"] is None
+
+
+def test_repository_records_project_revisions_for_create_update_and_history() -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+    repository = ProjectRepository(str(db_path))
+    project = repository.create_project(
+        {
+            "project": {"project_name": "Checkout redesign"},
+            "hypothesis": {"change_description": "Simplify flow"},
+            "setup": {"variants_count": 2},
+            "metrics": {"metric_type": "binary"},
+            "constraints": {},
+            "additional_context": {},
+        }
+    )
+
+    updated_project = repository.update_project(
+        project["id"],
+        {
+            "project": {"project_name": "Checkout redesign v2"},
+            "hypothesis": {"change_description": "Simplify flow further"},
+            "setup": {"variants_count": 2},
+            "metrics": {"metric_type": "binary"},
+            "constraints": {},
+            "additional_context": {},
+        },
+    )
+    revisions = repository.get_project_revisions(project["id"], limit=10, offset=0)
+
+    assert updated_project is not None
+    assert updated_project["revision_count"] == 2
+    assert updated_project["last_revision_at"] is not None
+    assert revisions is not None
+    assert revisions["project_id"] == project["id"]
+    assert revisions["total"] == 2
+    assert revisions["limit"] == 10
+    assert revisions["offset"] == 0
+    assert revisions["revisions"][0]["source"] == "update"
+    assert revisions["revisions"][0]["payload"]["project"]["project_name"] == "Checkout redesign v2"
+    assert revisions["revisions"][1]["source"] == "create"
+    assert revisions["revisions"][1]["payload"]["project"]["project_name"] == "Checkout redesign"
 
 
 def test_repository_returns_latest_and_specific_analysis_runs_and_clamps_history_limits() -> None:
@@ -314,6 +359,7 @@ def test_repository_can_export_and_import_workspace_bundle() -> None:
     assert len(bundle["projects"]) == 1
     assert len(bundle["analysis_runs"]) == 1
     assert len(bundle["export_events"]) == 1
+    assert len(bundle["project_revisions"]) == 1
 
     target_repository = ProjectRepository(str(target_db_path))
     import_summary = target_repository.import_workspace(bundle)
@@ -324,10 +370,12 @@ def test_repository_can_export_and_import_workspace_bundle() -> None:
         "imported_projects": 1,
         "imported_analysis_runs": 1,
         "imported_export_events": 1,
+        "imported_project_revisions": 1,
     }
     assert len(imported_projects) == 1
     assert imported_projects[0]["project_name"] == "Checkout redesign"
     assert imported_projects[0]["id"] != project["id"]
+    assert imported_projects[0]["revision_count"] == 1
 
     imported_project = target_repository.get_project(imported_projects[0]["id"])
     assert imported_project is not None
@@ -339,3 +387,8 @@ def test_repository_can_export_and_import_workspace_bundle() -> None:
     assert history["analysis_total"] == 1
     assert history["export_total"] == 1
     assert history["export_events"][0]["analysis_run_id"] == imported_project["last_analysis_run_id"]
+
+    revisions = target_repository.get_project_revisions(imported_project["id"])
+    assert revisions is not None
+    assert revisions["total"] == 1
+    assert revisions["revisions"][0]["source"] == "create"

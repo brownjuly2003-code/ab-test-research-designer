@@ -44,6 +44,8 @@ The current stack:
 - quota-specific browser draft autosave warnings instead of a single generic storage failure message
 - backend performance regression coverage with deterministic latency thresholds
 - runnable Playwright E2E coverage with a backend-served frontend launcher and CI browser execution
+- workspace backup/import extended to preserve saved project revisions
+- saved-project revision history exposed through API and UI restore flow
 
 ### Product polish
 
@@ -58,6 +60,7 @@ The current stack:
 - smoke automation now verifies `docs/demo/sample-project.json` import before refreshing README screenshots
 - GitHub Actions verification covers contracts, backend tests, frontend checks, benchmark assertion, and Docker startup
 - backend boundary tests now explicitly cover invalid variant-rate uplifts, invalid audience shares, invalid baseline means, and invalid traffic weights
+- runbook and release checklist docs now exist for handoff and repeatable local operations
 
 ## Verification baseline
 

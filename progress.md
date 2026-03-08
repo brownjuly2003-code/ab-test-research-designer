@@ -191,6 +191,9 @@ Post-phase cleanup completed
 - added `GET /readyz` to distinguish runtime readiness from basic health checks
 - added workspace export/import routes, repository support, and sidebar actions for full project/history backup and restore
 - added config validation for malformed env values and extended CI verification to Windows plus generated API docs
+- added saved-project revision history across create, update, and workspace import flows
+- added `GET /api/v1/projects/{project_id}/revisions` plus frontend restore of older payload revisions into the wizard
+- added `docs/RUNBOOK.md` and `docs/RELEASE_CHECKLIST.md` for local operations and release hygiene
 
 ---
 

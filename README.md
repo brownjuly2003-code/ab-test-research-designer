@@ -44,8 +44,9 @@ runs analysis, and exports a report:
 - deterministic report with design, metrics plan, risks, and recommendations
 - optional AI advice kept separate from the hard-math output
 - local project save, load, update, delete, compare, history, and export flows
+- saved-project revision history with payload restore into the wizard
 - richer snapshot comparison with assumption/risk overlap and recommendation highlights
-- full workspace export/import for project, analysis, and export-history backup
+- full workspace export/import for project, analysis, export-history, and revision backup
 - browser draft restore/autosave plus JSON draft import/export
 
 ## Local setup
@@ -152,7 +153,9 @@ Active docs:
 2. [docs/ARCHITECTURE.md](/D:/AB_TEST/docs/ARCHITECTURE.md)
 3. [docs/API.md](/D:/AB_TEST/docs/API.md)
 4. [docs/RULES.md](/D:/AB_TEST/docs/RULES.md)
-5. [CHANGELOG.md](/D:/AB_TEST/CHANGELOG.md)
+5. [docs/RUNBOOK.md](/D:/AB_TEST/docs/RUNBOOK.md)
+6. [docs/RELEASE_CHECKLIST.md](/D:/AB_TEST/docs/RELEASE_CHECKLIST.md)
+7. [CHANGELOG.md](/D:/AB_TEST/CHANGELOG.md)
 
 Archived planning/setup files live under `archive/`.
 
@@ -168,3 +171,4 @@ Archived planning/setup files live under `archive/`.
 - API responses now include `X-Request-ID` and `X-Process-Time-Ms` headers for lightweight local observability
 - `GET /readyz` gives a simple readiness view over storage, frontend-dist serving, and runtime config
 - workspace backup/import now works from the UI and through `GET /api/v1/workspace/export` plus `POST /api/v1/workspace/import`
+- saved projects now retain revision history and can restore older payload snapshots from the UI

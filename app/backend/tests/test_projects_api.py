@@ -163,6 +163,8 @@ def test_projects_crud_flow(monkeypatch) -> None:
         assert create_response.status_code == 200
         created = create_response.json()
         assert created["payload_schema_version"] == 1
+        assert created["revision_count"] == 1
+        assert created["last_revision_at"] is not None
         assert created["last_analysis_at"] is None
         assert created["last_analysis_run_id"] is None
         assert created["last_exported_at"] is None
@@ -172,6 +174,7 @@ def test_projects_crud_flow(monkeypatch) -> None:
         assert list_response.status_code == 200
         assert len(list_response.json()["projects"]) == 1
         assert list_response.json()["projects"][0]["payload_schema_version"] == 1
+        assert list_response.json()["projects"][0]["revision_count"] == 1
 
         get_response = client.get(f"/api/v1/projects/{created['id']}")
         assert get_response.status_code == 200
@@ -183,6 +186,18 @@ def test_projects_crud_flow(monkeypatch) -> None:
         )
         assert update_response.status_code == 200
         assert update_response.json()["payload"]["project"]["project_name"] == "Checkout redesign v2"
+        assert update_response.json()["revision_count"] == 2
+
+        revisions_response = client.get(f"/api/v1/projects/{created['id']}/revisions")
+        assert revisions_response.status_code == 200
+        revisions_payload = revisions_response.json()
+        assert revisions_payload["project_id"] == created["id"]
+        assert revisions_payload["total"] == 2
+        assert revisions_payload["limit"] == 20
+        assert revisions_payload["offset"] == 0
+        assert revisions_payload["revisions"][0]["source"] == "update"
+        assert revisions_payload["revisions"][0]["payload"]["project"]["project_name"] == "Checkout redesign v2"
+        assert revisions_payload["revisions"][1]["source"] == "create"
 
         analysis_response = client.post(
             f"/api/v1/projects/{created['id']}/analysis",
@@ -433,6 +448,7 @@ def test_workspace_export_and_import_routes_round_trip_history(monkeypatch) -> N
         assert len(workspace_bundle["projects"]) == 1
         assert len(workspace_bundle["analysis_runs"]) == 1
         assert len(workspace_bundle["export_events"]) == 1
+        assert len(workspace_bundle["project_revisions"]) == 1
 
         workspace_import = client.post("/api/v1/workspace/import", json=workspace_bundle)
         assert workspace_import.status_code == 200
@@ -442,6 +458,7 @@ def test_workspace_export_and_import_routes_round_trip_history(monkeypatch) -> N
             "imported_projects": 1,
             "imported_analysis_runs": 1,
             "imported_export_events": 1,
+            "imported_project_revisions": 1,
         }
 
         listed_projects = client.get("/api/v1/projects")
@@ -449,3 +466,4 @@ def test_workspace_export_and_import_routes_round_trip_history(monkeypatch) -> N
         projects = listed_projects.json()["projects"]
         assert len(projects) == 2
         assert sum(1 for project in projects if project["project_name"] == "Workspace source") == 2
+        assert all(project["revision_count"] == 1 for project in projects)

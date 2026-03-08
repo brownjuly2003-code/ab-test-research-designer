@@ -2,6 +2,7 @@ import {
   apiUrl,
   type ProjectHistory,
   type ProjectComparison,
+  type ProjectRevisionHistory,
   type ApiHealthResponse,
   type ApiDiagnosticsResponse,
   type WorkspaceBundle,
@@ -34,6 +35,10 @@ export type ProjectHistoryRequestOptions = {
   analysisOffset?: number;
   exportLimit?: number;
   exportOffset?: number;
+};
+export type ProjectRevisionRequestOptions = {
+  limit?: number;
+  offset?: number;
 };
 
 async function readJson<T>(response: Response): Promise<T> {
@@ -179,6 +184,32 @@ export async function loadProjectHistoryRequest(
 
   if (!response.ok) {
     throw new Error(getErrorMessage(data, "Project history load failed"));
+  }
+
+  return data;
+}
+
+export async function loadProjectRevisionsRequest(
+  projectId: string,
+  options: ProjectRevisionRequestOptions = {}
+): Promise<ProjectRevisionHistory> {
+  const params = new URLSearchParams();
+
+  if (typeof options.limit === "number") {
+    params.set("limit", String(options.limit));
+  }
+  if (typeof options.offset === "number") {
+    params.set("offset", String(options.offset));
+  }
+
+  const path = params.size > 0
+    ? `/api/v1/projects/${projectId}/revisions?${params.toString()}`
+    : `/api/v1/projects/${projectId}/revisions`;
+  const response = await fetch(apiUrl(path));
+  const data = await readJson<ProjectRevisionHistory & ApiErrorResponse>(response);
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(data, "Project revision history load failed"));
   }
 
   return data;

@@ -237,6 +237,14 @@ class ExportEventRecord(BaseModel):
     created_at: str
 
 
+class ProjectRevisionRecord(BaseModel):
+    id: str
+    project_id: str
+    source: Literal["create", "update", "workspace_import"]
+    created_at: str
+    payload: ExperimentInput
+
+
 class ProjectHistoryResponse(BaseModel):
     project_id: str
     analysis_total: int
@@ -247,6 +255,14 @@ class ProjectHistoryResponse(BaseModel):
     export_offset: int
     analysis_runs: list[AnalysisRunRecord]
     export_events: list[ExportEventRecord]
+
+
+class ProjectRevisionHistoryResponse(BaseModel):
+    project_id: str
+    total: int
+    limit: int
+    offset: int
+    revisions: list[ProjectRevisionRecord]
 
 
 class ProjectComparisonItem(BaseModel):
@@ -302,6 +318,7 @@ class DiagnosticsStorageSummary(BaseModel):
     projects_total: int
     analysis_runs_total: int
     export_events_total: int
+    project_revisions_total: int
     latest_project_updated_at: str | None = None
 
 
@@ -372,12 +389,21 @@ class WorkspaceExportEventRecord(BaseModel):
     created_at: str
 
 
+class WorkspaceProjectRevisionRecord(BaseModel):
+    id: str
+    project_id: str
+    source: Literal["create", "update", "workspace_import"]
+    created_at: str
+    payload: ExperimentInput
+
+
 class WorkspaceBundle(BaseModel):
     schema_version: int = 1
     generated_at: str
     projects: list[WorkspaceProjectRecord]
     analysis_runs: list[WorkspaceAnalysisRunRecord]
     export_events: list[WorkspaceExportEventRecord]
+    project_revisions: list[WorkspaceProjectRevisionRecord] = Field(default_factory=list)
 
 
 class WorkspaceImportResponse(BaseModel):
@@ -385,12 +411,15 @@ class WorkspaceImportResponse(BaseModel):
     imported_projects: int
     imported_analysis_runs: int
     imported_export_events: int
+    imported_project_revisions: int = 0
 
 
 class ProjectRecord(BaseModel):
     id: str
     project_name: str
     payload_schema_version: int
+    revision_count: int = 0
+    last_revision_at: str | None = None
     last_analysis_at: str | None = None
     last_analysis_run_id: str | None = None
     last_exported_at: str | None = None
@@ -404,6 +433,8 @@ class ProjectListItem(BaseModel):
     id: str
     project_name: str
     payload_schema_version: int
+    revision_count: int = 0
+    last_revision_at: str | None = None
     last_analysis_at: str | None = None
     last_analysis_run_id: str | None = None
     last_exported_at: str | None = None
@@ -440,6 +471,7 @@ __all__ = [
     "ExportResponse",
     "ProjectComparisonResponse",
     "ProjectHistoryResponse",
+    "ProjectRevisionHistoryResponse",
     "LlmAdviceRequest",
     "LlmAdviceResponse",
     "ProjectDeleteResponse",

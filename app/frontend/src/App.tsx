@@ -165,7 +165,8 @@ export default function App() {
       analysis.setStatusMessage(
         `Imported workspace backup: ${String(result.imported_projects)} project(s), ` +
         `${String(result.imported_analysis_runs)} analysis run(s), ` +
-        `${String(result.imported_export_events)} export event(s).`
+        `${String(result.imported_export_events)} export event(s), ` +
+        `${String(result.imported_project_revisions ?? 0)} revision(s).`
       );
     } catch (requestError) {
       analysis.setError(requestError instanceof Error ? requestError.message : "Unexpected workspace import error");
@@ -272,6 +273,7 @@ export default function App() {
       }
       if (savedProjectId) {
         await projectManager.refreshProjectHistory(savedProjectId, true);
+        await projectManager.refreshProjectRevisions(savedProjectId, true);
       }
       projectManager.clearProjectComparison();
       analysis.setStatusMessage(saveStatus);
@@ -390,6 +392,24 @@ export default function App() {
     analysis.setError("");
   }
 
+  function loadProjectRevision(revisionId: string) {
+    const revision = projectManager.projectRevisions?.revisions.find((item) => item.id === revisionId);
+    if (!revision) {
+      analysis.setError("Saved revision not found.");
+      return;
+    }
+
+    setForm(hydrateLoadedPayload(revision.payload));
+    projectManager.setSelectedHistoryRunId(null);
+    projectManager.clearProjectComparison();
+    analysis.resetAnalysisState();
+    analysis.setStatusMessage(
+      `Loaded ${revision.source.replace("_", " ")} revision from ${revision.created_at}. Save the project to persist it as the latest local version.`
+    );
+    analysis.setError("");
+    setStep(0);
+  }
+
   return (
     <>
       <input
@@ -475,8 +495,11 @@ export default function App() {
               activeProjectId={projectManager.activeProjectId}
               activeProject={projectManager.activeProject}
               projectHistory={projectManager.projectHistory}
+              projectRevisions={projectManager.projectRevisions}
               projectHistoryError={projectManager.projectHistoryError}
+              projectRevisionsError={projectManager.projectRevisionsError}
               loadingProjectHistory={projectManager.loadingProjectHistory}
+              loadingProjectRevisions={projectManager.loadingProjectRevisions}
               selectedHistoryRunId={projectManager.selectedHistoryRunId}
               projectComparison={projectManager.projectComparison}
               projectComparisonError={projectManager.projectComparisonError}
@@ -488,6 +511,9 @@ export default function App() {
               onRefreshProjectHistory={(projectId) => {
                 void projectManager.refreshProjectHistory(projectId);
               }}
+              onRefreshProjectRevisions={(projectId) => {
+                void projectManager.refreshProjectRevisions(projectId);
+              }}
               onLoadMoreAnalysisHistory={(projectId) => {
                 void projectManager.refreshProjectHistory(projectId, false, {
                   analysisLimit: projectManager.projectHistoryWindow.analysisLimit + 5
@@ -498,7 +524,13 @@ export default function App() {
                   exportLimit: projectManager.projectHistoryWindow.exportLimit + 5
                 });
               }}
+              onLoadMoreProjectRevisions={(projectId) => {
+                void projectManager.refreshProjectRevisions(projectId, false, {
+                  limit: projectManager.projectRevisionWindow.limit + 5
+                });
+              }}
               onOpenHistoryRun={openHistoryRun}
+              onLoadProjectRevision={loadProjectRevision}
               onClearHistoryRunSelection={clearHistoryRunSelection}
               onCompareProject={(projectId) => {
                 void projectManager.compareProject(projectId).then((message) => {

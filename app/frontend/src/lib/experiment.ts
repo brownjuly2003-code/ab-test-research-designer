@@ -13,6 +13,8 @@ import type {
   ProjectHistoryResponse as ApiProjectHistoryResponse,
   ProjectListItem as ApiProjectListItem,
   ProjectRecord as ApiProjectRecord,
+  ProjectRevisionHistoryResponse as ApiProjectRevisionHistoryResponse,
+  ProjectRevisionRecord as ApiProjectRevisionRecord,
   WorkspaceBundle_Input as ApiWorkspaceBundleInput,
   WorkspaceBundle_Output as ApiWorkspaceBundleOutput,
   WorkspaceImportResponse as ApiWorkspaceImportResponse
@@ -74,13 +76,21 @@ export type AdvicePayload = NonNullable<ApiLlmAdviceResponse["advice"]>;
 export type AdviceResponse = ApiLlmAdviceResponse;
 export type ProjectActivityMeta = Pick<
   ApiProjectRecord,
-  "payload_schema_version" | "last_analysis_at" | "last_analysis_run_id" | "last_exported_at" | "has_analysis_snapshot"
+  | "payload_schema_version"
+  | "revision_count"
+  | "last_revision_at"
+  | "last_analysis_at"
+  | "last_analysis_run_id"
+  | "last_exported_at"
+  | "has_analysis_snapshot"
 >;
 export type AnalysisRunSummary = ApiAnalysisRunRecord["summary"];
 export type ProjectAnalysisRun = ApiAnalysisRunRecord;
 export type ProjectExportEvent = ApiExportEventRecord;
 export type ProjectComparison = ApiProjectComparisonResponse;
 export type ProjectHistory = ApiProjectHistoryResponse;
+export type ProjectRevisionHistory = ApiProjectRevisionHistoryResponse;
+export type ProjectRevision = ApiProjectRevisionRecord;
 export type ApiHealthResponse = ApiHealthResponseContract;
 export type ApiDiagnosticsResponse = ApiDiagnosticsResponseContract;
 export type WorkspaceBundleInput = ApiWorkspaceBundleInput;
@@ -387,9 +397,14 @@ export function parseImportedDraft(raw: string): FullPayload {
   return hydrateLoadedPayload(normalizeImportedPayload(directPayload));
 }
 
-export function hydrateLoadedPayload(payload: LoadedPayload | ExperimentInputPayload): FullPayload {
+export function hydrateLoadedPayload(
+  payload: LoadedPayload | ExperimentInputPayload | ApiExperimentInput
+): FullPayload {
+  const additionalContext = payload.additional_context ?? { llm_context: "" };
+
   return {
     ...payload,
+    additional_context: additionalContext,
     setup: {
       ...payload.setup,
       traffic_split: Array.isArray(payload.setup.traffic_split)

@@ -5,6 +5,7 @@ import type {
   ApiHealthResponse,
   ProjectComparison,
   ProjectHistory,
+  ProjectRevisionHistory,
   SavedProject
 } from "../lib/experiment";
 import Icon from "./Icon";
@@ -25,8 +26,11 @@ type SidebarPanelProps = {
   activeProjectId: string | null;
   activeProject: SavedProject | null;
   projectHistory: ProjectHistory | null;
+  projectRevisions: ProjectRevisionHistory | null;
   projectHistoryError: string;
+  projectRevisionsError: string;
   loadingProjectHistory: boolean;
+  loadingProjectRevisions: boolean;
   selectedHistoryRunId: string | null;
   projectComparison: ProjectComparison | null;
   projectComparisonError: string;
@@ -36,9 +40,12 @@ type SidebarPanelProps = {
   onRefreshHealth: () => void;
   onRefreshDiagnostics: () => void;
   onRefreshProjectHistory: (projectId: string) => void;
+  onRefreshProjectRevisions: (projectId: string) => void;
   onLoadMoreAnalysisHistory: (projectId: string) => void;
   onLoadMoreExportHistory: (projectId: string) => void;
+  onLoadMoreProjectRevisions: (projectId: string) => void;
   onOpenHistoryRun: (runId: string) => void;
+  onLoadProjectRevision: (revisionId: string) => void;
   onClearHistoryRunSelection: () => void;
   onCompareProject: (projectId: string) => void;
   onLoadProjects: () => void;
@@ -84,6 +91,13 @@ function formatUptime(seconds: number): string {
   return `${hours}h ${remainingMinutes}m`;
 }
 
+function formatRevisionSource(source: string): string {
+  if (source === "workspace_import") {
+    return "Imported workspace snapshot";
+  }
+  return source === "update" ? "Project update" : "Initial save";
+}
+
 const SidebarPanel = memo(function SidebarPanel({
   loadingHealth,
   loadingDiagnostics,
@@ -99,8 +113,11 @@ const SidebarPanel = memo(function SidebarPanel({
   activeProjectId,
   activeProject,
   projectHistory,
+  projectRevisions,
   projectHistoryError,
+  projectRevisionsError,
   loadingProjectHistory,
+  loadingProjectRevisions,
   selectedHistoryRunId,
   projectComparison,
   projectComparisonError,
@@ -110,9 +127,12 @@ const SidebarPanel = memo(function SidebarPanel({
   onRefreshHealth,
   onRefreshDiagnostics,
   onRefreshProjectHistory,
+  onRefreshProjectRevisions,
   onLoadMoreAnalysisHistory,
   onLoadMoreExportHistory,
+  onLoadMoreProjectRevisions,
   onOpenHistoryRun,
+  onLoadProjectRevision,
   onClearHistoryRunSelection,
   onCompareProject,
   onLoadProjects,
@@ -133,6 +153,9 @@ const SidebarPanel = memo(function SidebarPanel({
   );
   const hasMoreExportHistory = Boolean(
     projectHistory && projectHistory.export_events.length < projectHistory.export_total
+  );
+  const hasMoreProjectRevisions = Boolean(
+    projectRevisions && projectRevisions.revisions.length < projectRevisions.total
   );
 
   return (
@@ -205,7 +228,8 @@ const SidebarPanel = memo(function SidebarPanel({
               <li>
                 <strong>Storage:</strong> {String(backendDiagnostics.storage.projects_total)} projects,{" "}
                 {String(backendDiagnostics.storage.analysis_runs_total)} analysis runs,{" "}
-                {String(backendDiagnostics.storage.export_events_total)} export events
+                {String(backendDiagnostics.storage.export_events_total)} export events,{" "}
+                {String(backendDiagnostics.storage.project_revisions_total)} revisions
               </li>
               <li>
                 <strong>Latest project update:</strong> {formatOptionalTimestamp(backendDiagnostics.storage.latest_project_updated_at)}
@@ -251,6 +275,12 @@ const SidebarPanel = memo(function SidebarPanel({
               </li>
               <li>
                 <strong>Payload schema:</strong> {String(activeProject?.payload_schema_version ?? 1)}
+              </li>
+              <li>
+                <strong>Saved revisions:</strong> {String(activeProject?.revision_count ?? 0)}
+              </li>
+              <li>
+                <strong>Last save:</strong> {formatOptionalTimestamp(activeProject?.last_revision_at)}
               </li>
               <li>
                 <strong>Last analysis:</strong> {formatOptionalTimestamp(activeProject?.last_analysis_at)}
@@ -382,6 +412,77 @@ const SidebarPanel = memo(function SidebarPanel({
       <div className="card">
         <div className="section-heading">
           <div>
+            <h3>Saved revisions</h3>
+            <p className="muted compact-text">
+              Payload snapshots captured on create, update, and workspace import. Loading a revision keeps the current project selected but marks the wizard as changed until you save.
+            </p>
+          </div>
+          <button
+            className="btn ghost"
+            disabled={loadingProjectRevisions || !activeProjectId}
+            onClick={() => {
+              if (activeProjectId) {
+                onRefreshProjectRevisions(activeProjectId);
+              }
+            }}
+          >
+            {loadingProjectRevisions ? "Refreshing..." : "Refresh revisions"}
+          </button>
+        </div>
+        {!activeProjectId ? (
+          <p className="muted">Load a saved project to inspect or restore earlier payload revisions.</p>
+        ) : projectRevisionsError ? (
+          <div className="status">Project revisions unavailable. {projectRevisionsError}</div>
+        ) : loadingProjectRevisions && !projectRevisions ? (
+          <p className="muted">Loading saved revisions...</p>
+        ) : projectRevisions ? (
+          <>
+            <p className="muted">
+              Showing {projectRevisions.revisions.length} of {projectRevisions.total} revision(s).
+            </p>
+            <div className="timeline-card">
+              <div className="timeline-list">
+                {projectRevisions.revisions.length > 0 ? (
+                  projectRevisions.revisions.map((revision) => (
+                    <div key={revision.id} className="timeline-item">
+                      <div className="timeline-title">
+                        <strong>{formatProjectTimestamp(revision.created_at)}</strong>
+                      </div>
+                      <div className="muted">
+                        {formatRevisionSource(revision.source)}
+                        {" | "}
+                        {revision.payload.project.project_name}
+                      </div>
+                      <div className="actions">
+                        <button className="btn secondary" onClick={() => onLoadProjectRevision(revision.id)}>
+                          Load into wizard
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="timeline-item">
+                    <div>No saved revisions recorded yet.</div>
+                  </div>
+                )}
+              </div>
+              {hasMoreProjectRevisions && activeProjectId ? (
+                <div className="actions">
+                  <button className="btn ghost" onClick={() => onLoadMoreProjectRevisions(activeProjectId)}>
+                    Load older revisions
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          </>
+        ) : (
+          <p className="muted">No project revisions loaded yet.</p>
+        )}
+      </div>
+
+      <div className="card">
+        <div className="section-heading">
+          <div>
             <h3>Saved projects</h3>
             <p className="muted compact-text">Load, compare, and delete SQLite-backed drafts from the local workspace.</p>
           </div>
@@ -439,9 +540,12 @@ const SidebarPanel = memo(function SidebarPanel({
                   <div className="meta">
                     <div className="muted">
                       Updated {formatProjectTimestamp(project.updated_at)}
+                      {project.last_revision_at ? ` | Saved ${formatProjectTimestamp(project.last_revision_at)}` : ""}
                       {project.last_analysis_at ? ` | Analyzed ${formatProjectTimestamp(project.last_analysis_at)}` : ""}
                     </div>
                     <div className="muted">
+                      {`Revisions ${String(project.revision_count ?? 0)}`}
+                      {" | "}
                       {project.last_exported_at ? `Exported ${formatProjectTimestamp(project.last_exported_at)}` : "No exports yet"}
                       {project.id === activeProjectId ? " | Loaded in wizard" : ""}
                     </div>
@@ -483,7 +587,7 @@ const SidebarPanel = memo(function SidebarPanel({
           <div>
             <h3>Workspace backup</h3>
             <p className="muted compact-text">
-              Export or import the full SQLite workspace, including saved projects, analysis history, and export events.
+              Export or import the full SQLite workspace, including saved projects, analysis history, export events, and saved revisions.
             </p>
           </div>
         </div>
@@ -509,6 +613,7 @@ const SidebarPanel = memo(function SidebarPanel({
           <li><code>POST /api/v1/projects/{'{id}'}/exports</code></li>
           <li><code>GET /api/v1/projects/compare</code></li>
           <li><code>GET /api/v1/projects/{'{id}'}/history</code></li>
+          <li><code>GET /api/v1/projects/{'{id}'}/revisions</code></li>
           <li><code>GET/POST/PUT/DELETE /api/v1/projects</code></li>
         </ul>
       </div>

@@ -29,6 +29,7 @@ from app.backend.app.schemas.api import (
     ProjectHistoryResponse,
     ProjectListResponse,
     ProjectRecord,
+    ProjectRevisionHistoryResponse,
     ReadinessCheck,
     ReadinessResponse,
     WorkspaceBundle,
@@ -343,6 +344,17 @@ def create_app() -> FastAPI:
         if history is None:
             raise HTTPException(status_code=404, detail="Project not found")
         return ProjectHistoryResponse.model_validate(history)
+
+    @app.get("/api/v1/projects/{project_id}/revisions", response_model=ProjectRevisionHistoryResponse)
+    def get_project_revisions(
+        project_id: str,
+        limit: int = Query(default=20, ge=1, le=100),
+        offset: int = Query(default=0, ge=0),
+    ) -> ProjectRevisionHistoryResponse:
+        revisions = repository.get_project_revisions(project_id, limit=limit, offset=offset)
+        if revisions is None:
+            raise HTTPException(status_code=404, detail="Project not found")
+        return ProjectRevisionHistoryResponse.model_validate(revisions)
 
     @app.post("/api/v1/projects/{project_id}/analysis", response_model=ProjectRecord)
     def record_project_analysis(project_id: str, payload: AnalysisResponse) -> ProjectRecord:

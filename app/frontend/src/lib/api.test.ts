@@ -8,6 +8,7 @@ import {
   importWorkspaceRequest,
   listProjectsRequest,
   loadProjectHistoryRequest,
+  loadProjectRevisionsRequest,
   loadProjectRequest,
   recordProjectAnalysisRequest,
   recordProjectExportRequest,
@@ -126,6 +127,15 @@ function buildWorkspaceBundle() {
         format: "markdown" as const,
         created_at: "2026-03-09T00:25:00Z"
       }
+    ],
+    project_revisions: [
+      {
+        id: "rev-1",
+        project_id: "project-1",
+        source: "create" as const,
+        created_at: "2026-03-09T00:10:00Z",
+        payload: buildApiPayload(cloneInitialState())
+      }
     ]
   };
 }
@@ -216,6 +226,7 @@ describe("frontend api wrapper", () => {
           projects_total: 2,
           analysis_runs_total: 3,
           export_events_total: 1,
+          project_revisions_total: 2,
           latest_project_updated_at: "2026-03-08T13:55:00Z"
         },
         frontend: {
@@ -247,6 +258,7 @@ describe("frontend api wrapper", () => {
 
     expect(result.projects).toHaveLength(1);
     expect(result.analysis_runs[0]?.id).toBe("run-1");
+    expect(result.project_revisions?.[0]?.id).toBe("rev-1");
   });
 
   it("imports the full workspace bundle", async () => {
@@ -255,7 +267,8 @@ describe("frontend api wrapper", () => {
         status: "imported",
         imported_projects: 1,
         imported_analysis_runs: 1,
-        imported_export_events: 1
+        imported_export_events: 1,
+        imported_project_revisions: 1
       })
     );
 
@@ -263,6 +276,7 @@ describe("frontend api wrapper", () => {
 
     expect(result.imported_projects).toBe(1);
     expect(result.imported_export_events).toBe(1);
+    expect(result.imported_project_revisions).toBe(1);
   });
 
   it("throws the backend detail when save project fails", async () => {
@@ -441,6 +455,40 @@ describe("frontend api wrapper", () => {
     expect(String(vi.mocked(fetch).mock.calls[0]?.[0])).toContain(
       "/api/v1/projects/1/history?analysis_limit=3&export_limit=3"
     );
+  });
+
+  it("loads saved project revisions", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      jsonResponse({
+        project_id: "1",
+        total: 2,
+        limit: 3,
+        offset: 0,
+        revisions: [
+          {
+            id: "rev-2",
+            project_id: "1",
+            source: "update",
+            created_at: "2026-03-07T12:10:00Z",
+            payload: buildApiPayload(cloneInitialState())
+          },
+          {
+            id: "rev-1",
+            project_id: "1",
+            source: "create",
+            created_at: "2026-03-07T10:00:00Z",
+            payload: buildApiPayload(cloneInitialState())
+          }
+        ]
+      })
+    );
+
+    const result = await loadProjectRevisionsRequest("1", { limit: 3 });
+
+    expect(result.project_id).toBe("1");
+    expect(result.total).toBe(2);
+    expect(result.revisions[0]?.source).toBe("update");
+    expect(String(vi.mocked(fetch).mock.calls[0]?.[0])).toContain("/api/v1/projects/1/revisions?limit=3");
   });
 
   it("loads a comparison between saved projects", async () => {

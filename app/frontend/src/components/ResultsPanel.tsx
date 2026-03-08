@@ -325,6 +325,11 @@ const ResultsPanel = memo(function ResultsPanel({
                     <strong>Saved project</strong>
                     <div>{activeProject.project_name}</div>
                     <p className="muted">
+                      {String(activeProject.revision_count ?? 0)} revision(s)
+                      {" | "}
+                      last save {activeProject.last_revision_at ? formatResultTimestamp(activeProject.last_revision_at) : "not recorded"}
+                    </p>
+                    <p className="muted">
                       {projectHistory?.analysis_runs.length ?? 0} of {projectHistory?.analysis_total ?? 0} analysis run(s)
                       {" | "}
                       {projectHistory?.export_events.length ?? 0} of {projectHistory?.export_total ?? 0} export event(s)

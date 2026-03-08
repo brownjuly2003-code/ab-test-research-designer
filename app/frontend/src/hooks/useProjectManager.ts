@@ -5,10 +5,12 @@ import {
   deleteProjectRequest,
   listProjectsRequest,
   loadProjectHistoryRequest,
+  loadProjectRevisionsRequest,
   loadProjectRequest,
   requestDiagnostics,
   requestHealth,
   type ProjectHistoryRequestOptions,
+  type ProjectRevisionRequestOptions,
   type ProjectRecordResponse
 } from "../lib/api";
 import type {
@@ -17,6 +19,7 @@ import type {
   ProjectAnalysisRun,
   ProjectComparison,
   ProjectHistory,
+  ProjectRevisionHistory,
   SavedProject
 } from "../lib/experiment";
 
@@ -25,16 +28,22 @@ export const initialProjectHistoryWindow = {
   exportLimit: 3
 };
 
+export const initialProjectRevisionWindow = {
+  limit: 3
+};
+
 function toSavedProject(project: {
-  id?: string;
-  project_name?: string;
-  created_at?: string;
-  updated_at?: string;
-  payload_schema_version?: number;
-  last_analysis_at?: string | null;
-  last_analysis_run_id?: string | null;
-  last_exported_at?: string | null;
-  has_analysis_snapshot?: boolean;
+    id?: string;
+    project_name?: string;
+    created_at?: string;
+    updated_at?: string;
+    payload_schema_version?: number;
+    revision_count?: number;
+    last_revision_at?: string | null;
+    last_analysis_at?: string | null;
+    last_analysis_run_id?: string | null;
+    last_exported_at?: string | null;
+    has_analysis_snapshot?: boolean;
 }): SavedProject | null {
   if (
     typeof project.id !== "string" ||
@@ -51,6 +60,8 @@ function toSavedProject(project: {
     created_at: project.created_at,
     updated_at: project.updated_at,
     payload_schema_version: project.payload_schema_version ?? 1,
+    revision_count: project.revision_count ?? 0,
+    last_revision_at: project.last_revision_at ?? null,
     last_analysis_at: project.last_analysis_at ?? null,
     last_analysis_run_id: project.last_analysis_run_id ?? null,
     last_exported_at: project.last_exported_at ?? null,
@@ -74,6 +85,10 @@ export function useProjectManager(serializedForm: string) {
   const [projectHistoryError, setProjectHistoryError] = useState("");
   const [loadingProjectHistory, setLoadingProjectHistory] = useState(false);
   const [projectHistoryWindow, setProjectHistoryWindow] = useState(initialProjectHistoryWindow);
+  const [projectRevisions, setProjectRevisions] = useState<ProjectRevisionHistory | null>(null);
+  const [projectRevisionsError, setProjectRevisionsError] = useState("");
+  const [loadingProjectRevisions, setLoadingProjectRevisions] = useState(false);
+  const [projectRevisionWindow, setProjectRevisionWindow] = useState(initialProjectRevisionWindow);
   const [selectedHistoryRunId, setSelectedHistoryRunId] = useState<string | null>(null);
   const [projectComparison, setProjectComparison] = useState<ProjectComparison | null>(null);
   const [projectComparisonError, setProjectComparisonError] = useState("");
@@ -119,6 +134,10 @@ export function useProjectManager(serializedForm: string) {
     setProjectHistoryWindow(initialProjectHistoryWindow);
     setProjectHistoryError("");
     setLoadingProjectHistory(false);
+    setProjectRevisions(null);
+    setProjectRevisionWindow(initialProjectRevisionWindow);
+    setProjectRevisionsError("");
+    setLoadingProjectRevisions(false);
     setSelectedHistoryRunId(null);
     clearProjectComparison();
   }
@@ -199,6 +218,41 @@ export function useProjectManager(serializedForm: string) {
     }
   }
 
+  async function refreshProjectRevisions(
+    projectId: string,
+    silent = false,
+    overrides?: Partial<typeof initialProjectRevisionWindow>,
+    options?: Pick<ProjectRevisionRequestOptions, "offset">
+  ) {
+    const nextWindow = {
+      limit: overrides?.limit ?? projectRevisionWindow.limit
+    };
+
+    if (overrides) {
+      setProjectRevisionWindow(nextWindow);
+    }
+    if (!silent) {
+      setLoadingProjectRevisions(true);
+    }
+    setProjectRevisionsError("");
+
+    try {
+      setProjectRevisions(
+        await loadProjectRevisionsRequest(projectId, {
+          limit: nextWindow.limit,
+          offset: options?.offset
+        })
+      );
+    } catch (requestError) {
+      setProjectRevisions(null);
+      setProjectRevisionsError(requestError instanceof Error ? requestError.message : "Unexpected project revision error");
+    } finally {
+      if (!silent) {
+        setLoadingProjectRevisions(false);
+      }
+    }
+  }
+
   async function compareProject(candidateProjectId: string) {
     if (!activeProjectId) {
       return;
@@ -239,12 +293,16 @@ export function useProjectManager(serializedForm: string) {
     setProjectHistory(null);
     setProjectHistoryWindow(initialProjectHistoryWindow);
     setProjectHistoryError("");
+    setProjectRevisions(null);
+    setProjectRevisionWindow(initialProjectRevisionWindow);
+    setProjectRevisionsError("");
     setSelectedHistoryRunId(null);
     clearProjectComparison();
     if (savedProject) {
       upsertSavedProject(savedProject);
     }
     await refreshProjectHistory(resolvedProjectId, false, initialProjectHistoryWindow);
+    await refreshProjectRevisions(resolvedProjectId, false, initialProjectRevisionWindow);
 
     return data;
   }
@@ -329,6 +387,10 @@ export function useProjectManager(serializedForm: string) {
     projectHistoryError,
     loadingProjectHistory,
     projectHistoryWindow,
+    projectRevisions,
+    projectRevisionsError,
+    loadingProjectRevisions,
+    projectRevisionWindow,
     selectedHistoryRunId,
     selectedHistoryRun,
     projectComparison,
@@ -344,6 +406,10 @@ export function useProjectManager(serializedForm: string) {
     setProjectHistoryError,
     setLoadingProjectHistory,
     setProjectHistoryWindow,
+    setProjectRevisions,
+    setProjectRevisionsError,
+    setLoadingProjectRevisions,
+    setProjectRevisionWindow,
     setSelectedHistoryRunId,
     upsertSavedProject,
     clearProjectComparison,
@@ -352,6 +418,7 @@ export function useProjectManager(serializedForm: string) {
     loadBackendDiagnostics,
     loadProjects,
     refreshProjectHistory,
+    refreshProjectRevisions,
     compareProject,
     loadProject,
     syncPersistedProject,

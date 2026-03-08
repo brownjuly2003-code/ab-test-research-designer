@@ -286,6 +286,7 @@ def test_diagnostics_endpoint_returns_runtime_summary(monkeypatch) -> None:
     assert payload["request_timing_headers_enabled"] is True
     assert payload["storage"]["db_path"] == str(db_path)
     assert payload["storage"]["projects_total"] == 0
+    assert payload["storage"]["project_revisions_total"] == 0
     assert payload["frontend"]["serve_frontend_dist"] is False
     assert payload["llm"]["provider"] == "local_orchestrator"
     assert response.headers["x-request-id"]

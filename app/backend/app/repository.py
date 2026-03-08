@@ -8,15 +8,25 @@ import uuid
 class ProjectRepository:
     payload_schema_version = 1
     project_select_columns = """
-        id,
-        project_name,
-        payload_json,
-        payload_schema_version,
-        last_analysis_at,
-        last_analysis_run_id,
-        last_exported_at,
-        created_at,
-        updated_at
+        projects.id,
+        projects.project_name,
+        projects.payload_json,
+        projects.payload_schema_version,
+        projects.last_analysis_at,
+        projects.last_analysis_run_id,
+        projects.last_exported_at,
+        (
+            SELECT COUNT(*)
+            FROM project_revisions
+            WHERE project_revisions.project_id = projects.id
+        ) AS revision_count,
+        (
+            SELECT MAX(created_at)
+            FROM project_revisions
+            WHERE project_revisions.project_id = projects.id
+        ) AS last_revision_at,
+        projects.created_at,
+        projects.updated_at
     """
 
     def __init__(self, db_path: str) -> None:
@@ -97,6 +107,24 @@ class ProjectRepository:
             ON export_events (project_id, created_at DESC)
             """
         )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS project_revisions (
+                id TEXT PRIMARY KEY,
+                project_id TEXT NOT NULL,
+                payload_json TEXT NOT NULL,
+                source TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_project_revisions_project_created
+            ON project_revisions (project_id, created_at DESC)
+            """
+        )
 
     @staticmethod
     def _migrate_db(connection: sqlite3.Connection) -> None:
@@ -120,6 +148,7 @@ class ProjectRepository:
 
         ProjectRepository._create_history_tables(connection)
         ProjectRepository._backfill_analysis_runs(connection)
+        ProjectRepository._backfill_project_revisions(connection)
 
     @staticmethod
     def _backfill_analysis_runs(connection: sqlite3.Connection) -> None:
@@ -163,6 +192,34 @@ class ProjectRepository:
                 )
 
     @staticmethod
+    def _backfill_project_revisions(connection: sqlite3.Connection) -> None:
+        rows = connection.execute(
+            """
+            SELECT id, payload_json, created_at
+            FROM projects
+            WHERE id NOT IN (
+                SELECT project_id
+                FROM project_revisions
+            )
+            """
+        ).fetchall()
+
+        for row in rows:
+            connection.execute(
+                """
+                INSERT INTO project_revisions (id, project_id, payload_json, source, created_at)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (
+                    str(uuid.uuid4()),
+                    row["id"],
+                    row["payload_json"],
+                    "create",
+                    row["created_at"],
+                ),
+            )
+
+    @staticmethod
     def _build_analysis_summary(analysis_payload: dict) -> dict:
         calculations = analysis_payload.get("calculations", {})
         calculation_summary = calculations.get("calculation_summary", {})
@@ -194,6 +251,41 @@ class ProjectRepository:
     def _export_row_to_record(row: sqlite3.Row) -> dict:
         return dict(row)
 
+    @staticmethod
+    def _revision_row_to_record(row: sqlite3.Row) -> dict:
+        return {
+            "id": row["id"],
+            "project_id": row["project_id"],
+            "source": row["source"],
+            "created_at": row["created_at"],
+            "payload": json.loads(row["payload_json"]),
+        }
+
+    @staticmethod
+    def _create_revision(
+        connection: sqlite3.Connection,
+        project_id: str,
+        payload: dict,
+        source: str,
+        created_at: str,
+        revision_id: str | None = None,
+    ) -> str:
+        resolved_revision_id = revision_id or str(uuid.uuid4())
+        connection.execute(
+            """
+            INSERT INTO project_revisions (id, project_id, payload_json, source, created_at)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                resolved_revision_id,
+                project_id,
+                json.dumps(payload),
+                source,
+                created_at,
+            ),
+        )
+        return resolved_revision_id
+
     def _get_project_row(self, connection: sqlite3.Connection, project_id: str) -> sqlite3.Row | None:
         return connection.execute(
             f"""
@@ -217,17 +309,27 @@ class ProjectRepository:
             rows = connection.execute(
                 """
                 SELECT
-                    id,
-                    project_name,
-                    payload_schema_version,
-                    last_analysis_at,
-                    last_analysis_run_id,
-                    last_exported_at,
-                    CASE WHEN last_analysis_run_id IS NOT NULL THEN 1 ELSE 0 END AS has_analysis_snapshot,
-                    created_at,
-                    updated_at
+                    projects.id,
+                    projects.project_name,
+                    projects.payload_schema_version,
+                    (
+                        SELECT COUNT(*)
+                        FROM project_revisions
+                        WHERE project_revisions.project_id = projects.id
+                    ) AS revision_count,
+                    (
+                        SELECT MAX(created_at)
+                        FROM project_revisions
+                        WHERE project_revisions.project_id = projects.id
+                    ) AS last_revision_at,
+                    projects.last_analysis_at,
+                    projects.last_analysis_run_id,
+                    projects.last_exported_at,
+                    CASE WHEN projects.last_analysis_run_id IS NOT NULL THEN 1 ELSE 0 END AS has_analysis_snapshot,
+                    projects.created_at,
+                    projects.updated_at
                 FROM projects
-                ORDER BY updated_at DESC
+                ORDER BY projects.updated_at DESC
                 """
             ).fetchall()
         return [dict(row) for row in rows]
@@ -259,6 +361,7 @@ class ProjectRepository:
                     timestamp,
                 ),
             )
+            self._create_revision(connection, project_id, payload, "create", timestamp)
 
         return self.get_project(project_id)
 
@@ -290,6 +393,8 @@ class ProjectRepository:
                     project_id,
                 ),
             )
+            if cursor.rowcount > 0:
+                self._create_revision(connection, project_id, payload, "update", timestamp)
 
         if cursor.rowcount == 0:
             return None
@@ -447,6 +552,52 @@ class ProjectRepository:
             "export_events": [self._export_row_to_record(row) for row in export_rows],
         }
 
+    def get_project_revisions(
+        self,
+        project_id: str,
+        *,
+        limit: int = 20,
+        offset: int = 0,
+    ) -> dict | None:
+        limit = self._normalize_history_limit(limit)
+        offset = self._normalize_history_offset(offset)
+
+        with self._connect() as connection:
+            project_row = connection.execute(
+                "SELECT 1 FROM projects WHERE id = ?",
+                (project_id,),
+            ).fetchone()
+            if project_row is None:
+                return None
+
+            total = connection.execute(
+                """
+                SELECT COUNT(*)
+                FROM project_revisions
+                WHERE project_id = ?
+                """,
+                (project_id,),
+            ).fetchone()[0]
+            revision_rows = connection.execute(
+                """
+                SELECT id, project_id, payload_json, source, created_at
+                FROM project_revisions
+                WHERE project_id = ?
+                ORDER BY created_at DESC, id DESC
+                LIMIT ?
+                OFFSET ?
+                """,
+                (project_id, limit, offset),
+            ).fetchall()
+
+        return {
+            "project_id": project_id,
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+            "revisions": [self._revision_row_to_record(row) for row in revision_rows],
+        }
+
     def get_analysis_run(self, project_id: str, analysis_run_id: str) -> dict | None:
         with self._connect() as connection:
             row = connection.execute(
@@ -492,6 +643,9 @@ class ProjectRepository:
             export_events_total = connection.execute(
                 "SELECT COUNT(*) FROM export_events"
             ).fetchone()[0]
+            project_revisions_total = connection.execute(
+                "SELECT COUNT(*) FROM project_revisions"
+            ).fetchone()[0]
             latest_project_updated_at_row = connection.execute(
                 "SELECT MAX(updated_at) AS updated_at FROM projects"
             ).fetchone()
@@ -502,6 +656,7 @@ class ProjectRepository:
             "projects_total": projects_total,
             "analysis_runs_total": analysis_runs_total,
             "export_events_total": export_events_total,
+            "project_revisions_total": project_revisions_total,
             "latest_project_updated_at": (
                 latest_project_updated_at_row["updated_at"]
                 if latest_project_updated_at_row is not None
@@ -532,6 +687,13 @@ class ProjectRepository:
                 ORDER BY created_at ASC, id ASC
                 """
             ).fetchall()
+            revision_rows = connection.execute(
+                """
+                SELECT id, project_id, payload_json, source, created_at
+                FROM project_revisions
+                ORDER BY created_at ASC, id ASC
+                """
+            ).fetchall()
 
         return {
             "schema_version": 1,
@@ -539,12 +701,14 @@ class ProjectRepository:
             "projects": [self._row_to_project(row) for row in project_rows],
             "analysis_runs": [self._analysis_row_to_record(row) for row in analysis_rows],
             "export_events": [self._export_row_to_record(row) for row in export_rows],
+            "project_revisions": [self._revision_row_to_record(row) for row in revision_rows],
         }
 
     def import_workspace(self, bundle: dict) -> dict:
         imported_projects = bundle.get("projects", [])
         imported_analysis_runs = bundle.get("analysis_runs", [])
         imported_export_events = bundle.get("export_events", [])
+        imported_project_revisions = bundle.get("project_revisions", [])
 
         project_id_map = {
             project["id"]: str(uuid.uuid4())
@@ -554,6 +718,15 @@ class ProjectRepository:
             analysis_run["id"]: str(uuid.uuid4())
             for analysis_run in imported_analysis_runs
         }
+        revision_id_map = {
+            revision["id"]: str(uuid.uuid4())
+            for revision in imported_project_revisions
+        }
+        projects_with_imported_revisions = {
+            revision["project_id"]
+            for revision in imported_project_revisions
+        }
+        imported_revision_count = 0
 
         with self._connect() as connection:
             for project in imported_projects:
@@ -585,6 +758,15 @@ class ProjectRepository:
                         project["updated_at"],
                     ),
                 )
+                if old_project_id not in projects_with_imported_revisions:
+                    self._create_revision(
+                        connection,
+                        project_id_map[old_project_id],
+                        project["payload"],
+                        "workspace_import",
+                        project.get("updated_at") or project["created_at"],
+                    )
+                    imported_revision_count += 1
 
             for analysis_run in imported_analysis_runs:
                 new_project_id = project_id_map.get(analysis_run["project_id"])
@@ -625,11 +807,26 @@ class ProjectRepository:
                     ),
                 )
 
+            for revision in imported_project_revisions:
+                new_project_id = project_id_map.get(revision["project_id"])
+                if new_project_id is None:
+                    raise ValueError("Workspace bundle references an unknown project in project_revisions")
+                self._create_revision(
+                    connection,
+                    new_project_id,
+                    revision["payload"],
+                    revision["source"],
+                    revision["created_at"],
+                    revision_id=revision_id_map[revision["id"]],
+                )
+                imported_revision_count += 1
+
         return {
             "status": "imported",
             "imported_projects": len(imported_projects),
             "imported_analysis_runs": len(imported_analysis_runs),
             "imported_export_events": len(imported_export_events),
+            "imported_project_revisions": imported_revision_count,
         }
 
     def delete_project(self, project_id: str) -> bool:

@@ -10,6 +10,7 @@ vi.mock("./lib/api", () => ({
   importWorkspaceRequest: vi.fn(),
   listProjectsRequest: vi.fn(),
   loadProjectHistoryRequest: vi.fn(),
+  loadProjectRevisionsRequest: vi.fn(),
   loadProjectRequest: vi.fn(),
   recordProjectAnalysisRequest: vi.fn(),
   recordProjectExportRequest: vi.fn(),
@@ -29,6 +30,7 @@ import {
   importWorkspaceRequest,
   listProjectsRequest,
   loadProjectHistoryRequest,
+  loadProjectRevisionsRequest,
   loadProjectRequest,
   recordProjectAnalysisRequest,
   recordProjectExportRequest,
@@ -172,6 +174,37 @@ function buildProjectHistory(projectId = "p-1") {
   };
 }
 
+function buildProjectRevisions(projectId = "p-1") {
+  return {
+    project_id: projectId,
+    total: 2,
+    limit: 3,
+    offset: 0,
+    revisions: [
+      {
+        id: "rev-2",
+        project_id: projectId,
+        source: "update" as const,
+        created_at: "2026-03-07T12:10:00Z",
+        payload: buildApiPayload({
+          ...buildLoadedPayload(),
+          project: {
+            ...buildLoadedPayload().project,
+            project_name: "Loaded experiment v2"
+          }
+        })
+      },
+      {
+        id: "rev-1",
+        project_id: projectId,
+        source: "create" as const,
+        created_at: "2026-03-07T10:00:00Z",
+        payload: buildApiPayload(buildLoadedPayload())
+      }
+    ]
+  };
+}
+
 function buildDiagnostics() {
   return {
     status: "ok",
@@ -187,6 +220,7 @@ function buildDiagnostics() {
       projects_total: 2,
       analysis_runs_total: 3,
       export_events_total: 1,
+      project_revisions_total: 2,
       latest_project_updated_at: "2026-03-08T13:55:00Z"
     },
     frontend: {
@@ -306,6 +340,15 @@ function buildWorkspaceBundle() {
         format: "markdown" as const,
         created_at: "2026-03-09T00:25:00Z"
       }
+    ],
+    project_revisions: [
+      {
+        id: "rev-1",
+        project_id: "project-1",
+        source: "create" as const,
+        created_at: "2026-03-09T00:10:00Z",
+        payload: buildApiPayload(cloneInitialState())
+      }
     ]
   };
 }
@@ -336,6 +379,14 @@ describe("App UI flow", () => {
       analysis_runs: [],
       export_events: []
     });
+    vi.mocked(loadProjectRevisionsRequest).mockReset();
+    vi.mocked(loadProjectRevisionsRequest).mockResolvedValue({
+      project_id: "p-1",
+      total: 0,
+      limit: 3,
+      offset: 0,
+      revisions: []
+    });
     vi.mocked(loadProjectRequest).mockReset();
     vi.mocked(recordProjectAnalysisRequest).mockReset();
     vi.mocked(recordProjectExportRequest).mockReset();
@@ -363,6 +414,8 @@ describe("App UI flow", () => {
         id: "p-1",
         project_name: "Stored checkout test",
         payload_schema_version: 1,
+        revision_count: 2,
+        last_revision_at: "2026-03-07T10:15:00Z",
         last_analysis_at: null,
         last_exported_at: null,
         has_analysis_snapshot: false,
@@ -374,6 +427,8 @@ describe("App UI flow", () => {
       id: "p-1",
       project_name: "Stored checkout test",
       payload_schema_version: 1,
+      revision_count: 2,
+      last_revision_at: "2026-03-07T10:15:00Z",
       last_analysis_at: "2026-03-07T10:30:00Z",
       last_analysis_run_id: "run-1",
       last_exported_at: "2026-03-07T11:00:00Z",
@@ -383,6 +438,7 @@ describe("App UI flow", () => {
       payload: buildApiPayload(buildLoadedPayload())
     });
     vi.mocked(loadProjectHistoryRequest).mockResolvedValueOnce(buildProjectHistory("p-1"));
+    vi.mocked(loadProjectRevisionsRequest).mockResolvedValueOnce(buildProjectRevisions("p-1"));
 
     const view = await renderIntoDocument(<App />);
     try {
@@ -407,7 +463,9 @@ describe("App UI flow", () => {
       expect(view.container.textContent).toContain("Last analysis:");
       expect(view.container.textContent).toContain("Last export:");
       expect(view.container.textContent).toContain("Snapshot stored:");
+      expect(view.container.textContent).toContain("Saved revisions:");
       expect(view.container.textContent).toContain("Recent project history");
+      expect(view.container.textContent).toContain("Saved revisions");
       expect(view.container.textContent).toContain("Showing 1 of 1 analysis run(s) and 1 of 1 export event(s).");
       expect(view.container.textContent).toContain("linked snapshot");
 
@@ -420,6 +478,62 @@ describe("App UI flow", () => {
       await flushEffects();
 
       expect(view.container.textContent).toContain("Unsaved changes pending local update.");
+      expect(view.container.textContent).toContain("Needs local update");
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("loads saved project revisions and can restore one into the wizard", async () => {
+    vi.mocked(listProjectsRequest).mockResolvedValueOnce([
+      {
+        id: "p-1",
+        project_name: "Stored checkout test",
+        payload_schema_version: 1,
+        revision_count: 2,
+        last_revision_at: "2026-03-07T12:10:00Z",
+        last_analysis_at: null,
+        last_exported_at: null,
+        has_analysis_snapshot: false,
+        created_at: "2026-03-07T10:00:00Z",
+        updated_at: "2026-03-07T12:10:00Z"
+      }
+    ]);
+    vi.mocked(loadProjectRequest).mockResolvedValueOnce({
+      id: "p-1",
+      project_name: "Stored checkout test",
+      payload_schema_version: 1,
+      revision_count: 2,
+      last_revision_at: "2026-03-07T12:10:00Z",
+      last_analysis_at: "2026-03-07T12:30:00Z",
+      last_analysis_run_id: "run-1",
+      last_exported_at: null,
+      has_analysis_snapshot: true,
+      created_at: "2026-03-07T10:00:00Z",
+      updated_at: "2026-03-07T12:10:00Z",
+      payload: buildApiPayload(buildLoadedPayload())
+    });
+    vi.mocked(loadProjectHistoryRequest).mockResolvedValueOnce(buildProjectHistory("p-1"));
+    vi.mocked(loadProjectRevisionsRequest).mockResolvedValueOnce(buildProjectRevisions("p-1"));
+
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+      await click(findButton(view.container, "Stored checkout test"));
+      await flushEffects();
+
+      expect(view.container.textContent).toContain("Showing 2 of 2 revision(s).");
+
+      await click(findButton(view.container, "Load into wizard"));
+      await flushEffects();
+
+      const projectNameInput = view.container.querySelector("#project-project_name");
+      if (!(projectNameInput instanceof HTMLInputElement)) {
+        throw new Error("Project name input was not rendered");
+      }
+
+      expect(projectNameInput.value).toBe("Loaded experiment v2");
+      expect(view.container.textContent).toContain("Loaded update revision");
       expect(view.container.textContent).toContain("Needs local update");
     } finally {
       await view.unmount();
@@ -494,7 +608,8 @@ describe("App UI flow", () => {
       status: "imported",
       imported_projects: 1,
       imported_analysis_runs: 1,
-      imported_export_events: 1
+      imported_export_events: 1,
+      imported_project_revisions: 1
     });
     vi.mocked(listProjectsRequest)
       .mockResolvedValueOnce([])
@@ -530,7 +645,9 @@ describe("App UI flow", () => {
 
       expect(importWorkspaceRequest).toHaveBeenCalledTimes(1);
       expect(listProjectsRequest).toHaveBeenCalledTimes(2);
-      expect(view.container.textContent).toContain("Imported workspace backup: 1 project(s), 1 analysis run(s), 1 export event(s).");
+      expect(view.container.textContent).toContain(
+        "Imported workspace backup: 1 project(s), 1 analysis run(s), 1 export event(s), 1 revision(s)."
+      );
       expect(view.container.textContent).toContain("Imported workspace project");
     } finally {
       await view.unmount();

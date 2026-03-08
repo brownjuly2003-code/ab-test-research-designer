@@ -20,6 +20,8 @@
 - expanded saved-project comparison contracts with executive summaries, warning severity, overlap sections, and comparison highlights
 - added `GET /readyz` for runtime readiness checks with `503` on degraded dependencies
 - added workspace export/import APIs and UI actions for project/history backup and restore
+- added saved-project revision history across create, update, and workspace import flows
+- added `GET /api/v1/projects/{project_id}/revisions` plus frontend restore of older payload revisions
 - added config validation for invalid ports and broken LLM retry/backoff settings
 - expanded CI to also verify the repo on Windows and to check generated API docs
 
@@ -28,6 +30,7 @@
 - added architecture, API, and rules documentation
 - added benchmark script and Docker packaging
 - consolidated docs and demo assets for README-driven walkthroughs
+- added `docs/RUNBOOK.md` and `docs/RELEASE_CHECKLIST.md` for local operations and release hygiene
 - added GitHub Actions verification and refreshed smoke/demo automation around the sample import payload
 - added a runnable Playwright E2E command, backend launcher, CI browser step, and a few extra statistical boundary regressions
 

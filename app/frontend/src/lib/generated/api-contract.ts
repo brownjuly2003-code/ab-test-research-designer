@@ -136,6 +136,7 @@ export type DiagnosticsStorageSummary = {
   projects_total: number;
   analysis_runs_total: number;
   export_events_total: number;
+  project_revisions_total: number;
   latest_project_updated_at?: string | null;
 };
 
@@ -346,6 +347,8 @@ export type ProjectListItem = {
   id: string;
   project_name: string;
   payload_schema_version: number;
+  revision_count?: number;
+  last_revision_at?: string | null;
   last_analysis_at?: string | null;
   last_analysis_run_id?: string | null;
   last_exported_at?: string | null;
@@ -362,12 +365,30 @@ export type ProjectRecord = {
   id: string;
   project_name: string;
   payload_schema_version: number;
+  revision_count?: number;
+  last_revision_at?: string | null;
   last_analysis_at?: string | null;
   last_analysis_run_id?: string | null;
   last_exported_at?: string | null;
   has_analysis_snapshot?: boolean;
   created_at: string;
   updated_at: string;
+  payload: ExperimentInput;
+};
+
+export type ProjectRevisionHistoryResponse = {
+  project_id: string;
+  total: number;
+  limit: number;
+  offset: number;
+  revisions: ProjectRevisionRecord[];
+};
+
+export type ProjectRevisionRecord = {
+  id: string;
+  project_id: string;
+  source: "create" | "update" | "workspace_import";
+  created_at: string;
   payload: ExperimentInput;
 };
 
@@ -436,6 +457,7 @@ export type WorkspaceBundle_Input = {
   projects: WorkspaceProjectRecord_Input[];
   analysis_runs: WorkspaceAnalysisRunRecord_Input[];
   export_events: WorkspaceExportEventRecord[];
+  project_revisions?: WorkspaceProjectRevisionRecord_Input[];
 };
 
 export type WorkspaceBundle_Output = {
@@ -444,6 +466,7 @@ export type WorkspaceBundle_Output = {
   projects: WorkspaceProjectRecord_Output[];
   analysis_runs: WorkspaceAnalysisRunRecord_Output[];
   export_events: WorkspaceExportEventRecord[];
+  project_revisions?: WorkspaceProjectRevisionRecord_Output[];
 };
 
 export type WorkspaceExportEventRecord = {
@@ -459,6 +482,7 @@ export type WorkspaceImportResponse = {
   imported_projects: number;
   imported_analysis_runs: number;
   imported_export_events: number;
+  imported_project_revisions?: number;
 };
 
 export type WorkspaceProjectRecord_Input = {
@@ -482,5 +506,21 @@ export type WorkspaceProjectRecord_Output = {
   last_exported_at?: string | null;
   created_at: string;
   updated_at: string;
+  payload: ExperimentInput;
+};
+
+export type WorkspaceProjectRevisionRecord_Input = {
+  id: string;
+  project_id: string;
+  source: "create" | "update" | "workspace_import";
+  created_at: string;
+  payload: ExperimentInput;
+};
+
+export type WorkspaceProjectRevisionRecord_Output = {
+  id: string;
+  project_id: string;
+  source: "create" | "update" | "workspace_import";
+  created_at: string;
   payload: ExperimentInput;
 };
