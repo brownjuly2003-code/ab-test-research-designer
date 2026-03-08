@@ -50,8 +50,8 @@ def calculate_continuous_sample_size(
             "Two-sample comparison of means with equal-sized variants.",
             "MDE is interpreted as a relative uplift over the baseline mean.",
             (
-                "Bonferroni-adjusted alpha is applied across treatment-vs-control comparisons. "
-                "This is conservative for multi-variant designs."
+                f"Bonferroni-adjusted alpha is {adjusted_alpha:.6g} across {comparison_count} "
+                "treatment-vs-control comparisons. This is conservative for multi-variant designs."
                 if variants_count > 2
                 else "Nominal alpha is used for a single treatment-vs-control comparison."
             ),

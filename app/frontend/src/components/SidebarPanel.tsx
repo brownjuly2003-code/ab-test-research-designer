@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { memo, useState } from "react";
 
 import type { ApiHealthResponse, ProjectComparison, ProjectHistory, SavedProject } from "../lib/experiment";
 
@@ -48,7 +48,7 @@ function formatOptionalTimestamp(timestamp: string | null | undefined): string {
   return timestamp ? formatProjectTimestamp(timestamp) : "Not recorded yet";
 }
 
-export default function SidebarPanel({
+const SidebarPanel = memo(function SidebarPanel({
   loadingHealth,
   loadingProjects,
   deletingProjectId,
@@ -367,4 +367,6 @@ export default function SidebarPanel({
       </div>
     </aside>
   );
-}
+});
+
+export default SidebarPanel;

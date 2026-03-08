@@ -41,9 +41,11 @@ AB_TEST/
         test_projects_api.py
         test_repository.py
         test_rules_engine.py
+        test_stats_edge_cases.py
       requirements.txt
     frontend/
       src/
+        App.css
         App.tsx
         App.test.tsx
         main.tsx
@@ -54,6 +56,10 @@ AB_TEST/
           WizardDraftStep.tsx
           WizardPanel.tsx
           WizardReviewStep.tsx
+        hooks/
+          useAnalysis.ts
+          useDraftPersistence.ts
+          useProjectManager.ts
         lib/
           api.ts
           api.test.ts
@@ -73,37 +79,39 @@ AB_TEST/
       docs/
       generated-test-dbs/
       pytest-cache-files/
+    2026-03-08-recommendations-cleanup/
+      docs/
+      prompts/
+      pytest-cache-files/
+      setup/
+      AGENT_INSTRUCTIONS.md
+      env-example.md
     smoke-runs/
   docs/
-    BUILD_PLAN.md
     DATA_CONTRACTS.md
-    FILE_TREE.md
-    IMPLEMENTATION_SPEC.md
-    PROJECT_CONTEXT.md
     dev_plan.md
+    FILE_TREE.md
+    HISTORY.md
+    PROJECT_OVERVIEW.md
   exports/
-  prompts/
-    PROMPTS.md
   scripts/
     generate_frontend_api_types.py
     run_local_smoke.py
     verify_all.cmd
     verify_all.ps1
     verify_all.py
-  setup/
-    CLI_SETUP_WINDOWS.md
-    SKILLS_FOR_CLI.md
   tests/
+  .env.example
   .gitignore
-  AGENT_INSTRUCTIONS.md
-  env-example.md
+  pytest.ini
   progress.md
   README.md
+  recommendations.md
+  recommendations1.md
 ```
 
 ## Notes
 
-- `archive/` keeps non-runtime artifacts that were moved out of the working tree instead of being deleted.
-- `archive/smoke-runs/` stores local browser smoke artifacts such as temporary SQLite files, screenshots, and downloaded reports.
-- Generated directories such as `node_modules/`, `dist/`, `__pycache__/`, `.pytest_cache/`, and `app/backend/tests/.tmp/` are ignored by git.
-- The root-level `pytest-cache-files-*` directories were moved into `archive/2026-03-07-workspace-cleanup/pytest-cache-files/` instead of being deleted.
+- `archive/` stores artifacts that were moved out of the active working tree instead of being deleted.
+- `archive/2026-03-08-recommendations-cleanup/` contains the older split docs, setup notes, prompt packs, and the archived environment-template predecessor.
+- `pytest.ini` disables the pytest cache provider so Windows cache-artifact directories do not keep reappearing in the repo root.

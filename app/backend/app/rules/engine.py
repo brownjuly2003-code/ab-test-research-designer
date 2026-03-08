@@ -28,6 +28,9 @@ def evaluate_warnings(payload: dict, results: dict | None = None) -> list[dict]:
         warnings.append(_warning("LOW_TRAFFIC"))
 
     variants_count = payload.get("variants_count", len(payload.get("traffic_split", [])) or 2)
+    if variants_count > 2:
+        warnings.append(_warning("CONSERVATIVE_MULTIVARIANT_ALPHA"))
+
     if effective_daily_traffic and variants_count > 2 and effective_daily_traffic < variants_count * 2000:
         warnings.append(_warning("MANY_VARIANTS_LOW_TRAFFIC"))
 

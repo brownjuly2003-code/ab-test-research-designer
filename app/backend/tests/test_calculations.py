@@ -129,7 +129,11 @@ def test_multivariant_calculation_scales_total_sample_size() -> None:
         result["results"]["sample_size_per_variant"] * 3
     )
     assert any(
-        "Bonferroni-adjusted alpha" in assumption for assumption in result["assumptions"]
+        "Bonferroni-adjusted alpha is" in assumption for assumption in result["assumptions"]
+    )
+    assert any(
+        warning["code"] == "CONSERVATIVE_MULTIVARIANT_ALPHA"
+        for warning in result["warnings"]
     )
 
 

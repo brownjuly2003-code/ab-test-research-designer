@@ -33,6 +33,13 @@ WARNING_CATALOG = {
         "severity": "medium",
         "message": "Requested power is below the usual 0.8 threshold. Risk of false negatives is higher.",
     },
+    "CONSERVATIVE_MULTIVARIANT_ALPHA": {
+        "severity": "medium",
+        "message": (
+            "More than two variants trigger a Bonferroni alpha correction. "
+            "This is conservative and may overstate the required sample size."
+        ),
+    },
     "LONG_TEST_NOT_POSSIBLE": {
         "severity": "high",
         "message": "Expected duration is long, but the project cannot support a long-running test.",

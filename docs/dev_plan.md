@@ -7,8 +7,8 @@ This document records architecture analysis and implementation planning for the
 
 The analysis is based on:
 
-- `docs/BUILD_PLAN.md`
-- `docs/IMPLEMENTATION_SPEC.md`
+- `docs/HISTORY.md`
+- `docs/PROJECT_OVERVIEW.md`
 - the local orchestrator in `D:\Perplexity_Orchestrator2`
 
 ## 1. Local Orchestrator Architecture Summary
@@ -352,7 +352,7 @@ expected by the report generator.
 - What prompt/response format gives the most reliable structured output for
   `FR-10`.
 
-## 6. Development Plan Based on `docs/BUILD_PLAN.md`
+## 6. Development Plan Based on `docs/HISTORY.md`
 
 ### Phase 0 status
 
@@ -503,4 +503,4 @@ To stay aligned with the current project requirements:
 - do not use LLM for any statistical calculations
 - keep orchestrator access behind one adapter boundary
 - treat orchestrator output as optional advisory content
-- prefer small incremental phases exactly as defined in `docs/BUILD_PLAN.md`
+- prefer small incremental phases exactly as defined in `docs/HISTORY.md`

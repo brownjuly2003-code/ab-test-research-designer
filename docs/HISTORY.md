@@ -1,0 +1,62 @@
+# History
+
+## Current state
+
+AB Test Research Designer is a local single-user experiment planning tool.
+
+The current stack:
+
+- FastAPI backend with typed Pydantic contracts
+- React + TypeScript + Vite frontend
+- deterministic stats engine for binary and continuous metrics
+- rules engine for feasibility and risk warnings
+- optional local orchestrator adapter for advisory AI output
+- SQLite project storage with analysis and export history
+
+## Delivery timeline
+
+### Foundation
+
+- backend skeleton, config, health, and typed schemas
+- deterministic calculation endpoints and report generation
+- optional LLM advice endpoint with graceful fallback
+- local project CRUD and Markdown/HTML export
+
+### Product workflow
+
+- combined `POST /api/v1/analyze`
+- saved-project analysis snapshots and export metadata
+- saved-project history and comparison flows
+- browser draft restore/autosave and draft JSON import/export
+- backend-served frontend smoke coverage
+
+### Hardening
+
+- stricter validation for experiment inputs and variant ranges
+- CORS tightened to explicit methods and headers
+- generated frontend API contracts from FastAPI OpenAPI
+- retry/backoff for transient orchestrator failures
+- paginated history metadata and snapshot-based comparison
+- runtime snapshot state normalized around `analysis_runs` and `last_analysis_run_id`
+
+## Verification baseline
+
+The working verification path on Windows is:
+
+```bat
+cmd /c scripts\verify_all.cmd
+```
+
+This runs:
+
+- generated API contract check
+- backend pytest suite
+- frontend typecheck
+- frontend unit tests
+- frontend production build
+- local smoke flow
+
+## Notes
+
+- `progress.md` remains the running changelog for implementation passes.
+- This file replaces the old split between build-plan style notes and current-state history.

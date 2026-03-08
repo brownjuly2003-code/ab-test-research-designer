@@ -168,6 +168,11 @@ Post-phase cleanup completed
 - added frontend opening of historical analysis snapshots without rerunning analysis
 - wired historical snapshot preview into report export and compare flows
 - normalized runtime snapshot metadata to rely on `last_analysis_run_id` and `analysis_runs`, leaving `last_analysis_json` as migration-only legacy data
+- extracted frontend App state orchestration into dedicated `useAnalysis`, `useDraftPersistence`, and `useProjectManager` hooks
+- moved App-level CSS into `app/frontend/src/App.css`
+- surfaced browser localStorage autosave failures in the UI and clear them after a later successful save
+- disabled pytest cache artifacts at the repo level with `pytest.ini`
+- consolidated older split docs, setup notes, prompt pack, and env template into `archive/2026-03-08-recommendations-cleanup/`
 
 ---
 

@@ -1,278 +1,71 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 
+import "./App.css";
 import SidebarPanel from "./components/SidebarPanel";
 import WizardPanel from "./components/WizardPanel";
 import {
-  type AnalysisResponse,
-  compareProjectsRequest,
-  deleteProjectRequest,
   exportReportRequest,
-  listProjectsRequest,
-  loadProjectHistoryRequest,
-  loadProjectRequest,
   recordProjectAnalysisRequest,
   recordProjectExportRequest,
-  requestHealth,
   requestAnalysis,
   saveProjectRequest
 } from "./lib/api";
 import {
   buildApiPayload,
   buildDraftTransferFile,
-  browserDraftStorageKey,
-  type ApiHealthResponse,
   cloneInitialState,
-  type DraftFieldValue,
   type ExportFormat,
   type FullPayload,
-  type FullPayloadSectionKey,
   hydrateLoadedPayload,
-  parseImportedDraft,
-  type ProjectAnalysisRun,
-  type ProjectComparison,
-  type ProjectHistory,
-  type SavedProject,
   setSectionFieldValue,
-  stepLabels,
-  type ResultsState,
-  validateForm
+  stepLabels
 } from "./lib/experiment";
-
-const initialProjectHistoryWindow = {
-  analysisLimit: 3,
-  exportLimit: 3
-};
-
-const styles = `
-  :root {
-    color-scheme: light;
-    --bg: linear-gradient(160deg, #f4efe2 0%, #f8f8f4 45%, #e2ece5 100%);
-    --panel: rgba(255,255,255,0.82);
-    --ink: #183028;
-    --muted: #5c6f67;
-    --line: rgba(24,48,40,0.12);
-    --accent: #0f766e;
-    --accent-soft: #d7f3ee;
-    --warn: #fff1d6;
-    --shadow: 0 20px 50px rgba(33, 52, 45, 0.12);
-    font-family: "Segoe UI", "Trebuchet MS", sans-serif;
-  }
-  * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--ink); }
-  button, input, textarea, select { font: inherit; }
-  .page { min-height: 100vh; padding: 32px 16px 48px; }
-  .shell { max-width: 1200px; margin: 0 auto; display: grid; gap: 20px; }
-  .hero, .panel { background: var(--panel); backdrop-filter: blur(12px); border: 1px solid var(--line); border-radius: 24px; box-shadow: var(--shadow); }
-  .hero { padding: 28px; display: grid; gap: 12px; }
-  .eyebrow { letter-spacing: 0.18em; text-transform: uppercase; font-size: 12px; color: var(--accent); }
-  .hero h1 { margin: 0; font-size: clamp(32px, 4vw, 56px); line-height: 0.95; }
-  .hero p { margin: 0; max-width: 780px; color: var(--muted); }
-  .grid { display: grid; gap: 20px; grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr); }
-  .panel { padding: 24px; }
-  .steps { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
-  .step { padding: 10px 14px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); background: rgba(255,255,255,0.6); }
-  .step.active { background: var(--accent); color: white; border-color: var(--accent); }
-  .step.done { background: var(--accent-soft); color: var(--ink); }
-  .section { display: grid; gap: 14px; }
-  .section h2 { margin: 0; font-size: 22px; }
-  .fields { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
-  .field { display: grid; gap: 6px; }
-  .field.full { grid-column: 1 / -1; }
-  .field label { font-size: 14px; font-weight: 600; }
-  .field input, .field textarea, .field select { width: 100%; border-radius: 14px; border: 1px solid var(--line); padding: 12px 14px; background: rgba(255,255,255,0.9); }
-  .field textarea { min-height: 96px; resize: vertical; }
-  .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; }
-  .btn { border: none; border-radius: 999px; padding: 12px 18px; cursor: pointer; transition: transform .15s ease, opacity .15s ease; }
-  .btn:hover { transform: translateY(-1px); }
-  .btn.primary { background: var(--accent); color: white; }
-  .btn.secondary { background: transparent; border: 1px solid var(--line); color: var(--ink); }
-  .btn.ghost { background: rgba(255,255,255,0.7); color: var(--ink); }
-  .meta { display: grid; gap: 12px; }
-  .note, .status, .card, .result-block { border-radius: 18px; border: 1px solid var(--line); padding: 16px; background: rgba(255,255,255,0.65); }
-  .status { background: var(--warn); }
-  .card h3, .result-block h3 { margin: 0 0 10px; font-size: 18px; }
-  .list { margin: 0; padding-left: 18px; display: grid; gap: 8px; }
-  .results { display: grid; gap: 16px; }
-  .two-col { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
-  .muted { color: var(--muted); }
-  .pill { display: inline-flex; padding: 6px 10px; border-radius: 999px; background: var(--accent-soft); font-size: 12px; font-weight: 700; color: var(--ink); }
-  .error { color: #a12c2c; font-weight: 600; }
-  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } .page { padding: 18px 12px 28px; } }
-`;
+import { useAnalysis } from "./hooks/useAnalysis";
+import { readDraftBootstrap, useDraftPersistence } from "./hooks/useDraftPersistence";
+import { useProjectManager } from "./hooks/useProjectManager";
 
 export default function App() {
-  const [draftBootstrap] = useState(() => {
-    const fallback = { form: cloneInitialState(), restored: false };
-
-    if (typeof window === "undefined") {
-      return fallback;
-    }
-
-    try {
-      const storedDraft = window.localStorage.getItem(browserDraftStorageKey);
-      if (!storedDraft) {
-        return fallback;
-      }
-
-      return {
-        form: parseImportedDraft(storedDraft),
-        restored: true
-      };
-    } catch {
-      try {
-        window.localStorage.removeItem(browserDraftStorageKey);
-      } catch {
-        // Ignore storage cleanup failures and fall back to the built-in initial draft.
-      }
-      return fallback;
-    }
-  });
-  const draftImportRef = useRef<HTMLInputElement | null>(null);
+  const [draftBootstrap] = useState(readDraftBootstrap);
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<FullPayload>(draftBootstrap.form);
-  const [results, setResults] = useState<ResultsState>({});
   const [importingDraft, setImportingDraft] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [loadingHealth, setLoadingHealth] = useState(false);
-  const [loadingProjects, setLoadingProjects] = useState(false);
-  const [deletingProjectId, setDeletingProjectId] = useState<string | null>(null);
-  const [backendHealth, setBackendHealth] = useState<ApiHealthResponse | null>(null);
-  const [healthError, setHealthError] = useState("");
-  const [error, setError] = useState("");
-  const [statusMessage, setStatusMessage] = useState("");
-  const [savedProjects, setSavedProjects] = useState<SavedProject[]>([]);
-  const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
-  const [savedProjectSnapshot, setSavedProjectSnapshot] = useState<string | null>(null);
-  const [projectHistory, setProjectHistory] = useState<ProjectHistory | null>(null);
-  const [projectHistoryError, setProjectHistoryError] = useState("");
-  const [loadingProjectHistory, setLoadingProjectHistory] = useState(false);
-  const [projectHistoryWindow, setProjectHistoryWindow] = useState(initialProjectHistoryWindow);
-  const [selectedHistoryRunId, setSelectedHistoryRunId] = useState<string | null>(null);
-  const [projectComparison, setProjectComparison] = useState<ProjectComparison | null>(null);
-  const [projectComparisonError, setProjectComparisonError] = useState("");
-  const [loadingProjectComparison, setLoadingProjectComparison] = useState(false);
-  const [comparingProjectId, setComparingProjectId] = useState<string | null>(null);
-  const [resultsProjectId, setResultsProjectId] = useState<string | null>(null);
-  const [resultsAnalysisRunId, setResultsAnalysisRunId] = useState<string | null>(null);
-  const [validationErrors, setValidationErrors] = useState<string[]>([]);
-  const lastStepIndex = stepLabels.length - 1;
+  const draftImportRef = useRef<HTMLInputElement | null>(null);
   const serializedForm = JSON.stringify(buildApiPayload(form));
-  const hasUnsavedChanges =
-    activeProjectId !== null && savedProjectSnapshot !== null && savedProjectSnapshot !== serializedForm;
-  const activeProject =
-    activeProjectId !== null
-      ? savedProjects.find((project) => project.id === activeProjectId) ?? null
-      : null;
-  const selectedHistoryRun =
-    selectedHistoryRunId && projectHistory
-      ? projectHistory.analysis_runs.find((run) => run.id === selectedHistoryRunId) ?? null
-      : null;
+  const analysis = useAnalysis();
+  const projectManager = useProjectManager(serializedForm);
+  const { draftStorageWarning, parseImportedDraftText } = useDraftPersistence(form, draftBootstrap.warning);
+  const lastStepIndex = stepLabels.length - 1;
+  const displayedAnalysis =
+    projectManager.selectedHistoryRun?.analysis ?? analysis.getPersistableAnalysis();
+  const uiError = [analysis.error, draftStorageWarning].filter(Boolean).join(" | ");
 
-  function toSavedProject(project: {
-    id?: string;
-    project_name?: string;
-    created_at?: string;
-    updated_at?: string;
-    payload_schema_version?: number;
-    last_analysis_at?: string | null;
-    last_analysis_run_id?: string | null;
-    last_exported_at?: string | null;
-    has_analysis_snapshot?: boolean;
-  }): SavedProject | null {
-    if (
-      typeof project.id !== "string" ||
-      typeof project.project_name !== "string" ||
-      typeof project.created_at !== "string" ||
-      typeof project.updated_at !== "string"
-    ) {
-      return null;
+  useEffect(() => {
+    if (draftBootstrap.restored) {
+      analysis.setStatusMessage("Restored unsaved browser draft.");
     }
+  }, [draftBootstrap.restored]);
 
-    return {
-      id: project.id,
-      project_name: project.project_name,
-      created_at: project.created_at,
-      updated_at: project.updated_at,
-      payload_schema_version: project.payload_schema_version ?? 1,
-      last_analysis_at: project.last_analysis_at ?? null,
-      last_analysis_run_id: project.last_analysis_run_id ?? null,
-      last_exported_at: project.last_exported_at ?? null,
-      has_analysis_snapshot: project.has_analysis_snapshot ?? false
-    };
-  }
+  useEffect(() => {
+    void projectManager.loadBackendHealth();
+    void loadProjects();
+  }, []);
 
-  function getPersistableAnalysis(state: ResultsState): AnalysisResponse | null {
-    if (!state.calculations || !state.report || !state.advice) {
-      return null;
-    }
-
-    return {
-      calculations: state.calculations,
-      report: state.report,
-      advice: state.advice
-    };
-  }
-
-  function getDisplayedAnalysis(state: ResultsState, historyRun: ProjectAnalysisRun | null): AnalysisResponse | null {
-    if (historyRun) {
-      return historyRun.analysis;
-    }
-
-    return getPersistableAnalysis(state);
-  }
-
-  function upsertSavedProject(project: SavedProject) {
-    setSavedProjects((current) =>
-      [project, ...current.filter((candidate) => candidate.id !== project.id)].sort((left, right) =>
-        right.updated_at.localeCompare(left.updated_at)
-      )
-    );
-  }
-
-  function invalidateResults() {
-    setSelectedHistoryRunId(null);
-    setResultsProjectId(null);
-    setResultsAnalysisRunId(null);
-    setResults((current) => (Object.keys(current).length > 0 ? {} : current));
-    setStatusMessage((current) => (current ? "" : current));
-    setError((current) => (current ? "" : current));
-    setValidationErrors((current) => (current.length > 0 ? [] : current));
-  }
-
-  function clearProjectComparison() {
-    setProjectComparison(null);
-    setProjectComparisonError("");
-    setLoadingProjectComparison(false);
-    setComparingProjectId(null);
-  }
-
-  function updateSection(section: FullPayloadSectionKey, key: string, value: DraftFieldValue) {
+  function updateSection(section: keyof FullPayload, key: string, value: string | number | boolean | null) {
     setForm((current) => setSectionFieldValue(current, section, key, value));
-    invalidateResults();
+    projectManager.setSelectedHistoryRunId(null);
+    analysis.invalidateResults();
   }
 
   function startNewProject() {
     setForm(cloneInitialState());
-    setResults({});
-    setResultsProjectId(null);
-    setResultsAnalysisRunId(null);
-    setError("");
-    setStatusMessage("Started a new local draft.");
-    setActiveProjectId(null);
-    setSavedProjectSnapshot(null);
-    setLoadingProjectHistory(false);
-    setProjectHistory(null);
-    setProjectHistoryWindow(initialProjectHistoryWindow);
-    setProjectHistoryError("");
-    setSelectedHistoryRunId(null);
-    clearProjectComparison();
-    setValidationErrors([]);
+    analysis.resetAnalysisState();
+    projectManager.resetProjectSelection();
+    analysis.setStatusMessage("Started a new local draft.");
     setStep(0);
   }
 
   function exportDraft() {
-    setError("");
+    analysis.setError("");
     const safeName = String(form.project.project_name ?? "experiment-draft")
       .trim()
       .toLowerCase()
@@ -286,7 +79,7 @@ export default function App() {
     anchor.download = `${safeName}.json`;
     anchor.click();
     URL.revokeObjectURL(url);
-    setStatusMessage("Draft exported as JSON.");
+    analysis.setStatusMessage("Draft exported as JSON.");
   }
 
   function openImportDraft() {
@@ -301,343 +94,174 @@ export default function App() {
     }
 
     setImportingDraft(true);
-    setError("");
+    analysis.setError("");
 
     try {
-      const imported = parseImportedDraft(await file.text());
+      const imported = parseImportedDraftText(await file.text());
       setForm(imported);
-      setResults({});
-      setResultsProjectId(null);
-      setResultsAnalysisRunId(null);
-      setActiveProjectId(null);
-      setSavedProjectSnapshot(null);
-      setLoadingProjectHistory(false);
-      setProjectHistory(null);
-      setProjectHistoryWindow(initialProjectHistoryWindow);
-      setProjectHistoryError("");
-      setSelectedHistoryRunId(null);
-      clearProjectComparison();
-      setValidationErrors([]);
-      setStatusMessage(`Imported draft from ${file.name}. Save it to create a new local project record.`);
+      analysis.resetAnalysisState();
+      projectManager.resetProjectSelection();
+      analysis.setStatusMessage(`Imported draft from ${file.name}. Save it to create a new local project record.`);
       setStep(0);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Unexpected draft import error");
+      analysis.setError(requestError instanceof Error ? requestError.message : "Unexpected draft import error");
     } finally {
       event.target.value = "";
       setImportingDraft(false);
     }
   }
 
-  function ensureValidForm(): boolean {
-    const issues = validateForm(form);
-
-    if (issues.length > 0) {
-      setValidationErrors(issues);
-      setError("");
-      setStatusMessage("");
-      return false;
-    }
-
-    setValidationErrors([]);
-    return true;
-  }
-
-  useEffect(() => {
-    if (draftBootstrap.restored) {
-      setStatusMessage("Restored unsaved browser draft.");
-    }
-  }, [draftBootstrap.restored]);
-
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(browserDraftStorageKey, JSON.stringify(buildDraftTransferFile(form)));
-    } catch {
-      // Ignore localStorage persistence failures and keep the in-memory draft usable.
-    }
-  }, [form]);
-
-  useEffect(() => {
-    void loadBackendHealth();
-    void loadProjects();
-  }, []);
-
-  useEffect(() => {
-    if (selectedHistoryRunId && projectHistory && !projectHistory.analysis_runs.some((run) => run.id === selectedHistoryRunId)) {
-      setSelectedHistoryRunId(null);
-    }
-  }, [projectHistory, selectedHistoryRunId]);
-
-  async function loadBackendHealth() {
-    setLoadingHealth(true);
+  async function loadProjects() {
+    analysis.setError("");
 
     try {
-      setBackendHealth(await requestHealth());
-      setHealthError("");
+      await projectManager.loadProjects();
     } catch (requestError) {
-      setBackendHealth(null);
-      setHealthError(requestError instanceof Error ? requestError.message : "Unexpected backend health error");
-    } finally {
-      setLoadingHealth(false);
-    }
-  }
-
-  async function refreshProjectHistory(
-    projectId: string,
-    silent = false,
-    overrides?: Partial<typeof initialProjectHistoryWindow>
-  ) {
-    const nextWindow = {
-      analysisLimit: overrides?.analysisLimit ?? projectHistoryWindow.analysisLimit,
-      exportLimit: overrides?.exportLimit ?? projectHistoryWindow.exportLimit
-    };
-
-    if (overrides) {
-      setProjectHistoryWindow(nextWindow);
-    }
-    if (!silent) {
-      setLoadingProjectHistory(true);
-    }
-    setProjectHistoryError("");
-
-    try {
-      setProjectHistory(
-        await loadProjectHistoryRequest(projectId, {
-          analysisLimit: nextWindow.analysisLimit,
-          exportLimit: nextWindow.exportLimit
-        })
-      );
-    } catch (requestError) {
-      setProjectHistory(null);
-      setProjectHistoryError(requestError instanceof Error ? requestError.message : "Unexpected project history error");
-    } finally {
-      if (!silent) {
-        setLoadingProjectHistory(false);
-      }
-    }
-  }
-
-  async function compareProject(candidateProjectId: string) {
-    if (!activeProjectId) {
-      return;
-    }
-
-    const candidateName = savedProjects.find((project) => project.id === candidateProjectId)?.project_name ?? candidateProjectId;
-    setLoadingProjectComparison(true);
-    setComparingProjectId(candidateProjectId);
-    setProjectComparisonError("");
-
-    try {
-      const comparison = await compareProjectsRequest(
-        activeProjectId,
-        candidateProjectId,
-        selectedHistoryRunId ?? undefined
-      );
-      setProjectComparison(comparison);
-      setStatusMessage(`Loaded saved-project comparison against ${candidateName}.`);
-    } catch (requestError) {
-      setProjectComparison(null);
-      setProjectComparisonError(
-        requestError instanceof Error ? requestError.message : "Unexpected project comparison error"
-      );
-    } finally {
-      setLoadingProjectComparison(false);
-      setComparingProjectId(null);
+      analysis.setError(requestError instanceof Error ? requestError.message : "Unexpected project list error");
     }
   }
 
   async function runAnalysis() {
-    if (!ensureValidForm()) {
+    if (!analysis.ensureValidForm(form)) {
       return;
     }
 
-    const snapshotEligibleProjectId = activeProjectId !== null && !hasUnsavedChanges ? activeProjectId : null;
-    setSelectedHistoryRunId(null);
-    clearProjectComparison();
-    setLoading(true);
-    setError("");
-    setStatusMessage("");
+    const snapshotEligibleProjectId =
+      projectManager.activeProjectId !== null && !projectManager.hasUnsavedChanges
+        ? projectManager.activeProjectId
+        : null;
+
+    projectManager.setSelectedHistoryRunId(null);
+    projectManager.clearProjectComparison();
+    analysis.setLoading(true);
+    analysis.setError("");
+    analysis.setStatusMessage("");
 
     try {
-      const analysis = await requestAnalysis(form);
-      setResults(analysis);
-      setResultsProjectId(snapshotEligibleProjectId);
-      setResultsAnalysisRunId(null);
+      const result = await requestAnalysis(form);
+      analysis.setResults(result);
+      analysis.setResultsProjectId(snapshotEligibleProjectId);
+      analysis.setResultsAnalysisRunId(null);
       setStep(lastStepIndex);
 
       if (snapshotEligibleProjectId) {
         try {
-          const updatedProject = await recordProjectAnalysisRequest(snapshotEligibleProjectId, analysis);
-          const savedProject = toSavedProject(updatedProject);
-          if (savedProject) {
-            upsertSavedProject(savedProject);
-          }
-          setResultsAnalysisRunId(updatedProject.last_analysis_run_id ?? null);
-          await refreshProjectHistory(snapshotEligibleProjectId, true);
-          setStatusMessage("Analysis completed and the latest snapshot was recorded for this saved project.");
+          const updatedProject = await recordProjectAnalysisRequest(snapshotEligibleProjectId, result);
+          projectManager.syncPersistedProject(updatedProject, JSON.stringify(buildApiPayload(form)));
+          analysis.setResultsAnalysisRunId(updatedProject.last_analysis_run_id ?? null);
+          await projectManager.refreshProjectHistory(snapshotEligibleProjectId, true);
+          analysis.setStatusMessage("Analysis completed and the latest snapshot was recorded for this saved project.");
         } catch (metadataError) {
-          setStatusMessage("Analysis completed, but project snapshot metadata could not be persisted.");
-          setError(metadataError instanceof Error ? metadataError.message : "Unexpected analysis snapshot error");
+          analysis.setStatusMessage("Analysis completed, but project snapshot metadata could not be persisted.");
+          analysis.setError(metadataError instanceof Error ? metadataError.message : "Unexpected analysis snapshot error");
         }
-      } else if (activeProjectId) {
-        setStatusMessage("Analysis completed for draft changes. Save the project to persist this analysis snapshot.");
+      } else if (projectManager.activeProjectId) {
+        analysis.setStatusMessage("Analysis completed for draft changes. Save the project to persist this analysis snapshot.");
       } else {
-        setStatusMessage("Analysis completed. Deterministic output and optional AI advice are shown below.");
+        analysis.setStatusMessage("Analysis completed. Deterministic output and optional AI advice are shown below.");
       }
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Unexpected request error");
+      analysis.setError(requestError instanceof Error ? requestError.message : "Unexpected request error");
     } finally {
-      setLoading(false);
+      analysis.setLoading(false);
     }
   }
 
   async function saveProject() {
-    if (!ensureValidForm()) {
+    if (!analysis.ensureValidForm(form)) {
       return;
     }
 
-    setSelectedHistoryRunId(null);
-    setSaving(true);
-    setError("");
-    setStatusMessage("");
+    projectManager.setSelectedHistoryRunId(null);
+    analysis.setSaving(true);
+    analysis.setError("");
+    analysis.setStatusMessage("");
 
     try {
-      const isUpdate = activeProjectId !== null;
       const normalizedPayload = buildApiPayload(form);
-      const persistedAnalysis = getPersistableAnalysis(results);
-      const data = await saveProjectRequest(form, activeProjectId);
-      const savedProjectId = typeof data.id === "string" ? data.id : activeProjectId;
-      let savedProject = toSavedProject(data);
-      let saveStatus = isUpdate
+      const normalizedPayloadJson = JSON.stringify(normalizedPayload);
+      const persistedAnalysis = analysis.getPersistableAnalysis();
+      const data = await saveProjectRequest(form, projectManager.activeProjectId);
+      const { savedProjectId, savedProject } = projectManager.syncPersistedProject(data, normalizedPayloadJson);
+      let saveStatus = projectManager.activeProjectId
         ? `Project ${String(data.project_name)} updated locally.`
         : `Project saved locally with id ${String(data.id)}.`;
 
-      setActiveProjectId(savedProjectId);
-      setSavedProjectSnapshot(
-        data.payload ? JSON.stringify(data.payload) : JSON.stringify(normalizedPayload)
-      );
       if (savedProjectId) {
-        setResultsProjectId(savedProjectId);
+        analysis.setResultsProjectId(savedProjectId);
       }
 
-      if (savedProjectId && persistedAnalysis && resultsAnalysisRunId === null) {
+      if (savedProjectId && persistedAnalysis && analysis.resultsAnalysisRunId === null) {
         try {
           const updatedProject = await recordProjectAnalysisRequest(savedProjectId, persistedAnalysis);
-          savedProject = toSavedProject(updatedProject) ?? savedProject;
-          setResultsAnalysisRunId(updatedProject.last_analysis_run_id ?? null);
+          projectManager.syncPersistedProject(updatedProject, normalizedPayloadJson);
+          analysis.setResultsAnalysisRunId(updatedProject.last_analysis_run_id ?? null);
           saveStatus = `${saveStatus} Latest analysis snapshot was recorded for this saved project.`;
         } catch (metadataError) {
-          setError(metadataError instanceof Error ? metadataError.message : "Unexpected analysis snapshot save error");
+          analysis.setError(metadataError instanceof Error ? metadataError.message : "Unexpected analysis snapshot save error");
           saveStatus = `${saveStatus} Current analysis is still local until the snapshot is recorded.`;
         }
       }
 
-      if (savedProject) {
-        upsertSavedProject(savedProject);
-      } else {
+      if (!savedProject) {
         await loadProjects();
       }
       if (savedProjectId) {
-        await refreshProjectHistory(savedProjectId, true);
+        await projectManager.refreshProjectHistory(savedProjectId, true);
       }
-      clearProjectComparison();
-
-      setStatusMessage(saveStatus);
+      projectManager.clearProjectComparison();
+      analysis.setStatusMessage(saveStatus);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Unexpected save error");
+      analysis.setError(requestError instanceof Error ? requestError.message : "Unexpected save error");
     } finally {
-      setSaving(false);
-    }
-  }
-
-  async function loadProjects() {
-    setLoadingProjects(true);
-    setError("");
-
-    try {
-      setSavedProjects(await listProjectsRequest());
-    } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Unexpected project list error");
-    } finally {
-      setLoadingProjects(false);
+      analysis.setSaving(false);
     }
   }
 
   async function loadProject(projectId: string) {
-    setError("");
-    setStatusMessage("");
+    analysis.setError("");
+    analysis.setStatusMessage("");
 
     try {
-      const data = await loadProjectRequest(projectId);
-      const savedProject = toSavedProject(data);
-
+      const data = await projectManager.loadProject(projectId);
       setForm(hydrateLoadedPayload(data.payload));
-      setResults({});
-      setResultsProjectId(null);
-      setResultsAnalysisRunId(null);
-      setActiveProjectId(typeof data.id === "string" ? data.id : projectId);
-      setSavedProjectSnapshot(JSON.stringify(data.payload));
-      setProjectHistory(null);
-      setProjectHistoryWindow(initialProjectHistoryWindow);
-      setProjectHistoryError("");
-      setSelectedHistoryRunId(null);
-      clearProjectComparison();
-      setValidationErrors([]);
-      if (savedProject) {
-        upsertSavedProject(savedProject);
-      }
-      await refreshProjectHistory(typeof data.id === "string" ? data.id : projectId, false, initialProjectHistoryWindow);
-      setStatusMessage(`Loaded project ${String(data.project_name)} into the wizard.`);
+      analysis.resetAnalysisState();
+      analysis.setStatusMessage(`Loaded project ${String(data.project_name)} into the wizard.`);
       setStep(0);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Unexpected project load error");
+      analysis.setError(requestError instanceof Error ? requestError.message : "Unexpected project load error");
     }
   }
 
   async function deleteProject(projectId: string, projectName: string) {
-    if (!window.confirm(`Delete project "${projectName}" from local storage?`)) {
-      return;
-    }
-
-    setDeletingProjectId(projectId);
-    setError("");
-    setStatusMessage("");
+    analysis.setError("");
+    analysis.setStatusMessage("");
 
     try {
-      await deleteProjectRequest(projectId);
-      setSavedProjects((current) => current.filter((project) => project.id !== projectId));
+      const result = await projectManager.deleteProject(projectId, projectName);
+      if (!result.deleted) {
+        return;
+      }
 
-      if (activeProjectId === projectId) {
-        setActiveProjectId(null);
-        setSavedProjectSnapshot(null);
-        setResultsProjectId(null);
-        setProjectHistory(null);
-        setProjectHistoryWindow(initialProjectHistoryWindow);
-        setProjectHistoryError("");
-        setLoadingProjectHistory(false);
-        setSelectedHistoryRunId(null);
-        setResultsAnalysisRunId(null);
-        clearProjectComparison();
-        setStatusMessage(`Project ${projectName} deleted. Current form remains as a new local draft.`);
+      if (result.deletedActive) {
+        analysis.resetAnalysisState();
+        analysis.setStatusMessage(`Project ${projectName} deleted. Current form remains as a new local draft.`);
       } else {
-        setStatusMessage(`Project ${projectName} deleted locally.`);
+        analysis.setStatusMessage(`Project ${projectName} deleted locally.`);
       }
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Unexpected project delete error");
-    } finally {
-      setDeletingProjectId(null);
+      analysis.setError(requestError instanceof Error ? requestError.message : "Unexpected project delete error");
     }
   }
 
   async function exportReport(format: ExportFormat) {
-    const displayedAnalysis = getDisplayedAnalysis(results, selectedHistoryRun);
-
     if (!displayedAnalysis?.report) {
-      setError("Run analysis before exporting a report.");
+      analysis.setError("Run analysis before exporting a report.");
       return;
     }
 
-    setError("");
-    setStatusMessage("");
+    analysis.setError("");
+    analysis.setStatusMessage("");
 
     try {
       const extension = format === "markdown" ? "md" : "html";
@@ -650,65 +274,57 @@ export default function App() {
       anchor.click();
       URL.revokeObjectURL(url);
 
-      const exportProjectId = selectedHistoryRun?.project_id ?? resultsProjectId;
+      const exportProjectId = projectManager.selectedHistoryRun?.project_id ?? analysis.resultsProjectId;
 
       if (exportProjectId) {
         try {
           const linkedAnalysisRunId =
-            selectedHistoryRun?.id ??
-            resultsAnalysisRunId ??
-            (activeProjectId === exportProjectId ? activeProject?.last_analysis_run_id ?? null : null);
+            projectManager.selectedHistoryRun?.id ??
+            analysis.resultsAnalysisRunId ??
+            (projectManager.activeProjectId === exportProjectId
+              ? projectManager.activeProject?.last_analysis_run_id ?? null
+              : null);
           const updatedProject = await recordProjectExportRequest(exportProjectId, format, linkedAnalysisRunId);
-          const savedProject = toSavedProject(updatedProject);
-          if (savedProject) {
-            upsertSavedProject(savedProject);
-          }
-          await refreshProjectHistory(exportProjectId, true);
-          setStatusMessage(`Exported report as ${extension.toUpperCase()} and updated project export metadata.`);
+          projectManager.syncPersistedProject(
+            updatedProject,
+            projectManager.savedProjectSnapshot ?? JSON.stringify(buildApiPayload(form))
+          );
+          await projectManager.refreshProjectHistory(exportProjectId, true);
+          analysis.setStatusMessage(`Exported report as ${extension.toUpperCase()} and updated project export metadata.`);
         } catch (metadataError) {
-          setStatusMessage(`Exported report as ${extension.toUpperCase()}, but project export metadata was not updated.`);
-          setError(metadataError instanceof Error ? metadataError.message : "Unexpected export metadata error");
+          analysis.setStatusMessage(`Exported report as ${extension.toUpperCase()}, but project export metadata was not updated.`);
+          analysis.setError(metadataError instanceof Error ? metadataError.message : "Unexpected export metadata error");
         }
       } else {
-        setStatusMessage(`Exported report as ${extension.toUpperCase()}.`);
+        analysis.setStatusMessage(`Exported report as ${extension.toUpperCase()}.`);
       }
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Unexpected export error");
+      analysis.setError(requestError instanceof Error ? requestError.message : "Unexpected export error");
     }
   }
 
   function openHistoryRun(runId: string) {
-    if (!projectHistory) {
+    if (!projectManager.openHistoryRun(runId)) {
       return;
     }
 
-    const targetRun = projectHistory.analysis_runs.find((run) => run.id === runId);
-    if (!targetRun) {
-      return;
-    }
-
-    setSelectedHistoryRunId(targetRun.id);
-    clearProjectComparison();
-    setStatusMessage("Opened a saved analysis snapshot from project history.");
-    setError("");
+    analysis.setStatusMessage("Opened a saved analysis snapshot from project history.");
+    analysis.setError("");
     setStep(lastStepIndex);
   }
 
   function clearHistoryRunSelection() {
-    if (!selectedHistoryRunId) {
+    if (!projectManager.clearHistoryRunSelection()) {
       return;
     }
 
-    setSelectedHistoryRunId(null);
-    setStatusMessage(
-      results.report
+    analysis.setStatusMessage(
+      analysis.results.report
         ? "Returned to the current in-memory analysis results."
         : "Closed the saved snapshot preview."
     );
-    setError("");
+    analysis.setError("");
   }
-
-  const displayedAnalysis = getDisplayedAnalysis(results, selectedHistoryRun);
 
   return (
     <>
@@ -720,7 +336,6 @@ export default function App() {
         aria-label="Import draft file"
         onChange={importDraftFromFile}
       />
-      <style>{styles}</style>
       <div className="page">
         <div className="shell">
           <section className="hero">
@@ -736,21 +351,21 @@ export default function App() {
             <WizardPanel
               step={step}
               form={form}
-              activeProjectId={activeProjectId}
-              hasUnsavedChanges={hasUnsavedChanges}
-              validationErrors={validationErrors}
+              activeProjectId={projectManager.activeProjectId}
+              hasUnsavedChanges={projectManager.hasUnsavedChanges}
+              validationErrors={analysis.validationErrors}
               importingDraft={importingDraft}
-              loading={loading}
-              saving={saving}
-              results={results}
-              activeProject={activeProject}
-              projectHistory={projectHistory}
-              selectedHistoryRun={selectedHistoryRun}
-              projectComparison={projectComparison}
-              loadingProjectHistory={loadingProjectHistory}
-              statusMessage={statusMessage}
-              error={error}
+              loading={analysis.loading}
+              saving={analysis.saving}
+              results={analysis.results}
               displayedAnalysis={displayedAnalysis}
+              activeProject={projectManager.activeProject}
+              projectHistory={projectManager.projectHistory}
+              selectedHistoryRun={projectManager.selectedHistoryRun}
+              projectComparison={projectManager.projectComparison}
+              loadingProjectHistory={projectManager.loadingProjectHistory}
+              statusMessage={analysis.statusMessage}
+              error={uiError}
               onUpdateSection={updateSection}
               onBack={() => setStep((currentStep) => Math.max(0, currentStep - 1))}
               onNext={() => setStep((currentStep) => Math.min(lastStepIndex, currentStep + 1))}
@@ -763,45 +378,55 @@ export default function App() {
               onExportReport={exportReport}
             />
             <SidebarPanel
-              loadingHealth={loadingHealth}
-              loadingProjects={loadingProjects}
-              deletingProjectId={deletingProjectId}
-              backendHealth={backendHealth}
-              healthError={healthError}
-              savedProjects={savedProjects}
-              activeProjectId={activeProjectId}
-              activeProject={activeProject}
-              projectHistory={projectHistory}
-              projectHistoryError={projectHistoryError}
-              loadingProjectHistory={loadingProjectHistory}
-              selectedHistoryRunId={selectedHistoryRunId}
-              projectComparison={projectComparison}
-              projectComparisonError={projectComparisonError}
-              loadingProjectComparison={loadingProjectComparison}
-              comparingProjectId={comparingProjectId}
-              hasUnsavedChanges={hasUnsavedChanges}
-              onRefreshHealth={loadBackendHealth}
+              loadingHealth={projectManager.loadingHealth}
+              loadingProjects={projectManager.loadingProjects}
+              deletingProjectId={projectManager.deletingProjectId}
+              backendHealth={projectManager.backendHealth}
+              healthError={projectManager.healthError}
+              savedProjects={projectManager.savedProjects}
+              activeProjectId={projectManager.activeProjectId}
+              activeProject={projectManager.activeProject}
+              projectHistory={projectManager.projectHistory}
+              projectHistoryError={projectManager.projectHistoryError}
+              loadingProjectHistory={projectManager.loadingProjectHistory}
+              selectedHistoryRunId={projectManager.selectedHistoryRunId}
+              projectComparison={projectManager.projectComparison}
+              projectComparisonError={projectManager.projectComparisonError}
+              loadingProjectComparison={projectManager.loadingProjectComparison}
+              comparingProjectId={projectManager.comparingProjectId}
+              hasUnsavedChanges={projectManager.hasUnsavedChanges}
+              onRefreshHealth={projectManager.loadBackendHealth}
               onRefreshProjectHistory={(projectId) => {
-                void refreshProjectHistory(projectId);
+                void projectManager.refreshProjectHistory(projectId);
               }}
               onLoadMoreAnalysisHistory={(projectId) => {
-                void refreshProjectHistory(projectId, false, {
-                  analysisLimit: projectHistoryWindow.analysisLimit + 5
+                void projectManager.refreshProjectHistory(projectId, false, {
+                  analysisLimit: projectManager.projectHistoryWindow.analysisLimit + 5
                 });
               }}
               onLoadMoreExportHistory={(projectId) => {
-                void refreshProjectHistory(projectId, false, {
-                  exportLimit: projectHistoryWindow.exportLimit + 5
+                void projectManager.refreshProjectHistory(projectId, false, {
+                  exportLimit: projectManager.projectHistoryWindow.exportLimit + 5
                 });
               }}
               onOpenHistoryRun={openHistoryRun}
               onClearHistoryRunSelection={clearHistoryRunSelection}
               onCompareProject={(projectId) => {
-                void compareProject(projectId);
+                void projectManager.compareProject(projectId).then((message) => {
+                  if (message) {
+                    analysis.setStatusMessage(message);
+                  }
+                });
               }}
-              onLoadProjects={loadProjects}
-              onLoadProject={loadProject}
-              onDeleteProject={deleteProject}
+              onLoadProjects={() => {
+                void loadProjects();
+              }}
+              onLoadProject={(projectId) => {
+                void loadProject(projectId);
+              }}
+              onDeleteProject={(projectId, projectName) => {
+                void deleteProject(projectId, projectName);
+              }}
             />
           </div>
         </div>

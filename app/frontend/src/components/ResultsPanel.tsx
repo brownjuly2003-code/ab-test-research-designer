@@ -1,3 +1,5 @@
+import { memo } from "react";
+
 import type {
   AnalysisResponsePayload,
   ExportFormat,
@@ -40,7 +42,7 @@ function formatDelta(value: number, suffix = ""): string {
   return `${prefix}${value}${suffix}`;
 }
 
-export default function ResultsPanel({
+const ResultsPanel = memo(function ResultsPanel({
   results,
   displayedAnalysis,
   loading,
@@ -477,4 +479,6 @@ export default function ResultsPanel({
       {error ? <div className="error">{error}</div> : null}
     </>
   );
-}
+});
+
+export default ResultsPanel;

@@ -645,6 +645,67 @@ describe("App UI flow", () => {
     }
   });
 
+  it("surfaces localStorage persistence failures instead of swallowing them silently", async () => {
+    const setItemSpy = vi
+      .spyOn(Storage.prototype, "setItem")
+      .mockImplementation(() => {
+        throw new DOMException("Quota exceeded", "QuotaExceededError");
+      });
+
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+
+      const projectNameInput = view.container.querySelector("#project-project_name");
+      if (!(projectNameInput instanceof HTMLInputElement)) {
+        throw new Error("Project name input was not rendered");
+      }
+
+      await changeValue(projectNameInput, "Quota warning");
+      await flushEffects();
+
+      expect(setItemSpy).toHaveBeenCalled();
+      expect(view.container.textContent).toContain("Browser draft could not be saved locally:");
+      expect(view.container.textContent).toContain("Quota exceeded");
+    } finally {
+      setItemSpy.mockRestore();
+      await view.unmount();
+    }
+  });
+
+  it("clears a localStorage warning after a later successful autosave", async () => {
+    const setItemSpy = vi
+      .spyOn(Storage.prototype, "setItem")
+      .mockImplementationOnce(() => {
+        throw new DOMException("Quota exceeded", "QuotaExceededError");
+      })
+      .mockImplementation(() => {});
+
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+
+      const projectNameInput = view.container.querySelector("#project-project_name");
+      if (!(projectNameInput instanceof HTMLInputElement)) {
+        throw new Error("Project name input was not rendered");
+      }
+
+      await changeValue(projectNameInput, "First failing save");
+      await flushEffects();
+
+      expect(view.container.textContent).toContain("Browser draft could not be saved locally:");
+
+      await changeValue(projectNameInput, "Second successful save");
+      await flushEffects();
+
+      expect(setItemSpy).toHaveBeenCalled();
+      expect(view.container.textContent).not.toContain("Browser draft could not be saved locally:");
+    } finally {
+      setItemSpy.mockRestore();
+      await view.unmount();
+    }
+  });
+
   it("updates the sidebar immediately after saving without reloading the project list", async () => {
     vi.mocked(saveProjectRequest).mockResolvedValueOnce({
       id: "p-new",

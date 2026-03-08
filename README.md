@@ -69,6 +69,7 @@ Implemented:
 - runtime project snapshot state now relies on `last_analysis_run_id` plus history tables instead of duplicating full analysis JSON in the main project row
 - repository project reads now use explicit column selection instead of `SELECT *`
 - one-command verification is available via `scripts/verify_all.cmd`
+- pytest cache artifacts are disabled via `pytest.ini` so root-level `pytest-cache-files-*` directories do not reappear
 - frontend production build verified after dependency install
 
 Remaining:
@@ -80,13 +81,27 @@ Remaining:
 
 ## Project structure
 
-- `docs/` specifications and plans
+- `docs/` active specifications, data contracts, and consolidated project notes
 - `archive/` archived non-runtime artifacts moved out of the active tree
 - `app/backend/` FastAPI backend
 - `app/frontend/` Vite + React frontend
 - `exports/` generated reports
 - `scripts/` helper scripts
 - `tests/` repo-level tests if added later
+
+---
+
+## Local setup
+
+Prerequisites:
+
+- Git
+- Python 3.11+
+- Node.js LTS
+
+Environment template:
+
+- use `.env.example` as the starting point for local backend/frontend variables
 
 ---
 
@@ -171,6 +186,8 @@ Optional frontend env var:
 VITE_API_BASE_URL=http://127.0.0.1:8008
 ```
 
+The same values are also listed in `.env.example`.
+
 Behavior:
 
 - in development, frontend defaults to `http://127.0.0.1:8008` if `VITE_API_BASE_URL` is not set
@@ -249,7 +266,8 @@ Codex CLI is used as the coding agent.
 Before coding, read:
 
 1. `progress.md`
-2. `AGENT_INSTRUCTIONS.md`
-3. `docs/BUILD_PLAN.md`
+2. `docs/HISTORY.md`
+3. `docs/PROJECT_OVERVIEW.md`
+4. `docs/DATA_CONTRACTS.md`
 
 Detailed architecture is in `docs/`.
