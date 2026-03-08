@@ -66,6 +66,7 @@ Implemented:
 - local orchestrator requests now retry transient failures with exponential backoff
 - frontend API contracts are now generated from FastAPI OpenAPI
 - saved projects can now be compared by their latest persisted analysis snapshots or by an opened historical base snapshot
+- runtime project snapshot state now relies on `last_analysis_run_id` plus history tables instead of duplicating full analysis JSON in the main project row
 - repository project reads now use explicit column selection instead of `SELECT *`
 - one-command verification is available via `scripts/verify_all.cmd`
 - frontend production build verified after dependency install

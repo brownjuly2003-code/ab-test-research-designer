@@ -12,7 +12,6 @@ class ProjectRepository:
         project_name,
         payload_json,
         payload_schema_version,
-        last_analysis_json,
         last_analysis_at,
         last_analysis_run_id,
         last_exported_at,
@@ -56,9 +55,8 @@ class ProjectRepository:
     def _row_to_project(row: sqlite3.Row) -> dict:
         project = dict(row)
         payload_json = project.pop("payload_json")
-        last_analysis_json = project.pop("last_analysis_json", None)
         project["payload"] = json.loads(payload_json)
-        project["has_analysis_snapshot"] = bool(project.get("last_analysis_run_id") or last_analysis_json)
+        project["has_analysis_snapshot"] = bool(project.get("last_analysis_run_id"))
         return project
 
     @staticmethod
@@ -225,11 +223,7 @@ class ProjectRepository:
                     last_analysis_at,
                     last_analysis_run_id,
                     last_exported_at,
-                    CASE
-                        WHEN last_analysis_run_id IS NOT NULL THEN 1
-                        WHEN last_analysis_json IS NOT NULL AND last_analysis_json != '' THEN 1
-                        ELSE 0
-                    END AS has_analysis_snapshot,
+                    CASE WHEN last_analysis_run_id IS NOT NULL THEN 1 ELSE 0 END AS has_analysis_snapshot,
                     created_at,
                     updated_at
                 FROM projects
@@ -324,10 +318,10 @@ class ProjectRepository:
             cursor = connection.execute(
                 """
                 UPDATE projects
-                SET last_analysis_json = ?, last_analysis_at = ?, last_analysis_run_id = ?
+                SET last_analysis_at = ?, last_analysis_run_id = ?
                 WHERE id = ?
                 """,
-                (json.dumps(analysis_payload), timestamp, analysis_run_id, project_id),
+                (timestamp, analysis_run_id, project_id),
             )
 
         if cursor.rowcount == 0:

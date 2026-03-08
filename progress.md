@@ -167,6 +167,7 @@ Post-phase cleanup completed
 - added compare support for specific saved analysis run ids instead of only latest/latest comparisons
 - added frontend opening of historical analysis snapshots without rerunning analysis
 - wired historical snapshot preview into report export and compare flows
+- normalized runtime snapshot metadata to rely on `last_analysis_run_id` and `analysis_runs`, leaving `last_analysis_json` as migration-only legacy data
 
 ---
 

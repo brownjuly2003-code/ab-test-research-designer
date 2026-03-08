@@ -102,6 +102,7 @@ def test_repository_backfills_legacy_analysis_snapshot_into_history() -> None:
 
     assert project is not None
     assert project["last_analysis_run_id"] is not None
+    assert project["has_analysis_snapshot"] is True
     assert history is not None
     assert len(history["analysis_runs"]) == 1
     assert history["analysis_runs"][0]["summary"]["metric_type"] == "binary"
@@ -147,6 +148,14 @@ def test_repository_records_analysis_and_export_history() -> None:
     assert recorded_analysis["has_analysis_snapshot"] is True
     assert recorded_analysis["last_analysis_at"] is not None
     assert recorded_analysis["last_analysis_run_id"] is not None
+    with sqlite3.connect(db_path) as connection:
+        row = connection.execute(
+            "SELECT last_analysis_json, last_analysis_run_id FROM projects WHERE id = ?",
+            (project["id"],),
+        ).fetchone()
+    assert row is not None
+    assert row[0] is None
+    assert row[1] == recorded_analysis["last_analysis_run_id"]
 
     assert recorded_export is not None
     assert recorded_export["last_exported_at"] is not None

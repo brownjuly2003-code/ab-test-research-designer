@@ -381,6 +381,7 @@ Request body: the same combined analysis object returned by `POST /api/v1/analyz
 Purpose:
 
 - persist the last successful combined analysis snapshot for a saved project
+- append a new row into `analysis_runs` and stamp `last_analysis_run_id`
 - stamp `last_analysis_at`
 - set `has_analysis_snapshot=true`
 
