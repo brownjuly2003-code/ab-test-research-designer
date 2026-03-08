@@ -1,4 +1,5 @@
 import { sections, stepLabels, type AnalysisResponsePayload, type DraftFieldValue, type ExportFormat, type FullPayload, type FullPayloadSectionKey, type ProjectAnalysisRun, type ProjectComparison, type ProjectHistory, type ResultsState, type SavedProject } from "../lib/experiment";
+import ProgressBar from "./ProgressBar";
 import ResultsPanel from "./ResultsPanel";
 import WizardDraftStep from "./WizardDraftStep";
 import WizardReviewStep from "./WizardReviewStep";
@@ -67,6 +68,7 @@ export default function WizardPanel({
 
   return (
     <section className="panel">
+      <ProgressBar currentStep={step} totalSteps={stepLabels.length - 1} />
       <div className="steps">
         {stepLabels.map((label, index) => (
           <div key={label} className={`step ${index === step ? "active" : index < step ? "done" : ""}`}>

@@ -12,6 +12,18 @@ def _validate_variant_configuration(variants_count: int, traffic_split: list[int
         raise ValueError("traffic_split length must match variants_count")
 
 
+def _build_bonferroni_note(variants_count: int, adjusted_alpha: float | None) -> str | None:
+    if variants_count <= 2 or adjusted_alpha is None:
+        return None
+
+    comparison_count = max(1, variants_count - 1)
+    return (
+        f"Bonferroni correction is applied across {comparison_count} treatment-vs-control comparisons "
+        f"with adjusted alpha {adjusted_alpha:.6g}. Consider a less conservative correction if the design "
+        "becomes impractically large."
+    )
+
+
 def calculate_experiment_metrics(payload: dict) -> dict:
     metric_type = payload["metric_type"]
     variants_count = int(payload.get("variants_count", len(payload["traffic_split"])))
@@ -70,5 +82,9 @@ def calculate_experiment_metrics(payload: dict) -> dict:
                 "effective_daily_traffic": duration["effective_daily_traffic"],
                 "estimated_duration_days": duration["estimated_duration_days"],
             },
+        ),
+        "bonferroni_note": _build_bonferroni_note(
+            variants_count,
+            calculation_summary.get("adjusted_alpha"),
         ),
     }

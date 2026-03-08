@@ -87,6 +87,29 @@ def test_calculate_endpoint_returns_deterministic_payload() -> None:
 
     assert response.status_code == 200
     assert response.json()["calculation_summary"]["metric_type"] == "binary"
+    assert response.json()["bonferroni_note"] is None
+
+
+def test_calculate_endpoint_surfaces_bonferroni_note_for_multivariant_design() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/calculate",
+        json={
+            "metric_type": "binary",
+            "baseline_value": 0.042,
+            "mde_pct": 5,
+            "alpha": 0.05,
+            "power": 0.8,
+            "expected_daily_traffic": 12000,
+            "audience_share_in_test": 0.6,
+            "traffic_split": [34, 33, 33],
+            "variants_count": 3,
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["bonferroni_note"] is not None
 
 
 def test_design_endpoint_builds_report_without_llm() -> None:

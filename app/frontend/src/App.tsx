@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 
 import "./App.css";
+import Icon from "./components/Icon";
 import SidebarPanel from "./components/SidebarPanel";
 import WizardPanel from "./components/WizardPanel";
 import {
@@ -33,11 +34,11 @@ export default function App() {
   const serializedForm = JSON.stringify(buildApiPayload(form));
   const analysis = useAnalysis();
   const projectManager = useProjectManager(serializedForm);
-  const { draftStorageWarning, parseImportedDraftText } = useDraftPersistence(form, draftBootstrap.warning);
+  const { draftStorageWarning, clearDraftStorageWarning, parseImportedDraftText } = useDraftPersistence(form, draftBootstrap.warning);
   const lastStepIndex = stepLabels.length - 1;
   const displayedAnalysis =
     projectManager.selectedHistoryRun?.analysis ?? analysis.getPersistableAnalysis();
-  const uiError = [analysis.error, draftStorageWarning].filter(Boolean).join(" | ");
+  const uiError = analysis.error;
 
   useEffect(() => {
     if (draftBootstrap.restored) {
@@ -338,6 +339,17 @@ export default function App() {
       />
       <div className="page">
         <div className="shell">
+          {draftStorageWarning ? (
+            <div className="toast-banner" role="status">
+              <div className="toast-copy">
+                <Icon name="warning" className="icon icon-inline" />
+                <span>{draftStorageWarning}</span>
+              </div>
+              <button className="btn secondary" onClick={clearDraftStorageWarning}>
+                Dismiss
+              </button>
+            </div>
+          ) : null}
           <section className="hero">
             <span className="eyebrow">Local Experiment Planner</span>
             <h1>AB Test Research Designer</h1>

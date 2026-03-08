@@ -1,0 +1,54 @@
+{
+  "project": {
+    "project_name": "Checkout redesign",
+    "domain": "e-commerce",
+    "product_type": "web app",
+    "platform": "web",
+    "market": "US",
+    "project_description": "We want to test a simplified checkout flow."
+  },
+  "hypothesis": {
+    "change_description": "Reduce checkout from 4 steps to 2",
+    "target_audience": "new users on web",
+    "business_problem": "checkout abandonment is high",
+    "hypothesis_statement": "If we simplify checkout, purchase conversion will increase because the flow becomes easier.",
+    "what_to_validate": "impact on conversion",
+    "desired_result": "statistically meaningful uplift"
+  },
+  "setup": {
+    "experiment_type": "ab",
+    "randomization_unit": "user",
+    "traffic_split": [50, 50],
+    "expected_daily_traffic": 12000,
+    "audience_share_in_test": 0.6,
+    "variants_count": 2,
+    "inclusion_criteria": "new users only",
+    "exclusion_criteria": "internal staff"
+  },
+  "metrics": {
+    "primary_metric_name": "purchase_conversion",
+    "metric_type": "binary",
+    "baseline_value": 0.042,
+    "expected_uplift_pct": 8,
+    "mde_pct": 5,
+    "alpha": 0.05,
+    "power": 0.8,
+    "std_dev": null,
+    "secondary_metrics": ["add_to_cart_rate"],
+    "guardrail_metrics": ["payment_error_rate", "refund_rate"]
+  },
+  "constraints": {
+    "seasonality_present": true,
+    "active_campaigns_present": false,
+    "returning_users_present": true,
+    "interference_risk": "medium",
+    "technical_constraints": "legacy event logging",
+    "legal_or_ethics_constraints": "none",
+    "known_risks": "tracking quality",
+    "deadline_pressure": "medium",
+    "long_test_possible": true
+  },
+  "additional_context": {
+    "llm_context": "Previous tests showed mixed results. Team worries about event quality and segmentation."
+  }
+}

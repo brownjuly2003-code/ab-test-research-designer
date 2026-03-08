@@ -66,6 +66,8 @@ def start_backend_process(temp_db_path: Path) -> subprocess.Popen[str]:
             "AB_SERVE_FRONTEND_DIST": "true",
             "AB_FRONTEND_DIST_PATH": str(FRONTEND_DIST_DIR),
             "AB_CORS_ORIGINS": "http://127.0.0.1:5173,http://localhost:5173",
+            "AB_LLM_TIMEOUT_SECONDS": "1",
+            "AB_LLM_MAX_ATTEMPTS": "1",
         }
     )
 
@@ -97,7 +99,18 @@ def read_process_output(process: subprocess.Popen[str]) -> str:
     return stdout or ""
 
 
-def run_browser_smoke(download_dir: Path, screenshot_path: Path) -> None:
+def run_browser_smoke(download_dir: Path, screenshot_path: Path, failure_dom_path: Path) -> None:
+    demo_dir = ROOT_DIR / "docs" / "demo"
+    demo_dir.mkdir(parents=True, exist_ok=True)
+    archive_screenshots_dir = download_dir.parent / "screenshots"
+    archive_screenshots_dir.mkdir(parents=True, exist_ok=True)
+
+    def capture_success_screenshot(page, archive_name: str, stable_name: str) -> None:
+        archive_target = archive_screenshots_dir / archive_name
+        stable_target = demo_dir / stable_name
+        page.screenshot(path=str(archive_target), full_page=True)
+        stable_target.write_bytes(archive_target.read_bytes())
+
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=True)
         context = browser.new_context(accept_downloads=True)
@@ -107,6 +120,7 @@ def run_browser_smoke(download_dir: Path, screenshot_path: Path) -> None:
             page.goto(BACKEND_URL, wait_until="networkidle")
             page.get_by_role("heading", name="AB Test Research Designer").wait_for(timeout=15000)
             page.get_by_text("API online").wait_for(timeout=15000)
+            capture_success_screenshot(page, "wizard-overview.png", "wizard-overview.png")
 
             page.get_by_role("button", name="Save project").click()
             page.get_by_text("Project saved locally with id", exact=False).wait_for(timeout=15000)
@@ -127,11 +141,22 @@ def run_browser_smoke(download_dir: Path, screenshot_path: Path) -> None:
                 page.get_by_role("button", name="Next").click()
 
             page.get_by_text("Review inputs").wait_for(timeout=15000)
+            capture_success_screenshot(page, "review-step.png", "review-step.png")
             page.get_by_role("button", name="Run analysis").click()
+
+            page.wait_for_timeout(750)
+            if page.get_by_text("Fix these fields before saving or running analysis:", exact=False).is_visible():
+                status_text = page.locator(".status").all_inner_texts()
+                error_text = page.locator(".error").all_inner_texts()
+                raise RuntimeError(
+                    "Smoke analysis was blocked by validation. "
+                    f"status={status_text!r} error={error_text!r}"
+                )
 
             page.get_by_text("Analysis completed.", exact=False).wait_for(timeout=30000)
             page.get_by_text("Deterministic experiment design").wait_for(timeout=30000)
             page.get_by_text("Calculation summary").wait_for(timeout=30000)
+            capture_success_screenshot(page, "results-dashboard.png", "results-dashboard.png")
 
             with page.expect_download(timeout=15000) as download_info:
                 page.get_by_role("button", name="Export Markdown").click()
@@ -144,6 +169,7 @@ def run_browser_smoke(download_dir: Path, screenshot_path: Path) -> None:
                 raise RuntimeError("Smoke export did not produce the expected markdown report header.")
         except (AssertionError, RuntimeError, PlaywrightTimeoutError):
             page.screenshot(path=str(screenshot_path), full_page=True)
+            failure_dom_path.write_text(page.content(), encoding="utf-8")
             raise
         finally:
             context.close()
@@ -174,6 +200,7 @@ def main() -> int:
     temp_dir.mkdir(parents=True, exist_ok=True)
     temp_db_path = temp_dir / "projects.sqlite3"
     screenshot_path = temp_dir / "smoke-failure.png"
+    failure_dom_path = temp_dir / "smoke-failure.html"
     download_dir = temp_dir / "downloads"
     download_dir.mkdir(parents=True, exist_ok=True)
 
@@ -182,7 +209,11 @@ def main() -> int:
     try:
         wait_for_http(f"{BACKEND_URL}/health", timeout_seconds=30)
         wait_for_http(BACKEND_URL, timeout_seconds=30)
-        run_browser_smoke(download_dir=download_dir, screenshot_path=screenshot_path)
+        run_browser_smoke(
+            download_dir=download_dir,
+            screenshot_path=screenshot_path,
+            failure_dom_path=failure_dom_path,
+        )
     except Exception:
         terminate_process(backend_process)
         output = read_process_output(backend_process)
@@ -190,6 +221,8 @@ def main() -> int:
             print(output, file=sys.stderr)
         if screenshot_path.exists():
             print(f"Smoke screenshot: {screenshot_path}", file=sys.stderr)
+        if failure_dom_path.exists():
+            print(f"Smoke DOM dump: {failure_dom_path}", file=sys.stderr)
         raise
     finally:
         terminate_process(backend_process)

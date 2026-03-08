@@ -1,10 +1,13 @@
 import {
+  getFieldValidationMessage,
   getSectionFieldValue,
   type DraftFieldValue,
   type FullPayload,
   type FullPayloadSectionKey,
   type SectionConfig
 } from "../lib/experiment";
+import Spinner from "./Spinner";
+import Tooltip from "./Tooltip";
 
 type WizardDraftStepProps = {
   current: SectionConfig;
@@ -54,7 +57,7 @@ export default function WizardDraftStep({
   }
 
   return (
-    <div className="section">
+    <div className="section step-content">
       <h2>{current.title}</h2>
       <div className="note">
         <strong>{activeProjectId ? "Editing saved project" : "Working on a new draft"}</strong>
@@ -80,24 +83,46 @@ export default function WizardDraftStep({
           const value = getSectionFieldValue(form, targetSection, field.key);
           const fieldType = field.kind ?? "text";
           const fieldId = `${String(targetSection)}-${field.key}`;
+          const fieldError = getFieldValidationMessage(targetSection, field.key, validationErrors);
+          const filled =
+            typeof value === "boolean"
+              ? true
+              : Array.isArray(value)
+                ? value.length > 0
+                : String(value ?? "").trim().length > 0;
+          const fieldClassName = [
+            "field",
+            field.fullWidth ? "full" : "",
+            fieldError ? "error-state" : "",
+            filled ? "filled" : ""
+          ]
+            .filter(Boolean)
+            .join(" ");
+          const label = (
+            <span className="field-label">
+              <span>{field.label}</span>
+              {field.helpText ? <Tooltip text={field.helpText} /> : null}
+            </span>
+          );
 
           if (fieldType === "textarea") {
             return (
-              <div key={fieldId} className="field full">
-                <label htmlFor={fieldId}>{field.label}</label>
+              <div key={fieldId} className={fieldClassName}>
+                <label htmlFor={fieldId}>{label}</label>
                 <textarea
                   id={fieldId}
                   value={String(value ?? "")}
                   onChange={(event) => onUpdateSection(targetSection, field.key, event.target.value)}
                 />
+                {fieldError ? <span className="field-error">{fieldError}</span> : null}
               </div>
             );
           }
 
           if (fieldType === "boolean") {
             return (
-              <div key={fieldId} className="field">
-                <label htmlFor={fieldId}>{field.label}</label>
+              <div key={fieldId} className={fieldClassName}>
+                <label htmlFor={fieldId}>{label}</label>
                 <select
                   id={fieldId}
                   value={String(value)}
@@ -106,14 +131,15 @@ export default function WizardDraftStep({
                   <option value="true">Yes</option>
                   <option value="false">No</option>
                 </select>
+                {fieldError ? <span className="field-error">{fieldError}</span> : null}
               </div>
             );
           }
 
           if (Array.isArray(field.options) && field.options.length > 0) {
             return (
-              <div key={fieldId} className={`field ${field.fullWidth ? "full" : ""}`}>
-                <label htmlFor={fieldId}>{field.label}</label>
+              <div key={fieldId} className={fieldClassName}>
+                <label htmlFor={fieldId}>{label}</label>
                 <select
                   id={fieldId}
                   value={String(value ?? "")}
@@ -125,13 +151,14 @@ export default function WizardDraftStep({
                     </option>
                   ))}
                 </select>
+                {fieldError ? <span className="field-error">{fieldError}</span> : null}
               </div>
             );
           }
 
           return (
-            <div key={fieldId} className={`field ${field.fullWidth ? "full" : ""}`}>
-              <label htmlFor={fieldId}>{field.label}</label>
+            <div key={fieldId} className={fieldClassName}>
+              <label htmlFor={fieldId}>{label}</label>
               <input
                 id={fieldId}
                 type={fieldType === "number" ? "number" : "text"}
@@ -147,6 +174,7 @@ export default function WizardDraftStep({
                   )
                 }
               />
+              {fieldError ? <span className="field-error">{fieldError}</span> : null}
             </div>
           );
         })}
@@ -160,13 +188,13 @@ export default function WizardDraftStep({
           New draft
         </button>
         <button className="btn ghost" disabled={loading || saving || importingDraft} onClick={onImportDraft}>
-          {importingDraft ? "Importing..." : "Import draft JSON"}
+          {importingDraft ? <><Spinner /> Importing...</> : "Import draft JSON"}
         </button>
         <button className="btn ghost" disabled={loading || saving || importingDraft} onClick={onExportDraft}>
           Export draft JSON
         </button>
         <button className="btn ghost" disabled={loading || saving} onClick={onSave}>
-          {saving ? "Saving..." : activeProjectId ? "Update project" : "Save project"}
+          {saving ? <><Spinner /> Saving...</> : activeProjectId ? "Update project" : "Save project"}
         </button>
         <button className="btn primary" disabled={loading} onClick={onNext}>
           Next

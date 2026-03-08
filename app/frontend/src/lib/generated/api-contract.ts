@@ -64,6 +64,7 @@ export type CalculationResponse = {
   results: CalculationResultsResponse;
   assumptions: string[];
   warnings: WarningResponse[];
+  bonferroni_note?: string | null;
 };
 
 export type CalculationResultsResponse = {

@@ -75,7 +75,13 @@ def _build_llm_advice_payload(payload: ExperimentInput, calculation_result: dict
 
 def create_app() -> FastAPI:
     settings = get_settings()
-    llm_adapter = LocalOrchestratorAdapter()
+    llm_adapter = LocalOrchestratorAdapter(
+        base_url=settings.llm_base_url,
+        timeout_seconds=settings.llm_timeout_seconds,
+        max_attempts=settings.llm_max_attempts,
+        initial_backoff_seconds=settings.llm_initial_backoff_seconds,
+        backoff_multiplier=settings.llm_backoff_multiplier,
+    )
     repository = ProjectRepository(settings.db_path)
     frontend_dist_path = Path(settings.frontend_dist_path)
     frontend_index_path = frontend_dist_path / "index.html"

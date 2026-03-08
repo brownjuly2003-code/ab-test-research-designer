@@ -17,7 +17,7 @@ Post-phase cleanup completed
 - local orchestrator at `D:\Perplexity_Orchestrator2` analyzed
 - HTTP integration selected as the backend communication strategy
 - preferred MVP path identified: `POST /api/gk/orchestrate` with Claude
-- architecture risks and phased development plan documented in `docs/dev_plan.md`
+- architecture risks and phased development plan documented and later archived after consolidation
 
 ### Phase 1 completed
 
@@ -129,7 +129,7 @@ Post-phase cleanup completed
 - added draft JSON import/export support for frontend payload transfer
 - added browser-local draft restore/autosave on the frontend
 - added confirmation before destructive project deletion in the frontend
-- archived outdated workspace artifacts and refreshed `docs/FILE_TREE.md`
+- archived outdated workspace artifacts and earlier file-tree notes
 - updated frontend save flow to update loaded projects instead of always creating duplicates
 - made frontend API base configurable through `VITE_API_BASE_URL`
 - tightened frontend payload typing and aligned test fixtures with normalized API payloads
@@ -173,18 +173,23 @@ Post-phase cleanup completed
 - surfaced browser localStorage autosave failures in the UI and clear them after a later successful save
 - disabled pytest cache artifacts at the repo level with `pytest.ini`
 - consolidated older split docs, setup notes, prompt pack, and env template into `archive/2026-03-08-recommendations-cleanup/`
+- redesigned the frontend into a dashboard-style UI with metric cards, accordion sections, timeline history, live backend indicator, tooltips, progress bar, and dark mode support
+- surfaced browser draft storage failures as dismissible UI toasts instead of only inline error text
+- added explicit `bonferroni_note` to calculation responses for multivariant sizing
+- added architecture, API, rules, and changelog documentation plus demo import payload assets
+- added a deterministic backend benchmark script and Docker packaging for the full stack
 
 ---
 
 ## Next Phase
 
-History-driven saved-project workflows
+Optional production hardening
 
 Goals:
 
-- allow deeper compare/report workflows directly from saved history
-- continue normalizing repository persistence away from legacy snapshot fields
-- continue hardening optional orchestrator and local-storage edge cases
+- extend demo automation and screenshot refresh flow
+- decide whether benchmark assertions should become part of CI
+- expand Docker usage into a fuller deployment/devcontainer story
 
 ---
 

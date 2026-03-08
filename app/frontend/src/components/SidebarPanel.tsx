@@ -1,6 +1,8 @@
 import { memo, useState } from "react";
 
 import type { ApiHealthResponse, ProjectComparison, ProjectHistory, SavedProject } from "../lib/experiment";
+import Icon from "./Icon";
+import StatusDot from "./StatusDot";
 
 type SidebarPanelProps = {
   loadingHealth: boolean;
@@ -101,13 +103,22 @@ const SidebarPanel = memo(function SidebarPanel({
           <li>AI advice is optional and pulled separately from the local orchestrator.</li>
         </ul>
       </div>
+
       <div className="card">
-        <div className="actions">
+        <div className="section-heading">
+          <div className="status-heading">
+            <StatusDot online={Boolean(backendHealth)} />
+            <div>
+              <h3>Backend status</h3>
+              <p className="muted compact-text">
+                Live health for the FastAPI runtime that serves calculations, storage, and optional AI advice.
+              </p>
+            </div>
+          </div>
           <button className="btn ghost" disabled={loadingHealth} onClick={onRefreshHealth}>
             {loadingHealth ? "Checking..." : "Refresh backend status"}
           </button>
         </div>
-        <h3>Backend status</h3>
         {backendHealth ? (
           <>
             <span className="pill">API online</span>
@@ -124,13 +135,12 @@ const SidebarPanel = memo(function SidebarPanel({
             </ul>
           </>
         ) : healthError ? (
-          <div className="status">
-            API unavailable. {healthError}
-          </div>
+          <div className="status">API unavailable. {healthError}</div>
         ) : (
           <p className="muted">No backend status loaded yet.</p>
         )}
       </div>
+
       <div className="card">
         <h3>Current draft</h3>
         {activeProjectId ? (
@@ -161,8 +171,13 @@ const SidebarPanel = memo(function SidebarPanel({
           <p className="muted">You are working in a new local draft until you save it as a project.</p>
         )}
       </div>
+
       <div className="card">
-        <div className="actions">
+        <div className="section-heading">
+          <div>
+            <h3>Recent project history</h3>
+            <p className="muted compact-text">Timeline of saved analysis runs and export events for the loaded project.</p>
+          </div>
           <button
             className="btn ghost"
             disabled={loadingProjectHistory || !activeProjectId}
@@ -175,7 +190,6 @@ const SidebarPanel = memo(function SidebarPanel({
             {loadingProjectHistory ? "Refreshing..." : "Refresh project history"}
           </button>
         </div>
-        <h3>Recent project history</h3>
         {!activeProjectId ? (
           <p className="muted">Load a saved project to inspect recent analysis runs and export events.</p>
         ) : projectHistoryError ? (
@@ -196,22 +210,20 @@ const SidebarPanel = memo(function SidebarPanel({
                 </button>
               </div>
             ) : null}
-            <div className="card">
+            <div className="timeline-card">
               <h3>Analysis runs</h3>
-              <ul className="list">
+              <div className="timeline-list">
                 {projectHistory.analysis_runs.length > 0 ? (
                   projectHistory.analysis_runs.map((run) => (
-                    <li key={run.id}>
-                      <div>
+                    <div key={run.id} className="timeline-item">
+                      <div className="timeline-title">
                         <strong>{formatProjectTimestamp(run.created_at)}</strong>
-                        {" | "}
+                      </div>
+                      <div className="muted">
                         {String(run.summary.metric_type ?? "unknown metric")}
-                        {" | "}
-                        n={String(run.summary.total_sample_size ?? "-")}
-                        {" | "}
-                        {String(run.summary.estimated_duration_days ?? "-")}d
-                        {" | "}
-                        warnings {String(run.summary.warnings_count)}
+                        {" | "}n={String(run.summary.total_sample_size ?? "-")}
+                        {" | "}{String(run.summary.estimated_duration_days ?? "-")}d
+                        {" | "}warnings {String(run.summary.warnings_count)}
                         {run.summary.advice_available ? " | AI advice" : ""}
                       </div>
                       <div className="actions">
@@ -220,12 +232,14 @@ const SidebarPanel = memo(function SidebarPanel({
                         </button>
                         {selectedHistoryRunId === run.id ? <span className="pill">Viewing</span> : null}
                       </div>
-                    </li>
+                    </div>
                   ))
                 ) : (
-                  <li>No analysis history recorded yet.</li>
+                  <div className="timeline-item">
+                    <div>No analysis history recorded yet.</div>
+                  </div>
                 )}
-              </ul>
+              </div>
               {hasMoreAnalysisHistory && activeProjectId ? (
                 <div className="actions">
                   <button className="btn ghost" onClick={() => onLoadMoreAnalysisHistory(activeProjectId)}>
@@ -234,22 +248,27 @@ const SidebarPanel = memo(function SidebarPanel({
                 </div>
               ) : null}
             </div>
-            <div className="card">
+            <div className="timeline-card">
               <h3>Export events</h3>
-              <ul className="list">
+              <div className="timeline-list">
                 {projectHistory.export_events.length > 0 ? (
                   projectHistory.export_events.map((event) => (
-                    <li key={event.id}>
-                      <strong>{formatProjectTimestamp(event.created_at)}</strong>
-                      {" | "}
-                      {event.format.toUpperCase()}
-                      {event.analysis_run_id ? " | linked snapshot" : " | unlinked export"}
-                    </li>
+                    <div key={event.id} className="timeline-item">
+                      <div className="timeline-title">
+                        <strong>{formatProjectTimestamp(event.created_at)}</strong>
+                      </div>
+                      <div className="muted">
+                        {event.format.toUpperCase()}
+                        {event.analysis_run_id ? " | linked snapshot" : " | unlinked export"}
+                      </div>
+                    </div>
                   ))
                 ) : (
-                  <li>No export history recorded yet.</li>
+                  <div className="timeline-item">
+                    <div>No export history recorded yet.</div>
+                  </div>
                 )}
-              </ul>
+              </div>
               {hasMoreExportHistory && activeProjectId ? (
                 <div className="actions">
                   <button className="btn ghost" onClick={() => onLoadMoreExportHistory(activeProjectId)}>
@@ -263,24 +282,31 @@ const SidebarPanel = memo(function SidebarPanel({
           <p className="muted">No project history loaded yet.</p>
         )}
       </div>
+
       <div className="card">
-        <div className="actions">
+        <div className="section-heading">
+          <div>
+            <h3>Saved projects</h3>
+            <p className="muted compact-text">Load, compare, and delete SQLite-backed drafts from the local workspace.</p>
+          </div>
           <button className="btn ghost" disabled={loadingProjects} onClick={onLoadProjects}>
             {loadingProjects ? "Loading..." : "Load saved projects"}
           </button>
         </div>
-        <h3>Saved projects</h3>
         {savedProjects.length > 0 ? (
           <>
-            <div className="field">
+            <div className="field search-field">
               <label htmlFor="saved-projects-search">Search projects</label>
-              <input
-                id="saved-projects-search"
-                type="text"
-                placeholder="Filter by project name"
-                value={projectQuery}
-                onChange={(event) => setProjectQuery(event.target.value)}
-              />
+              <div className="input-with-icon">
+                <Icon name="search" className="icon icon-inline" />
+                <input
+                  id="saved-projects-search"
+                  type="text"
+                  placeholder="Filter by project name"
+                  value={projectQuery}
+                  onChange={(event) => setProjectQuery(event.target.value)}
+                />
+              </div>
             </div>
             <p className="muted">
               Showing {filteredProjects.length} of {savedProjects.length} saved projects.
@@ -302,42 +328,51 @@ const SidebarPanel = memo(function SidebarPanel({
             ) : activeProjectId ? (
               <p className="muted">Save at least one analysis snapshot before comparing saved projects.</p>
             ) : null}
-          <ul className="list">
-            {filteredProjects.map((project) => (
-              <li key={project.id}>
-                <div className="muted">
-                  Updated {formatProjectTimestamp(project.updated_at)}
-                  {project.last_analysis_at ? ` | Analyzed ${formatProjectTimestamp(project.last_analysis_at)}` : ""}
-                  {project.last_exported_at ? ` | Exported ${formatProjectTimestamp(project.last_exported_at)}` : ""}
-                  {project.id === activeProjectId ? " | Loaded in wizard" : ""}
-                </div>
-                <div className="actions">
-                  <button className="btn ghost" onClick={() => onLoadProject(project.id)}>
-                    {project.project_name}
-                  </button>
-                  {project.id === activeProjectId ? <span className="pill">Loaded</span> : null}
-                  {project.has_analysis_snapshot ? <span className="pill">Snapshot</span> : null}
-                  {compareEnabled && project.id !== activeProjectId && project.has_analysis_snapshot ? (
+            <div className="project-card-list">
+              {filteredProjects.map((project) => (
+                <div key={project.id} className={`project-card ${project.id === activeProjectId ? "active" : ""}`}>
+                  <div className="project-card-head">
+                    <button className="btn ghost project-load-btn" onClick={() => onLoadProject(project.id)}>
+                      {project.project_name}
+                    </button>
+                    <div className="project-badges">
+                      {project.id === activeProjectId ? <span className="pill">Loaded</span> : null}
+                      {project.has_analysis_snapshot ? <span className="pill">Snapshot</span> : null}
+                    </div>
+                  </div>
+                  <div className="meta">
+                    <div className="muted">
+                      Updated {formatProjectTimestamp(project.updated_at)}
+                      {project.last_analysis_at ? ` | Analyzed ${formatProjectTimestamp(project.last_analysis_at)}` : ""}
+                    </div>
+                    <div className="muted">
+                      {project.last_exported_at ? `Exported ${formatProjectTimestamp(project.last_exported_at)}` : "No exports yet"}
+                      {project.id === activeProjectId ? " | Loaded in wizard" : ""}
+                    </div>
+                  </div>
+                  <div className="actions">
+                    {compareEnabled && project.id !== activeProjectId && project.has_analysis_snapshot ? (
+                      <button
+                        className="btn secondary"
+                        disabled={loadingProjectComparison || deletingProjectId === project.id}
+                        onClick={() => onCompareProject(project.id)}
+                      >
+                        {comparingProjectId === project.id ? "Comparing..." : "Compare"}
+                      </button>
+                    ) : null}
                     <button
                       className="btn secondary"
-                      disabled={loadingProjectComparison || deletingProjectId === project.id}
-                      onClick={() => onCompareProject(project.id)}
+                      disabled={deletingProjectId === project.id}
+                      aria-label={`Delete ${project.project_name}`}
+                      onClick={() => onDeleteProject(project.id, project.project_name)}
                     >
-                      {comparingProjectId === project.id ? "Comparing..." : "Compare"}
+                      <Icon name="trash" className="icon icon-inline" />
+                      {deletingProjectId === project.id ? "Deleting..." : "Delete"}
                     </button>
-                  ) : null}
-                  <button
-                    className="btn secondary"
-                    disabled={deletingProjectId === project.id}
-                    aria-label={`Delete ${project.project_name}`}
-                    onClick={() => onDeleteProject(project.id, project.project_name)}
-                  >
-                    {deletingProjectId === project.id ? "Deleting..." : "Delete"}
-                  </button>
+                  </div>
                 </div>
-              </li>
-            ))}
-          </ul>
+              ))}
+            </div>
             {filteredProjects.length === 0 ? (
               <p className="muted">No saved projects match the current search.</p>
             ) : null}
@@ -346,18 +381,11 @@ const SidebarPanel = memo(function SidebarPanel({
           <p className="muted">No saved projects available.</p>
         )}
       </div>
-      <div className="card">
-        <h3>Current phase</h3>
-        <p className="muted">
-          Use the wizard to define experiment context first. Results stay visible below the form after the run.
-        </p>
-      </div>
+
       <div className="card">
         <h3>Backend endpoints</h3>
         <ul className="list">
-          <li><code>POST /api/v1/calculate</code></li>
-          <li><code>POST /api/v1/design</code></li>
-          <li><code>POST /api/v1/llm/advice</code></li>
+          <li><code>POST /api/v1/analyze</code></li>
           <li><code>POST /api/v1/projects/{'{id}'}/analysis</code></li>
           <li><code>POST /api/v1/projects/{'{id}'}/exports</code></li>
           <li><code>GET /api/v1/projects/compare</code></li>

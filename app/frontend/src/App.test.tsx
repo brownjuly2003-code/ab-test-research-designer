@@ -646,10 +646,12 @@ describe("App UI flow", () => {
   });
 
   it("surfaces localStorage persistence failures instead of swallowing them silently", async () => {
+    const quotaError = new Error("Quota exceeded");
+    quotaError.name = "QuotaExceededError";
     const setItemSpy = vi
       .spyOn(Storage.prototype, "setItem")
       .mockImplementation(() => {
-        throw new DOMException("Quota exceeded", "QuotaExceededError");
+        throw quotaError;
       });
 
     const view = await renderIntoDocument(<App />);
@@ -674,12 +676,17 @@ describe("App UI flow", () => {
   });
 
   it("clears a localStorage warning after a later successful autosave", async () => {
+    const quotaError = new Error("Quota exceeded");
+    quotaError.name = "QuotaExceededError";
+    let saveAttempt = 0;
     const setItemSpy = vi
       .spyOn(Storage.prototype, "setItem")
-      .mockImplementationOnce(() => {
-        throw new DOMException("Quota exceeded", "QuotaExceededError");
-      })
-      .mockImplementation(() => {});
+      .mockImplementation(() => {
+        saveAttempt += 1;
+        if (saveAttempt === 2) {
+          throw quotaError;
+        }
+      });
 
     const view = await renderIntoDocument(<App />);
     try {

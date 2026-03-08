@@ -1,4 +1,5 @@
 import { getReviewSections, type FullPayload } from "../lib/experiment";
+import Spinner from "./Spinner";
 
 type WizardReviewStepProps = {
   form: FullPayload;
@@ -34,7 +35,7 @@ export default function WizardReviewStep({
   const reviewSections = getReviewSections(form);
 
   return (
-    <div className="section">
+    <div className="section step-content">
       <h2>Review inputs</h2>
       <div className="note">
         <strong>{activeProjectId ? "Reviewing a saved project" : "Reviewing a new draft"}</strong>
@@ -82,10 +83,10 @@ export default function WizardReviewStep({
           Export draft JSON
         </button>
         <button className="btn ghost" disabled={loading || saving} onClick={onSave}>
-          {saving ? "Saving..." : activeProjectId ? "Update project" : "Save project"}
+          {saving ? <><Spinner /> Saving...</> : activeProjectId ? "Update project" : "Save project"}
         </button>
         <button className="btn primary" disabled={loading} onClick={onRunAnalysis}>
-          {loading ? "Running analysis..." : "Run analysis"}
+          {loading ? <><Spinner /> Analyzing...</> : "Run analysis"}
         </button>
       </div>
     </div>

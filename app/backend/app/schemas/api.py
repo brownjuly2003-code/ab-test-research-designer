@@ -171,6 +171,7 @@ class CalculationResponse(BaseModel):
     results: CalculationResultsResponse
     assumptions: list[str]
     warnings: list[WarningResponse]
+    bonferroni_note: str | None = None
 
 
 class AdvicePayload(BaseModel):

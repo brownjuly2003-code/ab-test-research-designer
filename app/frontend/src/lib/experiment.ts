@@ -101,6 +101,7 @@ export type SectionField = {
   options?: SelectOption[];
   visibleWhen?: (state: FullPayload) => boolean;
   emptyValue?: number | "" | null;
+  helpText?: string;
 };
 export type SectionConfig = {
   title: string;
@@ -495,6 +496,40 @@ export function validateForm(state: FullPayload): string[] {
   return issues;
 }
 
+const fieldIssueLookup: Record<string, string[]> = {
+  "project.project_name": ["Project name is required."],
+  "hypothesis.change_description": ["Change description is required."],
+  "setup.traffic_split": [
+    "Traffic split must contain at least two positive weights.",
+    "Traffic split length must match variants count."
+  ],
+  "setup.expected_daily_traffic": ["Expected daily traffic must be greater than 0."],
+  "setup.audience_share_in_test": ["Audience share in test must be between 0 and 1."],
+  "setup.variants_count": ["Variants count must be an integer between 2 and 10."],
+  "metrics.primary_metric_name": ["Primary metric name is required."],
+  "metrics.baseline_value": [
+    "Binary baseline value must be between 0 and 1.",
+    "Continuous baseline value must be greater than 0."
+  ],
+  "metrics.mde_pct": ["MDE % must be greater than 0."],
+  "metrics.alpha": ["Alpha must be between 0 and 1."],
+  "metrics.power": ["Power must be between 0 and 1."],
+  "metrics.std_dev": ["Continuous metrics require a positive std dev."]
+};
+
+export function getFieldValidationMessage(
+  section: FullPayloadSectionKey,
+  key: string,
+  issues: string[]
+): string | null {
+  const patterns = fieldIssueLookup[`${String(section)}.${key}`];
+  if (!patterns) {
+    return null;
+  }
+
+  return issues.find((issue) => patterns.includes(issue)) ?? null;
+}
+
 export const sections: SectionConfig[] = [
   {
     title: "Project context",
@@ -535,7 +570,11 @@ export const sections: SectionConfig[] = [
           { label: "Account", value: "account" }
         ]
       },
-      { label: "Traffic split", key: "traffic_split" },
+      {
+        label: "Traffic split",
+        key: "traffic_split",
+        helpText: "Percentage weights of total traffic allocated to each variant, for example 50,50 or 20,30,50."
+      },
       { label: "Expected daily traffic", key: "expected_daily_traffic", kind: "number" },
       { label: "Audience share in test", key: "audience_share_in_test", kind: "number" },
       { label: "Variants count", key: "variants_count", kind: "number" },
@@ -556,17 +595,33 @@ export const sections: SectionConfig[] = [
           { label: "Continuous", value: "continuous" }
         ]
       },
-      { label: "Baseline value", key: "baseline_value", kind: "number" },
+      {
+        label: "Baseline value",
+        key: "baseline_value",
+        kind: "number",
+        helpText: "Current conversion rate or current continuous metric mean. For binary metrics use 0.05 for 5%."
+      },
       { label: "Expected uplift %", key: "expected_uplift_pct", kind: "number", emptyValue: null },
-      { label: "MDE %", key: "mde_pct", kind: "number" },
+      {
+        label: "MDE %",
+        key: "mde_pct",
+        kind: "number",
+        helpText: "Minimum detectable effect as a percentage of the baseline. Smaller values need larger samples."
+      },
       { label: "Alpha", key: "alpha", kind: "number" },
-      { label: "Power", key: "power", kind: "number" },
+      {
+        label: "Power",
+        key: "power",
+        kind: "number",
+        helpText: "Probability of detecting a real effect. 0.8 is the standard default for product experiments."
+      },
       {
         label: "Std dev",
         key: "std_dev",
         kind: "number",
         emptyValue: "",
-        visibleWhen: (state) => state.metrics.metric_type === "continuous"
+        visibleWhen: (state) => state.metrics.metric_type === "continuous",
+        helpText: "Standard deviation of the continuous metric. Required when the primary metric is not binary."
       },
       { label: "Secondary metrics", key: "secondary_metrics", kind: "textarea", fullWidth: true },
       { label: "Guardrail metrics", key: "guardrail_metrics", kind: "textarea", fullWidth: true }
@@ -582,6 +637,7 @@ export const sections: SectionConfig[] = [
       {
         label: "Interference risk",
         key: "interference_risk",
+        helpText: "Risk that users or units can influence one another across variants and break isolation.",
         options: [
           { label: "Low", value: "low" },
           { label: "Medium", value: "medium" },

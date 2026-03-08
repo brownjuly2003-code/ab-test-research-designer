@@ -15,7 +15,17 @@ export type DraftBootstrap = {
 };
 
 function describeStorageError(error: unknown): string {
-  return error instanceof Error ? error.message : "Unknown storage error";
+  if (error instanceof Error) {
+    const detail = error.message.trim();
+    if (detail.length > 0) {
+      return detail;
+    }
+    if (error.name && error.name !== "Error") {
+      return error.name;
+    }
+  }
+
+  return "Unknown storage error";
 }
 
 export function readDraftBootstrap(): DraftBootstrap {

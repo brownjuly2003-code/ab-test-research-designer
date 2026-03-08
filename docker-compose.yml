@@ -1,0 +1,13 @@
+services:
+  ab-test-research-designer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ab-test-research-designer:local
+    ports:
+      - "8008:8008"
+    environment:
+      AB_ENV: docker
+      AB_CORS_ORIGINS: http://127.0.0.1:8008,http://localhost:8008
+    volumes:
+      - ./app/backend/data:/app/data

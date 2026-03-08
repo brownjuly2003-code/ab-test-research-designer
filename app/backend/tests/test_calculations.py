@@ -135,6 +135,7 @@ def test_multivariant_calculation_scales_total_sample_size() -> None:
         warning["code"] == "CONSERVATIVE_MULTIVARIANT_ALPHA"
         for warning in result["warnings"]
     )
+    assert result["bonferroni_note"] is not None
 
 
 @pytest.mark.parametrize("mde_pct", [0, -5])

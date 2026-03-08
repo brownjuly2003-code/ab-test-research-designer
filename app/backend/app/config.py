@@ -19,6 +19,11 @@ class Settings:
     cors_headers: tuple[str, ...]
     frontend_dist_path: str
     serve_frontend_dist: bool
+    llm_base_url: str
+    llm_timeout_seconds: float
+    llm_max_attempts: int
+    llm_initial_backoff_seconds: float
+    llm_backoff_multiplier: float
 
 
 def _read_csv_env(name: str, default: tuple[str, ...]) -> tuple[str, ...]:
@@ -49,4 +54,9 @@ def get_settings() -> Settings:
         cors_headers=_read_csv_env("AB_CORS_HEADERS", DEFAULT_CORS_HEADERS),
         frontend_dist_path=os.getenv("AB_FRONTEND_DIST_PATH", str(default_frontend_dist_path)),
         serve_frontend_dist=os.getenv("AB_SERVE_FRONTEND_DIST", "true").lower() not in {"0", "false", "no"},
+        llm_base_url=os.getenv("AB_LLM_BASE_URL", "http://localhost:8001"),
+        llm_timeout_seconds=float(os.getenv("AB_LLM_TIMEOUT_SECONDS", "60")),
+        llm_max_attempts=int(os.getenv("AB_LLM_MAX_ATTEMPTS", "3")),
+        llm_initial_backoff_seconds=float(os.getenv("AB_LLM_INITIAL_BACKOFF_SECONDS", "0.1")),
+        llm_backoff_multiplier=float(os.getenv("AB_LLM_BACKOFF_MULTIPLIER", "2")),
     )

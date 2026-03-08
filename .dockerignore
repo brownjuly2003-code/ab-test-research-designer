@@ -1,0 +1,10 @@
+.git
+.pytest_cache
+archive
+node_modules
+app/frontend/node_modules
+app/frontend/dist
+__pycache__
+*.pyc
+recommendations.md
+recommendations1.md
