@@ -232,6 +232,12 @@ describe("frontend api wrapper", () => {
     vi.mocked(fetch).mockResolvedValueOnce(
       jsonResponse({
         project_id: "1",
+        analysis_total: 1,
+        analysis_limit: 3,
+        analysis_offset: 0,
+        export_total: 1,
+        export_limit: 3,
+        export_offset: 0,
         analysis_runs: [
           {
             id: "run-1",
@@ -289,11 +295,18 @@ describe("frontend api wrapper", () => {
       })
     );
 
-    const result = await loadProjectHistoryRequest("1");
+    const result = await loadProjectHistoryRequest("1", {
+      analysisLimit: 3,
+      exportLimit: 3
+    });
 
     expect(result.project_id).toBe("1");
+    expect(result.analysis_total).toBe(1);
     expect(result.analysis_runs[0]?.id).toBe("run-1");
     expect(result.export_events[0]?.analysis_run_id).toBe("run-1");
+    expect(String(vi.mocked(fetch).mock.calls[0]?.[0])).toContain(
+      "/api/v1/projects/1/history?analysis_limit=3&export_limit=3"
+    );
   });
 
   it("loads a comparison between saved projects", async () => {
@@ -303,6 +316,7 @@ describe("frontend api wrapper", () => {
           id: "base-1",
           project_name: "Checkout baseline",
           updated_at: "2026-03-07T10:00:00Z",
+          analysis_created_at: "2026-03-07T09:30:00Z",
           last_analysis_at: "2026-03-07T10:30:00Z",
           analysis_run_id: "run-base",
           metric_type: "binary",
@@ -320,6 +334,7 @@ describe("frontend api wrapper", () => {
           id: "cand-1",
           project_name: "Checkout challenger",
           updated_at: "2026-03-07T11:00:00Z",
+          analysis_created_at: "2026-03-07T10:45:00Z",
           last_analysis_at: "2026-03-07T11:30:00Z",
           analysis_run_id: "run-candidate",
           metric_type: "binary",
@@ -346,10 +361,14 @@ describe("frontend api wrapper", () => {
       })
     );
 
-    const result = await compareProjectsRequest("base-1", "cand-1");
+    const result = await compareProjectsRequest("base-1", "cand-1", "run-base-old");
 
     expect(result.deltas.total_sample_size).toBe(80);
     expect(result.candidate_project.project_name).toBe("Checkout challenger");
+    expect(result.base_project.analysis_created_at).toBe("2026-03-07T09:30:00Z");
+    expect(String(vi.mocked(fetch).mock.calls[0]?.[0])).toContain(
+      "/api/v1/projects/compare?base_id=base-1&candidate_id=cand-1&base_run_id=run-base-old"
+    );
   });
 
   it("deletes a saved project", async () => {

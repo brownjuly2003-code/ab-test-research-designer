@@ -58,7 +58,7 @@ class ProjectRepository:
         payload_json = project.pop("payload_json")
         last_analysis_json = project.pop("last_analysis_json", None)
         project["payload"] = json.loads(payload_json)
-        project["has_analysis_snapshot"] = bool(last_analysis_json)
+        project["has_analysis_snapshot"] = bool(project.get("last_analysis_run_id") or last_analysis_json)
         return project
 
     @staticmethod
@@ -210,6 +210,10 @@ class ProjectRepository:
     def _normalize_history_limit(limit: int) -> int:
         return max(1, min(int(limit), 100))
 
+    @staticmethod
+    def _normalize_history_offset(offset: int) -> int:
+        return max(0, int(offset))
+
     def list_projects(self) -> list[dict]:
         with self._connect() as connection:
             rows = connection.execute(
@@ -221,7 +225,11 @@ class ProjectRepository:
                     last_analysis_at,
                     last_analysis_run_id,
                     last_exported_at,
-                    CASE WHEN last_analysis_json IS NULL OR last_analysis_json = '' THEN 0 ELSE 1 END AS has_analysis_snapshot,
+                    CASE
+                        WHEN last_analysis_run_id IS NOT NULL THEN 1
+                        WHEN last_analysis_json IS NOT NULL AND last_analysis_json != '' THEN 1
+                        ELSE 0
+                    END AS has_analysis_snapshot,
                     created_at,
                     updated_at
                 FROM projects
@@ -377,10 +385,14 @@ class ProjectRepository:
         project_id: str,
         *,
         analysis_limit: int = 20,
+        analysis_offset: int = 0,
         export_limit: int = 20,
+        export_offset: int = 0,
     ) -> dict | None:
         analysis_limit = self._normalize_history_limit(analysis_limit)
+        analysis_offset = self._normalize_history_offset(analysis_offset)
         export_limit = self._normalize_history_limit(export_limit)
+        export_offset = self._normalize_history_offset(export_offset)
 
         with self._connect() as connection:
             project_row = connection.execute(
@@ -390,32 +402,72 @@ class ProjectRepository:
             if project_row is None:
                 return None
 
+            analysis_total = connection.execute(
+                """
+                SELECT COUNT(*)
+                FROM analysis_runs
+                WHERE project_id = ?
+                """,
+                (project_id,),
+            ).fetchone()[0]
+            export_total = connection.execute(
+                """
+                SELECT COUNT(*)
+                FROM export_events
+                WHERE project_id = ?
+                """,
+                (project_id,),
+            ).fetchone()[0]
             analysis_rows = connection.execute(
                 """
                 SELECT id, project_id, analysis_json, created_at
                 FROM analysis_runs
                 WHERE project_id = ?
-                ORDER BY created_at DESC
+                ORDER BY created_at DESC, id DESC
                 LIMIT ?
+                OFFSET ?
                 """,
-                (project_id, analysis_limit),
+                (project_id, analysis_limit, analysis_offset),
             ).fetchall()
             export_rows = connection.execute(
                 """
                 SELECT id, project_id, analysis_run_id, format, created_at
                 FROM export_events
                 WHERE project_id = ?
-                ORDER BY created_at DESC
+                ORDER BY created_at DESC, id DESC
                 LIMIT ?
+                OFFSET ?
                 """,
-                (project_id, export_limit),
+                (project_id, export_limit, export_offset),
             ).fetchall()
 
         return {
             "project_id": project_id,
+            "analysis_total": analysis_total,
+            "analysis_limit": analysis_limit,
+            "analysis_offset": analysis_offset,
+            "export_total": export_total,
+            "export_limit": export_limit,
+            "export_offset": export_offset,
             "analysis_runs": [self._analysis_row_to_record(row) for row in analysis_rows],
             "export_events": [self._export_row_to_record(row) for row in export_rows],
         }
+
+    def get_analysis_run(self, project_id: str, analysis_run_id: str) -> dict | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT id, project_id, analysis_json, created_at
+                FROM analysis_runs
+                WHERE project_id = ? AND id = ?
+                """,
+                (project_id, analysis_run_id),
+            ).fetchone()
+
+        if row is None:
+            return None
+
+        return self._analysis_row_to_record(row)
 
     def get_latest_analysis_run(self, project_id: str) -> dict | None:
         with self._connect() as connection:
@@ -424,7 +476,7 @@ class ProjectRepository:
                 SELECT id, project_id, analysis_json, created_at
                 FROM analysis_runs
                 WHERE project_id = ?
-                ORDER BY created_at DESC
+                ORDER BY created_at DESC, id DESC
                 LIMIT 1
                 """,
                 (project_id,),

@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -155,7 +155,12 @@ def create_app() -> FastAPI:
         return ProjectRecord.model_validate(project)
 
     @app.get("/api/v1/projects/compare", response_model=ProjectComparisonResponse)
-    def compare_projects(base_id: str, candidate_id: str) -> ProjectComparisonResponse:
+    def compare_projects(
+        base_id: str,
+        candidate_id: str,
+        base_run_id: str | None = None,
+        candidate_run_id: str | None = None,
+    ) -> ProjectComparisonResponse:
         if base_id == candidate_id:
             raise ValueError("base_id and candidate_id must be different")
 
@@ -167,12 +172,24 @@ def create_app() -> FastAPI:
         if candidate_project is None:
             raise HTTPException(status_code=404, detail="Candidate project not found")
 
-        base_analysis_run = repository.get_latest_analysis_run(base_id)
+        base_analysis_run = (
+            repository.get_analysis_run(base_id, base_run_id)
+            if base_run_id is not None
+            else repository.get_latest_analysis_run(base_id)
+        )
         if base_analysis_run is None:
+            if base_run_id is not None:
+                raise HTTPException(status_code=404, detail="Base analysis run not found")
             raise ValueError("Base project has no saved analysis snapshot")
 
-        candidate_analysis_run = repository.get_latest_analysis_run(candidate_id)
+        candidate_analysis_run = (
+            repository.get_analysis_run(candidate_id, candidate_run_id)
+            if candidate_run_id is not None
+            else repository.get_latest_analysis_run(candidate_id)
+        )
         if candidate_analysis_run is None:
+            if candidate_run_id is not None:
+                raise HTTPException(status_code=404, detail="Candidate analysis run not found")
             raise ValueError("Candidate project has no saved analysis snapshot")
 
         comparison = build_project_comparison(
@@ -198,8 +215,20 @@ def create_app() -> FastAPI:
         return ProjectRecord.model_validate(project)
 
     @app.get("/api/v1/projects/{project_id}/history", response_model=ProjectHistoryResponse)
-    def get_project_history(project_id: str) -> ProjectHistoryResponse:
-        history = repository.get_project_history(project_id)
+    def get_project_history(
+        project_id: str,
+        analysis_limit: int = Query(default=20, ge=1, le=100),
+        analysis_offset: int = Query(default=0, ge=0),
+        export_limit: int = Query(default=20, ge=1, le=100),
+        export_offset: int = Query(default=0, ge=0),
+    ) -> ProjectHistoryResponse:
+        history = repository.get_project_history(
+            project_id,
+            analysis_limit=analysis_limit,
+            analysis_offset=analysis_offset,
+            export_limit=export_limit,
+            export_offset=export_offset,
+        )
         if history is None:
             raise HTTPException(status_code=404, detail="Project not found")
         return ProjectHistoryResponse.model_validate(history)

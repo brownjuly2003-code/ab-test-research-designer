@@ -14,6 +14,7 @@ type SidebarPanelProps = {
   projectHistory: ProjectHistory | null;
   projectHistoryError: string;
   loadingProjectHistory: boolean;
+  selectedHistoryRunId: string | null;
   projectComparison: ProjectComparison | null;
   projectComparisonError: string;
   loadingProjectComparison: boolean;
@@ -21,6 +22,10 @@ type SidebarPanelProps = {
   hasUnsavedChanges: boolean;
   onRefreshHealth: () => void;
   onRefreshProjectHistory: (projectId: string) => void;
+  onLoadMoreAnalysisHistory: (projectId: string) => void;
+  onLoadMoreExportHistory: (projectId: string) => void;
+  onOpenHistoryRun: (runId: string) => void;
+  onClearHistoryRunSelection: () => void;
   onCompareProject: (projectId: string) => void;
   onLoadProjects: () => void;
   onLoadProject: (projectId: string) => void;
@@ -55,6 +60,7 @@ export default function SidebarPanel({
   projectHistory,
   projectHistoryError,
   loadingProjectHistory,
+  selectedHistoryRunId,
   projectComparison,
   projectComparisonError,
   loadingProjectComparison,
@@ -62,6 +68,10 @@ export default function SidebarPanel({
   hasUnsavedChanges,
   onRefreshHealth,
   onRefreshProjectHistory,
+  onLoadMoreAnalysisHistory,
+  onLoadMoreExportHistory,
+  onOpenHistoryRun,
+  onClearHistoryRunSelection,
   onCompareProject,
   onLoadProjects,
   onLoadProject,
@@ -74,6 +84,12 @@ export default function SidebarPanel({
     normalizedQuery.length > 0
       ? savedProjects.filter((project) => project.project_name.toLowerCase().includes(normalizedQuery))
       : savedProjects;
+  const hasMoreAnalysisHistory = Boolean(
+    projectHistory && projectHistory.analysis_runs.length < projectHistory.analysis_total
+  );
+  const hasMoreExportHistory = Boolean(
+    projectHistory && projectHistory.export_events.length < projectHistory.export_total
+  );
 
   return (
     <aside className="panel meta">
@@ -169,36 +185,60 @@ export default function SidebarPanel({
         ) : projectHistory ? (
           <>
             <p className="muted">
-              {projectHistory.analysis_runs.length} analysis run(s) and {projectHistory.export_events.length} export event(s).
+              Showing {projectHistory.analysis_runs.length} of {projectHistory.analysis_total} analysis run(s)
+              {" and "}
+              {projectHistory.export_events.length} of {projectHistory.export_total} export event(s).
             </p>
+            {selectedHistoryRunId ? (
+              <div className="actions">
+                <button className="btn secondary" onClick={onClearHistoryRunSelection}>
+                  Close opened snapshot
+                </button>
+              </div>
+            ) : null}
             <div className="card">
               <h3>Analysis runs</h3>
               <ul className="list">
                 {projectHistory.analysis_runs.length > 0 ? (
-                  projectHistory.analysis_runs.slice(0, 3).map((run) => (
+                  projectHistory.analysis_runs.map((run) => (
                     <li key={run.id}>
-                      <strong>{formatProjectTimestamp(run.created_at)}</strong>
-                      {" | "}
-                      {String(run.summary.metric_type ?? "unknown metric")}
-                      {" | "}
-                      n={String(run.summary.total_sample_size ?? "-")}
-                      {" | "}
-                      {String(run.summary.estimated_duration_days ?? "-")}d
-                      {" | "}
-                      warnings {String(run.summary.warnings_count)}
-                      {run.summary.advice_available ? " | AI advice" : ""}
+                      <div>
+                        <strong>{formatProjectTimestamp(run.created_at)}</strong>
+                        {" | "}
+                        {String(run.summary.metric_type ?? "unknown metric")}
+                        {" | "}
+                        n={String(run.summary.total_sample_size ?? "-")}
+                        {" | "}
+                        {String(run.summary.estimated_duration_days ?? "-")}d
+                        {" | "}
+                        warnings {String(run.summary.warnings_count)}
+                        {run.summary.advice_available ? " | AI advice" : ""}
+                      </div>
+                      <div className="actions">
+                        <button className="btn secondary" onClick={() => onOpenHistoryRun(run.id)}>
+                          {selectedHistoryRunId === run.id ? "Opened" : "Open snapshot"}
+                        </button>
+                        {selectedHistoryRunId === run.id ? <span className="pill">Viewing</span> : null}
+                      </div>
                     </li>
                   ))
                 ) : (
                   <li>No analysis history recorded yet.</li>
                 )}
               </ul>
+              {hasMoreAnalysisHistory && activeProjectId ? (
+                <div className="actions">
+                  <button className="btn ghost" onClick={() => onLoadMoreAnalysisHistory(activeProjectId)}>
+                    Load older analysis runs
+                  </button>
+                </div>
+              ) : null}
             </div>
             <div className="card">
               <h3>Export events</h3>
               <ul className="list">
                 {projectHistory.export_events.length > 0 ? (
-                  projectHistory.export_events.slice(0, 3).map((event) => (
+                  projectHistory.export_events.map((event) => (
                     <li key={event.id}>
                       <strong>{formatProjectTimestamp(event.created_at)}</strong>
                       {" | "}
@@ -210,6 +250,13 @@ export default function SidebarPanel({
                   <li>No export history recorded yet.</li>
                 )}
               </ul>
+              {hasMoreExportHistory && activeProjectId ? (
+                <div className="actions">
+                  <button className="btn ghost" onClick={() => onLoadMoreExportHistory(activeProjectId)}>
+                    Load older export events
+                  </button>
+                </div>
+              ) : null}
             </div>
           </>
         ) : (
@@ -241,7 +288,7 @@ export default function SidebarPanel({
             {compareEnabled ? (
               <>
                 <p className="muted">
-                  Compare buttons use the latest saved analysis snapshots for the loaded project and another saved project.
+                  Compare buttons use the opened snapshot for the loaded project when one is selected; otherwise they use the latest saved snapshot.
                 </p>
                 {projectComparison ? (
                   <p className="muted">

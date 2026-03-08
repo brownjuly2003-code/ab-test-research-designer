@@ -238,6 +238,12 @@ class ExportEventRecord(BaseModel):
 
 class ProjectHistoryResponse(BaseModel):
     project_id: str
+    analysis_total: int
+    analysis_limit: int
+    analysis_offset: int
+    export_total: int
+    export_limit: int
+    export_offset: int
     analysis_runs: list[AnalysisRunRecord]
     export_events: list[ExportEventRecord]
 
@@ -246,6 +252,7 @@ class ProjectComparisonItem(BaseModel):
     id: str
     project_name: str
     updated_at: str
+    analysis_created_at: str
     last_analysis_at: str | None = None
     analysis_run_id: str
     metric_type: str

@@ -151,6 +151,12 @@ def test_repository_records_analysis_and_export_history() -> None:
     assert recorded_export is not None
     assert recorded_export["last_exported_at"] is not None
     assert history is not None
+    assert history["analysis_total"] == 1
+    assert history["analysis_limit"] == 20
+    assert history["analysis_offset"] == 0
+    assert history["export_total"] == 1
+    assert history["export_limit"] == 20
+    assert history["export_offset"] == 0
     assert len(history["analysis_runs"]) == 1
     assert len(history["export_events"]) == 1
     assert history["analysis_runs"][0]["summary"]["warnings_count"] == 1
@@ -158,7 +164,7 @@ def test_repository_records_analysis_and_export_history() -> None:
     assert history["export_events"][0]["analysis_run_id"] is None
 
 
-def test_repository_returns_latest_analysis_run_and_clamps_history_limits() -> None:
+def test_repository_returns_latest_and_specific_analysis_runs_and_clamps_history_limits() -> None:
     temp_dir = Path(__file__).resolve().parent / ".tmp"
     temp_dir.mkdir(exist_ok=True)
     db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
@@ -206,13 +212,47 @@ def test_repository_returns_latest_analysis_run_and_clamps_history_limits() -> N
             "advice": {"available": True},
         },
     )
+    third_record = repository.record_analysis(
+        project["id"],
+        {
+            "calculations": {
+                "calculation_summary": {"metric_type": "binary"},
+                "results": {
+                    "sample_size_per_variant": 140,
+                    "total_sample_size": 280,
+                    "estimated_duration_days": 14,
+                },
+                "warnings": [{"code": "LONG_DURATION"}],
+            },
+            "report": {"executive_summary": "Third summary"},
+            "advice": {"available": True},
+        },
+    )
 
     latest_run = repository.get_latest_analysis_run(project["id"])
-    history = repository.get_project_history(project["id"], analysis_limit=0, export_limit=0)
+    specific_run = repository.get_analysis_run(project["id"], second_record["last_analysis_run_id"])
+    history = repository.get_project_history(
+        project["id"],
+        analysis_limit=1,
+        analysis_offset=1,
+        export_limit=0,
+        export_offset=-5,
+    )
 
     assert second_record is not None
+    assert third_record is not None
     assert latest_run is not None
-    assert latest_run["id"] == second_record["last_analysis_run_id"]
-    assert latest_run["analysis"]["report"]["executive_summary"] == "Second summary"
+    assert latest_run["id"] == third_record["last_analysis_run_id"]
+    assert latest_run["analysis"]["report"]["executive_summary"] == "Third summary"
+    assert specific_run is not None
+    assert specific_run["id"] == second_record["last_analysis_run_id"]
+    assert specific_run["analysis"]["report"]["executive_summary"] == "Second summary"
     assert history is not None
+    assert history["analysis_total"] == 3
+    assert history["analysis_limit"] == 1
+    assert history["analysis_offset"] == 1
+    assert history["export_total"] == 0
+    assert history["export_limit"] == 1
+    assert history["export_offset"] == 0
     assert len(history["analysis_runs"]) == 1
+    assert history["analysis_runs"][0]["analysis"]["report"]["executive_summary"] == "Second summary"

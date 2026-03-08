@@ -22,6 +22,12 @@ export type ProjectRecordResponse = ProjectRecordPayload;
 export type SaveProjectResponse = ProjectRecordPayload;
 export type DeleteProjectResponse = GeneratedProjectDeleteResponse;
 export type AnalysisResponse = AnalysisResponsePayload;
+export type ProjectHistoryRequestOptions = {
+  analysisLimit?: number;
+  analysisOffset?: number;
+  exportLimit?: number;
+  exportOffset?: number;
+};
 
 async function readJson<T>(response: Response): Promise<T> {
   return await response.json() as T;
@@ -102,8 +108,29 @@ export async function loadProjectRequest(projectId: string): Promise<ProjectReco
   return data;
 }
 
-export async function loadProjectHistoryRequest(projectId: string): Promise<ProjectHistory> {
-  const response = await fetch(apiUrl(`/api/v1/projects/${projectId}/history`));
+export async function loadProjectHistoryRequest(
+  projectId: string,
+  options: ProjectHistoryRequestOptions = {}
+): Promise<ProjectHistory> {
+  const params = new URLSearchParams();
+
+  if (typeof options.analysisLimit === "number") {
+    params.set("analysis_limit", String(options.analysisLimit));
+  }
+  if (typeof options.analysisOffset === "number") {
+    params.set("analysis_offset", String(options.analysisOffset));
+  }
+  if (typeof options.exportLimit === "number") {
+    params.set("export_limit", String(options.exportLimit));
+  }
+  if (typeof options.exportOffset === "number") {
+    params.set("export_offset", String(options.exportOffset));
+  }
+
+  const path = params.size > 0
+    ? `/api/v1/projects/${projectId}/history?${params.toString()}`
+    : `/api/v1/projects/${projectId}/history`;
+  const response = await fetch(apiUrl(path));
   const data = await readJson<ProjectHistory & ApiErrorResponse>(response);
 
   if (!response.ok) {
@@ -113,11 +140,22 @@ export async function loadProjectHistoryRequest(projectId: string): Promise<Proj
   return data;
 }
 
-export async function compareProjectsRequest(baseProjectId: string, candidateProjectId: string): Promise<ProjectComparison> {
+export async function compareProjectsRequest(
+  baseProjectId: string,
+  candidateProjectId: string,
+  baseRunId?: string,
+  candidateRunId?: string
+): Promise<ProjectComparison> {
   const params = new URLSearchParams({
     base_id: baseProjectId,
     candidate_id: candidateProjectId
   });
+  if (baseRunId) {
+    params.set("base_run_id", baseRunId);
+  }
+  if (candidateRunId) {
+    params.set("candidate_run_id", candidateRunId);
+  }
   const response = await fetch(apiUrl(`/api/v1/projects/compare?${params.toString()}`));
   const data = await readJson<ProjectComparison & ApiErrorResponse>(response);
 

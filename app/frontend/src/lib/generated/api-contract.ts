@@ -237,6 +237,7 @@ export type ProjectComparisonItem = {
   id: string;
   project_name: string;
   updated_at: string;
+  analysis_created_at: string;
   last_analysis_at?: string | null;
   analysis_run_id: string;
   metric_type: string;
@@ -282,6 +283,12 @@ export type ProjectExportMarkRequest = {
 
 export type ProjectHistoryResponse = {
   project_id: string;
+  analysis_total: number;
+  analysis_limit: number;
+  analysis_offset: number;
+  export_total: number;
+  export_limit: number;
+  export_offset: number;
   analysis_runs: AnalysisRunRecord[];
   export_events: ExportEventRecord[];
 };

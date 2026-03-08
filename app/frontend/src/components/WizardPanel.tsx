@@ -1,4 +1,4 @@
-import { sections, stepLabels, type DraftFieldValue, type ExportFormat, type FullPayload, type FullPayloadSectionKey, type ProjectComparison, type ProjectHistory, type ResultsState, type SavedProject } from "../lib/experiment";
+import { sections, stepLabels, type AnalysisResponsePayload, type DraftFieldValue, type ExportFormat, type FullPayload, type FullPayloadSectionKey, type ProjectAnalysisRun, type ProjectComparison, type ProjectHistory, type ResultsState, type SavedProject } from "../lib/experiment";
 import ResultsPanel from "./ResultsPanel";
 import WizardDraftStep from "./WizardDraftStep";
 import WizardReviewStep from "./WizardReviewStep";
@@ -13,8 +13,10 @@ type WizardPanelProps = {
   loading: boolean;
   saving: boolean;
   results: ResultsState;
+  displayedAnalysis: AnalysisResponsePayload | null;
   activeProject: SavedProject | null;
   projectHistory: ProjectHistory | null;
+  selectedHistoryRun: ProjectAnalysisRun | null;
   projectComparison: ProjectComparison | null;
   loadingProjectHistory: boolean;
   statusMessage: string;
@@ -27,6 +29,7 @@ type WizardPanelProps = {
   onImportDraft: () => void;
   onExportDraft: () => void;
   onRunAnalysis: () => void;
+  onClearHistorySelection: () => void;
   onExportReport: (format: ExportFormat) => void;
 };
 
@@ -40,8 +43,10 @@ export default function WizardPanel({
   loading,
   saving,
   results,
+  displayedAnalysis,
   activeProject,
   projectHistory,
+  selectedHistoryRun,
   projectComparison,
   loadingProjectHistory,
   statusMessage,
@@ -54,6 +59,7 @@ export default function WizardPanel({
   onImportDraft,
   onExportDraft,
   onRunAnalysis,
+  onClearHistorySelection,
   onExportReport
 }: WizardPanelProps) {
   const isReviewStep = step >= sections.length;
@@ -107,13 +113,16 @@ export default function WizardPanel({
       )}
       <ResultsPanel
         results={results}
+        displayedAnalysis={displayedAnalysis}
         loading={loading}
         activeProject={activeProject}
         projectHistory={projectHistory}
+        selectedHistoryRun={selectedHistoryRun}
         projectComparison={projectComparison}
         loadingProjectHistory={loadingProjectHistory}
         statusMessage={statusMessage}
         error={error}
+        onClearHistorySelection={onClearHistorySelection}
         onExportReport={onExportReport}
       />
     </section>

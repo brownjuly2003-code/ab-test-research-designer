@@ -265,6 +265,10 @@ def test_projects_crud_flow(monkeypatch) -> None:
         assert history_response.status_code == 200
         history_payload = history_response.json()
         assert history_payload["project_id"] == created["id"]
+        assert history_payload["analysis_total"] == 1
+        assert history_payload["analysis_limit"] == 20
+        assert history_payload["analysis_offset"] == 0
+        assert history_payload["export_total"] == 0
         assert len(history_payload["analysis_runs"]) == 1
         assert history_payload["analysis_runs"][0]["summary"]["metric_type"] == "binary"
         assert history_payload["analysis_runs"][0]["analysis"]["report"]["executive_summary"] == "Summary"
@@ -279,6 +283,7 @@ def test_projects_crud_flow(monkeypatch) -> None:
         updated_history_response = client.get(f"/api/v1/projects/{created['id']}/history")
         assert updated_history_response.status_code == 200
         updated_history_payload = updated_history_response.json()
+        assert updated_history_payload["export_total"] == 1
         assert len(updated_history_payload["export_events"]) == 1
         assert updated_history_payload["export_events"][0]["format"] == "markdown"
         assert updated_history_payload["export_events"][0]["analysis_run_id"] is None
@@ -303,6 +308,15 @@ def test_projects_compare_endpoint_returns_saved_snapshot_differences(monkeypatc
         base_project = client.post("/api/v1/projects", json=_payload("Checkout baseline")).json()
         candidate_project = client.post("/api/v1/projects", json=_payload("Checkout challenger")).json()
 
+        older_base_analysis = client.post(
+            f"/api/v1/projects/{base_project['id']}/analysis",
+            json=_analysis_payload(
+                total_sample_size=160,
+                estimated_duration_days=8,
+                executive_summary="Older base summary",
+                warning_codes=[],
+            ),
+        )
         base_analysis = client.post(
             f"/api/v1/projects/{base_project['id']}/analysis",
             json=_analysis_payload(
@@ -322,6 +336,7 @@ def test_projects_compare_endpoint_returns_saved_snapshot_differences(monkeypatc
             ),
         )
 
+        assert older_base_analysis.status_code == 200
         assert base_analysis.status_code == 200
         assert candidate_analysis.status_code == 200
 
@@ -337,8 +352,34 @@ def test_projects_compare_endpoint_returns_saved_snapshot_differences(monkeypatc
         payload = compare_response.json()
         assert payload["base_project"]["project_name"] == "Checkout baseline"
         assert payload["candidate_project"]["project_name"] == "Checkout challenger"
+        assert payload["base_project"]["analysis_run_id"] == base_analysis.json()["last_analysis_run_id"]
+        assert payload["base_project"]["analysis_created_at"] == base_analysis.json()["last_analysis_at"]
         assert payload["deltas"]["total_sample_size"] == 80
         assert payload["deltas"]["estimated_duration_days"] == 4
         assert payload["shared_warning_codes"] == []
         assert payload["base_only_warning_codes"] == ["SEASONALITY_PRESENT"]
         assert payload["candidate_only_warning_codes"] == ["LONG_DURATION", "LOW_TRAFFIC"]
+
+        latest_base_history = client.get(
+            f"/api/v1/projects/{base_project['id']}/history",
+            params={"analysis_limit": 1, "analysis_offset": 1},
+        )
+        assert latest_base_history.status_code == 200
+        older_base_run = latest_base_history.json()["analysis_runs"][0]
+
+        compare_specific_run_response = client.get(
+            "/api/v1/projects/compare",
+            params={
+                "base_id": base_project["id"],
+                "candidate_id": candidate_project["id"],
+                "base_run_id": older_base_run["id"],
+            },
+        )
+
+        assert compare_specific_run_response.status_code == 200
+        specific_payload = compare_specific_run_response.json()
+        assert specific_payload["base_project"]["analysis_run_id"] == older_base_run["id"]
+        assert specific_payload["base_project"]["analysis_created_at"] == older_base_run["created_at"]
+        assert specific_payload["deltas"]["total_sample_size"] == 120
+        assert specific_payload["base_only_warning_codes"] == []
+        assert specific_payload["candidate_only_warning_codes"] == ["LONG_DURATION", "LOW_TRAFFIC"]

@@ -28,6 +28,7 @@ import {
   type FullPayloadSectionKey,
   hydrateLoadedPayload,
   parseImportedDraft,
+  type ProjectAnalysisRun,
   type ProjectComparison,
   type ProjectHistory,
   type SavedProject,
@@ -36,6 +37,11 @@ import {
   type ResultsState,
   validateForm
 } from "./lib/experiment";
+
+const initialProjectHistoryWindow = {
+  analysisLimit: 3,
+  exportLimit: 3
+};
 
 const styles = `
   :root {
@@ -141,6 +147,8 @@ export default function App() {
   const [projectHistory, setProjectHistory] = useState<ProjectHistory | null>(null);
   const [projectHistoryError, setProjectHistoryError] = useState("");
   const [loadingProjectHistory, setLoadingProjectHistory] = useState(false);
+  const [projectHistoryWindow, setProjectHistoryWindow] = useState(initialProjectHistoryWindow);
+  const [selectedHistoryRunId, setSelectedHistoryRunId] = useState<string | null>(null);
   const [projectComparison, setProjectComparison] = useState<ProjectComparison | null>(null);
   const [projectComparisonError, setProjectComparisonError] = useState("");
   const [loadingProjectComparison, setLoadingProjectComparison] = useState(false);
@@ -155,6 +163,10 @@ export default function App() {
   const activeProject =
     activeProjectId !== null
       ? savedProjects.find((project) => project.id === activeProjectId) ?? null
+      : null;
+  const selectedHistoryRun =
+    selectedHistoryRunId && projectHistory
+      ? projectHistory.analysis_runs.find((run) => run.id === selectedHistoryRunId) ?? null
       : null;
 
   function toSavedProject(project: {
@@ -202,6 +214,14 @@ export default function App() {
     };
   }
 
+  function getDisplayedAnalysis(state: ResultsState, historyRun: ProjectAnalysisRun | null): AnalysisResponse | null {
+    if (historyRun) {
+      return historyRun.analysis;
+    }
+
+    return getPersistableAnalysis(state);
+  }
+
   function upsertSavedProject(project: SavedProject) {
     setSavedProjects((current) =>
       [project, ...current.filter((candidate) => candidate.id !== project.id)].sort((left, right) =>
@@ -211,6 +231,7 @@ export default function App() {
   }
 
   function invalidateResults() {
+    setSelectedHistoryRunId(null);
     setResultsProjectId(null);
     setResultsAnalysisRunId(null);
     setResults((current) => (Object.keys(current).length > 0 ? {} : current));
@@ -242,7 +263,9 @@ export default function App() {
     setSavedProjectSnapshot(null);
     setLoadingProjectHistory(false);
     setProjectHistory(null);
+    setProjectHistoryWindow(initialProjectHistoryWindow);
     setProjectHistoryError("");
+    setSelectedHistoryRunId(null);
     clearProjectComparison();
     setValidationErrors([]);
     setStep(0);
@@ -290,7 +313,9 @@ export default function App() {
       setSavedProjectSnapshot(null);
       setLoadingProjectHistory(false);
       setProjectHistory(null);
+      setProjectHistoryWindow(initialProjectHistoryWindow);
       setProjectHistoryError("");
+      setSelectedHistoryRunId(null);
       clearProjectComparison();
       setValidationErrors([]);
       setStatusMessage(`Imported draft from ${file.name}. Save it to create a new local project record.`);
@@ -336,6 +361,12 @@ export default function App() {
     void loadProjects();
   }, []);
 
+  useEffect(() => {
+    if (selectedHistoryRunId && projectHistory && !projectHistory.analysis_runs.some((run) => run.id === selectedHistoryRunId)) {
+      setSelectedHistoryRunId(null);
+    }
+  }, [projectHistory, selectedHistoryRunId]);
+
   async function loadBackendHealth() {
     setLoadingHealth(true);
 
@@ -350,14 +381,31 @@ export default function App() {
     }
   }
 
-  async function refreshProjectHistory(projectId: string, silent = false) {
+  async function refreshProjectHistory(
+    projectId: string,
+    silent = false,
+    overrides?: Partial<typeof initialProjectHistoryWindow>
+  ) {
+    const nextWindow = {
+      analysisLimit: overrides?.analysisLimit ?? projectHistoryWindow.analysisLimit,
+      exportLimit: overrides?.exportLimit ?? projectHistoryWindow.exportLimit
+    };
+
+    if (overrides) {
+      setProjectHistoryWindow(nextWindow);
+    }
     if (!silent) {
       setLoadingProjectHistory(true);
     }
     setProjectHistoryError("");
 
     try {
-      setProjectHistory(await loadProjectHistoryRequest(projectId));
+      setProjectHistory(
+        await loadProjectHistoryRequest(projectId, {
+          analysisLimit: nextWindow.analysisLimit,
+          exportLimit: nextWindow.exportLimit
+        })
+      );
     } catch (requestError) {
       setProjectHistory(null);
       setProjectHistoryError(requestError instanceof Error ? requestError.message : "Unexpected project history error");
@@ -379,7 +427,11 @@ export default function App() {
     setProjectComparisonError("");
 
     try {
-      const comparison = await compareProjectsRequest(activeProjectId, candidateProjectId);
+      const comparison = await compareProjectsRequest(
+        activeProjectId,
+        candidateProjectId,
+        selectedHistoryRunId ?? undefined
+      );
       setProjectComparison(comparison);
       setStatusMessage(`Loaded saved-project comparison against ${candidateName}.`);
     } catch (requestError) {
@@ -399,6 +451,8 @@ export default function App() {
     }
 
     const snapshotEligibleProjectId = activeProjectId !== null && !hasUnsavedChanges ? activeProjectId : null;
+    setSelectedHistoryRunId(null);
+    clearProjectComparison();
     setLoading(true);
     setError("");
     setStatusMessage("");
@@ -441,6 +495,7 @@ export default function App() {
       return;
     }
 
+    setSelectedHistoryRunId(null);
     setSaving(true);
     setError("");
     setStatusMessage("");
@@ -522,13 +577,15 @@ export default function App() {
       setActiveProjectId(typeof data.id === "string" ? data.id : projectId);
       setSavedProjectSnapshot(JSON.stringify(data.payload));
       setProjectHistory(null);
+      setProjectHistoryWindow(initialProjectHistoryWindow);
       setProjectHistoryError("");
+      setSelectedHistoryRunId(null);
       clearProjectComparison();
       setValidationErrors([]);
       if (savedProject) {
         upsertSavedProject(savedProject);
       }
-      await refreshProjectHistory(typeof data.id === "string" ? data.id : projectId);
+      await refreshProjectHistory(typeof data.id === "string" ? data.id : projectId, false, initialProjectHistoryWindow);
       setStatusMessage(`Loaded project ${String(data.project_name)} into the wizard.`);
       setStep(0);
     } catch (requestError) {
@@ -554,8 +611,10 @@ export default function App() {
         setSavedProjectSnapshot(null);
         setResultsProjectId(null);
         setProjectHistory(null);
+        setProjectHistoryWindow(initialProjectHistoryWindow);
         setProjectHistoryError("");
         setLoadingProjectHistory(false);
+        setSelectedHistoryRunId(null);
         setResultsAnalysisRunId(null);
         clearProjectComparison();
         setStatusMessage(`Project ${projectName} deleted. Current form remains as a new local draft.`);
@@ -570,7 +629,9 @@ export default function App() {
   }
 
   async function exportReport(format: ExportFormat) {
-    if (!results.report) {
+    const displayedAnalysis = getDisplayedAnalysis(results, selectedHistoryRun);
+
+    if (!displayedAnalysis?.report) {
       setError("Run analysis before exporting a report.");
       return;
     }
@@ -580,7 +641,7 @@ export default function App() {
 
     try {
       const extension = format === "markdown" ? "md" : "html";
-      const content = await exportReportRequest(results.report, format);
+      const content = await exportReportRequest(displayedAnalysis.report, format);
       const blob = new Blob([content], { type: format === "markdown" ? "text/markdown" : "text/html" });
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
@@ -589,17 +650,20 @@ export default function App() {
       anchor.click();
       URL.revokeObjectURL(url);
 
-      if (resultsProjectId) {
+      const exportProjectId = selectedHistoryRun?.project_id ?? resultsProjectId;
+
+      if (exportProjectId) {
         try {
           const linkedAnalysisRunId =
+            selectedHistoryRun?.id ??
             resultsAnalysisRunId ??
-            (activeProjectId === resultsProjectId ? activeProject?.last_analysis_run_id ?? null : null);
-          const updatedProject = await recordProjectExportRequest(resultsProjectId, format, linkedAnalysisRunId);
+            (activeProjectId === exportProjectId ? activeProject?.last_analysis_run_id ?? null : null);
+          const updatedProject = await recordProjectExportRequest(exportProjectId, format, linkedAnalysisRunId);
           const savedProject = toSavedProject(updatedProject);
           if (savedProject) {
             upsertSavedProject(savedProject);
           }
-          await refreshProjectHistory(resultsProjectId, true);
+          await refreshProjectHistory(exportProjectId, true);
           setStatusMessage(`Exported report as ${extension.toUpperCase()} and updated project export metadata.`);
         } catch (metadataError) {
           setStatusMessage(`Exported report as ${extension.toUpperCase()}, but project export metadata was not updated.`);
@@ -612,6 +676,39 @@ export default function App() {
       setError(requestError instanceof Error ? requestError.message : "Unexpected export error");
     }
   }
+
+  function openHistoryRun(runId: string) {
+    if (!projectHistory) {
+      return;
+    }
+
+    const targetRun = projectHistory.analysis_runs.find((run) => run.id === runId);
+    if (!targetRun) {
+      return;
+    }
+
+    setSelectedHistoryRunId(targetRun.id);
+    clearProjectComparison();
+    setStatusMessage("Opened a saved analysis snapshot from project history.");
+    setError("");
+    setStep(lastStepIndex);
+  }
+
+  function clearHistoryRunSelection() {
+    if (!selectedHistoryRunId) {
+      return;
+    }
+
+    setSelectedHistoryRunId(null);
+    setStatusMessage(
+      results.report
+        ? "Returned to the current in-memory analysis results."
+        : "Closed the saved snapshot preview."
+    );
+    setError("");
+  }
+
+  const displayedAnalysis = getDisplayedAnalysis(results, selectedHistoryRun);
 
   return (
     <>
@@ -648,10 +745,12 @@ export default function App() {
               results={results}
               activeProject={activeProject}
               projectHistory={projectHistory}
+              selectedHistoryRun={selectedHistoryRun}
               projectComparison={projectComparison}
               loadingProjectHistory={loadingProjectHistory}
               statusMessage={statusMessage}
               error={error}
+              displayedAnalysis={displayedAnalysis}
               onUpdateSection={updateSection}
               onBack={() => setStep((currentStep) => Math.max(0, currentStep - 1))}
               onNext={() => setStep((currentStep) => Math.min(lastStepIndex, currentStep + 1))}
@@ -660,6 +759,7 @@ export default function App() {
               onImportDraft={openImportDraft}
               onExportDraft={exportDraft}
               onRunAnalysis={runAnalysis}
+              onClearHistorySelection={clearHistoryRunSelection}
               onExportReport={exportReport}
             />
             <SidebarPanel
@@ -674,6 +774,7 @@ export default function App() {
               projectHistory={projectHistory}
               projectHistoryError={projectHistoryError}
               loadingProjectHistory={loadingProjectHistory}
+              selectedHistoryRunId={selectedHistoryRunId}
               projectComparison={projectComparison}
               projectComparisonError={projectComparisonError}
               loadingProjectComparison={loadingProjectComparison}
@@ -683,6 +784,18 @@ export default function App() {
               onRefreshProjectHistory={(projectId) => {
                 void refreshProjectHistory(projectId);
               }}
+              onLoadMoreAnalysisHistory={(projectId) => {
+                void refreshProjectHistory(projectId, false, {
+                  analysisLimit: projectHistoryWindow.analysisLimit + 5
+                });
+              }}
+              onLoadMoreExportHistory={(projectId) => {
+                void refreshProjectHistory(projectId, false, {
+                  exportLimit: projectHistoryWindow.exportLimit + 5
+                });
+              }}
+              onOpenHistoryRun={openHistoryRun}
+              onClearHistoryRunSelection={clearHistoryRunSelection}
               onCompareProject={(projectId) => {
                 void compareProject(projectId);
               }}

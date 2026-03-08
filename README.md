@@ -58,13 +58,14 @@ Implemented:
 - report export can now stamp the saved project with the latest export timestamp
 - backend exposes saved-project history via `GET /api/v1/projects/{id}/history`
 - frontend now renders saved-project history, recent analysis runs, and export events in the sidebar and results view
+- saved-project history supports richer totals and progressive loading for older analysis/export activity
 - if analysis is run before the project is first saved, the frontend now records that snapshot right after save
 - orchestrator parsing now tolerates fenced JSON and returns structured `error_code` values on fallback
 - backend now enforces tighter experiment validation for continuous metrics and supported variant counts
 - backend CORS methods and headers are now explicit instead of wildcard-based
 - local orchestrator requests now retry transient failures with exponential backoff
 - frontend API contracts are now generated from FastAPI OpenAPI
-- saved projects can now be compared by their latest persisted analysis snapshots
+- saved projects can now be compared by their latest persisted analysis snapshots or by an opened historical base snapshot
 - repository project reads now use explicit column selection instead of `SELECT *`
 - one-command verification is available via `scripts/verify_all.cmd`
 - frontend production build verified after dependency install
@@ -206,7 +207,8 @@ The frontend currently supports:
 - sidebar updates immediately after save/update from the backend save response
 - saved-project analysis runs update snapshot metadata in the sidebar when the draft is in sync
 - saved-project history is loaded after project open and refreshed after analysis/export events
-- saved-project comparison against another persisted snapshot from the sidebar
+- saved-project history can open an older persisted analysis snapshot without re-running analysis
+- saved-project comparison against another persisted snapshot from the sidebar, including the currently opened base snapshot
 - local browser smoke coverage for save, reload, analysis, and export through the backend-served frontend
 - Markdown and HTML export from the results block
 - full deterministic recommendation rendering for before/during/after test phases

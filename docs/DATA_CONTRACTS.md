@@ -409,6 +409,12 @@ Response shape:
 ```json
 {
   "project_id": "project-id",
+  "analysis_total": 4,
+  "analysis_limit": 3,
+  "analysis_offset": 0,
+  "export_total": 2,
+  "export_limit": 3,
+  "export_offset": 0,
   "analysis_runs": [
     {
       "id": "analysis-run-id",
@@ -445,6 +451,7 @@ Purpose:
 
 - fetch saved-project analysis history without re-running the backend
 - fetch export-event history separately from the current project summary fields
+- page or progressively expand activity history in the frontend without loading every row at once
 
 ## 13. Project comparison endpoint
 
@@ -454,6 +461,8 @@ Query params:
 
 - `base_id`
 - `candidate_id`
+- optional `base_run_id`
+- optional `candidate_run_id`
 
 Response shape:
 
@@ -462,6 +471,7 @@ Response shape:
   "base_project": {
     "id": "project-a",
     "project_name": "Checkout baseline",
+    "analysis_created_at": "2026-03-07T12:30:00+00:00",
     "analysis_run_id": "run-a",
     "primary_metric": "purchase_conversion",
     "total_sample_size": 82468,
@@ -493,5 +503,6 @@ Response shape:
 Purpose:
 
 - compare two saved projects without re-running calculations
-- use the latest persisted analysis snapshot for each project
+- use the latest persisted analysis snapshot for each project by default
+- optionally compare specific saved analysis runs from project history
 - surface delta in size, duration, and warning footprint for frontend rendering

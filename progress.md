@@ -163,17 +163,21 @@ Post-phase cleanup completed
 - added `scripts/verify_all.cmd` as a single local verification entrypoint for the Windows workflow
 - added saved-project comparison by latest persisted analysis snapshots across backend and frontend
 - replaced repository `SELECT *` usage with explicit project column selection and added latest-analysis lookup
+- extended saved-project history with totals and progressive loading metadata
+- added compare support for specific saved analysis run ids instead of only latest/latest comparisons
+- added frontend opening of historical analysis snapshots without rerunning analysis
+- wired historical snapshot preview into report export and compare flows
 
 ---
 
 ## Next Phase
 
-Contract automation and product comparison UX
+History-driven saved-project workflows
 
 Goals:
 
-- continue reducing duplicated contracts and manual sync points
-- deepen compare/report capabilities beyond the current latest-snapshot diff
+- allow deeper compare/report workflows directly from saved history
+- continue normalizing repository persistence away from legacy snapshot fields
 - continue hardening optional orchestrator and local-storage edge cases
 
 ---

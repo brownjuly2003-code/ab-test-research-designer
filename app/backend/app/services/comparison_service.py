@@ -38,6 +38,7 @@ def _comparison_entry(project: dict, analysis_run: dict) -> dict:
         "id": project["id"],
         "project_name": project["project_name"],
         "updated_at": project["updated_at"],
+        "analysis_created_at": analysis_run["created_at"],
         "last_analysis_at": project["last_analysis_at"],
         "analysis_run_id": analysis_run["id"],
         "metric_type": calculations["calculation_summary"]["metric_type"],
