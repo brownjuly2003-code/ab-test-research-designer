@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-Post-phase cleanup completed
+Production-lite hardening and recovery drills completed
 
 ---
 
@@ -118,6 +118,8 @@ Post-phase cleanup completed
 - auto-loaded saved projects on frontend startup
 - added frontend unit tests for experiment helpers and API wrapper
 - added a real frontend review step before analysis
+- added workspace backup integrity validation before import and exposed it through frontend preflight import flow
+- added richer SQLite runtime diagnostics including write-probe, db-size, and disk-free visibility
 - restored missing constraint fields and fuller deterministic recommendation rendering in the UI
 - added frontend component tests for startup, review, validation, and result rendering flows
 - linked form labels to inputs for better accessibility and DOM-test stability

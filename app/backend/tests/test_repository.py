@@ -239,6 +239,11 @@ def test_repository_reports_sqlite_runtime_and_schema_metadata() -> None:
     assert diagnostics["busy_timeout_ms"] == 7000
     assert diagnostics["journal_mode"] == "WAL"
     assert diagnostics["synchronous"] == "NORMAL"
+    assert diagnostics["db_parent_path"] == str(db_path.parent)
+    assert diagnostics["db_size_bytes"] >= 0
+    assert diagnostics["disk_free_bytes"] > 0
+    assert diagnostics["write_probe_ok"] is True
+    assert diagnostics["write_probe_detail"] == "BEGIN IMMEDIATE succeeded"
 
 
 def test_repository_returns_latest_and_specific_analysis_runs_and_clamps_history_limits() -> None:
@@ -449,3 +454,64 @@ def test_repository_rejects_workspace_bundle_with_invalid_checksum() -> None:
     with pytest.raises(ApiError, match="Workspace bundle checksum mismatch") as exc_info:
         target_repository.import_workspace(bundle)
     assert exc_info.value.error_code == "workspace_integrity_checksum_mismatch"
+
+
+def test_repository_validates_workspace_bundle_without_importing() -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    source_db_path = temp_dir / f"{uuid.uuid4()}-source.sqlite3"
+    target_db_path = temp_dir / f"{uuid.uuid4()}-target.sqlite3"
+
+    source_repository = ProjectRepository(str(source_db_path))
+    source_repository.create_project(
+        {
+            "project": {"project_name": "Validation source"},
+            "hypothesis": {},
+            "setup": {},
+            "metrics": {},
+            "constraints": {},
+            "additional_context": {},
+        }
+    )
+    bundle = source_repository.export_workspace()
+    target_repository = ProjectRepository(str(target_db_path))
+
+    validation = target_repository.validate_workspace_bundle(bundle)
+
+    assert validation["status"] == "valid"
+    assert validation["schema_version"] == 2
+    assert validation["counts"] == {
+        "projects": 1,
+        "analysis_runs": 0,
+        "export_events": 0,
+        "project_revisions": 1,
+    }
+    assert len(validation["checksum_sha256"]) == 64
+    assert target_repository.list_projects() == []
+
+
+def test_repository_rejects_workspace_bundle_with_duplicate_project_ids() -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    source_db_path = temp_dir / f"{uuid.uuid4()}-source.sqlite3"
+    target_db_path = temp_dir / f"{uuid.uuid4()}-target.sqlite3"
+
+    source_repository = ProjectRepository(str(source_db_path))
+    source_repository.create_project(
+        {
+            "project": {"project_name": "Duplicate source"},
+            "hypothesis": {},
+            "setup": {},
+            "metrics": {},
+            "constraints": {},
+            "additional_context": {},
+        }
+    )
+    bundle = source_repository.export_workspace()
+    bundle["projects"].append(dict(bundle["projects"][0]))
+    bundle["integrity"] = source_repository._build_workspace_integrity(bundle)
+    target_repository = ProjectRepository(str(target_db_path))
+
+    with pytest.raises(ApiError, match="duplicate project ids") as exc_info:
+        target_repository.validate_workspace_bundle(bundle)
+    assert exc_info.value.error_code == "workspace_duplicate_project_id"

@@ -91,6 +91,23 @@ function formatUptime(seconds: number): string {
   return `${hours}h ${remainingMinutes}m`;
 }
 
+function formatBytes(bytes: number): string {
+  if (!(bytes >= 0)) {
+    return "n/a";
+  }
+
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  let value = bytes;
+  let unitIndex = 0;
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024;
+    unitIndex += 1;
+  }
+
+  const digits = unitIndex === 0 ? 0 : value >= 10 ? 1 : 2;
+  return `${value.toFixed(digits)} ${units[unitIndex]}`;
+}
+
 function formatRevisionSource(source: string): string {
   if (source === "workspace_import") {
     return "Imported workspace snapshot";
@@ -238,6 +255,14 @@ const SidebarPanel = memo(function SidebarPanel({
                 <strong>SQLite path:</strong> <code>{backendDiagnostics.storage.db_path}</code>
               </li>
               <li>
+                <strong>SQLite parent:</strong> <code>{backendDiagnostics.storage.db_parent_path}</code>
+              </li>
+              <li>
+                <strong>Storage footprint:</strong> db {formatBytes(backendDiagnostics.storage.db_size_bytes)}
+                {" | free disk "}
+                {formatBytes(backendDiagnostics.storage.disk_free_bytes)}
+              </li>
+              <li>
                 <strong>SQLite mode:</strong> schema v{String(backendDiagnostics.storage.schema_version)}
                 {" | user_version "}
                 {String(backendDiagnostics.storage.sqlite_user_version)}
@@ -247,6 +272,11 @@ const SidebarPanel = memo(function SidebarPanel({
                 {backendDiagnostics.storage.synchronous}
                 {" | busy timeout "}
                 {String(backendDiagnostics.storage.busy_timeout_ms)}ms
+              </li>
+              <li>
+                <strong>SQLite write probe:</strong> {backendDiagnostics.storage.write_probe_ok ? "pass" : "fail"}
+                {" | "}
+                {backendDiagnostics.storage.write_probe_detail}
               </li>
               <li>
                 <strong>Frontend dist:</strong> {backendDiagnostics.frontend.serve_frontend_dist ? "enabled" : "disabled"}
@@ -629,7 +659,7 @@ const SidebarPanel = memo(function SidebarPanel({
           <div>
             <h3>Workspace backup</h3>
             <p className="muted compact-text">
-              Export or import the full SQLite workspace, including saved projects, analysis history, export events, and saved revisions.
+              Export or import the full SQLite workspace, including saved projects, analysis history, export events, and saved revisions. Imports run checksum and reference validation before SQLite writes begin.
             </p>
           </div>
         </div>
@@ -650,6 +680,7 @@ const SidebarPanel = memo(function SidebarPanel({
           <li><code>GET /api/v1/diagnostics</code></li>
           <li><code>GET /readyz</code></li>
           <li><code>GET /api/v1/workspace/export</code></li>
+          <li><code>POST /api/v1/workspace/validate</code></li>
           <li><code>POST /api/v1/workspace/import</code></li>
           <li><code>POST /api/v1/projects/{'{id}'}/analysis</code></li>
           <li><code>POST /api/v1/projects/{'{id}'}/exports</code></li>

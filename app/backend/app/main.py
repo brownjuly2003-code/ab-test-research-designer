@@ -40,6 +40,7 @@ from app.backend.app.schemas.api import (
     ReadinessResponse,
     WorkspaceBundle,
     WorkspaceImportResponse,
+    WorkspaceValidationResponse,
 )
 from app.backend.app.services.calculations_service import calculate_experiment_metrics
 from app.backend.app.services.comparison_service import build_project_comparison
@@ -478,6 +479,13 @@ def create_app() -> FastAPI:
                     ),
                 )
             )
+            checks.append(
+                ReadinessCheck(
+                    name="sqlite_write_probe",
+                    ok=storage_summary["write_probe_ok"],
+                    detail=storage_summary["write_probe_detail"],
+                )
+            )
         except Exception as exc:  # pragma: no cover - exercised via endpoint tests
             checks.append(
                 ReadinessCheck(
@@ -567,6 +575,10 @@ def create_app() -> FastAPI:
     @app.get("/api/v1/workspace/export", response_model=WorkspaceBundle)
     def export_workspace() -> WorkspaceBundle:
         return WorkspaceBundle.model_validate(repository.export_workspace())
+
+    @app.post("/api/v1/workspace/validate", response_model=WorkspaceValidationResponse)
+    def validate_workspace(payload: WorkspaceBundle) -> WorkspaceValidationResponse:
+        return WorkspaceValidationResponse.model_validate(repository.validate_workspace_bundle(payload.model_dump()))
 
     @app.post("/api/v1/workspace/import", response_model=WorkspaceImportResponse)
     def import_workspace(payload: WorkspaceBundle) -> WorkspaceImportResponse:

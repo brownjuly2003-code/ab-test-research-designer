@@ -160,12 +160,17 @@ export type DiagnosticsRuntimeSummary = {
 
 export type DiagnosticsStorageSummary = {
   db_path: string;
+  db_parent_path: string;
   db_exists: boolean;
+  db_size_bytes: number;
+  disk_free_bytes: number;
   schema_version: number;
   sqlite_user_version: number;
   busy_timeout_ms: number;
   journal_mode: string;
   synchronous: string;
+  write_probe_ok: boolean;
+  write_probe_detail: string;
   projects_total: number;
   analysis_runs_total: number;
   export_events_total: number;
@@ -570,4 +575,11 @@ export type WorkspaceProjectRevisionRecord_Output = {
   source: "create" | "update" | "workspace_import";
   created_at: string;
   payload: ExperimentInput;
+};
+
+export type WorkspaceValidationResponse = {
+  status: string;
+  schema_version: number;
+  counts: WorkspaceIntegrityCounts;
+  checksum_sha256: string;
 };

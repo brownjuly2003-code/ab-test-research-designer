@@ -321,12 +321,17 @@ class ProjectComparisonResponse(BaseModel):
 
 class DiagnosticsStorageSummary(BaseModel):
     db_path: str
+    db_parent_path: str
     db_exists: bool
+    db_size_bytes: int
+    disk_free_bytes: int
     schema_version: int
     sqlite_user_version: int
     busy_timeout_ms: int
     journal_mode: str
     synchronous: str
+    write_probe_ok: bool
+    write_probe_detail: str
     projects_total: int
     analysis_runs_total: int
     export_events_total: int
@@ -449,6 +454,13 @@ class WorkspaceIntegrity(BaseModel):
     checksum_sha256: str
 
 
+class WorkspaceValidationResponse(BaseModel):
+    status: Literal["valid"]
+    schema_version: int
+    counts: WorkspaceIntegrityCounts
+    checksum_sha256: str
+
+
 class WorkspaceBundle(BaseModel):
     schema_version: int = 2
     generated_at: str
@@ -535,4 +547,5 @@ __all__ = [
     "ReadinessResponse",
     "WorkspaceBundle",
     "WorkspaceImportResponse",
+    "WorkspaceValidationResponse",
 ]

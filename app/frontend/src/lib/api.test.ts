@@ -6,6 +6,7 @@ import {
   exportWorkspaceRequest,
   exportReportRequest,
   importWorkspaceRequest,
+  validateWorkspaceRequest,
   listProjectsRequest,
   loadProjectHistoryRequest,
   loadProjectRevisionsRequest,
@@ -252,12 +253,17 @@ describe("frontend api wrapper", () => {
         request_timing_headers_enabled: true,
         storage: {
           db_path: "D:/AB_TEST/app/backend/data/projects.sqlite3",
+          db_parent_path: "D:/AB_TEST/app/backend/data",
           db_exists: true,
+          db_size_bytes: 24576,
+          disk_free_bytes: 987654321,
           schema_version: 2,
           sqlite_user_version: 2,
           busy_timeout_ms: 5000,
           journal_mode: "WAL",
           synchronous: "NORMAL",
+          write_probe_ok: true,
+          write_probe_detail: "BEGIN IMMEDIATE succeeded",
           projects_total: 2,
           analysis_runs_total: 3,
           export_events_total: 1,
@@ -318,6 +324,28 @@ describe("frontend api wrapper", () => {
     expect(result.project_revisions?.[0]?.id).toBe("rev-1");
   });
 
+  it("validates the full workspace bundle before import", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      jsonResponse({
+        status: "valid",
+        schema_version: 2,
+        counts: {
+          projects: 1,
+          analysis_runs: 1,
+          export_events: 1,
+          project_revisions: 1
+        },
+        checksum_sha256: "a".repeat(64)
+      })
+    );
+
+    const result = await validateWorkspaceRequest(buildWorkspaceBundle());
+
+    expect(result.status).toBe("valid");
+    expect(result.counts.projects).toBe(1);
+    expect(String(vi.mocked(fetch).mock.calls[0]?.[0])).toContain("/api/v1/workspace/validate");
+  });
+
   it("imports the full workspace bundle", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(
       jsonResponse({
@@ -351,6 +379,16 @@ describe("frontend api wrapper", () => {
 
     await expect(importWorkspaceRequest(buildWorkspaceBundle())).rejects.toThrow(
       "Workspace import failed (workspace_integrity_checksum_mismatch)"
+    );
+  });
+
+  it("surfaces workspace validation errors before import", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      jsonResponse({ error_code: "workspace_duplicate_project_id" }, { status: 400 })
+    );
+
+    await expect(validateWorkspaceRequest(buildWorkspaceBundle())).rejects.toThrow(
+      "Workspace validation failed (workspace_duplicate_project_id)"
     );
   });
 

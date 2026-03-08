@@ -11,7 +11,8 @@ import {
   recordProjectAnalysisRequest,
   recordProjectExportRequest,
   requestAnalysis,
-  saveProjectRequest
+  saveProjectRequest,
+  validateWorkspaceRequest
 } from "./lib/api";
 import {
   buildApiPayload,
@@ -159,10 +160,13 @@ export default function App() {
 
     try {
       const parsed = JSON.parse(await file.text()) as WorkspaceBundleInput;
+      const validation = await validateWorkspaceRequest(parsed);
       const result = await importWorkspaceRequest(parsed);
       await loadProjects();
       await projectManager.loadBackendDiagnostics();
+      const shortChecksum = validation.checksum_sha256.slice(0, 12);
       analysis.setStatusMessage(
+        `Validated workspace backup (schema v${String(validation.schema_version)}, checksum ${shortChecksum}...). ` +
         `Imported workspace backup: ${String(result.imported_projects)} project(s), ` +
         `${String(result.imported_analysis_runs)} analysis run(s), ` +
         `${String(result.imported_export_events)} export event(s), ` +

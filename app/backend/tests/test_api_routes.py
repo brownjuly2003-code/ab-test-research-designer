@@ -293,10 +293,15 @@ def test_diagnostics_endpoint_returns_runtime_summary(monkeypatch) -> None:
     assert payload["environment"] == "test"
     assert payload["request_timing_headers_enabled"] is True
     assert payload["storage"]["db_path"] == str(db_path)
+    assert payload["storage"]["db_parent_path"] == str(db_path.parent)
+    assert payload["storage"]["db_size_bytes"] >= 0
+    assert payload["storage"]["disk_free_bytes"] > 0
     assert payload["storage"]["schema_version"] == 2
     assert payload["storage"]["sqlite_user_version"] == 2
     assert payload["storage"]["journal_mode"] == "WAL"
     assert payload["storage"]["synchronous"] == "NORMAL"
+    assert payload["storage"]["write_probe_ok"] is True
+    assert payload["storage"]["write_probe_detail"] == "BEGIN IMMEDIATE succeeded"
     assert payload["storage"]["projects_total"] == 0
     assert payload["storage"]["project_revisions_total"] == 0
     assert payload["frontend"]["serve_frontend_dist"] is False
@@ -332,6 +337,7 @@ def test_readyz_returns_degraded_when_frontend_dist_is_missing(monkeypatch) -> N
     assert any(check["name"] == "frontend_dist" and check["ok"] is False for check in payload["checks"])
     assert any(check["name"] == "sqlite_schema_version" and check["ok"] is True for check in payload["checks"])
     assert any(check["name"] == "sqlite_journal_mode" and check["ok"] is True for check in payload["checks"])
+    assert any(check["name"] == "sqlite_write_probe" and check["ok"] is True for check in payload["checks"])
     get_settings.cache_clear()
 
 

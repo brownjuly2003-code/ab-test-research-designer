@@ -17,7 +17,8 @@ import type {
   ProjectRevisionRecord as ApiProjectRevisionRecord,
   WorkspaceBundle_Input as ApiWorkspaceBundleInput,
   WorkspaceBundle_Output as ApiWorkspaceBundleOutput,
-  WorkspaceImportResponse as ApiWorkspaceImportResponse
+  WorkspaceImportResponse as ApiWorkspaceImportResponse,
+  WorkspaceValidationResponse as ApiWorkspaceValidationResponse
 } from "./generated/api-contract";
 
 export type AdditionalContextSection = NonNullable<ApiExperimentInput["additional_context"]>;
@@ -99,6 +100,7 @@ export type ApiDiagnosticsResponse = ApiDiagnosticsResponseContract;
 export type WorkspaceBundleInput = ApiWorkspaceBundleInput;
 export type WorkspaceBundle = ApiWorkspaceBundleOutput;
 export type WorkspaceImportResponse = ApiWorkspaceImportResponse;
+export type WorkspaceValidationResponse = ApiWorkspaceValidationResponse;
 export type AnalysisResponsePayload = ApiAnalysisResponse;
 export type ResultsState = Partial<Pick<ApiAnalysisResponse, "calculations" | "report" | "advice">>;
 export type SavedProject = ApiProjectListItem;

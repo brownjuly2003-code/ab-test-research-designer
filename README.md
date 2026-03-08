@@ -13,6 +13,7 @@ It combines:
 - SQLite schema versioning plus configurable WAL/busy-timeout runtime settings
 - optional API token protection for runtime and project APIs
 - workspace backup and restore for saved projects plus history, integrity counts, and checksums
+- preflight workspace validation before import, plus runtime SQLite write-probe diagnostics
 
 ## Demo
 
@@ -49,6 +50,7 @@ runs analysis, and exports a report:
 - saved-project revision history with payload restore into the wizard
 - richer snapshot comparison with assumption/risk overlap and recommendation highlights
 - full workspace export/import for project, analysis, export-history, and revision backup
+- workspace import preflight validation with checksum/reference verification before writes begin
 - browser draft restore/autosave plus JSON draft import/export
 
 ## Local setup

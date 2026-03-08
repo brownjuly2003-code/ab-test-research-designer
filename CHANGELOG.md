@@ -32,8 +32,10 @@
 - added optional read-only API token support for safe runtime requests while keeping mutations behind the write token
 - hardened Docker packaging with build-time frontend token injection, runtime defaults, container healthchecks, and secure compose verification
 - added workspace backup integrity manifests with entity counts and SHA-256 checksum validation on import
+- added `POST /api/v1/workspace/validate` so workspace bundles can be preflight-checked before SQLite writes begin
 - added structured API error payloads with `error_code`, `status_code`, `request_id`, and `X-Error-Code`
 - added in-memory runtime request/error counters to diagnostics for lightweight observability
+- extended diagnostics and readiness with SQLite write-probe, db-size, parent-path, and free-disk reporting
 
 ### Documentation and packaging
 

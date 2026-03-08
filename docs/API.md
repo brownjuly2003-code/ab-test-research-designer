@@ -170,6 +170,12 @@ curl -X POST http://127.0.0.1:8008/api/v1/export/markdown ^
   -d @report.json
 ```
 
+## Other
+
+### `POST /api/v1/workspace/validate`
+
+Validate Workspace
+
 ## Validation notes
 
 - supported variant count is `2..10`

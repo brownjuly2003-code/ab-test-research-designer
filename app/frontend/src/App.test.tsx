@@ -8,6 +8,7 @@ vi.mock("./lib/api", () => ({
   exportWorkspaceRequest: vi.fn(),
   exportReportRequest: vi.fn(),
   importWorkspaceRequest: vi.fn(),
+  validateWorkspaceRequest: vi.fn(),
   listProjectsRequest: vi.fn(),
   loadProjectHistoryRequest: vi.fn(),
   loadProjectRevisionsRequest: vi.fn(),
@@ -28,6 +29,7 @@ import {
   exportWorkspaceRequest,
   exportReportRequest,
   importWorkspaceRequest,
+  validateWorkspaceRequest,
   listProjectsRequest,
   loadProjectHistoryRequest,
   loadProjectRevisionsRequest,
@@ -216,12 +218,17 @@ function buildDiagnostics() {
     request_timing_headers_enabled: true,
     storage: {
       db_path: "D:/AB_TEST/app/backend/data/projects.sqlite3",
+      db_parent_path: "D:/AB_TEST/app/backend/data",
       db_exists: true,
+      db_size_bytes: 24576,
+      disk_free_bytes: 987654321,
       schema_version: 2,
       sqlite_user_version: 2,
       busy_timeout_ms: 5000,
       journal_mode: "WAL",
       synchronous: "NORMAL",
+      write_probe_ok: true,
+      write_probe_detail: "BEGIN IMMEDIATE succeeded",
       projects_total: 2,
       analysis_runs_total: 3,
       export_events_total: 1,
@@ -402,6 +409,7 @@ describe("App UI flow", () => {
     vi.mocked(deleteProjectRequest).mockReset();
     vi.mocked(exportWorkspaceRequest).mockReset();
     vi.mocked(importWorkspaceRequest).mockReset();
+    vi.mocked(validateWorkspaceRequest).mockReset();
     vi.mocked(listProjectsRequest).mockResolvedValue([]);
     vi.mocked(loadProjectHistoryRequest).mockReset();
     vi.mocked(loadProjectHistoryRequest).mockResolvedValue({
@@ -485,6 +493,8 @@ describe("App UI flow", () => {
       expect(view.container.textContent).toContain("AB Test Research Designer API");
       expect(view.container.textContent).toContain("Runtime diagnostics");
       expect(view.container.textContent).toContain("Storage:");
+      expect(view.container.textContent).toContain("Storage footprint:");
+      expect(view.container.textContent).toContain("SQLite write probe:");
       expect(view.container.textContent).toContain("Timing headers:");
       expect(view.container.textContent).toContain("Stored checkout test");
 
@@ -640,6 +650,17 @@ describe("App UI flow", () => {
   });
 
   it("imports a workspace backup and refreshes saved projects", async () => {
+    vi.mocked(validateWorkspaceRequest).mockResolvedValueOnce({
+      status: "valid",
+      schema_version: 2,
+      counts: {
+        projects: 1,
+        analysis_runs: 1,
+        export_events: 1,
+        project_revisions: 1
+      },
+      checksum_sha256: "a".repeat(64)
+    });
     vi.mocked(importWorkspaceRequest).mockResolvedValueOnce({
       status: "imported",
       imported_projects: 1,
@@ -679,12 +700,42 @@ describe("App UI flow", () => {
       await changeFiles(input, [file]);
       await flushEffects();
 
+      expect(validateWorkspaceRequest).toHaveBeenCalledTimes(1);
       expect(importWorkspaceRequest).toHaveBeenCalledTimes(1);
       expect(listProjectsRequest).toHaveBeenCalledTimes(2);
       expect(view.container.textContent).toContain(
-        "Imported workspace backup: 1 project(s), 1 analysis run(s), 1 export event(s), 1 revision(s)."
+        "Validated workspace backup (schema v2, checksum aaaaaaaaaaaa...). Imported workspace backup: 1 project(s), 1 analysis run(s), 1 export event(s), 1 revision(s)."
       );
       expect(view.container.textContent).toContain("Imported workspace project");
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("blocks workspace import when validation fails before SQLite writes begin", async () => {
+    vi.mocked(validateWorkspaceRequest).mockRejectedValueOnce(
+      new Error("Workspace validation failed (workspace_duplicate_project_id)")
+    );
+
+    const file = new File([JSON.stringify(buildWorkspaceBundle())], "workspace-backup.json", {
+      type: "application/json"
+    });
+
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+
+      const input = view.container.parentElement?.querySelector('input[type="file"][aria-label="Import workspace file"]');
+      if (!(input instanceof HTMLInputElement)) {
+        throw new Error("Workspace import input was not rendered");
+      }
+
+      await changeFiles(input, [file]);
+      await flushEffects();
+
+      expect(validateWorkspaceRequest).toHaveBeenCalledTimes(1);
+      expect(importWorkspaceRequest).not.toHaveBeenCalled();
+      expect(view.container.textContent).toContain("Workspace validation failed (workspace_duplicate_project_id)");
     } finally {
       await view.unmount();
     }

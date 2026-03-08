@@ -459,6 +459,20 @@ def test_workspace_export_and_import_routes_round_trip_history(monkeypatch) -> N
         }
         assert len(workspace_bundle["integrity"]["checksum_sha256"]) == 64
 
+        workspace_validation = client.post("/api/v1/workspace/validate", json=workspace_bundle)
+        assert workspace_validation.status_code == 200
+        assert workspace_validation.json() == {
+            "status": "valid",
+            "schema_version": 2,
+            "counts": {
+                "projects": 1,
+                "analysis_runs": 1,
+                "export_events": 1,
+                "project_revisions": 1,
+            },
+            "checksum_sha256": workspace_bundle["integrity"]["checksum_sha256"],
+        }
+
         workspace_import = client.post("/api/v1/workspace/import", json=workspace_bundle)
         assert workspace_import.status_code == 200
         import_payload = workspace_import.json()
@@ -499,3 +513,37 @@ def test_workspace_import_rejects_tampered_bundle(monkeypatch) -> None:
         assert workspace_import.status_code == 400
         assert workspace_import.json()["detail"] == "Workspace bundle checksum mismatch"
         assert workspace_import.json()["error_code"] == "workspace_integrity_checksum_mismatch"
+
+
+def test_workspace_validate_rejects_duplicate_project_ids(monkeypatch) -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+
+    monkeypatch.setenv("AB_DB_PATH", str(db_path))
+    get_settings.cache_clear()
+
+    with TestClient(create_app()) as client:
+        client.post("/api/v1/projects", json=_payload("Workspace source"))
+        workspace_bundle = client.get("/api/v1/workspace/export").json()
+        workspace_bundle["projects"].append(dict(workspace_bundle["projects"][0]))
+        project_count = len(workspace_bundle["projects"])
+        workspace_bundle["integrity"]["counts"]["projects"] = project_count
+
+        import hashlib, json
+        payload = {
+            "schema_version": workspace_bundle["schema_version"],
+            "generated_at": workspace_bundle["generated_at"],
+            "projects": workspace_bundle["projects"],
+            "analysis_runs": workspace_bundle["analysis_runs"],
+            "export_events": workspace_bundle["export_events"],
+            "project_revisions": workspace_bundle["project_revisions"],
+        }
+        workspace_bundle["integrity"]["checksum_sha256"] = hashlib.sha256(
+            json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        ).hexdigest()
+
+        response = client.post("/api/v1/workspace/validate", json=workspace_bundle)
+
+    assert response.status_code == 400
+    assert response.json()["error_code"] == "workspace_duplicate_project_id"

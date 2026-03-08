@@ -8,6 +8,7 @@ import {
   type WorkspaceBundle,
   type WorkspaceBundleInput,
   type WorkspaceImportResponse,
+  type WorkspaceValidationResponse,
   buildApiPayload,
   type AnalysisResponsePayload,
   type ApiErrorResponse,
@@ -29,6 +30,7 @@ export type DeleteProjectResponse = GeneratedProjectDeleteResponse;
 export type AnalysisResponse = AnalysisResponsePayload;
 export type DiagnosticsResponse = ApiDiagnosticsResponse;
 export type WorkspaceExportResponse = WorkspaceBundle;
+export type WorkspaceValidationSummary = WorkspaceValidationResponse;
 export type WorkspaceImportSummary = WorkspaceImportResponse;
 export type ProjectHistoryRequestOptions = {
   analysisLimit?: number;
@@ -113,6 +115,23 @@ export async function importWorkspaceRequest(bundle: WorkspaceBundleInput | Work
 
   if (!response.ok) {
     throw new Error(getErrorMessage(data, "Workspace import failed"));
+  }
+
+  return data;
+}
+
+export async function validateWorkspaceRequest(
+  bundle: WorkspaceBundleInput | WorkspaceBundle
+): Promise<WorkspaceValidationResponse> {
+  const response = await fetch(apiUrl("/api/v1/workspace/validate"), {
+    method: "POST",
+    headers: buildHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify(bundle)
+  });
+  const data = await readJson<WorkspaceValidationResponse & ApiErrorResponse>(response);
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(data, "Workspace validation failed"));
   }
 
   return data;

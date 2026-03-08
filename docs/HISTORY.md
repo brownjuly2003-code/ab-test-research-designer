@@ -52,8 +52,10 @@ The current stack:
 - optional read-only token protection added for safe runtime access while mutations stay behind the write token
 - Docker packaging now includes built-in healthchecks, secure compose verification, and documented split-token runtime mode
 - workspace backup bundles now carry integrity counts and SHA-256 checksums, and imports reject tampered archives
+- workspace bundles can now be preflight-validated through a dedicated API route before import starts writing to SQLite
 - API failures now return structured error payloads that carry `error_code`, `status_code`, and `request_id`
 - diagnostics now expose in-memory runtime counters for requests, error classes, and auth rejections
+- diagnostics and readiness now expose SQLite write-probe, db-size, db-parent, and free-disk state for recovery checks
 
 ### Product polish
 
