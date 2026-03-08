@@ -4,7 +4,7 @@ from pathlib import Path
 from time import perf_counter
 import uuid
 
-from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi import FastAPI, HTTPException, Query, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -29,6 +29,10 @@ from app.backend.app.schemas.api import (
     ProjectHistoryResponse,
     ProjectListResponse,
     ProjectRecord,
+    ReadinessCheck,
+    ReadinessResponse,
+    WorkspaceBundle,
+    WorkspaceImportResponse,
 )
 from app.backend.app.services.calculations_service import calculate_experiment_metrics
 from app.backend.app.services.comparison_service import build_project_comparison
@@ -136,6 +140,56 @@ def create_app() -> FastAPI:
             environment=settings.environment,
         )
 
+    @app.get("/readyz", response_model=ReadinessResponse)
+    def readyz(response: Response) -> ReadinessResponse:
+        checks: list[ReadinessCheck] = []
+
+        try:
+            storage_summary = repository.get_diagnostics_summary()
+            checks.append(
+                ReadinessCheck(
+                    name="sqlite_storage",
+                    ok=True,
+                    detail=f"Database path {storage_summary['db_path']}",
+                )
+            )
+        except Exception as exc:  # pragma: no cover - exercised via endpoint tests
+            checks.append(
+                ReadinessCheck(
+                    name="sqlite_storage",
+                    ok=False,
+                    detail=f"Storage diagnostics failed: {exc}",
+                )
+            )
+
+        frontend_ready = (not settings.serve_frontend_dist) or frontend_index_path.exists()
+        checks.append(
+            ReadinessCheck(
+                name="frontend_dist",
+                ok=frontend_ready,
+                detail=(
+                    "Frontend dist serving disabled"
+                    if not settings.serve_frontend_dist
+                    else f"Looking for {frontend_index_path}"
+                ),
+            )
+        )
+        checks.append(
+            ReadinessCheck(
+                name="llm_config",
+                ok=True,
+                detail=f"{settings.llm_max_attempts} attempt(s), timeout {settings.llm_timeout_seconds}s",
+            )
+        )
+
+        ready = all(check.ok for check in checks)
+        response.status_code = status.HTTP_200_OK if ready else status.HTTP_503_SERVICE_UNAVAILABLE
+        return ReadinessResponse(
+            status="ready" if ready else "degraded",
+            generated_at=datetime.now(timezone.utc).isoformat(),
+            checks=checks,
+        )
+
     @app.get("/api/v1/diagnostics", response_model=DiagnosticsResponse)
     def diagnostics() -> DiagnosticsResponse:
         diagnostics_generated_at = datetime.now(timezone.utc)
@@ -164,6 +218,14 @@ def create_app() -> FastAPI:
                 "backoff_multiplier": settings.llm_backoff_multiplier,
             },
         )
+
+    @app.get("/api/v1/workspace/export", response_model=WorkspaceBundle)
+    def export_workspace() -> WorkspaceBundle:
+        return WorkspaceBundle.model_validate(repository.export_workspace())
+
+    @app.post("/api/v1/workspace/import", response_model=WorkspaceImportResponse)
+    def import_workspace(payload: WorkspaceBundle) -> WorkspaceImportResponse:
+        return WorkspaceImportResponse.model_validate(repository.import_workspace(payload.model_dump()))
 
     @app.post("/api/v1/calculate", response_model=CalculationResponse)
     def calculate(payload: CalculationRequest) -> CalculationResponse:

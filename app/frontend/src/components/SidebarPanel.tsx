@@ -14,6 +14,8 @@ type SidebarPanelProps = {
   loadingHealth: boolean;
   loadingDiagnostics: boolean;
   loadingProjects: boolean;
+  importingWorkspace: boolean;
+  exportingWorkspace: boolean;
   deletingProjectId: string | null;
   backendHealth: ApiHealthResponse | null;
   backendDiagnostics: ApiDiagnosticsResponse | null;
@@ -40,6 +42,8 @@ type SidebarPanelProps = {
   onClearHistoryRunSelection: () => void;
   onCompareProject: (projectId: string) => void;
   onLoadProjects: () => void;
+  onExportWorkspace: () => void;
+  onImportWorkspace: () => void;
   onLoadProject: (projectId: string) => void;
   onDeleteProject: (projectId: string, projectName: string) => void;
 };
@@ -84,6 +88,8 @@ const SidebarPanel = memo(function SidebarPanel({
   loadingHealth,
   loadingDiagnostics,
   loadingProjects,
+  importingWorkspace,
+  exportingWorkspace,
   deletingProjectId,
   backendHealth,
   backendDiagnostics,
@@ -110,6 +116,8 @@ const SidebarPanel = memo(function SidebarPanel({
   onClearHistoryRunSelection,
   onCompareProject,
   onLoadProjects,
+  onExportWorkspace,
+  onImportWorkspace,
   onLoadProject,
   onDeleteProject
 }: SidebarPanelProps) {
@@ -471,10 +479,32 @@ const SidebarPanel = memo(function SidebarPanel({
       </div>
 
       <div className="card">
+        <div className="section-heading">
+          <div>
+            <h3>Workspace backup</h3>
+            <p className="muted compact-text">
+              Export or import the full SQLite workspace, including saved projects, analysis history, and export events.
+            </p>
+          </div>
+        </div>
+        <div className="actions">
+          <button className="btn ghost" disabled={exportingWorkspace} onClick={onExportWorkspace}>
+            {exportingWorkspace ? "Exporting..." : "Export workspace JSON"}
+          </button>
+          <button className="btn secondary" disabled={importingWorkspace} onClick={onImportWorkspace}>
+            {importingWorkspace ? "Importing..." : "Import workspace JSON"}
+          </button>
+        </div>
+      </div>
+
+      <div className="card">
         <h3>Backend endpoints</h3>
         <ul className="list">
           <li><code>POST /api/v1/analyze</code></li>
           <li><code>GET /api/v1/diagnostics</code></li>
+          <li><code>GET /readyz</code></li>
+          <li><code>GET /api/v1/workspace/export</code></li>
+          <li><code>POST /api/v1/workspace/import</code></li>
           <li><code>POST /api/v1/projects/{'{id}'}/analysis</code></li>
           <li><code>POST /api/v1/projects/{'{id}'}/exports</code></li>
           <li><code>GET /api/v1/projects/compare</code></li>

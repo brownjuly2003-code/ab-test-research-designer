@@ -5,7 +5,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("./lib/api", () => ({
   compareProjectsRequest: vi.fn(),
   deleteProjectRequest: vi.fn(),
+  exportWorkspaceRequest: vi.fn(),
   exportReportRequest: vi.fn(),
+  importWorkspaceRequest: vi.fn(),
   listProjectsRequest: vi.fn(),
   loadProjectHistoryRequest: vi.fn(),
   loadProjectRequest: vi.fn(),
@@ -22,7 +24,9 @@ import {
   type AnalysisResponse,
   compareProjectsRequest,
   deleteProjectRequest,
+  exportWorkspaceRequest,
   exportReportRequest,
+  importWorkspaceRequest,
   listProjectsRequest,
   loadProjectHistoryRequest,
   loadProjectRequest,
@@ -269,6 +273,43 @@ function buildProjectComparison() {
   };
 }
 
+function buildWorkspaceBundle() {
+  return {
+    schema_version: 1,
+    generated_at: "2026-03-09T00:30:00Z",
+    projects: [
+      {
+        id: "project-1",
+        project_name: "Workspace project",
+        payload_schema_version: 1,
+        last_analysis_at: "2026-03-09T00:20:00Z",
+        last_analysis_run_id: "run-1",
+        last_exported_at: "2026-03-09T00:25:00Z",
+        created_at: "2026-03-09T00:10:00Z",
+        updated_at: "2026-03-09T00:25:00Z",
+        payload: buildApiPayload(cloneInitialState())
+      }
+    ],
+    analysis_runs: [
+      {
+        id: "run-1",
+        project_id: "project-1",
+        created_at: "2026-03-09T00:20:00Z",
+        analysis: buildAnalysisResult()
+      }
+    ],
+    export_events: [
+      {
+        id: "export-1",
+        project_id: "project-1",
+        analysis_run_id: "run-1",
+        format: "markdown" as const,
+        created_at: "2026-03-09T00:25:00Z"
+      }
+    ]
+  };
+}
+
 describe("App UI flow", () => {
   beforeEach(() => {
     vi.stubGlobal("URL", {
@@ -280,6 +321,8 @@ describe("App UI flow", () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
     vi.mocked(compareProjectsRequest).mockReset();
     vi.mocked(deleteProjectRequest).mockReset();
+    vi.mocked(exportWorkspaceRequest).mockReset();
+    vi.mocked(importWorkspaceRequest).mockReset();
     vi.mocked(listProjectsRequest).mockResolvedValue([]);
     vi.mocked(loadProjectHistoryRequest).mockReset();
     vi.mocked(loadProjectHistoryRequest).mockResolvedValue({
@@ -425,6 +468,70 @@ describe("App UI flow", () => {
       expect(view.container.textContent).not.toContain("Stored checkout test");
       expect(view.container.textContent).toContain("Pricing experiment");
       expect(view.container.textContent).toContain("Showing 1 of 2 saved projects.");
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("exports the full workspace bundle from the sidebar", async () => {
+    vi.mocked(exportWorkspaceRequest).mockResolvedValueOnce(buildWorkspaceBundle());
+
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+      await click(findButton(view.container, "Export workspace JSON"));
+      await flushEffects();
+
+      expect(exportWorkspaceRequest).toHaveBeenCalledTimes(1);
+      expect(view.container.textContent).toContain("Exported workspace backup with 1 project(s).");
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("imports a workspace backup and refreshes saved projects", async () => {
+    vi.mocked(importWorkspaceRequest).mockResolvedValueOnce({
+      status: "imported",
+      imported_projects: 1,
+      imported_analysis_runs: 1,
+      imported_export_events: 1
+    });
+    vi.mocked(listProjectsRequest)
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        {
+          id: "p-imported",
+          project_name: "Imported workspace project",
+          payload_schema_version: 1,
+          last_analysis_at: null,
+          last_analysis_run_id: null,
+          last_exported_at: null,
+          has_analysis_snapshot: false,
+          created_at: "2026-03-09T00:10:00Z",
+          updated_at: "2026-03-09T00:10:00Z"
+        }
+      ]);
+
+    const file = new File([JSON.stringify(buildWorkspaceBundle())], "workspace-backup.json", {
+      type: "application/json"
+    });
+
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+
+      const input = view.container.parentElement?.querySelector('input[type="file"][aria-label="Import workspace file"]');
+      if (!(input instanceof HTMLInputElement)) {
+        throw new Error("Workspace import input was not rendered");
+      }
+
+      await changeFiles(input, [file]);
+      await flushEffects();
+
+      expect(importWorkspaceRequest).toHaveBeenCalledTimes(1);
+      expect(listProjectsRequest).toHaveBeenCalledTimes(2);
+      expect(view.container.textContent).toContain("Imported workspace backup: 1 project(s), 1 analysis run(s), 1 export event(s).");
+      expect(view.container.textContent).toContain("Imported workspace project");
     } finally {
       await view.unmount();
     }

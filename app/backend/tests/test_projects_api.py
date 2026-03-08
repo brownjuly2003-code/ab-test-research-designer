@@ -396,3 +396,56 @@ def test_projects_compare_endpoint_returns_saved_snapshot_differences(monkeypatc
         assert specific_payload["base_only_warning_codes"] == []
         assert specific_payload["candidate_only_warning_codes"] == ["LONG_DURATION", "LOW_TRAFFIC"]
         assert specific_payload["metric_alignment_note"] == "Both snapshots evaluate the same primary metric and metric family."
+
+
+def test_workspace_export_and_import_routes_round_trip_history(monkeypatch) -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+
+    monkeypatch.setenv("AB_DB_PATH", str(db_path))
+    get_settings.cache_clear()
+
+    with TestClient(create_app()) as client:
+        created_project = client.post("/api/v1/projects", json=_payload("Workspace source")).json()
+        analysis_response = client.post(
+            f"/api/v1/projects/{created_project['id']}/analysis",
+            json=_analysis_payload(
+                total_sample_size=200,
+                estimated_duration_days=10,
+                executive_summary="Workspace summary",
+                warning_codes=["SEASONALITY_PRESENT"],
+            ),
+        )
+        assert analysis_response.status_code == 200
+        project_with_analysis = analysis_response.json()
+
+        export_response = client.post(
+            f"/api/v1/projects/{created_project['id']}/exports",
+            json={"format": "markdown", "analysis_run_id": project_with_analysis["last_analysis_run_id"]},
+        )
+        assert export_response.status_code == 200
+
+        workspace_export = client.get("/api/v1/workspace/export")
+        assert workspace_export.status_code == 200
+        workspace_bundle = workspace_export.json()
+        assert workspace_bundle["schema_version"] == 1
+        assert len(workspace_bundle["projects"]) == 1
+        assert len(workspace_bundle["analysis_runs"]) == 1
+        assert len(workspace_bundle["export_events"]) == 1
+
+        workspace_import = client.post("/api/v1/workspace/import", json=workspace_bundle)
+        assert workspace_import.status_code == 200
+        import_payload = workspace_import.json()
+        assert import_payload == {
+            "status": "imported",
+            "imported_projects": 1,
+            "imported_analysis_runs": 1,
+            "imported_export_events": 1,
+        }
+
+        listed_projects = client.get("/api/v1/projects")
+        assert listed_projects.status_code == 200
+        projects = listed_projects.json()["projects"]
+        assert len(projects) == 2
+        assert sum(1 for project in projects if project["project_name"] == "Workspace source") == 2

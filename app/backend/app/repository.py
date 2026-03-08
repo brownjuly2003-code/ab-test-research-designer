@@ -509,6 +509,129 @@ class ProjectRepository:
             ),
         }
 
+    def export_workspace(self) -> dict:
+        with self._connect() as connection:
+            project_rows = connection.execute(
+                f"""
+                SELECT {self.project_select_columns}
+                FROM projects
+                ORDER BY created_at ASC, id ASC
+                """
+            ).fetchall()
+            analysis_rows = connection.execute(
+                """
+                SELECT id, project_id, analysis_json, created_at
+                FROM analysis_runs
+                ORDER BY created_at ASC, id ASC
+                """
+            ).fetchall()
+            export_rows = connection.execute(
+                """
+                SELECT id, project_id, analysis_run_id, format, created_at
+                FROM export_events
+                ORDER BY created_at ASC, id ASC
+                """
+            ).fetchall()
+
+        return {
+            "schema_version": 1,
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "projects": [self._row_to_project(row) for row in project_rows],
+            "analysis_runs": [self._analysis_row_to_record(row) for row in analysis_rows],
+            "export_events": [self._export_row_to_record(row) for row in export_rows],
+        }
+
+    def import_workspace(self, bundle: dict) -> dict:
+        imported_projects = bundle.get("projects", [])
+        imported_analysis_runs = bundle.get("analysis_runs", [])
+        imported_export_events = bundle.get("export_events", [])
+
+        project_id_map = {
+            project["id"]: str(uuid.uuid4())
+            for project in imported_projects
+        }
+        analysis_run_id_map = {
+            analysis_run["id"]: str(uuid.uuid4())
+            for analysis_run in imported_analysis_runs
+        }
+
+        with self._connect() as connection:
+            for project in imported_projects:
+                old_project_id = project["id"]
+                connection.execute(
+                    """
+                    INSERT INTO projects (
+                        id,
+                        project_name,
+                        payload_json,
+                        payload_schema_version,
+                        last_analysis_at,
+                        last_analysis_run_id,
+                        last_exported_at,
+                        created_at,
+                        updated_at
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        project_id_map[old_project_id],
+                        project["project_name"],
+                        json.dumps(project["payload"]),
+                        int(project.get("payload_schema_version", self.payload_schema_version)),
+                        project.get("last_analysis_at"),
+                        analysis_run_id_map.get(project.get("last_analysis_run_id")),
+                        project.get("last_exported_at"),
+                        project["created_at"],
+                        project["updated_at"],
+                    ),
+                )
+
+            for analysis_run in imported_analysis_runs:
+                new_project_id = project_id_map.get(analysis_run["project_id"])
+                if new_project_id is None:
+                    raise ValueError("Workspace bundle references an unknown project in analysis_runs")
+                connection.execute(
+                    """
+                    INSERT INTO analysis_runs (id, project_id, analysis_json, created_at)
+                    VALUES (?, ?, ?, ?)
+                    """,
+                    (
+                        analysis_run_id_map[analysis_run["id"]],
+                        new_project_id,
+                        json.dumps(analysis_run["analysis"]),
+                        analysis_run["created_at"],
+                    ),
+                )
+
+            for export_event in imported_export_events:
+                new_project_id = project_id_map.get(export_event["project_id"])
+                if new_project_id is None:
+                    raise ValueError("Workspace bundle references an unknown project in export_events")
+                old_analysis_run_id = export_event.get("analysis_run_id")
+                new_analysis_run_id = analysis_run_id_map.get(old_analysis_run_id) if old_analysis_run_id else None
+                if old_analysis_run_id and new_analysis_run_id is None:
+                    raise ValueError("Workspace bundle references an unknown analysis run in export_events")
+                connection.execute(
+                    """
+                    INSERT INTO export_events (id, project_id, analysis_run_id, format, created_at)
+                    VALUES (?, ?, ?, ?, ?)
+                    """,
+                    (
+                        str(uuid.uuid4()),
+                        new_project_id,
+                        new_analysis_run_id,
+                        export_event["format"],
+                        export_event["created_at"],
+                    ),
+                )
+
+        return {
+            "status": "imported",
+            "imported_projects": len(imported_projects),
+            "imported_analysis_runs": len(imported_analysis_runs),
+            "imported_export_events": len(imported_export_events),
+        }
+
     def delete_project(self, project_id: str) -> bool:
         with self._connect() as connection:
             cursor = connection.execute(

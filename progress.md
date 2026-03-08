@@ -188,6 +188,9 @@ Post-phase cleanup completed
 - added `GET /api/v1/diagnostics` for runtime visibility into SQLite state, frontend-dist serving, LLM adapter settings, and uptime
 - added request-level `X-Request-ID` and `X-Process-Time-Ms` headers for lightweight local observability
 - expanded saved-project comparison output with executive summaries, warning severity, overlap sections, recommendation highlights, and frontend rendering for those deltas
+- added `GET /readyz` to distinguish runtime readiness from basic health checks
+- added workspace export/import routes, repository support, and sidebar actions for full project/history backup and restore
+- added config validation for malformed env values and extended CI verification to Windows plus generated API docs
 
 ---
 

@@ -371,6 +371,18 @@ export type ProjectRecord = {
   payload: ExperimentInput;
 };
 
+export type ReadinessCheck = {
+  name: string;
+  ok: boolean;
+  detail: string;
+};
+
+export type ReadinessResponse = {
+  status: string;
+  generated_at: string;
+  checks: ReadinessCheck[];
+};
+
 export type RecommendationsSection = {
   before_launch: string[];
   during_test: string[];
@@ -402,4 +414,73 @@ export type WarningResponse = {
   severity: string;
   message: string;
   source: string;
+};
+
+export type WorkspaceAnalysisRunRecord_Input = {
+  id: string;
+  project_id: string;
+  created_at: string;
+  analysis: AnalysisResponse_Input;
+};
+
+export type WorkspaceAnalysisRunRecord_Output = {
+  id: string;
+  project_id: string;
+  created_at: string;
+  analysis: AnalysisResponse_Output;
+};
+
+export type WorkspaceBundle_Input = {
+  schema_version?: number;
+  generated_at: string;
+  projects: WorkspaceProjectRecord_Input[];
+  analysis_runs: WorkspaceAnalysisRunRecord_Input[];
+  export_events: WorkspaceExportEventRecord[];
+};
+
+export type WorkspaceBundle_Output = {
+  schema_version?: number;
+  generated_at: string;
+  projects: WorkspaceProjectRecord_Output[];
+  analysis_runs: WorkspaceAnalysisRunRecord_Output[];
+  export_events: WorkspaceExportEventRecord[];
+};
+
+export type WorkspaceExportEventRecord = {
+  id: string;
+  project_id: string;
+  analysis_run_id?: string | null;
+  format: "markdown" | "html";
+  created_at: string;
+};
+
+export type WorkspaceImportResponse = {
+  status: string;
+  imported_projects: number;
+  imported_analysis_runs: number;
+  imported_export_events: number;
+};
+
+export type WorkspaceProjectRecord_Input = {
+  id: string;
+  project_name: string;
+  payload_schema_version: number;
+  last_analysis_at?: string | null;
+  last_analysis_run_id?: string | null;
+  last_exported_at?: string | null;
+  created_at: string;
+  updated_at: string;
+  payload: ExperimentInput;
+};
+
+export type WorkspaceProjectRecord_Output = {
+  id: string;
+  project_name: string;
+  payload_schema_version: number;
+  last_analysis_at?: string | null;
+  last_analysis_run_id?: string | null;
+  last_exported_at?: string | null;
+  created_at: string;
+  updated_at: string;
+  payload: ExperimentInput;
 };

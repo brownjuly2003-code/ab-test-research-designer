@@ -18,6 +18,10 @@
 - added `GET /api/v1/diagnostics` with storage/frontend/LLM runtime summary
 - added `X-Request-ID` and `X-Process-Time-Ms` headers for lightweight request tracing
 - expanded saved-project comparison contracts with executive summaries, warning severity, overlap sections, and comparison highlights
+- added `GET /readyz` for runtime readiness checks with `503` on degraded dependencies
+- added workspace export/import APIs and UI actions for project/history backup and restore
+- added config validation for invalid ports and broken LLM retry/backoff settings
+- expanded CI to also verify the repo on Windows and to check generated API docs
 
 ### Documentation and packaging
 

@@ -4,6 +4,9 @@ import {
   type ProjectComparison,
   type ApiHealthResponse,
   type ApiDiagnosticsResponse,
+  type WorkspaceBundle,
+  type WorkspaceBundleInput,
+  type WorkspaceImportResponse,
   buildApiPayload,
   type AnalysisResponsePayload,
   type ApiErrorResponse,
@@ -24,6 +27,8 @@ export type SaveProjectResponse = ProjectRecordPayload;
 export type DeleteProjectResponse = GeneratedProjectDeleteResponse;
 export type AnalysisResponse = AnalysisResponsePayload;
 export type DiagnosticsResponse = ApiDiagnosticsResponse;
+export type WorkspaceExportResponse = WorkspaceBundle;
+export type WorkspaceImportSummary = WorkspaceImportResponse;
 export type ProjectHistoryRequestOptions = {
   analysisLimit?: number;
   analysisOffset?: number;
@@ -56,6 +61,32 @@ export async function requestDiagnostics(): Promise<ApiDiagnosticsResponse> {
 
   if (!response.ok) {
     throw new Error(getErrorMessage(data, "Diagnostics request failed"));
+  }
+
+  return data;
+}
+
+export async function exportWorkspaceRequest(): Promise<WorkspaceBundle> {
+  const response = await fetch(apiUrl("/api/v1/workspace/export"));
+  const data = await readJson<WorkspaceBundle & ApiErrorResponse>(response);
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(data, "Workspace export failed"));
+  }
+
+  return data;
+}
+
+export async function importWorkspaceRequest(bundle: WorkspaceBundleInput | WorkspaceBundle): Promise<WorkspaceImportResponse> {
+  const response = await fetch(apiUrl("/api/v1/workspace/import"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(bundle)
+  });
+  const data = await readJson<WorkspaceImportResponse & ApiErrorResponse>(response);
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(data, "Workspace import failed"));
   }
 
   return data;

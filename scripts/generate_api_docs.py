@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import sys
 from pathlib import Path
 
@@ -13,6 +14,7 @@ OUTPUT_PATH = ROOT_DIR / "docs" / "API.md"
 
 ROUTE_EXAMPLES = {
     "/health": 'curl http://127.0.0.1:8008/health',
+    "/readyz": 'curl http://127.0.0.1:8008/readyz',
     "/api/v1/diagnostics": 'curl http://127.0.0.1:8008/api/v1/diagnostics',
     "/api/v1/calculate": (
         'curl -X POST http://127.0.0.1:8008/api/v1/calculate ^\n'
@@ -31,6 +33,12 @@ ROUTE_EXAMPLES = {
     "/api/v1/projects/compare": (
         'curl "http://127.0.0.1:8008/api/v1/projects/compare?base_id=BASE&candidate_id=CANDIDATE"'
     ),
+    "/api/v1/workspace/export": 'curl http://127.0.0.1:8008/api/v1/workspace/export',
+    "/api/v1/workspace/import": (
+        'curl -X POST http://127.0.0.1:8008/api/v1/workspace/import ^\n'
+        '  -H "Content-Type: application/json" ^\n'
+        '  -d @workspace-backup.json'
+    ),
     "/api/v1/export/markdown": (
         'curl -X POST http://127.0.0.1:8008/api/v1/export/markdown ^\n'
         '  -H "Content-Type: application/json" ^\n'
@@ -40,11 +48,13 @@ ROUTE_EXAMPLES = {
 
 SECTION_ORDER = [
     "Health",
+    "Readiness",
     "Diagnostics",
     "Deterministic analysis",
     "Project storage",
     "Project activity",
     "Comparison",
+    "Workspace",
     "Report export",
     "Other",
 ]
@@ -53,6 +63,8 @@ SECTION_ORDER = [
 def classify_route(path: str) -> str:
     if path == "/health":
         return "Health"
+    if path == "/readyz":
+        return "Readiness"
     if path == "/api/v1/diagnostics":
         return "Diagnostics"
     if path in {"/api/v1/calculate", "/api/v1/design", "/api/v1/analyze", "/api/v1/llm/advice"}:
@@ -63,6 +75,8 @@ def classify_route(path: str) -> str:
         return "Project activity"
     if path == "/api/v1/projects/compare":
         return "Comparison"
+    if path in {"/api/v1/workspace/export", "/api/v1/workspace/import"}:
+        return "Workspace"
     if path in {"/api/v1/export/markdown", "/api/v1/export/html"}:
         return "Report export"
     return "Other"
@@ -130,6 +144,7 @@ def generate_api_markdown() -> str:
             "- malformed request bodies return `422`",
             "- domain errors return structured `400`",
             "- all API responses include `X-Request-ID` and `X-Process-Time-Ms` headers",
+            "- `GET /readyz` returns `503` when required runtime dependencies are degraded",
             "",
             "## Contract generation",
             "",
@@ -143,7 +158,23 @@ def generate_api_markdown() -> str:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="Fail if the generated markdown is out of date instead of rewriting it.",
+    )
+    args = parser.parse_args()
+
     markdown = generate_api_markdown()
+
+    if args.check:
+        if not OUTPUT_PATH.exists() or OUTPUT_PATH.read_text(encoding="utf-8") != markdown:
+            print(f"{OUTPUT_PATH} is out of date")
+            return 1
+        print(f"{OUTPUT_PATH} is up to date")
+        return 0
+
     OUTPUT_PATH.write_text(markdown, encoding="utf-8")
     print(f"Wrote {OUTPUT_PATH}")
     return 0

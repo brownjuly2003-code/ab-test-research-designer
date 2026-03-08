@@ -18,6 +18,16 @@ Health
 curl http://127.0.0.1:8008/health
 ```
 
+## Readiness
+
+### `GET /readyz`
+
+Readyz
+
+```bash
+curl http://127.0.0.1:8008/readyz
+```
+
 ## Diagnostics
 
 ### `GET /api/v1/diagnostics`
@@ -116,6 +126,26 @@ Compare Projects
 curl "http://127.0.0.1:8008/api/v1/projects/compare?base_id=BASE&candidate_id=CANDIDATE"
 ```
 
+## Workspace
+
+### `GET /api/v1/workspace/export`
+
+Export Workspace
+
+```bash
+curl http://127.0.0.1:8008/api/v1/workspace/export
+```
+
+### `POST /api/v1/workspace/import`
+
+Import Workspace
+
+```bash
+curl -X POST http://127.0.0.1:8008/api/v1/workspace/import ^
+  -H "Content-Type: application/json" ^
+  -d @workspace-backup.json
+```
+
 ## Report export
 
 ### `POST /api/v1/export/html`
@@ -141,6 +171,7 @@ curl -X POST http://127.0.0.1:8008/api/v1/export/markdown ^
 - malformed request bodies return `422`
 - domain errors return structured `400`
 - all API responses include `X-Request-ID` and `X-Process-Time-Ms` headers
+- `GET /readyz` returns `503` when required runtime dependencies are degraded
 
 ## Contract generation
 

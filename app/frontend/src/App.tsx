@@ -5,7 +5,9 @@ import Icon from "./components/Icon";
 import SidebarPanel from "./components/SidebarPanel";
 import WizardPanel from "./components/WizardPanel";
 import {
+  exportWorkspaceRequest,
   exportReportRequest,
+  importWorkspaceRequest,
   recordProjectAnalysisRequest,
   recordProjectExportRequest,
   requestAnalysis,
@@ -17,6 +19,7 @@ import {
   cloneInitialState,
   type ExportFormat,
   type FullPayload,
+  type WorkspaceBundleInput,
   hydrateLoadedPayload,
   setSectionFieldValue,
   stepLabels
@@ -30,7 +33,10 @@ export default function App() {
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<FullPayload>(draftBootstrap.form);
   const [importingDraft, setImportingDraft] = useState(false);
+  const [importingWorkspace, setImportingWorkspace] = useState(false);
+  const [exportingWorkspace, setExportingWorkspace] = useState(false);
   const draftImportRef = useRef<HTMLInputElement | null>(null);
+  const workspaceImportRef = useRef<HTMLInputElement | null>(null);
   const serializedForm = JSON.stringify(buildApiPayload(form));
   const analysis = useAnalysis();
   const projectManager = useProjectManager(serializedForm);
@@ -88,6 +94,10 @@ export default function App() {
     draftImportRef.current?.click();
   }
 
+  function openImportWorkspace() {
+    workspaceImportRef.current?.click();
+  }
+
   async function importDraftFromFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
 
@@ -110,6 +120,58 @@ export default function App() {
     } finally {
       event.target.value = "";
       setImportingDraft(false);
+    }
+  }
+
+  async function exportWorkspace() {
+    setExportingWorkspace(true);
+    analysis.setError("");
+
+    try {
+      const bundle = await exportWorkspaceRequest();
+      const safeTimestamp = bundle.generated_at.replace(/[:]/g, "-");
+      const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `ab-test-workspace-${safeTimestamp}.json`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+      analysis.setStatusMessage(
+        `Exported workspace backup with ${String(bundle.projects.length)} project(s).`
+      );
+    } catch (requestError) {
+      analysis.setError(requestError instanceof Error ? requestError.message : "Unexpected workspace export error");
+    } finally {
+      setExportingWorkspace(false);
+    }
+  }
+
+  async function importWorkspaceFromFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    setImportingWorkspace(true);
+    analysis.setError("");
+
+    try {
+      const parsed = JSON.parse(await file.text()) as WorkspaceBundleInput;
+      const result = await importWorkspaceRequest(parsed);
+      await loadProjects();
+      await projectManager.loadBackendDiagnostics();
+      analysis.setStatusMessage(
+        `Imported workspace backup: ${String(result.imported_projects)} project(s), ` +
+        `${String(result.imported_analysis_runs)} analysis run(s), ` +
+        `${String(result.imported_export_events)} export event(s).`
+      );
+    } catch (requestError) {
+      analysis.setError(requestError instanceof Error ? requestError.message : "Unexpected workspace import error");
+    } finally {
+      event.target.value = "";
+      setImportingWorkspace(false);
     }
   }
 
@@ -338,6 +400,14 @@ export default function App() {
         aria-label="Import draft file"
         onChange={importDraftFromFile}
       />
+      <input
+        ref={workspaceImportRef}
+        type="file"
+        accept="application/json,.json"
+        style={{ display: "none" }}
+        aria-label="Import workspace file"
+        onChange={importWorkspaceFromFile}
+      />
       <div className="page">
         <div className="shell">
           {draftStorageWarning ? (
@@ -394,6 +464,8 @@ export default function App() {
               loadingHealth={projectManager.loadingHealth}
               loadingDiagnostics={projectManager.loadingDiagnostics}
               loadingProjects={projectManager.loadingProjects}
+              importingWorkspace={importingWorkspace}
+              exportingWorkspace={exportingWorkspace}
               deletingProjectId={projectManager.deletingProjectId}
               backendHealth={projectManager.backendHealth}
               backendDiagnostics={projectManager.backendDiagnostics}
@@ -438,6 +510,10 @@ export default function App() {
               onLoadProjects={() => {
                 void loadProjects();
               }}
+              onExportWorkspace={() => {
+                void exportWorkspace();
+              }}
+              onImportWorkspace={openImportWorkspace}
               onLoadProject={(projectId) => {
                 void loadProject(projectId);
               }}

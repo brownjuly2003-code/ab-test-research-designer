@@ -291,3 +291,22 @@ def test_diagnostics_endpoint_returns_runtime_summary(monkeypatch) -> None:
     assert response.headers["x-request-id"]
     assert float(response.headers["x-process-time-ms"]) >= 0
     get_settings.cache_clear()
+
+
+def test_readyz_returns_degraded_when_frontend_dist_is_missing(monkeypatch) -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    missing_frontend_dist = temp_dir / f"{uuid.uuid4()}-missing-dist"
+
+    monkeypatch.setenv("AB_FRONTEND_DIST_PATH", str(missing_frontend_dist))
+    monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "true")
+    get_settings.cache_clear()
+
+    with TestClient(create_app()) as client:
+        response = client.get("/readyz")
+
+    assert response.status_code == 503
+    payload = response.json()
+    assert payload["status"] == "degraded"
+    assert any(check["name"] == "frontend_dist" and check["ok"] is False for check in payload["checks"])
+    get_settings.cache_clear()

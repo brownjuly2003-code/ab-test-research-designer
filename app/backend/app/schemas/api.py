@@ -333,6 +333,60 @@ class DiagnosticsResponse(BaseModel):
     llm: DiagnosticsLlmSummary
 
 
+class ReadinessCheck(BaseModel):
+    name: str
+    ok: bool
+    detail: str
+
+
+class ReadinessResponse(BaseModel):
+    status: str
+    generated_at: str
+    checks: list[ReadinessCheck]
+
+
+class WorkspaceProjectRecord(BaseModel):
+    id: str
+    project_name: str
+    payload_schema_version: int
+    last_analysis_at: str | None = None
+    last_analysis_run_id: str | None = None
+    last_exported_at: str | None = None
+    created_at: str
+    updated_at: str
+    payload: ExperimentInput
+
+
+class WorkspaceAnalysisRunRecord(BaseModel):
+    id: str
+    project_id: str
+    created_at: str
+    analysis: AnalysisResponse
+
+
+class WorkspaceExportEventRecord(BaseModel):
+    id: str
+    project_id: str
+    analysis_run_id: str | None = None
+    format: Literal["markdown", "html"]
+    created_at: str
+
+
+class WorkspaceBundle(BaseModel):
+    schema_version: int = 1
+    generated_at: str
+    projects: list[WorkspaceProjectRecord]
+    analysis_runs: list[WorkspaceAnalysisRunRecord]
+    export_events: list[WorkspaceExportEventRecord]
+
+
+class WorkspaceImportResponse(BaseModel):
+    status: str
+    imported_projects: int
+    imported_analysis_runs: int
+    imported_export_events: int
+
+
 class ProjectRecord(BaseModel):
     id: str
     project_name: str
@@ -392,4 +446,7 @@ __all__ = [
     "ProjectExportMarkRequest",
     "ProjectListResponse",
     "ProjectRecord",
+    "ReadinessResponse",
+    "WorkspaceBundle",
+    "WorkspaceImportResponse",
 ]

@@ -265,3 +265,77 @@ def test_repository_returns_latest_and_specific_analysis_runs_and_clamps_history
     assert history["export_offset"] == 0
     assert len(history["analysis_runs"]) == 1
     assert history["analysis_runs"][0]["analysis"]["report"]["executive_summary"] == "Second summary"
+
+
+def test_repository_can_export_and_import_workspace_bundle() -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    source_db_path = temp_dir / f"{uuid.uuid4()}-source.sqlite3"
+    target_db_path = temp_dir / f"{uuid.uuid4()}-target.sqlite3"
+
+    source_repository = ProjectRepository(str(source_db_path))
+    project = source_repository.create_project(
+        {
+            "project": {"project_name": "Checkout redesign"},
+            "hypothesis": {"change_description": "Simplify flow"},
+            "setup": {"variants_count": 2},
+            "metrics": {"metric_type": "binary"},
+            "constraints": {},
+            "additional_context": {},
+        }
+    )
+    analyzed_project = source_repository.record_analysis(
+        project["id"],
+        {
+            "calculations": {
+                "calculation_summary": {"metric_type": "binary"},
+                "results": {
+                    "sample_size_per_variant": 100,
+                    "total_sample_size": 200,
+                    "estimated_duration_days": 10,
+                },
+                "warnings": [{"code": "LONG_DURATION"}],
+            },
+            "report": {"executive_summary": "Summary"},
+            "advice": {"available": False},
+        },
+    )
+    assert analyzed_project is not None
+    exported_project = source_repository.record_export(
+        project["id"],
+        "markdown",
+        analyzed_project["last_analysis_run_id"],
+    )
+    assert exported_project is not None
+
+    bundle = source_repository.export_workspace()
+
+    assert bundle["schema_version"] == 1
+    assert len(bundle["projects"]) == 1
+    assert len(bundle["analysis_runs"]) == 1
+    assert len(bundle["export_events"]) == 1
+
+    target_repository = ProjectRepository(str(target_db_path))
+    import_summary = target_repository.import_workspace(bundle)
+    imported_projects = target_repository.list_projects()
+
+    assert import_summary == {
+        "status": "imported",
+        "imported_projects": 1,
+        "imported_analysis_runs": 1,
+        "imported_export_events": 1,
+    }
+    assert len(imported_projects) == 1
+    assert imported_projects[0]["project_name"] == "Checkout redesign"
+    assert imported_projects[0]["id"] != project["id"]
+
+    imported_project = target_repository.get_project(imported_projects[0]["id"])
+    assert imported_project is not None
+    assert imported_project["payload"]["project"]["project_name"] == "Checkout redesign"
+    assert imported_project["last_analysis_run_id"] is not None
+
+    history = target_repository.get_project_history(imported_project["id"])
+    assert history is not None
+    assert history["analysis_total"] == 1
+    assert history["export_total"] == 1
+    assert history["export_events"][0]["analysis_run_id"] == imported_project["last_analysis_run_id"]

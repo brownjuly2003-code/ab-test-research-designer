@@ -12,7 +12,10 @@ import type {
   ProjectComparisonResponse as ApiProjectComparisonResponse,
   ProjectHistoryResponse as ApiProjectHistoryResponse,
   ProjectListItem as ApiProjectListItem,
-  ProjectRecord as ApiProjectRecord
+  ProjectRecord as ApiProjectRecord,
+  WorkspaceBundle_Input as ApiWorkspaceBundleInput,
+  WorkspaceBundle_Output as ApiWorkspaceBundleOutput,
+  WorkspaceImportResponse as ApiWorkspaceImportResponse
 } from "./generated/api-contract";
 
 export type AdditionalContextSection = NonNullable<ApiExperimentInput["additional_context"]>;
@@ -80,6 +83,9 @@ export type ProjectComparison = ApiProjectComparisonResponse;
 export type ProjectHistory = ApiProjectHistoryResponse;
 export type ApiHealthResponse = ApiHealthResponseContract;
 export type ApiDiagnosticsResponse = ApiDiagnosticsResponseContract;
+export type WorkspaceBundleInput = ApiWorkspaceBundleInput;
+export type WorkspaceBundle = ApiWorkspaceBundleOutput;
+export type WorkspaceImportResponse = ApiWorkspaceImportResponse;
 export type AnalysisResponsePayload = ApiAnalysisResponse;
 export type ResultsState = Partial<Pick<ApiAnalysisResponse, "calculations" | "report" | "advice">>;
 export type SavedProject = ApiProjectListItem;

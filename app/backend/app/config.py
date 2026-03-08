@@ -34,6 +34,50 @@ def _read_csv_env(name: str, default: tuple[str, ...]) -> tuple[str, ...]:
     return parsed or default
 
 
+def _read_int_env(name: str, default: int) -> int:
+    raw_value = os.getenv(name)
+    if raw_value is None:
+        return default
+    try:
+        return int(raw_value)
+    except ValueError as exc:
+        raise ValueError(f"{name} must be an integer") from exc
+
+
+def _read_float_env(name: str, default: float) -> float:
+    raw_value = os.getenv(name)
+    if raw_value is None:
+        return default
+    try:
+        return float(raw_value)
+    except ValueError as exc:
+        raise ValueError(f"{name} must be a number") from exc
+
+
+def _validate_settings(settings: Settings) -> Settings:
+    if not settings.host.strip():
+        raise ValueError("AB_HOST must not be empty")
+    if not 1 <= settings.port <= 65535:
+        raise ValueError("AB_PORT must be between 1 and 65535")
+    if not settings.cors_origins:
+        raise ValueError("AB_CORS_ORIGINS must contain at least one origin")
+    if not settings.cors_methods:
+        raise ValueError("AB_CORS_METHODS must contain at least one method")
+    if not settings.cors_headers:
+        raise ValueError("AB_CORS_HEADERS must contain at least one header")
+    if not settings.db_path.strip():
+        raise ValueError("AB_DB_PATH must not be empty")
+    if settings.llm_timeout_seconds <= 0:
+        raise ValueError("AB_LLM_TIMEOUT_SECONDS must be greater than 0")
+    if settings.llm_max_attempts < 1:
+        raise ValueError("AB_LLM_MAX_ATTEMPTS must be at least 1")
+    if settings.llm_initial_backoff_seconds <= 0:
+        raise ValueError("AB_LLM_INITIAL_BACKOFF_SECONDS must be greater than 0")
+    if settings.llm_backoff_multiplier < 1:
+        raise ValueError("AB_LLM_BACKOFF_MULTIPLIER must be at least 1")
+    return settings
+
+
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
     default_db_path = Path(__file__).resolve().parents[1] / "data" / "projects.sqlite3"
@@ -42,12 +86,12 @@ def get_settings() -> Settings:
         "AB_CORS_ORIGINS",
         ("http://127.0.0.1:5173", "http://localhost:5173"),
     )
-    return Settings(
+    settings = Settings(
         app_name=os.getenv("AB_APP_NAME", "AB Test Research Designer API"),
         app_version=os.getenv("AB_APP_VERSION", "0.1.0"),
         environment=os.getenv("AB_ENV", "local"),
         host=os.getenv("AB_HOST", "127.0.0.1"),
-        port=int(os.getenv("AB_PORT", "8008")),
+        port=_read_int_env("AB_PORT", 8008),
         db_path=os.getenv("AB_DB_PATH", str(default_db_path)),
         cors_origins=cors_origins,
         cors_methods=_read_csv_env("AB_CORS_METHODS", DEFAULT_CORS_METHODS),
@@ -55,8 +99,9 @@ def get_settings() -> Settings:
         frontend_dist_path=os.getenv("AB_FRONTEND_DIST_PATH", str(default_frontend_dist_path)),
         serve_frontend_dist=os.getenv("AB_SERVE_FRONTEND_DIST", "true").lower() not in {"0", "false", "no"},
         llm_base_url=os.getenv("AB_LLM_BASE_URL", "http://localhost:8001"),
-        llm_timeout_seconds=float(os.getenv("AB_LLM_TIMEOUT_SECONDS", "60")),
-        llm_max_attempts=int(os.getenv("AB_LLM_MAX_ATTEMPTS", "3")),
-        llm_initial_backoff_seconds=float(os.getenv("AB_LLM_INITIAL_BACKOFF_SECONDS", "0.1")),
-        llm_backoff_multiplier=float(os.getenv("AB_LLM_BACKOFF_MULTIPLIER", "2")),
+        llm_timeout_seconds=_read_float_env("AB_LLM_TIMEOUT_SECONDS", 60.0),
+        llm_max_attempts=_read_int_env("AB_LLM_MAX_ATTEMPTS", 3),
+        llm_initial_backoff_seconds=_read_float_env("AB_LLM_INITIAL_BACKOFF_SECONDS", 0.1),
+        llm_backoff_multiplier=_read_float_env("AB_LLM_BACKOFF_MULTIPLIER", 2.0),
     )
+    return _validate_settings(settings)

@@ -24,6 +24,10 @@ echo [verify] generated api contracts
 python "%ROOT_DIR%scripts\generate_frontend_api_types.py" --check
 if errorlevel 1 exit /b %errorlevel%
 
+echo [verify] generated api docs
+python "%ROOT_DIR%scripts\generate_api_docs.py" --check
+if errorlevel 1 exit /b %errorlevel%
+
 echo [verify] backend tests
 python -m pytest "%ROOT_DIR%app\backend\tests" -q
 if errorlevel 1 exit /b %errorlevel%

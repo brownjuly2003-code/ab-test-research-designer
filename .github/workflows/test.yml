@@ -6,7 +6,15 @@ on:
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            run_e2e: true
+          - os: windows-latest
+            run_e2e: false
 
     steps:
       - uses: actions/checkout@v4
@@ -30,6 +38,9 @@ jobs:
       - name: Check generated API contracts
         run: python scripts/generate_frontend_api_types.py --check
 
+      - name: Check generated API docs
+        run: python scripts/generate_api_docs.py --check
+
       - name: Run backend tests
         run: python -m pytest app/backend/tests -q
 
@@ -46,9 +57,11 @@ jobs:
         run: npm --prefix app/frontend run build
 
       - name: Install Playwright browser
+        if: matrix.run_e2e
         run: npm --prefix app/frontend exec playwright install --with-deps chromium
 
       - name: Run frontend Playwright E2E
+        if: matrix.run_e2e
         run: npm --prefix app/frontend run test:e2e
 
   docker:
@@ -63,11 +76,11 @@ jobs:
       - name: Start Docker compose stack
         run: docker compose up -d --build
 
-      - name: Wait for health endpoint
+      - name: Wait for readiness endpoint
         run: |
           for i in $(seq 1 30); do
-            if curl --fail --silent http://127.0.0.1:8008/health > /tmp/health.json; then
-              cat /tmp/health.json
+            if curl --fail --silent http://127.0.0.1:8008/readyz > /tmp/ready.json; then
+              cat /tmp/ready.json
               exit 0
             fi
             sleep 2

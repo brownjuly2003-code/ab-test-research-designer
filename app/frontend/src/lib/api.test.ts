@@ -3,7 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   compareProjectsRequest,
   deleteProjectRequest,
+  exportWorkspaceRequest,
   exportReportRequest,
+  importWorkspaceRequest,
   listProjectsRequest,
   loadProjectHistoryRequest,
   loadProjectRequest,
@@ -59,6 +61,72 @@ function buildReportPayload() {
     },
     recommendations: { before_launch: [], during_test: [], after_test: [] },
     open_questions: []
+  };
+}
+
+function buildWorkspaceBundle() {
+  return {
+    schema_version: 1,
+    generated_at: "2026-03-09T00:30:00Z",
+    projects: [
+      {
+        id: "project-1",
+        project_name: "Workspace project",
+        payload_schema_version: 1,
+        last_analysis_at: "2026-03-09T00:20:00Z",
+        last_analysis_run_id: "run-1",
+        last_exported_at: "2026-03-09T00:25:00Z",
+        created_at: "2026-03-09T00:10:00Z",
+        updated_at: "2026-03-09T00:25:00Z",
+        payload: buildApiPayload(cloneInitialState())
+      }
+    ],
+    analysis_runs: [
+      {
+        id: "run-1",
+        project_id: "project-1",
+        created_at: "2026-03-09T00:20:00Z",
+        analysis: {
+          calculations: {
+            calculation_summary: {
+              metric_type: "binary",
+              baseline_value: 0.042,
+              mde_pct: 5,
+              mde_absolute: 0.0021,
+              alpha: 0.05,
+              power: 0.8
+            },
+            results: {
+              sample_size_per_variant: 100,
+              total_sample_size: 200,
+              effective_daily_traffic: 5000,
+              estimated_duration_days: 10
+            },
+            assumptions: [],
+            warnings: []
+          },
+          report: buildReportPayload(),
+          advice: {
+            available: false,
+            provider: "local_orchestrator",
+            model: "offline",
+            advice: null,
+            raw_text: null,
+            error: "offline",
+            error_code: "request_error"
+          }
+        }
+      }
+    ],
+    export_events: [
+      {
+        id: "export-1",
+        project_id: "project-1",
+        analysis_run_id: "run-1",
+        format: "markdown" as const,
+        created_at: "2026-03-09T00:25:00Z"
+      }
+    ]
   };
 }
 
@@ -170,6 +238,31 @@ describe("frontend api wrapper", () => {
 
     expect(result.storage.projects_total).toBe(2);
     expect(result.request_timing_headers_enabled).toBe(true);
+  });
+
+  it("exports the full workspace bundle", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(buildWorkspaceBundle()));
+
+    const result = await exportWorkspaceRequest();
+
+    expect(result.projects).toHaveLength(1);
+    expect(result.analysis_runs[0]?.id).toBe("run-1");
+  });
+
+  it("imports the full workspace bundle", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      jsonResponse({
+        status: "imported",
+        imported_projects: 1,
+        imported_analysis_runs: 1,
+        imported_export_events: 1
+      })
+    );
+
+    const result = await importWorkspaceRequest(buildWorkspaceBundle());
+
+    expect(result.imported_projects).toBe(1);
+    expect(result.imported_export_events).toBe(1);
   });
 
   it("throws the backend detail when save project fails", async () => {
