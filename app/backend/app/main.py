@@ -12,6 +12,7 @@ from pydantic import BaseModel
 
 from app.backend.app.config import get_settings
 from app.backend.app.llm.adapter import LocalOrchestratorAdapter
+from app.backend.app.logging_utils import configure_logging, log_event
 from app.backend.app.repository import ProjectRepository
 from app.backend.app.schemas.api import (
     AnalysisResponse,
@@ -84,6 +85,7 @@ def _build_llm_advice_payload(payload: ExperimentInput, calculation_result: dict
 
 def create_app() -> FastAPI:
     settings = get_settings()
+    configure_logging(level=settings.log_level, log_format=settings.log_format)
     started_at = datetime.now(timezone.utc)
     llm_adapter = LocalOrchestratorAdapter(
         base_url=settings.llm_base_url,
@@ -92,7 +94,12 @@ def create_app() -> FastAPI:
         initial_backoff_seconds=settings.llm_initial_backoff_seconds,
         backoff_multiplier=settings.llm_backoff_multiplier,
     )
-    repository = ProjectRepository(settings.db_path)
+    repository = ProjectRepository(
+        settings.db_path,
+        busy_timeout_ms=settings.sqlite_busy_timeout_ms,
+        journal_mode=settings.sqlite_journal_mode,
+        synchronous=settings.sqlite_synchronous,
+    )
     frontend_dist_path = Path(settings.frontend_dist_path)
     frontend_index_path = frontend_dist_path / "index.html"
 
@@ -113,9 +120,36 @@ def create_app() -> FastAPI:
     async def add_request_metadata(request: Request, call_next):
         request_id = request.headers.get("x-request-id", str(uuid.uuid4()))
         started = perf_counter()
-        response = await call_next(request)
+        try:
+            response = await call_next(request)
+        except Exception:
+            process_time_ms = (perf_counter() - started) * 1000
+            log_event(
+                logger,
+                logging.ERROR,
+                "request failed",
+                event="http_request",
+                request_id=request_id,
+                method=request.method,
+                path=request.url.path,
+                process_time_ms=round(process_time_ms, 2),
+            )
+            raise
+
+        process_time_ms = (perf_counter() - started) * 1000
         response.headers["X-Request-ID"] = request_id
-        response.headers["X-Process-Time-Ms"] = f"{(perf_counter() - started) * 1000:.2f}"
+        response.headers["X-Process-Time-Ms"] = f"{process_time_ms:.2f}"
+        log_event(
+            logger,
+            logging.INFO,
+            "request completed",
+            event="http_request",
+            request_id=request_id,
+            method=request.method,
+            path=request.url.path,
+            status_code=response.status_code,
+            process_time_ms=round(process_time_ms, 2),
+        )
         return response
 
     @app.exception_handler(ValueError)
@@ -154,6 +188,24 @@ def create_app() -> FastAPI:
                     detail=f"Database path {storage_summary['db_path']}",
                 )
             )
+            checks.append(
+                ReadinessCheck(
+                    name="sqlite_schema_version",
+                    ok=storage_summary["sqlite_user_version"] == repository.schema_version,
+                    detail=(
+                        f"user_version={storage_summary['sqlite_user_version']} expected={repository.schema_version}"
+                    ),
+                )
+            )
+            checks.append(
+                ReadinessCheck(
+                    name="sqlite_journal_mode",
+                    ok=storage_summary["journal_mode"] == settings.sqlite_journal_mode,
+                    detail=(
+                        f"journal_mode={storage_summary['journal_mode']} expected={settings.sqlite_journal_mode}"
+                    ),
+                )
+            )
         except Exception as exc:  # pragma: no cover - exercised via endpoint tests
             checks.append(
                 ReadinessCheck(
@@ -180,6 +232,13 @@ def create_app() -> FastAPI:
                 name="llm_config",
                 ok=True,
                 detail=f"{settings.llm_max_attempts} attempt(s), timeout {settings.llm_timeout_seconds}s",
+            )
+        )
+        checks.append(
+            ReadinessCheck(
+                name="logging_config",
+                ok=True,
+                detail=f"{settings.log_level} / {settings.log_format}",
             )
         )
 
@@ -217,6 +276,10 @@ def create_app() -> FastAPI:
                 "max_attempts": settings.llm_max_attempts,
                 "initial_backoff_seconds": settings.llm_initial_backoff_seconds,
                 "backoff_multiplier": settings.llm_backoff_multiplier,
+            },
+            logging={
+                "level": settings.log_level,
+                "format": settings.log_format,
             },
         )
 
@@ -406,6 +469,18 @@ def create_app() -> FastAPI:
 
             return FileResponse(frontend_index_path)
 
+    log_event(
+        logger,
+        logging.INFO,
+        "application started",
+        event="startup",
+        environment=settings.environment,
+        version=settings.app_version,
+        db_path=settings.db_path,
+        sqlite_journal_mode=settings.sqlite_journal_mode,
+        sqlite_synchronous=settings.sqlite_synchronous,
+        log_format=settings.log_format,
+    )
     return app
 
 

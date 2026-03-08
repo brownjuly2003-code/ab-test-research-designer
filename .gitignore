@@ -38,3 +38,4 @@ exports/*
 archive/smoke-runs/*
 !archive/smoke-runs/.gitkeep
 !archive/smoke-runs/README.md
+archive/verify-workspace-backup/*

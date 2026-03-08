@@ -41,6 +41,9 @@ jobs:
       - name: Check generated API docs
         run: python scripts/generate_api_docs.py --check
 
+      - name: Run workspace backup roundtrip
+        run: python scripts/verify_workspace_backup.py --fixture
+
       - name: Run backend tests
         run: python -m pytest app/backend/tests -q
 

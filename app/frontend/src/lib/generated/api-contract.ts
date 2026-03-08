@@ -117,6 +117,11 @@ export type DiagnosticsLlmSummary = {
   backoff_multiplier: number;
 };
 
+export type DiagnosticsLoggingSummary = {
+  level: string;
+  format: string;
+};
+
 export type DiagnosticsResponse = {
   status: string;
   generated_at: string;
@@ -128,11 +133,17 @@ export type DiagnosticsResponse = {
   storage: DiagnosticsStorageSummary;
   frontend: DiagnosticsFrontendSummary;
   llm: DiagnosticsLlmSummary;
+  logging: DiagnosticsLoggingSummary;
 };
 
 export type DiagnosticsStorageSummary = {
   db_path: string;
   db_exists: boolean;
+  schema_version: number;
+  sqlite_user_version: number;
+  busy_timeout_ms: number;
+  journal_mode: string;
+  synchronous: string;
   projects_total: number;
   analysis_runs_total: number;
   export_events_total: number;

@@ -9,7 +9,7 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from app.backend.app.main import create_app
+from app.backend.app.main import app
 
 OUTPUT_PATH = ROOT_DIR / "app" / "frontend" / "src" / "lib" / "generated" / "api-contract.ts"
 INDENT = "  "
@@ -121,7 +121,7 @@ def render_schema(
 
 
 def generate_typescript() -> str:
-    openapi_schema = create_app().openapi()
+    openapi_schema = app.openapi()
     component_schemas = openapi_schema.get("components", {}).get("schemas", {})
     name_map = {
         schema_name: normalize_schema_name(schema_name)

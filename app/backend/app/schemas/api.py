@@ -315,6 +315,11 @@ class ProjectComparisonResponse(BaseModel):
 class DiagnosticsStorageSummary(BaseModel):
     db_path: str
     db_exists: bool
+    schema_version: int
+    sqlite_user_version: int
+    busy_timeout_ms: int
+    journal_mode: str
+    synchronous: str
     projects_total: int
     analysis_runs_total: int
     export_events_total: int
@@ -337,6 +342,11 @@ class DiagnosticsLlmSummary(BaseModel):
     backoff_multiplier: float
 
 
+class DiagnosticsLoggingSummary(BaseModel):
+    level: str
+    format: str
+
+
 class DiagnosticsResponse(BaseModel):
     status: str
     generated_at: str
@@ -348,6 +358,7 @@ class DiagnosticsResponse(BaseModel):
     storage: DiagnosticsStorageSummary
     frontend: DiagnosticsFrontendSummary
     llm: DiagnosticsLlmSummary
+    logging: DiagnosticsLoggingSummary
 
 
 class ReadinessCheck(BaseModel):

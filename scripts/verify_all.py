@@ -54,7 +54,17 @@ def main() -> int:
         [sys.executable, "scripts/generate_frontend_api_types.py", "--check"],
         ROOT_DIR,
     )
+    run_step(
+        "workspace backup roundtrip",
+        [sys.executable, "scripts/verify_workspace_backup.py", "--fixture"],
+        ROOT_DIR,
+    )
     run_step("backend tests", [sys.executable, "-m", "pytest", "app/backend/tests", "-q"], ROOT_DIR)
+    run_step(
+        "backend benchmark",
+        [sys.executable, "scripts/benchmark_backend.py", "--payload", "binary", "--assert-ms", "100"],
+        ROOT_DIR,
+    )
     if os.name == "nt":
         run_windows_powershell_step(
             "frontend typecheck",

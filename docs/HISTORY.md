@@ -46,6 +46,8 @@ The current stack:
 - runnable Playwright E2E coverage with a backend-served frontend launcher and CI browser execution
 - workspace backup/import extended to preserve saved project revisions
 - saved-project revision history exposed through API and UI restore flow
+- SQLite runtime hardening added through schema versioning, WAL mode, busy-timeout, and synchronous-mode diagnostics
+- structured backend logging added with configurable plain/json formats
 
 ### Product polish
 
@@ -61,6 +63,7 @@ The current stack:
 - GitHub Actions verification covers contracts, backend tests, frontend checks, benchmark assertion, and Docker startup
 - backend boundary tests now explicitly cover invalid variant-rate uplifts, invalid audience shares, invalid baseline means, and invalid traffic weights
 - runbook and release checklist docs now exist for handoff and repeatable local operations
+- workspace backup roundtrip verification script now exists for repeatable restore drills
 
 ## Verification baseline
 

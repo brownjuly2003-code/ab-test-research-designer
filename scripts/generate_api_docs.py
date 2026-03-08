@@ -8,7 +8,7 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from app.backend.app.main import create_app
+from app.backend.app.main import app
 
 OUTPUT_PATH = ROOT_DIR / "docs" / "API.md"
 
@@ -110,7 +110,7 @@ def render_route_block(path: str, method: str, operation: dict) -> list[str]:
 
 
 def generate_api_markdown() -> str:
-    openapi = create_app().openapi()
+    openapi = app.openapi()
     paths = openapi.get("paths", {})
     grouped: dict[str, list[tuple[str, str, dict]]] = {section: [] for section in SECTION_ORDER}
 

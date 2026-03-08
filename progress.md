@@ -194,6 +194,9 @@ Post-phase cleanup completed
 - added saved-project revision history across create, update, and workspace import flows
 - added `GET /api/v1/projects/{project_id}/revisions` plus frontend restore of older payload revisions into the wizard
 - added `docs/RUNBOOK.md` and `docs/RELEASE_CHECKLIST.md` for local operations and release hygiene
+- added SQLite schema versioning and runtime diagnostics for journal mode, synchronous mode, and busy-timeout
+- added structured backend logging with configurable plain/json output
+- added `scripts/verify_workspace_backup.py` and wired backup roundtrip verification into local/CI checks
 
 ---
 

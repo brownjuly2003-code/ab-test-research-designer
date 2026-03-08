@@ -24,6 +24,11 @@ class Settings:
     llm_max_attempts: int
     llm_initial_backoff_seconds: float
     llm_backoff_multiplier: float
+    sqlite_busy_timeout_ms: int
+    sqlite_journal_mode: str
+    sqlite_synchronous: str
+    log_level: str
+    log_format: str
 
 
 def _read_csv_env(name: str, default: tuple[str, ...]) -> tuple[str, ...]:
@@ -55,6 +60,11 @@ def _read_float_env(name: str, default: float) -> float:
 
 
 def _validate_settings(settings: Settings) -> Settings:
+    allowed_journal_modes = {"DELETE", "TRUNCATE", "PERSIST", "MEMORY", "WAL", "OFF"}
+    allowed_synchronous_modes = {"OFF", "NORMAL", "FULL", "EXTRA"}
+    allowed_log_levels = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
+    allowed_log_formats = {"plain", "json"}
+
     if not settings.host.strip():
         raise ValueError("AB_HOST must not be empty")
     if not 1 <= settings.port <= 65535:
@@ -67,6 +77,14 @@ def _validate_settings(settings: Settings) -> Settings:
         raise ValueError("AB_CORS_HEADERS must contain at least one header")
     if not settings.db_path.strip():
         raise ValueError("AB_DB_PATH must not be empty")
+    if settings.sqlite_busy_timeout_ms <= 0:
+        raise ValueError("AB_SQLITE_BUSY_TIMEOUT_MS must be greater than 0")
+    if settings.sqlite_journal_mode not in allowed_journal_modes:
+        raise ValueError(
+            "AB_SQLITE_JOURNAL_MODE must be one of DELETE, TRUNCATE, PERSIST, MEMORY, WAL, OFF"
+        )
+    if settings.sqlite_synchronous not in allowed_synchronous_modes:
+        raise ValueError("AB_SQLITE_SYNCHRONOUS must be one of OFF, NORMAL, FULL, EXTRA")
     if settings.llm_timeout_seconds <= 0:
         raise ValueError("AB_LLM_TIMEOUT_SECONDS must be greater than 0")
     if settings.llm_max_attempts < 1:
@@ -75,6 +93,10 @@ def _validate_settings(settings: Settings) -> Settings:
         raise ValueError("AB_LLM_INITIAL_BACKOFF_SECONDS must be greater than 0")
     if settings.llm_backoff_multiplier < 1:
         raise ValueError("AB_LLM_BACKOFF_MULTIPLIER must be at least 1")
+    if settings.log_level not in allowed_log_levels:
+        raise ValueError("AB_LOG_LEVEL must be one of DEBUG, INFO, WARNING, ERROR, CRITICAL")
+    if settings.log_format not in allowed_log_formats:
+        raise ValueError("AB_LOG_FORMAT must be one of plain, json")
     return settings
 
 
@@ -103,5 +125,10 @@ def get_settings() -> Settings:
         llm_max_attempts=_read_int_env("AB_LLM_MAX_ATTEMPTS", 3),
         llm_initial_backoff_seconds=_read_float_env("AB_LLM_INITIAL_BACKOFF_SECONDS", 0.1),
         llm_backoff_multiplier=_read_float_env("AB_LLM_BACKOFF_MULTIPLIER", 2.0),
+        sqlite_busy_timeout_ms=_read_int_env("AB_SQLITE_BUSY_TIMEOUT_MS", 5000),
+        sqlite_journal_mode=os.getenv("AB_SQLITE_JOURNAL_MODE", "WAL").strip().upper(),
+        sqlite_synchronous=os.getenv("AB_SQLITE_SYNCHRONOUS", "NORMAL").strip().upper(),
+        log_level=os.getenv("AB_LOG_LEVEL", "INFO").strip().upper(),
+        log_format=os.getenv("AB_LOG_FORMAT", "plain").strip().lower(),
     )
     return _validate_settings(settings)

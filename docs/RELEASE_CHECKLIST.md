@@ -13,6 +13,8 @@
 - run `cmd /c scripts\verify_all.cmd`
 - ensure backend benchmark passes:
   - `python scripts/benchmark_backend.py --payload binary --assert-ms 100`
+- ensure workspace backup roundtrip passes:
+  - `python scripts/verify_workspace_backup.py --fixture`
 - if Docker-related code changed, run:
   - `docker compose build`
   - `docker compose up -d`

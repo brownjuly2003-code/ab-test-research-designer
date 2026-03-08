@@ -238,6 +238,17 @@ const SidebarPanel = memo(function SidebarPanel({
                 <strong>SQLite path:</strong> <code>{backendDiagnostics.storage.db_path}</code>
               </li>
               <li>
+                <strong>SQLite mode:</strong> schema v{String(backendDiagnostics.storage.schema_version)}
+                {" | user_version "}
+                {String(backendDiagnostics.storage.sqlite_user_version)}
+                {" | "}
+                {backendDiagnostics.storage.journal_mode}
+                {" | "}
+                {backendDiagnostics.storage.synchronous}
+                {" | busy timeout "}
+                {String(backendDiagnostics.storage.busy_timeout_ms)}ms
+              </li>
+              <li>
                 <strong>Frontend dist:</strong> {backendDiagnostics.frontend.serve_frontend_dist ? "enabled" : "disabled"}
                 {" | "}
                 {backendDiagnostics.frontend.dist_exists ? "present" : "missing"}
@@ -251,6 +262,11 @@ const SidebarPanel = memo(function SidebarPanel({
                 {String(backendDiagnostics.llm.timeout_seconds)}s
                 {" | attempts "}
                 {String(backendDiagnostics.llm.max_attempts)}
+              </li>
+              <li>
+                <strong>Logging:</strong> {backendDiagnostics.logging.level}
+                {" | "}
+                {backendDiagnostics.logging.format}
               </li>
             </ul>
           </>

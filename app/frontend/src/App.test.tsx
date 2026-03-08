@@ -217,6 +217,11 @@ function buildDiagnostics() {
     storage: {
       db_path: "D:/AB_TEST/app/backend/data/projects.sqlite3",
       db_exists: true,
+      schema_version: 2,
+      sqlite_user_version: 2,
+      busy_timeout_ms: 5000,
+      journal_mode: "WAL",
+      synchronous: "NORMAL",
       projects_total: 2,
       analysis_runs_total: 3,
       export_events_total: 1,
@@ -235,6 +240,10 @@ function buildDiagnostics() {
       max_attempts: 3,
       initial_backoff_seconds: 0.1,
       backoff_multiplier: 2
+    },
+    logging: {
+      level: "INFO",
+      format: "plain"
     }
   };
 }

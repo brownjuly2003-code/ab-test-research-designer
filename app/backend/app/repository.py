@@ -6,6 +6,7 @@ import uuid
 
 
 class ProjectRepository:
+    schema_version = 2
     payload_schema_version = 1
     project_select_columns = """
         projects.id,
@@ -29,8 +30,18 @@ class ProjectRepository:
         projects.updated_at
     """
 
-    def __init__(self, db_path: str) -> None:
+    def __init__(
+        self,
+        db_path: str,
+        *,
+        busy_timeout_ms: int = 5000,
+        journal_mode: str = "WAL",
+        synchronous: str = "NORMAL",
+    ) -> None:
         self.db_path = Path(db_path)
+        self.busy_timeout_ms = int(busy_timeout_ms)
+        self.journal_mode = journal_mode
+        self.synchronous = synchronous
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_db()
 
@@ -38,6 +49,9 @@ class ProjectRepository:
         connection = sqlite3.connect(self.db_path)
         connection.row_factory = sqlite3.Row
         connection.execute("PRAGMA foreign_keys = ON")
+        connection.execute(f"PRAGMA busy_timeout = {self.busy_timeout_ms}")
+        connection.execute(f"PRAGMA journal_mode = {self.journal_mode}")
+        connection.execute(f"PRAGMA synchronous = {self.synchronous}")
         return connection
 
     def _init_db(self) -> None:
@@ -60,6 +74,7 @@ class ProjectRepository:
             )
             self._create_history_tables(connection)
             self._migrate_db(connection)
+            connection.execute(f"PRAGMA user_version = {self.schema_version}")
 
     @staticmethod
     def _row_to_project(row: sqlite3.Row) -> dict:
@@ -634,6 +649,9 @@ class ProjectRepository:
 
     def get_diagnostics_summary(self) -> dict:
         with self._connect() as connection:
+            journal_mode = connection.execute("PRAGMA journal_mode").fetchone()[0]
+            synchronous_raw = connection.execute("PRAGMA synchronous").fetchone()[0]
+            sqlite_user_version = connection.execute("PRAGMA user_version").fetchone()[0]
             projects_total = connection.execute(
                 "SELECT COUNT(*) FROM projects"
             ).fetchone()[0]
@@ -650,9 +668,22 @@ class ProjectRepository:
                 "SELECT MAX(updated_at) AS updated_at FROM projects"
             ).fetchone()
 
+        synchronous_labels = {
+            0: "OFF",
+            1: "NORMAL",
+            2: "FULL",
+            3: "EXTRA",
+        }
+        synchronous = synchronous_labels.get(synchronous_raw, str(synchronous_raw))
+
         return {
             "db_path": str(self.db_path),
             "db_exists": self.db_path.exists(),
+            "schema_version": self.schema_version,
+            "sqlite_user_version": sqlite_user_version,
+            "busy_timeout_ms": self.busy_timeout_ms,
+            "journal_mode": str(journal_mode).upper(),
+            "synchronous": synchronous,
             "projects_total": projects_total,
             "analysis_runs_total": analysis_runs_total,
             "export_events_total": export_events_total,

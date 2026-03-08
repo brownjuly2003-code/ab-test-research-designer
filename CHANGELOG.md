@@ -22,8 +22,11 @@
 - added workspace export/import APIs and UI actions for project/history backup and restore
 - added saved-project revision history across create, update, and workspace import flows
 - added `GET /api/v1/projects/{project_id}/revisions` plus frontend restore of older payload revisions
+- added SQLite schema version reporting plus configurable journal mode, synchronous mode, and busy-timeout diagnostics
+- added structured backend logging with configurable plain/json output
 - added config validation for invalid ports and broken LLM retry/backoff settings
 - expanded CI to also verify the repo on Windows and to check generated API docs
+- added workspace backup roundtrip verification to the local/CI verify path
 
 ### Documentation and packaging
 
@@ -31,6 +34,7 @@
 - added benchmark script and Docker packaging
 - consolidated docs and demo assets for README-driven walkthroughs
 - added `docs/RUNBOOK.md` and `docs/RELEASE_CHECKLIST.md` for local operations and release hygiene
+- added documented backup roundtrip drill for SQLite workspace restore verification
 - added GitHub Actions verification and refreshed smoke/demo automation around the sample import payload
 - added a runnable Playwright E2E command, backend launcher, CI browser step, and a few extra statistical boundary regressions
 

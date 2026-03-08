@@ -28,8 +28,16 @@ echo [verify] generated api docs
 python "%ROOT_DIR%scripts\generate_api_docs.py" --check
 if errorlevel 1 exit /b %errorlevel%
 
+echo [verify] workspace backup roundtrip
+python "%ROOT_DIR%scripts\verify_workspace_backup.py" --fixture
+if errorlevel 1 exit /b %errorlevel%
+
 echo [verify] backend tests
 python -m pytest "%ROOT_DIR%app\backend\tests" -q
+if errorlevel 1 exit /b %errorlevel%
+
+echo [verify] backend benchmark
+python "%ROOT_DIR%scripts\benchmark_backend.py" --payload binary --assert-ms 100
 if errorlevel 1 exit /b %errorlevel%
 
 cd /d "%ROOT_DIR%app\frontend"

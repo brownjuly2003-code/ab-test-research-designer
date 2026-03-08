@@ -218,6 +218,26 @@ def test_repository_records_project_revisions_for_create_update_and_history() ->
     assert revisions["revisions"][1]["payload"]["project"]["project_name"] == "Checkout redesign"
 
 
+def test_repository_reports_sqlite_runtime_and_schema_metadata() -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+    repository = ProjectRepository(
+        str(db_path),
+        busy_timeout_ms=7000,
+        journal_mode="WAL",
+        synchronous="NORMAL",
+    )
+
+    diagnostics = repository.get_diagnostics_summary()
+
+    assert diagnostics["schema_version"] == repository.schema_version
+    assert diagnostics["sqlite_user_version"] == repository.schema_version
+    assert diagnostics["busy_timeout_ms"] == 7000
+    assert diagnostics["journal_mode"] == "WAL"
+    assert diagnostics["synchronous"] == "NORMAL"
+
+
 def test_repository_returns_latest_and_specific_analysis_runs_and_clamps_history_limits() -> None:
     temp_dir = Path(__file__).resolve().parent / ".tmp"
     temp_dir.mkdir(exist_ok=True)

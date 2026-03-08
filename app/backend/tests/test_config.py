@@ -26,3 +26,23 @@ def test_settings_reject_invalid_llm_attempts(monkeypatch) -> None:
         get_settings()
 
     get_settings.cache_clear()
+
+
+def test_settings_reject_invalid_sqlite_journal_mode(monkeypatch) -> None:
+    monkeypatch.setenv("AB_SQLITE_JOURNAL_MODE", "BROKEN")
+    get_settings.cache_clear()
+
+    with pytest.raises(ValueError, match="AB_SQLITE_JOURNAL_MODE must be one of"):
+        get_settings()
+
+    get_settings.cache_clear()
+
+
+def test_settings_reject_invalid_log_format(monkeypatch) -> None:
+    monkeypatch.setenv("AB_LOG_FORMAT", "yaml")
+    get_settings.cache_clear()
+
+    with pytest.raises(ValueError, match="AB_LOG_FORMAT must be one of plain, json"):
+        get_settings()
+
+    get_settings.cache_clear()

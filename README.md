@@ -10,6 +10,7 @@ It combines:
 - optional local LLM recommendations
 - SQLite-backed project storage with history and export metadata
 - lightweight runtime diagnostics plus request-id / process-time headers
+- SQLite schema versioning plus configurable WAL/busy-timeout runtime settings
 - workspace backup and restore for saved projects plus history
 
 ## Demo
@@ -130,6 +131,12 @@ Useful variants:
 - `cmd /c scripts\verify_all.cmd --skip-build`
 - `cmd /c scripts\verify_all.cmd --with-e2e`
 
+Workspace backup roundtrip drill:
+
+```bash
+python scripts/verify_workspace_backup.py --fixture
+```
+
 Backend calculation benchmark:
 
 ```bash
@@ -168,6 +175,7 @@ Archived planning/setup files live under `archive/`.
 - the smoke flow now verifies the sample import payload before refreshing screenshots
 - the Playwright E2E command starts a backend-served frontend automatically through `scripts/run_backend_for_e2e.py`
 - LLM adapter timeout/retry behavior can be tuned through `.env.example`
+- SQLite busy timeout, journal mode, synchronous mode, and backend log format are configurable through `.env.example`
 - API responses now include `X-Request-ID` and `X-Process-Time-Ms` headers for lightweight local observability
 - `GET /readyz` gives a simple readiness view over storage, frontend-dist serving, and runtime config
 - workspace backup/import now works from the UI and through `GET /api/v1/workspace/export` plus `POST /api/v1/workspace/import`

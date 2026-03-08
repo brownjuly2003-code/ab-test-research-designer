@@ -46,6 +46,7 @@ npm --prefix app/frontend run build
 npm --prefix app/frontend run test:e2e
 python scripts/run_local_smoke.py --skip-build
 python scripts/benchmark_backend.py --payload binary --assert-ms 100
+python scripts/verify_workspace_backup.py --fixture
 ```
 
 ## Workspace backup and restore
@@ -71,6 +72,12 @@ The backup contains:
 - export events
 - saved project revisions
 
+Round-trip verification against a live DB file:
+
+```bash
+python scripts/verify_workspace_backup.py --db-path D:\AB_TEST\app\backend\data\projects.sqlite3
+```
+
 ## Saved-project recovery
 
 Useful endpoints:
@@ -86,6 +93,7 @@ Use revisions to restore an older payload into the wizard, then save to persist 
 Readiness returns `503`:
 
 - check SQLite path and write access
+- check schema version and journal mode in `GET /readyz`
 - if `AB_SERVE_FRONTEND_DIST=true`, ensure `app/frontend/dist/index.html` exists
 - inspect `GET /api/v1/diagnostics` for frontend/LLM/storage details
 
@@ -103,5 +111,6 @@ Workspace import fails:
 
 - regenerate API contracts: `python scripts/generate_frontend_api_types.py`
 - regenerate API docs: `python scripts/generate_api_docs.py`
+- run workspace roundtrip verification: `python scripts/verify_workspace_backup.py --fixture`
 - run full verify pipeline
 - refresh smoke screenshots if UI changed materially
