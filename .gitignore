@@ -23,6 +23,8 @@ node_modules/
 # builds
 dist/
 build/
+app/frontend/playwright-report/
+app/frontend/test-results/
 
 # db
 *.sqlite3

@@ -30,7 +30,7 @@ runs analysis, and exports a report:
 - Backend: FastAPI + Pydantic
 - Storage: SQLite
 - Optional AI path: local orchestrator adapter with retry/backoff
-- Verification: backend tests, frontend unit tests, typecheck, build, smoke
+- Verification: backend tests, frontend unit tests, typecheck, build, smoke, Playwright E2E
 - CI: [.github/workflows/test.yml](/D:/AB_TEST/.github/workflows/test.yml)
 
 ## Main capabilities
@@ -111,6 +111,7 @@ Useful variants:
 
 - `cmd /c scripts\verify_all.cmd --skip-smoke`
 - `cmd /c scripts\verify_all.cmd --skip-build`
+- `cmd /c scripts\verify_all.cmd --with-e2e`
 
 Backend calculation benchmark:
 
@@ -119,6 +120,13 @@ python scripts/benchmark_backend.py --payload binary --assert-ms 100
 ```
 
 The backend pytest suite also includes an in-repo p95 latency guard for binary and continuous calculations.
+
+Browser E2E:
+
+```bash
+cd app/frontend
+npm run test:e2e
+```
 
 ## Documentation
 
@@ -139,4 +147,5 @@ Archived planning/setup files live under `archive/`.
 - pytest cache artifacts are disabled via `pytest.ini`
 - the smoke script updates `docs/demo/` screenshots from a real browser flow
 - the smoke flow now verifies the sample import payload before refreshing screenshots
+- the Playwright E2E command starts a backend-served frontend automatically through `scripts/run_backend_for_e2e.py`
 - LLM adapter timeout/retry behavior can be tuned through `.env.example`

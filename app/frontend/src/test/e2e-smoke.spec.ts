@@ -1,6 +1,5 @@
 // This spec mirrors the canonical Python smoke flow in `scripts/run_local_smoke.py`.
-// It is intentionally excluded from the app TypeScript build until `@playwright/test`
-// is installed and wired into a dedicated browser E2E command.
+// It stays out of the main app tsconfig because it uses Node + Playwright globals.
 
 import { expect, test } from "@playwright/test";
 import path from "node:path";
@@ -9,10 +8,8 @@ import { fileURLToPath } from "node:url";
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const sampleProjectPath = path.resolve(currentDir, "../../../../docs/demo/sample-project.json");
-const baseUrl = process.env.AB_E2E_BASE_URL ?? "http://127.0.0.1:8010";
-
 test("imports the demo project and completes the browser smoke flow", async ({ page }) => {
-  await page.goto(baseUrl, { waitUntil: "networkidle" });
+  await page.goto("/", { waitUntil: "networkidle" });
   await expect(page.getByRole("heading", { name: "AB Test Research Designer" })).toBeVisible();
   await expect(page.getByText("API online")).toBeVisible();
 

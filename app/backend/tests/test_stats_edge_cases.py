@@ -40,6 +40,16 @@ def test_binary_sample_size_rejects_non_positive_mde(mde_pct: int) -> None:
         )
 
 
+def test_binary_sample_size_rejects_invalid_variant_rate() -> None:
+    with pytest.raises(ValueError, match="invalid variant rate"):
+        calculate_binary_sample_size(
+            baseline_rate=0.9,
+            mde_pct=15,
+            alpha=0.05,
+            power=0.8,
+        )
+
+
 def test_binary_sample_size_supports_maximum_variant_count() -> None:
     result = calculate_binary_sample_size(
         baseline_rate=0.1,
@@ -76,6 +86,17 @@ def test_continuous_sample_size_rejects_zero_std_dev() -> None:
         )
 
 
+def test_continuous_sample_size_rejects_non_positive_baseline_mean() -> None:
+    with pytest.raises(ValueError, match="baseline_mean must be positive"):
+        calculate_continuous_sample_size(
+            baseline_mean=0,
+            std_dev=12,
+            mde_pct=5,
+            alpha=0.05,
+            power=0.8,
+        )
+
+
 def test_duration_rejects_zero_daily_traffic() -> None:
     with pytest.raises(ValueError, match="expected_daily_traffic must be positive"):
         estimate_experiment_duration_days(
@@ -83,4 +104,25 @@ def test_duration_rejects_zero_daily_traffic() -> None:
             expected_daily_traffic=0,
             audience_share_in_test=0.5,
             traffic_split=[50, 50],
+        )
+
+
+@pytest.mark.parametrize("audience_share", [0, -0.1, 1.2])
+def test_duration_rejects_invalid_audience_share(audience_share: float) -> None:
+    with pytest.raises(ValueError, match="audience_share_in_test must be between 0 and 1"):
+        estimate_experiment_duration_days(
+            sample_size_per_variant=1000,
+            expected_daily_traffic=5000,
+            audience_share_in_test=audience_share,
+            traffic_split=[50, 50],
+        )
+
+
+def test_duration_rejects_non_positive_traffic_weights() -> None:
+    with pytest.raises(ValueError, match="traffic_split must contain positive values"):
+        estimate_experiment_duration_days(
+            sample_size_per_variant=1000,
+            expected_daily_traffic=5000,
+            audience_share_in_test=0.5,
+            traffic_split=[100, 0],
         )

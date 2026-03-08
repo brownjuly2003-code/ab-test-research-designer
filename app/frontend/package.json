@@ -9,13 +9,16 @@
     "build": "vite build",
     "preview": "vite preview",
     "test:unit": "vitest run",
-    "test:smoke": "python ../../scripts/run_local_smoke.py"
+    "test:smoke": "python ../../scripts/run_local_smoke.py",
+    "test:e2e": "playwright test -c playwright.config.ts",
+    "test:e2e:install": "playwright install chromium"
   },
   "dependencies": {
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
     "@vitejs/plugin-react": "^5.0.0",

@@ -45,6 +45,12 @@ jobs:
       - name: Run frontend build
         run: npm --prefix app/frontend run build
 
+      - name: Install Playwright browser
+        run: npm --prefix app/frontend exec playwright install --with-deps chromium
+
+      - name: Run frontend Playwright E2E
+        run: npm --prefix app/frontend run test:e2e
+
   docker:
     runs-on: ubuntu-latest
 

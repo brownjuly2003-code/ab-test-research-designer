@@ -173,6 +173,22 @@ def test_continuous_calculation_rejects_zero_std_dev() -> None:
         )
 
 
+def test_calculation_rejects_binary_mde_that_pushes_variant_rate_above_one() -> None:
+    with pytest.raises(ValueError, match="invalid variant rate"):
+        calculate_experiment_metrics(
+            {
+                "metric_type": "binary",
+                "baseline_value": 0.9,
+                "mde_pct": 15,
+                "alpha": 0.05,
+                "power": 0.8,
+                "expected_daily_traffic": 8000,
+                "audience_share_in_test": 0.5,
+                "traffic_split": [50, 50],
+            }
+        )
+
+
 def test_calculation_rejects_mismatched_traffic_split_and_variants_count() -> None:
     with pytest.raises(ValueError, match="traffic_split length must match variants_count"):
         calculate_experiment_metrics(
@@ -186,6 +202,24 @@ def test_calculation_rejects_mismatched_traffic_split_and_variants_count() -> No
                 "audience_share_in_test": 0.5,
                 "traffic_split": [50, 50],
                 "variants_count": 3,
+            }
+        )
+
+
+@pytest.mark.parametrize("audience_share", [0, -0.2, 1.1])
+def test_calculation_rejects_invalid_audience_share(audience_share: float) -> None:
+    with pytest.raises(ValueError, match="audience_share_in_test must be between 0 and 1"):
+        calculate_experiment_metrics(
+            {
+                "metric_type": "binary",
+                "baseline_value": 0.1,
+                "mde_pct": 5,
+                "alpha": 0.05,
+                "power": 0.8,
+                "expected_daily_traffic": 5000,
+                "audience_share_in_test": audience_share,
+                "traffic_split": [50, 50],
+                "variants_count": 2,
             }
         )
 

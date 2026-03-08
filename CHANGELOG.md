@@ -22,6 +22,7 @@
 - added benchmark script and Docker packaging
 - consolidated docs and demo assets for README-driven walkthroughs
 - added GitHub Actions verification and refreshed smoke/demo automation around the sample import payload
+- added a runnable Playwright E2E command, backend launcher, CI browser step, and a few extra statistical boundary regressions
 
 ## Earlier milestones
 

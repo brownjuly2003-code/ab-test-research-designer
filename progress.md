@@ -183,6 +183,8 @@ Post-phase cleanup completed
 - added backend performance regression tests for binary and continuous deterministic calculations
 - added a GitHub Actions workflow covering generated contracts, pytest, benchmark assertion, frontend checks, and Docker startup
 - archived root `recommendations*.md` audit files into a dedicated archive folder after the checklist was applied
+- turned the Node-side Playwright smoke spec into a real `npm run test:e2e` path with a dedicated backend launcher and CI browser step
+- added extra backend boundary regressions for invalid variant uplift, invalid audience share, invalid baseline mean, and invalid traffic weights
 
 ---
 
@@ -192,7 +194,6 @@ Optional production hardening
 
 Goals:
 
-- optional Node-side Playwright runner parity with the existing Python smoke flow
 - expand Docker usage into a fuller deployment/devcontainer story
 - broader deployment/ops hardening if the project moves beyond local-demo scope
 

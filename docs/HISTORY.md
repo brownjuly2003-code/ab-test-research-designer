@@ -41,6 +41,7 @@ The current stack:
 - repo-level pytest cache suppression to stop root cache artifacts from reappearing
 - quota-specific browser draft autosave warnings instead of a single generic storage failure message
 - backend performance regression coverage with deterministic latency thresholds
+- runnable Playwright E2E coverage with a backend-served frontend launcher and CI browser execution
 
 ### Product polish
 
@@ -52,6 +53,7 @@ The current stack:
 - architecture, API, rules, changelog, and demo assets added for portfolio-style documentation
 - smoke automation now verifies `docs/demo/sample-project.json` import before refreshing README screenshots
 - GitHub Actions verification covers contracts, backend tests, frontend checks, benchmark assertion, and Docker startup
+- backend boundary tests now explicitly cover invalid variant-rate uplifts, invalid audience shares, invalid baseline means, and invalid traffic weights
 
 ## Verification baseline
 
@@ -69,6 +71,7 @@ This runs:
 - frontend unit tests
 - frontend production build
 - local smoke flow
+- optional Playwright E2E flow via `cmd /c scripts\verify_all.cmd --with-e2e`
 
 ## Notes
 
