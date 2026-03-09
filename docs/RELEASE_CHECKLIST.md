@@ -13,6 +13,7 @@
 ## Verification
 
 - run `cmd /c scripts\verify_all.cmd`
+- or run `python scripts/verify_all.py` on platforms where the batch wrapper is not the preferred entrypoint
 - run `cmd /c scripts\verify_all.cmd --with-docker` when deployment packaging or auth/runtime config changed
 - ensure backend benchmark passes:
   - `python scripts/benchmark_backend.py --payload binary --assert-ms 100`

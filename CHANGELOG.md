@@ -42,6 +42,7 @@
 ### Documentation and packaging
 
 - added architecture, API, and rules documentation
+- aligned the Python verify entrypoint with the Windows batch verify flow, including generated API docs and optional Playwright E2E
 - added benchmark script and Docker packaging
 - consolidated docs and demo assets for README-driven walkthroughs
 - added `docs/RUNBOOK.md` and `docs/RELEASE_CHECKLIST.md` for local operations and release hygiene

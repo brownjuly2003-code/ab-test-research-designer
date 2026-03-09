@@ -37,6 +37,7 @@ runs analysis, and exports a report:
 - Optional AI path: local orchestrator adapter with retry/backoff
 - Verification: backend tests, frontend unit tests, typecheck, build, smoke, Playwright E2E
 - CI: [.github/workflows/test.yml](/D:/AB_TEST/.github/workflows/test.yml)
+- canonical cross-platform verification entrypoint: [verify_all.py](/D:/AB_TEST/scripts/verify_all.py) and [verify_all.cmd](/D:/AB_TEST/scripts/verify_all.cmd)
 
 ## Main capabilities
 

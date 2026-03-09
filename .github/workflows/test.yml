@@ -35,37 +35,12 @@ jobs:
       - name: Install frontend dependencies
         run: npm --prefix app/frontend ci
 
-      - name: Check generated API contracts
-        run: python scripts/generate_frontend_api_types.py --check
-
-      - name: Check generated API docs
-        run: python scripts/generate_api_docs.py --check
-
-      - name: Run workspace backup roundtrip
-        run: python scripts/verify_workspace_backup.py --fixture
-
-      - name: Run backend tests
-        run: python -m pytest app/backend/tests -q
-
-      - name: Run backend benchmark assertion
-        run: python scripts/benchmark_backend.py --payload binary --assert-ms 100
-
-      - name: Run frontend typecheck
-        run: npm --prefix app/frontend exec tsc -- --noEmit -p .
-
-      - name: Run frontend unit tests
-        run: npm --prefix app/frontend run test:unit
-
-      - name: Run frontend build
-        run: npm --prefix app/frontend run build
-
       - name: Install Playwright browser
         if: matrix.run_e2e
         run: npm --prefix app/frontend exec playwright install --with-deps chromium
 
-      - name: Run frontend Playwright E2E
-        if: matrix.run_e2e
-        run: npm --prefix app/frontend run test:e2e
+      - name: Run verify pipeline
+        run: python scripts/verify_all.py ${{ matrix.run_e2e && '--with-e2e' || '' }}
 
   docker:
     runs-on: ubuntu-latest

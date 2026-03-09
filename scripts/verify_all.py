@@ -9,7 +9,6 @@ from pathlib import Path
 ROOT_DIR = Path(__file__).resolve().parents[1]
 FRONTEND_DIR = ROOT_DIR / "app" / "frontend"
 NPM_EXECUTABLE = "npm.cmd" if os.name == "nt" else "npm"
-POWERSHELL_EXECUTABLE = "powershell.exe"
 
 
 def format_command(command: list[str]) -> str:
@@ -31,28 +30,35 @@ def run_step(label: str, command: list[str], cwd: Path, *, shell: bool = False) 
         raise SystemExit(completed.returncode)
 
 
-def run_windows_powershell_step(label: str, command_text: str, cwd: Path) -> None:
-    run_step(
-        label,
-        [POWERSHELL_EXECUTABLE, "-NoProfile", "-Command", command_text],
-        cwd,
-    )
-
-
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--skip-smoke", action="store_true", help="Skip the Playwright smoke flow.")
     parser.add_argument("--skip-build", action="store_true", help="Skip the frontend production build.")
+    parser.add_argument("--with-e2e", action="store_true", help="Run the frontend Playwright E2E flow.")
     parser.add_argument("--with-docker", action="store_true", help="Run the secure docker compose verification flow.")
     args = parser.parse_args()
 
     if os.name == "nt":
-        print("Use `cmd /c scripts\\verify_all.cmd` on Windows.")
-        return 2
+        delegated_command = ["cmd.exe", "/d", "/c", "scripts\\verify_all.cmd"]
+        if args.skip_smoke:
+            delegated_command.append("--skip-smoke")
+        if args.skip_build:
+            delegated_command.append("--skip-build")
+        if args.with_e2e:
+            delegated_command.append("--with-e2e")
+        if args.with_docker:
+            delegated_command.append("--with-docker")
+        run_step("windows verify delegation", delegated_command, ROOT_DIR)
+        return 0
 
     run_step(
         "generated api contracts",
         [sys.executable, "scripts/generate_frontend_api_types.py", "--check"],
+        ROOT_DIR,
+    )
+    run_step(
+        "generated api docs",
+        [sys.executable, "scripts/generate_api_docs.py", "--check"],
         ROOT_DIR,
     )
     run_step(
@@ -66,26 +72,14 @@ def main() -> int:
         [sys.executable, "scripts/benchmark_backend.py", "--payload", "binary", "--assert-ms", "100"],
         ROOT_DIR,
     )
-    if os.name == "nt":
-        run_windows_powershell_step(
-            "frontend typecheck",
-            "npm.cmd exec tsc -- --noEmit -p .",
-            FRONTEND_DIR,
-        )
-        run_windows_powershell_step(
-            "frontend unit tests",
-            "npm.cmd run test:unit",
-            FRONTEND_DIR,
-        )
-    else:
-        run_step("frontend typecheck", [NPM_EXECUTABLE, "exec", "tsc", "--", "--noEmit", "-p", "."], FRONTEND_DIR)
-        run_step("frontend unit tests", [NPM_EXECUTABLE, "run", "test:unit"], FRONTEND_DIR)
+    run_step("frontend typecheck", [NPM_EXECUTABLE, "exec", "tsc", "--", "--noEmit", "-p", "."], FRONTEND_DIR)
+    run_step("frontend unit tests", [NPM_EXECUTABLE, "run", "test:unit"], FRONTEND_DIR)
 
     if not args.skip_build:
-        if os.name == "nt":
-            run_windows_powershell_step("frontend build", "npm.cmd run build", FRONTEND_DIR)
-        else:
-            run_step("frontend build", [NPM_EXECUTABLE, "run", "build"], FRONTEND_DIR)
+        run_step("frontend build", [NPM_EXECUTABLE, "run", "build"], FRONTEND_DIR)
+
+    if args.with_e2e:
+        run_step("playwright e2e", [NPM_EXECUTABLE, "run", "test:e2e"], FRONTEND_DIR)
 
     if not args.skip_smoke:
         smoke_command = [sys.executable, "scripts/run_local_smoke.py"]

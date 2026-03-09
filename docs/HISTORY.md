@@ -67,6 +67,7 @@ The current stack:
 - dismissible storage warning UI for local draft autosave failures
 - workspace status board now gives a one-glance summary of saved-project coverage, snapshots, exports, and current draft sync
 - frontend write actions now honor backend auth diagnostics and fall back to an explicit read-only session mode when only safe API access is available
+- `scripts/verify_all.py` now matches the Windows verify path more closely and supports optional E2E verification
 - Docker packaging and deterministic benchmark script
 - architecture, API, rules, changelog, and demo assets added for portfolio-style documentation
 - smoke automation now verifies `docs/demo/sample-project.json` import before refreshing README screenshots
