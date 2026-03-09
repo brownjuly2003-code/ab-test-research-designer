@@ -18,6 +18,8 @@ type ResultsPanelProps = {
   results: ResultsState;
   displayedAnalysis: AnalysisResponsePayload | null;
   loading: boolean;
+  canMutateBackend: boolean;
+  backendMutationMessage: string;
   statusMessage: string;
   error: string;
   activeProject: SavedProject | null;
@@ -76,6 +78,8 @@ const ResultsPanel = memo(function ResultsPanel({
   results,
   displayedAnalysis,
   loading,
+  canMutateBackend,
+  backendMutationMessage,
   statusMessage,
   error,
   activeProject,
@@ -258,17 +262,23 @@ const ResultsPanel = memo(function ResultsPanel({
                 <h3>Deterministic experiment design</h3>
               </div>
               <div className="actions">
-                <button className="btn ghost" onClick={() => onExportReport("markdown")}>
+                <button className="btn ghost" disabled={!canMutateBackend} onClick={() => onExportReport("markdown")}>
                   <Icon name="download" className="icon icon-inline" />
                   Export Markdown
                 </button>
-                <button className="btn ghost" onClick={() => onExportReport("html")}>
+                <button className="btn ghost" disabled={!canMutateBackend} onClick={() => onExportReport("html")}>
                   <Icon name="code" className="icon icon-inline" />
                   Export HTML
                 </button>
               </div>
             </div>
             <p className="muted result-summary">{String(displayedAnalysis.report.executive_summary ?? "")}</p>
+            {!canMutateBackend ? (
+              <div className="callout">
+                <Icon name="info" className="icon icon-inline" />
+                <span>{backendMutationMessage}</span>
+              </div>
+            ) : null}
             <div className="metric-grid">
               <MetricCard
                 icon="activity"

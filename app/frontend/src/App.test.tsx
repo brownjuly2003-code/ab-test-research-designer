@@ -273,6 +273,20 @@ function buildDiagnostics() {
   };
 }
 
+function buildReadonlyDiagnostics() {
+  return {
+    ...buildDiagnostics(),
+    auth: {
+      enabled: true,
+      mode: "readonly",
+      write_enabled: false,
+      readonly_enabled: true,
+      accepted_headers: ["Authorization: Bearer", "X-API-Key"],
+      read_only_methods: ["GET", "HEAD", "OPTIONS"]
+    }
+  };
+}
+
 function buildProjectComparison() {
   return {
     base_project: {
@@ -584,6 +598,52 @@ describe("App UI flow", () => {
       expect(projectNameInput.value).toBe("Loaded experiment v2");
       expect(view.container.textContent).toContain("Loaded update revision");
       expect(view.container.textContent).toContain("Needs local update");
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("disables mutating actions when diagnostics report a read-only api session", async () => {
+    vi.mocked(requestDiagnostics).mockResolvedValueOnce(buildReadonlyDiagnostics());
+    vi.mocked(listProjectsRequest).mockResolvedValueOnce([
+      {
+        id: "p-1",
+        project_name: "Stored checkout test",
+        payload_schema_version: 1,
+        revision_count: 2,
+        last_revision_at: "2026-03-07T10:15:00Z",
+        last_analysis_at: "2026-03-07T10:30:00Z",
+        last_analysis_run_id: "run-1",
+        last_exported_at: null,
+        has_analysis_snapshot: true,
+        created_at: "2026-03-07T10:00:00Z",
+        updated_at: "2026-03-07T10:00:00Z"
+      }
+    ]);
+
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+
+      expect(view.container.textContent).toContain("Read-only API");
+      expect(view.container.textContent).toContain("read-only API mode for this session");
+      expect(findButton(view.container, "Save project").disabled).toBe(true);
+      expect(findButton(view.container, "Import workspace JSON").disabled).toBe(true);
+      expect(findButton(view.container, "Export workspace JSON").disabled).toBe(false);
+      expect(findButtonByAriaLabel(view.container, "Delete Stored checkout test").disabled).toBe(true);
+      await click(findButton(view.container, "Save project"));
+      await flushEffects();
+      expect(saveProjectRequest).not.toHaveBeenCalled();
+
+      for (let stepIndex = 0; stepIndex < 5; stepIndex += 1) {
+        await click(findButton(view.container, "Next"));
+      }
+      await flushEffects();
+
+      expect(findButton(view.container, "Run analysis").disabled).toBe(true);
+      await click(findButton(view.container, "Run analysis"));
+      await flushEffects();
+      expect(requestAnalysis).not.toHaveBeenCalled();
     } finally {
       await view.unmount();
     }

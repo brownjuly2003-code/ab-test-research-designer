@@ -121,6 +121,7 @@ Production-lite hardening and recovery drills completed
 - added workspace backup integrity validation before import and exposed it through frontend preflight import flow
 - added richer SQLite runtime diagnostics including write-probe, db-size, and disk-free visibility
 - added a workspace status board in the frontend sidebar for saved-project and snapshot coverage
+- added read-only session handling in the frontend so mutation actions are disabled when diagnostics report no write-capable API token
 - restored missing constraint fields and fuller deterministic recommendation rendering in the UI
 - added frontend component tests for startup, review, validation, and result rendering flows
 - linked form labels to inputs for better accessibility and DOM-test stability

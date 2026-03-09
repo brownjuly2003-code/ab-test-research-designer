@@ -46,6 +46,24 @@ export default function App() {
   const displayedAnalysis =
     projectManager.selectedHistoryRun?.analysis ?? analysis.getPersistableAnalysis();
   const uiError = analysis.error;
+  const canMutateBackend =
+    !projectManager.backendDiagnostics ||
+    !projectManager.backendDiagnostics.auth.enabled ||
+    projectManager.backendDiagnostics.auth.write_enabled;
+  const backendMutationMessage =
+    projectManager.backendDiagnostics?.auth.enabled && !canMutateBackend
+      ? "Backend is running in read-only API mode for this session. Save, analysis, report export, workspace import, and project deletion are disabled until a write-capable token is configured."
+      : "";
+
+  function ensureBackendMutationAllowed(): boolean {
+    if (canMutateBackend) {
+      return true;
+    }
+
+    analysis.setError(backendMutationMessage || "Backend is running in read-only mode.");
+    analysis.setStatusMessage("");
+    return false;
+  }
 
   useEffect(() => {
     if (draftBootstrap.restored) {
@@ -159,6 +177,9 @@ export default function App() {
     analysis.setError("");
 
     try {
+      if (!ensureBackendMutationAllowed()) {
+        return;
+      }
       const parsed = JSON.parse(await file.text()) as WorkspaceBundleInput;
       const validation = await validateWorkspaceRequest(parsed);
       const result = await importWorkspaceRequest(parsed);
@@ -191,6 +212,10 @@ export default function App() {
   }
 
   async function runAnalysis() {
+    if (!ensureBackendMutationAllowed()) {
+      return;
+    }
+
     if (!analysis.ensureValidForm(form)) {
       return;
     }
@@ -237,6 +262,10 @@ export default function App() {
   }
 
   async function saveProject() {
+    if (!ensureBackendMutationAllowed()) {
+      return;
+    }
+
     if (!analysis.ensureValidForm(form)) {
       return;
     }
@@ -304,6 +333,10 @@ export default function App() {
   }
 
   async function deleteProject(projectId: string, projectName: string) {
+    if (!ensureBackendMutationAllowed()) {
+      return;
+    }
+
     analysis.setError("");
     analysis.setStatusMessage("");
 
@@ -325,6 +358,10 @@ export default function App() {
   }
 
   async function exportReport(format: ExportFormat) {
+    if (!ensureBackendMutationAllowed()) {
+      return;
+    }
+
     if (!displayedAnalysis?.report) {
       analysis.setError("Run analysis before exporting a report.");
       return;
@@ -460,6 +497,8 @@ export default function App() {
               form={form}
               activeProjectId={projectManager.activeProjectId}
               hasUnsavedChanges={projectManager.hasUnsavedChanges}
+              canMutateBackend={canMutateBackend}
+              backendMutationMessage={backendMutationMessage}
               validationErrors={analysis.validationErrors}
               importingDraft={importingDraft}
               loading={analysis.loading}
@@ -510,6 +549,8 @@ export default function App() {
               loadingProjectComparison={projectManager.loadingProjectComparison}
               comparingProjectId={projectManager.comparingProjectId}
               hasUnsavedChanges={projectManager.hasUnsavedChanges}
+              canMutateBackend={canMutateBackend}
+              backendMutationMessage={backendMutationMessage}
               onRefreshHealth={projectManager.loadBackendHealth}
               onRefreshDiagnostics={projectManager.loadBackendDiagnostics}
               onRefreshProjectHistory={(projectId) => {

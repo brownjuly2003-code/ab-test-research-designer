@@ -9,6 +9,8 @@ type WizardPanelProps = {
   form: FullPayload;
   activeProjectId: string | null;
   hasUnsavedChanges: boolean;
+  canMutateBackend: boolean;
+  backendMutationMessage: string;
   validationErrors: string[];
   importingDraft: boolean;
   loading: boolean;
@@ -39,6 +41,8 @@ export default function WizardPanel({
   form,
   activeProjectId,
   hasUnsavedChanges,
+  canMutateBackend,
+  backendMutationMessage,
   validationErrors,
   importingDraft,
   loading,
@@ -84,6 +88,8 @@ export default function WizardPanel({
           canGoBack={step > 0}
           activeProjectId={activeProjectId}
           hasUnsavedChanges={hasUnsavedChanges}
+          canMutateBackend={canMutateBackend}
+          backendMutationMessage={backendMutationMessage}
           validationErrors={validationErrors}
           importingDraft={importingDraft}
           loading={loading}
@@ -101,6 +107,8 @@ export default function WizardPanel({
           form={form}
           activeProjectId={activeProjectId}
           hasUnsavedChanges={hasUnsavedChanges}
+          canMutateBackend={canMutateBackend}
+          backendMutationMessage={backendMutationMessage}
           validationErrors={validationErrors}
           importingDraft={importingDraft}
           loading={loading}
@@ -117,6 +125,8 @@ export default function WizardPanel({
         results={results}
         displayedAnalysis={displayedAnalysis}
         loading={loading}
+        canMutateBackend={canMutateBackend}
+        backendMutationMessage={backendMutationMessage}
         activeProject={activeProject}
         projectHistory={projectHistory}
         selectedHistoryRun={selectedHistoryRun}

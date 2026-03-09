@@ -53,6 +53,7 @@ runs analysis, and exports a report:
 - workspace import preflight validation with checksum/reference verification before writes begin
 - browser draft restore/autosave plus JSON draft import/export
 - workspace status board summarizing saved-project coverage, snapshot depth, exports, and current draft sync state
+- read-only aware frontend mode that disables write actions when the API session only has safe GET access
 
 ## Local setup
 

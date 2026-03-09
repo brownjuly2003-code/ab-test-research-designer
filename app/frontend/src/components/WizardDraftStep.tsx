@@ -15,6 +15,8 @@ type WizardDraftStepProps = {
   canGoBack: boolean;
   activeProjectId: string | null;
   hasUnsavedChanges: boolean;
+  canMutateBackend: boolean;
+  backendMutationMessage: string;
   validationErrors: string[];
   importingDraft: boolean;
   loading: boolean;
@@ -34,6 +36,8 @@ export default function WizardDraftStep({
   canGoBack,
   activeProjectId,
   hasUnsavedChanges,
+  canMutateBackend,
+  backendMutationMessage,
   validationErrors,
   importingDraft,
   loading,
@@ -75,6 +79,11 @@ export default function WizardDraftStep({
               <li key={issue}>{issue}</li>
             ))}
           </ul>
+        </div>
+      ) : null}
+      {!canMutateBackend ? (
+        <div className="callout">
+          <span>{backendMutationMessage}</span>
         </div>
       ) : null}
       <div className="fields">
@@ -193,7 +202,7 @@ export default function WizardDraftStep({
         <button className="btn ghost" disabled={loading || saving || importingDraft} onClick={onExportDraft}>
           Export draft JSON
         </button>
-        <button className="btn ghost" disabled={loading || saving} onClick={onSave}>
+        <button className="btn ghost" disabled={!canMutateBackend || loading || saving} onClick={onSave}>
           {saving ? <><Spinner /> Saving...</> : activeProjectId ? "Update project" : "Save project"}
         </button>
         <button className="btn primary" disabled={loading} onClick={onNext}>

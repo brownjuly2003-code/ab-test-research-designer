@@ -37,6 +37,8 @@ type SidebarPanelProps = {
   loadingProjectComparison: boolean;
   comparingProjectId: string | null;
   hasUnsavedChanges: boolean;
+  canMutateBackend: boolean;
+  backendMutationMessage: string;
   onRefreshHealth: () => void;
   onRefreshDiagnostics: () => void;
   onRefreshProjectHistory: (projectId: string) => void;
@@ -141,6 +143,8 @@ const SidebarPanel = memo(function SidebarPanel({
   loadingProjectComparison,
   comparingProjectId,
   hasUnsavedChanges,
+  canMutateBackend,
+  backendMutationMessage,
   onRefreshHealth,
   onRefreshDiagnostics,
   onRefreshProjectHistory,
@@ -355,6 +359,7 @@ const SidebarPanel = memo(function SidebarPanel({
           <span className="pill">{projectsWithSnapshots} with snapshots</span>
           {hasUnsavedChanges ? <span className="pill">Draft changed</span> : null}
           {backendDiagnostics?.storage.write_probe_ok ? <span className="pill">SQLite writable</span> : null}
+          {!canMutateBackend ? <span className="pill">Read-only API</span> : null}
         </div>
         <ul className="list">
           <li>
@@ -378,6 +383,12 @@ const SidebarPanel = memo(function SidebarPanel({
             <strong>Latest workspace update:</strong> {formatOptionalTimestamp(latestWorkspaceUpdate)}
           </li>
         </ul>
+        {!canMutateBackend ? (
+          <div className="callout">
+            <Icon name="info" className="icon icon-inline" />
+            <span>{backendMutationMessage}</span>
+          </div>
+        ) : null}
       </div>
 
       <div className="card">
@@ -681,7 +692,7 @@ const SidebarPanel = memo(function SidebarPanel({
                     ) : null}
                     <button
                       className="btn secondary"
-                      disabled={deletingProjectId === project.id}
+                      disabled={!canMutateBackend || deletingProjectId === project.id}
                       aria-label={`Delete ${project.project_name}`}
                       onClick={() => onDeleteProject(project.id, project.project_name)}
                     >
@@ -714,7 +725,7 @@ const SidebarPanel = memo(function SidebarPanel({
           <button className="btn ghost" disabled={exportingWorkspace} onClick={onExportWorkspace}>
             {exportingWorkspace ? "Exporting..." : "Export workspace JSON"}
           </button>
-          <button className="btn secondary" disabled={importingWorkspace} onClick={onImportWorkspace}>
+          <button className="btn secondary" disabled={!canMutateBackend || importingWorkspace} onClick={onImportWorkspace}>
             {importingWorkspace ? "Importing..." : "Import workspace JSON"}
           </button>
         </div>

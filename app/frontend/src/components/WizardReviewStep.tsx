@@ -5,6 +5,8 @@ type WizardReviewStepProps = {
   form: FullPayload;
   activeProjectId: string | null;
   hasUnsavedChanges: boolean;
+  canMutateBackend: boolean;
+  backendMutationMessage: string;
   validationErrors: string[];
   importingDraft: boolean;
   loading: boolean;
@@ -21,6 +23,8 @@ export default function WizardReviewStep({
   form,
   activeProjectId,
   hasUnsavedChanges,
+  canMutateBackend,
+  backendMutationMessage,
   validationErrors,
   importingDraft,
   loading,
@@ -55,6 +59,11 @@ export default function WizardReviewStep({
           </ul>
         </div>
       ) : null}
+      {!canMutateBackend ? (
+        <div className="callout">
+          <span>{backendMutationMessage}</span>
+        </div>
+      ) : null}
       <div className="two-col">
         {reviewSections.map((section) => (
           <div key={section.title} className="card">
@@ -82,10 +91,10 @@ export default function WizardReviewStep({
         <button className="btn ghost" disabled={loading || saving || importingDraft} onClick={onExportDraft}>
           Export draft JSON
         </button>
-        <button className="btn ghost" disabled={loading || saving} onClick={onSave}>
+        <button className="btn ghost" disabled={!canMutateBackend || loading || saving} onClick={onSave}>
           {saving ? <><Spinner /> Saving...</> : activeProjectId ? "Update project" : "Save project"}
         </button>
-        <button className="btn primary" disabled={loading} onClick={onRunAnalysis}>
+        <button className="btn primary" disabled={!canMutateBackend || loading} onClick={onRunAnalysis}>
           {loading ? <><Spinner /> Analyzing...</> : "Run analysis"}
         </button>
       </div>
