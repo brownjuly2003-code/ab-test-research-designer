@@ -27,7 +27,6 @@ Docker with API auth:
 
 ```bash
 set AB_API_TOKEN=your-secret-token
-set VITE_API_TOKEN=your-secret-token
 docker compose up --build
 ```
 
@@ -36,7 +35,24 @@ Docker with split write/read tokens:
 ```bash
 set AB_API_TOKEN=write-secret-token
 set AB_READONLY_API_TOKEN=readonly-secret-token
-set VITE_API_TOKEN=write-secret-token
+docker compose up --build
+```
+
+Docker with signed workspace backups:
+
+```bash
+set AB_WORKSPACE_SIGNING_KEY=replace-with-a-long-random-secret
+docker compose up --build
+```
+
+Security-hardening knobs:
+
+```bash
+set AB_RATE_LIMIT_ENABLED=true
+set AB_RATE_LIMIT_REQUESTS=240
+set AB_AUTH_FAILURE_LIMIT=20
+set AB_MAX_REQUEST_BODY_BYTES=1048576
+set AB_MAX_WORKSPACE_BODY_BYTES=8388608
 docker compose up --build
 ```
 
@@ -52,6 +68,8 @@ If `AB_API_TOKEN` or `AB_READONLY_API_TOKEN` is enabled, send either:
 - `X-API-Key: <token>`
 
 Read-only tokens are valid only for `GET`, `HEAD`, and `OPTIONS`. Mutating routes still require the write token.
+When the frontend is served, enter the token through the "API session token" field; it is stored only in the current browser session.
+When throttling is enabled, bursty `/api/v1/*` traffic and repeated bad tokens return `429` with `Retry-After`.
 
 ## Full verification
 
@@ -67,6 +85,18 @@ With secure Docker compose verification:
 cmd /c scripts\verify_all.cmd --with-docker
 ```
 
+Non-destructive Docker verification:
+
+```bash
+python scripts/verify_docker_compose.py --preserve
+```
+
+Or through the main verify wrapper:
+
+```bash
+cmd /c scripts\verify_all.cmd --with-docker-preserve
+```
+
 Focused checks:
 
 ```bash
@@ -78,6 +108,15 @@ python scripts/run_local_smoke.py --skip-build
 python scripts/benchmark_backend.py --payload binary --assert-ms 100
 python scripts/verify_workspace_backup.py --fixture
 ```
+
+Signed workspace backup check:
+
+```bash
+set AB_WORKSPACE_SIGNING_KEY=replace-with-a-long-random-secret
+python scripts/verify_workspace_backup.py --fixture
+```
+
+`npm --prefix app/frontend run test:e2e` builds the frontend if needed and runs against a temporary backend-served build on a free local port.
 
 ## Workspace backup and restore
 
@@ -102,12 +141,15 @@ The backup contains:
 - export events
 - saved project revisions
 - integrity counts and a SHA-256 checksum
+- optional `signature_hmac_sha256` when `AB_WORKSPACE_SIGNING_KEY` is configured
 
 Round-trip verification against a live DB file:
 
 ```bash
 python scripts/verify_workspace_backup.py --db-path D:\AB_TEST\app\backend\data\projects.sqlite3
 ```
+
+If the target runtime uses `AB_WORKSPACE_SIGNING_KEY`, rerun the same verification command with that env var set so signature verification is exercised, not only checksum validation.
 
 ## Saved-project recovery
 
@@ -131,17 +173,20 @@ Readiness returns `503`:
 Frontend loads but backend requests fail:
 
 - confirm `VITE_API_BASE_URL`
-- if write-token auth is enabled, confirm `VITE_API_TOKEN`
+- if write-token auth is enabled, confirm that the browser-session token is present and accepted by diagnostics
 - if read-only auth is enabled, verify diagnostics/docs work while mutations still reject with `403`
+- if requests start returning `429`, inspect `Retry-After` and tune `AB_RATE_LIMIT_*` or `AB_AUTH_FAILURE_*` for the target runtime
 - verify CORS env values if frontend is on another origin
 - use `request_id` and `X-Error-Code` from API failures to correlate UI errors with backend logs
-- use diagnostics runtime counters to confirm whether failures are isolated or systemic across the current process lifetime
+- use diagnostics runtime counters and guard settings to confirm whether failures are isolated, rate-limited, or caused by request-size policy on the current process lifetime
 
 Workspace import fails:
 
 - validate JSON shape against `docs/API.md`
+- if the payload is legitimately large, confirm `AB_MAX_WORKSPACE_BODY_BYTES` is high enough for the target runtime
 - ensure referenced analysis runs and projects are consistent
 - ensure the integrity checksum still matches and that the bundle was not edited after export
+- if the runtime has `AB_WORKSPACE_SIGNING_KEY`, ensure the bundle still contains a valid `signature_hmac_sha256`
 
 ## Release hygiene
 

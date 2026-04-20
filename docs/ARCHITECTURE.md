@@ -37,7 +37,7 @@ FastAPI API layer
 
 ## Frontend
 
-- `app/frontend/src/App.tsx` coordinates the shell, draft import/export, save/load/delete flows, and result export.
+- `app/frontend/src/App.tsx` coordinates the shell, draft import/export, save/load/archive/restore flows, and result export.
 - `components/` holds the wizard, sidebar, results dashboard, and UI primitives such as accordion, metric cards, tooltips, spinner, and status dot.
 - `hooks/` isolates stateful logic:
   - `useAnalysis` for validation, loading, and current result state
@@ -71,8 +71,9 @@ Runtime persistence is centered around:
 - Dev mode: Vite serves the frontend, FastAPI serves the backend on `127.0.0.1:8008`.
 - Smoke / demo mode: FastAPI can serve the built frontend dist same-origin.
 - Docker mode: one container serves both the backend API and the built frontend.
-- Secure Docker mode: the same container path can be protected with `AB_API_TOKEN`, while the built frontend injects `VITE_API_TOKEN` at image build time.
+- Secure Docker mode: the same container path can be protected with `AB_API_TOKEN`, while the frontend accepts a browser-session token at runtime instead of baking secrets into the image.
 - Split-access mode: `AB_READONLY_API_TOKEN` can expose read-only diagnostics/docs/project reads while mutations stay behind the write token.
+- Signed-backup mode: `AB_WORKSPACE_SIGNING_KEY` adds HMAC signatures to workspace exports and forces signature verification before import on that runtime.
 
 ## Design principles
 
@@ -80,5 +81,6 @@ Runtime persistence is centered around:
 - warnings are heuristic and explicitly separated from calculations
 - advisory AI stays optional and never replaces the deterministic report
 - optional token protection is transport-level hardening with write and read-only scopes, not a user/role system
+- workspace backup authenticity is optional and key-based: checksum-only bundles protect integrity, while signed bundles additionally protect provenance on runtimes that share the signing key
 - local persistence is first-class, with project history and export auditability
 - the UI keeps current in-memory analysis separate from historical saved snapshots

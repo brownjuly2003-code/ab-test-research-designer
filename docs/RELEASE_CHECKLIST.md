@@ -6,6 +6,8 @@
 - review `.env.example` and any new runtime settings
 - confirm whether `AB_API_TOKEN` should be enabled for the target deployment
 - confirm whether `AB_READONLY_API_TOKEN` should be enabled for diagnostics/read-only access
+- confirm whether `AB_WORKSPACE_SIGNING_KEY` should be enabled for signed workspace backup/import flows
+- confirm target values for `AB_RATE_LIMIT_*`, `AB_AUTH_FAILURE_*`, `AB_MAX_REQUEST_BODY_BYTES`, and `AB_MAX_WORKSPACE_BODY_BYTES`
 - regenerate OpenAPI-derived artifacts:
   - `python scripts/generate_frontend_api_types.py`
   - `python scripts/generate_api_docs.py`
@@ -19,11 +21,14 @@
   - `python scripts/benchmark_backend.py --payload binary --assert-ms 100`
 - ensure workspace backup roundtrip passes:
   - `python scripts/verify_workspace_backup.py --fixture`
+  - if signed workspace imports are enabled, rerun with `AB_WORKSPACE_SIGNING_KEY` set
 - if Docker-related code changed, run:
   - `docker compose build`
   - `docker compose up -d`
   - `curl http://127.0.0.1:8008/readyz`
   - if auth is enabled, verify read-only token gets `200` on `GET /api/v1/diagnostics` and `403` on `POST /api/v1/calculate`
+  - verify burst requests to `/api/v1/diagnostics` return `429` only after the configured threshold, with `Retry-After`
+  - use `python scripts/verify_docker_compose.py --preserve` when you need the same verification without automatic `down -v`
 
 ## UI evidence
 

@@ -21,6 +21,7 @@ def build_repository(db_path: Path, settings) -> ProjectRepository:
         busy_timeout_ms=settings.sqlite_busy_timeout_ms,
         journal_mode=settings.sqlite_journal_mode,
         synchronous=settings.sqlite_synchronous,
+        workspace_signing_key=settings.workspace_signing_key,
     )
 
 
@@ -129,9 +130,12 @@ def main() -> int:
         raise SystemExit(
             f"Workspace backup verification failed: integrity counts mismatch {integrity.get('counts')} vs {counts}"
         )
-    checksum = str(integrity.get("checksum_sha256", ""))
+    checksum = str(integrity.get("checksum_sha256") or "")
     if len(checksum) != 64:
         raise SystemExit("Workspace backup verification failed: checksum is missing or malformed")
+    signature = str(integrity.get("signature_hmac_sha256") or "")
+    if signature and len(signature) != 64:
+        raise SystemExit("Workspace backup verification failed: signature is malformed")
 
     if args.output:
         output_path = Path(args.output)
@@ -141,6 +145,7 @@ def main() -> int:
     output_path.write_text(json.dumps(bundle, indent=2), encoding="utf-8")
 
     target_repository = build_repository(artifact_dir / "restored.sqlite3", settings)
+    validation = target_repository.validate_workspace_bundle(bundle)
     import_summary = target_repository.import_workspace(bundle)
     restored_summary = target_repository.get_diagnostics_summary()
 
@@ -173,6 +178,8 @@ def main() -> int:
                 "source_db": str(source_db),
                 "counts": counts,
                 "checksum_sha256": checksum,
+                "signature_hmac_sha256": signature or None,
+                "signature_verified": validation["signature_verified"],
             },
             ensure_ascii=True,
             sort_keys=True,

@@ -1,0 +1,24 @@
+Command: npm run build
+Completed: 2026-04-21 02:14:02 +03:00
+
+Build output:
+
+> ab-test-research-designer-frontend@0.1.0 build
+> vite build
+
+vite v7.3.1 building client environment for production...
+transforming...
+✓ 2470 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                            0.72 kB │ gzip:   0.40 kB
+dist/assets/index-X-a8Nj_y.css            34.32 kB │ gzip:   6.68 kB
+dist/assets/PowerCurveChart-HBJ2y2s-.js  359.30 kB │ gzip: 107.09 kB
+dist/assets/index-BpUhWkqB.js            396.71 kB │ gzip: 114.80 kB
+✓ built in 8.90s
+
+Dist files:
+assets/index-BpUhWkqB.js | size=387.41 KB | gzip=111.98 KB
+assets/index-X-a8Nj_y.css | size=33.51 KB | gzip=6.52 KB
+assets/PowerCurveChart-HBJ2y2s-.js | size=350.87 KB | gzip=104.33 KB
+index.html | size=724 B | gzip=398 B

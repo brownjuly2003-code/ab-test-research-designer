@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026-03-09
+
+### Release hardening
+
+- removed build-time frontend token injection and switched the UI to browser-session API tokens
+- made the frontend fail closed for write actions until backend diagnostics explicitly confirm write-capable access
+- split soft archive from permanent delete so `POST /api/v1/projects/{id}/archive` preserves history while `DELETE /api/v1/projects/{id}` hard-deletes it
+- added optional HMAC-signed workspace backups via `AB_WORKSPACE_SIGNING_KEY`, plus signed import/validate enforcement and runtime diagnostics for backup-signing mode
+- extended local verify wrappers, Docker verification, and CI wiring to cover signed workspace backup flows and removed the obsolete `VITE_API_TOKEN` path from CI
+- made `scripts/verify_all.ps1` a thin delegation wrapper to the canonical batch verify path so Windows verification no longer drifts
+- fixed workspace export/import round-trip regressions so exported bundles now validate and reimport cleanly with matching checksums
+- normalized repository boolean fields for project list responses and closed the broken workspace import SQL insert path
+- regenerated frontend API contracts and API docs to match the current backend/archive schema
+- stabilized the smoke flow around free-port backend startup, browser draft persistence checks, and refreshed demo screenshots
+- replaced the Playwright E2E launch path with a self-contained runner that builds the frontend when needed, starts a temporary backend on a free port, and cleans it up after the run
+- aligned local verify scripts and CI Playwright installation syntax with the hardened E2E path
+- re-ran full local verification, including `python scripts/verify_all.py --with-e2e`
+
 ## 2026-03-08
 
 ### UI modernization
@@ -30,9 +48,9 @@
 - expanded CI to also verify the repo on Windows and to check generated API docs
 - added workspace backup roundtrip verification to the local/CI verify path
 - added optional API token auth for `/api/v1/*`, `/readyz`, and local API docs
-- added frontend bearer-token support through `VITE_API_TOKEN`
+- added frontend bearer-token support through `VITE_API_TOKEN` at that stage; this path was later superseded by browser-session tokens
 - added optional read-only API token support for safe runtime requests while keeping mutations behind the write token
-- hardened Docker packaging with build-time frontend token injection, runtime defaults, container healthchecks, and secure compose verification
+- hardened Docker packaging with build-time frontend token injection, runtime defaults, container healthchecks, and secure compose verification; the build-time token path was later removed
 - added workspace backup integrity manifests with entity counts and SHA-256 checksum validation on import
 - added `POST /api/v1/workspace/validate` so workspace bundles can be preflight-checked before SQLite writes begin
 - added structured API error payloads with `error_code`, `status_code`, `request_id`, and `X-Error-Code`

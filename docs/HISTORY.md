@@ -48,14 +48,17 @@ The current stack:
 - saved-project revision history exposed through API and UI restore flow
 - SQLite runtime hardening added through schema versioning, WAL mode, busy-timeout, and synchronous-mode diagnostics
 - structured backend logging added with configurable plain/json formats
-- optional API token protection added for runtime and project APIs, with frontend bearer-token support
+- optional API token protection added for runtime and project APIs, with frontend browser-session token support
 - optional read-only token protection added for safe runtime access while mutations stay behind the write token
 - Docker packaging now includes built-in healthchecks, secure compose verification, and documented split-token runtime mode
-- workspace backup bundles now carry integrity counts and SHA-256 checksums, and imports reject tampered archives
+- workspace backup bundles now carry integrity counts and SHA-256 checksums for tamper-evident validation before import
+- workspace backup bundles can now be HMAC-signed through `AB_WORKSPACE_SIGNING_KEY`, and signed runtimes require signature verification before import
 - workspace bundles can now be preflight-validated through a dedicated API route before import starts writing to SQLite
 - API failures now return structured error payloads that carry `error_code`, `status_code`, and `request_id`
 - diagnostics now expose in-memory runtime counters for requests, error classes, and auth rejections
 - diagnostics and readiness now expose SQLite write-probe, db-size, db-parent, and free-disk state for recovery checks
+- workspace export/import round-trip integrity has been corrected so exported backups validate and restore cleanly without checksum drift
+- Playwright E2E now runs through a self-contained temporary backend on a free port instead of depending on a shared fixed-port launcher
 
 ### Product polish
 

@@ -1,53 +1,43 @@
 param(
   [switch]$SkipSmoke,
-  [switch]$SkipBuild
+  [switch]$SkipBuild,
+  [switch]$WithE2E,
+  [switch]$WithDocker,
+  [switch]$WithDockerPreserve
 )
 
 $ErrorActionPreference = "Stop"
-
-function Invoke-Step {
-  param(
-    [string]$Label,
-    [scriptblock]$Action
-  )
-
-  Write-Host "[verify] $Label"
-  & $Action
-  if ($LASTEXITCODE -ne 0) {
-    exit $LASTEXITCODE
-  }
-}
-
 $root = Split-Path -Parent $PSScriptRoot
+$arguments = New-Object System.Collections.Generic.List[string]
+$arguments.Add("/d")
+$arguments.Add("/c")
+$arguments.Add("scripts\verify_all.cmd")
+
+if ($SkipSmoke) {
+  $arguments.Add("--skip-smoke")
+}
+if ($SkipBuild) {
+  $arguments.Add("--skip-build")
+}
+if ($WithE2E) {
+  $arguments.Add("--with-e2e")
+}
+if ($WithDocker) {
+  $arguments.Add("--with-docker")
+}
+if ($WithDockerPreserve) {
+  $arguments.Add("--with-docker-preserve")
+}
+if ($WithDocker -and $WithDockerPreserve) {
+  throw "--WithDocker and --WithDockerPreserve are mutually exclusive."
+}
 
 Push-Location $root
 try {
-  Invoke-Step "generated api contracts" { python scripts/generate_frontend_api_types.py --check }
-  Invoke-Step "backend tests" { python -m pytest app/backend/tests -q }
-
-  Push-Location (Join-Path $root "app/frontend")
-  try {
-    Invoke-Step "frontend typecheck" { npm.cmd exec tsc -- --noEmit -p . }
-    Invoke-Step "frontend unit tests" { npm.cmd run test:unit }
-
-    if (-not $SkipBuild) {
-      Invoke-Step "frontend build" { npm.cmd run build }
-    }
+  & cmd.exe @arguments
+  if ($LASTEXITCODE -ne 0) {
+    exit $LASTEXITCODE
   }
-  finally {
-    Pop-Location
-  }
-
-  if (-not $SkipSmoke) {
-    if ($SkipBuild) {
-      Invoke-Step "local smoke" { python scripts/run_local_smoke.py --skip-build }
-    }
-    else {
-      Invoke-Step "local smoke" { python scripts/run_local_smoke.py --skip-build }
-    }
-  }
-
-  Write-Host "[verify] all checks passed"
 }
 finally {
   Pop-Location

@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-Production-lite hardening and recovery drills completed
+Release hardening and final verification completed
 
 ---
 
@@ -202,12 +202,25 @@ Production-lite hardening and recovery drills completed
 - added SQLite schema versioning and runtime diagnostics for journal mode, synchronous mode, and busy-timeout
 - added structured backend logging with configurable plain/json output
 - added `scripts/verify_workspace_backup.py` and wired backup roundtrip verification into local/CI checks
-- added optional API token auth for backend runtime/project routes plus frontend bearer-token support via env
+- added optional API token auth for backend runtime/project routes plus frontend bearer-token support via env at that stage; this was later replaced by browser-session tokens
 - added optional read-only API token support for safe runtime access while write routes still require the main API token
-- hardened Docker/compose packaging with build-time frontend token injection, runtime defaults, healthchecks, and secure compose verification
+- hardened Docker/compose packaging with build-time frontend token injection, runtime defaults, healthchecks, and secure compose verification; the build-time token path was later removed
 - added integrity manifests with entity counts and SHA-256 checksum validation for workspace backup/import bundles
 - added structured API error payloads with explicit `error_code`, `status_code`, and `request_id`
 - added runtime diagnostics counters for request volume, error classes, and auth rejections
+- fixed workspace backup export/import regressions so exported bundles validate and restore without checksum or SQL placeholder failures
+- normalized repository boolean list fields for stricter backend contract consistency
+- regenerated frontend API contracts and API docs after the archive/recovery changes
+- removed the build-time frontend token path and switched runtime auth to browser-session API tokens only
+- made frontend write actions fail closed until diagnostics confirm write-capable backend access
+- split project archive from permanent delete so API semantics now match storage behavior
+- added optional HMAC-signed workspace backups with runtime-enforced signature verification and diagnostics visibility
+- extended verify wrappers, CI, and Docker verification toward signed workspace backup coverage and removed the stale `VITE_API_TOKEN` CI path
+- turned `scripts/verify_all.ps1` into a delegation wrapper over the canonical batch verify flow to avoid Windows wrapper drift
+- stabilized smoke automation around free-port backend startup and browser draft persistence checks
+- replaced the Playwright E2E launch path with a self-contained runner that builds when needed, uses a free local port, and cleans up the temporary backend
+- aligned verify scripts and CI Playwright install syntax with the hardened E2E flow
+- reran full local verification including `python scripts/verify_all.py --with-e2e`
 
 ---
 

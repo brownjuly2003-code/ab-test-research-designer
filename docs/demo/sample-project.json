@@ -35,7 +35,19 @@
     "power": 0.8,
     "std_dev": null,
     "secondary_metrics": ["add_to_cart_rate"],
-    "guardrail_metrics": ["payment_error_rate", "refund_rate"]
+    "guardrail_metrics": [
+      {
+        "name": "Payment error rate",
+        "metric_type": "binary",
+        "baseline_rate": 2.4
+      },
+      {
+        "name": "Refund value",
+        "metric_type": "continuous",
+        "baseline_mean": 18,
+        "std_dev": 6.5
+      }
+    ]
   },
   "constraints": {
     "seasonality_present": true,
