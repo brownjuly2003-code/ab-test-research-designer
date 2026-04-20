@@ -1,0 +1,50 @@
+.slider-input-group {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.slider-input-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.field-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.slider-input-value {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--color-secondary);
+}
+
+.slider-input-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.slider-range-input {
+  flex: 1;
+  accent-color: var(--color-secondary);
+}
+
+.slider-number-input {
+  width: 88px;
+}
+
+.slider-unit {
+  min-width: 18px;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+@media (max-width: 900px) {
+  .slider-input-controls {
+    flex-wrap: wrap;
+  }
+}

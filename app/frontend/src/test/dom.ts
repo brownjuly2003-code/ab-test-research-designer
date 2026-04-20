@@ -1,11 +1,7 @@
 import { act, type ReactElement } from "react";
 import { createRoot } from "react-dom/client";
 
-(
-  globalThis as typeof globalThis & {
-    IS_REACT_ACT_ENVIRONMENT?: boolean;
-  }
-).IS_REACT_ACT_ENVIRONMENT = true;
+Reflect.set(globalThis, "IS_REACT_ACT_ENVIRONMENT", true);
 
 type RenderResult = {
   container: HTMLDivElement;

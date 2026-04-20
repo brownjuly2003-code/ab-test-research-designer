@@ -8,23 +8,30 @@
     "generate:types": "python ../../scripts/generate_frontend_api_types.py",
     "build": "vite build",
     "preview": "vite preview",
+    "test": "vitest run",
     "test:unit": "vitest run",
     "test:smoke": "python ../../scripts/run_local_smoke.py",
-    "test:e2e": "playwright test -c playwright.config.ts",
+    "test:e2e": "python ../../scripts/run_frontend_e2e.py",
     "test:e2e:install": "playwright install chromium"
   },
   "dependencies": {
+    "@floating-ui/react-dom": "^2.1.6",
+    "lucide-react": "^1.8.0",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "recharts": "^3.8.1",
+    "zustand": "^5.0.12"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
     "@vitejs/plugin-react": "^5.0.0",
+    "axe-core": "^4.11.2",
     "jsdom": "^28.1.0",
     "typescript": "^5.8.3",
     "vite": "^7.1.2",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "vitest-axe": "^0.1.0"
   }
 }

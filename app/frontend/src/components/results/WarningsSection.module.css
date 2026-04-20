@@ -1,0 +1,33 @@
+.warning-stack {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.warning-row {
+  display: grid;
+  gap: var(--space-2);
+  padding: 14px;
+  border-radius: var(--radius-md);
+  border-left: 3px solid transparent;
+}
+
+.warning-title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.severity-high {
+  border-left-color: var(--color-danger);
+  background: var(--color-danger-light);
+}
+
+.severity-medium {
+  border-left-color: var(--color-warning);
+  background: var(--color-warning-light);
+}
+
+.severity-low {
+  border-left-color: var(--color-success);
+  background: var(--color-success-light);
+}

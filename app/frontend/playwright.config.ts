@@ -33,7 +33,7 @@ export default defineConfig({
         command: "python ../../scripts/run_backend_for_e2e.py",
         cwd: currentDir,
         url: `${baseUrl}/health`,
-        reuseExistingServer: !process.env.CI,
+        reuseExistingServer: false,
         timeout: 120_000
       }
 });

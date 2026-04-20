@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import Icon from "./Icon";
+import styles from "./MetricCard.module.css";
 
 type MetricCardProps = {
   icon: "activity" | "check" | "clock" | "warning";
@@ -21,18 +22,20 @@ export default function MetricCard({
   tone = "default",
   badge
 }: MetricCardProps) {
+  const cardClassName = [styles["metric-card"], tone === "warning" ? styles["metric-card-warning"] : ""].filter(Boolean).join(" ");
+
   return (
-    <div className={`metric-card metric-card-${tone}`}>
-      <div className="metric-card-top">
-        <span className="metric-icon">
+    <div className={cardClassName}>
+      <div className={styles["metric-card-top"]}>
+        <span className={styles["metric-icon"]}>
           <Icon name={icon} />
         </span>
-        <span className="metric-title">{title}</span>
-        {badge ? <span className="metric-badge">{badge}</span> : null}
+        <span className={styles["metric-title"]}>{title}</span>
+        {badge ? <span className={styles["metric-badge"]}>{badge}</span> : null}
       </div>
-      <div className="metric-value">{value}</div>
-      <div className="metric-subtitle">{subtitle}</div>
-      {meta ? <div className="metric-meta">{meta}</div> : null}
+      <div className={styles["metric-value"]}>{value}</div>
+      <div className={styles["metric-subtitle"]}>{subtitle}</div>
+      {meta ? <div className={styles["metric-meta"]}>{meta}</div> : null}
     </div>
   );
 }

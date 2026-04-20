@@ -1,0 +1,66 @@
+{
+  "app": {
+    "title": "AB Test Research Designer",
+    "tagline": "Deterministic calculations. Local-first. No cloud required."
+  },
+  "wizard": {
+    "steps": {
+      "1": "Project",
+      "2": "Hypothesis",
+      "3": "Setup",
+      "4": "Metrics",
+      "5": "Constraints",
+      "6": "Review"
+    },
+    "actions": {
+      "next": "Next",
+      "back": "Back",
+      "save": "Save project",
+      "runAnalysis": "Run analysis",
+      "export": "Export"
+    }
+  },
+  "empty_state": {
+    "title": "Plan your A/B experiment",
+    "subtitle": "Deterministic calculations. Local-first. No cloud required.",
+    "new_experiment": "New experiment",
+    "load_example": "Load example",
+    "import_project": "Import project"
+  },
+  "sidebar": {
+    "tabs": {
+      "projects": "Projects",
+      "system": "System"
+    },
+    "actions": {
+      "export_workspace": "Export workspace",
+      "import_workspace": "Import workspace",
+      "compare": "Compare projects"
+    }
+  },
+  "results": {
+    "sample_size_per_variant": "Users / variant",
+    "duration_days": "Days estimated",
+    "total_sample_size": "Total sample",
+    "warnings": "Warnings",
+    "ai_advice": "AI recommendations",
+    "srm_check": "SRM Check",
+    "sequential_design": "Sequential design",
+    "guardrail_metrics": "Guardrail metrics",
+    "actual_results": "Actual experiment results"
+  },
+  "errors": {
+    "analysis_failed": "Analysis failed",
+    "save_failed": "Save failed",
+    "load_failed": "Failed to load project",
+    "backend_offline": "Backend is offline",
+    "storage_full": "Browser storage is full - draft not saved"
+  },
+  "toasts": {
+    "project_saved": "Project saved",
+    "project_updated": "Project updated",
+    "export_success": "Report exported",
+    "import_success": "Workspace imported - {count} projects restored",
+    "example_loaded": "Example loaded - click Run analysis to see results"
+  }
+}

@@ -1,0 +1,92 @@
+.accordion {
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-subtle);
+}
+
+.accordion-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: var(--space-4) 18px;
+  text-align: left;
+}
+
+.accordion-toggle:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+.accordion-title-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--font-size-base);
+  font-weight: 700;
+}
+
+.accordion-badge {
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+}
+
+.accordion-badge-accent {
+  background: var(--color-secondary-light);
+  color: var(--color-secondary);
+}
+
+.accordion-badge-warn {
+  background: var(--color-warning-light);
+  color: #92400e;
+}
+
+.accordion-badge-danger {
+  background: var(--color-danger-light);
+  color: var(--color-text-danger);
+}
+
+.accordion-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  overflow: hidden;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    grid-template-rows var(--transition-base),
+    opacity var(--transition-fast),
+    visibility var(--transition-fast);
+}
+
+.accordion-body.open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  visibility: visible;
+}
+
+.accordion-inner {
+  min-height: 0;
+  overflow: hidden;
+  padding: 0 18px 18px;
+}
+
+.accordion-chevron {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  transition: transform var(--transition-base);
+}
+
+.accordion-chevron.open {
+  transform: rotate(90deg);
+}

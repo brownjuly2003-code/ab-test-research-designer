@@ -1,0 +1,20 @@
+.guardrail-stack {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.guardrail-report-row {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-card);
+}
+
+.guardrail-detectable-change {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--color-secondary);
+}

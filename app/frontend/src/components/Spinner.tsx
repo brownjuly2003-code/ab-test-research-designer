@@ -1,6 +1,8 @@
+import styles from "./Spinner.module.css";
+
 export default function Spinner() {
   return (
-    <svg aria-hidden="true" className="spinner" viewBox="0 0 24 24">
+    <svg aria-hidden="true" className={styles.spinner} viewBox="0 0 24 24">
       <circle
         cx="12"
         cy="12"
