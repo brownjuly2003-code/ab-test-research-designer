@@ -116,6 +116,14 @@ Get Project History
 curl "http://127.0.0.1:8008/api/v1/projects/PROJECT_ID/history?analysis_limit=5&export_limit=5"
 ```
 
+### `POST /api/v1/projects/{project_id}/restore`
+
+Restore Project
+
+```bash
+curl -X POST http://127.0.0.1:8008/api/v1/projects/PROJECT_ID/restore
+```
+
 ### `GET /api/v1/projects/{project_id}/revisions`
 
 Get Project Revisions
@@ -154,6 +162,16 @@ curl -X POST http://127.0.0.1:8008/api/v1/workspace/import ^
   -d @workspace-backup.json
 ```
 
+### `POST /api/v1/workspace/validate`
+
+Validate Workspace
+
+```bash
+curl -X POST http://127.0.0.1:8008/api/v1/workspace/validate ^
+  -H "Content-Type: application/json" ^
+  -d @workspace-backup.json
+```
+
 ## Report export
 
 ### `POST /api/v1/export/html`
@@ -172,9 +190,25 @@ curl -X POST http://127.0.0.1:8008/api/v1/export/markdown ^
 
 ## Other
 
-### `POST /api/v1/workspace/validate`
+### `POST /api/v1/export/html-standalone`
 
-Validate Workspace
+Export Html Standalone
+
+### `POST /api/v1/projects/{project_id}/archive`
+
+Archive Project
+
+### `POST /api/v1/results`
+
+Results
+
+### `POST /api/v1/sensitivity`
+
+Sensitivity
+
+### `POST /api/v1/srm-check`
+
+Srm Check
 
 ## Validation notes
 
@@ -188,7 +222,7 @@ Validate Workspace
 - `AB_READONLY_API_TOKEN` is valid only for `GET`, `HEAD`, and `OPTIONS`; mutating routes still require `AB_API_TOKEN`
 - all API responses include `X-Request-ID` and `X-Process-Time-Ms` headers
 - error responses also include `error_code`, `status_code`, `request_id`, and `X-Error-Code`
-- diagnostics expose in-memory runtime counters for request volume, error classes, and auth rejections
+- diagnostics expose in-memory runtime counters plus the active guardrail configuration for security headers, rate limiting, auth throttling, and request-body limits
 - `GET /readyz` returns `503` when required runtime dependencies are degraded
 
 ## Contract generation

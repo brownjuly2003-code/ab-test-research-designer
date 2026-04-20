@@ -1,5 +1,7 @@
 import {
   apiUrl,
+  type CalculationRequestPayload,
+  type CalculationResponse,
   type ProjectHistory,
   type ProjectComparison,
   type ProjectRevisionHistory,
@@ -19,33 +21,98 @@ import {
   type SavedProject
 } from "./experiment";
 import type {
+  ProjectArchiveResponse as GeneratedProjectArchiveResponse,
   ExportResponse,
   ProjectDeleteResponse as GeneratedProjectDeleteResponse,
-  ProjectListResponse as GeneratedProjectListResponse
+  ProjectListResponse as GeneratedProjectListResponse,
+  SensitivityRequest,
+  SensitivityResponse
 } from "./generated/api-contract";
+
+const apiSessionTokenStorageKey = "ab-test-research-designer:api-token:v1";
 
 export type ProjectRecordResponse = ProjectRecordPayload;
 export type SaveProjectResponse = ProjectRecordPayload;
+export type ArchiveProjectResponse = GeneratedProjectArchiveResponse;
 export type DeleteProjectResponse = GeneratedProjectDeleteResponse;
 export type AnalysisResponse = AnalysisResponsePayload;
 export type DiagnosticsResponse = ApiDiagnosticsResponse;
 export type WorkspaceExportResponse = WorkspaceBundle;
 export type WorkspaceValidationSummary = WorkspaceValidationResponse;
 export type WorkspaceImportSummary = WorkspaceImportResponse;
+export type SrmCheckRequest = {
+  observed_counts: number[];
+  expected_fractions: number[];
+};
+export type SrmCheckResponse = {
+  chi_square: number;
+  p_value: number;
+  is_srm: boolean;
+  verdict: string;
+  observed_counts: number[];
+  expected_counts: number[];
+};
 export type ProjectHistoryRequestOptions = {
   analysisLimit?: number;
   analysisOffset?: number;
   exportLimit?: number;
   exportOffset?: number;
 };
+export type ProjectListRequestOptions = {
+  includeArchived?: boolean;
+};
 export type ProjectRevisionRequestOptions = {
   limit?: number;
   offset?: number;
 };
+type RequestOptions = {
+  signal?: AbortSignal;
+};
+
+function readApiSessionToken(): string {
+  const storage = typeof globalThis !== "undefined" ? globalThis.sessionStorage : undefined;
+  if (!storage) {
+    return "";
+  }
+
+  try {
+    return String(storage.getItem(apiSessionTokenStorageKey) ?? "").trim();
+  } catch {
+    return "";
+  }
+}
+
+export function hasApiSessionToken(): boolean {
+  return readApiSessionToken().length > 0;
+}
+
+export function setApiSessionToken(token: string): void {
+  const storage = typeof globalThis !== "undefined" ? globalThis.sessionStorage : undefined;
+  if (!storage) {
+    return;
+  }
+
+  const normalized = token.trim();
+  if (!normalized) {
+    clearApiSessionToken();
+    return;
+  }
+
+  storage.setItem(apiSessionTokenStorageKey, normalized);
+}
+
+export function clearApiSessionToken(): void {
+  const storage = typeof globalThis !== "undefined" ? globalThis.sessionStorage : undefined;
+  if (!storage) {
+    return;
+  }
+
+  storage.removeItem(apiSessionTokenStorageKey);
+}
 
 function buildHeaders(additionalHeaders: Record<string, string> = {}): Record<string, string> {
   const headers = { ...additionalHeaders };
-  const apiToken = String(import.meta.env.VITE_API_TOKEN ?? "").trim();
+  const apiToken = readApiSessionToken();
   if (apiToken) {
     headers.Authorization = `Bearer ${apiToken}`;
   }
@@ -53,10 +120,22 @@ function buildHeaders(additionalHeaders: Record<string, string> = {}): Record<st
 }
 
 async function readJson<T>(response: Response): Promise<T> {
-  return await response.json() as T;
+  const data: T = await response.json();
+  return data;
 }
 
-function getErrorMessage(payload: ApiErrorResponse, fallback: string): string {
+function getErrorMessage(payload: ApiErrorResponse, response: Response, fallback: string): string {
+  const retryAfter = response.headers.get("Retry-After")?.trim();
+  if (payload.error_code === "rate_limited" || payload.error_code === "auth_rate_limited") {
+    const detail = typeof payload.detail === "string" && payload.detail.length > 0 ? payload.detail : "Too many requests";
+    return retryAfter ? `${detail}. Retry after ${retryAfter}s.` : detail;
+  }
+  if (payload.error_code === "request_body_too_large") {
+    if (typeof payload.detail === "string" && payload.detail.length > 0) {
+      return `${payload.detail}. Reduce the payload size or raise the backend limit.`;
+    }
+    return "Request payload is too large for the current backend limit.";
+  }
   if (typeof payload.detail === "string") {
     return payload.detail;
   }
@@ -73,7 +152,7 @@ export async function requestHealth(): Promise<ApiHealthResponse> {
   const data = await readJson<ApiHealthResponse & ApiErrorResponse>(response);
 
   if (!response.ok) {
-    throw new Error(getErrorMessage(data, "Health check failed"));
+    throw new Error(getErrorMessage(data, response, "Health check failed"));
   }
 
   return data;
@@ -86,7 +165,7 @@ export async function requestDiagnostics(): Promise<ApiDiagnosticsResponse> {
   const data = await readJson<ApiDiagnosticsResponse & ApiErrorResponse>(response);
 
   if (!response.ok) {
-    throw new Error(getErrorMessage(data, "Diagnostics request failed"));
+    throw new Error(getErrorMessage(data, response, "Diagnostics request failed"));
   }
 
   return data;
@@ -99,7 +178,7 @@ export async function exportWorkspaceRequest(): Promise<WorkspaceBundle> {
   const data = await readJson<WorkspaceBundle & ApiErrorResponse>(response);
 
   if (!response.ok) {
-    throw new Error(getErrorMessage(data, "Workspace export failed"));
+    throw new Error(getErrorMessage(data, response, "Workspace export failed"));
   }
 
   return data;
@@ -114,7 +193,7 @@ export async function importWorkspaceRequest(bundle: WorkspaceBundleInput | Work
   const data = await readJson<WorkspaceImportResponse & ApiErrorResponse>(response);
 
   if (!response.ok) {
-    throw new Error(getErrorMessage(data, "Workspace import failed"));
+    throw new Error(getErrorMessage(data, response, "Workspace import failed"));
   }
 
   return data;
@@ -131,23 +210,81 @@ export async function validateWorkspaceRequest(
   const data = await readJson<WorkspaceValidationResponse & ApiErrorResponse>(response);
 
   if (!response.ok) {
-    throw new Error(getErrorMessage(data, "Workspace validation failed"));
+    throw new Error(getErrorMessage(data, response, "Workspace validation failed"));
   }
 
   return data;
 }
 
-export async function requestAnalysis(form: FullPayload): Promise<AnalysisResponse> {
+export async function requestAnalysis(form: FullPayload, options: RequestOptions = {}): Promise<AnalysisResponse> {
   const payload = buildApiPayload(form);
   const response = await fetch(apiUrl("/api/v1/analyze"), {
     method: "POST",
     headers: buildHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify(payload)
+    body: JSON.stringify(payload),
+    signal: options.signal
   });
   const data = await readJson<AnalysisResponse & ApiErrorResponse>(response);
 
   if (!response.ok) {
-    throw new Error(getErrorMessage(data, "Analysis request failed"));
+    throw new Error(getErrorMessage(data, response, "Analysis request failed"));
+  }
+
+  return data;
+}
+
+export async function requestCalculation(
+  payload: CalculationRequestPayload,
+  options: RequestOptions = {}
+): Promise<CalculationResponse> {
+  const response = await fetch(apiUrl("/api/v1/calculate"), {
+    method: "POST",
+    headers: buildHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify(payload),
+    signal: options.signal
+  });
+  const data = await readJson<CalculationResponse & ApiErrorResponse>(response);
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(data, response, "Calculation request failed"));
+  }
+
+  return data;
+}
+
+export async function requestSensitivity(
+  payload: SensitivityRequest,
+  options: RequestOptions = {}
+): Promise<SensitivityResponse> {
+  const response = await fetch(apiUrl("/api/v1/sensitivity"), {
+    method: "POST",
+    headers: buildHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify(payload),
+    signal: options.signal
+  });
+  const data = await readJson<SensitivityResponse & ApiErrorResponse>(response);
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(data, response, "Sensitivity request failed"));
+  }
+
+  return data;
+}
+
+export async function requestSrmCheck(
+  payload: SrmCheckRequest,
+  options: RequestOptions = {}
+): Promise<SrmCheckResponse> {
+  const response = await fetch(apiUrl("/api/v1/srm-check"), {
+    method: "POST",
+    headers: buildHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify(payload),
+    signal: options.signal
+  });
+  const data = await readJson<SrmCheckResponse & ApiErrorResponse>(response);
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(data, response, "SRM check request failed"));
   }
 
   return data;
@@ -169,20 +306,26 @@ export async function saveProjectRequest(
   const data = await readJson<SaveProjectResponse & ApiErrorResponse>(response);
 
   if (!response.ok) {
-    throw new Error(getErrorMessage(data, "Project save failed"));
+    throw new Error(getErrorMessage(data, response, "Project save failed"));
   }
 
   return data;
 }
 
-export async function listProjectsRequest(): Promise<SavedProject[]> {
-  const response = await fetch(apiUrl("/api/v1/projects"), {
+export async function listProjectsRequest(options: ProjectListRequestOptions = {}): Promise<SavedProject[]> {
+  const params = new URLSearchParams();
+  if (options.includeArchived) {
+    params.set("include_archived", "true");
+  }
+
+  const path = params.size > 0 ? `/api/v1/projects?${params.toString()}` : "/api/v1/projects";
+  const response = await fetch(apiUrl(path), {
     headers: buildHeaders()
   });
   const data = await readJson<GeneratedProjectListResponse & ApiErrorResponse>(response);
 
   if (!response.ok) {
-    throw new Error(getErrorMessage(data, "Project list request failed"));
+    throw new Error(getErrorMessage(data, response, "Project list request failed"));
   }
 
   return Array.isArray(data.projects) ? data.projects : [];
@@ -195,7 +338,7 @@ export async function loadProjectRequest(projectId: string): Promise<ProjectReco
   const data = await readJson<ProjectRecordResponse & ApiErrorResponse>(response);
 
   if (!response.ok) {
-    throw new Error(getErrorMessage(data, "Project load failed"));
+    throw new Error(getErrorMessage(data, response, "Project load failed"));
   }
 
   return data;
@@ -229,7 +372,7 @@ export async function loadProjectHistoryRequest(
   const data = await readJson<ProjectHistory & ApiErrorResponse>(response);
 
   if (!response.ok) {
-    throw new Error(getErrorMessage(data, "Project history load failed"));
+    throw new Error(getErrorMessage(data, response, "Project history load failed"));
   }
 
   return data;
@@ -257,7 +400,7 @@ export async function loadProjectRevisionsRequest(
   const data = await readJson<ProjectRevisionHistory & ApiErrorResponse>(response);
 
   if (!response.ok) {
-    throw new Error(getErrorMessage(data, "Project revision history load failed"));
+    throw new Error(getErrorMessage(data, response, "Project revision history load failed"));
   }
 
   return data;
@@ -285,7 +428,21 @@ export async function compareProjectsRequest(
   const data = await readJson<ProjectComparison & ApiErrorResponse>(response);
 
   if (!response.ok) {
-    throw new Error(getErrorMessage(data, "Project comparison failed"));
+    throw new Error(getErrorMessage(data, response, "Project comparison failed"));
+  }
+
+  return data;
+}
+
+export async function archiveProjectRequest(projectId: string): Promise<ArchiveProjectResponse> {
+  const response = await fetch(apiUrl(`/api/v1/projects/${projectId}/archive`), {
+    method: "POST",
+    headers: buildHeaders()
+  });
+  const data = await readJson<ArchiveProjectResponse & ApiErrorResponse>(response);
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(data, response, "Project archive failed"));
   }
 
   return data;
@@ -299,7 +456,21 @@ export async function deleteProjectRequest(projectId: string): Promise<DeletePro
   const data = await readJson<DeleteProjectResponse & ApiErrorResponse>(response);
 
   if (!response.ok) {
-    throw new Error(getErrorMessage(data, "Project delete failed"));
+    throw new Error(getErrorMessage(data, response, "Project delete failed"));
+  }
+
+  return data;
+}
+
+export async function restoreProjectRequest(projectId: string): Promise<ProjectRecordResponse> {
+  const response = await fetch(apiUrl(`/api/v1/projects/${projectId}/restore`), {
+    method: "POST",
+    headers: buildHeaders()
+  });
+  const data = await readJson<ProjectRecordResponse & ApiErrorResponse>(response);
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(data, response, "Project restore failed"));
   }
 
   return data;
@@ -317,7 +488,9 @@ export async function recordProjectAnalysisRequest(
   const data = await readJson<ProjectRecordResponse & ApiErrorResponse>(response);
 
   if (!response.ok) {
-    throw new Error(getErrorMessage(data, "Project analysis snapshot update failed"));
+    throw new Error(
+      getErrorMessage(data, response, "Project analysis snapshot update failed"),
+    );
   }
 
   return data;
@@ -336,7 +509,9 @@ export async function recordProjectExportRequest(
   const data = await readJson<ProjectRecordResponse & ApiErrorResponse>(response);
 
   if (!response.ok) {
-    throw new Error(getErrorMessage(data, "Project export metadata update failed"));
+    throw new Error(
+      getErrorMessage(data, response, "Project export metadata update failed"),
+    );
   }
 
   return data;
@@ -351,7 +526,7 @@ export async function exportReportRequest(report: ReportResponse, format: Export
   const data = await readJson<ExportResponse & ApiErrorResponse>(response);
 
   if (!response.ok) {
-    throw new Error(getErrorMessage(data, "Export failed"));
+    throw new Error(getErrorMessage(data, response, "Export failed"));
   }
 
   return String(data.content ?? "");

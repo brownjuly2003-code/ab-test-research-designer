@@ -1,13 +1,20 @@
 // @vitest-environment jsdom
 
+import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 
 vi.mock("./lib/api", () => ({
+  archiveProjectRequest: vi.fn(),
+  clearApiSessionToken: vi.fn(),
   compareProjectsRequest: vi.fn(),
   deleteProjectRequest: vi.fn(),
   exportWorkspaceRequest: vi.fn(),
   exportReportRequest: vi.fn(),
+  hasApiSessionToken: vi.fn(),
   importWorkspaceRequest: vi.fn(),
+  restoreProjectRequest: vi.fn(),
+  setApiSessionToken: vi.fn(),
   validateWorkspaceRequest: vi.fn(),
   listProjectsRequest: vi.fn(),
   loadProjectHistoryRequest: vi.fn(),
@@ -15,6 +22,7 @@ vi.mock("./lib/api", () => ({
   loadProjectRequest: vi.fn(),
   recordProjectAnalysisRequest: vi.fn(),
   recordProjectExportRequest: vi.fn(),
+  requestCalculation: vi.fn(),
   requestDiagnostics: vi.fn(),
   requestHealth: vi.fn(),
   requestAnalysis: vi.fn(),
@@ -22,13 +30,20 @@ vi.mock("./lib/api", () => ({
 }));
 
 import App from "./App";
+import Accordion from "./components/Accordion";
+import WizardDraftStep from "./components/WizardDraftStep";
 import {
   type AnalysisResponse,
+  archiveProjectRequest,
+  clearApiSessionToken,
   compareProjectsRequest,
   deleteProjectRequest,
   exportWorkspaceRequest,
   exportReportRequest,
   importWorkspaceRequest,
+  hasApiSessionToken,
+  restoreProjectRequest,
+  setApiSessionToken,
   validateWorkspaceRequest,
   listProjectsRequest,
   loadProjectHistoryRequest,
@@ -36,6 +51,7 @@ import {
   loadProjectRequest,
   recordProjectAnalysisRequest,
   recordProjectExportRequest,
+  requestCalculation,
   requestDiagnostics,
   requestHealth,
   requestAnalysis,
@@ -46,9 +62,13 @@ import {
   buildDraftTransferFile,
   browserDraftStorageKey,
   cloneInitialState,
+  sections,
   type FullPayload
 } from "./lib/experiment";
 import { changeFiles, changeValue, click, findButton, findButtonByAriaLabel, flushEffects, renderIntoDocument } from "./test/dom";
+
+const apiSessionTokenStorageKey = "ab-test-research-designer:api-token:v1";
+const themeStorageKey = "ab-test-research-designer:theme:v1";
 
 function buildAnalysisResult(adviceAvailable = false): AnalysisResponse {
   return {
@@ -97,6 +117,15 @@ function buildAnalysisResult(adviceAvailable = false): AnalysisResponse {
         guardrail: ["payment_error_rate"],
         diagnostic: ["assignment_rate"]
       },
+      guardrail_metrics: [
+        {
+          name: "Payment error rate",
+          metric_type: "binary",
+          baseline: 2.4,
+          detectable_mde_pp: 0.321,
+          note: "With N=100 per variant, can detect >= 0.32 pp change at 80% power"
+        }
+      ],
       risks: {
         statistical: ["No major deterministic warnings identified at this stage."],
         product: ["Expected result depends on the hypothesis."],
@@ -222,17 +251,20 @@ function buildDiagnostics() {
       db_exists: true,
       db_size_bytes: 24576,
       disk_free_bytes: 987654321,
-      schema_version: 2,
-      sqlite_user_version: 2,
+      schema_version: 3,
+      sqlite_user_version: 3,
       busy_timeout_ms: 5000,
       journal_mode: "WAL",
       synchronous: "NORMAL",
       write_probe_ok: true,
       write_probe_detail: "BEGIN IMMEDIATE succeeded",
       projects_total: 2,
+      archived_projects_total: 0,
       analysis_runs_total: 3,
       export_events_total: 1,
       project_revisions_total: 2,
+      workspace_bundle_schema_version: 3,
+      workspace_signature_enabled: false,
       latest_project_updated_at: "2026-03-08T13:55:00Z"
     },
     frontend: {
@@ -260,12 +292,24 @@ function buildDiagnostics() {
       accepted_headers: ["Authorization: Bearer", "X-API-Key"],
       read_only_methods: ["GET", "HEAD", "OPTIONS"]
     },
+    guards: {
+      security_headers_enabled: true,
+      rate_limit_enabled: true,
+      rate_limit_requests: 240,
+      rate_limit_window_seconds: 60,
+      auth_failure_limit: 20,
+      auth_failure_window_seconds: 60,
+      max_request_body_bytes: 1048576,
+      max_workspace_body_bytes: 8388608
+    },
     runtime: {
       total_requests: 4,
       success_responses: 4,
       client_error_responses: 0,
       server_error_responses: 0,
       auth_rejections: 0,
+      rate_limited_responses: 0,
+      request_body_rejections: 0,
       last_request_at: "2026-03-08T14:00:00Z",
       last_error_at: null,
       last_error_code: null
@@ -355,9 +399,9 @@ function buildProjectComparison() {
   };
 }
 
-function buildWorkspaceBundle() {
+function buildWorkspaceBundle(options: { signed?: boolean } = {}) {
   return {
-    schema_version: 2,
+    schema_version: 3,
     generated_at: "2026-03-09T00:30:00Z",
     projects: [
       {
@@ -405,9 +449,27 @@ function buildWorkspaceBundle() {
         export_events: 1,
         project_revisions: 1
       },
-      checksum_sha256: "a".repeat(64)
+      checksum_sha256: "a".repeat(64),
+      signature_hmac_sha256: options.signed ? "b".repeat(64) : undefined
     }
   };
+}
+
+type AppView = Awaited<ReturnType<typeof renderIntoDocument>>;
+
+async function startNewExperiment(view: AppView) {
+  await click(findButton(view.container, "New experiment"));
+  await flushEffects();
+}
+
+async function loadExample(view: AppView) {
+  await click(findButton(view.container, "Load example"));
+  await flushEffects();
+}
+
+async function openSystemTab(view: AppView) {
+  await click(findButton(view.container, "System"));
+  await flushEffects();
 }
 
 describe("App UI flow", () => {
@@ -416,13 +478,24 @@ describe("App UI flow", () => {
       createObjectURL: vi.fn(() => "blob:test"),
       revokeObjectURL: vi.fn()
     });
+    window.sessionStorage.clear();
     window.localStorage.clear();
     vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
-    vi.spyOn(window, "confirm").mockReturnValue(true);
+    vi.mocked(hasApiSessionToken).mockImplementation(
+      () => window.sessionStorage.getItem(apiSessionTokenStorageKey) !== null
+    );
+    vi.mocked(setApiSessionToken).mockImplementation((token: string) => {
+      window.sessionStorage.setItem(apiSessionTokenStorageKey, token.trim());
+    });
+    vi.mocked(clearApiSessionToken).mockImplementation(() => {
+      window.sessionStorage.removeItem(apiSessionTokenStorageKey);
+    });
     vi.mocked(compareProjectsRequest).mockReset();
+    vi.mocked(archiveProjectRequest).mockReset();
     vi.mocked(deleteProjectRequest).mockReset();
     vi.mocked(exportWorkspaceRequest).mockReset();
     vi.mocked(importWorkspaceRequest).mockReset();
+    vi.mocked(restoreProjectRequest).mockReset();
     vi.mocked(validateWorkspaceRequest).mockReset();
     vi.mocked(listProjectsRequest).mockResolvedValue([]);
     vi.mocked(loadProjectHistoryRequest).mockReset();
@@ -448,6 +521,7 @@ describe("App UI flow", () => {
     vi.mocked(loadProjectRequest).mockReset();
     vi.mocked(recordProjectAnalysisRequest).mockReset();
     vi.mocked(recordProjectExportRequest).mockReset();
+    vi.mocked(requestCalculation).mockReset();
     vi.mocked(requestDiagnostics).mockResolvedValue(buildDiagnostics());
     vi.mocked(requestHealth).mockResolvedValue({
       status: "ok",
@@ -461,9 +535,200 @@ describe("App UI flow", () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    window.sessionStorage.clear();
     window.localStorage.clear();
     vi.clearAllMocks();
     vi.restoreAllMocks();
+  });
+
+  it("shows onboarding first, keeps Projects active by default, and moves diagnostics behind the System tab", async () => {
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+
+      expect(view.container.textContent).toContain("Plan your A/B experiment");
+      expect(view.container.textContent).toContain("Deterministic calculations. Local-first. No cloud required.");
+      expect(view.container.textContent).toContain("New experiment");
+      expect(view.container.textContent).toContain("Load example");
+      expect(view.container.textContent).toContain("Import project");
+      expect(view.container.textContent).toContain("Saved projects");
+      expect(view.container.textContent).not.toContain("Runtime diagnostics");
+      expect(view.container.textContent).not.toContain("How this UI is split");
+
+      await openSystemTab(view);
+
+      expect(view.container.textContent).toContain("Backend status");
+      expect(view.container.textContent).toContain("Runtime diagnostics");
+      expect(view.container.textContent).toContain("API session token");
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("renders a skip link before the app shell and exposes the main region", async () => {
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+
+      const firstElement = view.container.firstElementChild;
+      if (!(firstElement instanceof HTMLAnchorElement)) {
+        throw new Error("Skip link was not rendered as the first element");
+      }
+
+      expect(firstElement.getAttribute("href")).toBe("#main-content");
+      expect(firstElement.textContent).toBe("Skip to main content");
+
+      const mainRegion = view.container.querySelector("#main-content");
+      if (!(mainRegion instanceof HTMLElement)) {
+        throw new Error("Main region was not rendered");
+      }
+
+      expect(mainRegion.tagName).toBe("MAIN");
+      expect(mainRegion.getAttribute("tabindex")).toBe("-1");
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("moves focus to the current step heading when the wizard step changes", async () => {
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+      await loadExample(view);
+
+      let stepHeading = view.container.querySelector("h2");
+      if (!(stepHeading instanceof HTMLHeadingElement)) {
+        throw new Error("Step heading was not rendered");
+      }
+
+      expect(document.activeElement).toBe(stepHeading);
+
+      await click(findButton(view.container, "Next"));
+      await flushEffects();
+
+      stepHeading = view.container.querySelector("h2");
+      if (!(stepHeading instanceof HTMLHeadingElement)) {
+        throw new Error("Updated step heading was not rendered");
+      }
+
+      expect(stepHeading.textContent).toBe("Hypothesis");
+      expect(document.activeElement).toBe(stepHeading);
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("exposes accordion state with linked ARIA attributes", async () => {
+    const view = await renderIntoDocument(
+      <Accordion title="Example section">
+        <p>Accordion body</p>
+      </Accordion>
+    );
+    try {
+      await flushEffects();
+
+      const toggle = view.container.querySelector("button");
+      if (!(toggle instanceof HTMLButtonElement)) {
+        throw new Error("Accordion toggle was not rendered");
+      }
+
+      expect(toggle.getAttribute("aria-expanded")).toBe("false");
+      expect(toggle.id).not.toBe("");
+
+      const panelId = toggle.getAttribute("aria-controls");
+      if (!panelId) {
+        throw new Error("Accordion toggle is missing aria-controls");
+      }
+
+      const panel = view.container.querySelector(`#${panelId}`);
+      if (!(panel instanceof HTMLDivElement)) {
+        throw new Error("Accordion panel was not rendered");
+      }
+
+      expect(panel.getAttribute("role")).toBe("region");
+      expect(panel.getAttribute("aria-labelledby")).toBe(toggle.id);
+      expect(panel.getAttribute("aria-hidden")).toBe("true");
+
+      await click(toggle);
+      await flushEffects();
+
+      expect(toggle.getAttribute("aria-expanded")).toBe("true");
+      expect(panel.getAttribute("aria-hidden")).toBe("false");
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("has no critical accessibility violations on initial render", async () => {
+    document.documentElement.lang = "en";
+
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+
+      const results = await axe(view.container, {
+        runOnly: {
+          type: "rule",
+          values: ["button-name", "label", "aria-required-attr"]
+        }
+      });
+
+      expect(results.violations).toHaveLength(0);
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("persists the selected theme and reapplies it on reload", async () => {
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+
+      await click(findButtonByAriaLabel(view.container, "Dark theme"));
+      await flushEffects();
+
+      expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
+      expect(window.localStorage.getItem(themeStorageKey)).toBe("dark");
+    } finally {
+      await view.unmount();
+    }
+
+    const reloadedView = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+
+      expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
+      expect(findButtonByAriaLabel(reloadedView.container, "Dark theme").getAttribute("aria-pressed")).toBe("true");
+
+      await click(findButtonByAriaLabel(reloadedView.container, "System theme"));
+      await flushEffects();
+
+      expect(document.documentElement.hasAttribute("data-theme")).toBe(false);
+      expect(window.localStorage.getItem(themeStorageKey)).toBe("system");
+    } finally {
+      await reloadedView.unmount();
+    }
+  });
+
+  it("loads the example payload from onboarding without creating a saved project", async () => {
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+      await loadExample(view);
+
+      expect(saveProjectRequest).not.toHaveBeenCalled();
+      expect(view.container.textContent).toContain("Example loaded - click Run analysis to see results");
+      const projectNameInput = view.container.querySelector("#project-project_name");
+      if (!(projectNameInput instanceof HTMLInputElement)) {
+        throw new Error("Project name input was not rendered");
+      }
+
+      expect(projectNameInput.value).toBe("Checkout redesign");
+      expect(view.container.textContent).toContain("Working on a new draft");
+      expect(view.container.textContent).not.toContain("Project id:");
+    } finally {
+      await view.unmount();
+    }
   });
 
   it("loads saved projects on startup and can hydrate a selected project", async () => {
@@ -502,24 +767,24 @@ describe("App UI flow", () => {
     try {
       await flushEffects();
 
-      expect(view.container.textContent).toContain("Backend status");
-      expect(view.container.textContent).toContain("API online");
-      expect(view.container.textContent).toContain("AB Test Research Designer API");
-      expect(view.container.textContent).toContain("Runtime diagnostics");
-      expect(view.container.textContent).toContain("Workspace status board");
+      expect(view.container.textContent).toContain("Plan your A/B experiment");
+      expect(view.container.textContent).toContain("Projects");
+      expect(view.container.textContent).toContain("System");
       expect(view.container.textContent).toContain("1 saved");
       expect(view.container.textContent).toContain("1 without saved analysis");
-      expect(view.container.textContent).toContain("Storage:");
-      expect(view.container.textContent).toContain("Storage footprint:");
-      expect(view.container.textContent).toContain("SQLite write probe:");
-      expect(view.container.textContent).toContain("Timing headers:");
+      expect(view.container.textContent).not.toContain("Runtime diagnostics");
       expect(view.container.textContent).toContain("Stored checkout test");
 
       await click(findButton(view.container, "Stored checkout test"));
       await flushEffects();
 
       expect(view.container.textContent).toContain("Loaded project Stored checkout test into the wizard.");
-      expect((view.container.querySelector("#project-project_name") as HTMLInputElement).value).toBe("Loaded experiment");
+      const projectNameInput = view.container.querySelector("#project-project_name");
+      if (!(projectNameInput instanceof HTMLInputElement)) {
+        throw new Error("Project name input was not rendered");
+      }
+
+      expect(projectNameInput.value).toBe("Loaded experiment");
       expect(view.container.textContent).toContain("Project id: p-1");
       expect(view.container.textContent).toContain("All changes saved locally.");
       expect(view.container.textContent).toContain("In sync with SQLite");
@@ -531,11 +796,6 @@ describe("App UI flow", () => {
       expect(view.container.textContent).toContain("Saved revisions");
       expect(view.container.textContent).toContain("Showing 1 of 1 analysis run(s) and 1 of 1 export event(s).");
       expect(view.container.textContent).toContain("linked snapshot");
-
-      const projectNameInput = view.container.querySelector("#project-project_name");
-      if (!(projectNameInput instanceof HTMLInputElement)) {
-        throw new Error("Project name input was not rendered");
-      }
 
       await changeValue(projectNameInput, "Loaded experiment v2");
       await flushEffects();
@@ -624,13 +884,15 @@ describe("App UI flow", () => {
     const view = await renderIntoDocument(<App />);
     try {
       await flushEffects();
+      await loadExample(view);
+      await openSystemTab(view);
 
       expect(view.container.textContent).toContain("Read-only API");
       expect(view.container.textContent).toContain("read-only API mode for this session");
       expect(findButton(view.container, "Save project").disabled).toBe(true);
       expect(findButton(view.container, "Import workspace JSON").disabled).toBe(true);
       expect(findButton(view.container, "Export workspace JSON").disabled).toBe(false);
-      expect(findButtonByAriaLabel(view.container, "Delete Stored checkout test").disabled).toBe(true);
+      expect(findButtonByAriaLabel(view.container, "Archive Stored checkout test").disabled).toBe(true);
       await click(findButton(view.container, "Save project"));
       await flushEffects();
       expect(saveProjectRequest).not.toHaveBeenCalled();
@@ -644,6 +906,34 @@ describe("App UI flow", () => {
       await click(findButton(view.container, "Run analysis"));
       await flushEffects();
       expect(requestAnalysis).not.toHaveBeenCalled();
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("stores a browser-session token and rechecks backend access", async () => {
+    vi.mocked(requestDiagnostics)
+      .mockRejectedValueOnce(new Error("Unauthorized"))
+      .mockResolvedValueOnce(buildReadonlyDiagnostics());
+    vi.mocked(listProjectsRequest).mockResolvedValueOnce([]);
+
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+      await openSystemTab(view);
+
+      const tokenInput = view.container.querySelector("#api-session-token");
+      if (!(tokenInput instanceof HTMLInputElement)) {
+        throw new Error("API session token input was not rendered");
+      }
+
+      await changeValue(tokenInput, "readonly-secret");
+      await click(findButton(view.container, "Save token"));
+      await flushEffects();
+
+      expect(hasApiSessionToken()).toBe(true);
+      expect(view.container.textContent).toContain("Token accepted, but this backend session remains read-only.");
+      expect(view.container.textContent).toContain("Token configured");
     } finally {
       await view.unmount();
     }
@@ -696,6 +986,30 @@ describe("App UI flow", () => {
     }
   });
 
+  it("shows a project list skeleton while saved projects are loading", async () => {
+    let resolveProjects: ((value: Awaited<ReturnType<typeof listProjectsRequest>>) => void) | undefined;
+    const projectsPromise = new Promise<Awaited<ReturnType<typeof listProjectsRequest>>>((resolve) => {
+      resolveProjects = resolve;
+    });
+
+    vi.mocked(listProjectsRequest).mockReturnValueOnce(projectsPromise);
+
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+      await flushEffects();
+
+      expect(view.container.querySelector(".project-list-skeleton")).not.toBeNull();
+      expect(view.container.textContent).not.toContain("No saved projects available.");
+
+      resolveProjects?.([]);
+      await flushEffects();
+      await flushEffects();
+    } finally {
+      await view.unmount();
+    }
+  });
+
   it("exports the full workspace bundle from the sidebar", async () => {
     vi.mocked(exportWorkspaceRequest).mockResolvedValueOnce(buildWorkspaceBundle());
 
@@ -712,17 +1026,33 @@ describe("App UI flow", () => {
     }
   });
 
+  it("surfaces when an exported workspace backup is signed", async () => {
+    vi.mocked(exportWorkspaceRequest).mockResolvedValueOnce(buildWorkspaceBundle({ signed: true }));
+
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+      await click(findButton(view.container, "Export workspace JSON"));
+      await flushEffects();
+
+      expect(view.container.textContent).toContain("Exported signed workspace backup with 1 project(s).");
+    } finally {
+      await view.unmount();
+    }
+  });
+
   it("imports a workspace backup and refreshes saved projects", async () => {
     vi.mocked(validateWorkspaceRequest).mockResolvedValueOnce({
       status: "valid",
-      schema_version: 2,
+      schema_version: 3,
       counts: {
         projects: 1,
         analysis_runs: 1,
         export_events: 1,
         project_revisions: 1
       },
-      checksum_sha256: "a".repeat(64)
+      checksum_sha256: "a".repeat(64),
+      signature_verified: false
     });
     vi.mocked(importWorkspaceRequest).mockResolvedValueOnce({
       status: "imported",
@@ -767,9 +1097,53 @@ describe("App UI flow", () => {
       expect(importWorkspaceRequest).toHaveBeenCalledTimes(1);
       expect(listProjectsRequest).toHaveBeenCalledTimes(2);
       expect(view.container.textContent).toContain(
-        "Validated workspace backup (schema v2, checksum aaaaaaaaaaaa...). Imported workspace backup: 1 project(s), 1 analysis run(s), 1 export event(s), 1 revision(s)."
+        "Validated workspace backup (schema v3, checksum aaaaaaaaaaaa...). Imported workspace backup: 1 project(s), 1 analysis run(s), 1 export event(s), 1 revision(s)."
       );
       expect(view.container.textContent).toContain("Imported workspace project");
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("mentions signature verification when importing a signed workspace backup", async () => {
+    vi.mocked(validateWorkspaceRequest).mockResolvedValueOnce({
+      status: "valid",
+      schema_version: 3,
+      counts: {
+        projects: 1,
+        analysis_runs: 1,
+        export_events: 1,
+        project_revisions: 1
+      },
+      checksum_sha256: "a".repeat(64),
+      signature_verified: true
+    });
+    vi.mocked(importWorkspaceRequest).mockResolvedValueOnce({
+      status: "imported",
+      imported_projects: 1,
+      imported_analysis_runs: 1,
+      imported_export_events: 1,
+      imported_project_revisions: 1
+    });
+    vi.mocked(listProjectsRequest).mockResolvedValueOnce([]).mockResolvedValueOnce([]);
+
+    const file = new File([JSON.stringify(buildWorkspaceBundle({ signed: true }))], "workspace-backup.json", {
+      type: "application/json"
+    });
+
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+
+      const input = view.container.parentElement?.querySelector('input[type="file"][aria-label="Import workspace file"]');
+      if (!(input instanceof HTMLInputElement)) {
+        throw new Error("Workspace import input was not rendered");
+      }
+
+      await changeFiles(input, [file]);
+      await flushEffects();
+
+      expect(view.container.textContent).toContain("Validated signed workspace backup (schema v3, checksum aaaaaaaaaaaa...).");
     } finally {
       await view.unmount();
     }
@@ -953,6 +1327,7 @@ describe("App UI flow", () => {
     const view = await renderIntoDocument(<App />);
     try {
       await flushEffects();
+      await openSystemTab(view);
 
       expect(view.container.textContent).toContain("Backend status");
       expect(view.container.textContent).toContain("API unavailable. fetch failed");
@@ -967,6 +1342,7 @@ describe("App UI flow", () => {
     const view = await renderIntoDocument(<App />);
     try {
       await flushEffects();
+      await openSystemTab(view);
 
       expect(view.container.textContent).toContain("Runtime diagnostics");
       expect(view.container.textContent).toContain("Diagnostics unavailable. diagnostics failed");
@@ -989,13 +1365,18 @@ describe("App UI flow", () => {
       await flushEffects();
 
       expect(view.container.textContent).toContain("Restored unsaved browser draft.");
-      expect((view.container.querySelector("#project-project_name") as HTMLInputElement).value).toBe("Browser draft");
+      const projectNameInput = view.container.querySelector("#project-project_name");
+      if (!(projectNameInput instanceof HTMLInputElement)) {
+        throw new Error("Project name input was not rendered");
+      }
+
+      expect(projectNameInput.value).toBe("Browser draft");
     } finally {
       await view.unmount();
     }
   });
 
-  it("deletes a saved project from the sidebar and keeps the current form as draft", async () => {
+  it("deletes a saved project from the sidebar and keeps the current form as draft after inline confirmation", async () => {
     vi.mocked(listProjectsRequest).mockResolvedValueOnce([
       {
         id: "p-1",
@@ -1020,28 +1401,44 @@ describe("App UI flow", () => {
       updated_at: "2026-03-07T10:00:00Z",
       payload: buildApiPayload(buildLoadedPayload())
     });
-    vi.mocked(deleteProjectRequest).mockResolvedValueOnce({ id: "p-1", deleted: true });
+    vi.mocked(archiveProjectRequest).mockResolvedValueOnce({
+      id: "p-1",
+      archived: true,
+      archived_at: "2026-03-07T10:30:00Z"
+    });
 
+    vi.useFakeTimers();
     const view = await renderIntoDocument(<App />);
     try {
       await flushEffects();
       await click(findButton(view.container, "Stored checkout test"));
       await flushEffects();
 
-      await click(findButtonByAriaLabel(view.container, "Delete Stored checkout test"));
+      await click(findButtonByAriaLabel(view.container, "Archive Stored checkout test"));
       await flushEffects();
 
-      expect(window.confirm).toHaveBeenCalledWith('Delete project "Stored checkout test" from local storage?');
-      expect(deleteProjectRequest).toHaveBeenCalledWith("p-1");
-      expect(view.container.textContent).toContain("Project Stored checkout test deleted. Current form remains as a new local draft.");
+      expect(findButtonByAriaLabel(view.container, "Archive Stored checkout test").textContent).toContain("Sure? (3)");
+      expect(archiveProjectRequest).not.toHaveBeenCalled();
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1000);
+      });
+
+      await click(findButtonByAriaLabel(view.container, "Archive Stored checkout test"));
+      await flushEffects();
+
+      expect(archiveProjectRequest).toHaveBeenCalledWith("p-1");
+      expect(view.container.textContent).toContain("Project Stored checkout test archived. Current form remains as a new local draft.");
       expect(view.container.textContent).not.toContain("Project id: p-1");
-      expect(view.container.querySelector('button[aria-label="Delete Stored checkout test"]')).toBeNull();
+      expect(view.container.textContent).toContain("Archived projects");
+      expect(view.container.textContent).toContain("Restore");
     } finally {
+      vi.useRealTimers();
       await view.unmount();
     }
   });
 
-  it("does not delete a project when the confirmation dialog is rejected", async () => {
+  it("cancels archive confirmation after the countdown expires", async () => {
     vi.mocked(listProjectsRequest).mockResolvedValueOnce([
       {
         id: "p-1",
@@ -1054,8 +1451,95 @@ describe("App UI flow", () => {
         updated_at: "2026-03-07T10:00:00Z"
       }
     ]);
-    vi.mocked(window.confirm).mockReturnValueOnce(false);
 
+    vi.useFakeTimers();
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+
+      await click(findButtonByAriaLabel(view.container, "Archive Stored checkout test"));
+      await flushEffects();
+
+      expect(findButtonByAriaLabel(view.container, "Archive Stored checkout test").textContent).toContain("Sure? (3)");
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(3100);
+      });
+      await flushEffects();
+
+      expect(archiveProjectRequest).not.toHaveBeenCalled();
+      expect(findButtonByAriaLabel(view.container, "Archive Stored checkout test").textContent).toContain("Archive");
+    } finally {
+      vi.useRealTimers();
+      await view.unmount();
+    }
+  });
+
+  it("restores an archived project back into the active saved list", async () => {
+    vi.mocked(listProjectsRequest).mockResolvedValueOnce([
+      {
+        id: "p-1",
+        project_name: "Stored checkout test",
+        payload_schema_version: 1,
+        archived_at: "2026-03-07T10:30:00Z",
+        is_archived: true,
+        last_analysis_at: null,
+        last_exported_at: null,
+        has_analysis_snapshot: false,
+        created_at: "2026-03-07T10:00:00Z",
+        updated_at: "2026-03-07T10:30:00Z"
+      }
+    ]);
+    vi.mocked(restoreProjectRequest).mockResolvedValueOnce({
+      id: "p-1",
+      project_name: "Stored checkout test",
+      payload_schema_version: 1,
+      archived_at: null,
+      is_archived: false,
+      last_analysis_at: null,
+      last_analysis_run_id: null,
+      last_exported_at: null,
+      has_analysis_snapshot: false,
+      created_at: "2026-03-07T10:00:00Z",
+      updated_at: "2026-03-07T10:35:00Z",
+      payload: buildApiPayload(buildLoadedPayload())
+    });
+
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+
+      expect(view.container.textContent).toContain("Archived projects");
+      await click(findButton(view.container, "Restore"));
+      await flushEffects();
+
+      expect(restoreProjectRequest).toHaveBeenCalledWith("p-1");
+      expect(view.container.textContent).toContain("Project Stored checkout test restored from archive.");
+      expect(view.container.textContent).toContain("Saved projects");
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("permanently deletes a saved project from the sidebar", async () => {
+    vi.mocked(listProjectsRequest).mockResolvedValueOnce([
+      {
+        id: "p-1",
+        project_name: "Stored checkout test",
+        payload_schema_version: 1,
+        last_analysis_at: null,
+        last_exported_at: null,
+        has_analysis_snapshot: false,
+        created_at: "2026-03-07T10:00:00Z",
+        updated_at: "2026-03-07T10:00:00Z"
+      }
+    ]);
+    vi.mocked(deleteProjectRequest).mockResolvedValueOnce({
+      id: "p-1",
+      deleted: true
+    });
+
+    vi.useFakeTimers();
     const view = await renderIntoDocument(<App />);
     try {
       await flushEffects();
@@ -1063,9 +1547,22 @@ describe("App UI flow", () => {
       await click(findButtonByAriaLabel(view.container, "Delete Stored checkout test"));
       await flushEffects();
 
+      expect(findButtonByAriaLabel(view.container, "Delete Stored checkout test").textContent).toContain("Sure? (3)");
       expect(deleteProjectRequest).not.toHaveBeenCalled();
-      expect(view.container.querySelector('button[aria-label="Delete Stored checkout test"]')).not.toBeNull();
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1000);
+      });
+
+      await click(findButtonByAriaLabel(view.container, "Delete Stored checkout test"));
+      await flushEffects();
+
+      expect(deleteProjectRequest).toHaveBeenCalledWith("p-1");
+      expect(view.container.textContent).toContain("Project Stored checkout test deleted permanently.");
+      expect(view.container.querySelector('button[aria-label="Delete Stored checkout test"]')).toBeNull();
+      expect(view.container.querySelector('button[aria-label="Archive Stored checkout test"]')).toBeNull();
     } finally {
+      vi.useRealTimers();
       await view.unmount();
     }
   });
@@ -1074,6 +1571,7 @@ describe("App UI flow", () => {
     const view = await renderIntoDocument(<App />);
     try {
       await flushEffects();
+      await startNewExperiment(view);
 
       const projectNameInput = view.container.querySelector("#project-project_name");
       if (!(projectNameInput instanceof HTMLInputElement)) {
@@ -1103,6 +1601,7 @@ describe("App UI flow", () => {
     const view = await renderIntoDocument(<App />);
     try {
       await flushEffects();
+      await startNewExperiment(view);
 
       const projectNameInput = view.container.querySelector("#project-project_name");
       if (!(projectNameInput instanceof HTMLInputElement)) {
@@ -1114,6 +1613,9 @@ describe("App UI flow", () => {
 
       expect(setItemSpy).toHaveBeenCalled();
       expect(view.container.textContent).toContain("Storage full - draft not saved. Clear old data or use Export.");
+      expect(Array.from(view.container.querySelectorAll('[role="alert"]')).some(
+        (alert) => alert.textContent?.includes("Draft not saved - browser storage full") ?? false
+      )).toBe(true);
     } finally {
       setItemSpy.mockRestore();
       await view.unmount();
@@ -1136,6 +1638,7 @@ describe("App UI flow", () => {
     const view = await renderIntoDocument(<App />);
     try {
       await flushEffects();
+      await startNewExperiment(view);
 
       const projectNameInput = view.container.querySelector("#project-project_name");
       if (!(projectNameInput instanceof HTMLInputElement)) {
@@ -1168,6 +1671,7 @@ describe("App UI flow", () => {
     const view = await renderIntoDocument(<App />);
     try {
       await flushEffects();
+      await startNewExperiment(view);
 
       const projectNameInput = view.container.querySelector("#project-project_name");
       if (!(projectNameInput instanceof HTMLInputElement)) {
@@ -1202,6 +1706,7 @@ describe("App UI flow", () => {
     const view = await renderIntoDocument(<App />);
     try {
       await flushEffects();
+      await loadExample(view);
 
       await click(findButton(view.container, "Save project"));
       await flushEffects();
@@ -1216,10 +1721,51 @@ describe("App UI flow", () => {
     }
   });
 
+  it("shows a save toast and auto-dismisses it after a successful save", async () => {
+    vi.mocked(saveProjectRequest).mockResolvedValueOnce({
+      id: "p-new",
+      project_name: "Checkout redesign",
+      payload_schema_version: 1,
+      last_analysis_at: null,
+      last_exported_at: null,
+      has_analysis_snapshot: false,
+      created_at: "2026-03-07T12:00:00Z",
+      updated_at: "2026-03-07T12:00:00Z",
+      payload: buildApiPayload(cloneInitialState())
+    });
+
+    vi.useFakeTimers();
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+      await loadExample(view);
+
+      await click(findButton(view.container, "Save project"));
+      await flushEffects();
+
+      expect(Array.from(view.container.querySelectorAll('[role="alert"]')).some(
+        (alert) => alert.textContent?.includes("Project saved") ?? false
+      )).toBe(true);
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(5000);
+      });
+      await flushEffects();
+
+      expect(Array.from(view.container.querySelectorAll('[role="alert"]')).some(
+        (alert) => alert.textContent?.includes("Project saved") ?? false
+      )).toBe(false);
+    } finally {
+      vi.useRealTimers();
+      await view.unmount();
+    }
+  });
+
   it("keeps optional expected uplift empty instead of coercing it to zero", async () => {
     const view = await renderIntoDocument(<App />);
     try {
       await flushEffects();
+      await loadExample(view);
 
       for (let stepIndex = 0; stepIndex < 3; stepIndex += 1) {
         await click(findButton(view.container, "Next"));
@@ -1235,6 +1781,190 @@ describe("App UI flow", () => {
 
       expect(expectedUpliftInput.value).toBe("");
       expect(window.localStorage.getItem(browserDraftStorageKey)).toContain('"expected_uplift_pct":null');
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("renders focusable tooltip guidance for setup and metric inputs", async () => {
+    const setupSection = sections.find((section) => section.section === "setup");
+    const metricsSection = sections.find((section) => section.section === "metrics");
+    const constraintsSection = sections.find((section) => section.section === "constraints");
+    if (!setupSection || !metricsSection || !constraintsSection) {
+      throw new Error("Wizard sections were not configured");
+    }
+
+    const form = cloneInitialState();
+    const view = await renderIntoDocument(
+      <WizardDraftStep
+        current={setupSection}
+        form={form}
+        canGoBack={true}
+        activeProjectId={null}
+        hasUnsavedChanges={false}
+        canMutateBackend={true}
+        backendMutationMessage=""
+        validationErrors={[]}
+        importingDraft={false}
+        loading={false}
+        saving={false}
+        onUpdateSection={() => {}}
+        onBack={() => {}}
+        onNext={() => {}}
+        onSave={() => {}}
+        onStartNew={() => {}}
+        onImportDraft={() => {}}
+        onExportDraft={() => {}}
+      />
+    );
+    try {
+      await flushEffects();
+
+      for (const fieldId of [
+        "setup-traffic_split",
+        "setup-expected_daily_traffic",
+        "setup-audience_share_in_test",
+        "setup-variants_count"
+      ]) {
+        const label = view.container.querySelector(`label[for="${fieldId}"]`);
+        if (!(label instanceof HTMLLabelElement)) {
+          throw new Error(`Label was not rendered for ${fieldId}`);
+        }
+
+        expect(label.querySelector('[role="note"][tabindex="0"]')).not.toBeNull();
+      }
+
+      await view.rerender(
+        <WizardDraftStep
+          current={metricsSection}
+          form={form}
+          canGoBack={true}
+          activeProjectId={null}
+          hasUnsavedChanges={false}
+          canMutateBackend={true}
+          backendMutationMessage=""
+          validationErrors={[]}
+          importingDraft={false}
+          loading={false}
+          saving={false}
+          onUpdateSection={() => {}}
+          onBack={() => {}}
+          onNext={() => {}}
+          onSave={() => {}}
+          onStartNew={() => {}}
+          onImportDraft={() => {}}
+          onExportDraft={() => {}}
+        />
+      );
+      await flushEffects();
+
+      for (const fieldId of [
+        "metrics-baseline_value",
+        "metrics-expected_uplift_pct",
+        "metrics-mde_pct"
+      ]) {
+        const label = view.container.querySelector(`label[for="${fieldId}"]`);
+        if (!(label instanceof HTMLLabelElement)) {
+          throw new Error(`Label was not rendered for ${fieldId}`);
+        }
+
+        expect(label.querySelector('[role="note"][tabindex="0"]')).not.toBeNull();
+      }
+
+      await view.rerender(
+        <WizardDraftStep
+          current={constraintsSection}
+          form={form}
+          canGoBack={true}
+          activeProjectId={null}
+          hasUnsavedChanges={false}
+          canMutateBackend={true}
+          backendMutationMessage=""
+          validationErrors={[]}
+          importingDraft={false}
+          loading={false}
+          saving={false}
+          onUpdateSection={() => {}}
+          onBack={() => {}}
+          onNext={() => {}}
+          onSave={() => {}}
+          onStartNew={() => {}}
+          onImportDraft={() => {}}
+          onExportDraft={() => {}}
+        />
+      );
+      await flushEffects();
+
+      for (const fieldId of ["metrics-alpha", "metrics-power"]) {
+        const label = view.container.querySelector(`label[for="${fieldId}"]`);
+        if (!(label instanceof HTMLLabelElement)) {
+          throw new Error(`Label was not rendered for ${fieldId}`);
+        }
+
+        expect(label.querySelector('[role="note"][tabindex="0"]')).not.toBeNull();
+      }
+
+      await view.rerender(
+        <WizardDraftStep
+          current={metricsSection}
+          form={{
+            ...form,
+            metrics: {
+              ...form.metrics,
+              metric_type: "continuous"
+            }
+          }}
+          canGoBack={true}
+          activeProjectId={null}
+          hasUnsavedChanges={false}
+          canMutateBackend={true}
+          backendMutationMessage=""
+          validationErrors={[]}
+          importingDraft={false}
+          loading={false}
+          saving={false}
+          onUpdateSection={() => {}}
+          onBack={() => {}}
+          onNext={() => {}}
+          onSave={() => {}}
+          onStartNew={() => {}}
+          onImportDraft={() => {}}
+          onExportDraft={() => {}}
+        />
+      );
+      await flushEffects();
+
+      const stdDevLabel = view.container.querySelector('label[for="metrics-std_dev"]');
+      if (!(stdDevLabel instanceof HTMLLabelElement)) {
+        throw new Error("Std dev label was not rendered");
+      }
+
+      const baselineLabel = view.container.querySelector('label[for="metrics-baseline_value"]');
+      if (!(baselineLabel instanceof HTMLLabelElement)) {
+        throw new Error("Baseline value label was not rendered");
+      }
+
+      const baselineTrigger = baselineLabel.querySelector('[role="note"][tabindex="0"]');
+      if (!(baselineTrigger instanceof HTMLElement)) {
+        throw new Error("Baseline tooltip trigger was not rendered");
+      }
+
+      expect(stdDevLabel.querySelector('[role="note"][tabindex="0"]')).not.toBeNull();
+
+      await act(async () => {
+        baselineTrigger.focus();
+      });
+      await flushEffects();
+
+      const tooltip = document.body.querySelector('[role="tooltip"]');
+      expect(tooltip?.textContent).toContain("0.042 for 4.2%");
+
+      await act(async () => {
+        baselineTrigger.blur();
+      });
+      await flushEffects();
+
+      expect(document.body.querySelector('[role="tooltip"]')).toBeNull();
     } finally {
       await view.unmount();
     }
@@ -1268,7 +1998,12 @@ describe("App UI flow", () => {
       expect(view.container.textContent).toContain(
         "Imported draft from imported-draft.json. Save it to create a new local project record."
       );
-      expect((view.container.querySelector("#project-project_name") as HTMLInputElement).value).toBe("Imported checkout");
+      const projectNameInput = view.container.querySelector("#project-project_name");
+      if (!(projectNameInput instanceof HTMLInputElement)) {
+        throw new Error("Project name input was not rendered");
+      }
+
+      expect(projectNameInput.value).toBe("Imported checkout");
       expect(view.container.textContent).toContain("Working on a new draft");
       expect(view.container.textContent).not.toContain("Project id:");
     } finally {
@@ -1282,6 +2017,7 @@ describe("App UI flow", () => {
     const view = await renderIntoDocument(<App />);
     try {
       await flushEffects();
+      await loadExample(view);
 
       for (let stepIndex = 0; stepIndex < 5; stepIndex += 1) {
         await click(findButton(view.container, "Next"));
@@ -1290,6 +2026,7 @@ describe("App UI flow", () => {
       expect(view.container.textContent).toContain("Review inputs");
       expect(view.container.textContent).toContain("Legal / ethics constraints: none");
       expect(view.container.textContent).toContain("Deadline pressure: medium");
+      expect(view.container.textContent).toContain("Payment error rate");
 
       await click(findButton(view.container, "Run analysis"));
       await flushEffects();
@@ -1301,12 +2038,49 @@ describe("App UI flow", () => {
       expect(view.container.textContent).toContain("new checkout");
       expect(view.container.textContent).toContain("Primary, secondary, and guardrail coverage");
       expect(view.container.textContent).toContain("payment_error_rate");
+      expect(view.container.textContent).toContain("Guardrail metrics");
+      expect(view.container.textContent).toContain("Payment error rate");
+      expect(view.container.textContent).toContain("0.321 pp");
       expect(view.container.textContent).toContain("Statistical and operational considerations");
       expect(view.container.textContent).toContain("legacy event logging");
       expect(view.container.textContent).toContain("During test");
       expect(view.container.textContent).toContain("Watch SRM");
       expect(view.container.textContent).toContain("After test");
       expect(view.container.textContent).toContain("Segment the result");
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("shows a results skeleton while analysis is running", async () => {
+    let resolveAnalysis: ((value: AnalysisResponse) => void) | undefined;
+    const analysisPromise = new Promise<AnalysisResponse>((resolve) => {
+      resolveAnalysis = resolve;
+    });
+
+    vi.mocked(requestAnalysis).mockReturnValueOnce(analysisPromise);
+
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+      await loadExample(view);
+
+      for (let stepIndex = 0; stepIndex < 5; stepIndex += 1) {
+        await click(findButton(view.container, "Next"));
+      }
+
+      await click(findButton(view.container, "Run analysis"));
+      await flushEffects();
+
+      expect(view.container.querySelector(".results-skeleton")).not.toBeNull();
+      expect(view.container.textContent).not.toContain("No analysis yet.");
+
+      resolveAnalysis?.(buildAnalysisResult());
+      await flushEffects();
+      await flushEffects();
+
+      expect(view.container.querySelector(".results-skeleton")).toBeNull();
+      expect(view.container.textContent).toContain("Deterministic summary");
     } finally {
       await view.unmount();
     }
@@ -1418,6 +2192,7 @@ describe("App UI flow", () => {
     const view = await renderIntoDocument(<App />);
     try {
       await flushEffects();
+      await loadExample(view);
 
       for (let stepIndex = 0; stepIndex < 5; stepIndex += 1) {
         await click(findButton(view.container, "Next"));
@@ -1530,6 +2305,7 @@ describe("App UI flow", () => {
     const view = await renderIntoDocument(<App />);
     try {
       await flushEffects();
+      await loadExample(view);
 
       for (let stepIndex = 0; stepIndex < 3; stepIndex += 1) {
         await click(findButton(view.container, "Next"));
@@ -1574,6 +2350,7 @@ describe("App UI flow", () => {
     const view = await renderIntoDocument(<App />);
     try {
       await flushEffects();
+      await loadExample(view);
 
       const projectNameInput = view.container.querySelector("#project-project_name");
       if (!(projectNameInput instanceof HTMLInputElement)) {
@@ -1597,12 +2374,143 @@ describe("App UI flow", () => {
     }
   });
 
+  it("shows inline field validation on blur and marks the step tab", async () => {
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+      await loadExample(view);
+
+      for (let stepIndex = 0; stepIndex < 3; stepIndex += 1) {
+        await click(findButton(view.container, "Next"));
+      }
+
+      const baselineInput = view.container.querySelector("#metrics-baseline_value");
+      if (!(baselineInput instanceof HTMLInputElement)) {
+        throw new Error("Baseline input was not rendered");
+      }
+
+      await changeValue(baselineInput, "-5");
+      await act(async () => {
+        baselineInput.dispatchEvent(new FocusEvent("blur", { bubbles: true }));
+      });
+
+      expect(view.container.textContent).toContain("Binary baseline value must be between 0 and 1.");
+      expect(baselineInput.getAttribute("aria-invalid")).toBe("true");
+      expect(view.container.querySelector('.step[data-step-index="3"] [aria-label="This step has errors"]')).not.toBeNull();
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("keeps the error indicator on the step that actually contains the invalid field", async () => {
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+      await loadExample(view);
+
+      for (let stepIndex = 0; stepIndex < 3; stepIndex += 1) {
+        await click(findButton(view.container, "Next"));
+      }
+
+      const baselineInput = view.container.querySelector("#metrics-baseline_value");
+      if (!(baselineInput instanceof HTMLInputElement)) {
+        throw new Error("Baseline input was not rendered");
+      }
+
+      await changeValue(baselineInput, "-5");
+      await act(async () => {
+        baselineInput.dispatchEvent(new FocusEvent("blur", { bubbles: true }));
+      });
+      await flushEffects();
+
+      await click(findButton(view.container, "Back"));
+      await flushEffects();
+
+      expect(view.container.querySelector('.step[data-step-index="3"] [aria-label="This step has errors"]')).not.toBeNull();
+      expect(view.container.querySelector('.step[data-step-index="2"] [aria-label="This step has errors"]')).toBeNull();
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("supports keyboard shortcuts for navigation, analysis, export, and save", async () => {
+    vi.mocked(requestAnalysis).mockResolvedValueOnce(buildAnalysisResult());
+    vi.mocked(exportReportRequest).mockResolvedValueOnce("# exported");
+    vi.mocked(saveProjectRequest).mockResolvedValueOnce({
+      id: "p-new",
+      project_name: "Checkout redesign",
+      payload_schema_version: 1,
+      last_analysis_at: null,
+      last_analysis_run_id: null,
+      last_exported_at: null,
+      has_analysis_snapshot: false,
+      created_at: "2026-03-07T12:00:00Z",
+      updated_at: "2026-03-07T12:00:00Z",
+      payload: buildApiPayload(cloneInitialState())
+    });
+    vi.mocked(recordProjectAnalysisRequest).mockResolvedValueOnce({
+      id: "p-new",
+      project_name: "Checkout redesign",
+      payload_schema_version: 1,
+      last_analysis_at: "2026-03-07T12:05:00Z",
+      last_analysis_run_id: "run-1",
+      last_exported_at: null,
+      has_analysis_snapshot: true,
+      created_at: "2026-03-07T12:00:00Z",
+      updated_at: "2026-03-07T12:05:00Z",
+      payload: buildApiPayload(cloneInitialState())
+    });
+
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+      await loadExample(view);
+
+      expect(findButton(view.container, "Save project").title).toBe("Save project (Ctrl+S)");
+
+      await act(async () => {
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+      });
+      expect(view.container.querySelector(".step.active")?.textContent).toContain("2. Hypothesis");
+
+      await act(async () => {
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true }));
+      });
+      expect(view.container.querySelector(".step.active")?.textContent).toContain("1. Project");
+
+      await act(async () => {
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", ctrlKey: true, bubbles: true }));
+      });
+      await flushEffects();
+
+      expect(requestAnalysis).toHaveBeenCalledTimes(1);
+      expect(findButton(view.container, "Export Markdown").title).toBe("Export report (Ctrl+E)");
+
+      await act(async () => {
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: "e", ctrlKey: true, bubbles: true }));
+      });
+      await flushEffects();
+
+      expect(exportReportRequest).toHaveBeenCalledWith(buildAnalysisResult().report, "markdown");
+
+      await act(async () => {
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: "s", ctrlKey: true, bubbles: true }));
+      });
+      await flushEffects();
+
+      expect(saveProjectRequest).toHaveBeenCalledTimes(1);
+    } finally {
+      await view.unmount();
+    }
+  });
+
   it("renders the full AI advice payload when the orchestrator response is available", async () => {
     vi.mocked(requestAnalysis).mockResolvedValueOnce(buildAnalysisResult(true));
 
     const view = await renderIntoDocument(<App />);
     try {
       await flushEffects();
+      await loadExample(view);
 
       for (let stepIndex = 0; stepIndex < 5; stepIndex += 1) {
         await click(findButton(view.container, "Next"));

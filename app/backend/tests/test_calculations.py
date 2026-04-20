@@ -53,6 +53,78 @@ def test_continuous_calculation_requires_std_dev_and_returns_duration() -> None:
     assert result["results"]["estimated_duration_days"] > 0
 
 
+def test_continuous_calculation_returns_cuped_comparison_when_covariates_are_provided() -> None:
+    result = calculate_experiment_metrics(
+        {
+            "metric_type": "continuous",
+            "baseline_value": 45.0,
+            "std_dev": 12.0,
+            "mde_pct": 4.4444444444,
+            "alpha": 0.05,
+            "power": 0.8,
+            "expected_daily_traffic": 10000,
+            "audience_share_in_test": 1.0,
+            "traffic_split": [50, 50],
+            "cuped_pre_experiment_std": 12.0,
+            "cuped_correlation": 0.5,
+        }
+    )
+
+    assert result["cuped_sample_size_per_variant"] is not None
+    assert result["cuped_std"] == pytest.approx(10.3923, abs=0.0001)
+    assert result["cuped_variance_reduction_pct"] == pytest.approx(25.0)
+    assert result["cuped_sample_size_per_variant"] < result["results"]["sample_size_per_variant"]
+    assert result["cuped_sample_size_per_variant"] == pytest.approx(
+        result["results"]["sample_size_per_variant"] * 0.75,
+        rel=0.01,
+    )
+    assert result["cuped_duration_days"] is not None
+    assert result["cuped_duration_days"] <= result["results"]["estimated_duration_days"]
+
+
+def test_continuous_calculation_keeps_naive_sample_size_for_zero_correlation() -> None:
+    result = calculate_experiment_metrics(
+        {
+            "metric_type": "continuous",
+            "baseline_value": 45.0,
+            "std_dev": 12.0,
+            "mde_pct": 4.4444444444,
+            "alpha": 0.05,
+            "power": 0.8,
+            "expected_daily_traffic": 10000,
+            "audience_share_in_test": 1.0,
+            "traffic_split": [50, 50],
+            "cuped_pre_experiment_std": 12.0,
+            "cuped_correlation": 0.0,
+        }
+    )
+
+    assert result["cuped_sample_size_per_variant"] == result["results"]["sample_size_per_variant"]
+    assert result["cuped_variance_reduction_pct"] == pytest.approx(0.0)
+
+
+def test_binary_calculation_ignores_cuped_inputs() -> None:
+    result = calculate_experiment_metrics(
+        {
+            "metric_type": "binary",
+            "baseline_value": 0.042,
+            "mde_pct": 5,
+            "alpha": 0.05,
+            "power": 0.8,
+            "expected_daily_traffic": 12000,
+            "audience_share_in_test": 0.6,
+            "traffic_split": [50, 50],
+            "cuped_pre_experiment_std": 12.0,
+            "cuped_correlation": 0.5,
+        }
+    )
+
+    assert result["cuped_std"] is None
+    assert result["cuped_sample_size_per_variant"] is None
+    assert result["cuped_variance_reduction_pct"] is None
+    assert result["cuped_duration_days"] is None
+
+
 def test_continuous_calculation_rejects_missing_std_dev() -> None:
     with pytest.raises(ValueError, match="std_dev must be positive"):
         calculate_experiment_metrics(

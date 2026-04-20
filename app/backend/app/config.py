@@ -31,6 +31,14 @@ class Settings:
     log_format: str
     api_token: str | None
     readonly_api_token: str | None
+    workspace_signing_key: str | None
+    rate_limit_enabled: bool
+    rate_limit_requests: int
+    rate_limit_window_seconds: int
+    auth_failure_limit: int
+    auth_failure_window_seconds: int
+    max_request_body_bytes: int
+    max_workspace_body_bytes: int
 
 
 def _read_csv_env(name: str, default: tuple[str, ...]) -> tuple[str, ...]:
@@ -49,6 +57,18 @@ def _read_int_env(name: str, default: int) -> int:
         return int(raw_value)
     except ValueError as exc:
         raise ValueError(f"{name} must be an integer") from exc
+
+
+def _read_bool_env(name: str, default: bool) -> bool:
+    raw_value = os.getenv(name)
+    if raw_value is None:
+        return default
+    normalized = raw_value.strip().lower()
+    if normalized in {"1", "true", "yes", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "off"}:
+        return False
+    raise ValueError(f"{name} must be a boolean")
 
 
 def _read_float_env(name: str, default: float) -> float:
@@ -103,6 +123,20 @@ def _validate_settings(settings: Settings) -> Settings:
         raise ValueError("AB_API_TOKEN must be at least 8 characters when configured")
     if settings.readonly_api_token is not None and len(settings.readonly_api_token.strip()) < 8:
         raise ValueError("AB_READONLY_API_TOKEN must be at least 8 characters when configured")
+    if settings.workspace_signing_key is not None and len(settings.workspace_signing_key.strip()) < 16:
+        raise ValueError("AB_WORKSPACE_SIGNING_KEY must be at least 16 characters when configured")
+    if settings.rate_limit_requests < 1:
+        raise ValueError("AB_RATE_LIMIT_REQUESTS must be at least 1")
+    if settings.rate_limit_window_seconds < 1:
+        raise ValueError("AB_RATE_LIMIT_WINDOW_SECONDS must be at least 1")
+    if settings.auth_failure_limit < 1:
+        raise ValueError("AB_AUTH_FAILURE_LIMIT must be at least 1")
+    if settings.auth_failure_window_seconds < 1:
+        raise ValueError("AB_AUTH_FAILURE_WINDOW_SECONDS must be at least 1")
+    if settings.max_request_body_bytes < 1024:
+        raise ValueError("AB_MAX_REQUEST_BODY_BYTES must be at least 1024")
+    if settings.max_workspace_body_bytes < settings.max_request_body_bytes:
+        raise ValueError("AB_MAX_WORKSPACE_BODY_BYTES must be greater than or equal to AB_MAX_REQUEST_BODY_BYTES")
     return settings
 
 
@@ -138,5 +172,13 @@ def get_settings() -> Settings:
         log_format=os.getenv("AB_LOG_FORMAT", "plain").strip().lower(),
         api_token=(os.getenv("AB_API_TOKEN") or "").strip() or None,
         readonly_api_token=(os.getenv("AB_READONLY_API_TOKEN") or "").strip() or None,
+        workspace_signing_key=(os.getenv("AB_WORKSPACE_SIGNING_KEY") or "").strip() or None,
+        rate_limit_enabled=_read_bool_env("AB_RATE_LIMIT_ENABLED", True),
+        rate_limit_requests=_read_int_env("AB_RATE_LIMIT_REQUESTS", 240),
+        rate_limit_window_seconds=_read_int_env("AB_RATE_LIMIT_WINDOW_SECONDS", 60),
+        auth_failure_limit=_read_int_env("AB_AUTH_FAILURE_LIMIT", 20),
+        auth_failure_window_seconds=_read_int_env("AB_AUTH_FAILURE_WINDOW_SECONDS", 60),
+        max_request_body_bytes=_read_int_env("AB_MAX_REQUEST_BODY_BYTES", 1_048_576),
+        max_workspace_body_bytes=_read_int_env("AB_MAX_WORKSPACE_BODY_BYTES", 8_388_608),
     )
     return _validate_settings(settings)

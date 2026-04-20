@@ -44,4 +44,12 @@ WARNING_CATALOG = {
         "severity": "high",
         "message": "Expected duration is long, but the project cannot support a long-running test.",
     },
+    "INTERIM_LOOKS_INCREASE_SAMPLE": {
+        "severity": "medium",
+        "message": "Sequential design increases required sample size by ~{pct}%.",
+    },
+    "SRM_DETECTED": {
+        "severity": "high",
+        "message": "Sample ratio mismatch detected (p < 0.001). Check randomization and tracking.",
+    },
 }

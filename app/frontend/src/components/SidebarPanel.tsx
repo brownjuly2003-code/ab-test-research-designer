@@ -1,61 +1,16 @@
-import { memo, useState } from "react";
+import { memo, useRef, useState, type ChangeEvent } from "react";
 
-import type {
-  ApiDiagnosticsResponse,
-  ApiHealthResponse,
-  ProjectComparison,
-  ProjectHistory,
-  ProjectRevisionHistory,
-  SavedProject
-} from "../lib/experiment";
+import { hydrateLoadedPayload, stepLabels } from "../lib/experiment";
+import type { ToastType } from "../hooks/useToast";
+import { useAnalysisStore } from "../stores/analysisStore";
+import { useDraftStore } from "../stores/draftStore";
+import { useProjectStore } from "../stores/projectStore";
+import { useWizardStore } from "../stores/wizardStore";
 import Icon from "./Icon";
+import InlineConfirmButton from "./InlineConfirmButton";
+import ProjectListSkeleton from "./ProjectListSkeleton";
 import StatusDot from "./StatusDot";
-
-type SidebarPanelProps = {
-  loadingHealth: boolean;
-  loadingDiagnostics: boolean;
-  loadingProjects: boolean;
-  importingWorkspace: boolean;
-  exportingWorkspace: boolean;
-  deletingProjectId: string | null;
-  backendHealth: ApiHealthResponse | null;
-  backendDiagnostics: ApiDiagnosticsResponse | null;
-  healthError: string;
-  diagnosticsError: string;
-  savedProjects: SavedProject[];
-  activeProjectId: string | null;
-  activeProject: SavedProject | null;
-  projectHistory: ProjectHistory | null;
-  projectRevisions: ProjectRevisionHistory | null;
-  projectHistoryError: string;
-  projectRevisionsError: string;
-  loadingProjectHistory: boolean;
-  loadingProjectRevisions: boolean;
-  selectedHistoryRunId: string | null;
-  projectComparison: ProjectComparison | null;
-  projectComparisonError: string;
-  loadingProjectComparison: boolean;
-  comparingProjectId: string | null;
-  hasUnsavedChanges: boolean;
-  canMutateBackend: boolean;
-  backendMutationMessage: string;
-  onRefreshHealth: () => void;
-  onRefreshDiagnostics: () => void;
-  onRefreshProjectHistory: (projectId: string) => void;
-  onRefreshProjectRevisions: (projectId: string) => void;
-  onLoadMoreAnalysisHistory: (projectId: string) => void;
-  onLoadMoreExportHistory: (projectId: string) => void;
-  onLoadMoreProjectRevisions: (projectId: string) => void;
-  onOpenHistoryRun: (runId: string) => void;
-  onLoadProjectRevision: (revisionId: string) => void;
-  onClearHistoryRunSelection: () => void;
-  onCompareProject: (projectId: string) => void;
-  onLoadProjects: () => void;
-  onExportWorkspace: () => void;
-  onImportWorkspace: () => void;
-  onLoadProject: (projectId: string) => void;
-  onDeleteProject: (projectId: string, projectName: string) => void;
-};
+import styles from "./SidebarPanel.module.css";
 
 function formatProjectTimestamp(timestamp: string): string {
   const parsed = new Date(timestamp);
@@ -117,54 +72,210 @@ function formatRevisionSource(source: string): string {
   return source === "update" ? "Project update" : "Initial save";
 }
 
-const SidebarPanel = memo(function SidebarPanel({
-  loadingHealth,
-  loadingDiagnostics,
-  loadingProjects,
-  importingWorkspace,
-  exportingWorkspace,
-  deletingProjectId,
-  backendHealth,
-  backendDiagnostics,
-  healthError,
-  diagnosticsError,
-  savedProjects,
-  activeProjectId,
-  activeProject,
-  projectHistory,
-  projectRevisions,
-  projectHistoryError,
-  projectRevisionsError,
-  loadingProjectHistory,
-  loadingProjectRevisions,
-  selectedHistoryRunId,
-  projectComparison,
-  projectComparisonError,
-  loadingProjectComparison,
-  comparingProjectId,
-  hasUnsavedChanges,
-  canMutateBackend,
-  backendMutationMessage,
-  onRefreshHealth,
-  onRefreshDiagnostics,
-  onRefreshProjectHistory,
-  onRefreshProjectRevisions,
-  onLoadMoreAnalysisHistory,
-  onLoadMoreExportHistory,
-  onLoadMoreProjectRevisions,
-  onOpenHistoryRun,
-  onLoadProjectRevision,
-  onClearHistoryRunSelection,
-  onCompareProject,
-  onLoadProjects,
-  onExportWorkspace,
-  onImportWorkspace,
-  onLoadProject,
-  onDeleteProject
-}: SidebarPanelProps) {
+const SidebarPanel = memo(function SidebarPanel() {
+  const analysis = useAnalysisStore();
+  const draftStore = useDraftStore();
+  const project = useProjectStore();
+  const openWizard = useWizardStore((state) => state.openWizard);
+  const workspaceImportRef = useRef<HTMLInputElement | null>(null);
+  const {
+    loadingHealth,
+    loadingDiagnostics,
+    loadingProjects,
+    importingWorkspace,
+    exportingWorkspace,
+    deletingProjectId,
+    restoringProjectId,
+    backendHealth,
+    backendDiagnostics,
+    healthError,
+    diagnosticsError,
+    activeSavedProjects: savedProjects,
+    archivedProjects,
+    activeProjectId,
+    activeProject,
+    projectHistory,
+    projectRevisions,
+    projectHistoryError,
+    projectRevisionsError,
+    loadingProjectHistory,
+    loadingProjectRevisions,
+    selectedHistoryRunId,
+    projectComparison,
+    projectComparisonError,
+    loadingProjectComparison,
+    comparingProjectId,
+    hasUnsavedChanges,
+    canMutateBackend,
+    backendMutationMessage,
+    apiTokenDraft,
+    apiTokenConfigured,
+    apiTokenStatus
+  } = project;
+  const [activeTab, setActiveTab] = useState<"projects" | "system">("projects");
   const [projectQuery, setProjectQuery] = useState("");
+  const onRefreshHealth = () => void project.loadBackendHealth();
+  const onRefreshDiagnostics = () => void project.loadBackendDiagnostics();
+  const onApiTokenDraftChange = (value: string) => project.updateApiTokenDraft(value);
+  const onRefreshProjectHistory = (projectId: string) => void project.refreshProjectHistory(projectId);
+  const onRefreshProjectRevisions = (projectId: string) => void project.refreshProjectRevisions(projectId);
+  const onLoadMoreAnalysisHistory = (projectId: string) => void project.loadMoreAnalysisHistory(projectId);
+  const onLoadMoreExportHistory = (projectId: string) => void project.loadMoreExportHistory(projectId);
+  const onLoadMoreProjectRevisions = (projectId: string) => void project.loadMoreProjectRevisions(projectId);
+  const onLoadProjects = () => void project.refreshProjects();
   const normalizedQuery = projectQuery.trim().toLowerCase();
+
+  async function showAsyncStatus(action: Promise<string | null>, type: ToastType) {
+    const message = await action;
+    if (message) {
+      analysis.showStatus(message, type);
+    }
+  }
+
+  function blockMutations(): boolean {
+    if (canMutateBackend) {
+      return false;
+    }
+    analysis.clearFeedback();
+    analysis.showError(backendMutationMessage || "Backend is running in read-only mode.", "warning");
+    return true;
+  }
+
+  async function onSaveApiToken() {
+    analysis.clearFeedback();
+    await showAsyncStatus(project.saveRuntimeApiToken(), "info");
+  }
+
+  async function onClearApiToken() {
+    analysis.clearFeedback();
+    await showAsyncStatus(project.clearRuntimeApiToken(), "info");
+    analysis.clearAnalysis();
+  }
+
+  function onClearHistoryRunSelection() {
+    if (!project.clearHistoryRunSelection()) {
+      return;
+    }
+    analysis.clearFeedback();
+    analysis.showStatus(
+      analysis.results.report
+        ? "Returned to the current in-memory analysis results."
+        : "Closed the saved snapshot preview.",
+      "info"
+    );
+  }
+
+  async function onOpenHistoryRun(runId: string) {
+    if (!project.openHistoryRun(runId)) {
+      return;
+    }
+    analysis.clearFeedback();
+    analysis.showStatus("Opened a saved analysis snapshot from project history.", "info");
+    openWizard(stepLabels.length - 1);
+  }
+
+  function onLoadProjectRevision(revisionId: string) {
+    const revision = project.loadProjectRevision(revisionId);
+    if (!revision) {
+      return;
+    }
+    draftStore.replaceDraft(revision.draft, { markDirty: true });
+    analysis.clearAnalysis();
+    analysis.showStatus(revision.message, "info");
+    openWizard();
+  }
+
+  async function onCompareProject(projectId: string) {
+    const message = await project.compareProject(projectId);
+    if (message) {
+      analysis.showStatus(message, "info");
+    }
+  }
+
+  async function onExportWorkspace() {
+    if (blockMutations()) {
+      return;
+    }
+    analysis.clearFeedback();
+    await showAsyncStatus(project.exportWorkspace(), "success");
+  }
+
+  function onImportWorkspace() {
+    workspaceImportRef.current?.click();
+  }
+
+  async function handleWorkspaceImport(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+    event.target.value = "";
+    if (blockMutations()) {
+      return;
+    }
+    analysis.clearFeedback();
+    await showAsyncStatus(project.importWorkspace(await file.text()), "success");
+  }
+
+  async function onLoadProject(projectId: string) {
+    analysis.clearFeedback();
+    const loaded = await project.loadProject(projectId);
+    if (!loaded) {
+      return;
+    }
+    draftStore.replaceDraft(hydrateLoadedPayload(loaded.payload), { markDirty: true });
+    analysis.clearAnalysis();
+    analysis.showStatus(`Loaded project ${String(loaded.project_name)} into the wizard.`, "info");
+    openWizard();
+  }
+
+  async function onDeleteProject(projectId: string, projectName: string) {
+    if (blockMutations()) {
+      return;
+    }
+    analysis.clearFeedback();
+    const result = await project.archiveProject(projectId);
+    if (!result.deleted) {
+      return;
+    }
+    if (result.deletedActive) {
+      analysis.clearAnalysis();
+      analysis.showStatus(`Project ${projectName} archived. Current form remains as a new local draft.`, "success");
+      return;
+    }
+    analysis.showStatus(`Project ${projectName} archived.`, "success");
+  }
+
+  async function onRestoreProject(projectId: string, _projectName: string) {
+    analysis.clearFeedback();
+    const restored = await project.restoreProject(projectId);
+    if (!restored) {
+      return;
+    }
+    if (useProjectStore.getState().activeProjectId === projectId) {
+      draftStore.replaceDraft(hydrateLoadedPayload(restored.payload), { markDirty: true });
+    }
+    analysis.showStatus(`Project ${String(restored.project_name)} restored from archive.`, "success");
+  }
+
+  async function onPermanentlyDeleteProject(projectId: string, projectName: string) {
+    if (blockMutations()) {
+      return;
+    }
+    analysis.clearFeedback();
+    const result = await project.deleteProject(projectId);
+    if (!result.deleted) {
+      return;
+    }
+    if (result.deletedActive) {
+      analysis.clearAnalysis();
+      analysis.showStatus(`Project ${projectName} deleted permanently. Current form remains as a new local draft.`, "success");
+      return;
+    }
+    analysis.showStatus(`Project ${projectName} deleted permanently.`, "success");
+  }
   const compareEnabled = Boolean(activeProjectId && activeProject?.has_analysis_snapshot);
+  const archivedProjectsTotal = archivedProjects.length;
   const filteredProjects =
     normalizedQuery.length > 0
       ? savedProjects.filter((project) => project.project_name.toLowerCase().includes(normalizedQuery))
@@ -188,23 +299,61 @@ const SidebarPanel = memo(function SidebarPanel({
   );
 
   return (
-    <aside className="panel meta">
-      <div className="note">
-        <h3>How this UI is split</h3>
-        <ul className="list">
-          <li>Deterministic calculations come from `/api/v1/calculate`.</li>
-          <li>Warnings come from the rules engine layered on top of deterministic inputs.</li>
-          <li>AI advice is optional and pulled separately from the local orchestrator.</li>
-        </ul>
+    <aside className={`panel ${styles.sidebar}`}>
+      <input
+        ref={workspaceImportRef}
+        type="file"
+        accept="application/json,.json"
+        style={{ display: "none" }}
+        aria-label="Import workspace file"
+        onChange={handleWorkspaceImport}
+      />
+      <div
+        style={{
+          display: "inline-flex",
+          gap: 8,
+          padding: 6,
+          borderRadius: 999,
+          background: "rgba(255, 255, 255, 0.65)",
+          border: "1px solid var(--line)",
+          alignSelf: "flex-start"
+        }}
+      >
+        <button
+          type="button"
+          className="btn"
+          style={{
+            background: activeTab === "projects" ? "var(--color-secondary)" : "transparent",
+            color: activeTab === "projects" ? "#ffffff" : "var(--muted)",
+            boxShadow: activeTab === "projects" ? "0 10px 24px rgba(79, 70, 229, 0.2)" : "none"
+          }}
+          onClick={() => setActiveTab("projects")}
+        >
+          Projects
+        </button>
+        <button
+          type="button"
+          className="btn"
+          style={{
+            background: activeTab === "system" ? "var(--color-secondary)" : "transparent",
+            color: activeTab === "system" ? "#ffffff" : "var(--muted)",
+            boxShadow: activeTab === "system" ? "0 10px 24px rgba(79, 70, 229, 0.2)" : "none"
+          }}
+          onClick={() => setActiveTab("system")}
+        >
+          System
+        </button>
       </div>
 
+      {activeTab === "system" ? (
+        <>
       <div className="card">
         <div className="section-heading">
-          <div className="status-heading">
+          <div className={styles["status-heading"]}>
             <StatusDot online={Boolean(backendHealth)} />
             <div>
               <h3>Backend status</h3>
-              <p className="muted compact-text">
+              <p className={`muted ${styles["compact-text"]}`}>
                 Live health for the FastAPI runtime that serves calculations, storage, and optional AI advice.
               </p>
             </div>
@@ -238,8 +387,88 @@ const SidebarPanel = memo(function SidebarPanel({
       <div className="card">
         <div className="section-heading">
           <div>
+            <h3>API session token</h3>
+            <p className={`muted ${styles["compact-text"]}`}>
+              Optional token stored only in this browser session. It is not baked into the frontend build or Docker image.
+            </p>
+          </div>
+        </div>
+        <div className="field">
+          <label htmlFor="api-session-token">Session token</label>
+          <input
+            id="api-session-token"
+            type="password"
+            placeholder={apiTokenConfigured ? "Token stored in current browser session" : "Paste read-only or write token"}
+            value={apiTokenDraft}
+            onChange={(event) => onApiTokenDraftChange(event.target.value)}
+          />
+        </div>
+        <div className="actions">
+          <button className="btn secondary" disabled={apiTokenDraft.trim().length === 0} onClick={onSaveApiToken}>
+            Save token
+          </button>
+          <button className="btn ghost" disabled={!apiTokenConfigured && apiTokenDraft.trim().length === 0} onClick={onClearApiToken}>
+            Clear token
+          </button>
+        </div>
+        <div className="actions">
+          <span className="pill">{apiTokenConfigured ? "Token configured" : "No token stored"}</span>
+        </div>
+        {apiTokenStatus ? <div className="status">{apiTokenStatus}</div> : null}
+      </div>
+
+      <div className="card">
+        <div className="section-heading">
+          <div>
+            <h3>Workspace backup</h3>
+            <p className={`muted ${styles["compact-text"]}`}>
+              Export or import the full SQLite workspace, including saved projects, history, exports, and revisions.
+            </p>
+          </div>
+        </div>
+        <div className="actions">
+          <button className="btn ghost" disabled={exportingWorkspace} onClick={onExportWorkspace}>
+            {exportingWorkspace ? "Exporting..." : "Export workspace JSON"}
+          </button>
+          <button className="btn secondary" disabled={!canMutateBackend || importingWorkspace} onClick={onImportWorkspace}>
+            {importingWorkspace ? "Importing..." : "Import workspace JSON"}
+          </button>
+        </div>
+      </div>
+
+      {savedProjects.length > 0 ? (
+        <div className="card">
+          <h3>Saved projects</h3>
+          <div className="actions">
+            {savedProjects.map((project) => (
+              deletingProjectId === project.id ? (
+                <button
+                  key={project.id}
+                  className="btn secondary"
+                  disabled={true}
+                  aria-label={`Archive ${project.project_name}`}
+                >
+                  Archiving...
+                </button>
+              ) : (
+                <InlineConfirmButton
+                  key={project.id}
+                  label="Archive"
+                  disabled={!canMutateBackend}
+                  ariaLabel={`Archive ${project.project_name}`}
+                  onConfirm={() => onDeleteProject(project.id, project.project_name)}
+                />
+              )
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      <div className="card">
+        <div className="section-heading">
+          <div>
             <h3>Runtime diagnostics</h3>
-            <p className="muted compact-text">
+            <p className={`muted ${styles["compact-text"]}`}>
               Lightweight observability for storage, frontend serving, orchestrator settings, and uptime.
             </p>
           </div>
@@ -291,6 +520,11 @@ const SidebarPanel = memo(function SidebarPanel({
                 {backendDiagnostics.storage.write_probe_detail}
               </li>
               <li>
+                <strong>Workspace backups:</strong> schema v{String(backendDiagnostics.storage.workspace_bundle_schema_version)}
+                {" | "}
+                {backendDiagnostics.storage.workspace_signature_enabled ? "HMAC signed" : "checksum only"}
+              </li>
+              <li>
                 <strong>Frontend dist:</strong> {backendDiagnostics.frontend.serve_frontend_dist ? "enabled" : "disabled"}
                 {" | "}
                 {backendDiagnostics.frontend.dist_exists ? "present" : "missing"}
@@ -318,11 +552,15 @@ const SidebarPanel = memo(function SidebarPanel({
                 {String(backendDiagnostics.runtime.client_error_responses)}
                 {" | 5xx "}
                 {String(backendDiagnostics.runtime.server_error_responses)}
+                {" | 429 "}
+                {String(backendDiagnostics.runtime.rate_limited_responses)}
               </li>
               <li>
                 <strong>Last runtime error:</strong> {backendDiagnostics.runtime.last_error_code ?? "none"}
                 {" | auth rejects "}
                 {String(backendDiagnostics.runtime.auth_rejections)}
+                {" | body rejects "}
+                {String(backendDiagnostics.runtime.request_body_rejections)}
               </li>
               <li>
                 <strong>API auth:</strong> {backendDiagnostics.auth.enabled ? backendDiagnostics.auth.mode : "disabled"}
@@ -335,6 +573,20 @@ const SidebarPanel = memo(function SidebarPanel({
                 <strong>Auth headers:</strong> {backendDiagnostics.auth.accepted_headers.join(", ")}
                 {" | read methods "}
                 {backendDiagnostics.auth.read_only_methods.join(", ")}
+              </li>
+              <li>
+                <strong>Security guards:</strong> {backendDiagnostics.guards.security_headers_enabled ? "headers on" : "headers off"}
+                {" | rate limit "}
+                {backendDiagnostics.guards.rate_limit_enabled
+                  ? `${String(backendDiagnostics.guards.rate_limit_requests)}/${String(backendDiagnostics.guards.rate_limit_window_seconds)}s`
+                  : "disabled"}
+                {" | auth throttle "}
+                {String(backendDiagnostics.guards.auth_failure_limit)}/{String(backendDiagnostics.guards.auth_failure_window_seconds)}s
+              </li>
+              <li>
+                <strong>Body limits:</strong> general {formatBytes(backendDiagnostics.guards.max_request_body_bytes)}
+                {" | workspace "}
+                {formatBytes(backendDiagnostics.guards.max_workspace_body_bytes)}
               </li>
             </ul>
           </>
@@ -349,7 +601,7 @@ const SidebarPanel = memo(function SidebarPanel({
         <div className="section-heading">
           <div>
             <h3>Workspace status board</h3>
-            <p className="muted compact-text">
+            <p className={`muted ${styles["compact-text"]}`}>
               One-glance summary of saved-project coverage, snapshot depth, and whether the current draft is in sync.
             </p>
           </div>
@@ -364,6 +616,9 @@ const SidebarPanel = memo(function SidebarPanel({
         <ul className="list">
           <li>
             <strong>Saved projects:</strong> {String(savedProjectsTotal)}
+          </li>
+          <li>
+            <strong>Archived projects:</strong> {String(archivedProjectsTotal)}
           </li>
           <li>
             <strong>Snapshot coverage:</strong> {String(projectsWithSnapshots)} ready
@@ -391,12 +646,22 @@ const SidebarPanel = memo(function SidebarPanel({
         ) : null}
       </div>
 
+        </>
+      ) : null}
+
+      {activeTab === "projects" ? (
+        <>
       <div className="card">
-        <h3>Current draft</h3>
+        <h3>Active project</h3>
         {activeProjectId ? (
           <>
-            <span className="pill">{hasUnsavedChanges ? "Unsaved changes" : "Saved locally"}</span>
+            <div className="actions">
+              <span className="pill">{hasUnsavedChanges ? "Unsaved changes" : "Saved locally"}</span>
+            </div>
             <ul className="list">
+              <li>
+                <strong>Project name:</strong> {activeProject?.project_name ?? "Unknown project"}
+              </li>
               <li>
                 <strong>Project id:</strong> {activeProjectId}
               </li>
@@ -424,7 +689,7 @@ const SidebarPanel = memo(function SidebarPanel({
             </ul>
           </>
         ) : (
-          <p className="muted">You are working in a new local draft until you save it as a project.</p>
+          <p className="muted">No saved project is loaded. You can still work in a local draft and save it when ready.</p>
         )}
       </div>
 
@@ -432,7 +697,7 @@ const SidebarPanel = memo(function SidebarPanel({
         <div className="section-heading">
           <div>
             <h3>Recent project history</h3>
-            <p className="muted compact-text">Timeline of saved analysis runs and export events for the loaded project.</p>
+            <p className={`muted ${styles["compact-text"]}`}>Timeline of saved analysis runs and export events for the loaded project.</p>
           </div>
           <button
             className="btn ghost"
@@ -466,13 +731,13 @@ const SidebarPanel = memo(function SidebarPanel({
                 </button>
               </div>
             ) : null}
-            <div className="timeline-card">
+            <div className={styles["timeline-card"]}>
               <h3>Analysis runs</h3>
-              <div className="timeline-list">
+              <div className={styles["timeline-list"]}>
                 {projectHistory.analysis_runs.length > 0 ? (
                   projectHistory.analysis_runs.map((run) => (
-                    <div key={run.id} className="timeline-item">
-                      <div className="timeline-title">
+                    <div key={run.id} className={styles["timeline-item"]}>
+                      <div className={styles["timeline-title"]}>
                         <strong>{formatProjectTimestamp(run.created_at)}</strong>
                       </div>
                       <div className="muted">
@@ -491,7 +756,7 @@ const SidebarPanel = memo(function SidebarPanel({
                     </div>
                   ))
                 ) : (
-                  <div className="timeline-item">
+                  <div className={styles["timeline-item"]}>
                     <div>No analysis history recorded yet.</div>
                   </div>
                 )}
@@ -504,13 +769,13 @@ const SidebarPanel = memo(function SidebarPanel({
                 </div>
               ) : null}
             </div>
-            <div className="timeline-card">
+            <div className={styles["timeline-card"]}>
               <h3>Export events</h3>
-              <div className="timeline-list">
+              <div className={styles["timeline-list"]}>
                 {projectHistory.export_events.length > 0 ? (
                   projectHistory.export_events.map((event) => (
-                    <div key={event.id} className="timeline-item">
-                      <div className="timeline-title">
+                    <div key={event.id} className={styles["timeline-item"]}>
+                      <div className={styles["timeline-title"]}>
                         <strong>{formatProjectTimestamp(event.created_at)}</strong>
                       </div>
                       <div className="muted">
@@ -520,7 +785,7 @@ const SidebarPanel = memo(function SidebarPanel({
                     </div>
                   ))
                 ) : (
-                  <div className="timeline-item">
+                  <div className={styles["timeline-item"]}>
                     <div>No export history recorded yet.</div>
                   </div>
                 )}
@@ -543,7 +808,7 @@ const SidebarPanel = memo(function SidebarPanel({
         <div className="section-heading">
           <div>
             <h3>Saved revisions</h3>
-            <p className="muted compact-text">
+            <p className={`muted ${styles["compact-text"]}`}>
               Payload snapshots captured on create, update, and workspace import. Loading a revision keeps the current project selected but marks the wizard as changed until you save.
             </p>
           </div>
@@ -570,12 +835,12 @@ const SidebarPanel = memo(function SidebarPanel({
             <p className="muted">
               Showing {projectRevisions.revisions.length} of {projectRevisions.total} revision(s).
             </p>
-            <div className="timeline-card">
-              <div className="timeline-list">
+            <div className={styles["timeline-card"]}>
+              <div className={styles["timeline-list"]}>
                 {projectRevisions.revisions.length > 0 ? (
                   projectRevisions.revisions.map((revision) => (
-                    <div key={revision.id} className="timeline-item">
-                      <div className="timeline-title">
+                    <div key={revision.id} className={styles["timeline-item"]}>
+                      <div className={styles["timeline-title"]}>
                         <strong>{formatProjectTimestamp(revision.created_at)}</strong>
                       </div>
                       <div className="muted">
@@ -591,7 +856,7 @@ const SidebarPanel = memo(function SidebarPanel({
                     </div>
                   ))
                 ) : (
-                  <div className="timeline-item">
+                  <div className={styles["timeline-item"]}>
                     <div>No saved revisions recorded yet.</div>
                   </div>
                 )}
@@ -614,17 +879,23 @@ const SidebarPanel = memo(function SidebarPanel({
         <div className="section-heading">
           <div>
             <h3>Saved projects</h3>
-            <p className="muted compact-text">Load, compare, and delete SQLite-backed drafts from the local workspace.</p>
+            <p className={`muted ${styles["compact-text"]}`}>Load, compare, and archive SQLite-backed drafts from the local workspace.</p>
           </div>
           <button className="btn ghost" disabled={loadingProjects} onClick={onLoadProjects}>
             {loadingProjects ? "Loading..." : "Load saved projects"}
           </button>
         </div>
-        {savedProjects.length > 0 ? (
+        <div className="actions">
+          <span className="pill">{savedProjectsTotal} saved</span>
+          <span className="pill">{projectsWithoutSnapshots} without saved analysis</span>
+        </div>
+        {loadingProjects ? (
+          <ProjectListSkeleton />
+        ) : savedProjects.length > 0 ? (
           <>
-            <div className="field search-field">
+            <div className={`field ${styles["search-field"]}`}>
               <label htmlFor="saved-projects-search">Search projects</label>
-              <div className="input-with-icon">
+              <div className={styles["input-with-icon"]}>
                 <Icon name="search" className="icon icon-inline" />
                 <input
                   id="saved-projects-search"
@@ -655,19 +926,22 @@ const SidebarPanel = memo(function SidebarPanel({
             ) : activeProjectId ? (
               <p className="muted">Save at least one analysis snapshot before comparing saved projects.</p>
             ) : null}
-            <div className="project-card-list">
+            <div className={styles["project-card-list"]}>
               {filteredProjects.map((project) => (
-                <div key={project.id} className={`project-card ${project.id === activeProjectId ? "active" : ""}`}>
-                  <div className="project-card-head">
-                    <button className="btn ghost project-load-btn" onClick={() => onLoadProject(project.id)}>
+                <div
+                  key={project.id}
+                  className={[styles["project-card"], project.id === activeProjectId ? styles.active : ""].filter(Boolean).join(" ")}
+                >
+                  <div className={styles["project-card-head"]}>
+                    <button className={`btn ghost ${styles["project-load-btn"]}`} onClick={() => onLoadProject(project.id)}>
                       {project.project_name}
                     </button>
-                    <div className="project-badges">
+                    <div className={styles["project-badges"]}>
                       {project.id === activeProjectId ? <span className="pill">Loaded</span> : null}
                       {project.has_analysis_snapshot ? <span className="pill">Snapshot</span> : null}
                     </div>
                   </div>
-                  <div className="meta">
+                  <div className={styles["project-meta"]}>
                     <div className="muted">
                       Updated {formatProjectTimestamp(project.updated_at)}
                       {project.last_revision_at ? ` | Saved ${formatProjectTimestamp(project.last_revision_at)}` : ""}
@@ -690,15 +964,18 @@ const SidebarPanel = memo(function SidebarPanel({
                         {comparingProjectId === project.id ? "Comparing..." : "Compare"}
                       </button>
                     ) : null}
-                    <button
-                      className="btn secondary"
+                    <InlineConfirmButton
+                      label="Archive"
                       disabled={!canMutateBackend || deletingProjectId === project.id}
-                      aria-label={`Delete ${project.project_name}`}
-                      onClick={() => onDeleteProject(project.id, project.project_name)}
-                    >
-                      <Icon name="trash" className="icon icon-inline" />
-                      {deletingProjectId === project.id ? "Deleting..." : "Delete"}
-                    </button>
+                      ariaLabel={`Archive ${project.project_name}`}
+                      onConfirm={() => onDeleteProject(project.id, project.project_name)}
+                    />
+                    <InlineConfirmButton
+                      label="Delete"
+                      disabled={!canMutateBackend || deletingProjectId === project.id}
+                      ariaLabel={`Delete ${project.project_name}`}
+                      onConfirm={() => onPermanentlyDeleteProject(project.id, project.project_name)}
+                    />
                   </div>
                 </div>
               ))}
@@ -715,9 +992,54 @@ const SidebarPanel = memo(function SidebarPanel({
       <div className="card">
         <div className="section-heading">
           <div>
+            <h3>Archived projects</h3>
+            <p className={`muted ${styles["compact-text"]}`}>Archived projects stay here until they are restored.</p>
+          </div>
+        </div>
+        {archivedProjects.length > 0 ? (
+          <div className={styles["project-card-list"]}>
+            {archivedProjects.map((project) => (
+              <div key={project.id} className={styles["project-card"]}>
+                <div className={styles["project-card-head"]}>
+                  <strong>{project.project_name}</strong>
+                  <div className={styles["project-badges"]}>
+                    <span className="pill">Archived</span>
+                  </div>
+                </div>
+                <div className={styles["project-meta"]}>
+                  <div className="muted">
+                    Archived {formatOptionalTimestamp(project.archived_at)}
+                    {project.last_analysis_at ? ` | Last analysis ${formatProjectTimestamp(project.last_analysis_at)}` : ""}
+                  </div>
+                  <div className="muted">
+                    {`Revisions ${String(project.revision_count ?? 0)}`}
+                    {" | "}
+                    {project.last_exported_at ? `Exported ${formatProjectTimestamp(project.last_exported_at)}` : "No exports yet"}
+                  </div>
+                </div>
+                <div className="actions">
+                  <button
+                    className="btn secondary"
+                    disabled={!canMutateBackend || restoringProjectId === project.id}
+                    onClick={() => onRestoreProject(project.id, project.project_name)}
+                  >
+                    {restoringProjectId === project.id ? "Restoring..." : "Restore"}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="muted">No archived projects.</p>
+        )}
+      </div>
+
+      <div className="card">
+        <div className="section-heading">
+          <div>
             <h3>Workspace backup</h3>
-            <p className="muted compact-text">
-              Export or import the full SQLite workspace, including saved projects, analysis history, export events, and saved revisions. Imports run checksum and reference validation before SQLite writes begin.
+            <p className={`muted ${styles["compact-text"]}`}>
+              Export or import the full SQLite workspace, including saved projects, analysis history, export events, and saved revisions. Imports run checksum, optional signature, and reference validation before SQLite writes begin.
             </p>
           </div>
         </div>
@@ -731,6 +1053,10 @@ const SidebarPanel = memo(function SidebarPanel({
         </div>
       </div>
 
+        </>
+      ) : null}
+
+      {activeTab === "system" ? (
       <div className="card">
         <h3>Backend endpoints</h3>
         <ul className="list">
@@ -741,13 +1067,17 @@ const SidebarPanel = memo(function SidebarPanel({
           <li><code>POST /api/v1/workspace/validate</code></li>
           <li><code>POST /api/v1/workspace/import</code></li>
           <li><code>POST /api/v1/projects/{'{id}'}/analysis</code></li>
+          <li><code>POST /api/v1/projects/{'{id}'}/archive</code></li>
           <li><code>POST /api/v1/projects/{'{id}'}/exports</code></li>
           <li><code>GET /api/v1/projects/compare</code></li>
           <li><code>GET /api/v1/projects/{'{id}'}/history</code></li>
           <li><code>GET /api/v1/projects/{'{id}'}/revisions</code></li>
-          <li><code>GET/POST/PUT/DELETE /api/v1/projects</code></li>
+          <li><code>GET/POST/PUT /api/v1/projects</code></li>
+          <li><code>DELETE /api/v1/projects/{'{id}'}</code></li>
+          <li><code>POST /api/v1/projects/{'{id}'}/restore</code></li>
         </ul>
       </div>
+      ) : null}
     </aside>
   );
 });

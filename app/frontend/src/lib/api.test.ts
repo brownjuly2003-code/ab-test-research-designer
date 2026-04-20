@@ -1,11 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  archiveProjectRequest,
+  clearApiSessionToken,
   compareProjectsRequest,
   deleteProjectRequest,
   exportWorkspaceRequest,
   exportReportRequest,
+  hasApiSessionToken,
   importWorkspaceRequest,
+  restoreProjectRequest,
+  setApiSessionToken,
   validateWorkspaceRequest,
   listProjectsRequest,
   loadProjectHistoryRequest,
@@ -13,12 +18,13 @@ import {
   loadProjectRequest,
   recordProjectAnalysisRequest,
   recordProjectExportRequest,
+  requestCalculation,
   requestDiagnostics,
   requestHealth,
   requestAnalysis,
   saveProjectRequest
 } from "./api";
-import { buildApiPayload, cloneInitialState } from "./experiment";
+import { buildApiPayload, buildCalculationPayload, cloneInitialState } from "./experiment";
 
 function jsonResponse(payload: unknown, init?: ResponseInit): Response {
   return new Response(JSON.stringify(payload), {
@@ -68,13 +74,14 @@ function buildReportPayload() {
 
 function buildWorkspaceBundle() {
   return {
-    schema_version: 2,
+    schema_version: 3,
     generated_at: "2026-03-09T00:30:00Z",
     projects: [
       {
         id: "project-1",
         project_name: "Workspace project",
         payload_schema_version: 1,
+        archived_at: null,
         last_analysis_at: "2026-03-09T00:20:00Z",
         last_analysis_run_id: "run-1",
         last_exported_at: "2026-03-09T00:25:00Z",
@@ -152,11 +159,21 @@ function buildWorkspaceBundle() {
 
 describe("frontend api wrapper", () => {
   beforeEach(() => {
+    const storage = new Map<string, string>();
     vi.stubGlobal("fetch", vi.fn());
+    vi.stubGlobal("sessionStorage", {
+      getItem: (key: string) => storage.get(key) ?? null,
+      setItem: (key: string, value: string) => {
+        storage.set(key, value);
+      },
+      removeItem: (key: string) => {
+        storage.delete(key);
+      }
+    });
   });
 
   afterEach(() => {
-    (import.meta.env as Record<string, string | undefined>).VITE_API_TOKEN = undefined;
+    clearApiSessionToken();
     vi.unstubAllGlobals();
   });
 
@@ -205,6 +222,47 @@ describe("frontend api wrapper", () => {
     expect(result.advice.available).toBe(false);
   });
 
+  it("requests a live calculation preview and forwards the abort signal", async () => {
+    const fetchMock = vi.mocked(fetch);
+    const controller = new AbortController();
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        calculation_summary: {
+          metric_type: "binary",
+          baseline_value: 0.042,
+          mde_pct: 5,
+          mde_absolute: 0.0021,
+          alpha: 0.05,
+          power: 0.8
+        },
+        results: {
+          sample_size_per_variant: 100,
+          total_sample_size: 200,
+          effective_daily_traffic: 5000,
+          estimated_duration_days: 10
+        },
+        assumptions: [],
+        warnings: [],
+        bonferroni_note: "Adjusted for multiple comparisons."
+      })
+    );
+
+    const payload = buildCalculationPayload(cloneInitialState());
+    const result = await requestCalculation(payload, { signal: controller.signal });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/api/v1/calculate"),
+      expect.objectContaining({
+        method: "POST",
+        signal: controller.signal,
+        body: JSON.stringify(payload)
+      })
+    );
+    expect(result.results.sample_size_per_variant).toBe(100);
+    expect(result.bonferroni_note).toBe("Adjusted for multiple comparisons.");
+  });
+
   it("loads backend health", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(
       jsonResponse({
@@ -221,8 +279,8 @@ describe("frontend api wrapper", () => {
     expect(result.environment).toBe("local");
   });
 
-  it("injects bearer auth when VITE_API_TOKEN is configured", async () => {
-    (import.meta.env as Record<string, string | undefined>).VITE_API_TOKEN = "frontend-secret";
+  it("injects bearer auth when a browser-session token is configured", async () => {
+    setApiSessionToken("frontend-secret");
     vi.mocked(fetch).mockResolvedValueOnce(
       jsonResponse({
         status: "ok",
@@ -239,6 +297,7 @@ describe("frontend api wrapper", () => {
         Authorization: "Bearer frontend-secret"
       }
     });
+    expect(hasApiSessionToken()).toBe(true);
   });
 
   it("loads backend diagnostics", async () => {
@@ -257,17 +316,20 @@ describe("frontend api wrapper", () => {
           db_exists: true,
           db_size_bytes: 24576,
           disk_free_bytes: 987654321,
-          schema_version: 2,
-          sqlite_user_version: 2,
+          schema_version: 3,
+          sqlite_user_version: 3,
           busy_timeout_ms: 5000,
           journal_mode: "WAL",
           synchronous: "NORMAL",
           write_probe_ok: true,
           write_probe_detail: "BEGIN IMMEDIATE succeeded",
           projects_total: 2,
+          archived_projects_total: 0,
           analysis_runs_total: 3,
           export_events_total: 1,
           project_revisions_total: 2,
+          workspace_bundle_schema_version: 3,
+          workspace_signature_enabled: false,
           latest_project_updated_at: "2026-03-08T13:55:00Z"
         },
         frontend: {
@@ -295,12 +357,24 @@ describe("frontend api wrapper", () => {
           accepted_headers: ["Authorization: Bearer", "X-API-Key"],
           read_only_methods: ["GET", "HEAD", "OPTIONS"]
         },
+        guards: {
+          security_headers_enabled: true,
+          rate_limit_enabled: true,
+          rate_limit_requests: 240,
+          rate_limit_window_seconds: 60,
+          auth_failure_limit: 20,
+          auth_failure_window_seconds: 60,
+          max_request_body_bytes: 1048576,
+          max_workspace_body_bytes: 8388608
+        },
         runtime: {
           total_requests: 4,
           success_responses: 4,
           client_error_responses: 0,
           server_error_responses: 0,
           auth_rejections: 0,
+          rate_limited_responses: 0,
+          request_body_rejections: 0,
           last_request_at: "2026-03-08T14:00:00Z",
           last_error_at: null,
           last_error_code: null
@@ -328,14 +402,15 @@ describe("frontend api wrapper", () => {
     vi.mocked(fetch).mockResolvedValueOnce(
       jsonResponse({
         status: "valid",
-        schema_version: 2,
+        schema_version: 3,
         counts: {
           projects: 1,
           analysis_runs: 1,
           export_events: 1,
           project_revisions: 1
         },
-        checksum_sha256: "a".repeat(64)
+        checksum_sha256: "a".repeat(64),
+        signature_verified: false
       })
     );
 
@@ -382,6 +457,30 @@ describe("frontend api wrapper", () => {
     );
   });
 
+  it("surfaces retry-after guidance for rate-limited responses", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      jsonResponse(
+        { detail: "Too many requests", error_code: "rate_limited" },
+        { status: 429, headers: { "Retry-After": "17" } }
+      )
+    );
+
+    await expect(requestDiagnostics()).rejects.toThrow("Too many requests. Retry after 17s.");
+  });
+
+  it("surfaces payload-size guidance for request body limit errors", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      jsonResponse(
+        { detail: "Request body exceeds limit of 1024 bytes", error_code: "request_body_too_large" },
+        { status: 413 }
+      )
+    );
+
+    await expect(importWorkspaceRequest(buildWorkspaceBundle())).rejects.toThrow(
+      "Request body exceeds limit of 1024 bytes. Reduce the payload size or raise the backend limit."
+    );
+  });
+
   it("surfaces workspace validation errors before import", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(
       jsonResponse({ error_code: "workspace_duplicate_project_id" }, { status: 400 })
@@ -396,7 +495,7 @@ describe("frontend api wrapper", () => {
     vi.mocked(fetch).mockResolvedValueOnce(
       jsonResponse({
         projects: [
-          { id: "1", project_name: "Checkout redesign", created_at: "x", updated_at: "y" }
+          { id: "1", project_name: "Checkout redesign", archived_at: null, is_archived: false, created_at: "x", updated_at: "y" }
         ]
       })
     );
@@ -413,6 +512,8 @@ describe("frontend api wrapper", () => {
         id: "1",
         project_name: "Checkout redesign",
         payload_schema_version: 1,
+        archived_at: null,
+        is_archived: false,
         last_analysis_at: null,
         last_analysis_run_id: null,
         last_exported_at: null,
@@ -435,6 +536,8 @@ describe("frontend api wrapper", () => {
         id: "1",
         project_name: "Checkout redesign",
         payload_schema_version: 1,
+        archived_at: null,
+        is_archived: false,
         last_analysis_at: "2026-03-07T12:30:00Z",
         last_analysis_run_id: "run-1",
         last_exported_at: null,
@@ -676,7 +779,17 @@ describe("frontend api wrapper", () => {
     );
   });
 
-  it("deletes a saved project", async () => {
+  it("archives a saved project", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      jsonResponse({ id: "1", archived: true, archived_at: "2026-03-07T12:45:00Z" })
+    );
+
+    const result = await archiveProjectRequest("1");
+
+    expect(result).toEqual({ id: "1", archived: true, archived_at: "2026-03-07T12:45:00Z" });
+  });
+
+  it("hard-deletes a saved project", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(
       jsonResponse({ id: "1", deleted: true })
     );
@@ -686,12 +799,38 @@ describe("frontend api wrapper", () => {
     expect(result).toEqual({ id: "1", deleted: true });
   });
 
+  it("restores an archived project", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      jsonResponse({
+        id: "1",
+        project_name: "Checkout redesign",
+        payload_schema_version: 1,
+        archived_at: null,
+        is_archived: false,
+        last_analysis_at: null,
+        last_analysis_run_id: null,
+        last_exported_at: null,
+        has_analysis_snapshot: false,
+        created_at: "x",
+        updated_at: "y",
+        payload: buildApiPayload(cloneInitialState())
+      })
+    );
+
+    const result = await restoreProjectRequest("1");
+
+    expect(result.id).toBe("1");
+    expect(result.is_archived).toBe(false);
+  });
+
   it("records an export timestamp for a saved project", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(
       jsonResponse({
         id: "1",
         project_name: "Checkout redesign",
         payload_schema_version: 1,
+        archived_at: null,
+        is_archived: false,
         last_analysis_at: "2026-03-07T12:30:00Z",
         last_analysis_run_id: "run-1",
         last_exported_at: "2026-03-07T12:45:00Z",

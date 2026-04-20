@@ -37,10 +37,18 @@ ROUTE_EXAMPLES = {
         'curl "http://127.0.0.1:8008/api/v1/projects/compare?base_id=BASE&candidate_id=CANDIDATE"'
     ),
     "/api/v1/workspace/export": 'curl http://127.0.0.1:8008/api/v1/workspace/export',
+    "/api/v1/workspace/validate": (
+        'curl -X POST http://127.0.0.1:8008/api/v1/workspace/validate ^\n'
+        '  -H "Content-Type: application/json" ^\n'
+        '  -d @workspace-backup.json'
+    ),
     "/api/v1/workspace/import": (
         'curl -X POST http://127.0.0.1:8008/api/v1/workspace/import ^\n'
         '  -H "Content-Type: application/json" ^\n'
         '  -d @workspace-backup.json'
+    ),
+    "/api/v1/projects/{project_id}/restore": (
+        'curl -X POST http://127.0.0.1:8008/api/v1/projects/PROJECT_ID/restore'
     ),
     "/api/v1/export/markdown": (
         'curl -X POST http://127.0.0.1:8008/api/v1/export/markdown ^\n'
@@ -79,11 +87,12 @@ def classify_route(path: str) -> str:
         "/api/v1/projects/{project_id}/revisions",
         "/api/v1/projects/{project_id}/analysis",
         "/api/v1/projects/{project_id}/exports",
+        "/api/v1/projects/{project_id}/restore",
     }:
         return "Project activity"
     if path == "/api/v1/projects/compare":
         return "Comparison"
-    if path in {"/api/v1/workspace/export", "/api/v1/workspace/import"}:
+    if path in {"/api/v1/workspace/export", "/api/v1/workspace/validate", "/api/v1/workspace/import"}:
         return "Workspace"
     if path in {"/api/v1/export/markdown", "/api/v1/export/html"}:
         return "Report export"
@@ -155,7 +164,7 @@ def generate_api_markdown() -> str:
             "- `AB_READONLY_API_TOKEN` is valid only for `GET`, `HEAD`, and `OPTIONS`; mutating routes still require `AB_API_TOKEN`",
             "- all API responses include `X-Request-ID` and `X-Process-Time-Ms` headers",
             "- error responses also include `error_code`, `status_code`, `request_id`, and `X-Error-Code`",
-            "- diagnostics expose in-memory runtime counters for request volume, error classes, and auth rejections",
+            "- diagnostics expose in-memory runtime counters plus the active guardrail configuration for security headers, rate limiting, auth throttling, and request-body limits",
             "- `GET /readyz` returns `503` when required runtime dependencies are degraded",
             "",
             "## Contract generation",

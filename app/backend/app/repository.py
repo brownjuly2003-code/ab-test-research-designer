@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+import hmac
 import hashlib
 import json
 from pathlib import Path
@@ -6,18 +7,22 @@ import shutil
 import sqlite3
 import uuid
 
+from pydantic import ValidationError
+
 from app.backend.app.errors import ApiError
+from app.backend.app.schemas.api import ExperimentInput
 
 
 class ProjectRepository:
-    schema_version = 2
+    schema_version = 3
     payload_schema_version = 1
-    workspace_schema_version = 2
+    workspace_schema_version = 3
     project_select_columns = """
         projects.id,
         projects.project_name,
         projects.payload_json,
         projects.payload_schema_version,
+        projects.archived_at,
         projects.last_analysis_at,
         projects.last_analysis_run_id,
         projects.last_exported_at,
@@ -42,11 +47,13 @@ class ProjectRepository:
         busy_timeout_ms: int = 5000,
         journal_mode: str = "WAL",
         synchronous: str = "NORMAL",
+        workspace_signing_key: str | None = None,
     ) -> None:
         self.db_path = Path(db_path)
         self.busy_timeout_ms = int(busy_timeout_ms)
         self.journal_mode = journal_mode
         self.synchronous = synchronous
+        self.workspace_signing_key = workspace_signing_key.strip() if workspace_signing_key else None
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_db()
 
@@ -68,6 +75,7 @@ class ProjectRepository:
                     project_name TEXT NOT NULL,
                     payload_json TEXT NOT NULL,
                     payload_schema_version INTEGER NOT NULL DEFAULT 1,
+                    archived_at TEXT,
                     last_analysis_json TEXT,
                     last_analysis_at TEXT,
                     last_analysis_run_id TEXT,
@@ -87,6 +95,7 @@ class ProjectRepository:
         payload_json = project.pop("payload_json")
         project["payload"] = json.loads(payload_json)
         project["has_analysis_snapshot"] = bool(project.get("last_analysis_run_id"))
+        project["is_archived"] = bool(project.get("archived_at"))
         return project
 
     @staticmethod
@@ -154,6 +163,7 @@ class ProjectRepository:
         }
         required_columns = {
             "payload_schema_version": "INTEGER NOT NULL DEFAULT 1",
+            "archived_at": "TEXT",
             "last_analysis_json": "TEXT",
             "last_analysis_at": "TEXT",
             "last_analysis_run_id": "TEXT",
@@ -296,6 +306,14 @@ class ProjectRepository:
         project.pop("revision_count", None)
         project.pop("last_revision_at", None)
         project.pop("has_analysis_snapshot", None)
+        project.pop("is_archived", None)
+        return project
+
+    @staticmethod
+    def _project_list_row_to_record(row: sqlite3.Row) -> dict:
+        project = dict(row)
+        project["has_analysis_snapshot"] = bool(project.get("has_analysis_snapshot"))
+        project["is_archived"] = bool(project.get("is_archived"))
         return project
 
     @staticmethod
@@ -323,12 +341,19 @@ class ProjectRepository:
         )
         return resolved_revision_id
 
-    def _get_project_row(self, connection: sqlite3.Connection, project_id: str) -> sqlite3.Row | None:
+    def _get_project_row(
+        self,
+        connection: sqlite3.Connection,
+        project_id: str,
+        *,
+        include_archived: bool = False,
+    ) -> sqlite3.Row | None:
+        archived_clause = "" if include_archived else "AND archived_at IS NULL"
         return connection.execute(
             f"""
             SELECT {self.project_select_columns}
             FROM projects
-            WHERE id = ?
+            WHERE id = ? {archived_clause}
             """,
             (project_id,),
         ).fetchone()
@@ -341,14 +366,16 @@ class ProjectRepository:
     def _normalize_history_offset(offset: int) -> int:
         return max(0, int(offset))
 
-    def list_projects(self) -> list[dict]:
+    def list_projects(self, *, include_archived: bool = False) -> list[dict]:
+        archived_filter = "" if include_archived else "WHERE projects.archived_at IS NULL"
         with self._connect() as connection:
             rows = connection.execute(
-                """
+                f"""
                 SELECT
                     projects.id,
                     projects.project_name,
                     projects.payload_schema_version,
+                    projects.archived_at,
                     (
                         SELECT COUNT(*)
                         FROM project_revisions
@@ -363,13 +390,15 @@ class ProjectRepository:
                     projects.last_analysis_run_id,
                     projects.last_exported_at,
                     CASE WHEN projects.last_analysis_run_id IS NOT NULL THEN 1 ELSE 0 END AS has_analysis_snapshot,
+                    CASE WHEN projects.archived_at IS NOT NULL THEN 1 ELSE 0 END AS is_archived,
                     projects.created_at,
                     projects.updated_at
                 FROM projects
+                {archived_filter}
                 ORDER BY projects.updated_at DESC
                 """
             ).fetchall()
-        return [dict(row) for row in rows]
+        return [self._project_list_row_to_record(row) for row in rows]
 
     def create_project(self, payload: dict) -> dict:
         project_id = str(uuid.uuid4())
@@ -400,27 +429,45 @@ class ProjectRepository:
             )
             self._create_revision(connection, project_id, payload, "create", timestamp)
 
-        return self.get_project(project_id)
+        return self.get_project(project_id, include_archived=True)
 
-    def get_project(self, project_id: str) -> dict | None:
+    def get_project(self, project_id: str, *, include_archived: bool = False) -> dict | None:
         with self._connect() as connection:
-            row = self._get_project_row(connection, project_id)
+            row = self._get_project_row(connection, project_id, include_archived=include_archived)
 
         if row is None:
             return None
 
         return self._row_to_project(row)
 
+    def _project_exists(self, connection: sqlite3.Connection, project_id: str) -> bool:
+        row = connection.execute(
+            "SELECT 1 FROM projects WHERE id = ?",
+            (project_id,),
+        ).fetchone()
+        return row is not None
+
+    def _ensure_project_active(self, connection: sqlite3.Connection, project_id: str) -> None:
+        row = connection.execute(
+            "SELECT archived_at FROM projects WHERE id = ?",
+            (project_id,),
+        ).fetchone()
+        if row is None:
+            raise ApiError("Project not found", error_code="project_not_found", status_code=404)
+        if row["archived_at"] is not None:
+            raise ApiError("Project is archived", error_code="project_archived")
+
     def update_project(self, project_id: str, payload: dict) -> dict | None:
         timestamp = datetime.now(timezone.utc).isoformat()
         project_name = payload["project"]["project_name"]
 
         with self._connect() as connection:
+            self._ensure_project_active(connection, project_id)
             cursor = connection.execute(
                 """
                 UPDATE projects
                 SET project_name = ?, payload_json = ?, payload_schema_version = ?, updated_at = ?
-                WHERE id = ?
+                WHERE id = ? AND archived_at IS NULL
                 """,
                 (
                     project_name,
@@ -436,19 +483,14 @@ class ProjectRepository:
         if cursor.rowcount == 0:
             return None
 
-        return self.get_project(project_id)
+        return self.get_project(project_id, include_archived=True)
 
     def record_analysis(self, project_id: str, analysis_payload: dict) -> dict | None:
         timestamp = datetime.now(timezone.utc).isoformat()
         analysis_run_id = str(uuid.uuid4())
 
         with self._connect() as connection:
-            project_row = connection.execute(
-                "SELECT 1 FROM projects WHERE id = ?",
-                (project_id,),
-            ).fetchone()
-            if project_row is None:
-                return None
+            self._ensure_project_active(connection, project_id)
 
             connection.execute(
                 """
@@ -461,7 +503,7 @@ class ProjectRepository:
                 """
                 UPDATE projects
                 SET last_analysis_at = ?, last_analysis_run_id = ?
-                WHERE id = ?
+                WHERE id = ? AND archived_at IS NULL
                 """,
                 (timestamp, analysis_run_id, project_id),
             )
@@ -469,19 +511,14 @@ class ProjectRepository:
         if cursor.rowcount == 0:
             return None
 
-        return self.get_project(project_id)
+        return self.get_project(project_id, include_archived=True)
 
     def record_export(self, project_id: str, export_format: str, analysis_run_id: str | None = None) -> dict | None:
         timestamp = datetime.now(timezone.utc).isoformat()
         export_event_id = str(uuid.uuid4())
 
         with self._connect() as connection:
-            project_row = connection.execute(
-                "SELECT 1 FROM projects WHERE id = ?",
-                (project_id,),
-            ).fetchone()
-            if project_row is None:
-                return None
+            self._ensure_project_active(connection, project_id)
 
             if analysis_run_id is not None:
                 linked_run = connection.execute(
@@ -509,7 +546,7 @@ class ProjectRepository:
                 """
                 UPDATE projects
                 SET last_exported_at = ?
-                WHERE id = ?
+                WHERE id = ? AND archived_at IS NULL
                 """,
                 (timestamp, project_id),
             )
@@ -517,7 +554,7 @@ class ProjectRepository:
         if cursor.rowcount == 0:
             return None
 
-        return self.get_project(project_id)
+        return self.get_project(project_id, include_archived=True)
 
     def get_project_history(
         self,
@@ -682,7 +719,10 @@ class ProjectRepository:
             synchronous_raw = connection.execute("PRAGMA synchronous").fetchone()[0]
             sqlite_user_version = connection.execute("PRAGMA user_version").fetchone()[0]
             projects_total = connection.execute(
-                "SELECT COUNT(*) FROM projects"
+                "SELECT COUNT(*) FROM projects WHERE archived_at IS NULL"
+            ).fetchone()[0]
+            archived_projects_total = connection.execute(
+                "SELECT COUNT(*) FROM projects WHERE archived_at IS NOT NULL"
             ).fetchone()[0]
             analysis_runs_total = connection.execute(
                 "SELECT COUNT(*) FROM analysis_runs"
@@ -719,9 +759,12 @@ class ProjectRepository:
             "write_probe_ok": write_probe_ok,
             "write_probe_detail": write_probe_detail,
             "projects_total": projects_total,
+            "archived_projects_total": archived_projects_total,
             "analysis_runs_total": analysis_runs_total,
             "export_events_total": export_events_total,
             "project_revisions_total": project_revisions_total,
+            "workspace_bundle_schema_version": self.workspace_schema_version,
+            "workspace_signature_enabled": self.workspace_signing_key is not None,
             "latest_project_updated_at": (
                 latest_project_updated_at_row["updated_at"]
                 if latest_project_updated_at_row is not None
@@ -782,13 +825,30 @@ class ProjectRepository:
 
     @classmethod
     def _workspace_integrity_source(cls, bundle: dict) -> dict:
+        def normalize_project_payload(payload: object) -> object:
+            if not isinstance(payload, dict):
+                return payload
+            try:
+                return ExperimentInput.model_validate(payload).model_dump()
+            except ValidationError:
+                return payload
+
+        def normalize_workspace_project(record: object) -> object:
+            if not isinstance(record, dict):
+                return record
+            normalized_record = dict(record)
+            normalized_record["payload"] = normalize_project_payload(normalized_record.get("payload"))
+            return normalized_record
+
         return {
             "schema_version": bundle.get("schema_version"),
             "generated_at": bundle.get("generated_at"),
-            "projects": bundle.get("projects", []),
+            "projects": [normalize_workspace_project(project) for project in bundle.get("projects", [])],
             "analysis_runs": bundle.get("analysis_runs", []),
             "export_events": bundle.get("export_events", []),
-            "project_revisions": bundle.get("project_revisions", []),
+            "project_revisions": [
+                normalize_workspace_project(revision) for revision in bundle.get("project_revisions", [])
+            ],
         }
 
     @classmethod
@@ -811,16 +871,26 @@ class ProjectRepository:
         return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
 
     @classmethod
-    def _build_workspace_integrity(cls, bundle: dict) -> dict:
-        return {
-            "counts": cls._workspace_counts(bundle),
-            "checksum_sha256": cls._workspace_checksum(bundle),
-        }
+    def _workspace_signature(cls, bundle: dict, signing_key: str) -> str:
+        serialized = json.dumps(
+            cls._workspace_integrity_source(bundle),
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        return hmac.new(signing_key.encode("utf-8"), serialized.encode("utf-8"), hashlib.sha256).hexdigest()
 
-    @classmethod
-    def _validate_workspace_bundle(cls, bundle: dict) -> None:
+    def _build_workspace_integrity(self, bundle: dict) -> dict:
+        integrity = {
+            "counts": self._workspace_counts(bundle),
+            "checksum_sha256": self._workspace_checksum(bundle),
+        }
+        if self.workspace_signing_key:
+            integrity["signature_hmac_sha256"] = self._workspace_signature(bundle, self.workspace_signing_key)
+        return integrity
+
+    def _validate_workspace_bundle(self, bundle: dict) -> bool:
         schema_version = int(bundle.get("schema_version", 1))
-        if schema_version not in {1, 2}:
+        if schema_version not in {1, 2, 3}:
             raise ApiError(
                 "Unsupported workspace bundle schema_version",
                 error_code="workspace_schema_unsupported",
@@ -830,12 +900,12 @@ class ProjectRepository:
         if integrity is None:
             if schema_version >= 2:
                 raise ApiError(
-                    "Workspace bundle integrity block is required for schema_version 2",
+                    "Workspace bundle integrity block is required for schema_version 2 or later",
                     error_code="workspace_integrity_required",
                 )
-            return
+            return False
 
-        actual_counts = cls._workspace_counts(bundle)
+        actual_counts = self._workspace_counts(bundle)
         expected_counts = integrity.get("counts", {})
         if {
             "projects": int(expected_counts.get("projects", -1)),
@@ -848,17 +918,39 @@ class ProjectRepository:
                 error_code="workspace_integrity_counts_mismatch",
             )
 
-        expected_checksum = str(integrity.get("checksum_sha256", "")).strip()
+        expected_checksum = str(integrity.get("checksum_sha256") or "").strip()
         if not expected_checksum:
             raise ApiError(
                 "Workspace bundle checksum is missing",
                 error_code="workspace_integrity_checksum_missing",
             )
-        if expected_checksum != cls._workspace_checksum(bundle):
+        if expected_checksum != self._workspace_checksum(bundle):
             raise ApiError(
                 "Workspace bundle checksum mismatch",
                 error_code="workspace_integrity_checksum_mismatch",
             )
+
+        expected_signature = str(integrity.get("signature_hmac_sha256") or "").strip()
+        if self.workspace_signing_key:
+            if not expected_signature:
+                raise ApiError(
+                    "Workspace bundle signature is required on this runtime",
+                    error_code="workspace_signature_required",
+                )
+            actual_signature = self._workspace_signature(bundle, self.workspace_signing_key)
+            if not hmac.compare_digest(expected_signature, actual_signature):
+                raise ApiError(
+                    "Workspace bundle signature mismatch",
+                    error_code="workspace_signature_mismatch",
+                )
+            signature_verified = True
+        else:
+            if expected_signature:
+                raise ApiError(
+                    "Workspace bundle signature cannot be verified on this runtime",
+                    error_code="workspace_signature_verification_unavailable",
+                )
+            signature_verified = False
 
         project_ids = [str(project.get("id", "")) for project in bundle.get("projects", [])]
         analysis_run_ids = [str(run.get("id", "")) for run in bundle.get("analysis_runs", [])]
@@ -874,9 +966,10 @@ class ProjectRepository:
                     f"Workspace bundle contains duplicate {label} ids",
                     error_code=f"workspace_duplicate_{label}_id",
                 )
+        return signature_verified
 
     def validate_workspace_bundle(self, bundle: dict) -> dict:
-        self._validate_workspace_bundle(bundle)
+        signature_verified = self._validate_workspace_bundle(bundle)
         imported_projects = bundle.get("projects", [])
         imported_analysis_runs = bundle.get("analysis_runs", [])
         imported_export_events = bundle.get("export_events", [])
@@ -918,6 +1011,7 @@ class ProjectRepository:
             "schema_version": int(bundle.get("schema_version", 1)),
             "counts": integrity["counts"],
             "checksum_sha256": integrity["checksum_sha256"],
+            "signature_verified": signature_verified,
         }
 
     def import_workspace(self, bundle: dict) -> dict:
@@ -955,19 +1049,21 @@ class ProjectRepository:
                         project_name,
                         payload_json,
                         payload_schema_version,
+                        archived_at,
                         last_analysis_at,
                         last_analysis_run_id,
                         last_exported_at,
                         created_at,
                         updated_at
                     )
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         project_id_map[old_project_id],
                         project["project_name"],
                         json.dumps(project["payload"]),
                         int(project.get("payload_schema_version", self.payload_schema_version)),
+                        project.get("archived_at"),
                         project.get("last_analysis_at"),
                         analysis_run_id_map.get(project.get("last_analysis_run_id")),
                         project.get("last_exported_at"),
@@ -1038,11 +1134,68 @@ class ProjectRepository:
             "imported_project_revisions": imported_revision_count,
         }
 
-    def delete_project(self, project_id: str) -> bool:
+    def archive_project(self, project_id: str) -> dict | None:
+        timestamp = datetime.now(timezone.utc).isoformat()
         with self._connect() as connection:
+            if not self._project_exists(connection, project_id):
+                return None
+            cursor = connection.execute(
+                """
+                UPDATE projects
+                SET
+                    archived_at = COALESCE(archived_at, ?),
+                    updated_at = CASE WHEN archived_at IS NULL THEN ? ELSE updated_at END
+                WHERE id = ?
+                """,
+                (timestamp, timestamp, project_id),
+            )
+
+        if cursor.rowcount == 0:
+            return None
+
+        archived_project = self.get_project(project_id, include_archived=True)
+        if archived_project is None:
+            return None
+
+        return {
+            "id": project_id,
+            "archived": True,
+            "archived_at": archived_project.get("archived_at"),
+        }
+
+    def delete_project(self, project_id: str) -> dict | None:
+        with self._connect() as connection:
+            if not self._project_exists(connection, project_id):
+                return None
             cursor = connection.execute(
                 "DELETE FROM projects WHERE id = ?",
                 (project_id,),
             )
 
-        return cursor.rowcount > 0
+        if cursor.rowcount == 0:
+            return None
+
+        return {
+            "id": project_id,
+            "deleted": True,
+        }
+
+    def restore_project(self, project_id: str) -> dict | None:
+        timestamp = datetime.now(timezone.utc).isoformat()
+
+        with self._connect() as connection:
+            if not self._project_exists(connection, project_id):
+                return None
+            cursor = connection.execute(
+                """
+                UPDATE projects
+                SET archived_at = NULL, updated_at = ?
+                WHERE id = ? AND archived_at IS NOT NULL
+                """,
+                (timestamp, project_id),
+            )
+
+        if cursor.rowcount == 0:
+            return self.get_project(project_id, include_archived=True)
+
+        return self.get_project(project_id, include_archived=True)

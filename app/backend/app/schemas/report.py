@@ -31,6 +31,15 @@ class MetricsPlanSection(BaseModel):
     diagnostic: list[str]
 
 
+class GuardrailMetricReport(BaseModel):
+    name: str
+    metric_type: str
+    baseline: float
+    detectable_mde_pp: float | None = None
+    detectable_mde_absolute: float | None = None
+    note: str
+
+
 class RisksSection(BaseModel):
     statistical: list[str]
     product: list[str]
@@ -49,6 +58,7 @@ class ExperimentReport(BaseModel):
     calculations: CalculationsSection
     experiment_design: ExperimentDesignSection
     metrics_plan: MetricsPlanSection
+    guardrail_metrics: list[GuardrailMetricReport] = []
     risks: RisksSection
     recommendations: RecommendationsSection
     open_questions: list[str]

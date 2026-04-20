@@ -7,6 +7,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
+import app.backend.app.repository as repository_module
 from app.backend.app.repository import ProjectRepository
 from app.backend.app.errors import ApiError
 
@@ -244,6 +245,9 @@ def test_repository_reports_sqlite_runtime_and_schema_metadata() -> None:
     assert diagnostics["disk_free_bytes"] > 0
     assert diagnostics["write_probe_ok"] is True
     assert diagnostics["write_probe_detail"] == "BEGIN IMMEDIATE succeeded"
+    assert diagnostics["archived_projects_total"] == 0
+    assert diagnostics["workspace_bundle_schema_version"] == repository.workspace_schema_version
+    assert diagnostics["workspace_signature_enabled"] is False
 
 
 def test_repository_returns_latest_and_specific_analysis_runs_and_clamps_history_limits() -> None:
@@ -383,7 +387,7 @@ def test_repository_can_export_and_import_workspace_bundle() -> None:
 
     bundle = source_repository.export_workspace()
 
-    assert bundle["schema_version"] == 2
+    assert bundle["schema_version"] == 3
     assert len(bundle["projects"]) == 1
     assert len(bundle["analysis_runs"]) == 1
     assert len(bundle["export_events"]) == 1
@@ -395,6 +399,7 @@ def test_repository_can_export_and_import_workspace_bundle() -> None:
         "project_revisions": 1,
     }
     assert len(bundle["integrity"]["checksum_sha256"]) == 64
+    assert bundle["integrity"].get("signature_hmac_sha256") is None
 
     target_repository = ProjectRepository(str(target_db_path))
     import_summary = target_repository.import_workspace(bundle)
@@ -479,7 +484,7 @@ def test_repository_validates_workspace_bundle_without_importing() -> None:
     validation = target_repository.validate_workspace_bundle(bundle)
 
     assert validation["status"] == "valid"
-    assert validation["schema_version"] == 2
+    assert validation["schema_version"] == 3
     assert validation["counts"] == {
         "projects": 1,
         "analysis_runs": 0,
@@ -487,7 +492,151 @@ def test_repository_validates_workspace_bundle_without_importing() -> None:
         "project_revisions": 1,
     }
     assert len(validation["checksum_sha256"]) == 64
+    assert validation["signature_verified"] is False
     assert target_repository.list_projects() == []
+
+
+def test_repository_exports_and_validates_signed_workspace_bundles() -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    source_db_path = temp_dir / f"{uuid.uuid4()}-source.sqlite3"
+    target_db_path = temp_dir / f"{uuid.uuid4()}-target.sqlite3"
+    signing_key = "0123456789abcdef-signed-backup"
+
+    source_repository = ProjectRepository(
+        str(source_db_path),
+        workspace_signing_key=signing_key,
+    )
+    source_repository.create_project(
+        {
+            "project": {"project_name": "Signed source"},
+            "hypothesis": {},
+            "setup": {},
+            "metrics": {},
+            "constraints": {},
+            "additional_context": {},
+        }
+    )
+    bundle = source_repository.export_workspace()
+
+    assert bundle["schema_version"] == 3
+    assert len(bundle["integrity"]["signature_hmac_sha256"]) == 64
+
+    target_repository = ProjectRepository(
+        str(target_db_path),
+        workspace_signing_key=signing_key,
+    )
+    validation = target_repository.validate_workspace_bundle(bundle)
+    import_summary = target_repository.import_workspace(bundle)
+
+    assert validation["signature_verified"] is True
+    assert import_summary["status"] == "imported"
+    assert target_repository.get_diagnostics_summary()["workspace_signature_enabled"] is True
+
+
+def test_repository_rejects_unsigned_workspace_bundle_when_signing_is_required() -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    source_db_path = temp_dir / f"{uuid.uuid4()}-source.sqlite3"
+    target_db_path = temp_dir / f"{uuid.uuid4()}-target.sqlite3"
+
+    source_repository = ProjectRepository(str(source_db_path))
+    source_repository.create_project(
+        {
+            "project": {"project_name": "Unsigned source"},
+            "hypothesis": {},
+            "setup": {},
+            "metrics": {},
+            "constraints": {},
+            "additional_context": {},
+        }
+    )
+    bundle = source_repository.export_workspace()
+
+    target_repository = ProjectRepository(
+        str(target_db_path),
+        workspace_signing_key="0123456789abcdef-signed-backup",
+    )
+
+    with pytest.raises(ApiError, match="signature is required") as exc_info:
+        target_repository.validate_workspace_bundle(bundle)
+    assert exc_info.value.error_code == "workspace_signature_required"
+
+
+def test_repository_uses_constant_time_workspace_signature_comparison(monkeypatch) -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    source_db_path = temp_dir / f"{uuid.uuid4()}-source.sqlite3"
+    target_db_path = temp_dir / f"{uuid.uuid4()}-target.sqlite3"
+    signing_key = "0123456789abcdef-signed-backup"
+
+    source_repository = ProjectRepository(
+        str(source_db_path),
+        workspace_signing_key=signing_key,
+    )
+    source_repository.create_project(
+        {
+            "project": {"project_name": "Signed source"},
+            "hypothesis": {},
+            "setup": {},
+            "metrics": {},
+            "constraints": {},
+            "additional_context": {},
+        }
+    )
+    bundle = source_repository.export_workspace()
+
+    compare_digest_calls: list[tuple[str, str]] = []
+    original_compare_digest = repository_module.hmac.compare_digest
+
+    def tracking_compare_digest(expected: str, actual: str) -> bool:
+        compare_digest_calls.append((expected, actual))
+        return original_compare_digest(expected, actual)
+
+    monkeypatch.setattr(repository_module.hmac, "compare_digest", tracking_compare_digest)
+
+    target_repository = ProjectRepository(
+        str(target_db_path),
+        workspace_signing_key=signing_key,
+    )
+    validation = target_repository.validate_workspace_bundle(bundle)
+
+    assert validation["signature_verified"] is True
+    assert compare_digest_calls == [
+        (
+            str(bundle["integrity"]["signature_hmac_sha256"]),
+            target_repository._workspace_signature(bundle, signing_key),
+        )
+    ]
+
+
+def test_repository_rejects_signed_workspace_bundle_when_verification_key_is_unavailable() -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    source_db_path = temp_dir / f"{uuid.uuid4()}-source.sqlite3"
+    target_db_path = temp_dir / f"{uuid.uuid4()}-target.sqlite3"
+
+    source_repository = ProjectRepository(
+        str(source_db_path),
+        workspace_signing_key="0123456789abcdef-signed-backup",
+    )
+    source_repository.create_project(
+        {
+            "project": {"project_name": "Signed source"},
+            "hypothesis": {},
+            "setup": {},
+            "metrics": {},
+            "constraints": {},
+            "additional_context": {},
+        }
+    )
+    bundle = source_repository.export_workspace()
+
+    target_repository = ProjectRepository(str(target_db_path))
+
+    with pytest.raises(ApiError, match="cannot be verified") as exc_info:
+        target_repository.validate_workspace_bundle(bundle)
+    assert exc_info.value.error_code == "workspace_signature_verification_unavailable"
 
 
 def test_repository_rejects_workspace_bundle_with_duplicate_project_ids() -> None:
@@ -515,3 +664,104 @@ def test_repository_rejects_workspace_bundle_with_duplicate_project_ids() -> Non
     with pytest.raises(ApiError, match="duplicate project ids") as exc_info:
         target_repository.validate_workspace_bundle(bundle)
     assert exc_info.value.error_code == "workspace_duplicate_project_id"
+
+
+def test_repository_archives_and_restores_projects_without_destroying_history() -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+    repository = ProjectRepository(str(db_path))
+    project = repository.create_project(
+        {
+            "project": {"project_name": "Archive me"},
+            "hypothesis": {},
+            "setup": {},
+            "metrics": {},
+            "constraints": {},
+            "additional_context": {},
+        }
+    )
+
+    archive_result = repository.archive_project(project["id"])
+
+    assert archive_result is not None
+    assert archive_result["id"] == project["id"]
+    assert archive_result["archived"] is True
+    assert archive_result["archived_at"] is not None
+    assert repository.get_project(project["id"]) is None
+    archived_project = repository.get_project(project["id"], include_archived=True)
+    assert archived_project is not None
+    assert archived_project["is_archived"] is True
+    assert repository.list_projects() == []
+    archived_projects = repository.list_projects(include_archived=True)
+    assert len(archived_projects) == 1
+    assert archived_projects[0]["is_archived"] is True
+    diagnostics = repository.get_diagnostics_summary()
+    assert diagnostics["projects_total"] == 0
+    assert diagnostics["archived_projects_total"] == 1
+
+    with pytest.raises(ApiError, match="Project is archived") as exc_info:
+        repository.update_project(
+            project["id"],
+            {
+                "project": {"project_name": "Archived update"},
+                "hypothesis": {},
+                "setup": {},
+                "metrics": {},
+                "constraints": {},
+                "additional_context": {},
+            },
+        )
+    assert exc_info.value.error_code == "project_archived"
+
+    restored_project = repository.restore_project(project["id"])
+
+    assert restored_project is not None
+    assert restored_project["archived_at"] is None
+    assert restored_project["is_archived"] is False
+    assert len(repository.list_projects()) == 1
+
+
+def test_repository_hard_deletes_project_and_cascades_history() -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+    repository = ProjectRepository(str(db_path))
+    project = repository.create_project(
+        {
+            "project": {"project_name": "Delete me"},
+            "hypothesis": {},
+            "setup": {},
+            "metrics": {},
+            "constraints": {},
+            "additional_context": {},
+        }
+    )
+
+    repository.record_analysis(
+        project["id"],
+        {
+            "calculations": {
+                "calculation_summary": {"metric_type": "binary"},
+                "results": {
+                    "sample_size_per_variant": 100,
+                    "total_sample_size": 200,
+                    "estimated_duration_days": 10,
+                },
+                "warnings": [],
+            },
+            "report": {"executive_summary": "Summary"},
+            "advice": {"available": False},
+        },
+    )
+    repository.record_export(project["id"], "markdown")
+
+    delete_result = repository.delete_project(project["id"])
+
+    assert delete_result == {
+        "id": project["id"],
+        "deleted": True,
+    }
+    assert repository.get_project(project["id"], include_archived=True) is None
+    assert repository.get_project_history(project["id"]) is None
+    assert repository.get_project_revisions(project["id"]) is None

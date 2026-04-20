@@ -1,7 +1,43 @@
-from math import ceil
+from math import ceil, sqrt
 from statistics import NormalDist
 
 from app.backend.app.constants import MAX_SUPPORTED_VARIANTS
+
+
+def calculate_cuped_variance_reduction(
+    outcome_std: float,
+    pre_experiment_std: float,
+    correlation: float,
+) -> tuple[float, float]:
+    if abs(correlation) >= 1.0:
+        raise ValueError(f"Correlation must be in (-1, 1), got {correlation}")
+    if correlation == 0:
+        return outcome_std, 0.0
+
+    variance_reduction = correlation**2
+    cuped_std = outcome_std * sqrt(1 - variance_reduction)
+
+    return cuped_std, variance_reduction
+
+
+def calculate_detectable_mde_continuous(
+    n: int,
+    std_dev: float,
+    alpha: float,
+    power: float,
+) -> float:
+    if n <= 0:
+        raise ValueError("n must be positive")
+    if std_dev <= 0:
+        raise ValueError("std_dev must be positive for continuous metrics")
+    if not 0 < alpha < 1:
+        raise ValueError("alpha must be between 0 and 1")
+    if not 0 < power < 1:
+        raise ValueError("power must be between 0 and 1")
+
+    z_alpha = NormalDist().inv_cdf(1 - alpha / 2)
+    z_power = NormalDist().inv_cdf(power)
+    return (z_alpha + z_power) * std_dev * sqrt(2 / n)
 
 
 def calculate_continuous_sample_size(

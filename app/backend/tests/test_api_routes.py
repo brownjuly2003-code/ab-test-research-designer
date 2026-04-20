@@ -50,7 +50,19 @@ def _full_payload() -> dict:
             "power": 0.8,
             "std_dev": None,
             "secondary_metrics": ["add_to_cart_rate"],
-            "guardrail_metrics": ["payment_error_rate", "refund_rate"],
+            "guardrail_metrics": [
+                {
+                    "name": "Payment error rate",
+                    "metric_type": "binary",
+                    "baseline_rate": 2.4,
+                },
+                {
+                    "name": "Refund value",
+                    "metric_type": "continuous",
+                    "baseline_mean": 18.0,
+                    "std_dev": 6.5,
+                },
+            ],
         },
         "constraints": {
             "seasonality_present": True,
@@ -67,6 +79,32 @@ def _full_payload() -> dict:
             "llm_context": "Previous tests showed mixed results.",
         },
     }
+
+
+def _continuous_full_payload() -> dict:
+    payload = _full_payload()
+    payload["metrics"] = {
+        "primary_metric_name": "avg_order_value",
+        "metric_type": "continuous",
+        "baseline_value": 45.0,
+        "expected_uplift_pct": 6,
+        "mde_pct": 4.4444444444,
+        "alpha": 0.05,
+        "power": 0.8,
+        "std_dev": 12.0,
+        "cuped_pre_experiment_std": 12.0,
+        "cuped_correlation": 0.5,
+        "secondary_metrics": ["revenue_per_user"],
+        "guardrail_metrics": [
+            {
+                "name": "Refund value",
+                "metric_type": "continuous",
+                "baseline_mean": 18.0,
+                "std_dev": 6.5,
+            }
+        ],
+    }
+    return payload
 
 
 def test_calculate_endpoint_returns_deterministic_payload() -> None:
@@ -94,6 +132,60 @@ def test_calculate_endpoint_returns_deterministic_payload() -> None:
     assert float(response.headers["x-process-time-ms"]) >= 0
 
 
+def test_calculate_endpoint_returns_cuped_fields_for_continuous_metric() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/calculate",
+        json={
+            "metric_type": "continuous",
+            "baseline_value": 45.0,
+            "std_dev": 12.0,
+            "mde_pct": 4.4444444444,
+            "alpha": 0.05,
+            "power": 0.8,
+            "expected_daily_traffic": 10000,
+            "audience_share_in_test": 1.0,
+            "traffic_split": [50, 50],
+            "variants_count": 2,
+            "cuped_pre_experiment_std": 12.0,
+            "cuped_correlation": 0.5,
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["cuped_std"] == 10.3923
+    assert payload["cuped_variance_reduction_pct"] == 25.0
+    assert payload["cuped_sample_size_per_variant"] < payload["results"]["sample_size_per_variant"]
+    assert payload["cuped_duration_days"] <= payload["results"]["estimated_duration_days"]
+
+
+def test_calculate_endpoint_rejects_degenerate_cuped_correlation() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/calculate",
+        json={
+            "metric_type": "continuous",
+            "baseline_value": 45.0,
+            "std_dev": 12.0,
+            "mde_pct": 4.4444444444,
+            "alpha": 0.05,
+            "power": 0.8,
+            "expected_daily_traffic": 10000,
+            "audience_share_in_test": 1.0,
+            "traffic_split": [50, 50],
+            "variants_count": 2,
+            "cuped_pre_experiment_std": 12.0,
+            "cuped_correlation": 1.0,
+        },
+    )
+
+    assert response.status_code == 422
+    assert "less than 1" in str(response.json()["detail"])
+
+
 def test_calculate_endpoint_surfaces_bonferroni_note_for_multivariant_design() -> None:
     client = TestClient(create_app())
 
@@ -114,6 +206,26 @@ def test_calculate_endpoint_surfaces_bonferroni_note_for_multivariant_design() -
 
     assert response.status_code == 200
     assert response.json()["bonferroni_note"] is not None
+
+
+def test_sensitivity_binary() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/sensitivity",
+        json={
+            "metric_type": "binary",
+            "baseline_rate": 3.5,
+            "mde_values": [0.5, 1.0],
+            "power_values": [0.8, 0.9],
+            "daily_traffic": 10000,
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["cells"]) == 4
+    assert all("sample_size_per_variant" in cell for cell in data["cells"])
 
 
 def test_design_endpoint_builds_report_without_llm() -> None:
@@ -156,6 +268,67 @@ def test_analyze_endpoint_returns_combined_payload(monkeypatch) -> None:
     assert payload["report"]["metrics_plan"]["primary"] == ["purchase_conversion"]
     assert payload["advice"]["available"] is True
     assert payload["advice"]["advice"]["brief_assessment"] == "Combined analysis available."
+    assert len(payload["report"]["guardrail_metrics"]) == 2
+    assert payload["report"]["guardrail_metrics"][0]["name"] == "Payment error rate"
+    assert "detectable_mde_pp" in payload["report"]["guardrail_metrics"][0]
+    assert "detectable_mde_absolute" in payload["report"]["guardrail_metrics"][1]
+
+
+def test_analyze_endpoint_propagates_cuped_metrics_from_nested_payload(monkeypatch) -> None:
+    monkeypatch.setattr(
+        LocalOrchestratorAdapter,
+        "request_advice",
+        lambda self, payload: {
+            "available": False,
+            "provider": "local_orchestrator",
+            "model": "offline",
+            "advice": None,
+            "raw_text": None,
+            "error": "offline",
+            "error_code": "request_error",
+        },
+    )
+    client = TestClient(create_app())
+
+    response = client.post("/api/v1/analyze", json=_continuous_full_payload())
+
+    assert response.status_code == 200
+    payload = response.json()["calculations"]
+    assert payload["cuped_std"] == 10.3923
+    assert payload["cuped_variance_reduction_pct"] == 25.0
+    assert payload["cuped_sample_size_per_variant"] < payload["results"]["sample_size_per_variant"]
+
+
+def test_analyze_endpoint_rejects_guardrail_metric_missing_required_fields() -> None:
+    client = TestClient(create_app())
+    payload = _full_payload()
+    payload["metrics"]["guardrail_metrics"] = [
+        {
+            "name": "Revenue",
+            "metric_type": "continuous",
+        }
+    ]
+
+    response = client.post("/api/v1/analyze", json=payload)
+
+    assert response.status_code == 422
+    assert "baseline_mean" in str(response.json()["detail"])
+
+
+def test_analyze_endpoint_rejects_more_than_three_guardrail_metrics() -> None:
+    client = TestClient(create_app())
+    payload = _full_payload()
+    payload["metrics"]["guardrail_metrics"] = [
+        {"name": "Bounce rate", "metric_type": "binary", "baseline_rate": 40.0},
+        {"name": "Crash-free sessions", "metric_type": "binary", "baseline_rate": 99.2},
+        {"name": "Revenue", "metric_type": "continuous", "baseline_mean": 12.0, "std_dev": 4.0},
+        {"name": "Latency", "metric_type": "continuous", "baseline_mean": 280.0, "std_dev": 30.0},
+    ]
+
+    response = client.post("/api/v1/analyze", json=payload)
+
+    assert response.status_code == 422
+    assert "at most 3 items" in str(response.json()["detail"])
 
 
 def test_llm_advice_endpoint_returns_graceful_fallback_when_orchestrator_unavailable() -> None:
@@ -296,13 +469,14 @@ def test_diagnostics_endpoint_returns_runtime_summary(monkeypatch) -> None:
     assert payload["storage"]["db_parent_path"] == str(db_path.parent)
     assert payload["storage"]["db_size_bytes"] >= 0
     assert payload["storage"]["disk_free_bytes"] > 0
-    assert payload["storage"]["schema_version"] == 2
-    assert payload["storage"]["sqlite_user_version"] == 2
+    assert payload["storage"]["schema_version"] == 3
+    assert payload["storage"]["sqlite_user_version"] == 3
     assert payload["storage"]["journal_mode"] == "WAL"
     assert payload["storage"]["synchronous"] == "NORMAL"
     assert payload["storage"]["write_probe_ok"] is True
     assert payload["storage"]["write_probe_detail"] == "BEGIN IMMEDIATE succeeded"
     assert payload["storage"]["projects_total"] == 0
+    assert payload["storage"]["archived_projects_total"] == 0
     assert payload["storage"]["project_revisions_total"] == 0
     assert payload["frontend"]["serve_frontend_dist"] is False
     assert payload["llm"]["provider"] == "local_orchestrator"
@@ -311,12 +485,33 @@ def test_diagnostics_endpoint_returns_runtime_summary(monkeypatch) -> None:
     assert payload["auth"]["mode"] == "open"
     assert payload["auth"]["write_enabled"] is False
     assert payload["auth"]["readonly_enabled"] is False
+    assert payload["guards"]["security_headers_enabled"] is True
+    assert payload["guards"]["rate_limit_enabled"] is True
+    assert payload["guards"]["rate_limit_requests"] == 240
+    assert payload["guards"]["auth_failure_limit"] == 20
+    assert payload["guards"]["max_request_body_bytes"] == 1_048_576
+    assert payload["guards"]["max_workspace_body_bytes"] == 8_388_608
     assert payload["runtime"]["total_requests"] >= 0
     assert payload["runtime"]["success_responses"] >= 0
     assert payload["runtime"]["auth_rejections"] == 0
+    assert payload["runtime"]["rate_limited_responses"] == 0
+    assert payload["runtime"]["request_body_rejections"] == 0
     assert response.headers["x-request-id"]
     assert float(response.headers["x-process-time-ms"]) >= 0
     get_settings.cache_clear()
+
+
+def test_responses_include_security_headers() -> None:
+    client = TestClient(create_app())
+
+    response = client.get("/health")
+
+    assert response.status_code == 200
+    assert response.headers["x-content-type-options"] == "nosniff"
+    assert response.headers["x-frame-options"] == "DENY"
+    assert response.headers["referrer-policy"] == "no-referrer"
+    assert response.headers["permissions-policy"] == "camera=(), geolocation=(), microphone=()"
+    assert "default-src 'self'" in response.headers["content-security-policy"]
 
 
 def test_readyz_returns_degraded_when_frontend_dist_is_missing(monkeypatch) -> None:
@@ -373,6 +568,28 @@ def test_api_token_protects_runtime_and_api_routes(monkeypatch) -> None:
     get_settings.cache_clear()
 
 
+def test_api_rate_limiting_rejects_excess_requests(monkeypatch) -> None:
+    monkeypatch.setenv("AB_RATE_LIMIT_ENABLED", "true")
+    monkeypatch.setenv("AB_RATE_LIMIT_REQUESTS", "2")
+    monkeypatch.setenv("AB_RATE_LIMIT_WINDOW_SECONDS", "60")
+    monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")
+    get_settings.cache_clear()
+
+    with TestClient(create_app()) as client:
+        first = client.get("/api/v1/diagnostics")
+        second = client.get("/api/v1/diagnostics")
+        third = client.get("/api/v1/diagnostics")
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert third.status_code == 429
+    assert third.json()["detail"] == "Too many requests"
+    assert third.json()["error_code"] == "rate_limited"
+    assert int(third.headers["retry-after"]) >= 1
+    assert third.headers["x-content-type-options"] == "nosniff"
+    get_settings.cache_clear()
+
+
 def test_readonly_api_token_allows_safe_requests_but_blocks_mutations(monkeypatch) -> None:
     monkeypatch.setenv("AB_READONLY_API_TOKEN", "readonly-secret")
     monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")
@@ -411,6 +628,33 @@ def test_readonly_api_token_allows_safe_requests_but_blocks_mutations(monkeypatc
     assert forbidden_calculation.status_code == 403
     assert forbidden_calculation.json()["detail"] == "Forbidden"
     assert forbidden_calculation.json()["error_code"] == "forbidden"
+    get_settings.cache_clear()
+
+
+def test_auth_failure_throttling_rejects_repeated_invalid_tokens(monkeypatch) -> None:
+    monkeypatch.setenv("AB_API_TOKEN", "super-secret-token")
+    monkeypatch.setenv("AB_RATE_LIMIT_ENABLED", "true")
+    monkeypatch.setenv("AB_RATE_LIMIT_REQUESTS", "50")
+    monkeypatch.setenv("AB_AUTH_FAILURE_LIMIT", "2")
+    monkeypatch.setenv("AB_AUTH_FAILURE_WINDOW_SECONDS", "60")
+    monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")
+    get_settings.cache_clear()
+
+    with TestClient(create_app()) as client:
+        first = client.get("/api/v1/diagnostics", headers={"Authorization": "Bearer wrong-token"})
+        second = client.get("/api/v1/diagnostics", headers={"Authorization": "Bearer wrong-token"})
+        third = client.get("/api/v1/diagnostics", headers={"Authorization": "Bearer wrong-token"})
+        authorized = client.get("/api/v1/diagnostics", headers={"Authorization": "Bearer super-secret-token"})
+
+    assert first.status_code == 401
+    assert second.status_code == 401
+    assert first.json()["error_code"] == "unauthorized"
+    assert third.status_code == 429
+    assert third.json()["detail"] == "Too many unauthorized requests"
+    assert third.json()["error_code"] == "auth_rate_limited"
+    assert int(third.headers["retry-after"]) >= 1
+    assert third.headers["x-frame-options"] == "DENY"
+    assert authorized.status_code == 200
     get_settings.cache_clear()
 
 
@@ -470,6 +714,8 @@ def test_diagnostics_runtime_counters_track_errors_and_auth_rejections(monkeypat
     assert runtime["client_error_responses"] >= 1
     assert runtime["server_error_responses"] == 0
     assert runtime["auth_rejections"] >= 1
+    assert runtime["rate_limited_responses"] == 0
+    assert runtime["request_body_rejections"] == 0
     assert runtime["last_error_code"] == "forbidden"
     assert runtime["last_error_at"] is not None
     assert runtime["last_request_at"] is not None

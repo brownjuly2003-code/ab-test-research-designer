@@ -1,8 +1,14 @@
 // This file is auto-generated from FastAPI OpenAPI components.
 // Do not edit manually. Run `python scripts/generate_frontend_api_types.py`.
 
-export type AdditionalContext = {
+export type AdditionalContext_Input = {
   llm_context?: string;
+  observed_results?: SavedObservedResults_Input | null;
+};
+
+export type AdditionalContext_Output = {
+  llm_context?: string;
+  observed_results?: SavedObservedResults_Output | null;
 };
 
 export type AdvicePayload = {
@@ -47,6 +53,8 @@ export type CalculationRequest = {
   metric_type: "binary" | "continuous";
   baseline_value: number;
   std_dev?: number | null;
+  cuped_pre_experiment_std?: number | null;
+  cuped_correlation?: number | null;
   mde_pct: number;
   alpha: number;
   power: number;
@@ -54,9 +62,14 @@ export type CalculationRequest = {
   audience_share_in_test: number;
   traffic_split: number[];
   variants_count: number;
+  actual_counts?: number[] | null;
   seasonality_present?: boolean | null;
   active_campaigns_present?: boolean | null;
   long_test_possible?: boolean | null;
+  n_looks?: number;
+  analysis_mode?: "frequentist" | "bayesian";
+  desired_precision?: number | null;
+  credibility?: number;
 };
 
 export type CalculationResponse = {
@@ -65,6 +78,16 @@ export type CalculationResponse = {
   assumptions: string[];
   warnings: WarningResponse[];
   bonferroni_note?: string | null;
+  bayesian_sample_size_per_variant?: number | null;
+  bayesian_credibility?: number | null;
+  bayesian_note?: string | null;
+  sequential_boundaries?: { [key: string]: unknown; }[] | null;
+  sequential_inflation_factor?: number | null;
+  sequential_adjusted_sample_size?: number | null;
+  cuped_std?: number | null;
+  cuped_sample_size_per_variant?: number | null;
+  cuped_variance_reduction_pct?: number | null;
+  cuped_duration_days?: number | null;
 };
 
 export type CalculationResultsResponse = {
@@ -100,6 +123,10 @@ export type ConstraintsConfig = {
   known_risks: string;
   deadline_pressure: string;
   long_test_possible: boolean;
+  n_looks?: number;
+  analysis_mode?: "frequentist" | "bayesian";
+  desired_precision?: number | null;
+  credibility?: number;
 };
 
 export type DiagnosticsAuthSummary = {
@@ -115,6 +142,17 @@ export type DiagnosticsFrontendSummary = {
   serve_frontend_dist: boolean;
   dist_path: string;
   dist_exists: boolean;
+};
+
+export type DiagnosticsGuardsSummary = {
+  security_headers_enabled: boolean;
+  rate_limit_enabled: boolean;
+  rate_limit_requests: number;
+  rate_limit_window_seconds: number;
+  auth_failure_limit: number;
+  auth_failure_window_seconds: number;
+  max_request_body_bytes: number;
+  max_workspace_body_bytes: number;
 };
 
 export type DiagnosticsLlmSummary = {
@@ -144,6 +182,7 @@ export type DiagnosticsResponse = {
   llm: DiagnosticsLlmSummary;
   logging: DiagnosticsLoggingSummary;
   auth: DiagnosticsAuthSummary;
+  guards: DiagnosticsGuardsSummary;
   runtime: DiagnosticsRuntimeSummary;
 };
 
@@ -153,6 +192,8 @@ export type DiagnosticsRuntimeSummary = {
   client_error_responses: number;
   server_error_responses: number;
   auth_rejections: number;
+  rate_limited_responses?: number;
+  request_body_rejections?: number;
   last_request_at?: string | null;
   last_error_at?: string | null;
   last_error_code?: string | null;
@@ -172,9 +213,12 @@ export type DiagnosticsStorageSummary = {
   write_probe_ok: boolean;
   write_probe_detail: string;
   projects_total: number;
+  archived_projects_total: number;
   analysis_runs_total: number;
   export_events_total: number;
   project_revisions_total: number;
+  workspace_bundle_schema_version: number;
+  workspace_signature_enabled: boolean;
   latest_project_updated_at?: string | null;
 };
 
@@ -189,13 +233,22 @@ export type ExperimentDesignSection = {
   stopping_conditions: string[];
 };
 
-export type ExperimentInput = {
+export type ExperimentInput_Input = {
   project: ProjectContext;
   hypothesis: HypothesisContext;
   setup: ExperimentSetup;
   metrics: MetricsConfig;
   constraints: ConstraintsConfig;
-  additional_context?: AdditionalContext;
+  additional_context?: AdditionalContext_Input;
+};
+
+export type ExperimentInput_Output = {
+  project: ProjectContext;
+  hypothesis: HypothesisContext;
+  setup: ExperimentSetup;
+  metrics: MetricsConfig;
+  constraints: ConstraintsConfig;
+  additional_context?: AdditionalContext_Output;
 };
 
 export type ExperimentReport_Input = {
@@ -203,6 +256,7 @@ export type ExperimentReport_Input = {
   calculations: CalculationsSection;
   experiment_design: ExperimentDesignSection;
   metrics_plan: MetricsPlanSection;
+  guardrail_metrics?: GuardrailMetricReport[];
   risks: RisksSection;
   recommendations: RecommendationsSection;
   open_questions: string[];
@@ -213,6 +267,7 @@ export type ExperimentReport_Output = {
   calculations: CalculationsSection;
   experiment_design: ExperimentDesignSection;
   metrics_plan: MetricsPlanSection;
+  guardrail_metrics?: GuardrailMetricReport[];
   risks: RisksSection;
   recommendations: RecommendationsSection;
   open_questions: string[];
@@ -239,6 +294,23 @@ export type ExportEventRecord = {
 
 export type ExportResponse = {
   content: string;
+};
+
+export type GuardrailMetricInput = {
+  name: string;
+  metric_type: "binary" | "continuous";
+  baseline_rate?: number | null;
+  baseline_mean?: number | null;
+  std_dev?: number | null;
+};
+
+export type GuardrailMetricReport = {
+  name: string;
+  metric_type: string;
+  baseline: number;
+  detectable_mde_pp?: number | null;
+  detectable_mde_absolute?: number | null;
+  note: string;
 };
 
 export type HTTPValidationError = {
@@ -292,8 +364,10 @@ export type MetricsConfig = {
   alpha: number;
   power: number;
   std_dev?: number | null;
+  cuped_pre_experiment_std?: number | null;
+  cuped_correlation?: number | null;
   secondary_metrics?: string[];
-  guardrail_metrics?: string[];
+  guardrail_metrics?: GuardrailMetricInput[];
 };
 
 export type MetricsPlanSection = {
@@ -301,6 +375,30 @@ export type MetricsPlanSection = {
   secondary: string[];
   guardrail: string[];
   diagnostic: string[];
+};
+
+export type ObservedResultsBinary = {
+  control_conversions: number;
+  control_users: number;
+  treatment_conversions: number;
+  treatment_users: number;
+  alpha?: number;
+};
+
+export type ObservedResultsContinuous = {
+  control_mean: number;
+  control_std: number;
+  control_n: number;
+  treatment_mean: number;
+  treatment_std: number;
+  treatment_n: number;
+  alpha?: number;
+};
+
+export type ProjectArchiveResponse = {
+  id: string;
+  archived: boolean;
+  archived_at?: string | null;
 };
 
 export type ProjectComparisonDelta = {
@@ -385,6 +483,8 @@ export type ProjectListItem = {
   id: string;
   project_name: string;
   payload_schema_version: number;
+  archived_at?: string | null;
+  is_archived?: boolean;
   revision_count?: number;
   last_revision_at?: string | null;
   last_analysis_at?: string | null;
@@ -403,6 +503,8 @@ export type ProjectRecord = {
   id: string;
   project_name: string;
   payload_schema_version: number;
+  archived_at?: string | null;
+  is_archived?: boolean;
   revision_count?: number;
   last_revision_at?: string | null;
   last_analysis_at?: string | null;
@@ -411,7 +513,7 @@ export type ProjectRecord = {
   has_analysis_snapshot?: boolean;
   created_at: string;
   updated_at: string;
-  payload: ExperimentInput;
+  payload: ExperimentInput_Output;
 };
 
 export type ProjectRevisionHistoryResponse = {
@@ -427,7 +529,7 @@ export type ProjectRevisionRecord = {
   project_id: string;
   source: "create" | "update" | "workspace_import";
   created_at: string;
-  payload: ExperimentInput;
+  payload: ExperimentInput_Output;
 };
 
 export type ReadinessCheck = {
@@ -448,11 +550,97 @@ export type RecommendationsSection = {
   after_test: string[];
 };
 
+export type ResultsRequest = {
+  metric_type: "binary" | "continuous";
+  binary?: ObservedResultsBinary | null;
+  continuous?: ObservedResultsContinuous | null;
+};
+
+export type ResultsResponse = {
+  metric_type: string;
+  observed_effect: number;
+  observed_effect_relative: number;
+  control_rate?: number | null;
+  treatment_rate?: number | null;
+  ci_lower: number;
+  ci_upper: number;
+  ci_level: number;
+  p_value: number;
+  test_statistic: number;
+  is_significant: boolean;
+  power_achieved: number;
+  verdict: string;
+  interpretation: string;
+};
+
 export type RisksSection = {
   statistical: string[];
   product: string[];
   technical: string[];
   operational: string[];
+};
+
+export type SavedObservedResults_Input = {
+  request: ResultsRequest;
+  analysis: ResultsResponse;
+  saved_at?: string | null;
+};
+
+export type SavedObservedResults_Output = {
+  request: ResultsRequest;
+  analysis: ResultsResponse;
+  saved_at?: string | null;
+};
+
+export type SensitivityCell = {
+  mde: number;
+  power: number;
+  sample_size_per_variant: number;
+  duration_days: number;
+};
+
+export type SensitivityRequest = {
+  metric_type: "binary" | "continuous";
+  baseline_rate?: number | null;
+  baseline_mean?: number | null;
+  std_dev?: number | null;
+  variants?: number;
+  alpha?: number;
+  daily_traffic?: number;
+  audience_share?: number;
+  traffic_split?: number[] | null;
+  mde_values?: number[];
+  power_values?: number[];
+};
+
+export type SensitivityResponse = {
+  cells: SensitivityCell[];
+  current_mde?: number | null;
+  current_power?: number | null;
+};
+
+export type SrmCheckRequest = {
+  observed_counts: number[];
+  expected_fractions: number[];
+};
+
+export type SrmCheckResponse = {
+  chi_square: number;
+  p_value: number;
+  is_srm: boolean;
+  verdict: string;
+  observed_counts: number[];
+  expected_counts: number[];
+};
+
+export type StandaloneExportRequest = {
+  project_name: string;
+  hypothesis?: string | null;
+  calculation: { [key: string]: unknown; };
+  design: { [key: string]: unknown; };
+  ai_advice?: { [key: string]: unknown; } | null;
+  sensitivity?: { [key: string]: unknown; } | null;
+  results?: { [key: string]: unknown; } | null;
 };
 
 export type ValidationError = {
@@ -528,6 +716,7 @@ export type WorkspaceImportResponse = {
 export type WorkspaceIntegrity = {
   counts: WorkspaceIntegrityCounts;
   checksum_sha256: string;
+  signature_hmac_sha256?: string | null;
 };
 
 export type WorkspaceIntegrityCounts = {
@@ -541,24 +730,26 @@ export type WorkspaceProjectRecord_Input = {
   id: string;
   project_name: string;
   payload_schema_version: number;
+  archived_at?: string | null;
   last_analysis_at?: string | null;
   last_analysis_run_id?: string | null;
   last_exported_at?: string | null;
   created_at: string;
   updated_at: string;
-  payload: ExperimentInput;
+  payload: ExperimentInput_Input;
 };
 
 export type WorkspaceProjectRecord_Output = {
   id: string;
   project_name: string;
   payload_schema_version: number;
+  archived_at?: string | null;
   last_analysis_at?: string | null;
   last_analysis_run_id?: string | null;
   last_exported_at?: string | null;
   created_at: string;
   updated_at: string;
-  payload: ExperimentInput;
+  payload: ExperimentInput_Output;
 };
 
 export type WorkspaceProjectRevisionRecord_Input = {
@@ -566,7 +757,7 @@ export type WorkspaceProjectRevisionRecord_Input = {
   project_id: string;
   source: "create" | "update" | "workspace_import";
   created_at: string;
-  payload: ExperimentInput;
+  payload: ExperimentInput_Input;
 };
 
 export type WorkspaceProjectRevisionRecord_Output = {
@@ -574,7 +765,7 @@ export type WorkspaceProjectRevisionRecord_Output = {
   project_id: string;
   source: "create" | "update" | "workspace_import";
   created_at: string;
-  payload: ExperimentInput;
+  payload: ExperimentInput_Output;
 };
 
 export type WorkspaceValidationResponse = {
@@ -582,4 +773,5 @@ export type WorkspaceValidationResponse = {
   schema_version: number;
   counts: WorkspaceIntegrityCounts;
   checksum_sha256: string;
+  signature_verified?: boolean;
 };

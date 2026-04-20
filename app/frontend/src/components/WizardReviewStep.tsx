@@ -1,7 +1,11 @@
+import type { RefObject } from "react";
+
 import { getReviewSections, type FullPayload } from "../lib/experiment";
 import Spinner from "./Spinner";
+import styles from "./WizardDraftStep.module.css";
 
 type WizardReviewStepProps = {
+  headingRef?: RefObject<HTMLHeadingElement | null>;
   form: FullPayload;
   activeProjectId: string | null;
   hasUnsavedChanges: boolean;
@@ -20,6 +24,7 @@ type WizardReviewStepProps = {
 };
 
 export default function WizardReviewStep({
+  headingRef,
   form,
   activeProjectId,
   hasUnsavedChanges,
@@ -39,8 +44,8 @@ export default function WizardReviewStep({
   const reviewSections = getReviewSections(form);
 
   return (
-    <div className="section step-content">
-      <h2>Review inputs</h2>
+    <div className={`${styles.section} ${styles["step-content"]}`}>
+      <h2 ref={headingRef} tabIndex={-1}>Review inputs</h2>
       <div className="note">
         <strong>{activeProjectId ? "Reviewing a saved project" : "Reviewing a new draft"}</strong>
         <div className="muted">
@@ -91,10 +96,20 @@ export default function WizardReviewStep({
         <button className="btn ghost" disabled={loading || saving || importingDraft} onClick={onExportDraft}>
           Export draft JSON
         </button>
-        <button className="btn ghost" disabled={!canMutateBackend || loading || saving} onClick={onSave}>
+        <button
+          className="btn ghost"
+          disabled={!canMutateBackend || loading || saving}
+          title={activeProjectId ? "Update project (Ctrl+S)" : "Save project (Ctrl+S)"}
+          onClick={onSave}
+        >
           {saving ? <><Spinner /> Saving...</> : activeProjectId ? "Update project" : "Save project"}
         </button>
-        <button className="btn primary" disabled={!canMutateBackend || loading} onClick={onRunAnalysis}>
+        <button
+          className="btn primary"
+          disabled={!canMutateBackend || loading}
+          title="Run analysis (Ctrl+Enter)"
+          onClick={onRunAnalysis}
+        >
           {loading ? <><Spinner /> Analyzing...</> : "Run analysis"}
         </button>
       </div>

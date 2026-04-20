@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 import sys
 import uuid
@@ -8,6 +9,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
 from app.backend.app.config import get_settings
 from app.backend.app.main import create_app
+from app.backend.app.repository import ProjectRepository
 
 
 def _payload(name: str) -> dict:
@@ -48,7 +50,19 @@ def _payload(name: str) -> dict:
             "power": 0.8,
             "std_dev": None,
             "secondary_metrics": ["add_to_cart_rate"],
-            "guardrail_metrics": ["payment_error_rate", "refund_rate"],
+            "guardrail_metrics": [
+                {
+                    "name": "Payment error rate",
+                    "metric_type": "binary",
+                    "baseline_rate": 2.4,
+                },
+                {
+                    "name": "Refund value",
+                    "metric_type": "continuous",
+                    "baseline_mean": 18.0,
+                    "std_dev": 6.5,
+                },
+            ],
         },
         "constraints": {
             "seasonality_present": True,
@@ -174,6 +188,7 @@ def test_projects_crud_flow(monkeypatch) -> None:
         assert list_response.status_code == 200
         assert len(list_response.json()["projects"]) == 1
         assert list_response.json()["projects"][0]["payload_schema_version"] == 1
+        assert list_response.json()["projects"][0]["is_archived"] is False
         assert list_response.json()["projects"][0]["revision_count"] == 1
 
         get_response = client.get(f"/api/v1/projects/{created['id']}")
@@ -303,14 +318,72 @@ def test_projects_crud_flow(monkeypatch) -> None:
         assert updated_history_payload["export_events"][0]["format"] == "markdown"
         assert updated_history_payload["export_events"][0]["analysis_run_id"] is None
 
-        delete_response = client.delete(f"/api/v1/projects/{created['id']}")
-        assert delete_response.status_code == 200
-        assert delete_response.json() == {"id": created["id"], "deleted": True}
+        archive_response = client.post(f"/api/v1/projects/{created['id']}/archive")
+        assert archive_response.status_code == 200
+        assert archive_response.json()["id"] == created["id"]
+        assert archive_response.json()["archived"] is True
+        assert archive_response.json()["archived_at"] is not None
+
+        active_projects_response = client.get("/api/v1/projects")
+        assert active_projects_response.status_code == 200
+        assert active_projects_response.json()["projects"] == []
+
+        archived_projects_response = client.get("/api/v1/projects", params={"include_archived": True})
+        assert archived_projects_response.status_code == 200
+        assert len(archived_projects_response.json()["projects"]) == 1
+        assert archived_projects_response.json()["projects"][0]["is_archived"] is True
 
         missing_response = client.get(f"/api/v1/projects/{created['id']}")
         assert missing_response.status_code == 404
         assert missing_response.json()["error_code"] == "not_found"
         assert missing_response.json()["status_code"] == 404
+
+        restore_response = client.post(f"/api/v1/projects/{created['id']}/restore")
+        assert restore_response.status_code == 200
+        assert restore_response.json()["is_archived"] is False
+        assert restore_response.json()["archived_at"] is None
+
+        restored_response = client.get(f"/api/v1/projects/{created['id']}")
+        assert restored_response.status_code == 200
+        assert restored_response.json()["project_name"] == "Checkout redesign v2"
+
+
+def test_delete_endpoint_permanently_removes_project_and_history(monkeypatch) -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+
+    monkeypatch.setenv("AB_DB_PATH", str(db_path))
+    get_settings.cache_clear()
+
+    with TestClient(create_app()) as client:
+        created = client.post("/api/v1/projects", json=_payload("Permanent delete")).json()
+        analysis_response = client.post(
+            f"/api/v1/projects/{created['id']}/analysis",
+            json=_analysis_payload(
+                total_sample_size=200,
+                estimated_duration_days=10,
+                executive_summary="Delete summary",
+                warning_codes=[],
+            ),
+        )
+        assert analysis_response.status_code == 200
+
+        delete_response = client.delete(f"/api/v1/projects/{created['id']}")
+        assert delete_response.status_code == 200
+        assert delete_response.json() == {
+            "id": created["id"],
+            "deleted": True,
+        }
+
+        get_response = client.get(f"/api/v1/projects/{created['id']}")
+        history_response = client.get(f"/api/v1/projects/{created['id']}/history")
+        revisions_response = client.get(f"/api/v1/projects/{created['id']}/revisions")
+
+        assert get_response.status_code == 404
+        assert history_response.status_code == 404
+        assert revisions_response.status_code == 404
+        assert client.get("/api/v1/projects", params={"include_archived": True}).json()["projects"] == []
 
 
 def test_projects_compare_endpoint_returns_saved_snapshot_differences(monkeypatch) -> None:
@@ -446,8 +519,9 @@ def test_workspace_export_and_import_routes_round_trip_history(monkeypatch) -> N
         workspace_export = client.get("/api/v1/workspace/export")
         assert workspace_export.status_code == 200
         workspace_bundle = workspace_export.json()
-        assert workspace_bundle["schema_version"] == 2
+        assert workspace_bundle["schema_version"] == 3
         assert len(workspace_bundle["projects"]) == 1
+        assert workspace_bundle["projects"][0]["archived_at"] is None
         assert len(workspace_bundle["analysis_runs"]) == 1
         assert len(workspace_bundle["export_events"]) == 1
         assert len(workspace_bundle["project_revisions"]) == 1
@@ -463,7 +537,7 @@ def test_workspace_export_and_import_routes_round_trip_history(monkeypatch) -> N
         assert workspace_validation.status_code == 200
         assert workspace_validation.json() == {
             "status": "valid",
-            "schema_version": 2,
+            "schema_version": 3,
             "counts": {
                 "projects": 1,
                 "analysis_runs": 1,
@@ -471,6 +545,7 @@ def test_workspace_export_and_import_routes_round_trip_history(monkeypatch) -> N
                 "project_revisions": 1,
             },
             "checksum_sha256": workspace_bundle["integrity"]["checksum_sha256"],
+            "signature_verified": False,
         }
 
         workspace_import = client.post("/api/v1/workspace/import", json=workspace_bundle)
@@ -490,6 +565,33 @@ def test_workspace_export_and_import_routes_round_trip_history(monkeypatch) -> N
         assert len(projects) == 2
         assert sum(1 for project in projects if project["project_name"] == "Workspace source") == 2
         assert all(project["revision_count"] == 1 for project in projects)
+
+
+def test_archived_projects_round_trip_through_workspace_bundle(monkeypatch) -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+
+    monkeypatch.setenv("AB_DB_PATH", str(db_path))
+    get_settings.cache_clear()
+
+    with TestClient(create_app()) as client:
+        created_project = client.post("/api/v1/projects", json=_payload("Archive source")).json()
+        archive_response = client.post(f"/api/v1/projects/{created_project['id']}/archive")
+        assert archive_response.status_code == 200
+
+        workspace_bundle = client.get("/api/v1/workspace/export").json()
+        assert workspace_bundle["projects"][0]["archived_at"] is not None
+
+        imported = client.post("/api/v1/workspace/import", json=workspace_bundle)
+        assert imported.status_code == 200
+
+        active_projects = client.get("/api/v1/projects").json()["projects"]
+        archived_projects = client.get("/api/v1/projects", params={"include_archived": True}).json()["projects"]
+
+        assert active_projects == []
+        assert len(archived_projects) == 2
+        assert all(project["is_archived"] is True for project in archived_projects)
 
 
 def test_workspace_import_rejects_tampered_bundle(monkeypatch) -> None:
@@ -513,6 +615,116 @@ def test_workspace_import_rejects_tampered_bundle(monkeypatch) -> None:
         assert workspace_import.status_code == 400
         assert workspace_import.json()["detail"] == "Workspace bundle checksum mismatch"
         assert workspace_import.json()["error_code"] == "workspace_integrity_checksum_mismatch"
+
+
+def test_workspace_export_and_import_support_signed_bundles(monkeypatch) -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+
+    monkeypatch.setenv("AB_DB_PATH", str(db_path))
+    monkeypatch.setenv("AB_WORKSPACE_SIGNING_KEY", "0123456789abcdef-signed-backup")
+    get_settings.cache_clear()
+
+    with TestClient(create_app()) as client:
+        client.post("/api/v1/projects", json=_payload("Signed workspace source"))
+        diagnostics = client.get("/api/v1/diagnostics")
+        assert diagnostics.status_code == 200
+        assert diagnostics.json()["storage"]["workspace_signature_enabled"] is True
+
+        workspace_bundle = client.get("/api/v1/workspace/export").json()
+        assert len(workspace_bundle["integrity"]["signature_hmac_sha256"]) == 64
+
+        workspace_validation = client.post("/api/v1/workspace/validate", json=workspace_bundle)
+        assert workspace_validation.status_code == 200
+        assert workspace_validation.json()["signature_verified"] is True
+
+        workspace_import = client.post("/api/v1/workspace/import", json=workspace_bundle)
+        assert workspace_import.status_code == 200
+
+
+def test_projects_api_rejects_oversized_request_body(monkeypatch) -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+
+    monkeypatch.setenv("AB_DB_PATH", str(db_path))
+    monkeypatch.setenv("AB_MAX_REQUEST_BODY_BYTES", "1024")
+    get_settings.cache_clear()
+
+    payload = _payload("Oversized project")
+    payload["project"]["project_description"] = "x" * 4000
+
+    with TestClient(create_app()) as client:
+        create_response = client.post("/api/v1/projects", json=payload)
+        projects_response = client.get("/api/v1/projects")
+
+    assert create_response.status_code == 413
+    assert create_response.json()["detail"] == "Request body exceeds limit of 1024 bytes"
+    assert create_response.json()["error_code"] == "request_body_too_large"
+    assert projects_response.status_code == 200
+    assert projects_response.json()["projects"] == []
+    get_settings.cache_clear()
+
+
+def test_workspace_routes_use_dedicated_body_limit(monkeypatch) -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}-target.sqlite3"
+
+    monkeypatch.setenv("AB_DB_PATH", str(db_path))
+    monkeypatch.setenv("AB_MAX_REQUEST_BODY_BYTES", "1024")
+    monkeypatch.setenv("AB_MAX_WORKSPACE_BODY_BYTES", "32768")
+    get_settings.cache_clear()
+
+    repository = ProjectRepository(str(db_path))
+    source_payload = _payload("Workspace limit source")
+    source_payload["project"]["project_description"] = "x" * 6000
+    repository.create_project(source_payload)
+
+    with TestClient(create_app()) as client:
+        workspace_bundle = client.get("/api/v1/workspace/export").json()
+        assert len(json.dumps(workspace_bundle).encode("utf-8")) > 1024
+        validate_response = client.post("/api/v1/workspace/validate", json=workspace_bundle)
+
+    assert validate_response.status_code == 200
+    assert validate_response.json()["status"] == "valid"
+    get_settings.cache_clear()
+
+
+def test_workspace_import_rejects_signature_mismatch(monkeypatch) -> None:
+    import hashlib
+    import json
+
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+
+    monkeypatch.setenv("AB_DB_PATH", str(db_path))
+    monkeypatch.setenv("AB_WORKSPACE_SIGNING_KEY", "0123456789abcdef-signed-backup")
+    get_settings.cache_clear()
+
+    with TestClient(create_app()) as client:
+        client.post("/api/v1/projects", json=_payload("Signed workspace source"))
+        workspace_bundle = client.get("/api/v1/workspace/export").json()
+        workspace_bundle["projects"][0]["project_name"] = "Tampered signed source"
+        payload = {
+            "schema_version": workspace_bundle["schema_version"],
+            "generated_at": workspace_bundle["generated_at"],
+            "projects": workspace_bundle["projects"],
+            "analysis_runs": workspace_bundle["analysis_runs"],
+            "export_events": workspace_bundle["export_events"],
+            "project_revisions": workspace_bundle["project_revisions"],
+        }
+        workspace_bundle["integrity"]["checksum_sha256"] = hashlib.sha256(
+            json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        ).hexdigest()
+
+        workspace_import = client.post("/api/v1/workspace/import", json=workspace_bundle)
+
+        assert workspace_import.status_code == 400
+        assert workspace_import.json()["detail"] == "Workspace bundle signature mismatch"
+        assert workspace_import.json()["error_code"] == "workspace_signature_mismatch"
 
 
 def test_workspace_validate_rejects_duplicate_project_ids(monkeypatch) -> None:

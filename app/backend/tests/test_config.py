@@ -66,3 +66,37 @@ def test_settings_reject_too_short_readonly_api_token(monkeypatch) -> None:
         get_settings()
 
     get_settings.cache_clear()
+
+
+def test_settings_reject_too_short_workspace_signing_key(monkeypatch) -> None:
+    monkeypatch.setenv("AB_WORKSPACE_SIGNING_KEY", "too-short-key")
+    get_settings.cache_clear()
+
+    with pytest.raises(ValueError, match="AB_WORKSPACE_SIGNING_KEY must be at least 16 characters when configured"):
+        get_settings()
+
+    get_settings.cache_clear()
+
+
+def test_settings_reject_invalid_rate_limit_toggle(monkeypatch) -> None:
+    monkeypatch.setenv("AB_RATE_LIMIT_ENABLED", "sometimes")
+    get_settings.cache_clear()
+
+    with pytest.raises(ValueError, match="AB_RATE_LIMIT_ENABLED must be a boolean"):
+        get_settings()
+
+    get_settings.cache_clear()
+
+
+def test_settings_reject_workspace_body_limit_smaller_than_general_limit(monkeypatch) -> None:
+    monkeypatch.setenv("AB_MAX_REQUEST_BODY_BYTES", "4096")
+    monkeypatch.setenv("AB_MAX_WORKSPACE_BODY_BYTES", "2048")
+    get_settings.cache_clear()
+
+    with pytest.raises(
+        ValueError,
+        match="AB_MAX_WORKSPACE_BODY_BYTES must be greater than or equal to AB_MAX_REQUEST_BODY_BYTES",
+    ):
+        get_settings()
+
+    get_settings.cache_clear()

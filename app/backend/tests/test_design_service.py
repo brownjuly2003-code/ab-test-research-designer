@@ -45,7 +45,19 @@ def test_design_service_builds_report_without_llm() -> None:
             "power": 0.8,
             "std_dev": None,
             "secondary_metrics": ["add_to_cart_rate"],
-            "guardrail_metrics": ["payment_error_rate", "refund_rate"],
+            "guardrail_metrics": [
+                {
+                    "name": "Payment error rate",
+                    "metric_type": "binary",
+                    "baseline_rate": 2.4,
+                },
+                {
+                    "name": "Refund value",
+                    "metric_type": "continuous",
+                    "baseline_mean": 18.0,
+                    "std_dev": 6.5,
+                },
+            ],
         },
         "constraints": {
             "seasonality_present": True,
@@ -83,6 +95,8 @@ def test_design_service_builds_report_without_llm() -> None:
     assert report["calculations"]["sample_size_per_variant"] > 0
     assert report["experiment_design"]["variants"][0]["name"] == "A"
     assert report["metrics_plan"]["primary"] == ["purchase_conversion"]
+    assert report["metrics_plan"]["guardrail"] == ["Payment error rate", "Refund value"]
+    assert len(report["guardrail_metrics"]) == 2
     assert "statistical" in report["risks"]
     assert len(report["recommendations"]["before_launch"]) >= 1
     assert len(report["open_questions"]) >= 1
