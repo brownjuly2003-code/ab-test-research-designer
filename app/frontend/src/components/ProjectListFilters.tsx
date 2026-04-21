@@ -1,0 +1,107 @@
+import { useEffect, useState } from "react";
+
+type ProjectListFiltersProps = {
+  query: string;
+  status: "active" | "archived" | "all";
+  metricType: "all" | "binary" | "continuous";
+  sortBy: "updated_desc" | "name_asc" | "duration_asc";
+  onQueryChange: (value: string) => void;
+  onStatusChange: (value: "active" | "archived" | "all") => void;
+  onMetricTypeChange: (value: "all" | "binary" | "continuous") => void;
+  onSortByChange: (value: "updated_desc" | "name_asc" | "duration_asc") => void;
+  onClearFilters: () => void;
+};
+
+export default function ProjectListFilters({
+  query,
+  status,
+  metricType,
+  sortBy,
+  onQueryChange,
+  onStatusChange,
+  onMetricTypeChange,
+  onSortByChange,
+  onClearFilters,
+}: ProjectListFiltersProps) {
+  const [draftQuery, setDraftQuery] = useState(query);
+  const hasActiveFilters = query.trim().length > 0 || status !== "active" || metricType !== "all" || sortBy !== "updated_desc";
+
+  useEffect(() => {
+    setDraftQuery(query);
+  }, [query]);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      if (draftQuery !== query) {
+        onQueryChange(draftQuery);
+      }
+    }, 300);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [draftQuery, onQueryChange, query]);
+
+  return (
+    <div style={{ display: "grid", gap: 12, marginTop: 12 }}>
+      <div className="field">
+        <label htmlFor="saved-projects-search">Search experiments</label>
+        <input
+          id="saved-projects-search"
+          type="text"
+          placeholder="Filter by name or hypothesis"
+          value={draftQuery}
+          onChange={(event) => setDraftQuery(event.target.value)}
+        />
+      </div>
+      <div
+        style={{
+          display: "grid",
+          gap: 12,
+          gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
+          alignItems: "end",
+        }}
+      >
+        <div className="field">
+          <label htmlFor="saved-projects-status">Status</label>
+          <select
+            id="saved-projects-status"
+            value={status}
+            onChange={(event) => onStatusChange(event.target.value as "active" | "archived" | "all")}
+          >
+            <option value="active">Active</option>
+            <option value="archived">Archived</option>
+            <option value="all">All</option>
+          </select>
+        </div>
+        <div className="field">
+          <label htmlFor="saved-projects-metric-type">Metric type</label>
+          <select
+            id="saved-projects-metric-type"
+            value={metricType}
+            onChange={(event) => onMetricTypeChange(event.target.value as "all" | "binary" | "continuous")}
+          >
+            <option value="all">All</option>
+            <option value="binary">Binary</option>
+            <option value="continuous">Continuous</option>
+          </select>
+        </div>
+        <div className="field">
+          <label htmlFor="saved-projects-sort">Sort</label>
+          <select
+            id="saved-projects-sort"
+            value={sortBy}
+            onChange={(event) => onSortByChange(event.target.value as "updated_desc" | "name_asc" | "duration_asc")}
+          >
+            <option value="updated_desc">Last updated</option>
+            <option value="name_asc">Name</option>
+            <option value="duration_asc">Duration</option>
+          </select>
+        </div>
+        <div className="actions" style={{ justifyContent: "flex-start" }}>
+          <button className="btn ghost" type="button" disabled={!hasActiveFilters} onClick={onClearFilters}>
+            Clear filters
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

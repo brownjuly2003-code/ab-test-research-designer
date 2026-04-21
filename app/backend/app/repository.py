@@ -402,6 +402,20 @@ class ProjectRepository:
                 SELECT
                     projects.id,
                     projects.project_name,
+                    json_extract(projects.payload_json, '$.hypothesis.hypothesis_statement') AS hypothesis,
+                    json_extract(projects.payload_json, '$.metrics.metric_type') AS metric_type,
+                    CAST(
+                        json_extract(
+                            (
+                                SELECT analysis_json
+                                FROM analysis_runs
+                                WHERE analysis_runs.project_id = projects.id
+                                ORDER BY created_at DESC, id DESC
+                                LIMIT 1
+                            ),
+                            '$.report.calculations.estimated_duration_days'
+                        ) AS INTEGER
+                    ) AS duration_days,
                     projects.payload_schema_version,
                     projects.archived_at,
                     (
@@ -427,6 +441,122 @@ class ProjectRepository:
                 """
             ).fetchall()
         return [self._project_list_row_to_record(row) for row in rows]
+
+    def query_projects(
+        self,
+        *,
+        q: str | None = None,
+        status: str = "active",
+        metric_type: str = "all",
+        sort_by: str = "updated_at",
+        sort_dir: str = "desc",
+        limit: int = 50,
+        offset: int = 0,
+    ) -> dict:
+        limit = max(1, min(int(limit), 200))
+        offset = max(0, int(offset))
+        normalized_query = q.strip().lower() if isinstance(q, str) else ""
+        normalized_status = status if status in {"active", "archived", "all"} else "active"
+        normalized_metric_type = metric_type if metric_type in {"binary", "continuous", "all"} else "all"
+        normalized_sort_by = sort_by if sort_by in {"created_at", "updated_at", "name", "duration_days"} else "updated_at"
+        normalized_sort_dir = "ASC" if str(sort_dir).lower() == "asc" else "DESC"
+        where_clauses: list[str] = []
+        params: list[object] = []
+
+        if normalized_status == "active":
+            where_clauses.append("projects.archived_at IS NULL")
+        elif normalized_status == "archived":
+            where_clauses.append("projects.archived_at IS NOT NULL")
+
+        if normalized_metric_type != "all":
+            where_clauses.append("json_extract(projects.payload_json, '$.metrics.metric_type') = ?")
+            params.append(normalized_metric_type)
+
+        if normalized_query:
+            like_pattern = f"%{normalized_query}%"
+            where_clauses.append(
+                """
+                (
+                    lower(projects.project_name) LIKE ?
+                    OR lower(COALESCE(json_extract(projects.payload_json, '$.hypothesis.hypothesis_statement'), '')) LIKE ?
+                    OR lower(COALESCE(json_extract(projects.payload_json, '$.hypothesis.change_description'), '')) LIKE ?
+                )
+                """
+            )
+            params.extend([like_pattern, like_pattern, like_pattern])
+
+        where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
+        if normalized_sort_by == "name":
+            order_sql = f"ORDER BY lower(projects.project_name) {normalized_sort_dir}, projects.updated_at DESC"
+        elif normalized_sort_by == "duration_days":
+            order_sql = f"ORDER BY duration_days IS NULL, duration_days {normalized_sort_dir}, projects.updated_at DESC"
+        else:
+            order_column = "projects.created_at" if normalized_sort_by == "created_at" else "projects.updated_at"
+            order_sql = f"ORDER BY {order_column} {normalized_sort_dir}, projects.id DESC"
+
+        with self._connect() as connection:
+            total = connection.execute(
+                f"""
+                SELECT COUNT(*)
+                FROM projects
+                {where_sql}
+                """,
+                params,
+            ).fetchone()[0]
+            rows = connection.execute(
+                f"""
+                SELECT
+                    projects.id,
+                    projects.project_name,
+                    json_extract(projects.payload_json, '$.hypothesis.hypothesis_statement') AS hypothesis,
+                    json_extract(projects.payload_json, '$.metrics.metric_type') AS metric_type,
+                    CAST(
+                        json_extract(
+                            (
+                                SELECT analysis_json
+                                FROM analysis_runs
+                                WHERE analysis_runs.project_id = projects.id
+                                ORDER BY created_at DESC, id DESC
+                                LIMIT 1
+                            ),
+                            '$.report.calculations.estimated_duration_days'
+                        ) AS INTEGER
+                    ) AS duration_days,
+                    projects.payload_schema_version,
+                    projects.archived_at,
+                    (
+                        SELECT COUNT(*)
+                        FROM project_revisions
+                        WHERE project_revisions.project_id = projects.id
+                    ) AS revision_count,
+                    (
+                        SELECT MAX(created_at)
+                        FROM project_revisions
+                        WHERE project_revisions.project_id = projects.id
+                    ) AS last_revision_at,
+                    projects.last_analysis_at,
+                    projects.last_analysis_run_id,
+                    projects.last_exported_at,
+                    CASE WHEN projects.last_analysis_run_id IS NOT NULL THEN 1 ELSE 0 END AS has_analysis_snapshot,
+                    CASE WHEN projects.archived_at IS NOT NULL THEN 1 ELSE 0 END AS is_archived,
+                    projects.created_at,
+                    projects.updated_at
+                FROM projects
+                {where_sql}
+                {order_sql}
+                LIMIT ?
+                OFFSET ?
+                """,
+                [*params, limit, offset],
+            ).fetchall()
+
+        return {
+            "projects": [self._project_list_row_to_record(row) for row in rows],
+            "total": int(total),
+            "offset": offset,
+            "limit": limit,
+            "has_more": (offset + len(rows)) < int(total),
+        }
 
     def create_project(self, payload: dict) -> dict:
         project_id = str(uuid.uuid4())

@@ -107,6 +107,111 @@ def _continuous_full_payload() -> dict:
     return payload
 
 
+def _saved_analysis_payload(
+    *,
+    metric_type: str = "binary",
+    total_sample_size: int = 200,
+    estimated_duration_days: int = 10,
+    executive_summary: str = "Summary",
+) -> dict:
+    sample_size_per_variant = total_sample_size // 2
+    baseline_value = 0.042 if metric_type == "binary" else 45.0
+    primary_metric = "purchase_conversion" if metric_type == "binary" else "avg_order_value"
+
+    return {
+        "calculations": {
+            "calculation_summary": {
+                "metric_type": metric_type,
+                "baseline_value": baseline_value,
+                "mde_pct": 5,
+                "mde_absolute": 0.0021 if metric_type == "binary" else 2.0,
+                "alpha": 0.05,
+                "power": 0.8,
+            },
+            "results": {
+                "sample_size_per_variant": sample_size_per_variant,
+                "total_sample_size": total_sample_size,
+                "effective_daily_traffic": 5000,
+                "estimated_duration_days": estimated_duration_days,
+            },
+            "assumptions": ["Baseline is stable"],
+            "warnings": [
+                {
+                    "code": "SEASONALITY_PRESENT",
+                    "severity": "medium",
+                    "message": "Seasonality may affect the result.",
+                    "source": "rules_engine",
+                }
+            ],
+        },
+        "report": {
+            "executive_summary": executive_summary,
+            "calculations": {
+                "sample_size_per_variant": sample_size_per_variant,
+                "total_sample_size": total_sample_size,
+                "estimated_duration_days": estimated_duration_days,
+                "assumptions": ["Baseline is stable"],
+            },
+            "experiment_design": {
+                "variants": [
+                    {"name": "Control", "description": "current"},
+                    {"name": "Treatment", "description": "candidate"},
+                ],
+                "randomization_unit": "user",
+                "traffic_split": [50, 50],
+                "target_audience": "new users on web",
+                "inclusion_criteria": "new users only",
+                "exclusion_criteria": "internal staff",
+                "recommended_duration_days": estimated_duration_days,
+                "stopping_conditions": ["planned duration reached"],
+            },
+            "metrics_plan": {
+                "primary": [primary_metric],
+                "secondary": ["add_to_cart_rate"],
+                "guardrail": ["payment_error_rate"],
+                "diagnostic": ["assignment_rate"],
+            },
+            "guardrail_metrics": [
+                {
+                    "name": "Payment error rate",
+                    "metric_type": "binary",
+                    "baseline": 2.4,
+                    "detectable_mde_pp": 0.321,
+                    "note": "Can detect a 0.321 pp change",
+                }
+            ],
+            "risks": {
+                "statistical": ["Power tradeoff"],
+                "product": ["Expected result depends on user behavior."],
+                "technical": ["legacy event logging"],
+                "operational": ["tracking quality"],
+            },
+            "recommendations": {
+                "before_launch": ["Verify tracking"],
+                "during_test": ["Watch SRM"],
+                "after_test": ["Segment the result"],
+            },
+            "open_questions": ["Will mobile respond differently?"],
+        },
+        "advice": {
+            "available": True,
+            "provider": "local_orchestrator",
+            "model": "offline",
+            "advice": {
+                "brief_assessment": "Feasible with monitoring.",
+                "key_risks": ["Tracking quality"],
+                "design_improvements": ["Validate assignment logging"],
+                "metric_recommendations": ["Track checkout step completion"],
+                "interpretation_pitfalls": ["Do not stop early"],
+                "additional_checks": ["Verify exposure balance"],
+            },
+            "raw_text": None,
+            "error": None,
+            "error_code": None,
+        },
+    }
+
+
 def test_calculate_endpoint_returns_deterministic_payload() -> None:
     client = TestClient(create_app())
 
@@ -738,6 +843,328 @@ def test_api_token_does_not_break_cors_preflight(monkeypatch) -> None:
 
     assert response.status_code == 200
     assert response.headers["access-control-allow-origin"] == "http://127.0.0.1:5173"
+    get_settings.cache_clear()
+
+
+def test_project_report_pdf_endpoint_returns_pdf_document(monkeypatch) -> None:
+    from io import BytesIO
+
+    from pypdf import PdfReader
+
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+
+    monkeypatch.setenv("AB_DB_PATH", str(db_path))
+    monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")
+    get_settings.cache_clear()
+
+    with TestClient(create_app()) as client:
+        created = client.post("/api/v1/projects", json=_full_payload())
+        assert created.status_code == 200
+        project_id = created.json()["id"]
+
+        analysis_saved = client.post(
+            f"/api/v1/projects/{project_id}/analysis",
+            json=_saved_analysis_payload(
+                total_sample_size=320,
+                estimated_duration_days=14,
+                executive_summary="Checkout summary",
+            ),
+        )
+        assert analysis_saved.status_code == 200
+
+        response = client.get(f"/api/v1/projects/{project_id}/report/pdf")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("application/pdf")
+    assert "checkout-redesign-report.pdf" in response.headers["content-disposition"]
+    reader = PdfReader(BytesIO(response.content))
+    assert len(reader.pages) == 4
+    extracted = "\n".join(page.extract_text() or "" for page in reader.pages)
+    assert "Experiment Summary" in extracted
+    assert "Sample Size Results" in extracted
+    assert "Power Curve" in extracted
+    assert "Warnings & Recommendations" in extracted
+    get_settings.cache_clear()
+
+
+def test_project_report_pdf_endpoint_returns_404_for_missing_project(monkeypatch) -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+
+    monkeypatch.setenv("AB_DB_PATH", str(db_path))
+    monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")
+    get_settings.cache_clear()
+
+    with TestClient(create_app()) as client:
+        response = client.get("/api/v1/projects/missing-project/report/pdf")
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Project not found"
+    get_settings.cache_clear()
+
+
+def test_project_report_pdf_endpoint_requires_auth(monkeypatch) -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+
+    monkeypatch.setenv("AB_DB_PATH", str(db_path))
+    monkeypatch.setenv("AB_API_TOKEN", "super-secret-token")
+    monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")
+    get_settings.cache_clear()
+
+    with TestClient(create_app()) as client:
+        response = client.get("/api/v1/projects/missing-project/report/pdf")
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Unauthorized"
+    get_settings.cache_clear()
+
+
+def test_projects_list_endpoint_supports_search_and_metadata(monkeypatch) -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+
+    monkeypatch.setenv("AB_DB_PATH", str(db_path))
+    monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")
+    get_settings.cache_clear()
+
+    hypothesis_match_payload = _full_payload()
+    hypothesis_match_payload["project"]["project_name"] = "Pricing experiment"
+    hypothesis_match_payload["hypothesis"]["hypothesis_statement"] = "Checkout velocity will improve."
+    hypothesis_match_payload["metrics"]["metric_type"] = "continuous"
+    hypothesis_match_payload["metrics"]["primary_metric_name"] = "avg_order_value"
+    hypothesis_match_payload["metrics"]["baseline_value"] = 45.0
+    hypothesis_match_payload["metrics"]["std_dev"] = 12.0
+
+    with TestClient(create_app()) as client:
+        created_checkout = client.post("/api/v1/projects", json=_full_payload())
+        created_pricing = client.post("/api/v1/projects", json=hypothesis_match_payload)
+        assert created_checkout.status_code == 200
+        assert created_pricing.status_code == 200
+
+        response = client.get("/api/v1/projects", params={"q": "checkout", "limit": 1, "offset": 0})
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["total"] == 2
+    assert payload["limit"] == 1
+    assert payload["offset"] == 0
+    assert payload["has_more"] is True
+    assert len(payload["projects"]) == 1
+    assert payload["projects"][0]["project_name"] in {"Checkout redesign", "Pricing experiment"}
+    get_settings.cache_clear()
+
+
+def test_projects_list_endpoint_filters_archived_projects(monkeypatch) -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+
+    monkeypatch.setenv("AB_DB_PATH", str(db_path))
+    monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")
+    get_settings.cache_clear()
+
+    archived_payload = _full_payload()
+    archived_payload["project"]["project_name"] = "Archived checkout"
+
+    with TestClient(create_app()) as client:
+        active_project = client.post("/api/v1/projects", json=_full_payload())
+        archived_project = client.post("/api/v1/projects", json=archived_payload)
+        assert active_project.status_code == 200
+        assert archived_project.status_code == 200
+        client.post(f"/api/v1/projects/{archived_project.json()['id']}/archive")
+
+        response = client.get("/api/v1/projects", params={"status": "archived"})
+
+    assert response.status_code == 200
+    assert response.json()["total"] == 1
+    assert response.json()["projects"][0]["project_name"] == "Archived checkout"
+    assert response.json()["projects"][0]["is_archived"] is True
+    get_settings.cache_clear()
+
+
+def test_projects_list_endpoint_filters_and_sorts_by_name(monkeypatch) -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+
+    monkeypatch.setenv("AB_DB_PATH", str(db_path))
+    monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")
+    get_settings.cache_clear()
+
+    alpha_payload = _full_payload()
+    alpha_payload["project"]["project_name"] = "Alpha checkout"
+
+    zeta_payload = _full_payload()
+    zeta_payload["project"]["project_name"] = "Zeta checkout"
+
+    continuous_payload = _continuous_full_payload()
+    continuous_payload["project"]["project_name"] = "Mid pricing"
+
+    with TestClient(create_app()) as client:
+        client.post("/api/v1/projects", json=zeta_payload)
+        client.post("/api/v1/projects", json=continuous_payload)
+        client.post("/api/v1/projects", json=alpha_payload)
+
+        response = client.get(
+            "/api/v1/projects",
+            params={
+                "status": "all",
+                "metric_type": "binary",
+                "sort_by": "name",
+                "sort_dir": "asc",
+            },
+        )
+
+    assert response.status_code == 200
+    names = [project["project_name"] for project in response.json()["projects"]]
+    assert names == ["Alpha checkout", "Zeta checkout"]
+    get_settings.cache_clear()
+
+
+def test_projects_list_endpoint_sorts_by_duration_days(monkeypatch) -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+
+    monkeypatch.setenv("AB_DB_PATH", str(db_path))
+    monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")
+    get_settings.cache_clear()
+
+    fast_payload = _full_payload()
+    fast_payload["project"]["project_name"] = "Fast checkout"
+    slow_payload = _full_payload()
+    slow_payload["project"]["project_name"] = "Slow checkout"
+
+    with TestClient(create_app()) as client:
+        fast = client.post("/api/v1/projects", json=fast_payload)
+        slow = client.post("/api/v1/projects", json=slow_payload)
+        assert fast.status_code == 200
+        assert slow.status_code == 200
+
+        client.post(
+            f"/api/v1/projects/{fast.json()['id']}/analysis",
+            json=_saved_analysis_payload(total_sample_size=200, estimated_duration_days=6, executive_summary="Fast"),
+        )
+        client.post(
+            f"/api/v1/projects/{slow.json()['id']}/analysis",
+            json=_saved_analysis_payload(total_sample_size=500, estimated_duration_days=18, executive_summary="Slow"),
+        )
+
+        response = client.get(
+            "/api/v1/projects",
+            params={"status": "all", "sort_by": "duration_days", "sort_dir": "asc"},
+        )
+
+    assert response.status_code == 200
+    projects = response.json()["projects"]
+    assert [project["project_name"] for project in projects[:2]] == ["Fast checkout", "Slow checkout"]
+    assert projects[0]["duration_days"] == 6
+    assert projects[1]["duration_days"] == 18
+    get_settings.cache_clear()
+
+
+def test_project_report_csv_endpoint_returns_multisection_csv(monkeypatch) -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+
+    monkeypatch.setenv("AB_DB_PATH", str(db_path))
+    monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")
+    get_settings.cache_clear()
+
+    with TestClient(create_app()) as client:
+        created = client.post("/api/v1/projects", json=_full_payload())
+        assert created.status_code == 200
+        project_id = created.json()["id"]
+
+        analysis_saved = client.post(
+            f"/api/v1/projects/{project_id}/analysis",
+            json=_saved_analysis_payload(total_sample_size=320, estimated_duration_days=14),
+        )
+        assert analysis_saved.status_code == 200
+
+        response = client.get(f"/api/v1/projects/{project_id}/report/csv")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/csv")
+    assert "# Sample Size Results" in response.text
+    assert "# Sensitivity Analysis" in response.text
+    assert "# Guardrail Metrics" in response.text
+    get_settings.cache_clear()
+
+
+def test_project_report_xlsx_endpoint_returns_workbook_with_four_sheets(monkeypatch) -> None:
+    from io import BytesIO
+
+    from openpyxl import load_workbook
+
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+
+    monkeypatch.setenv("AB_DB_PATH", str(db_path))
+    monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")
+    get_settings.cache_clear()
+
+    with TestClient(create_app()) as client:
+        created = client.post("/api/v1/projects", json=_full_payload())
+        assert created.status_code == 200
+        project_id = created.json()["id"]
+
+        analysis_saved = client.post(
+            f"/api/v1/projects/{project_id}/analysis",
+            json=_saved_analysis_payload(total_sample_size=320, estimated_duration_days=14),
+        )
+        assert analysis_saved.status_code == 200
+
+        response = client.get(f"/api/v1/projects/{project_id}/report/xlsx")
+
+    assert response.status_code == 200
+    workbook = load_workbook(BytesIO(response.content))
+    assert workbook.sheetnames == ["Summary", "Sensitivity", "Guardrails", "Raw Inputs"]
+    get_settings.cache_clear()
+
+
+def test_project_report_data_export_returns_404_for_missing_project(monkeypatch) -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+
+    monkeypatch.setenv("AB_DB_PATH", str(db_path))
+    monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")
+    get_settings.cache_clear()
+
+    with TestClient(create_app()) as client:
+        csv_response = client.get("/api/v1/projects/missing-project/report/csv")
+        xlsx_response = client.get("/api/v1/projects/missing-project/report/xlsx")
+
+    assert csv_response.status_code == 404
+    assert xlsx_response.status_code == 404
+    get_settings.cache_clear()
+
+
+def test_project_report_data_export_requires_auth(monkeypatch) -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+
+    monkeypatch.setenv("AB_DB_PATH", str(db_path))
+    monkeypatch.setenv("AB_API_TOKEN", "super-secret-token")
+    monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")
+    get_settings.cache_clear()
+
+    with TestClient(create_app()) as client:
+        csv_response = client.get("/api/v1/projects/missing-project/report/csv")
+        xlsx_response = client.get("/api/v1/projects/missing-project/report/xlsx")
+
+    assert csv_response.status_code == 401
+    assert xlsx_response.status_code == 401
     get_settings.cache_clear()
 
 

@@ -1,4 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+import re
+from typing import Literal
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 
 from app.backend.app.schemas.api import (
     AnalysisResponse,
@@ -13,10 +16,21 @@ from app.backend.app.schemas.api import (
     ProjectRevisionHistoryResponse,
 )
 from app.backend.app.services.comparison_service import build_project_comparison
+from app.backend.app.services.export_service import (
+    export_project_report_to_csv,
+    export_project_report_to_xlsx,
+)
+from app.backend.app.services.pdf_service import generate_report_pdf
 
 
 def _project_snapshot_placeholder() -> None:
     raise NotImplementedError("Project snapshot placeholder")
+
+
+def _slugify_filename(value: str) -> str:
+    sanitized = re.sub(r"[^a-z0-9]+", "-", value.strip().lower())
+    cleaned = sanitized.strip("-")
+    return cleaned or "ab-test-report"
 
 
 def create_projects_router(settings, repository, rate_limiter, require_auth, require_write_auth) -> APIRouter:
@@ -27,9 +41,27 @@ def create_projects_router(settings, repository, rate_limiter, require_auth, req
         response_model=ProjectListResponse,
         dependencies=[Depends(require_auth)],
     )
-    def list_projects(include_archived: bool = Query(default=False)) -> ProjectListResponse:
+    def list_projects(
+        include_archived: bool | None = Query(default=None),
+        q: str | None = Query(default=None),
+        status: Literal["active", "archived", "all"] = "active",
+        metric_type: Literal["binary", "continuous", "all"] = "all",
+        sort_by: Literal["created_at", "updated_at", "name", "duration_days"] = "updated_at",
+        sort_dir: Literal["asc", "desc"] = "desc",
+        limit: int = Query(default=50, ge=1, le=200),
+        offset: int = Query(default=0, ge=0),
+    ) -> ProjectListResponse:
+        resolved_status = "all" if include_archived is True and status == "active" else status
         return ProjectListResponse.model_validate(
-            {"projects": repository.list_projects(include_archived=include_archived)}
+            repository.query_projects(
+                q=q,
+                status=resolved_status,
+                metric_type=metric_type,
+                sort_by=sort_by,
+                sort_dir=sort_dir,
+                limit=limit,
+                offset=offset,
+            )
         )
 
     @router.post(
@@ -96,6 +128,66 @@ def create_projects_router(settings, repository, rate_limiter, require_auth, req
         if project is None:
             raise HTTPException(status_code=404, detail="Project not found")
         return ProjectRecord.model_validate(project)
+
+    @router.get(
+        "/api/v1/projects/{project_id}/report/pdf",
+        dependencies=[Depends(require_auth)],
+    )
+    def get_project_report_pdf(project_id: str) -> Response:
+        project = repository.get_project(project_id, include_archived=True)
+        if project is None:
+            raise HTTPException(status_code=404, detail="Project not found")
+        analysis_run = repository.get_latest_analysis_run(project_id)
+        if analysis_run is None:
+            raise HTTPException(status_code=404, detail="Project report not found")
+        revisions = repository.get_project_revisions(project_id, limit=8, offset=0)
+        filename = f"{_slugify_filename(project['project_name'])}-report.pdf"
+        pdf_bytes = generate_report_pdf(
+            project,
+            analysis_run["analysis"],
+            [] if revisions is None else revisions["revisions"],
+        )
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+
+    @router.get(
+        "/api/v1/projects/{project_id}/report/csv",
+        dependencies=[Depends(require_auth)],
+    )
+    def get_project_report_csv(project_id: str) -> Response:
+        project = repository.get_project(project_id, include_archived=True)
+        if project is None:
+            raise HTTPException(status_code=404, detail="Project not found")
+        analysis_run = repository.get_latest_analysis_run(project_id)
+        if analysis_run is None:
+            raise HTTPException(status_code=404, detail="Project report not found")
+        filename = f"{_slugify_filename(project['project_name'])}-report.csv"
+        return Response(
+            content=export_project_report_to_csv(project, analysis_run["analysis"]),
+            media_type="text/csv",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+
+    @router.get(
+        "/api/v1/projects/{project_id}/report/xlsx",
+        dependencies=[Depends(require_auth)],
+    )
+    def get_project_report_xlsx(project_id: str) -> Response:
+        project = repository.get_project(project_id, include_archived=True)
+        if project is None:
+            raise HTTPException(status_code=404, detail="Project not found")
+        analysis_run = repository.get_latest_analysis_run(project_id)
+        if analysis_run is None:
+            raise HTTPException(status_code=404, detail="Project report not found")
+        filename = f"{_slugify_filename(project['project_name'])}-report.xlsx"
+        return Response(
+            content=export_project_report_to_xlsx(project, analysis_run["analysis"]),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
 
     @router.put(
         "/api/v1/projects/{project_id}",

@@ -468,7 +468,7 @@ class ExportEventRecord(BaseModel):
     id: str
     project_id: str
     analysis_run_id: str | None = None
-    format: Literal["markdown", "html"]
+    format: Literal["markdown", "html", "pdf"]
     created_at: str
 
 
@@ -676,7 +676,7 @@ class WorkspaceExportEventRecord(BaseModel):
     id: str
     project_id: str
     analysis_run_id: str | None = None
-    format: Literal["markdown", "html"]
+    format: Literal["markdown", "html", "pdf"]
     created_at: str
 
 
@@ -747,6 +747,9 @@ class ProjectRecord(BaseModel):
 class ProjectListItem(BaseModel):
     id: str
     project_name: str
+    hypothesis: str | None = None
+    metric_type: Literal["binary", "continuous"] | None = None
+    duration_days: int | None = None
     payload_schema_version: int
     archived_at: str | None = None
     is_archived: bool = False
@@ -762,6 +765,10 @@ class ProjectListItem(BaseModel):
 
 class ProjectListResponse(BaseModel):
     projects: list[ProjectListItem]
+    total: int = 0
+    offset: int = 0
+    limit: int = 50
+    has_more: bool = False
 
 
 class ProjectArchiveResponse(BaseModel):
@@ -776,7 +783,7 @@ class ProjectDeleteResponse(BaseModel):
 
 
 class ProjectExportMarkRequest(BaseModel):
-    format: Literal["markdown", "html"]
+    format: Literal["markdown", "html", "pdf"]
     analysis_run_id: str | None = None
 
 

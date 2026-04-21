@@ -198,6 +198,18 @@ Export Html Standalone
 
 Archive Project
 
+### `GET /api/v1/projects/{project_id}/report/csv`
+
+Get Project Report Csv
+
+### `GET /api/v1/projects/{project_id}/report/pdf`
+
+Get Project Report Pdf
+
+### `GET /api/v1/projects/{project_id}/report/xlsx`
+
+Get Project Report Xlsx
+
 ### `POST /api/v1/results`
 
 Results

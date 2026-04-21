@@ -55,7 +55,7 @@ export default function WizardReviewStep({
         </div>
       </div>
       {validationErrors.length > 0 ? (
-        <div className="status">
+        <div className="status" role="alert" aria-live="polite">
           <strong>Fix these fields before saving or running analysis:</strong>
           <ul className="list">
             {validationErrors.map((issue) => (

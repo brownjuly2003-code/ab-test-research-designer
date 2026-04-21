@@ -4,6 +4,8 @@ import {
   archiveProjectRequest,
   clearApiSessionToken,
   compareProjectsRequest,
+  downloadProjectReportDataRequest,
+  downloadProjectReportPdfRequest,
   deleteProjectRequest,
   exportReportRequest,
   exportWorkspaceRequest,
@@ -155,6 +157,14 @@ type ProjectStoreActions = {
     exportProjectId: string | null,
     linkedAnalysisRunId: string | null
   ) => Promise<string | null>;
+  exportProjectPdf: (
+    projectId: string,
+    linkedAnalysisRunId: string | null
+  ) => Promise<string | null>;
+  exportProjectData: (
+    projectId: string,
+    format: "csv" | "xlsx"
+  ) => Promise<string | null>;
   compareProject: (candidateProjectId: string) => Promise<string | null>;
   openHistoryRun: (runId: string) => boolean;
   clearHistoryRunSelection: () => boolean;
@@ -166,6 +176,9 @@ export type ProjectStoreState = ProjectStoreValues & ProjectStoreActions;
 function toSavedProject(project: {
   id?: string;
   project_name?: string;
+  hypothesis?: string | null;
+  metric_type?: "binary" | "continuous" | null;
+  duration_days?: number | null;
   created_at?: string;
   updated_at?: string;
   payload_schema_version?: number;
@@ -190,6 +203,9 @@ function toSavedProject(project: {
   return {
     id: project.id,
     project_name: project.project_name,
+    hypothesis: project.hypothesis ?? null,
+    metric_type: project.metric_type ?? null,
+    duration_days: project.duration_days ?? null,
     created_at: project.created_at,
     updated_at: project.updated_at,
     payload_schema_version: project.payload_schema_version ?? 1,
@@ -1059,6 +1075,54 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => {
       } catch (error) {
         applyStoreUpdate({
           projectError: resolveErrorMessage(error, "Unexpected export error")
+        });
+        return null;
+      }
+    },
+    exportProjectPdf: async (projectId, linkedAnalysisRunId) => {
+      get().clearProjectError();
+
+      try {
+        const { blob, filename } = await downloadProjectReportPdfRequest(projectId);
+        downloadFile(blob, filename, "application/pdf");
+
+        try {
+          const updatedProject = await recordProjectExportRequest(projectId, "pdf", linkedAnalysisRunId);
+          syncPersistedProject(
+            updatedProject,
+            get().savedProjectSnapshot ?? get().dirtyState.currentSerializedForm ?? ""
+          );
+          await get().refreshProjectHistory(projectId, true);
+          return "Exported report as PDF and updated project export metadata.";
+        } catch (error) {
+          applyStoreUpdate({
+            projectError: resolveErrorMessage(error, "Unexpected PDF export metadata error")
+          });
+          return "Exported report as PDF, but project export metadata was not updated.";
+        }
+      } catch (error) {
+        applyStoreUpdate({
+          projectError: resolveErrorMessage(error, "Unexpected PDF export error")
+        });
+        return null;
+      }
+    },
+    exportProjectData: async (projectId, format) => {
+      get().clearProjectError();
+
+      try {
+        const { blob, filename } = await downloadProjectReportDataRequest(projectId, format);
+        downloadFile(
+          blob,
+          filename,
+          format === "csv"
+            ? "text/csv"
+            : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        );
+        return `Exported project data as ${format.toUpperCase()}.`;
+      } catch (error) {
+        applyStoreUpdate({
+          projectError: resolveErrorMessage(error, `Unexpected ${format.toUpperCase()} export error`)
         });
         return null;
       }

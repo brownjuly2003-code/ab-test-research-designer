@@ -288,7 +288,7 @@ export type ExportEventRecord = {
   id: string;
   project_id: string;
   analysis_run_id?: string | null;
-  format: "markdown" | "html";
+  format: "markdown" | "html" | "pdf";
   created_at: string;
 };
 
@@ -463,7 +463,7 @@ export type ProjectDeleteResponse = {
 };
 
 export type ProjectExportMarkRequest = {
-  format: "markdown" | "html";
+  format: "markdown" | "html" | "pdf";
   analysis_run_id?: string | null;
 };
 
@@ -482,6 +482,9 @@ export type ProjectHistoryResponse = {
 export type ProjectListItem = {
   id: string;
   project_name: string;
+  hypothesis?: string | null;
+  metric_type?: ("binary" | "continuous") | null;
+  duration_days?: number | null;
   payload_schema_version: number;
   archived_at?: string | null;
   is_archived?: boolean;
@@ -497,6 +500,10 @@ export type ProjectListItem = {
 
 export type ProjectListResponse = {
   projects: ProjectListItem[];
+  total?: number;
+  offset?: number;
+  limit?: number;
+  has_more?: boolean;
 };
 
 export type ProjectRecord = {
@@ -730,7 +737,7 @@ export type WorkspaceExportEventRecord = {
   id: string;
   project_id: string;
   analysis_run_id?: string | null;
-  format: "markdown" | "html";
+  format: "markdown" | "html" | "pdf";
   created_at: string;
 };
 

@@ -1,6 +1,7 @@
-import { memo, useRef, useState, type ChangeEvent } from "react";
+import { memo, useEffect, useRef, useState, type ChangeEvent } from "react";
 
-import { hydrateLoadedPayload, stepLabels } from "../lib/experiment";
+import { exportAuditLogRequest, listAuditLogRequest } from "../lib/api";
+import { hydrateLoadedPayload, stepLabels, type AuditLogEntry } from "../lib/experiment";
 import type { ToastType } from "../hooks/useToast";
 import { useAnalysisStore } from "../stores/analysisStore";
 import { useDraftStore } from "../stores/draftStore";
@@ -8,6 +9,7 @@ import { useProjectStore } from "../stores/projectStore";
 import { useWizardStore } from "../stores/wizardStore";
 import Icon from "./Icon";
 import InlineConfirmButton from "./InlineConfirmButton";
+import ProjectListFilters from "./ProjectListFilters";
 import ProjectListSkeleton from "./ProjectListSkeleton";
 import StatusDot from "./StatusDot";
 import styles from "./SidebarPanel.module.css";
@@ -72,6 +74,15 @@ function formatRevisionSource(source: string): string {
   return source === "update" ? "Project update" : "Initial save";
 }
 
+function downloadBlob(blob: Blob, filename: string) {
+  const objectUrl = window.URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = objectUrl;
+  anchor.download = filename;
+  anchor.click();
+  window.URL.revokeObjectURL(objectUrl);
+}
+
 const SidebarPanel = memo(function SidebarPanel() {
   const analysis = useAnalysisStore();
   const draftStore = useDraftStore();
@@ -90,6 +101,7 @@ const SidebarPanel = memo(function SidebarPanel() {
     backendDiagnostics,
     healthError,
     diagnosticsError,
+    savedProjects: allSavedProjects,
     activeSavedProjects: savedProjects,
     archivedProjects,
     activeProjectId,
@@ -114,6 +126,14 @@ const SidebarPanel = memo(function SidebarPanel() {
   } = project;
   const [activeTab, setActiveTab] = useState<"projects" | "system">("projects");
   const [projectQuery, setProjectQuery] = useState("");
+  const [projectStatus, setProjectStatus] = useState<"active" | "archived" | "all">("active");
+  const [projectMetricType, setProjectMetricType] = useState<"all" | "binary" | "continuous">("all");
+  const [projectSortBy, setProjectSortBy] = useState<"updated_desc" | "name_asc" | "duration_asc">("updated_desc");
+  const [auditEntries, setAuditEntries] = useState<AuditLogEntry[]>([]);
+  const [auditTotal, setAuditTotal] = useState(0);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [auditError, setAuditError] = useState("");
+  const [auditProjectId, setAuditProjectId] = useState("");
   const onRefreshHealth = () => void project.loadBackendHealth();
   const onRefreshDiagnostics = () => void project.loadBackendDiagnostics();
   const onApiTokenDraftChange = (value: string) => project.updateApiTokenDraft(value);
@@ -139,6 +159,32 @@ const SidebarPanel = memo(function SidebarPanel() {
     analysis.clearFeedback();
     analysis.showError(backendMutationMessage || "Backend is running in read-only mode.", "warning");
     return true;
+  }
+
+  async function loadAuditLog(projectId: string) {
+    try {
+      setAuditLoading(true);
+      setAuditError("");
+      const response = await listAuditLogRequest(projectId ? { projectId } : {});
+      setAuditEntries(response.entries);
+      setAuditTotal(response.total);
+    } catch (error) {
+      setAuditEntries([]);
+      setAuditTotal(0);
+      setAuditError(error instanceof Error ? error.message : "Audit log unavailable.");
+    } finally {
+      setAuditLoading(false);
+    }
+  }
+
+  async function onExportAuditLog() {
+    try {
+      const { blob, filename } = await exportAuditLogRequest(auditProjectId ? { projectId: auditProjectId } : {});
+      downloadBlob(blob, filename);
+      analysis.showStatus("Audit log exported as CSV.", "success");
+    } catch (error) {
+      analysis.showError(error instanceof Error ? error.message : "Audit export failed.", "error");
+    }
   }
 
   async function onSaveApiToken() {
@@ -275,19 +321,45 @@ const SidebarPanel = memo(function SidebarPanel() {
     analysis.showStatus(`Project ${projectName} deleted permanently.`, "success");
   }
   const compareEnabled = Boolean(activeProjectId && activeProject?.has_analysis_snapshot);
-  const archivedProjectsTotal = archivedProjects.length;
-  const filteredProjects =
-    normalizedQuery.length > 0
-      ? savedProjects.filter((project) => project.project_name.toLowerCase().includes(normalizedQuery))
-      : savedProjects;
-  const savedProjectsTotal = savedProjects.length;
-  const projectsWithSnapshots = savedProjects.filter((project) => project.has_analysis_snapshot).length;
+  const filteredProjects = allSavedProjects
+    .filter((project) => {
+      if (projectStatus === "archived") {
+        return project.is_archived;
+      }
+      if (projectStatus === "all") {
+        return true;
+      }
+      return !project.is_archived;
+    })
+    .filter((project) => (
+      projectMetricType === "all" ? true : project.metric_type === projectMetricType
+    ))
+    .filter((project) => {
+      if (normalizedQuery.length === 0) {
+        return true;
+      }
+      const hypothesis = String(project.hypothesis ?? "").toLowerCase();
+      return project.project_name.toLowerCase().includes(normalizedQuery) || hypothesis.includes(normalizedQuery);
+    })
+    .sort((left, right) => {
+      if (projectSortBy === "name_asc") {
+        return left.project_name.localeCompare(right.project_name);
+      }
+      if (projectSortBy === "duration_asc") {
+        return (left.duration_days ?? Number.MAX_SAFE_INTEGER) - (right.duration_days ?? Number.MAX_SAFE_INTEGER);
+      }
+      return right.updated_at.localeCompare(left.updated_at);
+    });
+  const savedProjectsTotal = allSavedProjects.length;
+  const archivedProjectsTotal = allSavedProjects.filter((project) => project.is_archived).length;
+  const projectsWithSnapshots = allSavedProjects.filter((project) => project.has_analysis_snapshot).length;
   const projectsWithoutSnapshots = savedProjectsTotal - projectsWithSnapshots;
-  const projectsWithExports = savedProjects.filter((project) => Boolean(project.last_exported_at)).length;
-  const projectsWithMultipleRevisions = savedProjects.filter((project) => (project.revision_count ?? 0) > 1).length;
+  const projectsWithExports = allSavedProjects.filter((project) => Boolean(project.last_exported_at)).length;
+  const projectsWithMultipleRevisions = allSavedProjects.filter((project) => (project.revision_count ?? 0) > 1).length;
   const latestWorkspaceUpdate =
     backendDiagnostics?.storage.latest_project_updated_at ??
-    (savedProjects[0]?.updated_at ?? null);
+    (allSavedProjects[0]?.updated_at ?? null);
+  const showArchivedSection = projectStatus === "active" && normalizedQuery.length === 0 && projectMetricType === "all";
   const hasMoreAnalysisHistory = Boolean(
     projectHistory && projectHistory.analysis_runs.length < projectHistory.analysis_total
   );
@@ -297,6 +369,13 @@ const SidebarPanel = memo(function SidebarPanel() {
   const hasMoreProjectRevisions = Boolean(
     projectRevisions && projectRevisions.revisions.length < projectRevisions.total
   );
+
+  useEffect(() => {
+    if (activeTab !== "system") {
+      return;
+    }
+    void loadAuditLog(auditProjectId);
+  }, [activeTab, auditProjectId]);
 
   return (
     <aside className={`panel ${styles.sidebar}`}>
@@ -646,6 +725,77 @@ const SidebarPanel = memo(function SidebarPanel() {
         ) : null}
       </div>
 
+      <div className="card">
+        <div className="section-heading">
+          <div>
+            <h3>Audit log</h3>
+            <p className={`muted ${styles["compact-text"]}`}>
+              Recent write activity across the workspace, with optional filtering by saved project.
+            </p>
+          </div>
+          <div className="actions">
+            <button className="btn ghost" disabled={auditLoading} onClick={() => void loadAuditLog(auditProjectId)}>
+              {auditLoading ? "Refreshing..." : "Refresh audit log"}
+            </button>
+            <button className="btn secondary" disabled={!canMutateBackend} onClick={() => void onExportAuditLog()}>
+              Export audit CSV
+            </button>
+          </div>
+        </div>
+        <div className="field">
+          <label htmlFor="audit-project-filter">Project filter</label>
+          <select
+            id="audit-project-filter"
+            value={auditProjectId}
+            onChange={(event) => setAuditProjectId(event.target.value)}
+          >
+            <option value="">All projects</option>
+            {allSavedProjects.map((project) => (
+              <option key={project.id} value={project.id}>
+                {project.project_name}
+              </option>
+            ))}
+          </select>
+        </div>
+        {auditError ? (
+          <div className="status">Audit log unavailable. {auditError}</div>
+        ) : auditLoading && auditEntries.length === 0 ? (
+          <p className="muted">Loading audit log...</p>
+        ) : (
+          <>
+            <p className="muted">
+              Showing {auditEntries.length} of {auditTotal} entr{auditTotal === 1 ? "y" : "ies"}.
+            </p>
+            <table>
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Action</th>
+                  <th>Project</th>
+                  <th>Actor</th>
+                </tr>
+              </thead>
+              <tbody>
+                {auditEntries.length > 0 ? (
+                  auditEntries.map((entry) => (
+                    <tr key={entry.id}>
+                      <td>{formatProjectTimestamp(entry.ts)}</td>
+                      <td>{entry.action}</td>
+                      <td>{entry.project_name ?? entry.project_id ?? "Workspace"}</td>
+                      <td>{entry.actor ?? "unknown"}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={4}>No audit entries recorded yet.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </>
+        )}
+      </div>
+
         </>
       ) : null}
 
@@ -891,23 +1041,26 @@ const SidebarPanel = memo(function SidebarPanel() {
         </div>
         {loadingProjects ? (
           <ProjectListSkeleton />
-        ) : savedProjects.length > 0 ? (
+        ) : allSavedProjects.length > 0 ? (
           <>
-            <div className={`field ${styles["search-field"]}`}>
-              <label htmlFor="saved-projects-search">Search projects</label>
-              <div className={styles["input-with-icon"]}>
-                <Icon name="search" className="icon icon-inline" />
-                <input
-                  id="saved-projects-search"
-                  type="text"
-                  placeholder="Filter by project name"
-                  value={projectQuery}
-                  onChange={(event) => setProjectQuery(event.target.value)}
-                />
-              </div>
-            </div>
+            <ProjectListFilters
+              query={projectQuery}
+              status={projectStatus}
+              metricType={projectMetricType}
+              sortBy={projectSortBy}
+              onQueryChange={setProjectQuery}
+              onStatusChange={setProjectStatus}
+              onMetricTypeChange={setProjectMetricType}
+              onSortByChange={setProjectSortBy}
+              onClearFilters={() => {
+                setProjectQuery("");
+                setProjectStatus("active");
+                setProjectMetricType("all");
+                setProjectSortBy("updated_desc");
+              }}
+            />
             <p className="muted">
-              Showing {filteredProjects.length} of {savedProjects.length} saved projects.
+              {filteredProjects.length} experiment{filteredProjects.length === 1 ? "" : "s"} shown.
             </p>
             {compareEnabled ? (
               <>
@@ -933,12 +1086,17 @@ const SidebarPanel = memo(function SidebarPanel() {
                   className={[styles["project-card"], project.id === activeProjectId ? styles.active : ""].filter(Boolean).join(" ")}
                 >
                   <div className={styles["project-card-head"]}>
-                    <button className={`btn ghost ${styles["project-load-btn"]}`} onClick={() => onLoadProject(project.id)}>
-                      {project.project_name}
-                    </button>
+                    {project.is_archived ? (
+                      <strong>{project.project_name}</strong>
+                    ) : (
+                      <button className={`btn ghost ${styles["project-load-btn"]}`} onClick={() => onLoadProject(project.id)}>
+                        {project.project_name}
+                      </button>
+                    )}
                     <div className={styles["project-badges"]}>
                       {project.id === activeProjectId ? <span className="pill">Loaded</span> : null}
                       {project.has_analysis_snapshot ? <span className="pill">Snapshot</span> : null}
+                      {project.is_archived ? <span className="pill">Archived</span> : null}
                     </div>
                   </div>
                   <div className={styles["project-meta"]}>
@@ -948,6 +1106,9 @@ const SidebarPanel = memo(function SidebarPanel() {
                       {project.last_analysis_at ? ` | Analyzed ${formatProjectTimestamp(project.last_analysis_at)}` : ""}
                     </div>
                     <div className="muted">
+                      {project.hypothesis ? `${project.hypothesis} | ` : ""}
+                      {project.metric_type ? `${project.metric_type} | ` : ""}
+                      {project.duration_days ? `${String(project.duration_days)}d | ` : ""}
                       {`Revisions ${String(project.revision_count ?? 0)}`}
                       {" | "}
                       {project.last_exported_at ? `Exported ${formatProjectTimestamp(project.last_exported_at)}` : "No exports yet"}
@@ -955,7 +1116,7 @@ const SidebarPanel = memo(function SidebarPanel() {
                     </div>
                   </div>
                   <div className="actions">
-                    {compareEnabled && project.id !== activeProjectId && project.has_analysis_snapshot ? (
+                    {compareEnabled && project.id !== activeProjectId && project.has_analysis_snapshot && !project.is_archived ? (
                       <button
                         className="btn secondary"
                         disabled={loadingProjectComparison || deletingProjectId === project.id}
@@ -964,24 +1125,50 @@ const SidebarPanel = memo(function SidebarPanel() {
                         {comparingProjectId === project.id ? "Comparing..." : "Compare"}
                       </button>
                     ) : null}
-                    <InlineConfirmButton
-                      label="Archive"
-                      disabled={!canMutateBackend || deletingProjectId === project.id}
-                      ariaLabel={`Archive ${project.project_name}`}
-                      onConfirm={() => onDeleteProject(project.id, project.project_name)}
-                    />
-                    <InlineConfirmButton
-                      label="Delete"
-                      disabled={!canMutateBackend || deletingProjectId === project.id}
-                      ariaLabel={`Delete ${project.project_name}`}
-                      onConfirm={() => onPermanentlyDeleteProject(project.id, project.project_name)}
-                    />
+                    {project.is_archived ? (
+                      <button
+                        className="btn secondary"
+                        disabled={!canMutateBackend || restoringProjectId === project.id}
+                        onClick={() => onRestoreProject(project.id, project.project_name)}
+                      >
+                        {restoringProjectId === project.id ? "Restoring..." : "Restore"}
+                      </button>
+                    ) : (
+                      <>
+                        <InlineConfirmButton
+                          label="Archive"
+                          disabled={!canMutateBackend || deletingProjectId === project.id}
+                          ariaLabel={`Archive ${project.project_name}`}
+                          onConfirm={() => onDeleteProject(project.id, project.project_name)}
+                        />
+                        <InlineConfirmButton
+                          label="Delete"
+                          disabled={!canMutateBackend || deletingProjectId === project.id}
+                          ariaLabel={`Delete ${project.project_name}`}
+                          onConfirm={() => onPermanentlyDeleteProject(project.id, project.project_name)}
+                        />
+                      </>
+                    )}
                   </div>
                 </div>
               ))}
             </div>
             {filteredProjects.length === 0 ? (
-              <p className="muted">No saved projects match the current search.</p>
+              <div className="actions">
+                <p className="muted">No experiments match your filters.</p>
+                <button
+                  className="btn ghost"
+                  type="button"
+                  onClick={() => {
+                    setProjectQuery("");
+                    setProjectStatus("active");
+                    setProjectMetricType("all");
+                    setProjectSortBy("updated_desc");
+                  }}
+                >
+                  Clear filters
+                </button>
+              </div>
             ) : null}
           </>
         ) : (
@@ -989,6 +1176,7 @@ const SidebarPanel = memo(function SidebarPanel() {
         )}
       </div>
 
+      {showArchivedSection ? (
       <div className="card">
         <div className="section-heading">
           <div>
@@ -1033,6 +1221,7 @@ const SidebarPanel = memo(function SidebarPanel() {
           <p className="muted">No archived projects.</p>
         )}
       </div>
+      ) : null}
 
       <div className="card">
         <div className="section-heading">
