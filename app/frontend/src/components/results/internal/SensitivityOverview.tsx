@@ -1,4 +1,6 @@
-import type { ExportFormat, AnalysisResponsePayload, ProjectHistory, SavedProject, WarningItem } from "../../../lib/experiment";
+import { useState } from "react";
+
+import type { AnalysisResponsePayload, ProjectHistory, SavedProject, WarningItem } from "../../../lib/experiment";
 import type { SensitivityResponse } from "../../../lib/generated/api-contract";
 import Icon from "../../Icon";
 import MetricCard from "../../MetricCard";
@@ -19,7 +21,10 @@ type SensitivityOverviewProps = {
   sensitivityUnavailableMessage: string;
   standaloneExporting: boolean;
   standaloneExportError: string;
-  onExportReport: (format: ExportFormat) => void;
+  canExportPdf: boolean;
+  onExportReport: (format: "markdown" | "html") => void;
+  onExportPdf: () => void;
+  onExportProjectData: (format: "csv" | "xlsx") => void;
   onExportStandalone: () => void;
 };
 
@@ -48,9 +53,13 @@ export default function SensitivityOverview({
   sensitivityUnavailableMessage,
   standaloneExporting,
   standaloneExportError,
+  canExportPdf,
   onExportReport,
+  onExportPdf,
+  onExportProjectData,
   onExportStandalone
 }: SensitivityOverviewProps) {
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const warnings = displayedAnalysis.calculations.warnings ?? [];
   const warningSeverity = getHighestSeverity(warnings);
   const variantsCount = displayedAnalysis.report.experiment_design?.variants.length ?? 0;
@@ -67,19 +76,53 @@ export default function SensitivityOverview({
           <h3>Deterministic experiment design</h3>
         </div>
         <div className="actions">
-          <button className="btn ghost" disabled={!canMutateBackend} title="Export report (Ctrl+E)" onClick={() => onExportReport("markdown")}>
+          <button
+            className="btn ghost"
+            aria-expanded={exportMenuOpen}
+            aria-controls="report-export-menu"
+            disabled={!canMutateBackend}
+            onClick={() => setExportMenuOpen((current) => !current)}
+          >
             <Icon name="download" className="icon icon-inline" />
-            Export Markdown
-          </button>
-          <button className="btn ghost" disabled={!canMutateBackend} title="Export report (Ctrl+E)" onClick={() => onExportReport("html")}>
-            <Icon name="code" className="icon icon-inline" />
-            Export HTML
-          </button>
-          <button className="btn primary" disabled={!canMutateBackend || standaloneExporting} onClick={onExportStandalone}>
-            <Icon name="download" className="icon icon-inline" />
-            {standaloneExporting ? "Exporting..." : "Export Full Report"}
+            Export
           </button>
         </div>
+      </div>
+      <div
+        id="report-export-menu"
+        role="menu"
+        aria-label="Report export options"
+        style={{
+          display: exportMenuOpen ? "grid" : "none",
+          gap: "8px",
+          justifyItems: "start",
+          marginBottom: "12px"
+        }}
+      >
+        <button className="btn ghost" disabled={!canMutateBackend} title="Export report (Ctrl+E)" onClick={() => { setExportMenuOpen(false); onExportReport("markdown"); }}>
+          <Icon name="download" className="icon icon-inline" />
+          Export Markdown
+        </button>
+        <button className="btn ghost" disabled={!canMutateBackend} onClick={() => { setExportMenuOpen(false); onExportReport("html"); }}>
+          <Icon name="code" className="icon icon-inline" />
+          Export HTML
+        </button>
+        <button className="btn ghost" disabled={!canMutateBackend || !canExportPdf} onClick={() => { setExportMenuOpen(false); onExportPdf(); }}>
+          <Icon name="download" className="icon icon-inline" />
+          Export PDF
+        </button>
+        <button className="btn ghost" disabled={!canMutateBackend} onClick={() => { setExportMenuOpen(false); onExportProjectData("csv"); }}>
+          <Icon name="download" className="icon icon-inline" />
+          CSV Data
+        </button>
+        <button className="btn ghost" disabled={!canMutateBackend} onClick={() => { setExportMenuOpen(false); onExportProjectData("xlsx"); }}>
+          <Icon name="download" className="icon icon-inline" />
+          Excel Workbook
+        </button>
+        <button className="btn primary" disabled={!canMutateBackend || standaloneExporting} onClick={() => { setExportMenuOpen(false); onExportStandalone(); }}>
+          <Icon name="download" className="icon icon-inline" />
+          {standaloneExporting ? "Exporting..." : "Export Full Report"}
+        </button>
       </div>
       <p className={`muted ${styles["result-summary"]}`}>{String(displayedAnalysis.report.executive_summary ?? "")}</p>
       {!canMutateBackend ? <div className="callout"><Icon name="info" className="icon icon-inline" /><span>{backendMutationMessage}</span></div> : null}

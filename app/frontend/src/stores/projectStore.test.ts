@@ -6,6 +6,7 @@ vi.mock("../lib/api", () => ({
   archiveProjectRequest: vi.fn(),
   clearApiSessionToken: vi.fn(),
   compareProjectsRequest: vi.fn(),
+  downloadProjectReportPdfRequest: vi.fn(),
   deleteProjectRequest: vi.fn(),
   exportReportRequest: vi.fn(),
   exportWorkspaceRequest: vi.fn(),

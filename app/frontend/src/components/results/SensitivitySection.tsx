@@ -1,4 +1,3 @@
-import type { ExportFormat } from "../../lib/experiment";
 import type { SensitivityResponse } from "../../lib/generated/api-contract";
 import { useAnalysisStore } from "../../stores/analysisStore";
 import { useProjectStore } from "../../stores/projectStore";
@@ -11,7 +10,10 @@ type SensitivitySectionProps = {
   sensitivityUnavailableMessage: string;
   standaloneExporting: boolean;
   standaloneExportError: string;
-  onExportReport: (format: ExportFormat) => void;
+  canExportPdf: boolean;
+  onExportReport: (format: "markdown" | "html") => void;
+  onExportPdf: () => void;
+  onExportProjectData: (format: "csv" | "xlsx") => void;
   onExportStandalone: () => void;
 };
 

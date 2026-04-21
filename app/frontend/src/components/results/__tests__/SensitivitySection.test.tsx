@@ -31,7 +31,10 @@ describe("SensitivitySection", () => {
         sensitivityUnavailableMessage="Unavailable"
         standaloneExporting={false}
         standaloneExportError=""
+        canExportPdf
         onExportReport={vi.fn()}
+        onExportPdf={vi.fn()}
+        onExportProjectData={vi.fn()}
         onExportStandalone={vi.fn()}
       />
     );

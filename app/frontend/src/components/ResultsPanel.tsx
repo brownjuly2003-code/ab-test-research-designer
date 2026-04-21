@@ -37,6 +37,12 @@ export default function ResultsPanel(_props: ResultsPanelProps) {
   const [resultsAnalysis, setResultsAnalysis] = useState<ResultsAnalysisResponse | null>(null);
   const [standaloneExporting, setStandaloneExporting] = useState(false);
   const [standaloneExportError, setStandaloneExportError] = useState("");
+  const exportProjectId = project.selectedHistoryRun?.project_id ?? analysis.resultsProjectId ?? project.activeProjectId;
+  const linkedRunId =
+    project.selectedHistoryRun?.id ??
+    analysis.resultsAnalysisRunId ??
+    (project.activeProjectId === exportProjectId ? project.activeProject?.last_analysis_run_id ?? null : null);
+  const canExportPdf = Boolean(exportProjectId && linkedRunId);
 
   useEffect(() => {
     if (!displayedAnalysis?.report || project.selectedHistoryRun) {
@@ -68,9 +74,25 @@ export default function ResultsPanel(_props: ResultsPanelProps) {
     if (!project.canMutateBackend) return analysis.showError(project.backendMutationMessage || "Backend is running in read-only mode.", "warning");
     if (!displayedAnalysis?.report) return analysis.showError("Run analysis before exporting a report.", "info");
     analysis.clearFeedback();
-    const exportProjectId = project.selectedHistoryRun?.project_id ?? analysis.resultsProjectId;
-    const linkedRunId = project.selectedHistoryRun?.id ?? analysis.resultsAnalysisRunId ?? (project.activeProjectId === exportProjectId ? project.activeProject?.last_analysis_run_id ?? null : null);
     const message = await project.exportReport(displayedAnalysis.report, format, exportProjectId, linkedRunId);
+    if (message) analysis.showStatus(message, "success");
+  }
+
+  async function handleExportPdf() {
+    if (!project.canMutateBackend) return analysis.showError(project.backendMutationMessage || "Backend is running in read-only mode.", "warning");
+    if (!displayedAnalysis?.report) return analysis.showError("Run analysis before exporting a report.", "info");
+    if (!exportProjectId || !linkedRunId) return analysis.showError("Save the project and persist an analysis snapshot before exporting a PDF.", "info");
+    analysis.clearFeedback();
+    const message = await project.exportProjectPdf(exportProjectId, linkedRunId);
+    if (message) analysis.showStatus(message, "success");
+  }
+
+  async function handleExportProjectData(format: "csv" | "xlsx") {
+    if (!project.canMutateBackend) return analysis.showError(project.backendMutationMessage || "Backend is running in read-only mode.", "warning");
+    if (!displayedAnalysis?.report) return analysis.showError("Run analysis before exporting project data.", "info");
+    if (!exportProjectId) return analysis.showError("Save the project before exporting CSV or Excel data.", "info");
+    analysis.clearFeedback();
+    const message = await project.exportProjectData(exportProjectId, format);
     if (message) analysis.showStatus(message, "success");
   }
 
@@ -108,7 +130,7 @@ export default function ResultsPanel(_props: ResultsPanelProps) {
       {analysis.isAnalyzing && !project.projectComparison ? <div className={`${styles["result-block"]} ${styles["results-enter"]}`}><span className="pill">Analysis in progress</span><h3>Preparing deterministic results</h3><p className="muted">Updating metrics, chart, and report sections.</p><ResultsSkeleton /></div> : null}
       {displayedAnalysis?.report && !analysis.isAnalyzing ? <div className={`${styles.results} ${styles["results-enter"]}`}>
         <Accordion title="Comparison" badge={project.projectComparison ? "Loaded" : "Sidebar"} defaultOpen={Boolean(project.projectComparison)}><ComparisonSection /></Accordion>
-        <Accordion title="Sensitivity" badge={`${displayedAnalysis.report.experiment_design?.variants.length ?? 0} variants`} defaultOpen><SensitivitySection sensitivityData={sensitivityData} sensitivityLoading={sensitivityLoading} sensitivityUnavailableMessage={sensitivityError || "Sensitivity analysis unavailable for this configuration."} standaloneExporting={standaloneExporting} standaloneExportError={standaloneExportError} onExportReport={handleExportReport} onExportStandalone={() => void handleExportStandalone()} /></Accordion>
+        <Accordion title="Sensitivity" badge={`${displayedAnalysis.report.experiment_design?.variants.length ?? 0} variants`} defaultOpen><SensitivitySection sensitivityData={sensitivityData} sensitivityLoading={sensitivityLoading} sensitivityUnavailableMessage={sensitivityError || "Sensitivity analysis unavailable for this configuration."} standaloneExporting={standaloneExporting} standaloneExportError={standaloneExportError} canExportPdf={canExportPdf} onExportReport={handleExportReport} onExportPdf={() => void handleExportPdf()} onExportProjectData={(format) => void handleExportProjectData(format)} onExportStandalone={() => void handleExportStandalone()} /></Accordion>
         <Accordion title="Power curve" badge={sensitivityData?.cells?.length ? `${sensitivityData.cells.length} cells` : "Pending"}><PowerCurveSection sensitivityData={sensitivityData} sensitivityLoading={sensitivityLoading} sensitivityUnavailableMessage={sensitivityError || "Sensitivity analysis unavailable for this configuration."} /></Accordion>
         <Accordion title="Observed results" badge={resultsAnalysis ? (resultsAnalysis.is_significant ? "Significant" : "Review") : "Post-test"} badgeColor={resultsAnalysis ? (resultsAnalysis.is_significant ? "accent" : "warn") : "accent"} defaultOpen><ObservedResultsSection onResultsAnalysisChange={setResultsAnalysis} /></Accordion>
         <Accordion title="Sequential design" badge={`${displayedAnalysis.calculations.sequential_boundaries?.length ?? 0} looks`}><SequentialDesignSection /></Accordion>

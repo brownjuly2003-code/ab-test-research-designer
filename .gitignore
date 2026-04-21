@@ -14,8 +14,12 @@ venv/
 # caches
 .pytest_cache/
 .mypy_cache/
+.hypothesis/
+.qa/
+.docker-cli/
 pytest-cache-files-*/
 app/backend/tests/.tmp/
+tmp/
 
 # node
 node_modules/
@@ -35,6 +39,8 @@ exports/*
 !exports/.gitkeep
 
 # archived smoke artifacts
+archive/e2e-runs/
+archive/manual-smoke-runs/
 archive/smoke-runs/*
 !archive/smoke-runs/.gitkeep
 !archive/smoke-runs/README.md

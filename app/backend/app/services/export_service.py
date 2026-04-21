@@ -1,10 +1,16 @@
+import csv
 from datetime import datetime, timezone
+from io import BytesIO, StringIO
 from html import escape
+import json
 import math
 from statistics import NormalDist
 from typing import Any
 
+from openpyxl import Workbook
+
 from app.backend.app.schemas.api import StandaloneExportRequest
+from app.backend.app.services.pdf_service import _build_sensitivity_rows
 
 
 def _list_to_markdown(items: list[str]) -> str:
@@ -660,3 +666,123 @@ def export_report_to_html(report: dict) -> str:
   </body>
 </html>
 """
+
+
+def _raw_input_rows(payload: dict[str, Any], *, prefix: str = "") -> list[tuple[str, Any]]:
+    rows: list[tuple[str, Any]] = []
+    for key in sorted(payload.keys()):
+        value = payload[key]
+        next_prefix = f"{prefix}.{key}" if prefix else key
+        if isinstance(value, dict):
+            rows.extend(_raw_input_rows(value, prefix=next_prefix))
+            continue
+        rows.append((next_prefix, value))
+    return rows
+
+
+def _build_report_export_sections(project: dict[str, Any], analysis: dict[str, Any]) -> dict[str, Any]:
+    payload = project.get("payload", {})
+    calculations = analysis.get("calculations", {})
+    report = analysis.get("report", {})
+    experiment_design = report.get("experiment_design", {})
+    setup = payload.get("setup", {})
+    variants = experiment_design.get("variants", [])
+    traffic_split = experiment_design.get("traffic_split", setup.get("traffic_split", []))
+    results = calculations.get("results", {})
+    sensitivity_rows = _build_sensitivity_rows(payload, calculations)
+    sample_rows = [
+        [
+            str(variant.get("name", f"Variant {index + 1}")),
+            results.get("sample_size_per_variant"),
+            results.get("effective_daily_traffic"),
+            results.get("estimated_duration_days"),
+            traffic_split[index] if index < len(traffic_split) else None,
+        ]
+        for index, variant in enumerate(variants)
+    ]
+    guardrail_rows = [
+        [
+            item.get("name"),
+            item.get("metric_type"),
+            item.get("detectable_mde_pp") or item.get("detectable_mde_absolute"),
+            item.get("note"),
+        ]
+        for item in report.get("guardrail_metrics", [])
+    ]
+    return {
+        "sample_rows": sample_rows,
+        "sensitivity_rows": sensitivity_rows,
+        "guardrail_rows": guardrail_rows,
+        "raw_input_rows": _raw_input_rows(payload),
+    }
+
+
+def export_project_report_to_csv(project: dict[str, Any], analysis: dict[str, Any]) -> str:
+    sections = _build_report_export_sections(project, analysis)
+    buffer = StringIO()
+    writer = csv.writer(buffer, lineterminator="\n")
+
+    writer.writerow(["# Sample Size Results"])
+    writer.writerow(["Variant", "Required N", "Daily Traffic", "Duration (days)", "Traffic Split %"])
+    writer.writerows(sections["sample_rows"])
+    writer.writerow([])
+
+    writer.writerow(["# Sensitivity Analysis"])
+    writer.writerow(["Effect Size", "Required N (80% power)", "Duration (80% power)", "Required N (90% power)", "Duration (90% power)"])
+    for row in sections["sensitivity_rows"]:
+        writer.writerow([
+            row.get("effect_size"),
+            row.get("n_80"),
+            row.get("days_80"),
+            row.get("n_90"),
+            row.get("days_90"),
+        ])
+    writer.writerow([])
+
+    writer.writerow(["# Guardrail Metrics"])
+    writer.writerow(["Metric Name", "Metric Type", "Detectable MDE", "Note"])
+    writer.writerows(sections["guardrail_rows"])
+
+    return buffer.getvalue()
+
+
+def export_project_report_to_xlsx(project: dict[str, Any], analysis: dict[str, Any]) -> bytes:
+    sections = _build_report_export_sections(project, analysis)
+    payload = project.get("payload", {})
+    workbook = Workbook()
+    summary_sheet = workbook.active
+    summary_sheet.title = "Summary"
+    summary_sheet.append(["Project name", project.get("project_name")])
+    summary_sheet.append(["Created at", project.get("created_at")])
+    summary_sheet.append([])
+    summary_sheet.append(["Variant", "Required N", "Daily Traffic", "Duration (days)", "Traffic Split %"])
+    for row in sections["sample_rows"]:
+        summary_sheet.append(row)
+
+    sensitivity_sheet = workbook.create_sheet("Sensitivity")
+    sensitivity_sheet.append(["Effect Size", "Required N (80% power)", "Duration (80% power)", "Required N (90% power)", "Duration (90% power)"])
+    for row in sections["sensitivity_rows"]:
+        sensitivity_sheet.append([
+            row.get("effect_size"),
+            row.get("n_80"),
+            row.get("days_80"),
+            row.get("n_90"),
+            row.get("days_90"),
+        ])
+
+    guardrails_sheet = workbook.create_sheet("Guardrails")
+    guardrails_sheet.append(["Metric Name", "Metric Type", "Detectable MDE", "Note"])
+    for row in sections["guardrail_rows"]:
+        guardrails_sheet.append(row)
+
+    raw_inputs_sheet = workbook.create_sheet("Raw Inputs")
+    raw_inputs_sheet.append(["Field", "Value"])
+    for field, value in sections["raw_input_rows"]:
+        if isinstance(value, list):
+            raw_inputs_sheet.append([field, json.dumps(value)])
+        else:
+            raw_inputs_sheet.append([field, value])
+
+    buffer = BytesIO()
+    workbook.save(buffer)
+    return buffer.getvalue()
