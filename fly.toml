@@ -1,0 +1,43 @@
+# Fly.io app config for the public demo. Keep the placeholder name until `fly apps create`
+# returns the real app slug, then update it here or pass `-a <app-name>` to `fly deploy`.
+app = "ab-test-research-designer"
+primary_region = "ams"
+
+[build]
+# Use the repo Dockerfile for the first manual deploy; no pushed registry image is required yet.
+dockerfile = "Dockerfile"
+
+[env]
+AB_HOST = "0.0.0.0"
+AB_SERVE_FRONTEND_DIST = "true"
+AB_WORKSPACE_DIR = "/data"
+AB_DB_PATH = "/data/projects.sqlite3"
+AB_ENV = "demo"
+
+# [secrets]
+# Secure mode example:
+# fly secrets set AB_API_TOKEN=... AB_READONLY_API_TOKEN=... AB_WORKSPACE_SIGNING_KEY=...
+
+[[mounts]]
+source = "ab_test_data"
+destination = "/data"
+initial_size = "1gb"
+
+[http_service]
+internal_port = 8008
+force_https = true
+auto_stop_machines = true
+auto_start_machines = true
+min_machines_running = 0
+
+[[http_service.checks]]
+grace_period = "10s"
+interval = "30s"
+timeout = "5s"
+method = "get"
+path = "/health"
+
+[[vm]]
+cpu_kind = "shared"
+cpus = 1
+memory_mb = 512

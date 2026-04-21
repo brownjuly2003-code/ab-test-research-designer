@@ -53,6 +53,35 @@ Signed workspace backup mode:
 docker run --rm --name ab-test-v1-signed -e AB_WORKSPACE_SIGNING_KEY=replace-with-a-long-random-secret -p 8008:8008 ab-test-research-designer:1.0.0
 ```
 
+## Fly.io Demo Deploy
+
+Open mode is recommended for a public showcase. This keeps the hosted demo anonymous and matches the default open runtime in the app.
+
+```bash
+fly apps create <fly-app-name>
+fly volumes create ab_test_data --region ams --size 1
+fly deploy
+```
+
+Notes:
+
+- `fly.toml` keeps `app = "ab-test-research-designer"` as a placeholder; replace it after `fly apps create` or pass `fly deploy -a <fly-app-name>`.
+- The Fly volume is mounted at `/data`, and SQLite is pointed at `/data/projects.sqlite3`.
+- Demo seeding is a manual post-deploy step because Fly `release_command` Machines do not mount persistent volumes:
+
+```bash
+fly ssh console -C "python scripts/seed_demo_workspace.py --idempotent"
+```
+
+## Fly.io Deploy (Secure)
+
+Secure mode is private by default. Once secrets are set, callers must present the configured token; if you share a readonly token, it enables safe `GET` access but it is no longer an anonymous public demo.
+
+```bash
+fly secrets set AB_API_TOKEN=... AB_READONLY_API_TOKEN=... AB_WORKSPACE_SIGNING_KEY=...
+fly deploy
+```
+
 ## Health / Verification
 
 Open runtime:

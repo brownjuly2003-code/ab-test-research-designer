@@ -18,6 +18,10 @@ It combines:
 
 ## Demo
 
+Hosted demo placeholder: `<fly-url-after-deploy>`
+
+Deploy your own: see [docs/DEPLOY.md](docs/DEPLOY.md). Release prep files: [fly.toml](fly.toml) and [docs/RELEASE_NOTES_v1.0.0-github-draft.md](docs/RELEASE_NOTES_v1.0.0-github-draft.md).
+
 Sample import payload:
 
 - [docs/demo/sample-project.json](/D:/AB_TEST/docs/demo/sample-project.json)
