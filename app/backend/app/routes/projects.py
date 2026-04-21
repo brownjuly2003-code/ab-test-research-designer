@@ -6,6 +6,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from app.backend.app.schemas.api import (
     AnalysisResponse,
     ExperimentInput,
+    MultiProjectComparisonRequest,
+    MultiProjectComparisonResponse,
     ProjectArchiveResponse,
     ProjectComparisonResponse,
     ProjectDeleteResponse,
@@ -15,7 +17,7 @@ from app.backend.app.schemas.api import (
     ProjectRecord,
     ProjectRevisionHistoryResponse,
 )
-from app.backend.app.services.comparison_service import build_project_comparison
+from app.backend.app.services.comparison_service import build_multi_project_comparison, build_project_comparison
 from app.backend.app.services.export_service import (
     export_project_report_to_csv,
     export_project_report_to_xlsx,
@@ -104,6 +106,7 @@ def create_projects_router(settings, repository, rate_limiter, require_auth, req
         dependencies=[Depends(require_auth)],
     )
     def compare_projects(
+        response: Response,
         base_id: str,
         candidate_id: str,
         base_run_id: str | None = None,
@@ -141,7 +144,26 @@ def create_projects_router(settings, repository, rate_limiter, require_auth, req
             candidate_project,
             candidate_analysis_run,
         )
+        response.headers["Deprecation"] = "true"
         return ProjectComparisonResponse.model_validate(comparison)
+
+    @router.post(
+        "/api/v1/projects/compare",
+        response_model=MultiProjectComparisonResponse,
+        dependencies=[Depends(require_auth)],
+    )
+    def compare_multiple_projects(payload: MultiProjectComparisonRequest) -> MultiProjectComparisonResponse:
+        projects_with_runs: list[tuple[dict, dict]] = []
+        for project_id in payload.project_ids:
+            project = repository.get_project(project_id)
+            if project is None:
+                raise HTTPException(status_code=404, detail="Project not found")
+            analysis_run = repository.get_latest_analysis_run(project_id)
+            if analysis_run is None:
+                raise HTTPException(status_code=404, detail="Project analysis snapshot not found")
+            projects_with_runs.append((project, analysis_run))
+        comparison = build_multi_project_comparison(projects_with_runs)
+        return MultiProjectComparisonResponse.model_validate(comparison)
 
     @router.get(
         "/api/v1/projects/{project_id}",
@@ -282,10 +304,19 @@ def create_projects_router(settings, repository, rate_limiter, require_auth, req
         response_model=ProjectRecord,
         dependencies=[Depends(require_write_auth)],
     )
-    def record_project_analysis(project_id: str, payload: AnalysisResponse) -> ProjectRecord:
+    def record_project_analysis(request: Request, project_id: str, payload: AnalysisResponse) -> ProjectRecord:
         project = repository.record_analysis(project_id, payload.model_dump())
         if project is None:
             raise HTTPException(status_code=404, detail="Project not found")
+        repository.log_audit_entry(
+            action="analysis_run_created",
+            project_id=project["id"],
+            project_name=project["project_name"],
+            key_id=getattr(request.state, "auth_key_id", None),
+            actor=_resolve_audit_actor(request),
+            request_id=getattr(request.state, "request_id", None),
+            ip_address=_request_ip(request),
+        )
         return ProjectRecord.model_validate(project)
 
     @router.post(
@@ -293,10 +324,19 @@ def create_projects_router(settings, repository, rate_limiter, require_auth, req
         response_model=ProjectRecord,
         dependencies=[Depends(require_write_auth)],
     )
-    def record_project_export(project_id: str, payload: ProjectExportMarkRequest) -> ProjectRecord:
+    def record_project_export(request: Request, project_id: str, payload: ProjectExportMarkRequest) -> ProjectRecord:
         project = repository.record_export(project_id, payload.format, payload.analysis_run_id)
         if project is None:
             raise HTTPException(status_code=404, detail="Project not found")
+        repository.log_audit_entry(
+            action="export_created",
+            project_id=project["id"],
+            project_name=project["project_name"],
+            key_id=getattr(request.state, "auth_key_id", None),
+            actor=_resolve_audit_actor(request),
+            request_id=getattr(request.state, "request_id", None),
+            ip_address=_request_ip(request),
+        )
         return ProjectRecord.model_validate(project)
 
     @router.post(

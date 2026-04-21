@@ -4,6 +4,7 @@ import {
   type CalculationResponse,
   type ProjectHistory,
   type ProjectComparison,
+  type MultiProjectComparison,
   type ProjectRevisionHistory,
   type ApiHealthResponse,
   type ApiDiagnosticsResponse,
@@ -67,6 +68,58 @@ export type ApiKeyCreateResponse = ApiKeyRecord & {
 export type ApiKeyListResponse = {
   keys: ApiKeyRecord[];
   total?: number;
+};
+export type WebhookFormat = "generic" | "slack";
+export type WebhookScope = "global" | "api_key";
+export type WebhookDeliveryStatus = "pending" | "delivered" | "failed" | "retrying";
+export type WebhookSubscriptionRecord = {
+  id: string;
+  name: string;
+  target_url: string;
+  secret?: string | null;
+  format: WebhookFormat;
+  event_filter: string[];
+  scope: WebhookScope;
+  api_key_id?: string | null;
+  created_at: string;
+  updated_at: string;
+  last_delivered_at?: string | null;
+  last_error_at?: string | null;
+  enabled: boolean;
+};
+export type WebhookCreateRequest = {
+  name: string;
+  target_url: string;
+  secret: string;
+  format: WebhookFormat;
+  event_filter?: string[];
+  scope: WebhookScope;
+  api_key_id?: string | null;
+};
+export type WebhookListResponse = {
+  subscriptions: WebhookSubscriptionRecord[];
+  total?: number;
+};
+export type WebhookDeliveryRecord = {
+  id: string;
+  subscription_id: string;
+  event_id: number;
+  status: WebhookDeliveryStatus;
+  attempt_count: number;
+  last_attempt_at?: string | null;
+  delivered_at?: string | null;
+  response_code?: number | null;
+  response_body?: string | null;
+  error_message?: string | null;
+};
+export type WebhookDeliveryListResponse = {
+  deliveries: WebhookDeliveryRecord[];
+  total?: number;
+};
+export type WebhookTestResponse = {
+  delivery_id: string;
+  status: WebhookDeliveryStatus;
+  response_code?: number | null;
 };
 export type SrmCheckRequest = {
   observed_counts: number[];
@@ -560,6 +613,89 @@ export async function deleteApiKeyRequest(apiKeyId: string): Promise<{ id: strin
   return data;
 }
 
+export async function listWebhooksRequest(): Promise<WebhookListResponse> {
+  const response = await fetch(apiUrl("/api/v1/webhooks"), {
+    headers: buildAdminHeaders()
+  });
+  const data = await readJson<WebhookListResponse & ApiErrorResponse>(response);
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(data, response, "Webhook list request failed"));
+  }
+
+  return data;
+}
+
+export async function createWebhookRequest(payload: WebhookCreateRequest): Promise<WebhookSubscriptionRecord> {
+  const response = await fetch(apiUrl("/api/v1/webhooks"), {
+    method: "POST",
+    headers: buildAdminHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify(payload)
+  });
+  const data = await readJson<WebhookSubscriptionRecord & ApiErrorResponse>(response);
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(data, response, "Webhook creation failed"));
+  }
+
+  return data;
+}
+
+export async function deleteWebhookRequest(subscriptionId: string): Promise<{ id: string; deleted: boolean }> {
+  const response = await fetch(apiUrl(`/api/v1/webhooks/${subscriptionId}`), {
+    method: "DELETE",
+    headers: buildAdminHeaders()
+  });
+  const data = await readJson<{ id: string; deleted: boolean } & ApiErrorResponse>(response);
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(data, response, "Webhook deletion failed"));
+  }
+
+  return data;
+}
+
+export async function testWebhookRequest(subscriptionId: string): Promise<WebhookTestResponse> {
+  const response = await fetch(apiUrl(`/api/v1/webhooks/${subscriptionId}/test`), {
+    method: "POST",
+    headers: buildAdminHeaders()
+  });
+  const data = await readJson<WebhookTestResponse & ApiErrorResponse>(response);
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(data, response, "Webhook test delivery failed"));
+  }
+
+  return data;
+}
+
+export async function listWebhookDeliveriesRequest(
+  subscriptionId: string,
+  options: { limit?: number; status?: WebhookDeliveryStatus } = {}
+): Promise<WebhookDeliveryListResponse> {
+  const params = new URLSearchParams();
+  if (typeof options.limit === "number") {
+    params.set("limit", String(options.limit));
+  }
+  if (options.status) {
+    params.set("status", options.status);
+  }
+
+  const path = params.size > 0
+    ? `/api/v1/webhooks/${subscriptionId}/deliveries?${params.toString()}`
+    : `/api/v1/webhooks/${subscriptionId}/deliveries`;
+  const response = await fetch(apiUrl(path), {
+    headers: buildAdminHeaders()
+  });
+  const data = await readJson<WebhookDeliveryListResponse & ApiErrorResponse>(response);
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(data, response, "Webhook delivery history failed"));
+  }
+
+  return data;
+}
+
 export async function exportAuditLogRequest(options: AuditLogRequestOptions = {}): Promise<{ blob: Blob; filename: string }> {
   const params = new URLSearchParams();
   if (options.projectId) {
@@ -726,6 +862,39 @@ export async function compareProjectsRequest(
   }
 
   return data;
+}
+
+export async function compareMultipleProjectsRequest(projectIds: string[]): Promise<MultiProjectComparison> {
+  const response = await fetch(apiUrl("/api/v1/projects/compare"), {
+    method: "POST",
+    headers: buildHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ project_ids: projectIds })
+  });
+  const data = await readJson<MultiProjectComparison & ApiErrorResponse>(response);
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(data, response, "Project comparison failed"));
+  }
+
+  return data;
+}
+
+export async function exportComparisonRequest(
+  projectIds: string[],
+  format: "markdown" | "pdf"
+): Promise<string> {
+  const response = await fetch(apiUrl("/api/v1/export/comparison"), {
+    method: "POST",
+    headers: buildHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ project_ids: projectIds, format })
+  });
+  const data = await readJson<ExportResponse & ApiErrorResponse>(response);
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(data, response, "Comparison export failed"));
+  }
+
+  return String(data.content ?? "");
 }
 
 export async function archiveProjectRequest(projectId: string): Promise<ArchiveProjectResponse> {

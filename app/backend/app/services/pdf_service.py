@@ -330,3 +330,116 @@ def generate_report_pdf(project: dict, analysis: dict, revisions: list[dict]) ->
         plt.close(warning_fig)
 
     return buffer.getvalue()
+
+
+def generate_comparison_report_pdf(comparison: dict) -> bytes:
+    projects = comparison.get("projects", [])
+    buffer = BytesIO()
+
+    with PdfPages(buffer) as pdf:
+        title_fig = plt.figure(figsize=PAGE_SIZE)
+        _page_title(title_fig, "Multi-project comparison", "Cross-project planning snapshot")
+        title_fig.text(0.07, 0.89, f"Projects compared: {len(projects)}", fontsize=13, fontweight="bold")
+        title_fig.text(
+            0.07,
+            0.85,
+            f"Metric types: {', '.join(comparison.get('metric_types_used', [])) or '-'}",
+            fontsize=10,
+        )
+        title_fig.text(
+            0.07,
+            0.82,
+            (
+                "Sample size range: "
+                f"{comparison.get('sample_size_range', {}).get('min', '-')}"
+                f" to {comparison.get('sample_size_range', {}).get('max', '-')}"
+                f" (median {comparison.get('sample_size_range', {}).get('median', '-')})"
+            ),
+            fontsize=10,
+        )
+        title_fig.text(
+            0.07,
+            0.79,
+            (
+                "Duration range: "
+                f"{comparison.get('duration_range', {}).get('min', '-')}"
+                f" to {comparison.get('duration_range', {}).get('max', '-')}"
+                f" days (median {comparison.get('duration_range', {}).get('median', '-')})"
+            ),
+            fontsize=10,
+        )
+        overview_axis = title_fig.add_axes([0.07, 0.12, 0.86, 0.58])
+        overview_rows = [
+            [
+                str(project.get("project_name", "-")),
+                str(project.get("metric_type", "-")),
+                _format_value(project.get("total_sample_size")),
+                _format_value(project.get("estimated_duration_days")),
+                _format_value(project.get("warnings_count")),
+            ]
+            for project in projects
+        ]
+        _render_table(overview_axis, overview_rows, ["Project", "Metric type", "Total sample", "Days", "Warnings"])
+        pdf.savefig(title_fig)
+        plt.close(title_fig)
+
+        for project in projects:
+            project_fig = plt.figure(figsize=PAGE_SIZE)
+            _page_title(project_fig, str(project.get("project_name", "Project")), "Project comparison snapshot")
+            project_fig.text(0.07, 0.89, f"Primary metric: {project.get('primary_metric', '-')}", fontsize=10)
+            project_fig.text(0.07, 0.865, f"Metric type: {project.get('metric_type', '-')}", fontsize=10)
+            project_fig.text(0.07, 0.84, f"Executive summary: {project.get('executive_summary', '-')}", fontsize=10)
+            summary_axis = project_fig.add_axes([0.07, 0.54, 0.86, 0.22])
+            _render_table(
+                summary_axis,
+                [[
+                    _format_value(project.get("sample_size_per_variant")),
+                    _format_value(project.get("total_sample_size")),
+                    _format_value(project.get("estimated_duration_days")),
+                    _format_value(project.get("warnings_count")),
+                    str(project.get("warning_severity", "-")),
+                ]],
+                ["Per variant", "Total sample", "Days", "Warnings", "Severity"],
+            )
+            warnings_axis = project_fig.add_axes([0.07, 0.16, 0.40, 0.28])
+            recommendations_axis = project_fig.add_axes([0.53, 0.16, 0.40, 0.28])
+            _render_table(
+                warnings_axis,
+                [[item] for item in project.get("warning_codes", [])] or [["None"]],
+                ["Warning codes"],
+            )
+            _render_table(
+                recommendations_axis,
+                [[item] for item in project.get("recommendation_highlights", [])] or [["None"]],
+                ["Recommendation highlights"],
+            )
+            pdf.savefig(project_fig)
+            plt.close(project_fig)
+
+        shared_fig = plt.figure(figsize=PAGE_SIZE)
+        _page_title(shared_fig, "Shared insights", "Overlap and unique project assumptions")
+        shared_axis = shared_fig.add_axes([0.07, 0.56, 0.86, 0.26])
+        _render_table(
+            shared_axis,
+            [
+                ["Shared warnings", _format_value(comparison.get("shared_warnings", []))],
+                ["Shared risks", _format_value(comparison.get("shared_risks", []))],
+                ["Shared assumptions", _format_value(comparison.get("shared_assumptions", []))],
+            ],
+            ["Area", "Values"],
+        )
+        unique_axis = shared_fig.add_axes([0.07, 0.12, 0.86, 0.34])
+        unique_rows = [
+            [
+                project.get("project_name", "-"),
+                _format_value(comparison.get("unique_per_project", {}).get(project.get("id", ""), {}).get("warnings", [])),
+                _format_value(comparison.get("unique_per_project", {}).get(project.get("id", ""), {}).get("risks", [])),
+                _format_value(comparison.get("unique_per_project", {}).get(project.get("id", ""), {}).get("assumptions", [])),
+            ]
+            for project in projects
+        ]
+        _render_table(unique_axis, unique_rows, ["Project", "Unique warnings", "Unique risks", "Unique assumptions"], font_size=8)
+        pdf.savefig(shared_fig)
+        plt.close(shared_fig)
+
+    return buffer.getvalue()

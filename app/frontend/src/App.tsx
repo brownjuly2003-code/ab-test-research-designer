@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -8,6 +9,15 @@ import { useProjectStore } from "./stores/projectStore";
 import { useThemeStore } from "./stores/themeStore";
 import { useWizardStore } from "./stores/wizardStore";
 
+const SUPPORTED_LANGUAGES = ["en", "ru", "de", "es"] as const;
+type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
+
+function resolveLanguage(candidate: string | undefined): SupportedLanguage {
+  return (SUPPORTED_LANGUAGES as readonly string[]).includes(candidate ?? "")
+    ? (candidate as SupportedLanguage)
+    : "en";
+}
+
 export default function App() {
   const { t, i18n } = useTranslation();
   const theme = useThemeStore((state) => state.theme);
@@ -17,9 +27,13 @@ export default function App() {
   const isDirty = useDraftStore((state) => state.isDirty);
   const activeProjectId = useProjectStore((state) => state.activeProjectId);
   const isEmptyState = showOnboarding && !isDirty && !activeProjectId && step === 0;
-  const language = i18n.resolvedLanguage === "ru" ? "ru" : "en";
+  const language = resolveLanguage(i18n.resolvedLanguage);
 
-  async function handleLanguageChange(nextLanguage: "en" | "ru") {
+  useEffect(() => {
+    document.documentElement.lang = language;
+  }, [language]);
+
+  async function handleLanguageChange(nextLanguage: SupportedLanguage) {
     window.localStorage.setItem("ab-test:language", nextLanguage);
     await i18n.changeLanguage(nextLanguage);
   }
@@ -41,7 +55,7 @@ export default function App() {
                 <div className="theme-toggle" role="group" aria-label={t("app.language.ariaLabel")}>
                   <span className="theme-toggle-label">{t("app.language.label")}</span>
                   <div className="theme-toggle-buttons">
-                    {(["en", "ru"] as const).map((option) => (
+                    {SUPPORTED_LANGUAGES.map((option) => (
                       <button
                         key={option}
                         type="button"

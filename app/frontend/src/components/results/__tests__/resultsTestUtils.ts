@@ -1,5 +1,6 @@
 import type {
   AnalysisResponsePayload,
+  MultiProjectComparison,
   ProjectComparison,
   ProjectHistory,
   SavedProject
@@ -288,6 +289,172 @@ export function buildProjectComparison(): ProjectComparison {
       "Both snapshots evaluate the same primary metric and metric family."
     ],
     summary: "Pricing challenger needs larger total sample size and a longer test window than Stored checkout test."
+  };
+}
+
+
+export function buildMultiProjectComparison(): MultiProjectComparison {
+  const projects: MultiProjectComparison["projects"] = [
+    {
+      id: "p-1",
+      project_name: "Stored checkout test",
+      updated_at: "2026-03-07T10:00:00Z",
+      analysis_created_at: "2026-03-07T12:30:00Z",
+      last_analysis_at: "2026-03-07T12:30:00Z",
+      analysis_run_id: "run-1",
+      metric_type: "binary",
+      primary_metric: "purchase_conversion",
+      sample_size_per_variant: 100,
+      total_sample_size: 300,
+      estimated_duration_days: 12,
+      warnings_count: 1,
+      warning_codes: ["LOW_TRAFFIC"],
+      risk_highlights: ["tracking quality"],
+      assumptions: ["Baseline is stable", "Traffic split holds"],
+      advice_available: false,
+      executive_summary: "Stored checkout summary",
+      warning_severity: "medium",
+      recommendation_highlights: ["Verify tracking", "Watch SRM"],
+      sensitivity: {
+        cells: [
+          { mde: 1, power: 0.8, sample_size_per_variant: 120, duration_days: 9 },
+          { mde: 1, power: 0.9, sample_size_per_variant: 160, duration_days: 11 },
+          { mde: 2, power: 0.8, sample_size_per_variant: 80, duration_days: 6 },
+          { mde: 2, power: 0.9, sample_size_per_variant: 110, duration_days: 8 }
+        ],
+        current_mde: 1,
+        current_power: 0.8
+      },
+      observed_results: {
+        metric_type: "binary",
+        observed_effect: 0.6,
+        observed_effect_relative: 14.4,
+        control_rate: 0.041,
+        treatment_rate: 0.047,
+        ci_lower: 0.1,
+        ci_upper: 1.1,
+        ci_level: 0.95,
+        p_value: 0.02,
+        test_statistic: 2.3,
+        is_significant: true,
+        power_achieved: 0.82,
+        verdict: "Ship candidate",
+        interpretation: "Treatment improved conversion."
+      }
+    },
+    {
+      id: "p-2",
+      project_name: "Pricing challenger",
+      updated_at: "2026-03-07T11:00:00Z",
+      analysis_created_at: "2026-03-07T13:00:00Z",
+      last_analysis_at: "2026-03-07T13:00:00Z",
+      analysis_run_id: "run-2",
+      metric_type: "binary",
+      primary_metric: "purchase_conversion",
+      sample_size_per_variant: 130,
+      total_sample_size: 360,
+      estimated_duration_days: 15,
+      warnings_count: 2,
+      warning_codes: ["LOW_TRAFFIC", "LONG_DURATION"],
+      risk_highlights: ["tracking quality"],
+      assumptions: ["Baseline is stable"],
+      advice_available: false,
+      executive_summary: "Pricing challenger summary",
+      warning_severity: "high",
+      recommendation_highlights: ["Watch SRM", "Validate traffic quality"],
+      sensitivity: {
+        cells: [
+          { mde: 1, power: 0.8, sample_size_per_variant: 150, duration_days: 11 },
+          { mde: 1, power: 0.9, sample_size_per_variant: 190, duration_days: 14 },
+          { mde: 2, power: 0.8, sample_size_per_variant: 100, duration_days: 8 },
+          { mde: 2, power: 0.9, sample_size_per_variant: 135, duration_days: 10 }
+        ],
+        current_mde: 1,
+        current_power: 0.8
+      },
+      observed_results: {
+        metric_type: "binary",
+        observed_effect: 0.9,
+        observed_effect_relative: 18.2,
+        control_rate: 0.041,
+        treatment_rate: 0.05,
+        ci_lower: 0.2,
+        ci_upper: 1.4,
+        ci_level: 0.95,
+        p_value: 0.01,
+        test_statistic: 2.7,
+        is_significant: true,
+        power_achieved: 0.86,
+        verdict: "Ship candidate",
+        interpretation: "Treatment improved conversion."
+      }
+    },
+    {
+      id: "p-3",
+      project_name: "Homepage hero refresh",
+      updated_at: "2026-03-07T11:40:00Z",
+      analysis_created_at: "2026-03-07T13:20:00Z",
+      last_analysis_at: "2026-03-07T13:20:00Z",
+      analysis_run_id: "run-3",
+      metric_type: "binary",
+      primary_metric: "purchase_conversion",
+      sample_size_per_variant: 115,
+      total_sample_size: 330,
+      estimated_duration_days: 13,
+      warnings_count: 1,
+      warning_codes: ["LOW_TRAFFIC"],
+      risk_highlights: ["tracking quality"],
+      assumptions: ["Baseline is stable", "Audience mix stays stable"],
+      advice_available: false,
+      executive_summary: "Homepage refresh summary",
+      warning_severity: "medium",
+      recommendation_highlights: ["Verify tracking", "Segment by device"],
+      sensitivity: {
+        cells: [
+          { mde: 1, power: 0.8, sample_size_per_variant: 135, duration_days: 10 },
+          { mde: 1, power: 0.9, sample_size_per_variant: 175, duration_days: 13 },
+          { mde: 2, power: 0.8, sample_size_per_variant: 92, duration_days: 7 },
+          { mde: 2, power: 0.9, sample_size_per_variant: 120, duration_days: 9 }
+        ],
+        current_mde: 1,
+        current_power: 0.8
+      },
+      observed_results: {
+        metric_type: "binary",
+        observed_effect: 0.4,
+        observed_effect_relative: 9.8,
+        control_rate: 0.041,
+        treatment_rate: 0.045,
+        ci_lower: -0.1,
+        ci_upper: 0.9,
+        ci_level: 0.95,
+        p_value: 0.08,
+        test_statistic: 1.74,
+        is_significant: false,
+        power_achieved: 0.68,
+        verdict: "Continue test",
+        interpretation: "Directionally positive but inconclusive."
+      }
+    }
+  ];
+
+  return {
+    projects,
+    shared_warnings: ["LOW_TRAFFIC"],
+    shared_risks: ["tracking quality"],
+    shared_assumptions: ["Baseline is stable"],
+    unique_per_project: {
+      "p-1": { warnings: [], risks: [], assumptions: ["Traffic split holds"] },
+      "p-2": { warnings: ["LONG_DURATION"], risks: [], assumptions: [] },
+      "p-3": { warnings: [], risks: [], assumptions: ["Audience mix stays stable"] }
+    },
+    sample_size_range: { min: 300, max: 360, median: 330 },
+    duration_range: { min: 12, max: 15, median: 13 },
+    metric_types_used: ["binary"],
+    recommendation_highlights: [
+      "Watch SRM appears in 2/3 projects.",
+      "Verify tracking appears in 2/3 projects."
+    ]
   };
 }
 

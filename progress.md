@@ -222,6 +222,14 @@ Release hardening and final verification completed
 - aligned verify scripts and CI Playwright install syntax with the hardened E2E flow
 - reran full local verification including `python scripts/verify_all.py --with-e2e`
 
+### Post-v1.0 feature wave completed
+
+- added multi-project comparison dashboard (lazy-loaded React chunk, power-curve and forest-plot overlays, shared/unique insights panels) with `POST /api/v1/projects/compare` and `POST /api/v1/export/comparison`
+- added outbound webhook subscriptions with Slack and generic JSON formats, admin-guarded CRUD, delivery retries, and HMAC-signed `X-AB-Signature` for generic consumers
+- added property-based statistical tests using `hypothesis==6.152.1` across binary, continuous, SRM, group-sequential, and Bayesian calculators
+- added German (`de`) and Spanish (`es`) locales to the UI and report export pipeline, including regional fallback (`de-AT` → `de`, `es-MX` → `es`) in the backend `Accept-Language` resolver
+- updated README, RUNBOOK, and CHANGELOG to describe the new locales, comparison endpoints, and webhook flow
+
 ---
 
 ## Next Phase

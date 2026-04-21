@@ -3,6 +3,7 @@ import { create } from "zustand";
 import {
   archiveProjectRequest,
   clearApiSessionToken,
+  compareMultipleProjectsRequest,
   compareProjectsRequest,
   downloadProjectReportDataRequest,
   downloadProjectReportPdfRequest,
@@ -35,6 +36,7 @@ import {
   type ApiHealthResponse,
   type ExportFormat,
   type FullPayload,
+  type MultiProjectComparison,
   type ProjectComparison,
   type ProjectHistory,
   type ProjectRevisionHistory,
@@ -85,6 +87,7 @@ type ProjectStoreValues = {
   projectRevisionWindow: ProjectRevisionWindow;
   selectedHistoryRunId: string | null;
   projectComparison: ProjectComparison | null;
+  projectMultiComparison: MultiProjectComparison | null;
   projectComparisonError: string;
   loadingProjectComparison: boolean;
   comparingProjectId: string | null;
@@ -165,6 +168,7 @@ type ProjectStoreActions = {
     projectId: string,
     format: "csv" | "xlsx"
   ) => Promise<string | null>;
+  compareProjects: (projectIds: string[]) => Promise<string | null>;
   compareProject: (candidateProjectId: string) => Promise<string | null>;
   openHistoryRun: (runId: string) => boolean;
   clearHistoryRunSelection: () => boolean;
@@ -341,6 +345,7 @@ function createInitialProjectValues(): ProjectStoreValues {
     projectRevisionWindow: initialProjectRevisionWindow,
     selectedHistoryRunId: null,
     projectComparison: null,
+    projectMultiComparison: null,
     projectComparisonError: "",
     loadingProjectComparison: false,
     comparingProjectId: null,
@@ -405,6 +410,7 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => {
     clearComparison: () => {
       applyStoreUpdate({
         projectComparison: null,
+        projectMultiComparison: null,
         projectComparisonError: "",
         loadingProjectComparison: false,
         comparingProjectId: null
@@ -414,6 +420,7 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => {
       applyStoreUpdate((state) => ({
         selectedHistoryRunId: null,
         projectComparison: null,
+        projectMultiComparison: null,
         projectComparisonError: "",
         loadingProjectComparison: false,
         comparingProjectId: null,
@@ -444,6 +451,7 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => {
         loadingProjectRevisions: false,
         selectedHistoryRunId: null,
         projectComparison: null,
+        projectMultiComparison: null,
         projectComparisonError: "",
         loadingProjectComparison: false,
         comparingProjectId: null
@@ -497,6 +505,7 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => {
           projectRevisionsError: "",
           selectedHistoryRunId: null,
           projectComparison: null,
+          projectMultiComparison: null,
           projectComparisonError: "",
           loadingProjectComparison: false,
           comparingProjectId: null
@@ -915,6 +924,7 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => {
       applyStoreUpdate({
         selectedHistoryRunId: targetRun.id,
         projectComparison: null,
+        projectMultiComparison: null,
         projectComparisonError: "",
         loadingProjectComparison: false,
         comparingProjectId: null
@@ -982,6 +992,7 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => {
       applyStoreUpdate((state) => ({
         selectedHistoryRunId: null,
         projectComparison: null,
+        projectMultiComparison: null,
         projectComparisonError: "",
         loadingProjectComparison: false,
         comparingProjectId: null,
@@ -1000,6 +1011,37 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => {
     },
 
     // Comparison
+    compareProjects: async (projectIds) => {
+      if (projectIds.length < 2) {
+        return null;
+      }
+
+      applyStoreUpdate({
+        loadingProjectComparison: true,
+        comparingProjectId: null,
+        projectComparisonError: ""
+      });
+
+      try {
+        const comparison = await compareMultipleProjectsRequest(projectIds);
+        applyStoreUpdate({
+          projectComparison: null,
+          projectMultiComparison: comparison
+        });
+        return `Loaded comparison dashboard for ${projectIds.length} projects.`;
+      } catch (error) {
+        applyStoreUpdate({
+          projectMultiComparison: null,
+          projectComparisonError: resolveErrorMessage(error, "Unexpected project comparison error")
+        });
+        return null;
+      } finally {
+        applyStoreUpdate({
+          loadingProjectComparison: false,
+          comparingProjectId: null
+        });
+      }
+    },
     compareProject: async (candidateProjectId) => {
       const activeProjectId = get().activeProjectId;
 
@@ -1021,12 +1063,14 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => {
           get().selectedHistoryRunId ?? undefined
         );
         applyStoreUpdate({
-          projectComparison: comparison
+          projectComparison: comparison,
+          projectMultiComparison: null
         });
         return `Loaded saved-project comparison against ${candidateName}.`;
       } catch (error) {
         applyStoreUpdate({
           projectComparison: null,
+          projectMultiComparison: null,
           projectComparisonError: resolveErrorMessage(error, "Unexpected project comparison error")
         });
         return null;

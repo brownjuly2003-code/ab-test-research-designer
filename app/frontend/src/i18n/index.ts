@@ -4,10 +4,14 @@ import { initReactI18next } from "react-i18next";
 
 import en from "./en.json";
 import ru from "./ru.json";
+import de from "./de.json";
+import es from "./es.json";
 
 const resources = {
   en: { common: en },
-  ru: { common: ru }
+  ru: { common: ru },
+  de: { common: de },
+  es: { common: es }
 } as const;
 
 void i18n
@@ -15,7 +19,7 @@ void i18n
   .use(initReactI18next)
   .init({
     resources,
-    supportedLngs: ["en", "ru"],
+    supportedLngs: ["en", "ru", "de", "es"],
     nonExplicitSupportedLngs: true,
     fallbackLng: "en",
     defaultNS: "common",

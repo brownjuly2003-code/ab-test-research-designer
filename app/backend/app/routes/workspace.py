@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 
 from app.backend.app.schemas.api import WorkspaceBundle, WorkspaceImportResponse, WorkspaceValidationResponse
 
@@ -27,7 +27,15 @@ def create_workspace_router(settings, repository, rate_limiter, require_auth, re
         response_model=WorkspaceImportResponse,
         dependencies=[Depends(require_write_auth)],
     )
-    def import_workspace(payload: WorkspaceBundle) -> WorkspaceImportResponse:
-        return WorkspaceImportResponse.model_validate(repository.import_workspace(payload.model_dump()))
+    def import_workspace(request: Request, payload: WorkspaceBundle) -> WorkspaceImportResponse:
+        imported = repository.import_workspace(payload.model_dump())
+        repository.log_audit_entry(
+            action="workspace_imported",
+            key_id=getattr(request.state, "auth_key_id", None),
+            actor=getattr(request.state, "audit_actor", None) or "anonymous",
+            request_id=getattr(request.state, "request_id", None),
+            ip_address=request.client.host if request.client else None,
+        )
+        return WorkspaceImportResponse.model_validate(imported)
 
     return router

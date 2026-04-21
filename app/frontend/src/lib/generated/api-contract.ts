@@ -171,6 +171,17 @@ export type CalculationsSection = {
   assumptions: string[];
 };
 
+export type ComparisonExportRequest = {
+  project_ids: string[];
+  format: "pdf" | "markdown";
+};
+
+export type ComparisonRangeSummary = {
+  min: number;
+  max: number;
+  median: number;
+};
+
 export type ConstraintsConfig = {
   seasonality_present: boolean;
   active_campaigns_present: boolean;
@@ -442,6 +453,22 @@ export type MetricsPlanSection = {
   diagnostic: string[];
 };
 
+export type MultiProjectComparisonRequest = {
+  project_ids: string[];
+};
+
+export type MultiProjectComparisonResponse = {
+  projects: ProjectComparisonItem[];
+  shared_warnings: string[];
+  shared_risks: string[];
+  shared_assumptions: string[];
+  unique_per_project: { [key: string]: ProjectUniqueInsights; };
+  sample_size_range: ComparisonRangeSummary;
+  duration_range: ComparisonRangeSummary;
+  metric_types_used: string[];
+  recommendation_highlights: string[];
+};
+
 export type ObservedResultsBinary = {
   control_conversions: number;
   control_users: number;
@@ -493,6 +520,8 @@ export type ProjectComparisonItem = {
   executive_summary: string;
   warning_severity: string;
   recommendation_highlights: string[];
+  sensitivity?: SensitivityResponse | null;
+  observed_results?: ResultsResponse | null;
 };
 
 export type ProjectComparisonResponse = {
@@ -602,6 +631,12 @@ export type ProjectRevisionRecord = {
   source: "create" | "update" | "workspace_import";
   created_at: string;
   payload: ExperimentInput_Output;
+};
+
+export type ProjectUniqueInsights = {
+  warnings: string[];
+  risks: string[];
+  assumptions: string[];
 };
 
 export type ReadinessCheck = {
@@ -762,6 +797,72 @@ export type WarningResponse = {
   severity: string;
   message: string;
   source: string;
+};
+
+export type WebhookDeleteResponse = {
+  id: string;
+  deleted: boolean;
+};
+
+export type WebhookDeliveryListResponse = {
+  deliveries: WebhookDeliveryRecord[];
+  total?: number;
+};
+
+export type WebhookDeliveryRecord = {
+  id: string;
+  subscription_id: string;
+  event_id: number;
+  status: "pending" | "delivered" | "failed" | "retrying";
+  attempt_count: number;
+  last_attempt_at?: string | null;
+  delivered_at?: string | null;
+  response_code?: number | null;
+  response_body?: string | null;
+  error_message?: string | null;
+};
+
+export type WebhookListResponse = {
+  subscriptions: WebhookSubscriptionRecord[];
+  total?: number;
+};
+
+export type WebhookSubscriptionCreateRequest = {
+  name: string;
+  target_url: string;
+  secret: string;
+  format: "generic" | "slack";
+  event_filter?: string[];
+  scope: "global" | "api_key";
+  api_key_id?: string | null;
+};
+
+export type WebhookSubscriptionRecord = {
+  id: string;
+  name: string;
+  target_url: string;
+  secret?: string | null;
+  format: "generic" | "slack";
+  event_filter?: string[];
+  scope: "global" | "api_key";
+  api_key_id?: string | null;
+  created_at: string;
+  updated_at: string;
+  last_delivered_at?: string | null;
+  last_error_at?: string | null;
+  enabled?: boolean;
+};
+
+export type WebhookSubscriptionUpdateRequest = {
+  enabled?: boolean | null;
+  event_filter?: string[] | null;
+  target_url?: string | null;
+};
+
+export type WebhookTestResponse = {
+  delivery_id: string;
+  status: "delivered" | "failed" | "retrying" | "pending";
+  response_code?: number | null;
 };
 
 export type WorkspaceAnalysisRunRecord_Input = {

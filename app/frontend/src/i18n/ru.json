@@ -9,7 +9,9 @@
       "ariaLabel": "Настройка языка",
       "options": {
         "en": "Английский",
-        "ru": "Русский"
+        "ru": "Русский",
+        "de": "Немецкий",
+        "es": "Испанский"
       }
     },
     "theme": {
@@ -317,7 +319,42 @@
       "unavailable": "AI-рекомендации недоступны. Базовый детерминированный вывод всё равно работает."
     },
     "comparison": {
-      "empty": "Загрузите сравнение сохранённых проектов из боковой панели «Проекты», чтобы просмотреть базовый и кандидатный снапшоты."
+      "empty": "Загрузите сравнение сохранённых проектов из боковой панели «Проекты», чтобы просмотреть базовый и кандидатный снапшоты.",
+      "loading": "Загрузка dashboard сравнения...",
+      "dashboard": {
+        "loaded": "Сравниваются {{count}} проектов",
+        "title": "Dashboard сравнения",
+        "subtitle": "Смотрите сохранённые эксперименты side by side по предпосылкам, sensitivity и observed effects.",
+        "exporting": "Экспорт...",
+        "exportMarkdown": "Экспорт comparison в Markdown",
+        "exportPdf": "Экспорт comparison в PDF",
+        "close": "Закрыть dashboard",
+        "exportFailed": "Не удалось экспортировать comparison.",
+        "mixedMetricTypes": "Смешанные типы метрик — прямое сравнение эффектов некорректно.",
+        "projectsTitle": "Проекты",
+        "projectsSubtitle": "Ключевые planning-поля для выбранных экспериментов.",
+        "sampleSize": "Общая выборка: {{value}}",
+        "duration": "Длительность: {{value}} дн.",
+        "warnings": "Предупреждения: {{value}}",
+        "powerCurvesTitle": "Power curves",
+        "powerCurvesSubtitle": "Каждая линия показывает sample size per variant по точкам MDE при настроенной мощности проекта.",
+        "sensitivityTitle": "Sensitivity grid",
+        "sensitivitySubtitle": "Матрицы длительности по MDE и power для каждого проекта.",
+        "sensitivityUnavailable": "Данные sensitivity недоступны.",
+        "observedEffectsTitle": "Observed effects",
+        "observedEffectsSubtitle": "Сохранённые observed outcomes показаны по одному forest-plot row на проект.",
+        "insightsTitle": "Shared / unique insights",
+        "insightsSubtitle": "Общие warnings, risks, assumptions и различия по проектам.",
+        "sharedWarnings": "Общие предупреждения",
+        "sharedRisks": "Общие риски",
+        "sharedAssumptions": "Общие предпосылки",
+        "recommendationHighlights": "Recommendation highlights",
+        "project": "Проект",
+        "uniqueWarnings": "Уникальные предупреждения",
+        "uniqueRisks": "Уникальные риски",
+        "uniqueAssumptions": "Уникальные предпосылки",
+        "none": "Нет"
+      }
     },
     "experimentDesign": {
       "variantAndRolloutStructure": "Структура вариантов и раскатки",
@@ -736,6 +773,82 @@
       "applyFailed": "Не удалось применить шаблон."
     }
   },
+  "webhooks": {
+    "title": "Вебхуки",
+    "description": "Отправляйте audit-события в Slack или generic HTTP endpoint.",
+    "loading": "Загрузка подписок на вебхуки...",
+    "empty": "Подписок на вебхуки пока нет.",
+    "actions": {
+      "create": "Создать вебхук",
+      "save": "Сохранить вебхук",
+      "saving": "Сохранение...",
+      "close": "Закрыть",
+      "test": "Тест",
+      "deliveries": "Доставки",
+      "delete": "Удалить"
+    },
+    "status": {
+      "created": "Подписка на вебхук создана.",
+      "deleted": "Подписка на вебхук удалена.",
+      "loadFailed": "Не удалось загрузить вебхуки.",
+      "createFailed": "Не удалось создать вебхук.",
+      "testSuccess": "Тестовая доставка завершилась с HTTP {{code}}.",
+      "testFailed": "Тест вебхука завершился ошибкой.",
+      "deliveriesFailed": "Недоступна история доставок вебхука.",
+      "deleteFailed": "Не удалось удалить вебхук."
+    },
+    "fields": {
+      "name": "Название",
+      "targetUrl": "Target URL",
+      "secret": "Секрет",
+      "format": "Формат",
+      "scope": "Область действия",
+      "apiKeyId": "ID API-ключа",
+      "eventFilter": "Фильтр событий"
+    },
+    "placeholders": {
+      "name": "Алерты партнёра",
+      "targetUrl": "https://example.com/webhook",
+      "secret": "Общий секрет подписи",
+      "apiKeyId": "Вставьте ID существующего API-ключа",
+      "eventFilter": "api_key_created, project.archive"
+    },
+    "formats": {
+      "generic": "generic",
+      "slack": "slack"
+    },
+    "scopes": {
+      "global": "Глобально",
+      "apiKey": "API-ключ"
+    },
+    "labels": {
+      "enabled": "Включено",
+      "disabled": "Выключено",
+      "targetUrl": "Target URL",
+      "events": "События",
+      "allEvents": "Все события",
+      "apiKeyId": "ID API-ключа",
+      "lastDelivered": "Последняя доставка",
+      "lastError": "Последняя ошибка",
+      "never": "Никогда"
+    },
+    "createDialog": {
+      "title": "Создать вебхук",
+      "description": "Настройте Slack incoming webhook или generic JSON endpoint."
+    },
+    "drawer": {
+      "title": "Доставки: {{name}}",
+      "description": "Последние попытки доставки для этой подписки.",
+      "loading": "Загрузка доставок...",
+      "empty": "История доставок пока пуста.",
+      "labels": {
+        "responseCode": "HTTP-код",
+        "attempts": "Попытки",
+        "lastAttempt": "Последняя попытка",
+        "error": "Ошибка"
+      }
+    }
+  },
   "sidebarPanel": {
     "common": {
       "notRecordedYet": "Пока не зафиксировано",
@@ -778,7 +891,7 @@
     },
     "adminToken": {
       "title": "Админ-токен API-ключей",
-      "description": "Хранится только в текущей сессии браузера и используется только для запросов управления `/api/v1/keys`.",
+      "description": "Хранится только в текущей сессии браузера и используется только для запросов управления `/api/v1/keys` и `/api/v1/webhooks`.",
       "label": "Админ-токен",
       "placeholderConfigured": "Админ-токен сохранён в текущей сессии браузера",
       "placeholderEmpty": "Вставьте AB_ADMIN_TOKEN",
@@ -1010,8 +1123,13 @@
       "shownExperiments_few": "Показано {{count}} эксперимента.",
       "shownExperiments_many": "Показано {{count}} экспериментов.",
       "shownExperiments_other": "Показано {{count}} эксперимента.",
-      "compareDescription": "Кнопки сравнения используют открытый снимок для загруженного проекта, если он выбран; иначе берётся последний сохранённый снимок.",
+      "compareDescription": "Выберите от 2 до 5 сохранённых проектов со снимками, чтобы открыть dashboard сравнения.",
+      "selectedForComparison_one": "выбран {{count}}",
+      "selectedForComparison_few": "выбрано {{count}}",
+      "selectedForComparison_many": "выбрано {{count}}",
+      "selectedForComparison_other": "выбрано {{count}}",
       "currentComparison": "Текущее сравнение: {{baseProject}} vs {{candidateProject}}.",
+      "currentDashboard": "Текущий dashboard: {{count}} проектов.",
       "comparisonUnavailable": "Сравнение проектов недоступно.",
       "compareRequiresSnapshot": "Сохраните хотя бы один снимок анализа, прежде чем сравнивать сохранённые проекты.",
       "updatedAt": "Обновлён {{timestamp}}",
@@ -1036,6 +1154,8 @@
       "actions": {
         "comparing": "Сравнение...",
         "compare": "Сравнить",
+        "compareSelected": "Сравнить выбранные",
+        "selectForComparison": "Выбрать для сравнения",
         "restoring": "Восстановление...",
         "restore": "Восстановить",
         "archive": "В архив",

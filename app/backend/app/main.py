@@ -24,8 +24,10 @@ from app.backend.app.routes.keys import create_keys_router
 from app.backend.app.routes.projects import create_projects_router
 from app.backend.app.routes.system import create_system_router
 from app.backend.app.routes.templates import create_templates_router
+from app.backend.app.routes.webhooks import create_webhooks_router
 from app.backend.app.routes.workspace import create_workspace_router
 from app.backend.app.services.design_service import build_experiment_report
+from app.backend.app.services.webhook_service import WebhookService
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +43,8 @@ def create_app() -> FastAPI:
         synchronous=settings.sqlite_synchronous,
         workspace_signing_key=settings.workspace_signing_key,
     )
+    webhook_service = WebhookService(repository, environment=settings.environment)
+    repository.set_webhook_service(webhook_service)
     runtime_counters = create_runtime_counters()
     request_rate_limiter = SlidingWindowRateLimiter(
         max_requests=settings.rate_limit_requests,
@@ -77,6 +81,7 @@ def create_app() -> FastAPI:
             workspace_signing_enabled=settings.workspace_signing_key is not None,
         )
         yield
+        webhook_service.shutdown(wait=True)
 
     app = FastAPI(
         title="AB Test Research Designer API",
@@ -97,6 +102,7 @@ def create_app() -> FastAPI:
             {"name": "templates", "description": "Built-in and custom project templates."},
             {"name": "audit", "description": "Audit log listing and export."},
             {"name": "keys", "description": "Admin-only API key lifecycle management."},
+            {"name": "webhooks", "description": "Admin-only outbound webhook subscription management."},
             {"name": "workspace", "description": "Workspace backup, restore, and export utilities."},
             {"name": "system", "description": "Health, readiness, and runtime diagnostics."},
         ],
@@ -151,6 +157,7 @@ def create_app() -> FastAPI:
         )
     )
     app.include_router(create_keys_router(settings, repository, require_admin_auth))
+    app.include_router(create_webhooks_router(settings, repository, require_admin_auth))
     app.include_router(
         create_projects_router(
             settings,

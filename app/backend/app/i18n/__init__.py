@@ -6,8 +6,8 @@ from contextvars import ContextVar, Token
 from pathlib import Path
 from typing import Literal, Mapping
 
-Language = Literal["en", "ru"]
-SUPPORTED_LANGUAGES: tuple[Language, ...] = ("en", "ru")
+Language = Literal["en", "ru", "de", "es"]
+SUPPORTED_LANGUAGES: tuple[Language, ...] = ("en", "ru", "de", "es")
 
 _current_language: ContextVar[Language] = ContextVar("backend_language", default="en")
 _translations = {
@@ -39,10 +39,8 @@ def resolve_language(header_value: str | None) -> Language:
     ranked_languages.sort(key=lambda item: item[0], reverse=True)
     for _quality, locale in ranked_languages:
         primary = locale.split("-", 1)[0]
-        if primary == "ru":
-            return "ru"
-        if primary == "en":
-            return "en"
+        if primary in SUPPORTED_LANGUAGES:
+            return primary  # type: ignore[return-value]
 
     return "en"
 

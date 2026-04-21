@@ -11,7 +11,7 @@ from openpyxl import Workbook
 
 from app.backend.app.i18n import translate
 from app.backend.app.schemas.api import StandaloneExportRequest
-from app.backend.app.services.pdf_service import _build_sensitivity_rows
+from app.backend.app.services.pdf_service import _build_sensitivity_rows, generate_comparison_report_pdf
 
 
 def _list_to_markdown(items: list[str]) -> str:
@@ -445,6 +445,54 @@ def build_standalone_html(request: StandaloneExportRequest) -> str:
     </div>
   </body>
 </html>"""
+
+
+def export_multi_project_comparison_to_markdown(comparison: dict) -> str:
+    shared_warnings = comparison.get("shared_warnings", [])
+    shared_risks = comparison.get("shared_risks", [])
+    shared_assumptions = comparison.get("shared_assumptions", [])
+    recommendation_highlights = comparison.get("recommendation_highlights", [])
+    projects = comparison.get("projects", [])
+    project_sections = "\n\n".join(
+        (
+            f"## {project.get('project_name', '-')}\n\n"
+            f"- Metric type: {project.get('metric_type', '-')}\n"
+            f"- Primary metric: {project.get('primary_metric', '-')}\n"
+            f"- Total sample size: {project.get('total_sample_size', '-')}\n"
+            f"- Estimated duration days: {project.get('estimated_duration_days', '-')}\n"
+            f"- Warning count: {project.get('warnings_count', '-')}\n\n"
+            f"### Executive summary\n\n{project.get('executive_summary', '-')}\n\n"
+            f"### Recommendation highlights\n\n{_list_to_markdown(project.get('recommendation_highlights', []))}\n\n"
+            f"### Unique insights\n\n"
+            f"- Warnings: {', '.join(comparison.get('unique_per_project', {}).get(project.get('id', ''), {}).get('warnings', [])) or 'None'}\n"
+            f"- Risks: {', '.join(comparison.get('unique_per_project', {}).get(project.get('id', ''), {}).get('risks', [])) or 'None'}\n"
+            f"- Assumptions: {', '.join(comparison.get('unique_per_project', {}).get(project.get('id', ''), {}).get('assumptions', [])) or 'None'}"
+        )
+        for project in projects
+    )
+
+    return (
+        "# Multi-project comparison\n\n"
+        "## Summary\n\n"
+        f"- Projects compared: {len(projects)}\n"
+        f"- Metric types: {', '.join(comparison.get('metric_types_used', [])) or 'None'}\n"
+        f"- Sample size range: {comparison.get('sample_size_range', {}).get('min', '-')} to "
+        f"{comparison.get('sample_size_range', {}).get('max', '-')} "
+        f"(median {comparison.get('sample_size_range', {}).get('median', '-')})\n"
+        f"- Duration range: {comparison.get('duration_range', {}).get('min', '-')} to "
+        f"{comparison.get('duration_range', {}).get('max', '-')} days "
+        f"(median {comparison.get('duration_range', {}).get('median', '-')})\n\n"
+        "## Shared insights\n\n"
+        f"### Shared warnings\n\n{_list_to_markdown(shared_warnings)}\n\n"
+        f"### Shared risks\n\n{_list_to_markdown(shared_risks)}\n\n"
+        f"### Shared assumptions\n\n{_list_to_markdown(shared_assumptions)}\n\n"
+        f"### Recommendation highlights\n\n{_list_to_markdown(recommendation_highlights)}\n\n"
+        f"{project_sections}\n"
+    )
+
+
+def export_multi_project_comparison_to_pdf(comparison: dict) -> bytes:
+    return generate_comparison_report_pdf(comparison)
 
 
 def export_report_to_markdown(report: dict) -> str:

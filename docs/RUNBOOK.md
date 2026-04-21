@@ -161,6 +161,45 @@ Useful endpoints:
 
 Use revisions to restore an older payload into the wizard, then save to persist it as the latest version.
 
+## Multi-project comparison
+
+Useful endpoints:
+
+- `POST /api/v1/projects/compare`
+- `POST /api/v1/export/comparison`
+- legacy pairwise: `GET /api/v1/projects/compare?base_id=...&candidate_id=...` with `Deprecation: true`
+
+Open a comparison dashboard for 3 saved projects:
+
+```bash
+curl -X POST http://127.0.0.1:8008/api/v1/projects/compare \
+  -H "Content-Type: application/json" \
+  -d '{"project_ids":["PROJECT_ID_1","PROJECT_ID_2","PROJECT_ID_3"]}'
+```
+
+Export the same selection to Markdown:
+
+```bash
+curl -X POST http://127.0.0.1:8008/api/v1/export/comparison \
+  -H "Content-Type: application/json" \
+  -d '{"project_ids":["PROJECT_ID_1","PROJECT_ID_2","PROJECT_ID_3"],"format":"markdown"}'
+```
+
+Export the same selection to PDF:
+
+```bash
+curl -X POST http://127.0.0.1:8008/api/v1/export/comparison \
+  -H "Content-Type: application/json" \
+  -d '{"project_ids":["PROJECT_ID_1","PROJECT_ID_2","PROJECT_ID_3"],"format":"pdf"}'
+```
+
+Checks:
+
+- `project_ids` must contain 2 to 5 unique saved projects
+- every selected project must already have a saved analysis snapshot
+- mixed `binary` and `continuous` selections are allowed, but the dashboard marks direct effect comparison as not meaningful
+- PDF export returns base64-encoded content in the JSON payload; decode client-side before saving to disk
+
 ## Common failure modes
 
 Readiness returns `503`:
@@ -237,6 +276,56 @@ Notes:
 
 - the plaintext key is returned only once in the create response; do not log or persist it outside the intended secret store
 - legacy `AB_API_TOKEN` and `AB_READONLY_API_TOKEN` continue to work during migration and can be retired separately from managed API keys
+
+## Webhook troubleshooting
+
+Useful endpoints:
+
+- `GET /api/v1/webhooks`
+- `GET /api/v1/webhooks/{webhook_id}/deliveries?limit=50`
+- `POST /api/v1/webhooks/{webhook_id}/test`
+
+Common checks:
+
+- confirm the subscription uses `https://...`; plain HTTP is rejected outside `AB_ENV=local` localhost targets
+- verify the subscription is still `enabled`
+- inspect the delivery history for `response_code`, `attempt_count`, and `error_message`
+- if a delivery is stuck in `retrying`, wait for the next in-process backoff window before retrying manually
+- generic consumers must verify `X-AB-Signature` with the stored shared secret; Slack subscriptions do not include that header
+- repeated terminal failures move the delivery into the DB-backed dead-letter history with `status=failed`
+
+Create a test subscription or re-run a probe:
+
+```bash
+curl -X POST http://127.0.0.1:8008/api/v1/webhooks/WEBHOOK_ID/test \
+  -H "Authorization: Bearer YOUR_AB_ADMIN_TOKEN"
+```
+
+Inspect recent failed deliveries:
+
+```bash
+curl "http://127.0.0.1:8008/api/v1/webhooks/WEBHOOK_ID/deliveries?limit=50&status=failed" \
+  -H "Authorization: Bearer YOUR_AB_ADMIN_TOKEN"
+```
+
+## Adding a new locale
+
+The project ships with four locales: `en`, `ru`, `de`, `es`. Adding a new one takes a matching pair of JSON files plus three registration touches.
+
+1. **Frontend translation** — copy `app/frontend/src/i18n/en.json` to `<code>.json` in the same directory and translate the strings. Missing keys fall back to English via `react-i18next` `fallbackLng`, so partial coverage is safe to ship incrementally.
+2. **Frontend registration** — add the new code to `app/frontend/src/i18n/index.ts`: import the JSON, add it to `resources`, and extend `supportedLngs`.
+3. **Language switcher** — extend `SUPPORTED_LANGUAGES` in `app/frontend/src/App.tsx` so the header switcher renders the new button. Add a label under `app.language.options.<code>` to every shipped locale file.
+4. **Backend translation** — copy `app/backend/app/i18n/en.json` to `app/backend/app/i18n/<code>.json`. Translate at least the `export.markdown`, `export.html`, `warnings`, and `report` subtrees, since those feed the `/api/v1/export/*` payloads and the deterministic report builder.
+5. **Backend registration** — extend the `Language` literal and `SUPPORTED_LANGUAGES` tuple in `app/backend/app/i18n/__init__.py`. The `resolve_language` helper already accepts any supported primary tag, so regional variants like `de-AT` fall back automatically.
+6. **Tests** — extend `app/frontend/src/i18n.test.tsx` and `app/frontend/src/test/a11y-locales.test.tsx` with `changeLanguage('<code>')` cases, and add backend export assertions to `app/backend/tests/test_export_api.py` covering the translated markdown header.
+
+Verification:
+
+```bash
+cmd /c scripts\verify_all.cmd --with-e2e
+```
+
+The backend bundle is small (one JSON per locale); the frontend gzipped bundle grows by roughly 1–3 KB per fully-translated locale.
 
 ## Release hygiene
 

@@ -202,6 +202,14 @@ Compare Projects
 curl "http://127.0.0.1:8008/api/v1/projects/compare?base_id=BASE&candidate_id=CANDIDATE"
 ```
 
+### `POST /api/v1/projects/compare`
+
+Compare Multiple Projects
+
+```bash
+curl "http://127.0.0.1:8008/api/v1/projects/compare?base_id=BASE&candidate_id=CANDIDATE"
+```
+
 ## Workspace
 
 ### `GET /api/v1/workspace/export`
@@ -249,6 +257,10 @@ curl -X POST http://127.0.0.1:8008/api/v1/export/markdown ^
 ```
 
 ## Other
+
+### `POST /api/v1/export/comparison`
+
+Export Comparison
 
 ### `POST /api/v1/export/html-standalone`
 
@@ -301,6 +313,34 @@ Get Template
 ### `POST /api/v1/templates/{template_id}/use`
 
 Use Template
+
+### `GET /api/v1/webhooks`
+
+List Webhooks
+
+### `POST /api/v1/webhooks`
+
+Create Webhook
+
+### `DELETE /api/v1/webhooks/{subscription_id}`
+
+Delete Webhook
+
+### `GET /api/v1/webhooks/{subscription_id}`
+
+Get Webhook
+
+### `PATCH /api/v1/webhooks/{subscription_id}`
+
+Update Webhook
+
+### `GET /api/v1/webhooks/{subscription_id}/deliveries`
+
+List Webhook Deliveries
+
+### `POST /api/v1/webhooks/{subscription_id}/test`
+
+Test Webhook
 
 ## Validation notes
 

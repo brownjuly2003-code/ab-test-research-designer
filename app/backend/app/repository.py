@@ -18,7 +18,7 @@ from app.backend.app.schemas.api import ExperimentInput
 
 
 class ProjectRepository:
-    schema_version = 6
+    schema_version = 7
     payload_schema_version = 1
     workspace_schema_version = 3
     project_select_columns = """
@@ -58,6 +58,7 @@ class ProjectRepository:
         self.journal_mode = journal_mode
         self.synchronous = synchronous
         self.workspace_signing_key = workspace_signing_key.strip() if workspace_signing_key else None
+        self.webhook_service: Any | None = None
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_db()
 
@@ -92,6 +93,7 @@ class ProjectRepository:
             self._create_history_tables(connection)
             self._create_audit_tables(connection)
             self._create_api_key_tables(connection)
+            self._create_webhook_tables(connection)
             self._create_template_tables(connection)
             self._migrate_db(connection)
             connection.execute(f"PRAGMA user_version = {self.schema_version}")
@@ -218,6 +220,65 @@ class ProjectRepository:
         )
 
     @staticmethod
+    def _create_webhook_tables(connection: sqlite3.Connection) -> None:
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS webhook_subscriptions (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                target_url TEXT NOT NULL,
+                secret TEXT NOT NULL,
+                format TEXT NOT NULL,
+                event_filter TEXT NOT NULL DEFAULT '[]',
+                scope TEXT NOT NULL,
+                api_key_id TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                last_delivered_at TEXT,
+                last_error_at TEXT,
+                enabled INTEGER NOT NULL DEFAULT 1,
+                FOREIGN KEY(api_key_id) REFERENCES api_keys(id) ON DELETE SET NULL
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_webhook_subscriptions_scope_enabled
+            ON webhook_subscriptions (scope, enabled, updated_at DESC)
+            """
+        )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS webhook_deliveries (
+                id TEXT PRIMARY KEY,
+                subscription_id TEXT NOT NULL,
+                event_id INTEGER NOT NULL,
+                status TEXT NOT NULL,
+                attempt_count INTEGER NOT NULL DEFAULT 0,
+                last_attempt_at TEXT,
+                delivered_at TEXT,
+                response_code INTEGER,
+                response_body TEXT,
+                error_message TEXT,
+                FOREIGN KEY(subscription_id) REFERENCES webhook_subscriptions(id) ON DELETE CASCADE,
+                FOREIGN KEY(event_id) REFERENCES audit_log(id) ON DELETE CASCADE
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_subscription_created
+            ON webhook_deliveries (subscription_id, last_attempt_at DESC, id DESC)
+            """
+        )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_status
+            ON webhook_deliveries (status, last_attempt_at DESC, id DESC)
+            """
+        )
+
+    @staticmethod
     def _create_template_tables(connection: sqlite3.Connection) -> None:
         connection.execute(
             """
@@ -316,6 +377,7 @@ class ProjectRepository:
         ProjectRepository._create_history_tables(connection)
         ProjectRepository._create_audit_tables(connection)
         ProjectRepository._create_api_key_tables(connection)
+        ProjectRepository._create_webhook_tables(connection)
         ProjectRepository._create_template_tables(connection)
         for table_name in ("projects", "project_revisions"):
             rows = connection.execute(
@@ -488,8 +550,65 @@ class ProjectRepository:
         }
 
     @staticmethod
+    def _webhook_subscription_row_to_record(
+        row: sqlite3.Row,
+        *,
+        include_secret: bool = False,
+    ) -> dict[str, Any]:
+        event_filter_raw = row["event_filter"]
+        return {
+            "id": row["id"],
+            "name": row["name"],
+            "target_url": row["target_url"],
+            "secret": row["secret"] if include_secret else None,
+            "format": row["format"],
+            "event_filter": json.loads(event_filter_raw) if event_filter_raw else [],
+            "scope": row["scope"],
+            "api_key_id": row["api_key_id"],
+            "created_at": row["created_at"],
+            "updated_at": row["updated_at"],
+            "last_delivered_at": row["last_delivered_at"],
+            "last_error_at": row["last_error_at"],
+            "enabled": bool(row["enabled"]),
+        }
+
+    @staticmethod
+    def _webhook_delivery_row_to_record(row: sqlite3.Row) -> dict[str, Any]:
+        return {
+            "id": row["id"],
+            "subscription_id": row["subscription_id"],
+            "event_id": row["event_id"],
+            "status": row["status"],
+            "attempt_count": int(row["attempt_count"]),
+            "last_attempt_at": row["last_attempt_at"],
+            "delivered_at": row["delivered_at"],
+            "response_code": row["response_code"],
+            "response_body": row["response_body"],
+            "error_message": row["error_message"],
+        }
+
+    @staticmethod
+    def _audit_row_to_record(row: sqlite3.Row) -> dict[str, Any]:
+        payload_diff_json = row["payload_diff"]
+        return {
+            "id": row["id"],
+            "ts": row["ts"],
+            "action": row["action"],
+            "project_id": row["project_id"],
+            "project_name": row["project_name"],
+            "key_id": row["key_id"],
+            "actor": row["actor"],
+            "request_id": row["request_id"],
+            "payload_diff": json.loads(payload_diff_json) if payload_diff_json else None,
+            "ip_address": row["ip_address"],
+        }
+
+    @staticmethod
     def build_api_key_hash(plaintext_key: str) -> str:
         return hashlib.sha256(plaintext_key.encode("utf-8")).hexdigest()
+
+    def set_webhook_service(self, webhook_service: Any | None) -> None:
+        self.webhook_service = webhook_service
 
     @classmethod
     def _project_row_to_workspace_record(cls, row: sqlite3.Row) -> dict:
@@ -1208,6 +1327,394 @@ class ProjectRepository:
             "deleted": True,
         }
 
+    def create_webhook_subscription(
+        self,
+        *,
+        name: str,
+        target_url: str,
+        secret: str,
+        format: str,
+        event_filter: list[str],
+        scope: str,
+        api_key_id: str | None = None,
+    ) -> dict[str, Any]:
+        if scope == "api_key" and not api_key_id:
+            raise ApiError("api_key_id is required for api_key scope", error_code="webhook_api_key_required")
+        if scope == "global" and api_key_id is not None:
+            raise ApiError("api_key_id is not allowed for global scope", error_code="webhook_scope_invalid")
+
+        subscription_id = str(uuid.uuid4())
+        timestamp = datetime.now(timezone.utc).isoformat()
+        normalized_event_filter = [value for value in event_filter if value]
+
+        with self._connect() as connection:
+            if api_key_id is not None:
+                key_row = connection.execute(
+                    "SELECT 1 FROM api_keys WHERE id = ?",
+                    (api_key_id,),
+                ).fetchone()
+                if key_row is None:
+                    raise ApiError("API key not found", error_code="api_key_not_found", status_code=404)
+            connection.execute(
+                """
+                INSERT INTO webhook_subscriptions (
+                    id,
+                    name,
+                    target_url,
+                    secret,
+                    format,
+                    event_filter,
+                    scope,
+                    api_key_id,
+                    created_at,
+                    updated_at,
+                    last_delivered_at,
+                    last_error_at,
+                    enabled
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, 1)
+                """,
+                (
+                    subscription_id,
+                    name,
+                    target_url,
+                    secret,
+                    format,
+                    json.dumps(normalized_event_filter),
+                    scope,
+                    api_key_id,
+                    timestamp,
+                    timestamp,
+                ),
+            )
+
+        subscription = self.get_webhook_subscription(subscription_id, include_secret=True)
+        if subscription is None:
+            raise ApiError("Webhook subscription not found", error_code="webhook_not_found", status_code=404)
+        return subscription
+
+    def list_webhook_subscriptions(self, *, include_secret: bool = False) -> dict[str, Any]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT
+                    id,
+                    name,
+                    target_url,
+                    secret,
+                    format,
+                    event_filter,
+                    scope,
+                    api_key_id,
+                    created_at,
+                    updated_at,
+                    last_delivered_at,
+                    last_error_at,
+                    enabled
+                FROM webhook_subscriptions
+                ORDER BY created_at DESC, id DESC
+                """
+            ).fetchall()
+
+        subscriptions = [
+            self._webhook_subscription_row_to_record(row, include_secret=include_secret)
+            for row in rows
+        ]
+        return {
+            "subscriptions": subscriptions,
+            "total": len(subscriptions),
+        }
+
+    def get_webhook_subscription(self, subscription_id: str, *, include_secret: bool = False) -> dict[str, Any] | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT
+                    id,
+                    name,
+                    target_url,
+                    secret,
+                    format,
+                    event_filter,
+                    scope,
+                    api_key_id,
+                    created_at,
+                    updated_at,
+                    last_delivered_at,
+                    last_error_at,
+                    enabled
+                FROM webhook_subscriptions
+                WHERE id = ?
+                """,
+                (subscription_id,),
+            ).fetchone()
+
+        if row is None:
+            return None
+        return self._webhook_subscription_row_to_record(row, include_secret=include_secret)
+
+    def update_webhook_subscription(
+        self,
+        subscription_id: str,
+        *,
+        target_url: str | None = None,
+        event_filter: list[str] | None = None,
+        enabled: bool | None = None,
+    ) -> dict[str, Any] | None:
+        updates: list[str] = []
+        params: list[Any] = []
+
+        if target_url is not None:
+            updates.append("target_url = ?")
+            params.append(target_url)
+        if event_filter is not None:
+            updates.append("event_filter = ?")
+            params.append(json.dumps([value for value in event_filter if value]))
+        if enabled is not None:
+            updates.append("enabled = ?")
+            params.append(1 if enabled else 0)
+
+        if not updates:
+            return self.get_webhook_subscription(subscription_id)
+
+        timestamp = datetime.now(timezone.utc).isoformat()
+        updates.append("updated_at = ?")
+        params.append(timestamp)
+        params.append(subscription_id)
+
+        with self._connect() as connection:
+            cursor = connection.execute(
+                f"""
+                UPDATE webhook_subscriptions
+                SET {", ".join(updates)}
+                WHERE id = ?
+                """,
+                params,
+            )
+            if cursor.rowcount == 0:
+                return None
+
+        return self.get_webhook_subscription(subscription_id)
+
+    def delete_webhook_subscription(self, subscription_id: str) -> dict[str, Any] | None:
+        with self._connect() as connection:
+            cursor = connection.execute(
+                "DELETE FROM webhook_subscriptions WHERE id = ?",
+                (subscription_id,),
+            )
+
+        if cursor.rowcount == 0:
+            return None
+        return {"id": subscription_id, "deleted": True}
+
+    def list_matching_webhook_subscriptions(
+        self,
+        *,
+        event_type: str,
+        key_id: str | None = None,
+    ) -> list[dict[str, Any]]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT
+                    id,
+                    name,
+                    target_url,
+                    secret,
+                    format,
+                    event_filter,
+                    scope,
+                    api_key_id,
+                    created_at,
+                    updated_at,
+                    last_delivered_at,
+                    last_error_at,
+                    enabled
+                FROM webhook_subscriptions
+                WHERE enabled = 1
+                ORDER BY created_at ASC, id ASC
+                """
+            ).fetchall()
+
+        subscriptions: list[dict[str, Any]] = []
+        for row in rows:
+            subscription = self._webhook_subscription_row_to_record(row, include_secret=True)
+            event_filter = subscription["event_filter"]
+            if event_filter and event_type not in event_filter:
+                continue
+            if subscription["scope"] == "api_key":
+                if key_id is None or subscription["api_key_id"] != key_id:
+                    continue
+            subscriptions.append(subscription)
+        return subscriptions
+
+    def create_webhook_delivery(
+        self,
+        *,
+        subscription_id: str,
+        event_id: int,
+        status: str = "pending",
+    ) -> dict[str, Any]:
+        delivery_id = str(uuid.uuid4())
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO webhook_deliveries (
+                    id,
+                    subscription_id,
+                    event_id,
+                    status,
+                    attempt_count,
+                    last_attempt_at,
+                    delivered_at,
+                    response_code,
+                    response_body,
+                    error_message
+                )
+                VALUES (?, ?, ?, ?, 0, NULL, NULL, NULL, NULL, NULL)
+                """,
+                (delivery_id, subscription_id, event_id, status),
+            )
+
+        delivery = self.get_webhook_delivery(delivery_id)
+        if delivery is None:
+            raise ApiError("Webhook delivery not found", error_code="webhook_delivery_not_found", status_code=404)
+        return delivery
+
+    def get_webhook_delivery(self, delivery_id: str) -> dict[str, Any] | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT
+                    id,
+                    subscription_id,
+                    event_id,
+                    status,
+                    attempt_count,
+                    last_attempt_at,
+                    delivered_at,
+                    response_code,
+                    response_body,
+                    error_message
+                FROM webhook_deliveries
+                WHERE id = ?
+                """,
+                (delivery_id,),
+            ).fetchone()
+
+        if row is None:
+            return None
+        return self._webhook_delivery_row_to_record(row)
+
+    def update_webhook_delivery(
+        self,
+        delivery_id: str,
+        *,
+        subscription_id: str,
+        status: str,
+        response_code: int | None = None,
+        response_body: str | None = None,
+        error_message: str | None = None,
+    ) -> dict[str, Any] | None:
+        timestamp = datetime.now(timezone.utc).isoformat()
+        truncated_body = response_body[:2048] if response_body else None
+
+        with self._connect() as connection:
+            cursor = connection.execute(
+                """
+                UPDATE webhook_deliveries
+                SET
+                    status = ?,
+                    attempt_count = attempt_count + 1,
+                    last_attempt_at = ?,
+                    delivered_at = ?,
+                    response_code = ?,
+                    response_body = ?,
+                    error_message = ?
+                WHERE id = ?
+                """,
+                (
+                    status,
+                    timestamp,
+                    timestamp if status == "delivered" else None,
+                    response_code,
+                    truncated_body,
+                    error_message,
+                    delivery_id,
+                ),
+            )
+            if cursor.rowcount == 0:
+                return None
+            if status == "delivered":
+                connection.execute(
+                    """
+                    UPDATE webhook_subscriptions
+                    SET last_delivered_at = ?, updated_at = ?
+                    WHERE id = ?
+                    """,
+                    (timestamp, timestamp, subscription_id),
+                )
+            elif status in {"failed", "retrying"}:
+                connection.execute(
+                    """
+                    UPDATE webhook_subscriptions
+                    SET last_error_at = ?, updated_at = ?
+                    WHERE id = ?
+                    """,
+                    (timestamp, timestamp, subscription_id),
+                )
+
+        return self.get_webhook_delivery(delivery_id)
+
+    def list_webhook_deliveries(
+        self,
+        subscription_id: str,
+        *,
+        limit: int = 50,
+        status: str | None = None,
+    ) -> dict[str, Any]:
+        normalized_limit = max(1, min(int(limit), 200))
+        where_clauses = ["subscription_id = ?"]
+        params: list[Any] = [subscription_id]
+        if status:
+            where_clauses.append("status = ?")
+            params.append(status)
+        where_sql = f"WHERE {' AND '.join(where_clauses)}"
+
+        with self._connect() as connection:
+            total = int(
+                connection.execute(
+                    f"SELECT COUNT(*) FROM webhook_deliveries {where_sql}",
+                    params,
+                ).fetchone()[0]
+            )
+            rows = connection.execute(
+                f"""
+                SELECT
+                    id,
+                    subscription_id,
+                    event_id,
+                    status,
+                    attempt_count,
+                    last_attempt_at,
+                    delivered_at,
+                    response_code,
+                    response_body,
+                    error_message
+                FROM webhook_deliveries
+                {where_sql}
+                ORDER BY COALESCE(last_attempt_at, delivered_at) DESC, id DESC
+                LIMIT ?
+                """,
+                [*params, normalized_limit],
+            ).fetchall()
+
+        deliveries = [self._webhook_delivery_row_to_record(row) for row in rows]
+        return {
+            "deliveries": deliveries,
+            "total": total,
+        }
+
     def authenticate_api_key(self, plaintext_key: str) -> dict[str, Any] | None:
         key_hash = self.build_api_key_hash(plaintext_key)
         last_used_at = datetime.now(timezone.utc).isoformat()
@@ -1265,10 +1772,11 @@ class ProjectRepository:
         project_name: str | None = None,
         payload_diff: dict[str, list[Any]] | None = None,
         ts: str | None = None,
-    ) -> None:
+        dispatch_webhooks: bool = True,
+    ) -> dict[str, Any]:
         timestamp = ts or datetime.now(timezone.utc).isoformat()
         with self._connect() as connection:
-            connection.execute(
+            cursor = connection.execute(
                 """
                 INSERT INTO audit_log (
                     ts,
@@ -1295,6 +1803,24 @@ class ProjectRepository:
                     ip_address,
                 ),
             )
+            row = connection.execute(
+                """
+                SELECT id, ts, action, project_id, project_name, key_id, actor, request_id, payload_diff, ip_address
+                FROM audit_log
+                WHERE id = ?
+                """,
+                (cursor.lastrowid,),
+            ).fetchone()
+
+        if row is None:
+            raise ApiError("Audit event not found", error_code="audit_event_not_found", status_code=500)
+        event = self._audit_row_to_record(row)
+        if dispatch_webhooks and self.webhook_service is not None:
+            try:
+                self.webhook_service.dispatch_audit_event(event)
+            except Exception:
+                pass
+        return event
 
     def list_audit_entries(
         self,
@@ -1338,10 +1864,7 @@ class ProjectRepository:
 
         entries = []
         for row in rows:
-            entry = dict(row)
-            payload_diff_json = entry.get("payload_diff")
-            entry["payload_diff"] = json.loads(payload_diff_json) if payload_diff_json else None
-            entries.append(entry)
+            entries.append(self._audit_row_to_record(row))
         return {
             "entries": entries,
             "total": total,

@@ -13,10 +13,17 @@ import {
 import type { SensitivityCell } from "../lib/generated/api-contract";
 
 type PowerCurveChartProps = {
-  cells: SensitivityCell[];
-  currentMde: number;
-  currentPower: number;
-  metricType: "binary" | "continuous";
+  cells?: SensitivityCell[];
+  currentMde?: number;
+  currentPower?: number;
+  metricType?: "binary" | "continuous";
+  series?: Array<{
+    id: string;
+    label: string;
+    cells: SensitivityCell[];
+    currentPower: number;
+    metricType: "binary" | "continuous";
+  }>;
 };
 
 type ChartRow = {
@@ -90,6 +97,32 @@ function buildChartData(cells: SensitivityCell[]): { data: ChartRow[]; powerLeve
   };
 }
 
+function buildComparisonSeriesData(
+  series: NonNullable<PowerCurveChartProps["series"]>
+): Array<{ mde: number; [key: string]: number }> {
+  const rows = new Map<number, { mde: number; [key: string]: number }>();
+  const mdeValues = Array.from(
+    new Set(
+      series.flatMap((item) => item.cells.map((cell) => cell.mde))
+    )
+  ).sort((left, right) => left - right);
+
+  for (const mde of mdeValues) {
+    rows.set(mde, { mde });
+  }
+
+  for (const item of series) {
+    for (const cell of item.cells) {
+      if (Math.abs(cell.power - item.currentPower) >= 0.0001) {
+        continue;
+      }
+      rows.get(cell.mde)![`series_${item.id}`] = cell.sample_size_per_variant;
+    }
+  }
+
+  return Array.from(rows.values());
+}
+
 function CustomTooltip({
   active,
   payload,
@@ -140,8 +173,66 @@ export default function PowerCurveChart({
   cells,
   currentMde,
   currentPower,
-  metricType
+  metricType,
+  series
 }: PowerCurveChartProps) {
+  if (series?.length) {
+    const data = buildComparisonSeriesData(series);
+
+    return (
+      <div style={{ display: "grid", gap: 12 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
+          {series.map((item, index) => (
+            <span
+              key={item.id}
+              className="pill"
+              data-testid="power-curve-series"
+              style={{ borderColor: powerColors[index % powerColors.length] }}
+            >
+              {item.label}
+            </span>
+          ))}
+        </div>
+        <div style={{ height: 280 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={data} margin={{ top: 8, right: 16, bottom: 8, left: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+              <XAxis
+                dataKey="mde"
+                tickFormatter={(value: number) => formatCompactNumber(value)}
+                stroke="var(--color-text-secondary)"
+              />
+              <YAxis
+                tickFormatter={(value: number) => formatCompactNumber(value)}
+                stroke="var(--color-text-secondary)"
+              />
+              <Tooltip
+                formatter={((value: number) => `${formatCompactNumber(value)} users / variant`) as never}
+                labelFormatter={((value: number) => `MDE: ${formatCompactNumber(value)}`) as never}
+              />
+              {series.map((item, index) => (
+                <Line
+                  key={item.id}
+                  type="monotone"
+                  dataKey={`series_${item.id}`}
+                  name={item.label}
+                  stroke={powerColors[index % powerColors.length]}
+                  dot={false}
+                  strokeWidth={2}
+                  isAnimationActive={false}
+                />
+              ))}
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    );
+  }
+
+  if (!cells || currentMde == null || currentPower == null || !metricType) {
+    return null;
+  }
+
   const { data, powerLevels } = buildChartData(cells);
 
   return (

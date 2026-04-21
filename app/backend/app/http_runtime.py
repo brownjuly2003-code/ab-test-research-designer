@@ -99,6 +99,8 @@ def register_http_runtime(
             raise HTTPException(status_code=401, detail="Unauthorized")
         if getattr(request.state, "admin_authenticated", False):
             return
+        if getattr(request.state, "auth_scope", None) in {"read", "write"}:
+            raise HTTPException(status_code=403, detail="Forbidden")
         raise HTTPException(status_code=401, detail="Unauthorized")
 
     @app.middleware("http")
@@ -168,62 +170,63 @@ def register_http_runtime(
 
         if request.method != "OPTIONS" and is_protected_path(request.url.path):
             presented_token = extract_presented_token(request)
-            if request.url.path.startswith("/api/v1/keys"):
+            admin_only_path = request.url.path.startswith("/api/v1/keys") or request.url.path.startswith("/api/v1/webhooks")
+            if admin_only_path:
                 if settings.admin_token and presented_token is not None and hmac.compare_digest(presented_token, settings.admin_token):
                     request.state.admin_authenticated = True
+                    request.state.auth_scope = "admin"
                     request.state.auth_source = "admin_token"
                     request.state.audit_actor = "admin_token"
-            else:
-                auth_required = settings.api_token or settings.readonly_api_token or repository.has_api_keys()
-                if auth_required:
-                    if settings.api_token and presented_token is not None and hmac.compare_digest(presented_token, settings.api_token):
-                        request.state.auth_scope = "write"
-                        request.state.auth_source = "legacy"
-                        request.state.audit_actor = "legacy_token:write"
-                    elif (
-                        settings.readonly_api_token
-                        and presented_token is not None
-                        and hmac.compare_digest(presented_token, settings.readonly_api_token)
-                    ):
-                        request.state.auth_scope = "read"
-                        request.state.auth_source = "legacy"
-                        request.state.audit_actor = "legacy_token:read"
-                    elif presented_token is not None:
-                        api_key = repository.authenticate_api_key(presented_token)
-                        if api_key is None:
-                            return reject_auth_request(
-                                detail="Unauthorized",
-                                response_status=status.HTTP_401_UNAUTHORIZED,
-                                error_code="unauthorized",
-                            )
-                        request.state.auth_scope = api_key["scope"]
-                        request.state.auth_source = "api_key"
-                        request.state.auth_key_id = api_key["id"]
-                        request.state.audit_actor = f"api_key:{api_key['id']}"
-                        request.state.rate_limit_bucket_key = f"api_key:{api_key['id']}"
-                        request.state.rate_limit_requests = api_key.get("rate_limit_requests")
-                        request.state.rate_limit_window_seconds = api_key.get("rate_limit_window_seconds")
-                        repository.log_audit_entry(
-                            action="api_key_used",
-                            key_id=api_key["id"],
-                            actor=request.state.audit_actor,
-                            request_id=request_id,
-                            ip_address=get_client_identifier(request),
-                        )
-                    else:
+            auth_required = admin_only_path or settings.api_token or settings.readonly_api_token or repository.has_api_keys()
+            if auth_required and not request.state.admin_authenticated:
+                if settings.api_token and presented_token is not None and hmac.compare_digest(presented_token, settings.api_token):
+                    request.state.auth_scope = "write"
+                    request.state.auth_source = "legacy"
+                    request.state.audit_actor = "legacy_token:write"
+                elif (
+                    settings.readonly_api_token
+                    and presented_token is not None
+                    and hmac.compare_digest(presented_token, settings.readonly_api_token)
+                ):
+                    request.state.auth_scope = "read"
+                    request.state.auth_source = "legacy"
+                    request.state.audit_actor = "legacy_token:read"
+                elif presented_token is not None:
+                    api_key = repository.authenticate_api_key(presented_token)
+                    if api_key is None:
                         return reject_auth_request(
                             detail="Unauthorized",
                             response_status=status.HTTP_401_UNAUTHORIZED,
                             error_code="unauthorized",
                         )
+                    request.state.auth_scope = api_key["scope"]
+                    request.state.auth_source = "api_key"
+                    request.state.auth_key_id = api_key["id"]
+                    request.state.audit_actor = f"api_key:{api_key['id']}"
+                    request.state.rate_limit_bucket_key = f"api_key:{api_key['id']}"
+                    request.state.rate_limit_requests = api_key.get("rate_limit_requests")
+                    request.state.rate_limit_window_seconds = api_key.get("rate_limit_window_seconds")
+                    repository.log_audit_entry(
+                        action="api_key_used",
+                        key_id=api_key["id"],
+                        actor=request.state.audit_actor,
+                        request_id=request_id,
+                        ip_address=get_client_identifier(request),
+                    )
+                else:
+                    return reject_auth_request(
+                        detail="Unauthorized",
+                        response_status=status.HTTP_401_UNAUTHORIZED,
+                        error_code="unauthorized",
+                    )
 
-                    if getattr(request.state, "auth_scope", None) == "read" and request.method not in AUTH_READ_ONLY_METHODS:
-                        return reject_auth_request(
-                            detail="Forbidden",
-                            response_status=status.HTTP_403_FORBIDDEN,
-                            error_code="forbidden",
-                            auth_scope="read",
-                        )
+                if getattr(request.state, "auth_scope", None) == "read" and request.method not in AUTH_READ_ONLY_METHODS:
+                    return reject_auth_request(
+                        detail="Forbidden",
+                        response_status=status.HTTP_403_FORBIDDEN,
+                        error_code="forbidden",
+                        auth_scope="read",
+                    )
 
         if settings.rate_limit_enabled and request.method != "OPTIONS" and is_rate_limited_path(request.url.path):
             rate_limit_decision = request_rate_limiter.allow(

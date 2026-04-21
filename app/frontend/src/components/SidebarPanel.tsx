@@ -99,6 +99,7 @@ function downloadBlob(blob: Blob, filename: string) {
 }
 
 const ApiKeyManager = lazy(() => import("./ApiKeyManager"));
+const WebhookManager = lazy(() => import("./WebhookManager"));
 
 const SidebarPanel = memo(function SidebarPanel() {
   const { t } = useTranslation();
@@ -132,6 +133,7 @@ const SidebarPanel = memo(function SidebarPanel() {
     loadingProjectRevisions,
     selectedHistoryRunId,
     projectComparison,
+    projectMultiComparison,
     projectComparisonError,
     loadingProjectComparison,
     comparingProjectId,
@@ -147,6 +149,7 @@ const SidebarPanel = memo(function SidebarPanel() {
   const [projectStatus, setProjectStatus] = useState<"active" | "archived" | "all">("active");
   const [projectMetricType, setProjectMetricType] = useState<"all" | "binary" | "continuous">("all");
   const [projectSortBy, setProjectSortBy] = useState<"updated_desc" | "name_asc" | "duration_asc">("updated_desc");
+  const [selectedComparisonProjectIds, setSelectedComparisonProjectIds] = useState<string[]>([]);
   const [auditEntries, setAuditEntries] = useState<AuditLogEntry[]>([]);
   const [auditTotal, setAuditTotal] = useState(0);
   const [auditLoading, setAuditLoading] = useState(false);
@@ -259,6 +262,16 @@ const SidebarPanel = memo(function SidebarPanel() {
     }
   }
 
+  async function onCompareSelectedProjects() {
+    if (selectedComparisonProjectIds.length < 2 || selectedComparisonProjectIds.length > 5) {
+      return;
+    }
+    const message = await project.compareProjects(selectedComparisonProjectIds);
+    if (message) {
+      analysis.showStatus(message, "info");
+    }
+  }
+
   async function onExportWorkspace() {
     if (blockMutations()) {
       return;
@@ -347,7 +360,6 @@ const SidebarPanel = memo(function SidebarPanel() {
     }
     analysis.showStatus(t("sidebarPanel.status.projectDeleted", { projectName }), "success");
   }
-  const compareEnabled = Boolean(activeProjectId && activeProject?.has_analysis_snapshot);
   const filteredProjects = allSavedProjects
     .filter((project) => {
       if (projectStatus === "archived") {
@@ -377,6 +389,8 @@ const SidebarPanel = memo(function SidebarPanel() {
       }
       return right.updated_at.localeCompare(left.updated_at);
     });
+  const compareCandidates = filteredProjects.filter((savedProject) => savedProject.has_analysis_snapshot && !savedProject.is_archived);
+  const canCompareSelected = selectedComparisonProjectIds.length >= 2 && selectedComparisonProjectIds.length <= 5;
   const savedProjectsTotal = allSavedProjects.length;
   const archivedProjectsTotal = allSavedProjects.filter((project) => project.is_archived).length;
   const projectsWithSnapshots = allSavedProjects.filter((project) => project.has_analysis_snapshot).length;
@@ -416,6 +430,12 @@ const SidebarPanel = memo(function SidebarPanel() {
       projectUpdate: t("sidebarPanel.revisions.sources.projectUpdate"),
       initialSave: t("sidebarPanel.revisions.sources.initialSave")
     });
+
+  useEffect(() => {
+    setSelectedComparisonProjectIds((current) =>
+      current.filter((projectId) => compareCandidates.some((projectItem) => projectItem.id === projectId))
+    );
+  }, [compareCandidates]);
 
   useEffect(() => {
     if (activeTab !== "system") {
@@ -531,6 +551,7 @@ const SidebarPanel = memo(function SidebarPanel() {
           }
         >
           <ApiKeyManager />
+          <WebhookManager />
         </Suspense>
       ) : activeTab === "system" ? (
         <>
@@ -1298,12 +1319,26 @@ const SidebarPanel = memo(function SidebarPanel() {
             <p className="muted">
               {t("sidebarPanel.savedProjects.shownExperiments", { count: filteredProjects.length })}
             </p>
-            {compareEnabled ? (
+            {compareCandidates.length > 0 ? (
               <>
-                <p className="muted">
-                  {t("sidebarPanel.savedProjects.compareDescription")}
-                </p>
-                {projectComparison ? (
+                <p className="muted">{t("sidebarPanel.savedProjects.compareDescription")}</p>
+                <div className="actions">
+                  <span className="pill">{t("sidebarPanel.savedProjects.selectedForComparison", { count: selectedComparisonProjectIds.length })}</span>
+                  <button
+                    className="btn secondary"
+                    id="compare-selected-projects-button"
+                    type="button"
+                    disabled={!canCompareSelected || loadingProjectComparison}
+                    onClick={() => void onCompareSelectedProjects()}
+                  >
+                    {loadingProjectComparison
+                      ? t("sidebarPanel.savedProjects.actions.comparing")
+                      : t("sidebarPanel.savedProjects.actions.compareSelected")}
+                  </button>
+                </div>
+                {projectMultiComparison ? (
+                  <p className="muted">{t("sidebarPanel.savedProjects.currentDashboard", { count: projectMultiComparison.projects.length })}</p>
+                ) : projectComparison ? (
                   <p className="muted">
                     {t("sidebarPanel.savedProjects.currentComparison", {
                       baseProject: projectComparison.base_project.project_name,
@@ -1315,14 +1350,16 @@ const SidebarPanel = memo(function SidebarPanel() {
                   <div className="status">{t("sidebarPanel.savedProjects.comparisonUnavailable")} {projectComparisonError}</div>
                 ) : null}
               </>
-            ) : activeProjectId ? (
+            ) : (
               <p className="muted">{t("sidebarPanel.savedProjects.compareRequiresSnapshot")}</p>
-            ) : null}
-            <div className={styles["project-card-list"]}>
+            )}
+            <div className={styles["project-card-list"]} role="listbox" aria-multiselectable="true">
               {filteredProjects.map((project) => (
                 <div
                   key={project.id}
                   className={[styles["project-card"], project.id === activeProjectId ? styles.active : ""].filter(Boolean).join(" ")}
+                  role="option"
+                  aria-selected={selectedComparisonProjectIds.includes(project.id)}
                 >
                   <div className={styles["project-card-head"]}>
                     {project.is_archived ? (
@@ -1363,16 +1400,22 @@ const SidebarPanel = memo(function SidebarPanel() {
                     </div>
                   </div>
                   <div className="actions">
-                    {compareEnabled && project.id !== activeProjectId && project.has_analysis_snapshot && !project.is_archived ? (
-                      <button
-                        className="btn secondary"
-                        disabled={loadingProjectComparison || deletingProjectId === project.id}
-                        onClick={() => onCompareProject(project.id)}
-                      >
-                        {comparingProjectId === project.id
-                          ? t("sidebarPanel.savedProjects.actions.comparing")
-                          : t("sidebarPanel.savedProjects.actions.compare")}
-                      </button>
+                    {project.has_analysis_snapshot && !project.is_archived ? (
+                      <label style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                        <input
+                          type="checkbox"
+                          checked={selectedComparisonProjectIds.includes(project.id)}
+                          onChange={(event) => {
+                            setSelectedComparisonProjectIds((current) => {
+                              if (event.target.checked) {
+                                return current.includes(project.id) || current.length >= 5 ? current : [...current, project.id];
+                              }
+                              return current.filter((projectId) => projectId !== project.id);
+                            });
+                          }}
+                        />
+                        <span>{t("sidebarPanel.savedProjects.actions.selectForComparison")}</span>
+                      </label>
                     ) : null}
                     {project.is_archived ? (
                       <button

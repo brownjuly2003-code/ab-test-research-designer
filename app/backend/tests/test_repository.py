@@ -176,6 +176,83 @@ def test_repository_migrates_api_keys_table_and_audit_key_id_column() -> None:
     assert "key_id" in audit_columns
 
 
+def test_repository_migrates_webhook_tables() -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+
+    with sqlite3.connect(db_path) as connection:
+        connection.execute(
+            """
+            CREATE TABLE projects (
+                id TEXT PRIMARY KEY,
+                project_name TEXT NOT NULL,
+                payload_json TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE TABLE audit_log (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ts TEXT NOT NULL,
+                action TEXT NOT NULL,
+                project_id TEXT,
+                project_name TEXT,
+                actor TEXT,
+                request_id TEXT,
+                payload_diff TEXT,
+                ip_address TEXT
+            )
+            """
+        )
+        connection.execute("PRAGMA user_version = 6")
+
+    repository = ProjectRepository(str(db_path))
+
+    with sqlite3.connect(db_path) as connection:
+        webhook_subscription_columns = {
+            row[1]
+            for row in connection.execute("PRAGMA table_info(webhook_subscriptions)").fetchall()
+        }
+        webhook_delivery_columns = {
+            row[1]
+            for row in connection.execute("PRAGMA table_info(webhook_deliveries)").fetchall()
+        }
+        schema_version = connection.execute("PRAGMA user_version").fetchone()[0]
+
+    assert schema_version == repository.schema_version
+    assert webhook_subscription_columns == {
+        "id",
+        "name",
+        "target_url",
+        "secret",
+        "format",
+        "event_filter",
+        "scope",
+        "api_key_id",
+        "created_at",
+        "updated_at",
+        "last_delivered_at",
+        "last_error_at",
+        "enabled",
+    }
+    assert webhook_delivery_columns == {
+        "id",
+        "subscription_id",
+        "event_id",
+        "status",
+        "attempt_count",
+        "last_attempt_at",
+        "delivered_at",
+        "response_code",
+        "response_body",
+        "error_message",
+    }
+
+
 def test_repository_normalizes_legacy_guardrail_metric_strings_for_workspace_export() -> None:
     temp_dir = Path(__file__).resolve().parent / ".tmp"
     temp_dir.mkdir(exist_ok=True)

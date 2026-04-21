@@ -9,7 +9,9 @@
       "ariaLabel": "Language preference",
       "options": {
         "en": "English",
-        "ru": "Russian"
+        "ru": "Russian",
+        "de": "German",
+        "es": "Spanish"
       }
     },
     "theme": {
@@ -317,7 +319,42 @@
       "unavailable": "AI advice unavailable. Core deterministic output still works."
     },
     "comparison": {
-      "empty": "Load a saved project comparison from the Projects sidebar to review baseline versus candidate snapshots."
+      "empty": "Load a saved project comparison from the Projects sidebar to review baseline versus candidate snapshots.",
+      "loading": "Loading comparison dashboard...",
+      "dashboard": {
+        "loaded": "{{count}} projects compared",
+        "title": "Comparison dashboard",
+        "subtitle": "Review saved experiments side by side across planning assumptions, sensitivity, and observed effects.",
+        "exporting": "Exporting...",
+        "exportMarkdown": "Export comparison Markdown",
+        "exportPdf": "Export comparison PDF",
+        "close": "Close dashboard",
+        "exportFailed": "Comparison export failed.",
+        "mixedMetricTypes": "Mixed metric types — direct effect comparison not meaningful.",
+        "projectsTitle": "Projects",
+        "projectsSubtitle": "Top-line planning metadata for the selected experiments.",
+        "sampleSize": "Total sample: {{value}}",
+        "duration": "Duration: {{value}} days",
+        "warnings": "Warnings: {{value}}",
+        "powerCurvesTitle": "Power curves",
+        "powerCurvesSubtitle": "Each line shows per-variant sample size across MDE points at the project’s configured power.",
+        "sensitivityTitle": "Sensitivity grid",
+        "sensitivitySubtitle": "Per-project duration matrices across MDE and power combinations.",
+        "sensitivityUnavailable": "Sensitivity data unavailable.",
+        "observedEffectsTitle": "Observed effects",
+        "observedEffectsSubtitle": "Saved observed outcomes shown as one forest-plot row per project.",
+        "insightsTitle": "Shared / unique insights",
+        "insightsSubtitle": "Shared warnings, risks, assumptions, and per-project differences.",
+        "sharedWarnings": "Shared warnings",
+        "sharedRisks": "Shared risks",
+        "sharedAssumptions": "Shared assumptions",
+        "recommendationHighlights": "Recommendation highlights",
+        "project": "Project",
+        "uniqueWarnings": "Unique warnings",
+        "uniqueRisks": "Unique risks",
+        "uniqueAssumptions": "Unique assumptions",
+        "none": "None"
+      }
     },
     "experimentDesign": {
       "variantAndRolloutStructure": "Variant and rollout structure",
@@ -722,6 +759,82 @@
       "applyFailed": "Template apply failed."
     }
   },
+  "webhooks": {
+    "title": "Webhooks",
+    "description": "Send audit events to Slack or generic HTTP endpoints.",
+    "loading": "Loading webhook subscriptions...",
+    "empty": "No webhook subscriptions yet.",
+    "actions": {
+      "create": "Create webhook",
+      "save": "Save webhook",
+      "saving": "Saving...",
+      "close": "Close",
+      "test": "Test",
+      "deliveries": "Deliveries",
+      "delete": "Delete"
+    },
+    "status": {
+      "created": "Webhook subscription created.",
+      "deleted": "Webhook subscription deleted.",
+      "loadFailed": "Webhook subscriptions unavailable.",
+      "createFailed": "Webhook creation failed.",
+      "testSuccess": "Test delivery finished with HTTP {{code}}.",
+      "testFailed": "Webhook test failed.",
+      "deliveriesFailed": "Webhook delivery history unavailable.",
+      "deleteFailed": "Webhook deletion failed."
+    },
+    "fields": {
+      "name": "Name",
+      "targetUrl": "Target URL",
+      "secret": "Secret",
+      "format": "Format",
+      "scope": "Scope",
+      "apiKeyId": "API key ID",
+      "eventFilter": "Event filter"
+    },
+    "placeholders": {
+      "name": "Partner alerts",
+      "targetUrl": "https://example.com/webhook",
+      "secret": "Shared signing secret",
+      "apiKeyId": "Paste an existing API key ID",
+      "eventFilter": "api_key_created, project.archive"
+    },
+    "formats": {
+      "generic": "generic",
+      "slack": "slack"
+    },
+    "scopes": {
+      "global": "Global",
+      "apiKey": "API key"
+    },
+    "labels": {
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "targetUrl": "Target URL",
+      "events": "Events",
+      "allEvents": "All events",
+      "apiKeyId": "API key ID",
+      "lastDelivered": "Last delivered",
+      "lastError": "Last error",
+      "never": "Never"
+    },
+    "createDialog": {
+      "title": "Create webhook",
+      "description": "Configure a Slack incoming webhook or a generic JSON endpoint."
+    },
+    "drawer": {
+      "title": "Deliveries: {{name}}",
+      "description": "Recent delivery attempts for this subscription.",
+      "loading": "Loading deliveries...",
+      "empty": "No deliveries recorded yet.",
+      "labels": {
+        "responseCode": "Response code",
+        "attempts": "Attempts",
+        "lastAttempt": "Last attempt",
+        "error": "Error"
+      }
+    }
+  },
   "sidebarPanel": {
     "common": {
       "notRecordedYet": "Not recorded yet",
@@ -764,7 +877,7 @@
     },
     "adminToken": {
       "title": "API key admin token",
-      "description": "Stored only in this browser session and used only for `/api/v1/keys` management requests.",
+      "description": "Stored only in this browser session and used only for `/api/v1/keys` and `/api/v1/webhooks` management requests.",
       "label": "Admin token",
       "placeholderConfigured": "Admin token stored in current browser session",
       "placeholderEmpty": "Paste AB_ADMIN_TOKEN",
@@ -978,8 +1091,11 @@
       "withoutSavedAnalysisCount_other": "{{count}} without saved analysis",
       "shownExperiments_one": "{{count}} experiment shown.",
       "shownExperiments_other": "{{count}} experiments shown.",
-      "compareDescription": "Compare buttons use the opened snapshot for the loaded project when one is selected; otherwise they use the latest saved snapshot.",
+      "compareDescription": "Select 2 to 5 saved projects with snapshots to open the comparison dashboard.",
+      "selectedForComparison_one": "{{count}} selected",
+      "selectedForComparison_other": "{{count}} selected",
       "currentComparison": "Current comparison: {{baseProject}} vs {{candidateProject}}.",
+      "currentDashboard": "Current dashboard: {{count}} projects.",
       "comparisonUnavailable": "Project comparison unavailable.",
       "compareRequiresSnapshot": "Save at least one analysis snapshot before comparing saved projects.",
       "updatedAt": "Updated {{timestamp}}",
@@ -1002,6 +1118,8 @@
       "actions": {
         "comparing": "Comparing...",
         "compare": "Compare",
+        "compareSelected": "Compare selected",
+        "selectForComparison": "Select for comparison",
         "restoring": "Restoring...",
         "restore": "Restore",
         "archive": "Archive",

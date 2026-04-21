@@ -1,0 +1,32 @@
+{
+  "app": {
+    "skipToMainContent": "Zum Hauptinhalt springen",
+    "eyebrow": "Lokaler Experimentplaner",
+    "title": "A/B-Test-Forschungsdesigner",
+    "tagline": "Experimentkontext ausfüllen, deterministische Berechnungen ausführen, Warnungen prüfen und KI-Empfehlungen getrennt von der harten Mathematik halten.",
+    "language": {
+      "label": "Sprache",
+      "ariaLabel": "Language preference",
+      "options": {
+        "en": "Englisch",
+        "ru": "Russisch",
+        "de": "Deutsch",
+        "es": "Spanisch"
+      }
+    },
+    "theme": {
+      "label": "Thema",
+      "ariaLabel": "Thema-Einstellung",
+      "buttonAria": {
+        "light": "Helles Thema",
+        "dark": "Dunkles Thema",
+        "system": "System-Thema"
+      },
+      "options": {
+        "light": "Hell",
+        "dark": "Dunkel",
+        "system": "Auto"
+      }
+    }
+  }
+}

@@ -114,10 +114,27 @@ def _saved_analysis_payload(
     total_sample_size: int = 200,
     estimated_duration_days: int = 10,
     executive_summary: str = "Summary",
+    warning_codes: list[str] | None = None,
+    assumptions: list[str] | None = None,
+    risk_highlights: dict[str, list[str]] | None = None,
+    recommendation_highlights: dict[str, list[str]] | None = None,
 ) -> dict:
     sample_size_per_variant = total_sample_size // 2
     baseline_value = 0.042 if metric_type == "binary" else 45.0
     primary_metric = "purchase_conversion" if metric_type == "binary" else "avg_order_value"
+    resolved_warning_codes = warning_codes if warning_codes is not None else ["SEASONALITY_PRESENT"]
+    resolved_assumptions = assumptions if assumptions is not None else ["Baseline is stable"]
+    resolved_risks = risk_highlights if risk_highlights is not None else {
+        "statistical": ["Power tradeoff"],
+        "product": ["Expected result depends on user behavior."],
+        "technical": ["legacy event logging"],
+        "operational": ["tracking quality"],
+    }
+    resolved_recommendations = recommendation_highlights if recommendation_highlights is not None else {
+        "before_launch": ["Verify tracking"],
+        "during_test": ["Watch SRM"],
+        "after_test": ["Segment the result"],
+    }
 
     return {
         "calculations": {
@@ -135,14 +152,15 @@ def _saved_analysis_payload(
                 "effective_daily_traffic": 5000,
                 "estimated_duration_days": estimated_duration_days,
             },
-            "assumptions": ["Baseline is stable"],
+            "assumptions": resolved_assumptions,
             "warnings": [
                 {
-                    "code": "SEASONALITY_PRESENT",
+                    "code": code,
                     "severity": "medium",
-                    "message": "Seasonality may affect the result.",
+                    "message": f"{code} may affect the result.",
                     "source": "rules_engine",
                 }
+                for code in resolved_warning_codes
             ],
         },
         "report": {
@@ -151,7 +169,7 @@ def _saved_analysis_payload(
                 "sample_size_per_variant": sample_size_per_variant,
                 "total_sample_size": total_sample_size,
                 "estimated_duration_days": estimated_duration_days,
-                "assumptions": ["Baseline is stable"],
+                "assumptions": resolved_assumptions,
             },
             "experiment_design": {
                 "variants": [
@@ -181,17 +199,8 @@ def _saved_analysis_payload(
                     "note": "Can detect a 0.321 pp change",
                 }
             ],
-            "risks": {
-                "statistical": ["Power tradeoff"],
-                "product": ["Expected result depends on user behavior."],
-                "technical": ["legacy event logging"],
-                "operational": ["tracking quality"],
-            },
-            "recommendations": {
-                "before_launch": ["Verify tracking"],
-                "during_test": ["Watch SRM"],
-                "after_test": ["Segment the result"],
-            },
+            "risks": resolved_risks,
+            "recommendations": resolved_recommendations,
             "open_questions": ["Will mobile respond differently?"],
         },
         "advice": {
@@ -211,6 +220,106 @@ def _saved_analysis_payload(
             "error_code": None,
         },
     }
+
+
+def _saved_observed_results(metric_type: str = "binary") -> dict:
+    if metric_type == "continuous":
+        return {
+            "request": {
+                "metric_type": "continuous",
+                "continuous": {
+                    "control_mean": 45.0,
+                    "control_std": 12.0,
+                    "control_n": 200,
+                    "treatment_mean": 47.2,
+                    "treatment_std": 12.3,
+                    "treatment_n": 205,
+                    "alpha": 0.05,
+                },
+            },
+            "analysis": {
+                "metric_type": "continuous",
+                "observed_effect": 2.2,
+                "observed_effect_relative": 4.89,
+                "control_rate": None,
+                "treatment_rate": None,
+                "ci_lower": 0.4,
+                "ci_upper": 4.0,
+                "ci_level": 0.95,
+                "p_value": 0.03,
+                "test_statistic": 2.17,
+                "is_significant": True,
+                "power_achieved": 0.71,
+                "verdict": "Ship candidate",
+                "interpretation": "Treatment is above control.",
+            },
+            "saved_at": "2026-03-07T13:15:00Z",
+        }
+
+    return {
+        "request": {
+            "metric_type": "binary",
+            "binary": {
+                "control_conversions": 410,
+                "control_users": 10000,
+                "treatment_conversions": 472,
+                "treatment_users": 10020,
+                "alpha": 0.05,
+            },
+        },
+        "analysis": {
+            "metric_type": "binary",
+            "observed_effect": 0.62,
+            "observed_effect_relative": 15.12,
+            "control_rate": 0.041,
+            "treatment_rate": 0.0472,
+            "ci_lower": 0.12,
+            "ci_upper": 1.11,
+            "ci_level": 0.95,
+            "p_value": 0.018,
+            "test_statistic": 2.36,
+            "is_significant": True,
+            "power_achieved": 0.83,
+            "verdict": "Ship candidate",
+            "interpretation": "Treatment beat control.",
+        },
+        "saved_at": "2026-03-07T13:15:00Z",
+    }
+
+
+def _create_saved_project(
+    client: TestClient,
+    name: str,
+    *,
+    metric_type: str = "binary",
+    total_sample_size: int = 200,
+    estimated_duration_days: int = 10,
+    warning_codes: list[str] | None = None,
+    assumptions: list[str] | None = None,
+    risk_highlights: dict[str, list[str]] | None = None,
+    recommendation_highlights: dict[str, list[str]] | None = None,
+) -> dict:
+    payload = _full_payload() if metric_type == "binary" else _continuous_full_payload()
+    payload["project"]["project_name"] = name
+    payload["additional_context"]["observed_results"] = _saved_observed_results(metric_type)
+    created = client.post("/api/v1/projects", json=payload)
+    assert created.status_code == 200
+
+    analysis = client.post(
+        f"/api/v1/projects/{created.json()['id']}/analysis",
+        json=_saved_analysis_payload(
+            metric_type=metric_type,
+            total_sample_size=total_sample_size,
+            estimated_duration_days=estimated_duration_days,
+            executive_summary=f"{name} summary",
+            warning_codes=warning_codes,
+            assumptions=assumptions,
+            risk_highlights=risk_highlights,
+            recommendation_highlights=recommendation_highlights,
+        ),
+    )
+    assert analysis.status_code == 200
+    return created.json()
 
 
 def test_calculate_endpoint_returns_deterministic_payload() -> None:
@@ -265,6 +374,166 @@ def test_calculate_endpoint_returns_cuped_fields_for_continuous_metric() -> None
     assert payload["cuped_variance_reduction_pct"] == 25.0
     assert payload["cuped_sample_size_per_variant"] < payload["results"]["sample_size_per_variant"]
     assert payload["cuped_duration_days"] <= payload["results"]["estimated_duration_days"]
+
+
+def test_compare_multi_two_projects() -> None:
+    client = TestClient(create_app())
+    first_project = _create_saved_project(
+        client,
+        "Checkout baseline",
+        total_sample_size=220,
+        estimated_duration_days=9,
+        warning_codes=["SEASONALITY_PRESENT", "LOW_TRAFFIC"],
+        assumptions=["Baseline is stable", "Traffic split holds"],
+    )
+    second_project = _create_saved_project(
+        client,
+        "Checkout challenger",
+        total_sample_size=300,
+        estimated_duration_days=12,
+        warning_codes=["LOW_TRAFFIC", "LONG_DURATION"],
+        assumptions=["Baseline is stable", "New checkout keeps load time"],
+        recommendation_highlights={
+            "before_launch": ["Verify tracking"],
+            "during_test": ["Watch SRM"],
+            "after_test": ["Segment by device"],
+        },
+    )
+
+    response = client.post(
+        "/api/v1/projects/compare",
+        json={"project_ids": [first_project["id"], second_project["id"]]},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert [item["project_name"] for item in payload["projects"]] == [
+        "Checkout baseline",
+        "Checkout challenger",
+    ]
+    assert payload["shared_warnings"] == ["LOW_TRAFFIC"]
+    assert payload["shared_assumptions"] == ["Baseline is stable"]
+    assert payload["sample_size_range"] == {"min": 220, "max": 300, "median": 260.0}
+    assert payload["duration_range"] == {"min": 9, "max": 12, "median": 10.5}
+    assert payload["metric_types_used"] == ["binary"]
+    assert payload["projects"][0]["sensitivity"]["current_power"] == 0.8
+    assert payload["projects"][0]["observed_results"]["metric_type"] == "binary"
+    assert any("Watch SRM" in item for item in payload["recommendation_highlights"])
+
+
+def test_compare_multi_three_projects() -> None:
+    client = TestClient(create_app())
+    first_project = _create_saved_project(
+        client,
+        "Baseline",
+        total_sample_size=200,
+        estimated_duration_days=8,
+        warning_codes=["LOW_TRAFFIC"],
+        assumptions=["Baseline is stable", "Traffic split holds"],
+    )
+    second_project = _create_saved_project(
+        client,
+        "Variant A",
+        total_sample_size=260,
+        estimated_duration_days=10,
+        warning_codes=["LOW_TRAFFIC", "LONG_DURATION"],
+        assumptions=["Baseline is stable", "Tracking is stable"],
+    )
+    third_project = _create_saved_project(
+        client,
+        "Variant B",
+        total_sample_size=320,
+        estimated_duration_days=13,
+        warning_codes=["LOW_TRAFFIC", "METRIC_DRIFT"],
+        assumptions=["Baseline is stable", "Audience mix stays stable"],
+    )
+
+    response = client.post(
+        "/api/v1/projects/compare",
+        json={"project_ids": [first_project["id"], second_project["id"], third_project["id"]]},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert len(payload["projects"]) == 3
+    assert payload["shared_warnings"] == ["LOW_TRAFFIC"]
+    assert payload["shared_assumptions"] == ["Baseline is stable"]
+    assert payload["unique_per_project"][third_project["id"]]["warnings"] == ["METRIC_DRIFT"]
+    assert payload["unique_per_project"][third_project["id"]]["assumptions"] == ["Audience mix stays stable"]
+
+
+def test_compare_multi_five_projects() -> None:
+    client = TestClient(create_app())
+    project_ids = [
+        _create_saved_project(
+            client,
+            f"Project {index + 1}",
+            total_sample_size=200 + (index * 40),
+            estimated_duration_days=8 + index,
+        )["id"]
+        for index in range(5)
+    ]
+
+    response = client.post(
+        "/api/v1/projects/compare",
+        json={"project_ids": project_ids},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert len(payload["projects"]) == 5
+    assert payload["sample_size_range"] == {"min": 200, "max": 360, "median": 280}
+    assert payload["duration_range"] == {"min": 8, "max": 12, "median": 10}
+
+
+def test_compare_multi_six_422() -> None:
+    client = TestClient(create_app())
+    project_ids = [
+        _create_saved_project(client, f"Project {index + 1}")["id"]
+        for index in range(6)
+    ]
+
+    response = client.post(
+        "/api/v1/projects/compare",
+        json={"project_ids": project_ids},
+    )
+
+    assert response.status_code == 422
+
+
+def test_compare_multi_single_422() -> None:
+    client = TestClient(create_app())
+    project_id = _create_saved_project(client, "Only project")["id"]
+
+    response = client.post(
+        "/api/v1/projects/compare",
+        json={"project_ids": [project_id]},
+    )
+
+    assert response.status_code == 422
+
+
+def test_compare_multi_mixed_metric_types() -> None:
+    client = TestClient(create_app())
+    binary_project = _create_saved_project(client, "Binary project", metric_type="binary")
+    continuous_project = _create_saved_project(
+        client,
+        "Continuous project",
+        metric_type="continuous",
+        total_sample_size=420,
+        estimated_duration_days=16,
+    )
+
+    response = client.post(
+        "/api/v1/projects/compare",
+        json={"project_ids": [binary_project["id"], continuous_project["id"]]},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["metric_types_used"] == ["binary", "continuous"]
+    assert "Mixed metric types — direct effect comparison not meaningful" in payload["shared_warnings"]
+    assert payload["projects"][1]["observed_results"]["metric_type"] == "continuous"
 
 
 def test_calculate_endpoint_rejects_degenerate_cuped_correlation() -> None:
@@ -575,8 +844,8 @@ def test_diagnostics_endpoint_returns_runtime_summary(monkeypatch) -> None:
     assert payload["storage"]["db_parent_path"] == str(db_path.parent)
     assert payload["storage"]["db_size_bytes"] >= 0
     assert payload["storage"]["disk_free_bytes"] > 0
-    assert payload["storage"]["schema_version"] == 6
-    assert payload["storage"]["sqlite_user_version"] == 6
+    assert payload["storage"]["schema_version"] == 7
+    assert payload["storage"]["sqlite_user_version"] == 7
     assert payload["storage"]["journal_mode"] == "WAL"
     assert payload["storage"]["synchronous"] == "NORMAL"
     assert payload["storage"]["write_probe_ok"] is True
@@ -988,6 +1257,113 @@ def test_api_key_usage_events_are_filterable_by_key_id(monkeypatch) -> None:
     assert any(entry["action"] == "api_key_used" for entry in audit.json()["entries"])
     get_settings.cache_clear()
 
+
+def test_webhook_routes_require_admin_auth(monkeypatch) -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+    repository = ProjectRepository(str(db_path))
+    write_key = repository.create_api_key(name="Write key", scope="write")["plaintext_key"]
+
+    monkeypatch.setenv("AB_DB_PATH", str(db_path))
+    monkeypatch.setenv("AB_ADMIN_TOKEN", "admin-secret-token")
+    monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")
+    get_settings.cache_clear()
+
+    payload = {
+        "name": "Partner alerts",
+        "target_url": "https://example.com/webhook",
+        "secret": "top-secret",
+        "format": "generic",
+        "event_filter": ["api_key_created"],
+        "scope": "global",
+    }
+
+    with TestClient(create_app()) as client:
+        unauthorized = client.get("/api/v1/webhooks")
+        forbidden = client.post(
+            "/api/v1/webhooks",
+            headers={"Authorization": f"Bearer {write_key}"},
+            json=payload,
+        )
+        authorized = client.post(
+            "/api/v1/webhooks",
+            headers={"Authorization": "Bearer admin-secret-token"},
+            json=payload,
+        )
+
+    assert unauthorized.status_code == 401
+    assert forbidden.status_code == 403
+    assert authorized.status_code == 200
+    assert authorized.json()["secret"] == "top-secret"
+    get_settings.cache_clear()
+
+
+def test_webhook_routes_support_crud_and_hide_secret_after_create(monkeypatch) -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+
+    monkeypatch.setenv("AB_DB_PATH", str(db_path))
+    monkeypatch.setenv("AB_ADMIN_TOKEN", "admin-secret-token")
+    monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")
+    get_settings.cache_clear()
+
+    with TestClient(create_app()) as client:
+        created = client.post(
+            "/api/v1/webhooks",
+            headers={"Authorization": "Bearer admin-secret-token"},
+            json={
+                "name": "Partner alerts",
+                "target_url": "https://example.com/webhook",
+                "secret": "top-secret",
+                "format": "generic",
+                "event_filter": ["api_key_created"],
+                "scope": "global",
+            },
+        )
+        assert created.status_code == 200
+        webhook_id = created.json()["id"]
+
+        listed = client.get(
+            "/api/v1/webhooks",
+            headers={"Authorization": "Bearer admin-secret-token"},
+        )
+        fetched = client.get(
+            f"/api/v1/webhooks/{webhook_id}",
+            headers={"Authorization": "Bearer admin-secret-token"},
+        )
+        updated = client.patch(
+            f"/api/v1/webhooks/{webhook_id}",
+            headers={"Authorization": "Bearer admin-secret-token"},
+            json={
+                "enabled": False,
+                "event_filter": ["api_key_revoked"],
+                "target_url": "https://example.com/updated",
+            },
+        )
+        deliveries = client.get(
+            f"/api/v1/webhooks/{webhook_id}/deliveries",
+            headers={"Authorization": "Bearer admin-secret-token"},
+        )
+        deleted = client.delete(
+            f"/api/v1/webhooks/{webhook_id}",
+            headers={"Authorization": "Bearer admin-secret-token"},
+        )
+
+    assert listed.status_code == 200
+    assert fetched.status_code == 200
+    assert updated.status_code == 200
+    assert deliveries.status_code == 200
+    assert deleted.status_code == 200
+    assert listed.json()["subscriptions"][0]["secret"] is None
+    assert fetched.json()["secret"] is None
+    assert updated.json()["enabled"] is False
+    assert updated.json()["event_filter"] == ["api_key_revoked"]
+    assert updated.json()["target_url"] == "https://example.com/updated"
+    assert deliveries.json()["deliveries"] == []
+    assert deleted.json() == {"id": webhook_id, "deleted": True}
+    get_settings.cache_clear()
 
 def test_api_token_does_not_break_cors_preflight(monkeypatch) -> None:
     monkeypatch.setenv("AB_API_TOKEN", "super-secret-token")

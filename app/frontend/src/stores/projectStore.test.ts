@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("../lib/api", () => ({
   archiveProjectRequest: vi.fn(),
   clearApiSessionToken: vi.fn(),
+  compareMultipleProjectsRequest: vi.fn(),
   compareProjectsRequest: vi.fn(),
   downloadProjectReportPdfRequest: vi.fn(),
   deleteProjectRequest: vi.fn(),

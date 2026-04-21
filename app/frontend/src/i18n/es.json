@@ -1,0 +1,32 @@
+{
+  "app": {
+    "skipToMainContent": "Saltar al contenido principal",
+    "eyebrow": "Planificador local de experimentos",
+    "title": "Diseñador de investigación de pruebas A/B",
+    "tagline": "Completa el contexto del experimento, ejecuta cálculos deterministas, revisa advertencias y mantén los consejos de IA separados de las matemáticas duras.",
+    "language": {
+      "label": "Idioma",
+      "ariaLabel": "Language preference",
+      "options": {
+        "en": "Inglés",
+        "ru": "Ruso",
+        "de": "Alemán",
+        "es": "Español"
+      }
+    },
+    "theme": {
+      "label": "Tema",
+      "ariaLabel": "Preferencia de tema",
+      "buttonAria": {
+        "light": "Tema claro",
+        "dark": "Tema oscuro",
+        "system": "Tema del sistema"
+      },
+      "options": {
+        "light": "Claro",
+        "dark": "Oscuro",
+        "system": "Auto"
+      }
+    }
+  }
+}

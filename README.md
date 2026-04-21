@@ -151,6 +151,39 @@ curl http://127.0.0.1:8008/api/v1/projects \
 
 Only the hash is stored in SQLite, and the plaintext key is shown once at creation time. Legacy shared tokens remain available for backward compatibility and should be documented to external consumers as legacy access.
 
+Configure an outbound webhook for audit events:
+
+```bash
+curl -X POST http://127.0.0.1:8008/api/v1/webhooks \
+  -H "Authorization: Bearer YOUR_AB_ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Slack alerts","target_url":"https://hooks.slack.com/services/XXX/YYY/ZZZ","secret":"rotate-me","format":"slack","event_filter":["api_key_created","api_key_revoked","analysis_run_created","workspace_imported","project.archive"],"scope":"global"}'
+```
+
+Fire a test delivery:
+
+```bash
+curl -X POST http://127.0.0.1:8008/api/v1/webhooks/WEBHOOK_ID/test \
+  -H "Authorization: Bearer YOUR_AB_ADMIN_TOKEN"
+```
+
+Generic endpoints receive JSON plus `X-AB-Signature: sha256=...`; Slack subscriptions receive an incoming-webhook payload without signature validation.
+
+## Languages
+
+The UI ships with four locales: **English** (default), **Russian**, **German**, and **Spanish**. Pick a language from the header switcher (the choice persists to `localStorage` under `ab-test:language`) or set `?lang=de` on the URL to override auto-detection.
+
+The backend honors the `Accept-Language` header on export endpoints and localizes the markdown/HTML report headers plus warning and risk strings. Regional tags fall back to their primary language: `de-AT` → `de`, `es-MX` → `es`, `en-GB` → `en`.
+
+```bash
+curl -X POST http://127.0.0.1:8008/api/v1/export/markdown \
+  -H "Accept-Language: de" \
+  -H "Content-Type: application/json" \
+  -d @docs/demo/sample-report.json
+```
+
+Unsupported locales fall back to English. For instructions on adding another locale, see [docs/RUNBOOK.md#adding-a-new-locale](/D:/AB_TEST/docs/RUNBOOK.md).
+
 ## Docker
 
 Build and run the full stack through the backend-served frontend:

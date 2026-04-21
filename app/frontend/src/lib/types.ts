@@ -16,6 +16,7 @@ import type {
   ProjectRecord as ApiProjectRecord,
   ProjectRevisionHistoryResponse as ApiProjectRevisionHistoryResponse,
   ProjectRevisionRecord as ApiProjectRevisionRecord,
+  SensitivityResponse as ApiSensitivityResponse,
   WorkspaceBundle_Input as ApiWorkspaceBundleInput,
   WorkspaceBundle_Output as ApiWorkspaceBundleOutput,
   WorkspaceImportResponse as ApiWorkspaceImportResponse,
@@ -181,6 +182,31 @@ export type ProjectAnalysisRun = Omit<ApiAnalysisRunRecord, "analysis"> & {
 };
 export type ProjectExportEvent = ApiExportEventRecord;
 export type ProjectComparison = ApiProjectComparisonResponse;
+export type ComparisonRangeSummary = {
+  min: number;
+  max: number;
+  median: number;
+};
+export type ProjectUniqueInsights = {
+  warnings: string[];
+  risks: string[];
+  assumptions: string[];
+};
+export type MultiProjectComparisonProject = ProjectComparison["base_project"] & {
+  sensitivity?: ApiSensitivityResponse | null;
+  observed_results?: ResultsAnalysisResponse | null;
+};
+export type MultiProjectComparison = {
+  projects: MultiProjectComparisonProject[];
+  shared_warnings: string[];
+  shared_risks: string[];
+  shared_assumptions: string[];
+  unique_per_project: Record<string, ProjectUniqueInsights>;
+  sample_size_range: ComparisonRangeSummary;
+  duration_range: ComparisonRangeSummary;
+  metric_types_used: string[];
+  recommendation_highlights: string[];
+};
 export type ProjectHistory = ApiProjectHistoryResponse;
 export type ProjectRevision = Omit<ApiProjectRevisionRecord, "payload"> & {
   payload: HydratableExperimentInput;

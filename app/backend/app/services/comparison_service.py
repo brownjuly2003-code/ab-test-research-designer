@@ -1,5 +1,13 @@
+from statistics import median
+
+from app.backend.app.stats.binary import calculate_binary_sample_size
+from app.backend.app.stats.continuous import calculate_continuous_sample_size
+from app.backend.app.stats.duration import estimate_experiment_duration_days
+
 RISK_CATEGORIES = ("statistical", "product", "technical", "operational")
 WARNING_SEVERITY_ORDER = {"high": 3, "medium": 2, "low": 1}
+DEFAULT_MDE_VALUES = [0.1, 0.5, 1, 2, 5]
+DEFAULT_POWER_VALUES = [0.7, 0.8, 0.9, 0.95]
 
 
 def _unique_strings(items: list[str]) -> list[str]:
@@ -75,6 +83,146 @@ def _warning_severity(analysis_run: dict) -> str:
             highest_rank = rank
 
     return highest_severity
+
+
+def _build_sensitivity_scale(default_values: list[float], current_value: float, limit: int) -> list[float]:
+    normalized_current = round(float(current_value), 4)
+    available = sorted({round(float(value), 4) for value in [*default_values, normalized_current]})
+    if len(available) <= limit:
+        return available
+
+    selected = {normalized_current}
+    remaining = sorted(
+        (value for value in available if value != normalized_current),
+        key=lambda value: (abs(value - normalized_current), value),
+    )
+    for value in remaining:
+        if len(selected) >= limit:
+            break
+        selected.add(value)
+    return sorted(selected)
+
+
+def _build_sensitivity(project: dict, analysis_run: dict) -> dict | None:
+    calculations = analysis_run.get("analysis", {}).get("calculations", {})
+    summary = calculations.get("calculation_summary", {})
+    results = calculations.get("results", {})
+    report = analysis_run.get("analysis", {}).get("report", {})
+    experiment_design = report.get("experiment_design", {})
+    traffic_split = experiment_design.get("traffic_split", [])
+    variants = len(experiment_design.get("variants", [])) or len(traffic_split)
+    metric_type = summary.get("metric_type")
+
+    if variants < 2 or len(traffic_split) != variants:
+        return None
+    if metric_type not in {"binary", "continuous"}:
+        return None
+
+    current_mde = summary.get("mde_absolute") if metric_type == "continuous" else summary.get("mde_pct")
+    current_power = summary.get("power")
+    baseline_value = summary.get("baseline_value")
+    alpha = summary.get("alpha")
+    daily_traffic = results.get("effective_daily_traffic")
+    if not all(isinstance(value, (int, float)) for value in (current_mde, current_power, baseline_value, alpha, daily_traffic)):
+        return None
+
+    mde_values = _build_sensitivity_scale(DEFAULT_MDE_VALUES, float(current_mde), 5)
+    power_values = _build_sensitivity_scale(DEFAULT_POWER_VALUES, float(current_power), 4)
+    cells: list[dict[str, float | int]] = []
+
+    for mde in mde_values:
+        for power in power_values:
+            if metric_type == "continuous":
+                std_dev = project.get("payload", {}).get("metrics", {}).get("std_dev")
+                if not isinstance(std_dev, (int, float)) or std_dev <= 0:
+                    return None
+                calculation = calculate_continuous_sample_size(
+                    baseline_mean=float(baseline_value),
+                    std_dev=float(std_dev),
+                    mde_pct=(float(mde) / float(baseline_value)) * 100,
+                    alpha=float(alpha),
+                    power=float(power),
+                    variants_count=variants,
+                )
+            else:
+                calculation = calculate_binary_sample_size(
+                    baseline_rate=float(baseline_value),
+                    mde_pct=float(mde),
+                    alpha=float(alpha),
+                    power=float(power),
+                    variants_count=variants,
+                )
+
+            duration = estimate_experiment_duration_days(
+                sample_size_per_variant=int(calculation["sample_size_per_variant"]),
+                expected_daily_traffic=float(daily_traffic),
+                audience_share_in_test=1,
+                traffic_split=traffic_split,
+            )
+            cells.append(
+                {
+                    "mde": float(mde),
+                    "power": float(power),
+                    "sample_size_per_variant": int(calculation["sample_size_per_variant"]),
+                    "duration_days": float(duration["estimated_duration_days"]),
+                }
+            )
+
+    return {
+        "cells": cells,
+        "current_mde": float(current_mde),
+        "current_power": float(current_power),
+    }
+
+
+def _saved_observed_results(project: dict) -> dict | None:
+    additional_context = project.get("payload", {}).get("additional_context")
+    if not isinstance(additional_context, dict):
+        return None
+    observed_results = additional_context.get("observed_results")
+    if not isinstance(observed_results, dict):
+        return None
+    analysis = observed_results.get("analysis")
+    return analysis if isinstance(analysis, dict) else None
+
+
+def _shared_items(entries: list[dict], field_name: str) -> list[str]:
+    if not entries:
+        return []
+    shared = _unique_strings(entries[0].get(field_name, []))
+    for entry in entries[1:]:
+        entry_values = set(_unique_strings(entry.get(field_name, [])))
+        shared = [item for item in shared if item in entry_values]
+    return shared
+
+
+def _unique_items_by_project(entries: list[dict], field_name: str) -> dict[str, list[str]]:
+    frequencies: dict[str, int] = {}
+    values_by_project: dict[str, list[str]] = {}
+    for entry in entries:
+        values = _unique_strings(entry.get(field_name, []))
+        values_by_project[entry["id"]] = values
+        for value in values:
+            frequencies[value] = frequencies.get(value, 0) + 1
+    return {
+        project_id: [value for value in values if frequencies.get(value, 0) == 1]
+        for project_id, values in values_by_project.items()
+    }
+
+
+def _aggregate_recommendations(entries: list[dict]) -> list[str]:
+    frequencies: dict[str, int] = {}
+    for entry in entries:
+        for recommendation in _unique_strings(entry.get("recommendation_highlights", [])):
+            frequencies[recommendation] = frequencies.get(recommendation, 0) + 1
+    total_projects = len(entries)
+    return [
+        f"{recommendation} appears in {count}/{total_projects} projects."
+        for recommendation, count in sorted(
+            frequencies.items(),
+            key=lambda item: (-item[1], item[0].lower()),
+        )[:5]
+    ]
 
 
 def _overlap_lists(base_items: list[str], candidate_items: list[str]) -> tuple[list[str], list[str], list[str]]:
@@ -174,6 +322,8 @@ def _comparison_entry(project: dict, analysis_run: dict) -> dict:
         "executive_summary": report.get("executive_summary", ""),
         "warning_severity": _warning_severity(analysis_run),
         "recommendation_highlights": _recommendation_highlights(analysis_run),
+        "sensitivity": _build_sensitivity(project, analysis_run),
+        "observed_results": _saved_observed_results(project),
     }
 
 
@@ -238,4 +388,51 @@ def build_project_comparison(base_project: dict, base_analysis_run: dict, candid
             f"{candidate_entry['project_name']} needs {sample_size_trend} total sample size and "
             f"a {duration_trend} test window than {base_entry['project_name']}."
         ),
+    }
+
+
+def build_multi_project_comparison(projects_with_runs: list[tuple[dict, dict]]) -> dict:
+    entries = [_comparison_entry(project, analysis_run) for project, analysis_run in projects_with_runs]
+    shared_warnings = _shared_items(entries, "warning_codes")
+    shared_assumptions = _shared_items(entries, "assumptions")
+    shared_risks = _shared_items(entries, "risk_highlights")
+    unique_warning_codes = _unique_items_by_project(entries, "warning_codes")
+    unique_risks = _unique_items_by_project(entries, "risk_highlights")
+    unique_assumptions = _unique_items_by_project(entries, "assumptions")
+    metric_types_used = sorted({entry["metric_type"] for entry in entries})
+
+    if len(metric_types_used) > 1:
+        shared_warnings = [
+            *shared_warnings,
+            "Mixed metric types — direct effect comparison not meaningful",
+        ]
+
+    sample_sizes = [entry["total_sample_size"] for entry in entries]
+    durations = [entry["estimated_duration_days"] for entry in entries]
+
+    return {
+        "projects": entries,
+        "shared_warnings": shared_warnings,
+        "shared_risks": shared_risks,
+        "shared_assumptions": shared_assumptions,
+        "unique_per_project": {
+            entry["id"]: {
+                "warnings": unique_warning_codes[entry["id"]],
+                "risks": unique_risks[entry["id"]],
+                "assumptions": unique_assumptions[entry["id"]],
+            }
+            for entry in entries
+        },
+        "sample_size_range": {
+            "min": min(sample_sizes),
+            "max": max(sample_sizes),
+            "median": float(median(sample_sizes)),
+        },
+        "duration_range": {
+            "min": min(durations),
+            "max": max(durations),
+            "median": float(median(durations)),
+        },
+        "metric_types_used": metric_types_used,
+        "recommendation_highlights": _aggregate_recommendations(entries),
     }
