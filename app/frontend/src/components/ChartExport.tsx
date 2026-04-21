@@ -86,11 +86,26 @@ export default function ChartExportMenu({ chartRef, filenameBase }: ChartExportM
   }
 
   return (
-    <div className="actions" style={{ justifyContent: "flex-end", marginBottom: "12px" }}>
-      <button type="button" className="btn ghost" onClick={() => void exportChart("svg")}>
+    <div
+      className="actions"
+      role="group"
+      aria-label="Chart export options"
+      style={{ justifyContent: "flex-end", marginBottom: "12px" }}
+    >
+      <button
+        type="button"
+        className="btn ghost"
+        aria-label="Download chart as SVG"
+        onClick={() => void exportChart("svg")}
+      >
         SVG
       </button>
-      <button type="button" className="btn ghost" onClick={() => void exportChart("png")}>
+      <button
+        type="button"
+        className="btn ghost"
+        aria-label="Download chart as PNG"
+        onClick={() => void exportChart("png")}
+      >
         PNG
       </button>
     </div>

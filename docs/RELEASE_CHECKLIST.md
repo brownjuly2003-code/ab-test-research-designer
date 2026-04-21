@@ -16,6 +16,8 @@
 
 - run `cmd /c scripts\verify_all.cmd`
 - or run `python scripts/verify_all.py` on platforms where the batch wrapper is not the preferred entrypoint
+- run `cd app/frontend && npm.cmd run test:unit`; this suite includes `src/test/a11y-*.test.tsx` as the frontend accessibility gate
+- confirm the a11y gate still targets WCAG 2.1 AA with `0 critical / 0 serious` axe violations across wizard, results, sidebar, and modal states
 - run `cmd /c scripts\verify_all.cmd --with-docker` when deployment packaging or auth/runtime config changed
 - ensure backend benchmark passes:
   - `python scripts/benchmark_backend.py --payload binary --assert-ms 100`

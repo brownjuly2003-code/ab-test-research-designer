@@ -45,6 +45,8 @@ FastAPI API layer
   - `useProjectManager` for backend health, SQLite project CRUD, history, and comparison
 - `lib/experiment.ts` is the typed form model layer, including field config, review rendering, and payload normalization.
 - `lib/api.ts` is the network layer. Its contracts are generated from FastAPI OpenAPI into `lib/generated/api-contract.ts`.
+- frontend accessibility is gated inside the unit suite with `src/test/a11y-wizard.test.tsx`, `src/test/a11y-results.test.tsx`, and `src/test/a11y-sidebar.test.tsx`
+- those tests target WCAG 2.1 AA and fail the frontend gate when wizard, results, sidebar, or modal states regress to critical/serious axe violations
 
 ## Backend
 

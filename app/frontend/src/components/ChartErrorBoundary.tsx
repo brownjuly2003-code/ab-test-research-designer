@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 
 import ErrorBoundary from "./ErrorBoundary";
 
@@ -24,14 +24,16 @@ export default function ChartErrorBoundary({
   onError
 }: ChartErrorBoundaryProps) {
   const fallbackData = rawData ?? data;
+  const fallbackRef = useRef<HTMLDivElement | null>(null);
 
   return (
     <ErrorBoundary
       onError={(error) => {
         onError?.(error);
+        queueMicrotask(() => fallbackRef.current?.focus());
       }}
       fallback={(
-        <div className="card" role="alert">
+        <div ref={fallbackRef} className="card" role="alert" tabIndex={-1}>
           <strong>Chart unavailable</strong>
           <div className="muted">Rendering failed. Raw data is shown below for inspection.</div>
           {fallbackData !== undefined ? <pre>{formatChartData(fallbackData)}</pre> : null}

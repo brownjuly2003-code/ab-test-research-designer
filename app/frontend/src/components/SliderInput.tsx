@@ -31,11 +31,12 @@ export default function SliderInput({
   formatValue
 }: SliderInputProps) {
   const displayValue = formatValue ? formatValue(value) : `${String(value)}${unit ? unit : ""}`;
+  const labelId = `${id}-label`;
 
   return (
     <div className={styles["slider-input-group"]}>
       <div className={styles["slider-input-label-row"]}>
-        <label htmlFor={id} className={styles["field-label"]}>
+        <label id={labelId} htmlFor={id} className={styles["field-label"]}>
           <span>{label}</span>
           {helpText ? <Tooltip content={helpText} /> : null}
         </label>
@@ -50,9 +51,14 @@ export default function SliderInput({
           step={step}
           value={value}
           aria-invalid={ariaInvalid ? "true" : undefined}
+          aria-labelledby={labelId}
+          aria-valuemin={min}
+          aria-valuemax={max}
+          aria-valuenow={value}
+          aria-valuetext={displayValue}
+          aria-label={`${label} slider`}
           onChange={(event) => onChange(Number(event.target.value))}
           onBlur={onBlur}
-          aria-label={`${label} slider`}
         />
         <input
           id={id}

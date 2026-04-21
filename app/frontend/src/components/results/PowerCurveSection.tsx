@@ -49,18 +49,20 @@ export default function PowerCurveSection({
       {sensitivityLoading ? (
         <p className="muted">Loading sensitivity analysis...</p>
       ) : sensitivityData?.cells.length ? (
-        <div ref={chartRef} role="img" aria-label="Power curve chart showing minimum detectable effect versus target power">
+        <div ref={chartRef}>
           <ChartExportMenu chartRef={chartRef} filenameBase={filenameBase} />
-          <ChartErrorBoundary rawData={sensitivityData.cells}>
-            <Suspense fallback={<p className="muted">Loading chart...</p>}>
-              <PowerCurveChart
-                cells={sensitivityData.cells}
-                currentMde={currentMde}
-                currentPower={currentPower}
-                metricType={resolveMetricType(displayedAnalysis.calculations.calculation_summary.metric_type)}
-              />
-            </Suspense>
-          </ChartErrorBoundary>
+          <div role="img" aria-label="Power curve chart showing minimum detectable effect versus target power">
+            <ChartErrorBoundary rawData={sensitivityData.cells}>
+              <Suspense fallback={<p className="muted">Loading chart...</p>}>
+                <PowerCurveChart
+                  cells={sensitivityData.cells}
+                  currentMde={currentMde}
+                  currentPower={currentPower}
+                  metricType={resolveMetricType(displayedAnalysis.calculations.calculation_summary.metric_type)}
+                />
+              </Suspense>
+            </ChartErrorBoundary>
+          </div>
         </div>
       ) : (
         <div className="callout">

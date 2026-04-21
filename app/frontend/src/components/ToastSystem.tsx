@@ -21,12 +21,14 @@ export default function ToastSystem({ toasts, onDismiss }: ToastSystemProps) {
   }
 
   return (
-    <div className={styles["toast-stack"]} aria-live="polite" aria-atomic="false">
+    <div className={styles["toast-stack"]} role="alert" aria-live="polite" aria-atomic="false">
       {toasts.map((toast) => (
         <div
           key={toast.id}
           className={[styles["toast-item"], styles[`toast-${toast.type}`]].join(" ")}
-          role="alert"
+          role={toast.type === "error" ? "alert" : "status"}
+          aria-live={toast.type === "error" ? "assertive" : "polite"}
+          aria-atomic="true"
         >
           <div className={styles["toast-item-copy"]}>
             <Icon name={iconName(toast.type)} className={styles.icon} />

@@ -1,4 +1,4 @@
-import { Component, Fragment, type ErrorInfo, type ReactNode } from "react";
+import { Component, Fragment, createRef, type ErrorInfo, type ReactNode } from "react";
 
 type ErrorBoundaryProps = {
   children: ReactNode;
@@ -12,6 +12,8 @@ type ErrorBoundaryState = {
 };
 
 export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  private fallbackRef = createRef<HTMLDivElement>();
+
   state: ErrorBoundaryState = {
     error: null,
     retryCount: 0
@@ -23,6 +25,7 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     this.props.onError?.(error, errorInfo);
+    queueMicrotask(() => this.fallbackRef.current?.focus());
   }
 
   private handleRetry = () => {
@@ -39,7 +42,7 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
       }
 
       return (
-        <div className="callout" role="alert">
+        <div ref={this.fallbackRef} className="callout" role="alert" tabIndex={-1}>
           <strong>Something went wrong</strong>
           <div className="muted">This section crashed while rendering. Retry to mount it again.</div>
           <div className="actions">

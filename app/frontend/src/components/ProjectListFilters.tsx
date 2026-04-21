@@ -41,7 +41,31 @@ export default function ProjectListFilters({
   }, [draftQuery, onQueryChange, query]);
 
   return (
-    <div style={{ display: "grid", gap: 12, marginTop: 12 }}>
+    <fieldset
+      style={{
+        border: 0,
+        padding: 0,
+        margin: "12px 0 0",
+        minInlineSize: 0,
+        display: "grid",
+        gap: 12
+      }}
+    >
+      <legend
+        style={{
+          position: "absolute",
+          width: 1,
+          height: 1,
+          padding: 0,
+          margin: -1,
+          overflow: "hidden",
+          clip: "rect(0, 0, 0, 0)",
+          whiteSpace: "nowrap",
+          border: 0
+        }}
+      >
+        Saved project filters
+      </legend>
       <div className="field">
         <label htmlFor="saved-projects-search">Search experiments</label>
         <input
@@ -102,6 +126,6 @@ export default function ProjectListFilters({
           </button>
         </div>
       </div>
-    </div>
+    </fieldset>
   );
 }
