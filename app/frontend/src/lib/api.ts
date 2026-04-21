@@ -18,7 +18,10 @@ import {
   type FullPayload,
   type ProjectRecordPayload,
   type ReportResponse,
-  type SavedProject
+  type AuditLogResponse,
+  type SavedProject,
+  type TemplateDeleteResponse,
+  type TemplateRecord
 } from "./experiment";
 import type {
   ProjectArchiveResponse as GeneratedProjectArchiveResponse,
@@ -60,10 +63,25 @@ export type ProjectHistoryRequestOptions = {
 };
 export type ProjectListRequestOptions = {
   includeArchived?: boolean;
+  q?: string;
+  status?: "active" | "archived" | "all";
+  metricType?: "binary" | "continuous" | "all";
+  sortBy?: "created_at" | "updated_at" | "name" | "duration_days";
+  sortDir?: "asc" | "desc";
+  limit?: number;
+  offset?: number;
 };
 export type ProjectRevisionRequestOptions = {
   limit?: number;
   offset?: number;
+};
+type TemplateListResponse = {
+  templates?: TemplateRecord[];
+  total?: number;
+};
+export type AuditLogRequestOptions = {
+  projectId?: string;
+  action?: string;
 };
 type RequestOptions = {
   signal?: AbortSignal;
@@ -317,6 +335,27 @@ export async function listProjectsRequest(options: ProjectListRequestOptions = {
   if (options.includeArchived) {
     params.set("include_archived", "true");
   }
+  if (options.q && options.q.trim().length > 0) {
+    params.set("q", options.q.trim());
+  }
+  if (options.status) {
+    params.set("status", options.status);
+  }
+  if (options.metricType) {
+    params.set("metric_type", options.metricType);
+  }
+  if (options.sortBy) {
+    params.set("sort_by", options.sortBy);
+  }
+  if (options.sortDir) {
+    params.set("sort_dir", options.sortDir);
+  }
+  if (typeof options.limit === "number") {
+    params.set("limit", String(options.limit));
+  }
+  if (typeof options.offset === "number") {
+    params.set("offset", String(options.offset));
+  }
 
   const path = params.size > 0 ? `/api/v1/projects?${params.toString()}` : "/api/v1/projects";
   const response = await fetch(apiUrl(path), {
@@ -329,6 +368,133 @@ export async function listProjectsRequest(options: ProjectListRequestOptions = {
   }
 
   return Array.isArray(data.projects) ? data.projects : [];
+}
+
+export async function listTemplatesRequest(): Promise<TemplateRecord[]> {
+  const response = await fetch(apiUrl("/api/v1/templates"), {
+    headers: buildHeaders()
+  });
+  const data = await readJson<TemplateListResponse & ApiErrorResponse>(response);
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(data, response, "Template list request failed"));
+  }
+
+  return Array.isArray(data.templates) ? data.templates : [];
+}
+
+export async function useTemplateRequest(templateId: string): Promise<TemplateRecord> {
+  const response = await fetch(apiUrl(`/api/v1/templates/${templateId}/use`), {
+    method: "POST",
+    headers: buildHeaders()
+  });
+  const data = await readJson<TemplateRecord & ApiErrorResponse>(response);
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(data, response, "Template apply failed"));
+  }
+
+  return data;
+}
+
+export async function deleteTemplateRequest(templateId: string): Promise<TemplateDeleteResponse> {
+  const response = await fetch(apiUrl(`/api/v1/templates/${templateId}`), {
+    method: "DELETE",
+    headers: buildHeaders()
+  });
+  const data = await readJson<TemplateDeleteResponse & ApiErrorResponse>(response);
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(data, response, "Template delete failed"));
+  }
+
+  return data;
+}
+
+export async function listAuditLogRequest(options: AuditLogRequestOptions = {}): Promise<AuditLogResponse> {
+  const params = new URLSearchParams();
+  if (options.projectId) {
+    params.set("project_id", options.projectId);
+  }
+  if (options.action) {
+    params.set("action", options.action);
+  }
+  const path = params.size > 0 ? `/api/v1/audit?${params.toString()}` : "/api/v1/audit";
+  const response = await fetch(apiUrl(path), {
+    headers: buildHeaders()
+  });
+  const data = await readJson<AuditLogResponse & ApiErrorResponse>(response);
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(data, response, "Audit log request failed"));
+  }
+
+  return data;
+}
+
+export async function exportAuditLogRequest(options: AuditLogRequestOptions = {}): Promise<{ blob: Blob; filename: string }> {
+  const params = new URLSearchParams();
+  if (options.projectId) {
+    params.set("project_id", options.projectId);
+  }
+  if (options.action) {
+    params.set("action", options.action);
+  }
+  const path = params.size > 0 ? `/api/v1/audit/export?${params.toString()}` : "/api/v1/audit/export";
+  const response = await fetch(apiUrl(path), {
+    headers: buildHeaders()
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({} as ApiErrorResponse));
+    throw new Error(getErrorMessage(data, response, "Audit export failed"));
+  }
+
+  const blob = await response.blob();
+  const filename =
+    /filename=\"([^\"]+)\"/i.exec(response.headers.get("content-disposition") ?? "")?.[1] ??
+    "audit-log.csv";
+  return { blob, filename };
+}
+
+export async function downloadProjectReportPdfRequest(
+  projectId: string
+): Promise<{ blob: Blob; filename: string }> {
+  const response = await fetch(apiUrl(`/api/v1/projects/${projectId}/report/pdf`), {
+    headers: buildHeaders()
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({} as ApiErrorResponse));
+    throw new Error(getErrorMessage(data, response, "PDF export failed"));
+  }
+
+  const blob = await response.blob();
+  const filename =
+    /filename=\"([^\"]+)\"/i.exec(response.headers.get("content-disposition") ?? "")?.[1] ??
+    "experiment-report.pdf";
+  return { blob, filename };
+}
+
+export async function downloadProjectReportDataRequest(
+  projectId: string,
+  format: "csv" | "xlsx"
+): Promise<{ blob: Blob; filename: string }> {
+  const response = await fetch(apiUrl(`/api/v1/projects/${projectId}/report/${format}`), {
+    headers: buildHeaders()
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({} as ApiErrorResponse));
+    throw new Error(getErrorMessage(data, response, `${format.toUpperCase()} export failed`));
+  }
+
+  const blob = await response.blob();
+  const fallbackFilename = format === "csv" ? "experiment-report.csv" : "experiment-report.xlsx";
+  const filename =
+    /filename=\"([^\"]+)\"/i.exec(response.headers.get("content-disposition") ?? "")?.[1] ??
+    fallbackFilename;
+  return { blob, filename };
 }
 
 export async function loadProjectRequest(projectId: string): Promise<ProjectRecordResponse> {

@@ -643,6 +643,35 @@ export type StandaloneExportRequest = {
   results?: { [key: string]: unknown; } | null;
 };
 
+export type TemplateCreateRequest = {
+  name: string;
+  category?: string;
+  description: string;
+  tags?: string[];
+  payload: ExperimentInput_Input;
+};
+
+export type TemplateDeleteResponse = {
+  id: string;
+  deleted: boolean;
+};
+
+export type TemplateListResponse = {
+  templates: TemplateRecord[];
+  total?: number;
+};
+
+export type TemplateRecord = {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  built_in: boolean;
+  payload: ExperimentInput_Output;
+  tags?: string[];
+  usage_count?: number;
+};
+
 export type ValidationError = {
   loc: (string | number)[];
   msg: string;

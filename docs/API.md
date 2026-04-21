@@ -210,6 +210,26 @@ Sensitivity
 
 Srm Check
 
+### `GET /api/v1/templates`
+
+List Templates
+
+### `POST /api/v1/templates`
+
+Create Template
+
+### `DELETE /api/v1/templates/{template_id}`
+
+Delete Template
+
+### `GET /api/v1/templates/{template_id}`
+
+Get Template
+
+### `POST /api/v1/templates/{template_id}/use`
+
+Use Template
+
 ## Validation notes
 
 - supported variant count is `2..10`

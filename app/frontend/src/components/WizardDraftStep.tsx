@@ -36,6 +36,7 @@ type WizardDraftStepProps = {
   onNext: () => void;
   onSave: () => void;
   onStartNew: () => void;
+  onOpenTemplateGallery: () => void;
   onImportDraft: () => void;
   onExportDraft: () => void;
 };
@@ -58,6 +59,7 @@ export default function WizardDraftStep({
   onNext,
   onSave,
   onStartNew,
+  onOpenTemplateGallery,
   onImportDraft,
   onExportDraft
 }: WizardDraftStepProps) {
@@ -188,7 +190,7 @@ export default function WizardDraftStep({
         </div>
       </div>
       {validationErrors.length > 0 ? (
-        <div className="status">
+        <div className="status" role="alert" aria-live="polite">
           <strong>Fix these fields before saving or running analysis:</strong>
           <ul className="list">
             {validationErrors.map((issue) => (
@@ -690,6 +692,11 @@ export default function WizardDraftStep({
         <button className="btn ghost" disabled={loading || saving} onClick={onStartNew}>
           New draft
         </button>
+        {current.section === "project" ? (
+          <button className="btn ghost" disabled={loading || saving} onClick={onOpenTemplateGallery}>
+            Start from template
+          </button>
+        ) : null}
         <button className="btn ghost" disabled={loading || saving || importingDraft} onClick={onImportDraft}>
           {importingDraft ? <><Spinner /> Importing...</> : "Import draft JSON"}
         </button>

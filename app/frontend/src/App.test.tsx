@@ -8,13 +8,19 @@ vi.mock("./lib/api", () => ({
   archiveProjectRequest: vi.fn(),
   clearApiSessionToken: vi.fn(),
   compareProjectsRequest: vi.fn(),
+  exportAuditLogRequest: vi.fn(),
+  downloadProjectReportDataRequest: vi.fn(),
+  downloadProjectReportPdfRequest: vi.fn(),
   deleteProjectRequest: vi.fn(),
   exportWorkspaceRequest: vi.fn(),
   exportReportRequest: vi.fn(),
   hasApiSessionToken: vi.fn(),
   importWorkspaceRequest: vi.fn(),
+  listAuditLogRequest: vi.fn(),
+  listTemplatesRequest: vi.fn(),
   restoreProjectRequest: vi.fn(),
   setApiSessionToken: vi.fn(),
+  useTemplateRequest: vi.fn(),
   validateWorkspaceRequest: vi.fn(),
   listProjectsRequest: vi.fn(),
   loadProjectHistoryRequest: vi.fn(),
@@ -37,13 +43,19 @@ import {
   archiveProjectRequest,
   clearApiSessionToken,
   compareProjectsRequest,
+  exportAuditLogRequest,
+  downloadProjectReportDataRequest,
+  downloadProjectReportPdfRequest,
   deleteProjectRequest,
   exportWorkspaceRequest,
   exportReportRequest,
   importWorkspaceRequest,
+  listAuditLogRequest,
+  listTemplatesRequest,
   hasApiSessionToken,
   restoreProjectRequest,
   setApiSessionToken,
+  useTemplateRequest,
   validateWorkspaceRequest,
   listProjectsRequest,
   loadProjectHistoryRequest,
@@ -455,6 +467,64 @@ function buildWorkspaceBundle(options: { signed?: boolean } = {}) {
   };
 }
 
+function buildTemplateRecord(
+  overrides: Partial<{
+    id: string;
+    name: string;
+    category: string;
+    description: string;
+    built_in: boolean;
+    tags: string[];
+    usage_count: number;
+  }> = {}
+) {
+  const payload = buildApiPayload(cloneInitialState());
+  payload.project.project_name = "";
+
+  return {
+    id: overrides.id ?? "checkout_conversion",
+    name: overrides.name ?? "Checkout Conversion",
+    category: overrides.category ?? "Revenue",
+    description: overrides.description ?? "Test checkout changes against conversion.",
+    built_in: overrides.built_in ?? true,
+    payload,
+    tags: overrides.tags ?? ["binary", "checkout"],
+    usage_count: overrides.usage_count ?? 0
+  };
+}
+
+function buildAuditLogResponse(projectId = "p-1") {
+  return {
+    total: 2,
+    entries: [
+      {
+        id: 2,
+        ts: "2026-03-07T12:45:00Z",
+        action: "project.update",
+        project_id: projectId,
+        project_name: "Stored checkout test",
+        actor: "api_key:rw",
+        request_id: "req-2",
+        payload_diff: {
+          "metrics.mde_pct": [5, 7] as [number, number]
+        },
+        ip_address: "127.0.0.1"
+      },
+      {
+        id: 1,
+        ts: "2026-03-07T12:30:00Z",
+        action: "project.create",
+        project_id: projectId,
+        project_name: "Stored checkout test",
+        actor: "api_key:rw",
+        request_id: "req-1",
+        payload_diff: null,
+        ip_address: "127.0.0.1"
+      }
+    ]
+  };
+}
+
 type AppView = Awaited<ReturnType<typeof renderIntoDocument>>;
 
 async function startNewExperiment(view: AppView) {
@@ -491,12 +561,18 @@ describe("App UI flow", () => {
       window.sessionStorage.removeItem(apiSessionTokenStorageKey);
     });
     vi.mocked(compareProjectsRequest).mockReset();
+    vi.mocked(exportAuditLogRequest).mockReset();
+    vi.mocked(downloadProjectReportDataRequest).mockReset();
     vi.mocked(archiveProjectRequest).mockReset();
+    vi.mocked(downloadProjectReportPdfRequest).mockReset();
     vi.mocked(deleteProjectRequest).mockReset();
     vi.mocked(exportWorkspaceRequest).mockReset();
     vi.mocked(importWorkspaceRequest).mockReset();
+    vi.mocked(listAuditLogRequest).mockResolvedValue(buildAuditLogResponse());
+    vi.mocked(listTemplatesRequest).mockResolvedValue([]);
     vi.mocked(restoreProjectRequest).mockReset();
     vi.mocked(validateWorkspaceRequest).mockReset();
+    vi.mocked(useTemplateRequest).mockReset();
     vi.mocked(listProjectsRequest).mockResolvedValue([]);
     vi.mocked(loadProjectHistoryRequest).mockReset();
     vi.mocked(loadProjectHistoryRequest).mockResolvedValue({
@@ -613,6 +689,54 @@ describe("App UI flow", () => {
 
       expect(stepHeading.textContent).toBe("Hypothesis");
       expect(document.activeElement).toBe(stepHeading);
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("opens the template gallery and applies a built-in template to the wizard", async () => {
+    vi.mocked(listTemplatesRequest).mockResolvedValueOnce([
+      buildTemplateRecord(),
+      buildTemplateRecord({ id: "onboarding_completion", name: "Onboarding Completion", category: "Engagement" }),
+      buildTemplateRecord({ id: "pricing_sensitivity", name: "Pricing Sensitivity" }),
+      buildTemplateRecord({ id: "feature_adoption", name: "Feature Adoption" }),
+      buildTemplateRecord({ id: "latency_impact", name: "Latency Impact", category: "Performance" })
+    ]);
+    vi.mocked(useTemplateRequest).mockResolvedValueOnce(buildTemplateRecord({ usage_count: 1 }));
+
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+      await startNewExperiment(view);
+
+      const initialProjectName = view.container.querySelector("#project-project_name");
+      if (!(initialProjectName instanceof HTMLInputElement)) {
+        throw new Error("Project name input was not rendered");
+      }
+
+      expect(initialProjectName.value).toBe("Checkout redesign");
+
+      await click(findButton(view.container, "Start from template"));
+      await flushEffects();
+
+      expect(document.body.textContent).toContain("Experiment templates");
+      expect(document.body.textContent).toContain("Checkout Conversion");
+      expect(document.body.textContent).toContain("Onboarding Completion");
+      expect(document.body.textContent).toContain("Pricing Sensitivity");
+      expect(document.body.textContent).toContain("Feature Adoption");
+      expect(document.body.textContent).toContain("Latency Impact");
+
+      await click(findButtonByAriaLabel(view.container, "Use template Checkout Conversion"));
+      await flushEffects();
+
+      const projectNameInput = view.container.querySelector("#project-project_name");
+      if (!(projectNameInput instanceof HTMLInputElement)) {
+        throw new Error("Project name input was not rendered after template apply");
+      }
+
+      expect(projectNameInput.value).toBe("");
+      expect(document.querySelector('[role="dialog"]')).toBeNull();
+      expect(view.container.textContent).toContain("Template Checkout Conversion loaded into the wizard.");
     } finally {
       await view.unmount();
     }
@@ -944,6 +1068,9 @@ describe("App UI flow", () => {
       {
         id: "p-1",
         project_name: "Stored checkout test",
+        hypothesis: "Checkout speed will improve with a shorter flow.",
+        metric_type: "binary",
+        duration_days: 14,
         payload_schema_version: 1,
         last_analysis_at: null,
         last_exported_at: null,
@@ -954,6 +1081,9 @@ describe("App UI flow", () => {
       {
         id: "p-2",
         project_name: "Pricing experiment",
+        hypothesis: "Pricing copy refresh will improve checkout intent.",
+        metric_type: "continuous",
+        duration_days: 9,
         payload_schema_version: 1,
         last_analysis_at: null,
         last_exported_at: null,
@@ -976,11 +1106,141 @@ describe("App UI flow", () => {
       expect(view.container.textContent).toContain("Pricing experiment");
 
       await changeValue(searchInput, "pricing");
+      await act(async () => {
+        await new Promise((resolve) => window.setTimeout(resolve, 350));
+      });
       await flushEffects();
 
       expect(view.container.textContent).not.toContain("Stored checkout test");
       expect(view.container.textContent).toContain("Pricing experiment");
-      expect(view.container.textContent).toContain("Showing 1 of 2 saved projects.");
+      expect(view.container.textContent).toContain("1 experiment shown.");
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("filters saved projects by status and metric type, then sorts by duration", async () => {
+    vi.mocked(listProjectsRequest).mockResolvedValueOnce([
+      {
+        id: "p-1",
+        project_name: "Stored checkout test",
+        hypothesis: "Checkout speed will improve with a shorter flow.",
+        metric_type: "binary",
+        duration_days: 14,
+        payload_schema_version: 1,
+        archived_at: null,
+        is_archived: false,
+        last_analysis_at: null,
+        last_exported_at: null,
+        has_analysis_snapshot: false,
+        created_at: "2026-03-07T10:00:00Z",
+        updated_at: "2026-03-07T10:00:00Z"
+      },
+      {
+        id: "p-2",
+        project_name: "Pricing experiment",
+        hypothesis: "Pricing copy refresh will improve checkout intent.",
+        metric_type: "continuous",
+        duration_days: 9,
+        payload_schema_version: 1,
+        archived_at: null,
+        is_archived: false,
+        last_analysis_at: null,
+        last_exported_at: null,
+        has_analysis_snapshot: false,
+        created_at: "2026-03-07T11:00:00Z",
+        updated_at: "2026-03-07T11:00:00Z"
+      },
+      {
+        id: "p-3",
+        project_name: "Archived checkout",
+        hypothesis: "Archived hypothesis",
+        metric_type: "binary",
+        duration_days: 6,
+        payload_schema_version: 1,
+        archived_at: "2026-03-07T12:00:00Z",
+        is_archived: true,
+        last_analysis_at: null,
+        last_exported_at: null,
+        has_analysis_snapshot: false,
+        created_at: "2026-03-07T12:00:00Z",
+        updated_at: "2026-03-07T12:00:00Z"
+      }
+    ]);
+
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+
+      const statusSelect = view.container.querySelector("#saved-projects-status");
+      const metricTypeSelect = view.container.querySelector("#saved-projects-metric-type");
+      const sortSelect = view.container.querySelector("#saved-projects-sort");
+      if (!(statusSelect instanceof HTMLSelectElement) || !(metricTypeSelect instanceof HTMLSelectElement) || !(sortSelect instanceof HTMLSelectElement)) {
+        throw new Error("Project filter controls were not rendered");
+      }
+
+      await changeValue(statusSelect, "all");
+      await changeValue(metricTypeSelect, "binary");
+      await changeValue(sortSelect, "duration_asc");
+      await flushEffects();
+
+      const projectButtons = Array.from(view.container.querySelectorAll("button"))
+        .map((button) => button.textContent?.trim())
+        .filter((label) => label === "Stored checkout test" || label === "Pricing experiment");
+      expect(projectButtons).toEqual(["Stored checkout test"]);
+      expect(view.container.textContent).toContain("Archived checkout");
+      expect(view.container.textContent).not.toContain("Pricing experiment");
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("loads the audit log in the system tab, filters by project, and exports CSV", async () => {
+    vi.mocked(listProjectsRequest).mockResolvedValueOnce([
+      {
+        id: "p-1",
+        project_name: "Stored checkout test",
+        hypothesis: "Checkout speed will improve with a shorter flow.",
+        metric_type: "binary",
+        duration_days: 12,
+        payload_schema_version: 1,
+        last_analysis_at: null,
+        last_analysis_run_id: null,
+        last_exported_at: null,
+        has_analysis_snapshot: false,
+        created_at: "2026-03-07T10:00:00Z",
+        updated_at: "2026-03-07T10:00:00Z"
+      }
+    ]);
+    vi.mocked(listAuditLogRequest)
+      .mockResolvedValueOnce(buildAuditLogResponse())
+      .mockResolvedValueOnce(buildAuditLogResponse("p-1"));
+    vi.mocked(exportAuditLogRequest).mockResolvedValueOnce({
+      blob: new Blob(["ts,action"], { type: "text/csv" }),
+      filename: "audit-log.csv"
+    });
+
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+      await openSystemTab(view);
+
+      expect(view.container.textContent).toContain("Audit log");
+      expect(view.container.textContent).toContain("project.update");
+      expect(view.container.textContent).toContain("project.create");
+
+      const filter = view.container.querySelector("#audit-project-filter");
+      if (!(filter instanceof HTMLSelectElement)) {
+        throw new Error("Audit project filter was not rendered");
+      }
+
+      await changeValue(filter, "p-1");
+      await flushEffects();
+      await click(findButton(view.container, "Export audit CSV"));
+      await flushEffects();
+
+      expect(listAuditLogRequest).toHaveBeenLastCalledWith({ projectId: "p-1" });
+      expect(exportAuditLogRequest).toHaveBeenCalledWith({ projectId: "p-1" });
     } finally {
       await view.unmount();
     }
@@ -1813,6 +2073,7 @@ describe("App UI flow", () => {
         onNext={() => {}}
         onSave={() => {}}
         onStartNew={() => {}}
+        onOpenTemplateGallery={() => {}}
         onImportDraft={() => {}}
         onExportDraft={() => {}}
       />
@@ -1852,6 +2113,7 @@ describe("App UI flow", () => {
           onNext={() => {}}
           onSave={() => {}}
           onStartNew={() => {}}
+          onOpenTemplateGallery={() => {}}
           onImportDraft={() => {}}
           onExportDraft={() => {}}
         />
@@ -1889,6 +2151,7 @@ describe("App UI flow", () => {
           onNext={() => {}}
           onSave={() => {}}
           onStartNew={() => {}}
+          onOpenTemplateGallery={() => {}}
           onImportDraft={() => {}}
           onExportDraft={() => {}}
         />
@@ -1928,6 +2191,7 @@ describe("App UI flow", () => {
           onNext={() => {}}
           onSave={() => {}}
           onStartNew={() => {}}
+          onOpenTemplateGallery={() => {}}
           onImportDraft={() => {}}
           onExportDraft={() => {}}
         />
@@ -2301,6 +2565,193 @@ describe("App UI flow", () => {
     }
   });
 
+  it("exports a saved analysis snapshot as PDF", async () => {
+    vi.mocked(listProjectsRequest).mockResolvedValueOnce([
+      {
+        id: "p-1",
+        project_name: "Stored checkout test",
+        hypothesis: "Checkout speed will improve with a shorter flow.",
+        metric_type: "binary",
+        duration_days: 12,
+        payload_schema_version: 1,
+        last_analysis_at: null,
+        last_analysis_run_id: null,
+        last_exported_at: null,
+        has_analysis_snapshot: false,
+        created_at: "2026-03-07T10:00:00Z",
+        updated_at: "2026-03-07T10:00:00Z"
+      }
+    ]);
+    vi.mocked(loadProjectRequest).mockResolvedValueOnce({
+      id: "p-1",
+      project_name: "Stored checkout test",
+      payload_schema_version: 1,
+      last_analysis_at: null,
+      last_analysis_run_id: null,
+      last_exported_at: null,
+      has_analysis_snapshot: false,
+      created_at: "2026-03-07T10:00:00Z",
+      updated_at: "2026-03-07T10:00:00Z",
+      payload: buildApiPayload(buildLoadedPayload())
+    });
+    vi.mocked(loadProjectHistoryRequest)
+      .mockResolvedValueOnce({
+        project_id: "p-1",
+        analysis_total: 0,
+        analysis_limit: 3,
+        analysis_offset: 0,
+        export_total: 0,
+        export_limit: 3,
+        export_offset: 0,
+        analysis_runs: [],
+        export_events: []
+      })
+      .mockResolvedValueOnce(buildProjectHistory("p-1"))
+      .mockResolvedValueOnce(buildProjectHistory("p-1"));
+    vi.mocked(requestAnalysis).mockResolvedValueOnce(buildAnalysisResult());
+    vi.mocked(recordProjectAnalysisRequest).mockResolvedValueOnce({
+      id: "p-1",
+      project_name: "Stored checkout test",
+      payload_schema_version: 1,
+      last_analysis_at: "2026-03-07T12:30:00Z",
+      last_analysis_run_id: "run-1",
+      last_exported_at: null,
+      has_analysis_snapshot: true,
+      created_at: "2026-03-07T10:00:00Z",
+      updated_at: "2026-03-07T10:00:00Z",
+      payload: buildApiPayload(buildLoadedPayload())
+    });
+    vi.mocked(downloadProjectReportPdfRequest).mockResolvedValueOnce({
+      blob: new Blob(["pdf"], { type: "application/pdf" }),
+      filename: "stored-checkout-test-report.pdf"
+    });
+    vi.mocked(recordProjectExportRequest).mockResolvedValueOnce({
+      id: "p-1",
+      project_name: "Stored checkout test",
+      payload_schema_version: 1,
+      last_analysis_at: "2026-03-07T12:30:00Z",
+      last_analysis_run_id: "run-1",
+      last_exported_at: "2026-03-07T12:45:00Z",
+      has_analysis_snapshot: true,
+      created_at: "2026-03-07T10:00:00Z",
+      updated_at: "2026-03-07T10:00:00Z",
+      payload: buildApiPayload(buildLoadedPayload())
+    });
+
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+      await click(findButton(view.container, "Stored checkout test"));
+      await flushEffects();
+
+      for (let stepIndex = 0; stepIndex < 5; stepIndex += 1) {
+        await click(findButton(view.container, "Next"));
+      }
+
+      await click(findButton(view.container, "Run analysis"));
+      await flushEffects();
+      await click(findButton(view.container, "Export PDF"));
+      await flushEffects();
+
+      expect(downloadProjectReportPdfRequest).toHaveBeenCalledWith("p-1");
+      expect(recordProjectExportRequest).toHaveBeenCalledWith("p-1", "pdf", "run-1");
+      expect(view.container.textContent).toContain("Exported report as PDF and updated project export metadata.");
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("exports saved project data as CSV and XLSX from the unified export control", async () => {
+    vi.mocked(listProjectsRequest).mockResolvedValueOnce([
+      {
+        id: "p-1",
+        project_name: "Stored checkout test",
+        hypothesis: "Checkout speed will improve with a shorter flow.",
+        metric_type: "binary",
+        duration_days: 12,
+        payload_schema_version: 1,
+        last_analysis_at: null,
+        last_analysis_run_id: null,
+        last_exported_at: null,
+        has_analysis_snapshot: false,
+        created_at: "2026-03-07T10:00:00Z",
+        updated_at: "2026-03-07T10:00:00Z"
+      }
+    ]);
+    vi.mocked(loadProjectRequest).mockResolvedValueOnce({
+      id: "p-1",
+      project_name: "Stored checkout test",
+      payload_schema_version: 1,
+      last_analysis_at: null,
+      last_analysis_run_id: null,
+      last_exported_at: null,
+      has_analysis_snapshot: false,
+      created_at: "2026-03-07T10:00:00Z",
+      updated_at: "2026-03-07T10:00:00Z",
+      payload: buildApiPayload(buildLoadedPayload())
+    });
+    vi.mocked(loadProjectHistoryRequest)
+      .mockResolvedValueOnce({
+        project_id: "p-1",
+        analysis_total: 0,
+        analysis_limit: 3,
+        analysis_offset: 0,
+        export_total: 0,
+        export_limit: 3,
+        export_offset: 0,
+        analysis_runs: [],
+        export_events: []
+      })
+      .mockResolvedValueOnce(buildProjectHistory("p-1"));
+    vi.mocked(requestAnalysis).mockResolvedValueOnce(buildAnalysisResult());
+    vi.mocked(recordProjectAnalysisRequest).mockResolvedValueOnce({
+      id: "p-1",
+      project_name: "Stored checkout test",
+      payload_schema_version: 1,
+      last_analysis_at: "2026-03-07T12:30:00Z",
+      last_analysis_run_id: "run-1",
+      last_exported_at: null,
+      has_analysis_snapshot: true,
+      created_at: "2026-03-07T10:00:00Z",
+      updated_at: "2026-03-07T10:00:00Z",
+      payload: buildApiPayload(buildLoadedPayload())
+    });
+    vi.mocked(downloadProjectReportDataRequest)
+      .mockResolvedValueOnce({
+        blob: new Blob(["csv"], { type: "text/csv" }),
+        filename: "stored-checkout-test-report.csv"
+      })
+      .mockResolvedValueOnce({
+        blob: new Blob(["xlsx"], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),
+        filename: "stored-checkout-test-report.xlsx"
+      });
+
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+      await click(findButton(view.container, "Stored checkout test"));
+      await flushEffects();
+
+      for (let stepIndex = 0; stepIndex < 5; stepIndex += 1) {
+        await click(findButton(view.container, "Next"));
+      }
+
+      await click(findButton(view.container, "Run analysis"));
+      await flushEffects();
+      await click(findButton(view.container, "Export"));
+      await flushEffects();
+      await click(findButton(view.container, "CSV Data"));
+      await flushEffects();
+      await click(findButton(view.container, "Excel Workbook"));
+      await flushEffects();
+
+      expect(downloadProjectReportDataRequest).toHaveBeenNthCalledWith(1, "p-1", "csv");
+      expect(downloadProjectReportDataRequest).toHaveBeenNthCalledWith(2, "p-1", "xlsx");
+    } finally {
+      await view.unmount();
+    }
+  });
+
   it("shows std dev only for continuous metrics and hides it from binary review", async () => {
     const view = await renderIntoDocument(<App />);
     try {
@@ -2499,6 +2950,61 @@ describe("App UI flow", () => {
       await flushEffects();
 
       expect(saveProjectRequest).toHaveBeenCalledTimes(1);
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("opens shortcut help, focuses project search, closes on escape, and toggles theme from the keyboard", async () => {
+    vi.mocked(listProjectsRequest).mockResolvedValueOnce([
+      {
+        id: "p-1",
+        project_name: "Stored checkout test",
+        hypothesis: "Checkout speed will improve with a shorter flow.",
+        metric_type: "binary",
+        duration_days: 12,
+        payload_schema_version: 1,
+        last_analysis_at: null,
+        last_analysis_run_id: null,
+        last_exported_at: null,
+        has_analysis_snapshot: false,
+        created_at: "2026-03-07T10:00:00Z",
+        updated_at: "2026-03-07T10:00:00Z"
+      }
+    ]);
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+
+      const searchInput = view.container.querySelector("#saved-projects-search");
+      if (!(searchInput instanceof HTMLInputElement)) {
+        throw new Error("Saved projects search input was not rendered");
+      }
+
+      const initialTheme = document.documentElement.getAttribute("data-theme");
+
+      await act(async () => {
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: "/", bubbles: true }));
+      });
+      expect(document.activeElement).toBe(searchInput);
+
+      searchInput.blur();
+
+      await act(async () => {
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: "?", bubbles: true }));
+      });
+      expect(document.body.textContent).toContain("Keyboard shortcuts");
+      expect(document.querySelector('[role="dialog"]')).not.toBeNull();
+
+      await act(async () => {
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+      });
+      expect(document.querySelector('[role="dialog"]')).toBeNull();
+
+      await act(async () => {
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: "D", ctrlKey: true, shiftKey: true, bubbles: true }));
+      });
+      expect(document.documentElement.getAttribute("data-theme")).not.toBe(initialTheme);
     } finally {
       await view.unmount();
     }

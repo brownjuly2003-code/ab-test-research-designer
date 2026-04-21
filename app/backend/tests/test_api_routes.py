@@ -739,3 +739,133 @@ def test_api_token_does_not_break_cors_preflight(monkeypatch) -> None:
     assert response.status_code == 200
     assert response.headers["access-control-allow-origin"] == "http://127.0.0.1:5173"
     get_settings.cache_clear()
+
+
+def test_templates_list_returns_five_builtins_on_fresh_install(monkeypatch) -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+
+    monkeypatch.setenv("AB_DB_PATH", str(db_path))
+    monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")
+    get_settings.cache_clear()
+
+    with TestClient(create_app()) as client:
+        response = client.get("/api/v1/templates")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["total"] == 5
+    assert len(payload["templates"]) == 5
+    assert all(template["built_in"] is True for template in payload["templates"])
+    get_settings.cache_clear()
+
+
+def test_template_use_returns_payload_and_increments_usage_count(monkeypatch) -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+
+    monkeypatch.setenv("AB_DB_PATH", str(db_path))
+    monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")
+    get_settings.cache_clear()
+
+    with TestClient(create_app()) as client:
+        listed = client.get("/api/v1/templates")
+        assert listed.status_code == 200
+        template_id = listed.json()["templates"][0]["id"]
+
+        used = client.post(f"/api/v1/templates/{template_id}/use")
+        assert used.status_code == 200
+
+        refreshed = client.get(f"/api/v1/templates/{template_id}")
+
+    assert refreshed.status_code == 200
+    used_payload = used.json()
+    assert used_payload["payload"]["project"]["project_name"] == ""
+    assert used_payload["usage_count"] == 1
+    assert refreshed.json()["usage_count"] == 1
+    get_settings.cache_clear()
+
+
+def test_templates_create_saves_user_defined_template(monkeypatch) -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+
+    monkeypatch.setenv("AB_DB_PATH", str(db_path))
+    monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")
+    get_settings.cache_clear()
+
+    payload = _full_payload()
+    payload["project"]["project_name"] = "Saved template draft"
+
+    with TestClient(create_app()) as client:
+        response = client.post(
+            "/api/v1/templates",
+            json={
+                "name": "Saved checkout flow",
+                "description": "Team template for checkout experiments.",
+                "category": "Revenue",
+                "tags": ["binary", "checkout"],
+                "payload": payload,
+            },
+        )
+
+    assert response.status_code == 200
+    created = response.json()
+    assert created["built_in"] is False
+    assert created["name"] == "Saved checkout flow"
+    assert created["payload"]["project"]["project_name"] == "Saved template draft"
+    get_settings.cache_clear()
+
+
+def test_templates_delete_rejects_builtin_templates(monkeypatch) -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+
+    monkeypatch.setenv("AB_DB_PATH", str(db_path))
+    monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")
+    get_settings.cache_clear()
+
+    with TestClient(create_app()) as client:
+        listed = client.get("/api/v1/templates")
+        assert listed.status_code == 200
+        template_id = listed.json()["templates"][0]["id"]
+        response = client.delete(f"/api/v1/templates/{template_id}")
+
+    assert response.status_code == 403
+    get_settings.cache_clear()
+
+
+def test_templates_delete_removes_user_template(monkeypatch) -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+
+    monkeypatch.setenv("AB_DB_PATH", str(db_path))
+    monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")
+    get_settings.cache_clear()
+
+    with TestClient(create_app()) as client:
+        created = client.post(
+            "/api/v1/templates",
+            json={
+                "name": "My pricing template",
+                "description": "Reusable pricing experiment baseline.",
+                "category": "Revenue",
+                "tags": ["pricing"],
+                "payload": _full_payload(),
+            },
+        )
+        assert created.status_code == 200
+        template_id = created.json()["id"]
+
+        deleted = client.delete(f"/api/v1/templates/{template_id}")
+        listed = client.get("/api/v1/templates")
+
+    assert deleted.status_code == 200
+    assert deleted.json() == {"id": template_id, "deleted": True}
+    assert all(template["id"] != template_id for template in listed.json()["templates"])
+    get_settings.cache_clear()

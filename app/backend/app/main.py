@@ -21,6 +21,7 @@ from app.backend.app.routes.export import create_export_router
 from app.backend.app.routes.projects import create_projects_router
 from app.backend.app.routes.system import create_system_router
 from app.backend.app.routes.workspace import create_workspace_router
+from app.backend.app.routes.templates import create_templates_router
 from app.backend.app.services.design_service import build_experiment_report
 
 logger = logging.getLogger(__name__)
@@ -121,6 +122,15 @@ def create_app() -> FastAPI:
         )
     )
     app.include_router(create_export_router(settings, repository, request_rate_limiter, require_auth))
+    app.include_router(
+        create_templates_router(
+            settings,
+            repository,
+            request_rate_limiter,
+            require_auth,
+            require_write_auth,
+        )
+    )
     app.include_router(create_system_router(settings, repository, runtime_counters, started_at))
     register_frontend_routes(app, settings)
     return app

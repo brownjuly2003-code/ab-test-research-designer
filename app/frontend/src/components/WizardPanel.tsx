@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ChangeEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 
 import sampleProject from "../../../../docs/demo/sample-project.json";
 import { useToast, type ToastType } from "../hooks/useToast";
@@ -23,6 +23,8 @@ import EmptyState from "./EmptyState";
 import ErrorBoundary from "./ErrorBoundary";
 import ProgressBar from "./ProgressBar";
 import ResultsPanel from "./ResultsPanel";
+import ShortcutHelp from "./ShortcutHelp";
+import TemplateGallery from "./TemplateGallery";
 import ToastSystem from "./ToastSystem";
 import WizardDraftStep from "./WizardDraftStep";
 import WizardReviewStep from "./WizardReviewStep";
@@ -230,10 +232,12 @@ async function exportReportFlow(format: ExportFormat) {
 
 export function GlobalSideEffects() {
   const hydrateTheme = useThemeStore((state) => state.hydrateTheme);
+  const toggleTheme = useThemeStore((state) => state.toggleTheme);
   const draftStorageWarning = useDraftStore((state) => state.draftStorageWarning);
   const draftStorageMessage = useDraftStore((state) => state.draftStorageMessage);
   const clearDraftStorageWarning = useDraftStore((state) => state.clearDraftStorageWarning);
   const { toasts, addToast, removeToast } = useToast();
+  const [shortcutHelpOpen, setShortcutHelpOpen] = useState(false);
   const lastStatusToastRef = useRef("");
   const lastAnalysisErrorToastRef = useRef("");
   const lastProjectErrorToastRef = useRef("");
@@ -266,7 +270,23 @@ export function GlobalSideEffects() {
         target instanceof HTMLTextAreaElement ||
         target instanceof HTMLSelectElement;
       const ctrl = event.ctrlKey || event.metaKey;
+      const key = event.key.toLowerCase();
+      if (event.key === "Escape" && shortcutHelpOpen) {
+        event.preventDefault();
+        setShortcutHelpOpen(false);
+        return;
+      }
       if (!ctrl && isFormField) {
+        return;
+      }
+      if (!ctrl && event.key === "?") {
+        event.preventDefault();
+        setShortcutHelpOpen(true);
+        return;
+      }
+      if (!ctrl && event.key === "/") {
+        event.preventDefault();
+        document.getElementById("saved-projects-search")?.focus();
         return;
       }
       if (event.key === "ArrowRight") {
@@ -280,24 +300,29 @@ export function GlobalSideEffects() {
       if (!ctrl) {
         return;
       }
+      if (event.shiftKey && key === "d") {
+        event.preventDefault();
+        toggleTheme();
+        return;
+      }
       if (event.key === "Enter") {
         event.preventDefault();
         void runAnalysisFlow();
         return;
       }
-      if (event.key.toLowerCase() === "e") {
+      if (key === "e") {
         event.preventDefault();
         void exportReportFlow("markdown");
         return;
       }
-      if (event.key.toLowerCase() === "s") {
+      if (key === "s") {
         event.preventDefault();
         void saveProjectFlow();
       }
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  }, [shortcutHelpOpen, toggleTheme]);
 
   useEffect(() => {
     if (!statusMessage || !statusToastType) {
@@ -375,6 +400,7 @@ export function GlobalSideEffects() {
           <button className="btn secondary" onClick={clearDraftStorageWarning}>Dismiss</button>
         </div>
       ) : null}
+      {shortcutHelpOpen ? <ShortcutHelp onClose={() => setShortcutHelpOpen(false)} /> : null}
       <ToastSystem toasts={toasts} onDismiss={removeToast} />
     </>
   );
@@ -416,6 +442,7 @@ export function OnboardingPanel() {
 }
 
 export default function WizardPanel() {
+  const openWizard = useWizardStore((state) => state.openWizard);
   const step = useWizardStore((state) => state.step);
   const importingDraft = useWizardStore((state) => state.importingDraft);
   const setStep = useWizardStore((state) => state.setStep);
@@ -423,6 +450,7 @@ export default function WizardPanel() {
   const analysis = useAnalysisStore();
   const project = useProjectStore();
   const stepHeadingRef = useRef<HTMLHeadingElement | null>(null);
+  const [templateGalleryOpen, setTemplateGalleryOpen] = useState(false);
   const form = draftStore.draft;
   const displayedAnalysis = currentDisplayedAnalysis();
   const stepErrors = stepLabels.reduce<Record<number, boolean>>((current, _label, index) => {
@@ -436,6 +464,16 @@ export default function WizardPanel() {
   useEffect(() => {
     stepHeadingRef.current?.focus();
   }, [step]);
+
+  function handleApplyTemplate(nextDraft: typeof form, templateName: string) {
+    project.clearProjectError();
+    draftStore.replaceDraft(nextDraft, { markDirty: true });
+    analysis.clearAnalysis();
+    project.resetProjectSelection();
+    analysis.showStatus(`Template ${templateName} loaded into the wizard.`, "success");
+    setTemplateGalleryOpen(false);
+    openWizard();
+  }
 
   return (
     <section className="panel">
@@ -475,6 +513,7 @@ export default function WizardPanel() {
           onNext={() => setStep((value) => Math.min(stepLabels.length - 1, value + 1))}
           onSave={() => void saveProjectFlow()}
           onStartNew={startNewDraft}
+          onOpenTemplateGallery={() => setTemplateGalleryOpen(true)}
           onImportDraft={() => document.getElementById("global-draft-import-input")?.click()}
           onExportDraft={exportDraftFile}
         />
@@ -516,6 +555,12 @@ export default function WizardPanel() {
           onExportReport={(format) => void exportReportFlow(format)}
         />
       </ErrorBoundary>
+      {templateGalleryOpen ? (
+        <TemplateGallery
+          onClose={() => setTemplateGalleryOpen(false)}
+          onApplyTemplate={handleApplyTemplate}
+        />
+      ) : null}
     </section>
   );
 }

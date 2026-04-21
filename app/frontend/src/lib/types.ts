@@ -205,10 +205,39 @@ export type WorkspaceImportResponse = ApiWorkspaceImportResponse;
 export type WorkspaceValidationResponse = ApiWorkspaceValidationResponse;
 export type ResultsState = Partial<Pick<AnalysisResponsePayload, "calculations" | "report" | "advice">>;
 export type SavedProject = ApiProjectListItem;
+export type TemplateRecord = {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  built_in: boolean;
+  payload: HydratableExperimentInput;
+  tags: string[];
+  usage_count: number;
+};
+export type TemplateDeleteResponse = {
+  id: string;
+  deleted: true;
+};
+export type AuditLogEntry = {
+  id: number;
+  ts: string;
+  action: string;
+  project_id?: string | null;
+  project_name?: string | null;
+  actor?: string | null;
+  request_id?: string | null;
+  payload_diff?: Record<string, [unknown, unknown]> | null;
+  ip_address?: string | null;
+};
+export type AuditLogResponse = {
+  entries: AuditLogEntry[];
+  total: number;
+};
 export type ProjectRecordPayload = Omit<ApiProjectRecord, "payload"> & {
   payload: HydratableExperimentInput;
 };
-export type ExportFormat = "markdown" | "html";
+export type ExportFormat = "markdown" | "html" | "pdf";
 export type FieldKind = "text" | "textarea" | "number" | "boolean";
 export type FullPayloadSectionKey = Extract<keyof FullPayload, string>;
 export type DraftFieldValue = string | number | boolean | null | GuardrailMetricDraft[];

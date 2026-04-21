@@ -1,0 +1,64 @@
+name: Feature Adoption
+category: Engagement
+description: Use this template to evaluate feature discoverability and adoption among existing users.
+tags:
+  - binary
+  - feature
+  - adoption
+payload:
+  project:
+    project_name: ""
+    domain: productivity
+    product_type: web app
+    platform: web
+    market: Global
+    project_description: Increase adoption of a newly shipped product capability.
+  hypothesis:
+    change_description: Add in-product prompts and guided entry points
+    target_audience: active weekly users
+    business_problem: new features are under-discovered
+    hypothesis_statement: Better feature discovery cues will increase adoption.
+    what_to_validate: adoption of the target feature
+    desired_result: more users trigger the feature in week one
+  setup:
+    experiment_type: ab
+    randomization_unit: user
+    traffic_split:
+      - 50
+      - 50
+    expected_daily_traffic: 15000
+    audience_share_in_test: 0.5
+    variants_count: 2
+    inclusion_criteria: active weekly users
+    exclusion_criteria: internal QA accounts
+  metrics:
+    primary_metric_name: feature_adoption_rate
+    metric_type: binary
+    baseline_value: 0.14
+    expected_uplift_pct: 12
+    mde_pct: 7
+    alpha: 0.05
+    power: 0.8
+    std_dev: null
+    secondary_metrics:
+      - retained_usage_rate
+    guardrail_metrics:
+      - name: Task completion rate
+        metric_type: binary
+        baseline_rate: 78.0
+  constraints:
+    seasonality_present: false
+    active_campaigns_present: false
+    returning_users_present: true
+    interference_risk: medium
+    technical_constraints: feature flags are account-scoped
+    legal_or_ethics_constraints: none
+    known_risks: novelty effect may fade quickly
+    deadline_pressure: low
+    long_test_possible: true
+    n_looks: 1
+    analysis_mode: frequentist
+    desired_precision: null
+    credibility: 0.95
+  additional_context:
+    llm_context: Track whether the adoption increase translates into repeat usage.

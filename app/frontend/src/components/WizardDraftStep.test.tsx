@@ -72,6 +72,7 @@ function createStepProps(currentSection: FullPayloadSectionKey, form: FullPayloa
     onNext: () => {},
     onSave: () => {},
     onStartNew: () => {},
+    onOpenTemplateGallery: () => {},
     onImportDraft: () => {},
     onExportDraft: () => {}
   };
@@ -110,6 +111,7 @@ function WizardDraftStepHarnessWithSection({
       onNext={() => {}}
       onSave={() => {}}
       onStartNew={() => {}}
+      onOpenTemplateGallery={() => {}}
       onImportDraft={() => {}}
       onExportDraft={() => {}}
     />

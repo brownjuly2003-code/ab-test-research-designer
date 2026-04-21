@@ -1,0 +1,68 @@
+name: Checkout Conversion
+category: Revenue
+description: Test checkout flow changes against purchase conversion with standard revenue guardrails.
+tags:
+  - binary
+  - revenue
+  - checkout
+payload:
+  project:
+    project_name: ""
+    domain: e-commerce
+    product_type: web app
+    platform: web
+    market: US
+    project_description: Evaluate a simplified checkout flow for new visitors.
+  hypothesis:
+    change_description: Reduce checkout from 4 steps to 2
+    target_audience: new users on web
+    business_problem: checkout abandonment is high
+    hypothesis_statement: Simplifying checkout will increase purchase conversion.
+    what_to_validate: impact on conversion
+    desired_result: statistically meaningful uplift
+  setup:
+    experiment_type: ab
+    randomization_unit: user
+    traffic_split:
+      - 50
+      - 50
+    expected_daily_traffic: 12000
+    audience_share_in_test: 0.6
+    variants_count: 2
+    inclusion_criteria: new users only
+    exclusion_criteria: internal staff
+  metrics:
+    primary_metric_name: purchase_conversion
+    metric_type: binary
+    baseline_value: 0.042
+    expected_uplift_pct: 8
+    mde_pct: 5
+    alpha: 0.05
+    power: 0.8
+    std_dev: null
+    secondary_metrics:
+      - add_to_cart_rate
+    guardrail_metrics:
+      - name: Payment error rate
+        metric_type: binary
+        baseline_rate: 2.4
+      - name: Refund value
+        metric_type: continuous
+        baseline_mean: 18.0
+        std_dev: 6.5
+  constraints:
+    seasonality_present: true
+    active_campaigns_present: false
+    returning_users_present: true
+    interference_risk: medium
+    technical_constraints: legacy event logging
+    legal_or_ethics_constraints: none
+    known_risks: tracking quality
+    deadline_pressure: medium
+    long_test_possible: true
+    n_looks: 1
+    analysis_mode: frequentist
+    desired_precision: null
+    credibility: 0.95
+  additional_context:
+    llm_context: Previous checkout tests showed mixed results and tracking must be verified.

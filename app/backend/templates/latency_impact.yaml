@@ -1,0 +1,66 @@
+name: Latency Impact
+category: Performance
+description: Assess whether latency changes affect conversion or engagement outcomes.
+tags:
+  - continuous
+  - performance
+  - latency
+payload:
+  project:
+    project_name: ""
+    domain: media
+    product_type: web app
+    platform: web
+    market: US
+    project_description: Quantify how latency reductions change user outcomes.
+  hypothesis:
+    change_description: Optimize page rendering and asset loading
+    target_audience: mobile web visitors
+    business_problem: slower pages reduce downstream engagement
+    hypothesis_statement: Lower latency will improve session depth and conversion outcomes.
+    what_to_validate: performance impact on business metrics
+    desired_result: measurable lift from faster experiences
+  setup:
+    experiment_type: ab
+    randomization_unit: session
+    traffic_split:
+      - 50
+      - 50
+    expected_daily_traffic: 30000
+    audience_share_in_test: 0.7
+    variants_count: 2
+    inclusion_criteria: mobile web traffic
+    exclusion_criteria: bots and internal traffic
+  metrics:
+    primary_metric_name: pages_per_session
+    metric_type: continuous
+    baseline_value: 3.8
+    expected_uplift_pct: 4
+    mde_pct: 3.5
+    alpha: 0.05
+    power: 0.8
+    std_dev: 1.9
+    cuped_pre_experiment_std: 1.9
+    cuped_correlation: 0.35
+    secondary_metrics:
+      - conversion_rate
+    guardrail_metrics:
+      - name: Bounce rate
+        metric_type: binary
+        baseline_rate: 46.0
+  constraints:
+    seasonality_present: true
+    active_campaigns_present: true
+    returning_users_present: true
+    interference_risk: low
+    technical_constraints: CDN rollout overlap
+    legal_or_ethics_constraints: none
+    known_risks: traffic quality varies by campaign
+    deadline_pressure: medium
+    long_test_possible: true
+    n_looks: 1
+    analysis_mode: frequentist
+    desired_precision: null
+    credibility: 0.95
+  additional_context:
+    llm_context: Monitor device mix because latency improvements may be uneven across cohorts.

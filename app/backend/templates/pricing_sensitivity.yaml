@@ -1,0 +1,66 @@
+name: Pricing Sensitivity
+category: Revenue
+description: Evaluate price or packaging changes using revenue-oriented continuous metrics.
+tags:
+  - continuous
+  - pricing
+  - monetization
+payload:
+  project:
+    project_name: ""
+    domain: saas
+    product_type: web app
+    platform: web
+    market: US
+    project_description: Validate price and package positioning changes on monetization.
+  hypothesis:
+    change_description: Reframe plan packaging and increase entry price
+    target_audience: self-serve trial users
+    business_problem: average order value is below target
+    hypothesis_statement: Revised pricing will improve average order value without hurting conversion too much.
+    what_to_validate: revenue lift
+    desired_result: higher average order value
+  setup:
+    experiment_type: ab
+    randomization_unit: account
+    traffic_split:
+      - 50
+      - 50
+    expected_daily_traffic: 2200
+    audience_share_in_test: 0.9
+    variants_count: 2
+    inclusion_criteria: self-serve billing page visitors
+    exclusion_criteria: enterprise deals
+  metrics:
+    primary_metric_name: avg_order_value
+    metric_type: continuous
+    baseline_value: 45.0
+    expected_uplift_pct: 6
+    mde_pct: 4.5
+    alpha: 0.05
+    power: 0.8
+    std_dev: 12.0
+    cuped_pre_experiment_std: 12.0
+    cuped_correlation: 0.5
+    secondary_metrics:
+      - checkout_completion_rate
+    guardrail_metrics:
+      - name: Purchase conversion
+        metric_type: binary
+        baseline_rate: 3.8
+  constraints:
+    seasonality_present: false
+    active_campaigns_present: false
+    returning_users_present: true
+    interference_risk: medium
+    technical_constraints: pricing cache invalidation
+    legal_or_ethics_constraints: none
+    known_risks: competitor promotions may skew behavior
+    deadline_pressure: high
+    long_test_possible: true
+    n_looks: 1
+    analysis_mode: frequentist
+    desired_precision: null
+    credibility: 0.95
+  additional_context:
+    llm_context: Consider segmented impact by acquisition channel and geography.

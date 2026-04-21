@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import shutil
 import sqlite3
+from typing import Any
 import uuid
 
 from pydantic import ValidationError
@@ -86,6 +87,7 @@ class ProjectRepository:
                 """
             )
             self._create_history_tables(connection)
+            self._create_template_tables(connection)
             self._migrate_db(connection)
             connection.execute(f"PRAGMA user_version = {self.schema_version}")
 
@@ -156,6 +158,31 @@ class ProjectRepository:
         )
 
     @staticmethod
+    def _create_template_tables(connection: sqlite3.Connection) -> None:
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS project_templates (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                category TEXT NOT NULL,
+                description TEXT NOT NULL,
+                built_in INTEGER NOT NULL DEFAULT 0,
+                tags_json TEXT NOT NULL,
+                payload_json TEXT NOT NULL,
+                usage_count INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_project_templates_updated
+            ON project_templates (built_in DESC, updated_at DESC, id ASC)
+            """
+        )
+
+    @staticmethod
     def _migrate_db(connection: sqlite3.Connection) -> None:
         existing_columns = {
             row["name"]
@@ -177,6 +204,7 @@ class ProjectRepository:
                 )
 
         ProjectRepository._create_history_tables(connection)
+        ProjectRepository._create_template_tables(connection)
         ProjectRepository._backfill_analysis_runs(connection)
         ProjectRepository._backfill_project_revisions(connection)
 
@@ -555,6 +583,164 @@ class ProjectRepository:
             return None
 
         return self.get_project(project_id, include_archived=True)
+
+    @staticmethod
+    def _template_row_to_record(row: sqlite3.Row) -> dict[str, Any]:
+        return {
+            "id": row["id"],
+            "name": row["name"],
+            "category": row["category"],
+            "description": row["description"],
+            "built_in": bool(row["built_in"]),
+            "tags": json.loads(row["tags_json"]),
+            "payload": json.loads(row["payload_json"]),
+            "usage_count": int(row["usage_count"]),
+        }
+
+    def upsert_template(
+        self,
+        *,
+        template_id: str,
+        name: str,
+        category: str,
+        description: str,
+        built_in: bool,
+        tags: list[str],
+        payload: dict[str, Any],
+    ) -> dict[str, Any]:
+        timestamp = datetime.now(timezone.utc).isoformat()
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO project_templates (
+                    id,
+                    name,
+                    category,
+                    description,
+                    built_in,
+                    tags_json,
+                    payload_json,
+                    usage_count,
+                    created_at,
+                    updated_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                    name = excluded.name,
+                    category = excluded.category,
+                    description = excluded.description,
+                    built_in = excluded.built_in,
+                    tags_json = excluded.tags_json,
+                    payload_json = excluded.payload_json,
+                    updated_at = excluded.updated_at
+                """,
+                (
+                    template_id,
+                    name,
+                    category,
+                    description,
+                    1 if built_in else 0,
+                    json.dumps(tags),
+                    json.dumps(payload),
+                    timestamp,
+                    timestamp,
+                ),
+            )
+            row = connection.execute(
+                """
+                SELECT id, name, category, description, built_in, tags_json, payload_json, usage_count
+                FROM project_templates
+                WHERE id = ?
+                """,
+                (template_id,),
+            ).fetchone()
+
+        return self._template_row_to_record(row)
+
+    def list_templates(self) -> list[dict[str, Any]]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT id, name, category, description, built_in, tags_json, payload_json, usage_count
+                FROM project_templates
+                ORDER BY built_in DESC, usage_count DESC, name COLLATE NOCASE ASC
+                """
+            ).fetchall()
+        return [self._template_row_to_record(row) for row in rows]
+
+    def get_template(self, template_id: str) -> dict[str, Any] | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT id, name, category, description, built_in, tags_json, payload_json, usage_count
+                FROM project_templates
+                WHERE id = ?
+                """,
+                (template_id,),
+            ).fetchone()
+        return self._template_row_to_record(row) if row is not None else None
+
+    def create_template(
+        self,
+        *,
+        name: str,
+        category: str,
+        description: str,
+        tags: list[str],
+        payload: dict[str, Any],
+    ) -> dict[str, Any]:
+        return self.upsert_template(
+            template_id=str(uuid.uuid4()),
+            name=name,
+            category=category,
+            description=description,
+            built_in=False,
+            tags=tags,
+            payload=payload,
+        )
+
+    def use_template(self, template_id: str) -> dict[str, Any] | None:
+        timestamp = datetime.now(timezone.utc).isoformat()
+        with self._connect() as connection:
+            cursor = connection.execute(
+                """
+                UPDATE project_templates
+                SET usage_count = usage_count + 1, updated_at = ?
+                WHERE id = ?
+                """,
+                (timestamp, template_id),
+            )
+            if cursor.rowcount == 0:
+                return None
+            row = connection.execute(
+                """
+                SELECT id, name, category, description, built_in, tags_json, payload_json, usage_count
+                FROM project_templates
+                WHERE id = ?
+                """,
+                (template_id,),
+            ).fetchone()
+        return self._template_row_to_record(row) if row is not None else None
+
+    def delete_template(self, template_id: str) -> dict[str, Any] | None:
+        existing = self.get_template(template_id)
+        if existing is None:
+            return None
+        if existing["built_in"]:
+            raise ApiError(
+                "Built-in templates cannot be deleted",
+                error_code="template_delete_forbidden",
+                status_code=403,
+            )
+        with self._connect() as connection:
+            connection.execute(
+                "DELETE FROM project_templates WHERE id = ?",
+                (template_id,),
+            )
+        return {
+            "id": template_id,
+            "deleted": True,
+        }
 
     def get_project_history(
         self,
