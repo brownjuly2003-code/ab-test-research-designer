@@ -468,13 +468,13 @@
 
 ### 4.3 Advanced visualizations
 
-- [ ] **4.3.1** Bayesian posterior plot (partial: Bayesian estimate cards/notes exist, but no posterior plot)
+- [x] **4.3.1** Bayesian posterior plot (landed in 87147d35)
   - Компонент: `PosteriorPlot.tsx`
   - Отображает: prior distribution, posterior distribution, credibility interval (shaded area)
   - Библиотека: Recharts (уже в зависимостях)
   - Verify: при Bayesian mode → posterior plot рендерится с корректными данными
 
-- [ ] **4.3.2** Sequential boundary chart (partial: sequential boundaries table exists, but no chart)
+- [x] **4.3.2** Sequential boundary chart (landed in 87147d35)
   - Компонент: `SequentialBoundaryChart.tsx`
   - Отображает: upper/lower O'Brien-Fleming boundaries по interim looks
   - Verify: при sequential mode → boundary chart с 2-10 looks
