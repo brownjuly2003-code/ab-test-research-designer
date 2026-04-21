@@ -3,12 +3,13 @@ import { useEffect, useState } from "react";
 import type { ExportFormat, ResultsAnalysisResponse } from "../lib/experiment";
 import { apiUrl, buildApiPayload } from "../lib/experiment";
 import { useAnalysisStore } from "../stores/analysisStore";
-import { readDraftBootstrap } from "../stores/draftStore";
+import { readDraftBootstrap, useDraftStore } from "../stores/draftStore";
 import { useProjectStore } from "../stores/projectStore";
 import Accordion from "./Accordion";
 import ResultsSkeleton from "./ResultsSkeleton";
 import styles from "./ResultsPanel.module.css";
 import AiAdviceSection from "./results/AiAdviceSection";
+import BayesianSection from "./results/BayesianSection";
 import ComparisonSection from "./results/ComparisonSection";
 import ExperimentDesignSection from "./results/ExperimentDesignSection";
 import MetricsPlanSection from "./results/MetricsPlanSection";
@@ -28,8 +29,16 @@ type ResultsPanelProps = { onExportReport?: (format: ExportFormat) => void; read
 export default function ResultsPanel(_props: ResultsPanelProps) {
   const analysis = useAnalysisStore();
   const project = useProjectStore();
+  const analysisMode = useDraftStore((state) => state.draft.constraints.analysis_mode ?? "frequentist");
   const displayedAnalysis = project.selectedHistoryRun?.analysis ?? analysis.analysisResult;
   const warnings = displayedAnalysis?.calculations.warnings ?? [];
+  const showBayesianPosterior = Boolean(
+    project.selectedHistoryRun
+      ? displayedAnalysis?.calculations.bayesian_sample_size_per_variant != null ||
+        displayedAnalysis?.calculations.bayesian_credibility != null ||
+        displayedAnalysis?.calculations.bayesian_note
+      : analysisMode === "bayesian"
+  );
   const warningBadgeColor = warnings.some((item) => item.severity === "high") ? "danger" : warnings.some((item) => item.severity === "medium") ? "warn" : "accent";
   const [sensitivityData, setSensitivityData] = useState<SensitivityResponse | null>(null);
   const [sensitivityLoading, setSensitivityLoading] = useState(false);
@@ -132,8 +141,9 @@ export default function ResultsPanel(_props: ResultsPanelProps) {
         <Accordion title="Comparison" badge={project.projectComparison ? "Loaded" : "Sidebar"} defaultOpen={Boolean(project.projectComparison)}><ComparisonSection /></Accordion>
         <Accordion title="Sensitivity" badge={`${displayedAnalysis.report.experiment_design?.variants.length ?? 0} variants`} defaultOpen><SensitivitySection sensitivityData={sensitivityData} sensitivityLoading={sensitivityLoading} sensitivityUnavailableMessage={sensitivityError || "Sensitivity analysis unavailable for this configuration."} standaloneExporting={standaloneExporting} standaloneExportError={standaloneExportError} canExportPdf={canExportPdf} onExportReport={handleExportReport} onExportPdf={() => void handleExportPdf()} onExportProjectData={(format) => void handleExportProjectData(format)} onExportStandalone={() => void handleExportStandalone()} /></Accordion>
         <Accordion title="Power curve" badge={sensitivityData?.cells?.length ? `${sensitivityData.cells.length} cells` : "Pending"}><PowerCurveSection sensitivityData={sensitivityData} sensitivityLoading={sensitivityLoading} sensitivityUnavailableMessage={sensitivityError || "Sensitivity analysis unavailable for this configuration."} /></Accordion>
-        <Accordion title="Observed results" badge={resultsAnalysis ? (resultsAnalysis.is_significant ? "Significant" : "Review") : "Post-test"} badgeColor={resultsAnalysis ? (resultsAnalysis.is_significant ? "accent" : "warn") : "accent"} defaultOpen><ObservedResultsSection onResultsAnalysisChange={setResultsAnalysis} /></Accordion>
         <Accordion title="Sequential design" badge={`${displayedAnalysis.calculations.sequential_boundaries?.length ?? 0} looks`}><SequentialDesignSection /></Accordion>
+        {showBayesianPosterior ? <Accordion title="Bayesian posterior" badge={displayedAnalysis.calculations.bayesian_credibility != null ? `${Math.round(displayedAnalysis.calculations.bayesian_credibility * 100)}% CI` : "Planning"}><BayesianSection /></Accordion> : null}
+        <Accordion title="Observed results" badge={resultsAnalysis ? (resultsAnalysis.is_significant ? "Significant" : "Review") : "Post-test"} badgeColor={resultsAnalysis ? (resultsAnalysis.is_significant ? "accent" : "warn") : "accent"} defaultOpen><ObservedResultsSection onResultsAnalysisChange={setResultsAnalysis} /></Accordion>
         <Accordion title="Warnings & Risks" badge={`${warnings.length} warnings`} badgeColor={warningBadgeColor} defaultOpen={warnings.length > 0}><WarningsSection /></Accordion>
         <Accordion title="Experiment design" badge={`${displayedAnalysis.report.experiment_design?.variants.length ?? 0} variants`}><ExperimentDesignSection /></Accordion>
         <Accordion title="Metrics plan" badge={`${(displayedAnalysis.report.metrics_plan?.primary?.length ?? 0) + (displayedAnalysis.report.metrics_plan?.secondary?.length ?? 0) + (displayedAnalysis.report.metrics_plan?.guardrail?.length ?? 0) + (displayedAnalysis.report.metrics_plan?.diagnostic?.length ?? 0)} metrics`}><MetricsPlanSection /></Accordion>
