@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [1.1.0] - 2026-04-21
 
 ### Added
 
@@ -12,6 +12,7 @@
 ### Changed
 
 - `resolve_language` now accepts any registered primary language tag and returns it directly instead of an explicit `en`/`ru` ladder
+- bumped backend `app_version` default and frontend `package.json` to `1.1.0`
 
 ## [1.0.0] - 2026-04-22
 
