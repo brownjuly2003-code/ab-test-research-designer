@@ -4,6 +4,7 @@ setlocal
 set "SKIP_SMOKE=0"
 set "SKIP_BUILD=0"
 set "WITH_E2E=0"
+set "WITH_LIGHTHOUSE=0"
 set "WITH_DOCKER=0"
 set "WITH_DOCKER_PRESERVE=0"
 
@@ -12,6 +13,7 @@ if "%~1"=="" goto args_done
 if /I "%~1"=="--skip-smoke" set "SKIP_SMOKE=1"
 if /I "%~1"=="--skip-build" set "SKIP_BUILD=1"
 if /I "%~1"=="--with-e2e" set "WITH_E2E=1"
+if /I "%~1"=="--with-lighthouse" set "WITH_LIGHTHOUSE=1"
 if /I "%~1"=="--with-docker" set "WITH_DOCKER=1"
 if /I "%~1"=="--with-docker-preserve" set "WITH_DOCKER_PRESERVE=1"
 shift
@@ -74,6 +76,12 @@ if "%SKIP_BUILD%"=="0" (
 if "%WITH_E2E%"=="1" (
   echo [verify] playwright e2e
   python "%ROOT_DIR%scripts\run_frontend_e2e.py" --skip-build
+  if errorlevel 1 exit /b %errorlevel%
+)
+
+if "%WITH_LIGHTHOUSE%"=="1" (
+  echo [verify] lighthouse ci
+  python "%ROOT_DIR%scripts\run_lighthouse_ci.py"
   if errorlevel 1 exit /b %errorlevel%
 )
 

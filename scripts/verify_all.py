@@ -43,6 +43,11 @@ def main() -> int:
     parser.add_argument("--skip-smoke", action="store_true", help="Skip the Playwright smoke flow.")
     parser.add_argument("--skip-build", action="store_true", help="Skip the frontend production build.")
     parser.add_argument("--with-e2e", action="store_true", help="Run the frontend Playwright E2E flow.")
+    parser.add_argument(
+        "--with-lighthouse",
+        action="store_true",
+        help="Run Lighthouse CI against the backend-served production frontend.",
+    )
     docker_group = parser.add_mutually_exclusive_group()
     docker_group.add_argument("--with-docker", action="store_true", help="Run the secure docker compose verification flow.")
     docker_group.add_argument(
@@ -60,6 +65,8 @@ def main() -> int:
             delegated_command.append("--skip-build")
         if args.with_e2e:
             delegated_command.append("--with-e2e")
+        if args.with_lighthouse:
+            delegated_command.append("--with-lighthouse")
         if args.with_docker:
             delegated_command.append("--with-docker")
         if args.with_docker_preserve:
@@ -111,6 +118,9 @@ def main() -> int:
             [sys.executable, "scripts/run_frontend_e2e.py", "--skip-build"],
             ROOT_DIR,
         )
+
+    if args.with_lighthouse:
+        run_step("lighthouse ci", [sys.executable, "scripts/run_lighthouse_ci.py"], ROOT_DIR)
 
     if not args.skip_smoke:
         smoke_command = [sys.executable, "scripts/run_local_smoke.py"]

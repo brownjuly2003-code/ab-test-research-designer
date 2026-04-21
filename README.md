@@ -177,6 +177,7 @@ Useful variants:
 - `cmd /c scripts\verify_all.cmd --skip-smoke`
 - `cmd /c scripts\verify_all.cmd --skip-build`
 - `cmd /c scripts\verify_all.cmd --with-e2e`
+- `cmd /c scripts\verify_all.cmd --with-e2e --with-lighthouse`
 - `cmd /c scripts\verify_all.cmd --with-docker`
 - `cmd /c scripts\verify_all.cmd --with-docker-preserve`
 
@@ -212,6 +213,28 @@ npm run test:e2e
 ```
 
 This command builds the frontend if needed and runs Playwright against a temporary backend-served build on a free local port.
+
+## Lighthouse
+
+Build the frontend, start the backend-served dist on port `4174`, and run Lighthouse CI:
+
+```bash
+npm --prefix app/frontend run build
+python scripts/run_lighthouse_ci.py
+```
+
+To include Lighthouse in the full local verification flow:
+
+```bash
+cmd /c scripts\verify_all.cmd --with-e2e --with-lighthouse
+```
+
+Current Lighthouse thresholds stay strict for accessibility and advisory for other categories:
+
+- performance `>= 0.85` (`warn`)
+- accessibility `>= 0.90` (`error`)
+- best-practices `>= 0.90` (`warn`)
+- seo `>= 0.80` (`warn`)
 
 ## Documentation
 
