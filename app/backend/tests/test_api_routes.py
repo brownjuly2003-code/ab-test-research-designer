@@ -574,8 +574,8 @@ def test_diagnostics_endpoint_returns_runtime_summary(monkeypatch) -> None:
     assert payload["storage"]["db_parent_path"] == str(db_path.parent)
     assert payload["storage"]["db_size_bytes"] >= 0
     assert payload["storage"]["disk_free_bytes"] > 0
-    assert payload["storage"]["schema_version"] == 3
-    assert payload["storage"]["sqlite_user_version"] == 3
+    assert payload["storage"]["schema_version"] == 5
+    assert payload["storage"]["sqlite_user_version"] == 5
     assert payload["storage"]["journal_mode"] == "WAL"
     assert payload["storage"]["synchronous"] == "NORMAL"
     assert payload["storage"]["write_probe_ok"] is True
@@ -1066,6 +1066,157 @@ def test_projects_list_endpoint_sorts_by_duration_days(monkeypatch) -> None:
     assert [project["project_name"] for project in projects[:2]] == ["Fast checkout", "Slow checkout"]
     assert projects[0]["duration_days"] == 6
     assert projects[1]["duration_days"] == 18
+    get_settings.cache_clear()
+
+
+def test_audit_log_tracks_create_update_archive_delete_and_sorts_newest_first(monkeypatch) -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+
+    monkeypatch.setenv("AB_DB_PATH", str(db_path))
+    monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")
+    get_settings.cache_clear()
+
+    updated_payload = _full_payload()
+    updated_payload["project"]["project_name"] = "Checkout redesign v2"
+
+    with TestClient(create_app()) as client:
+        created = client.post("/api/v1/projects", json=_full_payload())
+        assert created.status_code == 200
+        project_id = created.json()["id"]
+
+        updated = client.put(f"/api/v1/projects/{project_id}", json=updated_payload)
+        assert updated.status_code == 200
+
+        archived = client.post(f"/api/v1/projects/{project_id}/archive")
+        assert archived.status_code == 200
+
+        deleted = client.delete(f"/api/v1/projects/{project_id}")
+        assert deleted.status_code == 200
+
+        response = client.get("/api/v1/audit")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["total"] == 4
+    assert [entry["action"] for entry in payload["entries"]] == [
+        "project.delete",
+        "project.archive",
+        "project.update",
+        "project.create",
+    ]
+    get_settings.cache_clear()
+
+
+def test_audit_log_records_payload_diff_for_project_updates(monkeypatch) -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+
+    monkeypatch.setenv("AB_DB_PATH", str(db_path))
+    monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")
+    get_settings.cache_clear()
+
+    updated_payload = _full_payload()
+    updated_payload["hypothesis"]["hypothesis_statement"] = "A shorter checkout will reduce friction."
+
+    with TestClient(create_app()) as client:
+        created = client.post("/api/v1/projects", json=_full_payload())
+        assert created.status_code == 200
+        project_id = created.json()["id"]
+
+        updated = client.put(f"/api/v1/projects/{project_id}", json=updated_payload)
+        assert updated.status_code == 200
+
+        response = client.get("/api/v1/audit", params={"action": "project.update"})
+
+    assert response.status_code == 200
+    entries = response.json()["entries"]
+    assert len(entries) == 1
+    assert entries[0]["action"] == "project.update"
+    assert entries[0]["payload_diff"]["hypothesis.hypothesis_statement"] == [
+        "If we simplify checkout, conversion will increase.",
+        "A shorter checkout will reduce friction.",
+    ]
+    get_settings.cache_clear()
+
+
+def test_audit_log_filters_by_project_id(monkeypatch) -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+
+    monkeypatch.setenv("AB_DB_PATH", str(db_path))
+    monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")
+    get_settings.cache_clear()
+
+    second_payload = _full_payload()
+    second_payload["project"]["project_name"] = "Pricing test"
+
+    with TestClient(create_app()) as client:
+        first = client.post("/api/v1/projects", json=_full_payload())
+        second = client.post("/api/v1/projects", json=second_payload)
+        assert first.status_code == 200
+        assert second.status_code == 200
+
+        response = client.get("/api/v1/audit", params={"project_id": second.json()["id"]})
+
+    assert response.status_code == 200
+    entries = response.json()["entries"]
+    assert len(entries) == 1
+    assert entries[0]["project_id"] == second.json()["id"]
+    assert entries[0]["project_name"] == "Pricing test"
+    get_settings.cache_clear()
+
+
+def test_audit_log_export_returns_csv(monkeypatch) -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+
+    monkeypatch.setenv("AB_DB_PATH", str(db_path))
+    monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")
+    get_settings.cache_clear()
+
+    with TestClient(create_app()) as client:
+        created = client.post("/api/v1/projects", json=_full_payload())
+        assert created.status_code == 200
+
+        response = client.get("/api/v1/audit/export")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/csv")
+    assert "action,project_id,project_name,actor" in response.text
+    assert "project.create" in response.text
+    get_settings.cache_clear()
+
+
+def test_audit_log_requires_auth_and_export_is_forbidden_for_readonly_tokens(monkeypatch) -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+
+    monkeypatch.setenv("AB_DB_PATH", str(db_path))
+    monkeypatch.setenv("AB_API_TOKEN", "super-secret-token")
+    monkeypatch.setenv("AB_READONLY_API_TOKEN", "readonly-token")
+    monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")
+    get_settings.cache_clear()
+
+    with TestClient(create_app()) as client:
+        unauthorized = client.get("/api/v1/audit")
+        readonly_list = client.get(
+            "/api/v1/audit",
+            headers={"Authorization": "Bearer readonly-token"},
+        )
+        readonly_export = client.get(
+            "/api/v1/audit/export",
+            headers={"Authorization": "Bearer readonly-token"},
+        )
+
+    assert unauthorized.status_code == 401
+    assert readonly_list.status_code == 200
+    assert readonly_export.status_code == 403
     get_settings.cache_clear()
 
 

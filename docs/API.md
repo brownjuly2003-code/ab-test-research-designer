@@ -190,6 +190,14 @@ curl -X POST http://127.0.0.1:8008/api/v1/export/markdown ^
 
 ## Other
 
+### `GET /api/v1/audit`
+
+Get Audit Log
+
+### `GET /api/v1/audit/export`
+
+Export Audit Log
+
 ### `POST /api/v1/export/html-standalone`
 
 Export Html Standalone

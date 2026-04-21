@@ -1,6 +1,8 @@
+import csv
 from datetime import datetime, timezone
 import hmac
 import hashlib
+from io import StringIO
 import json
 from pathlib import Path
 import shutil
@@ -15,7 +17,7 @@ from app.backend.app.schemas.api import ExperimentInput
 
 
 class ProjectRepository:
-    schema_version = 3
+    schema_version = 5
     payload_schema_version = 1
     workspace_schema_version = 3
     project_select_columns = """
@@ -87,6 +89,7 @@ class ProjectRepository:
                 """
             )
             self._create_history_tables(connection)
+            self._create_audit_tables(connection)
             self._create_template_tables(connection)
             self._migrate_db(connection)
             connection.execute(f"PRAGMA user_version = {self.schema_version}")
@@ -158,6 +161,36 @@ class ProjectRepository:
         )
 
     @staticmethod
+    def _create_audit_tables(connection: sqlite3.Connection) -> None:
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS audit_log (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ts TEXT NOT NULL,
+                action TEXT NOT NULL,
+                project_id TEXT,
+                project_name TEXT,
+                actor TEXT,
+                request_id TEXT,
+                payload_diff TEXT,
+                ip_address TEXT
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_audit_log_created
+            ON audit_log (ts DESC, id DESC)
+            """
+        )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_audit_log_project
+            ON audit_log (project_id, ts DESC, id DESC)
+            """
+        )
+
+    @staticmethod
     def _create_template_tables(connection: sqlite3.Connection) -> None:
         connection.execute(
             """
@@ -204,9 +237,33 @@ class ProjectRepository:
                 )
 
         ProjectRepository._create_history_tables(connection)
+        ProjectRepository._create_audit_tables(connection)
         ProjectRepository._create_template_tables(connection)
         ProjectRepository._backfill_analysis_runs(connection)
         ProjectRepository._backfill_project_revisions(connection)
+
+    @staticmethod
+    def _flatten_payload(value: Any, *, prefix: str = "") -> dict[str, Any]:
+        if isinstance(value, dict):
+            flattened: dict[str, Any] = {}
+            for key in sorted(value.keys()):
+                child_prefix = f"{prefix}.{key}" if prefix else str(key)
+                flattened.update(ProjectRepository._flatten_payload(value[key], prefix=child_prefix))
+            return flattened
+        if isinstance(value, list):
+            return {prefix: value}
+        return {prefix: value}
+
+    @staticmethod
+    def build_payload_diff(previous_payload: dict[str, Any], next_payload: dict[str, Any]) -> dict[str, list[Any]]:
+        previous = ProjectRepository._flatten_payload(previous_payload)
+        current = ProjectRepository._flatten_payload(next_payload)
+        changed_keys = sorted(set(previous.keys()) | set(current.keys()))
+        diff: dict[str, list[Any]] = {}
+        for key in changed_keys:
+            if previous.get(key) != current.get(key):
+                diff[key] = [previous.get(key), current.get(key)]
+        return diff
 
     @staticmethod
     def _backfill_analysis_runs(connection: sqlite3.Connection) -> None:
@@ -871,6 +928,116 @@ class ProjectRepository:
             "id": template_id,
             "deleted": True,
         }
+
+    def log_audit_entry(
+        self,
+        *,
+        action: str,
+        actor: str,
+        request_id: str | None,
+        ip_address: str | None,
+        project_id: str | None = None,
+        project_name: str | None = None,
+        payload_diff: dict[str, list[Any]] | None = None,
+        ts: str | None = None,
+    ) -> None:
+        timestamp = ts or datetime.now(timezone.utc).isoformat()
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO audit_log (
+                    ts,
+                    action,
+                    project_id,
+                    project_name,
+                    actor,
+                    request_id,
+                    payload_diff,
+                    ip_address
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    timestamp,
+                    action,
+                    project_id,
+                    project_name,
+                    actor,
+                    request_id,
+                    json.dumps(payload_diff) if payload_diff else None,
+                    ip_address,
+                ),
+            )
+
+    def list_audit_entries(
+        self,
+        *,
+        project_id: str | None = None,
+        action: str | None = None,
+        limit: int = 500,
+    ) -> dict[str, Any]:
+        normalized_limit = max(1, min(int(limit), 500))
+        where_clauses: list[str] = []
+        params: list[Any] = []
+        if project_id:
+            where_clauses.append("project_id = ?")
+            params.append(project_id)
+        if action:
+            where_clauses.append("action = ?")
+            params.append(action)
+        where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
+
+        with self._connect() as connection:
+            total = int(
+                connection.execute(
+                    f"SELECT COUNT(*) FROM audit_log {where_sql}",
+                    params,
+                ).fetchone()[0]
+            )
+            rows = connection.execute(
+                f"""
+                SELECT id, ts, action, project_id, project_name, actor, request_id, payload_diff, ip_address
+                FROM audit_log
+                {where_sql}
+                ORDER BY ts DESC, id DESC
+                LIMIT ?
+                """,
+                [*params, normalized_limit],
+            ).fetchall()
+
+        entries = []
+        for row in rows:
+            entry = dict(row)
+            payload_diff_json = entry.get("payload_diff")
+            entry["payload_diff"] = json.loads(payload_diff_json) if payload_diff_json else None
+            entries.append(entry)
+        return {
+            "entries": entries,
+            "total": total,
+        }
+
+    def export_audit_entries_csv(
+        self,
+        *,
+        project_id: str | None = None,
+        action: str | None = None,
+    ) -> str:
+        audit_log = self.list_audit_entries(project_id=project_id, action=action, limit=500)
+        buffer = StringIO()
+        writer = csv.writer(buffer, lineterminator="\n")
+        writer.writerow(["ts", "action", "project_id", "project_name", "actor", "request_id", "payload_diff", "ip_address"])
+        for entry in audit_log["entries"]:
+            writer.writerow([
+                entry["ts"],
+                entry["action"],
+                entry.get("project_id") or "",
+                entry.get("project_name") or "",
+                entry.get("actor") or "",
+                entry.get("request_id") or "",
+                json.dumps(entry["payload_diff"], sort_keys=True) if entry.get("payload_diff") else "",
+                entry.get("ip_address") or "",
+            ])
+        return buffer.getvalue()
 
     def get_project_history(
         self,

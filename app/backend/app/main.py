@@ -16,12 +16,13 @@ from app.backend.app.http_runtime import (
 from app.backend.app.http_utils import SlidingWindowRateLimiter, get_auth_mode
 from app.backend.app.logging_utils import configure_logging, log_event
 from app.backend.app.repository import ProjectRepository
+from app.backend.app.routes.audit import create_audit_router
 from app.backend.app.routes import analysis as analysis_routes
 from app.backend.app.routes.export import create_export_router
 from app.backend.app.routes.projects import create_projects_router
 from app.backend.app.routes.system import create_system_router
-from app.backend.app.routes.workspace import create_workspace_router
 from app.backend.app.routes.templates import create_templates_router
+from app.backend.app.routes.workspace import create_workspace_router
 from app.backend.app.services.design_service import build_experiment_report
 
 logger = logging.getLogger(__name__)
@@ -104,7 +105,25 @@ def create_app() -> FastAPI:
         )
     )
     app.include_router(
+        create_audit_router(
+            settings,
+            repository,
+            request_rate_limiter,
+            require_auth,
+            require_write_auth,
+        )
+    )
+    app.include_router(
         create_projects_router(
+            settings,
+            repository,
+            request_rate_limiter,
+            require_auth,
+            require_write_auth,
+        )
+    )
+    app.include_router(
+        create_templates_router(
             settings,
             repository,
             request_rate_limiter,
@@ -122,15 +141,6 @@ def create_app() -> FastAPI:
         )
     )
     app.include_router(create_export_router(settings, repository, request_rate_limiter, require_auth))
-    app.include_router(
-        create_templates_router(
-            settings,
-            repository,
-            request_rate_limiter,
-            require_auth,
-            require_write_auth,
-        )
-    )
     app.include_router(create_system_router(settings, repository, runtime_counters, started_at))
     register_frontend_routes(app, settings)
     return app

@@ -49,6 +49,23 @@ export type AnalysisRunSummary = {
   advice_available?: boolean;
 };
 
+export type AuditLogEntry = {
+  id: number;
+  ts: string;
+  action: string;
+  project_id?: string | null;
+  project_name?: string | null;
+  actor?: string | null;
+  request_id?: string | null;
+  payload_diff?: { [key: string]: unknown[]; } | null;
+  ip_address?: string | null;
+};
+
+export type AuditLogResponse = {
+  entries: AuditLogEntry[];
+  total?: number;
+};
+
 export type CalculationRequest = {
   metric_type: "binary" | "continuous";
   baseline_value: number;

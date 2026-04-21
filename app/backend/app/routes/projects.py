@@ -1,7 +1,7 @@
 import re
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 
 from app.backend.app.schemas.api import (
     AnalysisResponse,
@@ -31,6 +31,19 @@ def _slugify_filename(value: str) -> str:
     sanitized = re.sub(r"[^a-z0-9]+", "-", value.strip().lower())
     cleaned = sanitized.strip("-")
     return cleaned or "ab-test-report"
+
+
+def _resolve_audit_actor(request: Request) -> str:
+    auth_scope = getattr(request.state, "auth_scope", None)
+    if auth_scope == "write":
+        return "api_key:rw"
+    if auth_scope == "readonly":
+        return "api_key:ro"
+    return "anonymous"
+
+
+def _request_ip(request: Request) -> str | None:
+    return request.client.host if request.client else None
 
 
 def create_projects_router(settings, repository, rate_limiter, require_auth, require_write_auth) -> APIRouter:
@@ -69,8 +82,16 @@ def create_projects_router(settings, repository, rate_limiter, require_auth, req
         response_model=ProjectRecord,
         dependencies=[Depends(require_write_auth)],
     )
-    def create_project(payload: ExperimentInput) -> ProjectRecord:
+    def create_project(request: Request, payload: ExperimentInput) -> ProjectRecord:
         project = repository.create_project(payload.model_dump())
+        repository.log_audit_entry(
+            action="project.create",
+            project_id=project["id"],
+            project_name=project["project_name"],
+            actor=_resolve_audit_actor(request),
+            request_id=getattr(request.state, "request_id", None),
+            ip_address=_request_ip(request),
+        )
         return ProjectRecord.model_validate(project)
 
     @router.get(
@@ -194,10 +215,23 @@ def create_projects_router(settings, repository, rate_limiter, require_auth, req
         response_model=ProjectRecord,
         dependencies=[Depends(require_write_auth)],
     )
-    def update_project(project_id: str, payload: ExperimentInput) -> ProjectRecord:
+    def update_project(request: Request, project_id: str, payload: ExperimentInput) -> ProjectRecord:
+        previous = repository.get_project(project_id, include_archived=True)
         project = repository.update_project(project_id, payload.model_dump())
         if project is None:
             raise HTTPException(status_code=404, detail="Project not found")
+        repository.log_audit_entry(
+            action="project.update",
+            project_id=project["id"],
+            project_name=project["project_name"],
+            actor=_resolve_audit_actor(request),
+            request_id=getattr(request.state, "request_id", None),
+            ip_address=_request_ip(request),
+            payload_diff=repository.build_payload_diff(
+                previous["payload"] if previous else {},
+                payload.model_dump(),
+            ),
+        )
         return ProjectRecord.model_validate(project)
 
     @router.get(
@@ -265,10 +299,19 @@ def create_projects_router(settings, repository, rate_limiter, require_auth, req
         response_model=ProjectArchiveResponse,
         dependencies=[Depends(require_write_auth)],
     )
-    def archive_project(project_id: str) -> ProjectArchiveResponse:
+    def archive_project(request: Request, project_id: str) -> ProjectArchiveResponse:
+        project = repository.get_project(project_id, include_archived=True)
         archived = repository.archive_project(project_id)
         if not archived:
             raise HTTPException(status_code=404, detail="Project not found")
+        repository.log_audit_entry(
+            action="project.archive",
+            project_id=project_id,
+            project_name=project["project_name"] if project else None,
+            actor=_resolve_audit_actor(request),
+            request_id=getattr(request.state, "request_id", None),
+            ip_address=_request_ip(request),
+        )
         return ProjectArchiveResponse.model_validate(archived)
 
     @router.delete(
@@ -276,10 +319,19 @@ def create_projects_router(settings, repository, rate_limiter, require_auth, req
         response_model=ProjectDeleteResponse,
         dependencies=[Depends(require_write_auth)],
     )
-    def delete_project(project_id: str) -> ProjectDeleteResponse:
+    def delete_project(request: Request, project_id: str) -> ProjectDeleteResponse:
+        project = repository.get_project(project_id, include_archived=True)
         deleted = repository.delete_project(project_id)
         if not deleted:
             raise HTTPException(status_code=404, detail="Project not found")
+        repository.log_audit_entry(
+            action="project.delete",
+            project_id=project_id,
+            project_name=project["project_name"] if project else None,
+            actor=_resolve_audit_actor(request),
+            request_id=getattr(request.state, "request_id", None),
+            ip_address=_request_ip(request),
+        )
         return ProjectDeleteResponse.model_validate(deleted)
 
     @router.post(
@@ -287,10 +339,18 @@ def create_projects_router(settings, repository, rate_limiter, require_auth, req
         response_model=ProjectRecord,
         dependencies=[Depends(require_write_auth)],
     )
-    def restore_project(project_id: str) -> ProjectRecord:
+    def restore_project(request: Request, project_id: str) -> ProjectRecord:
         project = repository.restore_project(project_id)
         if project is None:
             raise HTTPException(status_code=404, detail="Project not found")
+        repository.log_audit_entry(
+            action="project.restore",
+            project_id=project["id"],
+            project_name=project["project_name"],
+            actor=_resolve_audit_actor(request),
+            request_id=getattr(request.state, "request_id", None),
+            ip_address=_request_ip(request),
+        )
         return ProjectRecord.model_validate(project)
 
     return router
