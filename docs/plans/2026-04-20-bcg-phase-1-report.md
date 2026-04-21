@@ -43,10 +43,7 @@
   `dist/assets/index-X-a8Nj_y.css` 34319 B
 
 ## Известные проблемы / отложенное
-- Блокирующих проблем для завершения Phase 1 не осталось.
-- Автоматический local smoke проверяет обязательные export-path для Markdown и HTML. Standalone full report не входит в обязательный checklist этой задачи.
+- Resolved on 2026-04-21; see docs\plans\2026-04-21-phase-2-report.md.
 
 ## Готовность к Phase 2
-Да.
-
-Основание: полный verify-pipeline проходит, generated artifacts синхронизированы, browser smoke зелёный, app-level UI tests покрывают save/theme/reload/compare/archive/restore/delete.
+Да. Phase 2-5 landed; v1.0.0 released on 2026-04-22.

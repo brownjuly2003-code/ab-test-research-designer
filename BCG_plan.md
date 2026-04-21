@@ -26,20 +26,20 @@
 
 Перед любым рефакторингом — зафиксировать текущее поведение тестами.
 
-- [ ] **1.1.1** Тесты для `useAnalysis` (179 строк, 0 тестов) → `useAnalysis.test.tsx`
+- [x] **1.1.1** Тесты для `useAnalysis` (179 строк, 0 тестов) → `useAnalysis.test.tsx` (replaced by `analysisStore.test.ts`; landed in 8413328e)
   - Покрыть: `runAnalysis` happy path, `clearAnalysis`, `invalidateResults`, `validateDraft` с ошибками, `showStatus`/`showError` toggle
   - Verify: `npx vitest run src/hooks/useAnalysis.test.tsx` — 5+ тестов, все зелёные
 
-- [ ] **1.1.2** Тесты для `useProjectManager` (850 строк, 0 тестов) → `useProjectManager.test.tsx`
+- [x] **1.1.2** Тесты для `useProjectManager` (850 строк, 0 тестов) → `useProjectManager.test.tsx` (replaced by `projectStore.test.ts`; landed in 8413328e)
   - Покрыть: `refreshBackendState`, `saveProject` (new + update), `loadProject`, `archiveProject`/`restoreProject`, `markDraftChanged`/`hasUnsavedChanges`, `persistAnalysisSnapshot`
   - Mock: все функции из `lib/api.ts` (уже протестированы отдельно в `api.test.ts`)
   - Verify: `npx vitest run src/hooks/useProjectManager.test.tsx` — 8+ тестов
 
-- [ ] **1.1.3** Тесты для `useDraftPersistence` (163 строки, 0 тестов) → `useDraftPersistence.test.tsx`
+- [x] **1.1.3** Тесты для `useDraftPersistence` (163 строки, 0 тестов) → `useDraftPersistence.test.tsx` (replaced by `draftStore.test.ts`; landed in 8413328e)
   - Покрыть: `readDraftBootstrap` (localStorage пустой / с данными / corrupted), `replaceDraft`, `resetDraft`, `parseImportedDraftText` (valid / invalid JSON), `draftStorageWarning` при quota exceeded
   - Verify: `npx vitest run src/hooks/useDraftPersistence.test.tsx` — 6+ тестов
 
-- [ ] **1.1.4** Snapshot-тесты для `WizardPanel` и `WizardReviewStep`
+- [x] **1.1.4** Snapshot-тесты для `WizardPanel` и `WizardReviewStep` (landed in 8413328e)
   - Рендер с типовыми пропсами, snapshot для регрессии
   - Verify: `npx vitest run` — все существующие + новые тесты зелёные
 
@@ -47,34 +47,34 @@
 
 Устранение God Component паттерна. `App.tsx` (478 строк) → тонкий shell.
 
-- [ ] **1.2.1** Установить Zustand: `npm i zustand`
+- [x] **1.2.1** Установить Zustand: `npm i zustand` (landed in 8413328e)
   - Verify: `package.json` содержит `"zustand"`, `npm ls zustand` без ошибок
 
-- [ ] **1.2.2** Создать `src/stores/themeStore.ts`
+- [x] **1.2.2** Создать `src/stores/themeStore.ts` (landed in 8413328e)
   - Перенести: `theme` state, `setTheme`, localStorage sync (строки 44-47, 72-85 в `App.tsx`)
   - Интерфейс: `useThemeStore()` → `{ theme, setTheme }`
   - Verify: theme toggle работает, localStorage пишется, dark mode применяется
 
-- [ ] **1.2.3** Создать `src/stores/wizardStore.ts`
+- [x] **1.2.3** Создать `src/stores/wizardStore.ts` (landed in 8413328e)
   - Перенести: `step`, `showOnboarding`, `importingDraft`, `openWizard()` (строки 48-50, 97-100)
   - Интерфейс: `useWizardStore()` → `{ step, setStep, showOnboarding, setShowOnboarding, importingDraft, setImportingDraft, openWizard }`
   - Verify: wizard navigation (Next/Back/Step click) работает, onboarding показывается для новых пользователей
 
-- [ ] **1.2.4** Создать `src/stores/analysisStore.ts`
+- [x] **1.2.4** Создать `src/stores/analysisStore.ts` (landed in 8413328e)
   - Перенести всю логику из `useAnalysis.ts` (179 строк): `results`, `isAnalyzing`, `analysisError`, `statusMessage`, `validationErrors`
   - Перенести: `runAnalysis`, `clearAnalysis`, `invalidateResults`, `showStatus`, `showError`, `clearFeedback`, `validateDraft`, `ensureValidForm`, `linkResultToProject`, `getPersistableAnalysis`
   - Verify: `npx vitest run` — тесты 1.1.1 проходят на store вместо hook
 
-- [ ] **1.2.5** Создать `src/stores/projectStore.ts`
+- [x] **1.2.5** Создать `src/stores/projectStore.ts` (landed in 8413328e)
   - Перенести всю логику из `useProjectManager.ts` (850 строк): проекты, health, diagnostics, history, revisions, comparison, API token
   - Интерфейс: `useProjectStore()` → все поля и методы, которые сейчас в `projectManager`
   - Verify: `npx vitest run` — тесты 1.1.2 проходят на store
 
-- [ ] **1.2.6** Создать `src/stores/draftStore.ts`
+- [x] **1.2.6** Создать `src/stores/draftStore.ts` (landed in 8413328e)
   - Перенести логику из `useDraftPersistence.ts` (163 строки)
   - Verify: `npx vitest run` — тесты 1.1.3 проходят на store
 
-- [ ] **1.2.7** Рефакторинг `App.tsx`: заменить hooks на stores
+- [x] **1.2.7** Рефакторинг `App.tsx`: заменить hooks на stores (landed in 8413328e)
   - Удалить: `useState` для theme/step/onboarding/importingDraft
   - Удалить: `useAnalysis()`, `useProjectManager()`, `useDraftPersistence()`
   - Заменить на: `useThemeStore()`, `useWizardStore()`, `useAnalysisStore()`, `useProjectStore()`, `useDraftStore()`
@@ -82,7 +82,7 @@
   - **Целевой размер App.tsx:** <120 строк (layout + роутинг + keyboard shortcuts)
   - Verify: `npx vitest run` — все тесты зелёные, ручная проверка: новый проект → заполнить → Run analysis → Save → Load → Archive → Restore
 
-- [ ] **1.2.8** Упростить `WizardPanel.tsx` и `SidebarPanel.tsx`
+- [x] **1.2.8** Упростить `WizardPanel.tsx` и `SidebarPanel.tsx` (landed in 8413328e)
   - Убрать prop drilling — компоненты читают из stores напрямую
   - `WizardPanel`: убрать ~30 входных пропсов, оставить только UI-специфичные
   - `SidebarPanel` (994 строки): убрать ~50 входных пропсов
@@ -90,96 +90,96 @@
 
 ### 1.3 Декомпозиция ResultsPanel (1914 строк → 10-12 модулей)
 
-- [ ] **1.3.1** Выделить `src/components/results/SensitivitySection.tsx`
+- [x] **1.3.1** Выделить `src/components/results/SensitivitySection.tsx` (landed in 8413328e)
   - Перенести: sensitivity form, fetch logic, `SensitivityTable` рендеринг
   - ~200 строк из ResultsPanel
   - Verify: sensitivity table загружается, MDE/Power сетка отображается
 
-- [ ] **1.3.2** Выделить `src/components/results/PowerCurveSection.tsx`
+- [x] **1.3.2** Выделить `src/components/results/PowerCurveSection.tsx` (landed in 8413328e)
   - Перенести: lazy-loaded `PowerCurveChart`, Suspense wrapper
   - ~50 строк
   - Verify: power curve chart рендерится с данными анализа
 
-- [ ] **1.3.3** Выделить `src/components/results/SrmCheckSection.tsx`
+- [x] **1.3.3** Выделить `src/components/results/SrmCheckSection.tsx` (landed in 8413328e)
   - Перенести: SRM form state (`srmForm`, `srmResult`), fetch, UI
   - ~120 строк
   - Verify: SRM check с 2 и 3 вариантами, корректный p-value
 
-- [ ] **1.3.4** Выделить `src/components/results/ObservedResultsSection.tsx`
+- [x] **1.3.4** Выделить `src/components/results/ObservedResultsSection.tsx` (landed in 8413328e)
   - Перенести: `BinaryResultsForm`/`ContinuousResultsForm`, `buildResultsRequest`, `ForestPlot`
   - ~250 строк
   - Verify: binary и continuous results формы, CI отображается
 
-- [ ] **1.3.5** Выделить `src/components/results/SequentialDesignSection.tsx`
+- [x] **1.3.5** Выделить `src/components/results/SequentialDesignSection.tsx` (landed in 8413328e)
   - Перенести: sequential boundaries table, interim analysis details
   - ~80 строк
   - Verify: O'Brien-Fleming таблица с корректными z-boundaries
 
-- [ ] **1.3.6** Выделить `src/components/results/WarningsSection.tsx`
+- [x] **1.3.6** Выделить `src/components/results/WarningsSection.tsx` (landed in 8413328e)
   - Перенести: warnings list с severity styling
   - ~60 строк
   - Verify: warnings отображаются с корректными иконками/цветами по severity
 
-- [ ] **1.3.7** Выделить `src/components/results/ExperimentDesignSection.tsx`
+- [x] **1.3.7** Выделить `src/components/results/ExperimentDesignSection.tsx` (landed in 8413328e)
   - Перенести: design details, variants, assumptions
   - ~100 строк
 
-- [ ] **1.3.8** Выделить `src/components/results/MetricsPlanSection.tsx`
+- [x] **1.3.8** Выделить `src/components/results/MetricsPlanSection.tsx` (landed in 8413328e)
   - Перенести: primary/secondary/guardrail metrics display
   - ~80 строк
 
-- [ ] **1.3.9** Выделить `src/components/results/RisksSection.tsx`
+- [x] **1.3.9** Выделить `src/components/results/RisksSection.tsx` (landed in 8413328e)
   - Перенести: statistical/product/technical/operational risks
   - ~60 строк
 
-- [ ] **1.3.10** Выделить `src/components/results/AiAdviceSection.tsx`
+- [x] **1.3.10** Выделить `src/components/results/AiAdviceSection.tsx` (landed in 8413328e)
   - Перенести: LLM recommendations display
   - ~60 строк
 
-- [ ] **1.3.11** Выделить `src/components/results/ComparisonSection.tsx`
+- [x] **1.3.11** Выделить `src/components/results/ComparisonSection.tsx` (landed in 8413328e)
   - Перенести: project comparison view, delta display
   - ~80 строк
 
-- [ ] **1.3.12** Собрать новый `ResultsPanel.tsx` — тонкий orchestrator
+- [x] **1.3.12** Собрать новый `ResultsPanel.tsx` — тонкий orchestrator (landed in 8413328e)
   - Импортирует 11 секций, рендерит через `Accordion`
   - **Целевой размер:** <150 строк
   - Verify: `npx vitest run` — все тесты, ручная проверка полного results view
 
 ### 1.4 Error Boundaries
 
-- [ ] **1.4.1** Создать `src/components/ErrorBoundary.tsx`
+- [x] **1.4.1** Создать `src/components/ErrorBoundary.tsx` (landed in 8413328e)
   - Class component с `componentDidCatch`
   - Fallback UI: иконка + «Something went wrong» + кнопка Retry
   - Props: `fallback?: ReactNode`, `onError?: (error: Error) => void`
   - Verify: бросить ошибку в тестовом компоненте — fallback отображается
 
-- [ ] **1.4.2** Создать `src/components/ChartErrorBoundary.tsx`
+- [x] **1.4.2** Создать `src/components/ChartErrorBoundary.tsx` (landed in 8413328e)
   - Специфичный fallback для Recharts/ForestPlot: «Chart unavailable» + raw data в `<pre>`
   - Verify: ошибка в PowerCurveChart → fallback, остальные секции работают
 
-- [ ] **1.4.3** Обернуть layout в `App.tsx`: `<ErrorBoundary>` вокруг `<WizardPanel>` и `<SidebarPanel>`
+- [x] **1.4.3** Обернуть layout в `App.tsx`: `<ErrorBoundary>` вокруг `<WizardPanel>` и `<SidebarPanel>` (landed in 8413328e)
   - Обернуть каждый chart-компонент в `<ChartErrorBoundary>`
   - Verify: crash в sidebar не роняет wizard, crash в chart не роняет results
 
 ### 1.5 CSS-архитектура: унификация
 
-- [ ] **1.5.1** Аудит глобальных классов в `App.css` (214 строк)
+- [x] **1.5.1** Аудит глобальных классов в `App.css` (214 строк) (landed in 8413328e)
   - Разделить на: `src/styles/layout.css` (`.page`, `.shell`, `.grid`), `src/styles/components.css` (`.btn`, `.field`, `.card`, `.toast-*`), `src/styles/utilities.css` (`.muted`, `.pill`, `.icon`)
   - Verify: визуально без изменений, все стили применяются
 
-- [ ] **1.5.2** Перевести компоненты без CSS Modules на модули
+- [x] **1.5.2** Перевести компоненты без CSS Modules на модули (landed in 8413328e)
   - `EmptyState`, `ToastSystem`, `Accordion`, `MetricCard`, `SliderInput`, `Spinner`, `Skeleton`, `ProgressBar`, `StatusDot`, `Tooltip`, `InlineConfirmButton`
   - Verify: `npx vitest run`, визуальная проверка каждого компонента
 
 ### 1.6 Type safety
 
-- [ ] **1.6.1** Заменить string-based status на enum
+- [x] **1.6.1** Заменить string-based status на enum (landed in 8413328e)
   - Создать `type ToastType = "success" | "error" | "warning" | "info"` (уже есть)
   - Заменить `resolveStatusToastType()` (string matching по содержимому) на явную передачу типа из вызывающего кода
   - Заменить `draft.draftStorageWarning.startsWith("Storage full")` → `type StorageWarningLevel = "full" | "nearFull" | "cleared"` в `draftStore`
   - Verify: `npx tsc --noEmit` — 0 ошибок
 
-- [ ] **1.6.2** Убрать type assertions
+- [x] **1.6.2** Убрать type assertions (landed in 8413328e)
   - `sampleProject as Parameters<typeof hydrateLoadedPayload>[0]` → типизировать `sample-project.json` через `satisfies`
   - Verify: `npx tsc --noEmit` — 0 ошибок
 
@@ -195,21 +195,21 @@
 
 ### 2.1 Onboarding и discoverability
 
-- [ ] **2.1.1** Product tour (5 шагов)
+- [ ] **2.1.1** Product tour (5 шагов) (partial: onboarding exists, but no 5-step tour flow)
   - Библиотека: `react-joyride` или кастомный spotlight на Floating UI (уже в зависимостях)
   - Шаги: (1) Hero — что это за инструмент, (2) Wizard — заполните контекст, (3) Metrics — настройте метрику, (4) Run Analysis — запустите расчёт, (5) Results — изучите результаты
   - Показывать: при первом визите ИЛИ по кнопке «?» в hero
   - Сохранять состояние: `localStorage` ключ `ab-test:tour-completed:v1`
   - Verify: первый визит → tour показывается, повторный визит → нет, кнопка «?» → tour заново
 
-- [ ] **2.1.2** Contextual tooltips для статистических терминов
+- [ ] **2.1.2** Contextual tooltips для статистических терминов (partial: `Tooltip` primitive exists, but no glossary/integration)
   - Создать `src/data/glossary.ts` — словарь из 15-20 терминов: MDE, Power, Alpha, CUPED, SRM, Bonferroni, Sequential Testing, Bayesian, Credibility Interval, Sample Size, Baseline Rate, Variance, Effect Size, Confidence Interval, P-value
   - Каждый термин: 1-2 предложения + формула (если применимо)
   - Компонент `<GlossaryTerm term="mde">` — обёртка со стилизованным `<Tooltip>`
   - Применить в: `WizardDraftStep` (labels полей), `ResultsPanel` секции (заголовки)
   - Verify: hover на «MDE» → tooltip с объяснением, не перекрывает другие элементы
 
-- [ ] **2.1.3** Template library (5 пресетов)
+- [x] **2.1.3** Template library (5 пресетов) (landed in 319820a0)
   - Создать `src/data/templates.ts`:
     - **E-commerce Checkout** — baseline_rate: 0.032, mde: 5%, daily_traffic: 50000
     - **SaaS Trial-to-Paid** — baseline_rate: 0.12, mde: 10%, daily_traffic: 5000
@@ -221,31 +221,31 @@
 
 ### 2.2 Sidebar restructure
 
-- [ ] **2.2.1** Переработать `SidebarPanel` (994 строки → 3 подкомпонента)
+- [x] **2.2.1** Переработать `SidebarPanel` (994 строки → 3 подкомпонента) (implemented via tabs/filters/status sections; landed by 7eac8f59)
   - **Primary tab «Projects»** — список проектов + поиск (уже есть, оставить)
   - **Secondary tab «System»** — health, diagnostics, API token (свернуть в `SystemPanel.tsx`)
   - **Tertiary tab «Workspace»** — backup, import, status board (свернуть в `WorkspacePanel.tsx`)
   - History/Revisions/Comparison — перенести в модалку, открывается из карточки проекта
   - Verify: sidebar компактный, проекты видны без скролла, system info доступна в 1 клик
 
-- [ ] **2.2.2** Responsive sidebar: drawer на mobile
+- [ ] **2.2.2** Responsive sidebar: drawer на mobile (partial: responsive single-column layout exists, but no overlay drawer)
   - На `<768px`: sidebar скрыт, кнопка-гамбургер открывает overlay drawer
   - Drawer: slide-in справа, backdrop с blur
   - Verify: на 375px экране sidebar открывается/закрывается, не перекрывает контент
 
 ### 2.3 Results progressive disclosure
 
-- [ ] **2.3.1** Summary card (3 hero-метрики)
+- [x] **2.3.1** Summary card (3 hero-метрики) (implemented via results hero metric cards; landed in 5ea60181)
   - Вверху Results: три больших `MetricCard` — Sample Size, Duration, Power
   - Размер шрифта value: `--font-size-3xl`, остальные секции — свёрнуты
   - Verify: после Run Analysis первое что видит пользователь — 3 ключевые цифры
 
-- [ ] **2.3.2** Accordion для secondary секций
+- [x] **2.3.2** Accordion для secondary секций (landed in 5ea60181)
   - Все остальные секции (warnings, design, metrics, risks, AI) — в `<Accordion>` по умолчанию свёрнуты
   - Warnings: развёрнут по умолчанию, если есть high severity
   - Verify: только summary видна, клик раскрывает секцию, анимация 200ms
 
-- [ ] **2.3.3** Deep dive: модальное окно для sensitivity/observed results
+- [ ] **2.3.3** Deep dive: модальное окно для sensitivity/observed results (partial: sections are disclosed inline via accordion, not modal)
   - Sensitivity table и Observed Results — сложные интерактивные формы
   - Перенести в modal (full-width, slide-up) — не загромождать основной view
   - Кнопки «Run sensitivity analysis» и «Analyze observed results» в summary
@@ -253,7 +253,7 @@
 
 ### 2.4 Visual hierarchy и micro-interactions
 
-- [ ] **2.4.1** Дифференцировать визуальный вес карточек
+- [x] **2.4.1** Дифференцировать визуальный вес карточек (landed in 5ea60181)
   - Hero metrics: `box-shadow: var(--shadow-lg)`, `padding: var(--space-6)`, border-left 3px accent
   - Secondary cards: `box-shadow: var(--shadow-sm)`, `padding: var(--space-4)`
   - Tertiary (collapsed accordion): no shadow, `border: 1px solid var(--color-border-soft)`
@@ -273,7 +273,7 @@
 
 ### 2.5 Responsive design
 
-- [ ] **2.5.1** Четыре breakpoint'а вместо одного
+- [ ] **2.5.1** Четыре breakpoint'а вместо одного (partial: responsive grid/autofit layout landed, but not 4 explicit breakpoints)
   - `480px` — phone portrait (1 column, компактный spacing)
   - `768px` — phone landscape / small tablet (sidebar → drawer)
   - `1024px` — tablet (grid 1fr, sidebar под wizard)
@@ -295,13 +295,13 @@
   - Убрать `<link>` на Google Fonts из `index.html`
   - Verify: `npm run build`, fonts в bundle, нет запросов к fonts.googleapis.com, FOIT отсутствует
 
-- [ ] **2.6.2** Lazy load Recharts
+- [x] **2.6.2** Lazy load Recharts (implemented via lazy `PowerCurveChart`; landed in 5ea60181)
   - `PowerCurveChart` уже lazy (строка 27 ResultsPanel) — распространить на `ForestPlot`, `SensitivityTable`
   - Verify: initial bundle не содержит recharts, chart загружается при открытии секции
 
 ### 2.7 Accessibility
 
-- [ ] **2.7.1** WCAG AA contrast audit
+- [x] **2.7.1** WCAG AA contrast audit (landed in 9882d079)
   - Проверить все пары text/bg в light и dark mode через axe-core
   - Критичные: `--color-text-secondary` (#64748b) на `--color-bg` (#f8fafc) — ratio 4.48:1 (AA pass для large text, fail для small)
   - Исправить: `--color-text-secondary: #546478` (ratio ≥ 4.5:1)
@@ -347,7 +347,7 @@
   - Добавить: `AB_AUTH_PROVIDER=clerk`, `AB_AUTH_SECRET_KEY`, `AB_AUTH_PUBLISHABLE_KEY`
   - Verify: env vars читаются, fallback на текущий token-auth при отсутствии
 
-- [ ] **3.2.2** Backend auth middleware
+- [ ] **3.2.2** Backend auth middleware (partial: dual API-token auth and rate limiting exist, but no JWT/user context)
   - JWT verification middleware для FastAPI
   - Извлечение `user_id` из токена, привязка к request context
   - Backward compatible: если `AB_AUTH_PROVIDER` не задан — работает текущий API token auth
@@ -359,7 +359,7 @@
   - Migration: существующие проекты получают `user_id = "legacy"`, `workspace_id = "default"`
   - Verify: user A не видит проекты user B
 
-- [ ] **3.2.4** Frontend auth flow
+- [ ] **3.2.4** Frontend auth flow (partial: browser-session API token UI exists, but no login/session flow)
   - Login page: `/login` с OAuth buttons
   - Protected routes: redirect на login если нет session
   - User menu: avatar + email + logout
@@ -444,7 +444,7 @@
   - UI: SQL editor с подсказками, preview результатов
   - Verify: select из тестовой таблицы → данные в observed results
 
-- [ ] **4.1.3** Webhook API для push результатов
+- [ ] **4.1.3** Webhook API для push результатов (partial: generic `/api/v1/results` endpoint exists, but no project-scoped push webhook)
   - Endpoint: `POST /api/v1/projects/{id}/results`
   - Auth: project-scoped API key
   - Payload: `{ control: { users, conversions }, treatment: { users, conversions } }`
@@ -453,7 +453,7 @@
 
 ### 4.2 i18n
 
-- [ ] **4.2.1** i18n framework: `react-i18next`
+- [ ] **4.2.1** i18n framework: `react-i18next` (partial: deps, `en.json`, and isolated i18n test exist, but app-wide integration is incomplete)
   - Уже есть `src/i18n/index.ts` и `en.json` — расширить
   - Все строки из компонентов → в translation keys
   - Backend: заголовок `Accept-Language` → язык отчёта
@@ -468,20 +468,20 @@
 
 ### 4.3 Advanced visualizations
 
-- [ ] **4.3.1** Bayesian posterior plot
+- [ ] **4.3.1** Bayesian posterior plot (partial: Bayesian estimate cards/notes exist, but no posterior plot)
   - Компонент: `PosteriorPlot.tsx`
   - Отображает: prior distribution, posterior distribution, credibility interval (shaded area)
   - Библиотека: Recharts (уже в зависимостях)
   - Verify: при Bayesian mode → posterior plot рендерится с корректными данными
 
-- [ ] **4.3.2** Sequential boundary chart
+- [ ] **4.3.2** Sequential boundary chart (partial: sequential boundaries table exists, but no chart)
   - Компонент: `SequentialBoundaryChart.tsx`
   - Отображает: upper/lower O'Brien-Fleming boundaries по interim looks
   - Verify: при sequential mode → boundary chart с 2-10 looks
 
 ### 4.4 Developer API
 
-- [ ] **4.4.1** Public API документация
+- [ ] **4.4.1** Public API документация (partial: `/docs`/`/redoc`, token auth, and global rate limits exist, but no API-key management or per-key limits)
   - OpenAPI spec → Redoc/Swagger UI на `/docs`
   - API keys management в user settings
   - Rate limits per API key
