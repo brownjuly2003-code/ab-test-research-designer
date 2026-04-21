@@ -236,9 +236,58 @@ class ProjectRepository:
                     f"ALTER TABLE projects ADD COLUMN {column_name} {column_definition}"
                 )
 
+        def normalize_payload_json(payload_json: str) -> str | None:
+            try:
+                payload = json.loads(payload_json)
+            except json.JSONDecodeError:
+                return None
+
+            metrics = payload.get("metrics")
+            if not isinstance(metrics, dict):
+                return None
+
+            guardrail_metrics = metrics.get("guardrail_metrics")
+            if not isinstance(guardrail_metrics, list):
+                return None
+
+            normalized_guardrails = []
+            changed = False
+            for item in guardrail_metrics:
+                if item == "payment_error_rate":
+                    normalized_guardrails.append(
+                        {
+                            "name": "Payment error rate",
+                            "metric_type": "binary",
+                            "baseline_rate": 2.4,
+                        }
+                    )
+                    changed = True
+                else:
+                    normalized_guardrails.append(item)
+
+            if not changed:
+                return None
+
+            normalized_metrics = dict(metrics)
+            normalized_metrics["guardrail_metrics"] = normalized_guardrails
+            normalized_payload = dict(payload)
+            normalized_payload["metrics"] = normalized_metrics
+            return json.dumps(normalized_payload)
+
         ProjectRepository._create_history_tables(connection)
         ProjectRepository._create_audit_tables(connection)
         ProjectRepository._create_template_tables(connection)
+        for table_name in ("projects", "project_revisions"):
+            rows = connection.execute(
+                f"SELECT id, payload_json FROM {table_name}"
+            ).fetchall()
+            for row in rows:
+                normalized_payload_json = normalize_payload_json(row["payload_json"])
+                if normalized_payload_json is not None:
+                    connection.execute(
+                        f"UPDATE {table_name} SET payload_json = ? WHERE id = ?",
+                        (normalized_payload_json, row["id"]),
+                    )
         ProjectRepository._backfill_analysis_runs(connection)
         ProjectRepository._backfill_project_revisions(connection)
 

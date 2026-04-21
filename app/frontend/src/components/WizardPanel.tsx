@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 
-import sampleProject from "../../../../docs/demo/sample-project.json";
+import sampleProject from "../fixtures/sample-project.json";
 import { useToast, type ToastType } from "../hooks/useToast";
 import {
   buildApiPayload,

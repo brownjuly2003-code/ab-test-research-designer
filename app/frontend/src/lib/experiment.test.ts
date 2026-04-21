@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import sampleProject from "../../../../docs/demo/sample-project.json";
+import sampleProject from "../fixtures/sample-project.json";
 
 import {
   buildDraftTransferFile,

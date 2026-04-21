@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 import sqlite3
 import sys
@@ -10,6 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 import app.backend.app.repository as repository_module
 from app.backend.app.repository import ProjectRepository
 from app.backend.app.errors import ApiError
+from app.backend.app.schemas.api import WorkspaceBundle
 
 
 def test_repository_migrates_legacy_projects_table() -> None:
@@ -113,6 +115,144 @@ def test_repository_backfills_legacy_analysis_snapshot_into_history() -> None:
     assert len(history["analysis_runs"]) == 1
     assert history["analysis_runs"][0]["summary"]["metric_type"] == "binary"
     assert history["analysis_runs"][0]["summary"]["sample_size_per_variant"] == 100
+
+
+def test_repository_normalizes_legacy_guardrail_metric_strings_for_workspace_export() -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+    legacy_payload = {
+        "project": {
+            "project_name": "Legacy workspace",
+            "domain": "e-commerce",
+            "product_type": "web app",
+            "platform": "web",
+            "market": "US",
+            "project_description": "Legacy export coverage.",
+        },
+        "hypothesis": {
+            "change_description": "Shorten checkout",
+            "target_audience": "new users",
+            "business_problem": "checkout abandonment",
+            "hypothesis_statement": "If checkout is shorter, conversion will improve.",
+            "what_to_validate": "conversion impact",
+            "desired_result": "measurable uplift",
+        },
+        "setup": {
+            "experiment_type": "ab",
+            "randomization_unit": "user",
+            "traffic_split": [50, 50],
+            "expected_daily_traffic": 12000,
+            "audience_share_in_test": 0.6,
+            "variants_count": 2,
+            "inclusion_criteria": "new users only",
+            "exclusion_criteria": "internal staff",
+        },
+        "metrics": {
+            "primary_metric_name": "purchase_conversion",
+            "metric_type": "binary",
+            "baseline_value": 0.042,
+            "expected_uplift_pct": 8,
+            "mde_pct": 5,
+            "alpha": 0.05,
+            "power": 0.8,
+            "secondary_metrics": ["add_to_cart_rate"],
+            "guardrail_metrics": ["payment_error_rate"],
+        },
+        "constraints": {
+            "seasonality_present": False,
+            "active_campaigns_present": False,
+            "returning_users_present": True,
+            "interference_risk": "low",
+            "technical_constraints": "none",
+            "legal_or_ethics_constraints": "none",
+            "known_risks": "none",
+            "deadline_pressure": "low",
+            "long_test_possible": True,
+        },
+        "additional_context": {
+            "llm_context": "",
+        },
+    }
+
+    with sqlite3.connect(db_path) as connection:
+        connection.execute(
+            """
+            CREATE TABLE projects (
+                id TEXT PRIMARY KEY,
+                project_name TEXT NOT NULL,
+                payload_json TEXT NOT NULL,
+                payload_schema_version INTEGER NOT NULL DEFAULT 1,
+                archived_at TEXT,
+                last_analysis_json TEXT,
+                last_analysis_at TEXT,
+                last_analysis_run_id TEXT,
+                last_exported_at TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE TABLE project_revisions (
+                id TEXT PRIMARY KEY,
+                project_id TEXT NOT NULL,
+                payload_json TEXT NOT NULL,
+                source TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+            """
+        )
+        connection.execute(
+            """
+            INSERT INTO projects (
+                id,
+                project_name,
+                payload_json,
+                payload_schema_version,
+                created_at,
+                updated_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                "legacy-project",
+                "Legacy workspace",
+                json.dumps(legacy_payload),
+                1,
+                "2026-04-21T05:00:00+00:00",
+                "2026-04-21T05:00:00+00:00",
+            ),
+        )
+        connection.execute(
+            """
+            INSERT INTO project_revisions (id, project_id, payload_json, source, created_at)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                "legacy-revision",
+                "legacy-project",
+                json.dumps(legacy_payload),
+                "create",
+                "2026-04-21T05:00:00+00:00",
+            ),
+        )
+
+    repository = ProjectRepository(str(db_path))
+    bundle = WorkspaceBundle.model_validate(repository.export_workspace()).model_dump()
+
+    expected_guardrails = [
+        {
+            "name": "Payment error rate",
+            "metric_type": "binary",
+            "baseline_rate": 2.4,
+            "baseline_mean": None,
+            "std_dev": None,
+        }
+    ]
+    assert bundle["projects"][0]["payload"]["metrics"]["guardrail_metrics"] == expected_guardrails
+    assert bundle["project_revisions"][0]["payload"]["metrics"]["guardrail_metrics"] == expected_guardrails
 
 
 def test_repository_records_analysis_and_export_history() -> None:

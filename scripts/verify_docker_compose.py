@@ -190,7 +190,13 @@ def main() -> int:
                 "alpha": 0.05,
                 "power": 0.8,
                 "secondary_metrics": ["add_to_cart_rate"],
-                "guardrail_metrics": ["payment_error_rate"],
+                "guardrail_metrics": [
+                    {
+                        "name": "Payment error rate",
+                        "metric_type": "binary",
+                        "baseline_rate": 2.4,
+                    }
+                ],
             },
             "constraints": {
                 "seasonality_present": False,

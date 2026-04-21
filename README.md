@@ -158,6 +158,8 @@ Non-destructive Docker verification:
 python scripts/verify_docker_compose.py --preserve
 ```
 
+Image publish, registry tagging, rollback, and runtime verification details: [docs/DEPLOY.md](docs/DEPLOY.md)
+
 Then open:
 
 ```text
