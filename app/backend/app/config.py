@@ -150,7 +150,7 @@ def get_settings() -> Settings:
     )
     settings = Settings(
         app_name=os.getenv("AB_APP_NAME", "AB Test Research Designer API"),
-        app_version=os.getenv("AB_APP_VERSION", "0.1.0"),
+        app_version=os.getenv("AB_APP_VERSION", "1.0.0"),
         environment=os.getenv("AB_ENV", "local"),
         host=os.getenv("AB_HOST", "127.0.0.1"),
         port=_read_int_env("AB_PORT", 8008),

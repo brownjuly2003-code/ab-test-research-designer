@@ -1,5 +1,33 @@
 # Changelog
 
+## [1.0.0] - 2026-04-22
+
+### Added
+
+- experiment template gallery with five YAML presets for common test scenarios (`319820a0`)
+- shareable HTML and Markdown reports plus stored project PDF/CSV/XLSX exports for deterministic analysis output (`8413328e`)
+- project list filters for faster workspace triage (`0cdfa379`)
+- keyboard shortcut help for save, run, and export flows (`0cdfa379`)
+- project audit log endpoint and persisted request trail metadata (`7eac8f59`)
+- deterministic SRM checks, Bayesian sizing, group sequential boundaries, and CUPED-aware calculations in the shipped analysis stack (`8413328e`)
+- multi-metric guardrail planning and report sections across backend and UI (`8413328e`)
+- Recharts-powered visualisations, result cards, and sensitivity views in the redesigned frontend (`5ea60181`)
+- theme toggle for the refreshed dashboard interface (`5ea60181`)
+- expanded axe accessibility coverage across wizard, results, sidebar, and modal flows (`9882d079`)
+- Lighthouse CI verification against the backend-served frontend with enforced thresholds (`7a156794`)
+
+### Changed
+
+- decomposed `App` and `ResultsPanel` into smaller route- and store-backed frontend modules for the BCG release wave (`8413328e`)
+- moved wizard, analysis, project, draft, and theme state into dedicated Zustand stores (`8413328e`)
+- refreshed the UI icon system around Lucide components and the new visual design layer (`5ea60181`)
+- regenerated the frontend API contract and backend API docs alongside templates, filters, audit, and report endpoints (`7eac8f59`)
+- hardened the workspace backup and recovery flow for local verification and restore drills (`a1d8606c`)
+
+### Fixed
+
+- resolved wizard, dialog, and menu accessibility regressions surfaced by the expanded axe suite (`9882d079`)
+
 ## 2026-03-09
 
 ### Release hardening
