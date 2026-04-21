@@ -1,8 +1,11 @@
+import { useTranslation } from "react-i18next";
+
 import { useAnalysisStore } from "../../stores/analysisStore";
 import { useProjectStore } from "../../stores/projectStore";
 import Icon from "../Icon";
 
 export default function AiAdviceSection() {
+  const { t } = useTranslation();
   const analysisResult = useAnalysisStore((state) => state.analysisResult);
   const selectedHistoryAnalysis = useProjectStore((state) => state.selectedHistoryRun?.analysis ?? null);
   const displayedAnalysis = selectedHistoryAnalysis ?? analysisResult;
@@ -13,19 +16,19 @@ export default function AiAdviceSection() {
 
   return (
     <div className="card">
-      <h3>Local orchestrator output</h3>
+      <h3>{t("results.aiAdvice.title")}</h3>
       {displayedAnalysis.advice.available ? (
         <>
           <p className="muted">
-            Provider: {String(displayedAnalysis.advice.provider)} | Model: {String(displayedAnalysis.advice.model)}
+            {t("results.aiAdvice.provider")} {String(displayedAnalysis.advice.provider)} | {t("results.aiAdvice.model")} {String(displayedAnalysis.advice.model)}
           </p>
           <div className="two-col">
             <div className="card">
-              <strong>Assessment</strong>
+              <strong>{t("results.aiAdvice.assessment")}</strong>
               <p className="muted">{String(displayedAnalysis.advice.advice?.brief_assessment ?? "")}</p>
             </div>
             <div className="card">
-              <strong>Design improvements</strong>
+              <strong>{t("results.aiAdvice.designImprovements")}</strong>
               <ul className="list">
                 {(displayedAnalysis.advice.advice?.design_improvements ?? []).map((item) => (
                   <li key={String(item)}>{String(item)}</li>
@@ -33,7 +36,7 @@ export default function AiAdviceSection() {
               </ul>
             </div>
             <div className="card">
-              <strong>Key risks</strong>
+              <strong>{t("results.aiAdvice.keyRisks")}</strong>
               <ul className="list">
                 {(displayedAnalysis.advice.advice?.key_risks ?? []).map((item) => (
                   <li key={String(item)}>{String(item)}</li>
@@ -41,7 +44,7 @@ export default function AiAdviceSection() {
               </ul>
             </div>
             <div className="card">
-              <strong>Metric recommendations</strong>
+              <strong>{t("results.aiAdvice.metricRecommendations")}</strong>
               <ul className="list">
                 {(displayedAnalysis.advice.advice?.metric_recommendations ?? []).map((item) => (
                   <li key={String(item)}>{String(item)}</li>
@@ -49,7 +52,7 @@ export default function AiAdviceSection() {
               </ul>
             </div>
             <div className="card">
-              <strong>Interpretation pitfalls</strong>
+              <strong>{t("results.aiAdvice.interpretationPitfalls")}</strong>
               <ul className="list">
                 {(displayedAnalysis.advice.advice?.interpretation_pitfalls ?? []).map((item) => (
                   <li key={String(item)}>{String(item)}</li>
@@ -57,7 +60,7 @@ export default function AiAdviceSection() {
               </ul>
             </div>
             <div className="card">
-              <strong>Additional checks</strong>
+              <strong>{t("results.aiAdvice.additionalChecks")}</strong>
               <ul className="list">
                 {(displayedAnalysis.advice.advice?.additional_checks ?? []).map((item) => (
                   <li key={String(item)}>{String(item)}</li>
@@ -70,7 +73,7 @@ export default function AiAdviceSection() {
         <div className="callout">
           <Icon name="info" className="icon icon-inline" />
           <span>
-            AI advice unavailable. Core deterministic output still works. {String(displayedAnalysis.advice.error ?? "")}
+            {t("results.aiAdvice.unavailable")} {String(displayedAnalysis.advice.error ?? "")}
           </span>
         </div>
       )}

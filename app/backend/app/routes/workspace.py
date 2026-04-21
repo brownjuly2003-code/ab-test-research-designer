@@ -4,7 +4,7 @@ from app.backend.app.schemas.api import WorkspaceBundle, WorkspaceImportResponse
 
 
 def create_workspace_router(settings, repository, rate_limiter, require_auth, require_write_auth) -> APIRouter:
-    router = APIRouter()
+    router = APIRouter(tags=["workspace"])
 
     @router.get(
         "/api/v1/workspace/export",

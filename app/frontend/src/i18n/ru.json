@@ -1,0 +1,1074 @@
+{
+  "app": {
+    "skipToMainContent": "Перейти к основному содержимому",
+    "eyebrow": "Планировщик экспериментов",
+    "title": "Конструктор исследований A/B-тестов",
+    "tagline": "Заполните контекст эксперимента, запустите детерминированные расчёты, проверьте предупреждения и держите AI-рекомендации отдельно от строгой математики.",
+    "language": {
+      "label": "Язык",
+      "ariaLabel": "Настройка языка",
+      "options": {
+        "en": "Английский",
+        "ru": "Русский"
+      }
+    },
+    "theme": {
+      "label": "Тема",
+      "ariaLabel": "Настройка темы",
+      "buttonAria": {
+        "light": "Светлая тема",
+        "dark": "Тёмная тема",
+        "system": "Системная тема"
+      },
+      "options": {
+        "light": "Светлая",
+        "dark": "Тёмная",
+        "system": "Авто"
+      }
+    }
+  },
+  "wizard": {
+    "steps": {
+      "1": "Проект",
+      "2": "Гипотеза",
+      "3": "Настройка",
+      "4": "Метрики",
+      "5": "Ограничения",
+      "6": "Проверка"
+    },
+    "actions": {
+      "next": "Далее",
+      "back": "Назад",
+      "save": "Сохранить проект",
+      "runAnalysis": "Запустить анализ",
+      "export": "Экспорт"
+    }
+  },
+  "wizardReview": {
+    "title": "Проверка данных",
+    "savedProjectTitle": "Проверка сохранённого проекта",
+    "newDraftTitle": "Проверка нового черновика",
+    "unsavedChangesPresent": "Есть несохранённые изменения.",
+    "syncedWithLocalStorage": "Этот загруженный проект синхронизирован с локальным хранилищем.",
+    "description": "Проверьте значения ниже перед сохранением или запуском детерминированного backend-потока.",
+    "fixFields": "Исправьте эти поля перед сохранением или запуском анализа",
+    "newDraftButton": "Новый черновик",
+    "importing": "Импорт...",
+    "importDraft": "Импортировать JSON черновика",
+    "exportDraft": "Экспортировать JSON черновика",
+    "updateProjectTitle": "Обновить проект (Ctrl+S)",
+    "saveProjectTitle": "Сохранить проект (Ctrl+S)",
+    "saving": "Сохранение...",
+    "updateProject": "Обновить проект",
+    "runAnalysisTitle": "Запустить анализ (Ctrl+Enter)",
+    "analyzing": "Анализ..."
+  },
+  "wizardDraft": {
+    "sections": {
+      "project": "Контекст проекта",
+      "hypothesis": "Гипотеза",
+      "setup": "Настройка эксперимента",
+      "metrics": "Метрики",
+      "constraints": "Ограничения"
+    },
+    "note": {
+      "editingSavedProject": "Редактирование сохранённого проекта",
+      "workingOnNewDraft": "Работа над новым черновиком",
+      "projectIdStatus": "Идентификатор проекта: {{projectId}}. {{status}}",
+      "unsavedChangesPending": "Есть несохранённые изменения для локального обновления.",
+      "allChangesSaved": "Все изменения сохранены локально.",
+      "savingCreatesProject": "Сохранение создаст новую локальную запись проекта."
+    },
+    "fixFields": "Исправьте эти поля перед сохранением или запуском анализа",
+    "analysisFramework": {
+      "title": "Фреймворк анализа",
+      "description": "Выберите, строится ли планирование на классической мощности NHST или на байесовской точности.",
+      "frequentist": "Частотный подход",
+      "frequentistDescription": "Задайте альфу и мощность для классического подхода с фиксированным горизонтом.",
+      "bayesian": "Байесовский подход",
+      "bayesianDescription": "Задайте желаемую точность и достоверность для интервального планирования."
+    },
+    "common": {
+      "yes": "Да",
+      "no": "Нет",
+      "optional": "Необязательно"
+    },
+    "fields": {
+      "project": {
+        "project_name": "Название проекта",
+        "domain": "Домен",
+        "product_type": "Тип продукта",
+        "platform": "Платформа",
+        "market": "Рынок",
+        "project_description": "Описание проекта"
+      },
+      "hypothesis": {
+        "change_description": "Описание изменения",
+        "target_audience": "Целевая аудитория",
+        "business_problem": "Бизнес-проблема",
+        "hypothesis_statement": "Формулировка гипотезы",
+        "what_to_validate": "Что валидировать",
+        "desired_result": "Желаемый результат"
+      },
+      "setup": {
+        "experiment_type": "Тип эксперимента",
+        "randomization_unit": "Единица рандомизации",
+        "traffic_split": "Распределение трафика",
+        "expected_daily_traffic": "Ожидаемый дневной трафик",
+        "audience_share_in_test": "Доля аудитории в тесте",
+        "variants_count": "Количество вариантов",
+        "inclusion_criteria": "Критерии включения",
+        "exclusion_criteria": "Критерии исключения"
+      },
+      "metrics": {
+        "primary_metric_name": "Primary metric",
+        "metric_type": "Тип метрики",
+        "baseline_value": "Базовое значение",
+        "expected_uplift_pct": "Ожидаемый uplift %",
+        "mde_pct": "MDE %",
+        "std_dev": "Std dev",
+        "secondary_metrics": "Secondary metrics",
+        "guardrail_metrics": "Гардайл-метрики",
+        "alpha": "Альфа",
+        "power": "Мощность"
+      },
+      "constraints": {
+        "seasonality_present": "Есть сезонность",
+        "active_campaigns_present": "Есть активные кампании",
+        "returning_users_present": "Есть returning users",
+        "interference_risk": "Риск интерференции",
+        "technical_constraints": "Технические ограничения",
+        "legal_or_ethics_constraints": "Юридические / этические ограничения",
+        "known_risks": "Известные риски",
+        "deadline_pressure": "Давление дедлайна",
+        "long_test_possible": "Возможен длинный тест"
+      },
+      "additional_context": {
+        "llm_context": "Контекст для AI"
+      }
+    },
+    "helpText": {
+      "traffic_split": "Относительные веса трафика по вариантам. Пример: 50,50 для сбалансированного A/B или 34,33,33 для трёх вариантов.",
+      "expected_daily_traffic": "Среднее число пользователей или сессий, входящих в эксперимент каждый день. Пример: 12000.",
+      "audience_share_in_test": "Доля дневного трафика, подходящая для теста. Используйте 0.6 для 60% входящего трафика.",
+      "variants_count": "Общее количество вариантов, включая control. 2 — классический A/B, 3+ увеличивают требования к выборке.",
+      "baseline_value": "Текущее базовое значение метрики. Для бинарных метрик используйте 0.042 для 4.2%; для непрерывных — текущее среднее, например 45.20.",
+      "expected_uplift_pct": "Ожидаемое относительное улучшение по сравнению с baseline. Пример: 8 означает ожидание роста метрики на 8%.",
+      "mde_pct": "Минимально детектируемый эффект в процентах от baseline. Чем меньше MDE, тем больше нужна выборка.",
+      "alpha": "Порог ложноположительного вывода. 0.05 означает принятие 5% вероятности ошибки I рода.",
+      "power": "Вероятность обнаружить реальный эффект, если он существует. 0.8 — стандартный минимум для продуктовых экспериментов.",
+      "analysis_mode": "Выберите, описывается ли планирование через классическую NHST-мощность или через байесовскую точность доверительного интервала.",
+      "desired_precision": "Целевая полуширина доверительного интервала. Для бинарных метрик используйте процентные пункты; для непрерывных — сырые единицы.",
+      "credibility": "Уровень достоверности байесовского интервала. 0.95 соответствует 95% интервалу.",
+      "std_dev": "Стандартное отклонение непрерывной метрики. Требуется только для непрерывных метрик; пример: 12.5 для среднего чека.",
+      "interference_risk": "Риск того, что пользователи или единицы могут влиять друг на друга между вариантами и нарушать изоляцию."
+    },
+    "options": {
+      "setup": {
+        "randomization_unit": {
+          "user": "Пользователь",
+          "session": "Сессия",
+          "device": "Устройство",
+          "account": "Аккаунт"
+        }
+      },
+      "metrics": {
+        "metric_type": {
+          "binary": "Бинарная",
+          "continuous": "Непрерывная"
+        }
+      },
+      "constraints": {
+        "interference_risk": {
+          "low": "Низкий",
+          "medium": "Средний",
+          "high": "Высокий"
+        },
+        "deadline_pressure": {
+          "low": "Низкое",
+          "medium": "Среднее",
+          "high": "Высокое"
+        }
+      }
+    },
+    "interimAnalyses": {
+      "title": "Промежуточные анализы",
+      "tooltip": "Сколько раз вы планируете проверять результаты во время эксперимента. 1 сохраняет стандартный тест с фиксированным горизонтом. 2-5 включает групповый последовательный мониторинг O'Brien-Fleming с границами досрочной остановки.",
+      "options": {
+        "1": "1 — фиксированный горизонт (без промежуточных анализов)",
+        "2": "2 — один промежуточный + финальный",
+        "3": "3 — два промежуточных + финальный",
+        "4": "4 — три промежуточных + финальный",
+        "5": "5 — четыре промежуточных + финальный"
+      }
+    },
+    "cuped": {
+      "title": "Снижение дисперсии CUPED",
+      "description": "Используйте коррелированное предэкспериментальное поведение, чтобы уменьшить дисперсию и сравнить наивный размер выборки с размером выборки после CUPED.",
+      "enable": "Включить снижение дисперсии CUPED",
+      "enableTooltip": "Если у вас есть предэкспериментальные данные, коррелирующие с outcome-метрикой, CUPED может уменьшить требуемый размер выборки на rho squared.",
+      "preExperimentStdDev": "Std dev до эксперимента",
+      "preExperimentStdDevTooltip": "Стандартное отклонение предэкспериментальной ковариаты, например выручки за неделю до теста.",
+      "correlationWithOutcome": "Корреляция с outcome",
+      "correlationWithOutcomeTooltip": "Корреляция Пирсона между предэкспериментальной ковариатой и результатом эксперимента. Типичные значения — от 0.3 до 0.7."
+    },
+    "guardrails": {
+      "title": "Гардайл-метрики",
+      "description": "Метрики для мониторинга без изменения расчёта основной выборки. Поддерживается до 3 guardrail-метрик.",
+      "metricName": "Название метрики",
+      "metricNameAriaLabel": "Название guardrail-метрики {{index}}",
+      "metricType": "Тип метрики",
+      "metricTypeAriaLabel": "Тип guardrail-метрики {{index}}",
+      "binaryPct": "Бинарная (%)",
+      "continuous": "Непрерывная",
+      "remove": "Удалить",
+      "removeAriaLabel": "Удалить guardrail {{index}}",
+      "baselinePct": "Baseline %",
+      "baselineRateAriaLabel": "Baseline rate guardrail {{index}}",
+      "baselineMean": "Baseline mean",
+      "baselineMeanAriaLabel": "Baseline mean guardrail {{index}}",
+      "stdDev": "Std dev",
+      "stdDevAriaLabel": "Std dev guardrail {{index}}",
+      "add": "Добавить guardrail-метрику"
+    },
+    "buttons": {
+      "newDraft": "Новый черновик",
+      "startFromTemplate": "Начать с шаблона",
+      "importing": "Импорт...",
+      "importDraft": "Импортировать JSON черновика",
+      "exportDraft": "Экспортировать JSON черновика",
+      "updateProjectTitle": "Обновить проект (Ctrl+S)",
+      "saveProjectTitle": "Сохранить проект (Ctrl+S)",
+      "saving": "Сохранение...",
+      "updateProject": "Обновить проект"
+    },
+    "validation": {
+      "projectNameRequired": "Название проекта обязательно.",
+      "changeDescriptionRequired": "Описание изменения обязательно.",
+      "trafficSplitPositive": "Распределение трафика должно содержать как минимум два положительных веса.",
+      "trafficSplitLength": "Длина распределения трафика должна совпадать с количеством вариантов.",
+      "expectedDailyTrafficPositive": "Ожидаемый дневной трафик должен быть больше 0.",
+      "audienceShareRange": "Доля аудитории в тесте должна быть между 0 и 1.",
+      "variantsCountRange": "Количество вариантов должно быть целым числом от 2 до 10.",
+      "primaryMetricRequired": "Название primary-метрики обязательно.",
+      "binaryBaselineRange": "Бинарное baseline-значение должно быть между 0 и 1.",
+      "continuousBaselinePositive": "Baseline-значение для непрерывной метрики должно быть больше 0.",
+      "mdePositive": "MDE % должен быть больше 0.",
+      "alphaRange": "Альфа должна быть между 0 и 1.",
+      "powerRange": "Мощность должна быть между 0 и 1.",
+      "continuousStdPositive": "Для непрерывных метрик требуется положительный std dev.",
+      "cupedStdPositive": "CUPED std dev до эксперимента должен быть положительным.",
+      "cupedCorrelationRange": "CUPED-корреляция должна быть между -1 и 1.",
+      "desiredPrecisionPositive": "Желаемая точность должна быть больше 0 в байесовском режиме.",
+      "credibilityRange": "Достоверность должна быть между 0.5 и 1.",
+      "guardrailsMax": "Количество guardrail-метрик не может превышать 3.",
+      "guardrailNameRequired": "Название guardrail-метрики обязательно.",
+      "guardrailBinaryBaselineRange": "Для бинарных guardrail-метрик нужен baseline % между 0 и 100.",
+      "guardrailContinuousFields": "Для непрерывных guardrail-метрик нужны baseline mean и положительный std dev.",
+      "guardrailMetricType": "Тип guardrail-метрики должен быть binary или continuous.",
+      "metricType": "Тип метрики должен быть binary или continuous."
+    }
+  },
+  "empty_state": {
+    "ariaLabel": "Онбординг",
+    "eyebrow": "Начните здесь",
+    "title": "Спланируйте A/B-эксперимент",
+    "subtitle": "Детерминированные расчёты. Локальная работа. Облако не требуется.",
+    "new_experiment": "Новый эксперимент",
+    "load_example": "Загрузить пример",
+    "import_project": "Импортировать проект",
+    "descriptions": {
+      "new_experiment": "Начать с нуля",
+      "load_example": "Посмотреть заполненный эксперимент в 1 клик",
+      "import_project": "Восстановить из резервной копии рабочего пространства"
+    }
+  },
+  "sidebar": {
+    "tabs": {
+      "projects": "Проекты",
+      "system": "Система"
+    },
+    "actions": {
+      "export_workspace": "Экспортировать рабочее пространство",
+      "import_workspace": "Импортировать рабочее пространство",
+      "compare": "Сравнить проекты"
+    }
+  },
+  "results": {
+    "sample_size_per_variant": "Пользователей на вариант",
+    "duration_days": "Оценка по дням",
+    "total_sample_size": "Общая выборка",
+    "warnings": "Предупреждения",
+    "ai_advice": "AI-рекомендации",
+    "srm_check": "Проверка SRM",
+    "sequential_design": "Последовательный дизайн",
+    "guardrail_metrics": "Гардайл-метрики",
+    "actual_results": "Фактические результаты эксперимента",
+    "aiAdvice": {
+      "title": "Вывод локального оркестратора",
+      "provider": "Провайдер:",
+      "model": "Модель:",
+      "assessment": "Оценка",
+      "designImprovements": "Улучшения дизайна",
+      "keyRisks": "Ключевые риски",
+      "metricRecommendations": "Рекомендации по метрикам",
+      "interpretationPitfalls": "Риски интерпретации",
+      "additionalChecks": "Дополнительные проверки",
+      "unavailable": "AI-рекомендации недоступны. Базовый детерминированный вывод всё равно работает."
+    },
+    "comparison": {
+      "empty": "Загрузите сравнение сохранённых проектов из боковой панели «Проекты», чтобы просмотреть базовый и кандидатный снапшоты."
+    },
+    "experimentDesign": {
+      "variantAndRolloutStructure": "Структура вариантов и раскатки",
+      "setup": "Настройка",
+      "randomizationUnit": "Единица рандомизации",
+      "trafficSplit": "Распределение трафика",
+      "targetAudience": "Целевая аудитория",
+      "inclusion": "Включение",
+      "exclusion": "Исключение",
+      "recommendedDuration": "Рекомендуемая длительность",
+      "days": "дн.",
+      "stoppingConditions": "Условия остановки",
+      "openQuestions": "Открытые вопросы"
+    },
+    "metricsPlan": {
+      "coverage": "Покрытие primary, secondary и guardrail-метрик",
+      "primary": "Primary",
+      "secondary": "Secondary",
+      "guardrail": "Guardrail",
+      "diagnostic": "Diagnostic",
+      "guardrailMetrics": "Гардайл-метрики",
+      "guardrailMetricsDescription": "Эти метрики отслеживаются, но не меняют расчёт основной выборки.",
+      "baseline": "Базовое значение"
+    },
+    "powerCurve": {
+      "title": "Кривая мощности",
+      "description": "Сравните цели по MDE с плановыми уровнями мощности и требуемым размером выборки.",
+      "loadingSensitivity": "Загрузка анализа чувствительности...",
+      "chartAriaLabel": "График кривой мощности, показывающий минимально детектируемый эффект относительно целевой мощности",
+      "loadingChart": "Загрузка графика..."
+    },
+    "risks": {
+      "statisticalAndOperational": "Статистические и операционные соображения",
+      "product": "Продуктовые",
+      "technical": "Технические",
+      "recommendations": "Рекомендации",
+      "beforeLaunch": "До запуска",
+      "duringTest": "Во время теста",
+      "afterTest": "После теста"
+    },
+    "bayesian": {
+      "title": "Байесовский постериор",
+      "unavailable": "Входные данные для байесовского постериора недоступны для этого анализа.",
+      "targetSampleSize": "Целевой размер выборки:",
+      "perVariantAt": "на вариант при",
+      "credibilityAnd": "достоверности и",
+      "intervalHalfWidth": "полуширине интервала."
+    },
+    "sequentialDesign": {
+      "unavailable": "Для текущего анализа не настроены последовательные границы.",
+      "title": "Последовательный дизайн групп (O'Brien-Fleming)",
+      "adjustedSampleSize": "Скорректированный размер выборки:",
+      "perVariant": "на вариант",
+      "moreThanFixedHorizon": "больше, чем при фиксированном горизонте",
+      "columns": {
+        "look": "Этап",
+        "infoFraction": "Доля информации",
+        "cumulativeAlphaSpent": "Накопленная трата α",
+        "zBoundary": "Граница Z",
+        "stopIf": "Остановить, если |Z| ≥"
+      },
+      "footer": "Останавливайте тест досрочно на любом запланированном этапе, если наблюдаемая абсолютная Z-статистика пересекает границу. Иначе переходите к следующему анализу."
+    },
+    "warnings": {
+      "noneTitle": "Правила предупреждений не сработали.",
+      "noneDescription": "Эвристический слой не обнаружил проблем с длительностью, трафиком или загрязнением эксперимента."
+    },
+    "srmCheck": {
+      "title": "Трафик распределился по плану?",
+      "description": "Введите наблюдаемые количества пользователей по вариантам, чтобы проверить несоответствие пропорций выборки. Красный результат означает, что назначение или трекинг могут быть сломаны.",
+      "actualUsersPlaceholder": "Фактические пользователи",
+      "checking": "Проверка...",
+      "checkButton": "Проверить SRM",
+      "detected": "SRM обнаружен",
+      "notDetected": "SRM не обнаружен",
+      "serviceUnavailable": "Проверка SRM недоступна.",
+      "chiSquare": "Хи-квадрат = {{chiSquare}}, p = {{pValue}}",
+      "expectedObserved": "Ожидалось: [{{expected}}] | Наблюдалось: [{{observed}}]"
+    },
+    "observedResults": {
+      "title": "Введите фактические результаты эксперимента",
+      "description": "После завершения эксперимента введите наблюдаемые данные, чтобы вычислить статистическую значимость по реальным исходам.",
+      "historicalReadOnly": "Исторические снапшоты доступны только для чтения. Вернитесь к живому черновику, чтобы сохранить наблюдаемые результаты.",
+      "saveProjectFirst": "Сначала сохраните проект, если хотите зафиксировать наблюдаемые результаты.",
+      "analyzeButton": "Проанализировать результаты",
+      "analyzing": "Анализ...",
+      "saveButton": "Сохранить в проект",
+      "saving": "Сохранение...",
+      "yes": "да",
+      "no": "нет",
+      "fields": {
+        "controlConversions": "Конверсии control",
+        "controlUsers": "Пользователи control",
+        "treatmentConversions": "Конверсии treatment",
+        "treatmentUsers": "Пользователи treatment",
+        "alpha": "Альфа",
+        "controlMean": "Среднее control",
+        "controlStdDev": "Std dev control",
+        "controlN": "N control",
+        "treatmentMean": "Среднее treatment",
+        "treatmentStdDev": "Std dev treatment",
+        "treatmentN": "N treatment"
+      },
+      "cards": {
+        "effect": "Эффект",
+        "ciLabel": "{{percent}}% ДИ",
+        "pValue": "p-value",
+        "testStatistic": "Статистика теста",
+        "relativeChange": "Относительное изменение",
+        "powerAchieved": "Достигнутая мощность",
+        "forestPlot": "Forest plot",
+        "observedSummary": "Сводка наблюдений",
+        "controlRate": "Частота control",
+        "treatmentRate": "Частота treatment",
+        "significant": "Значимо",
+        "verdict": "Вердикт"
+      },
+      "validation": {
+        "fillAllFields": "Перед анализом заполните все поля фактических результатов корректными значениями.",
+        "analysisUnavailable": "Анализ результатов недоступен.",
+        "analyzeBeforeSaving": "Проанализируйте результаты перед сохранением в проект.",
+        "saveUnavailable": "Не удалось сохранить наблюдаемые результаты.",
+        "savedToProject": "Наблюдаемые результаты сохранены в проект {{projectName}}."
+      }
+    },
+    "sensitivityOverview": {
+      "reportPill": "Отчёт",
+      "title": "Детерминированный дизайн эксперимента",
+      "export": "Экспорт",
+      "exportMenuAriaLabel": "Параметры экспорта отчёта",
+      "exportReportTitle": "Экспортировать отчёт (Ctrl+E)",
+      "exportMarkdown": "Экспорт Markdown",
+      "exportHtml": "Экспорт HTML",
+      "exportPdf": "Экспорт PDF",
+      "exportCsv": "CSV-данные",
+      "exportXlsx": "Книга Excel",
+      "exporting": "Экспорт...",
+      "exportFullReport": "Экспортировать полный отчёт",
+      "cards": {
+        "perVariant": "На вариант",
+        "sampleSizePerVariant": "размер выборки / вариант",
+        "powerMeta": "мощность {{power}}",
+        "bonferroni": "Бонферрони",
+        "totalSample": "Общая выборка",
+        "totalSampleSubtitle": "общий размер выборки",
+        "variantsMeta": "{{count}} вариантов",
+        "duration": "Длительность",
+        "durationValue": "{{days}} дн.",
+        "durationSubtitle": "оценка длительности",
+        "perDayMeta": "{{traffic}}/день",
+        "warnings": "Предупреждения",
+        "warningsSubtitle": "эвристические проверки"
+      },
+      "warningSeverity": {
+        "high": "{{count}} высокого уровня",
+        "medium": "{{count}} среднего уровня",
+        "low": "{{count}} низкого уровня",
+        "none": "Нет предупреждений"
+      },
+      "bayesianEstimate": {
+        "title": "Байесовская оценка",
+        "frequentist": "Частотный подход",
+        "bayesian": "Байесовский подход",
+        "usersPerVariant": "пользователей / вариант"
+      },
+      "cuped": {
+        "title": "Оценка с поправкой CUPED",
+        "without": "Без CUPED",
+        "with": "С CUPED",
+        "sampleSizeSavings": "-{{pct}}% размера выборки",
+        "durationChange": "Оценка длительности меняется с {{from}} до {{to}} дней.",
+        "adjustedStdDev": "Скорректированный std dev: {{value}}."
+      },
+      "sensitivityTable": {
+        "title": "Таблица чувствительности",
+        "description": "Матрица длительности по сценариям MDE и мощности, которые вернул бэкенд.",
+        "loading": "Загрузка таблицы чувствительности..."
+      },
+      "sampleSizeBreakdown": {
+        "title": "Разбивка размера выборки",
+        "description": "Требование по выборке на вариант с учётом настроенного распределения трафика."
+      },
+      "calculationSummary": {
+        "title": "Сводка расчёта",
+        "metricType": "Тип метрики",
+        "baselineValue": "Базовое значение",
+        "mdePct": "MDE %",
+        "mdeAbsolute": "Абсолютный MDE",
+        "alpha": "Альфа",
+        "power": "Мощность"
+      },
+      "assumptions": {
+        "title": "Допущения"
+      },
+      "projectHistoryContext": {
+        "title": "Контекст истории проекта",
+        "savedProject": "Сохранённый проект",
+        "revisionsCount": "{{count}} ревизий",
+        "lastSave": "последнее сохранение",
+        "notRecorded": "не зафиксировано",
+        "analysisRuns": "{{current}} из {{total}} запусков анализа",
+        "exportEvents": "{{current}} из {{total}} событий экспорта",
+        "latestAnalysisRun": "Последний запуск анализа",
+        "noSavedAnalysisRunYet": "Сохранённых запусков анализа пока нет",
+        "unknownMetric": "неизвестная метрика",
+        "warnings": "предупреждений",
+        "latestExport": "Последний экспорт",
+        "noExportEventYet": "Событий экспорта пока нет",
+        "linkedSnapshot": "связанный снапшот",
+        "unlinkedExport": "несвязанный экспорт"
+      }
+    },
+    "panel": {
+      "sensitivityUnavailableHistorical": "Анализ чувствительности недоступен для исторических снапшотов.",
+      "sensitivityUnavailableCurrentDraft": "Анализ чувствительности недоступен для текущего черновика.",
+      "sensitivityUnavailable": "Анализ чувствительности недоступен.",
+      "sensitivityUnavailableForConfiguration": "Анализ чувствительности недоступен для этой конфигурации.",
+      "backendReadOnly": "Бэкенд работает в режиме только для чтения.",
+      "runAnalysisBeforeExportingReport": "Запустите анализ перед экспортом отчёта.",
+      "saveProjectBeforePdf": "Сохраните проект и зафиксируйте снапшот анализа перед экспортом PDF.",
+      "runAnalysisBeforeExportingProjectData": "Запустите анализ перед экспортом данных проекта.",
+      "saveProjectBeforeProjectData": "Сохраните проект перед экспортом CSV или Excel.",
+      "runAnalysisBeforeStandaloneExport": "Запустите анализ перед экспортом полного отчёта.",
+      "standaloneExportFailed": "Не удалось экспортировать полный отчёт.",
+      "savedSnapshot": "Сохранённый снапшот",
+      "viewingHistoricalAnalysis": "Просмотр исторического анализа",
+      "openedSnapshotFrom": "Открыт снапшот от {{timestamp}}.",
+      "currentResultsAvailable": "Текущие результаты в памяти всё ещё доступны.",
+      "returnedToCurrentAnalysis": "Возврат к текущим результатам анализа в памяти.",
+      "closedSnapshotPreview": "Предпросмотр сохранённого снапшота закрыт.",
+      "showCurrentAnalysis": "Показать текущий анализ",
+      "closeSnapshotView": "Закрыть просмотр снапшота",
+      "analysisInProgress": "Анализ выполняется",
+      "preparingDeterministicResults": "Подготовка детерминированных результатов",
+      "updatingSections": "Обновляются метрики, графики и разделы отчёта.",
+      "accordion": {
+        "comparison": "Сравнение",
+        "sensitivity": "Чувствительность",
+        "powerCurve": "Кривая мощности",
+        "sequentialDesign": "Последовательный дизайн",
+        "bayesianPosterior": "Байесовский постериор",
+        "observedResults": "Наблюдаемые результаты",
+        "warningsAndRisks": "Предупреждения и риски",
+        "experimentDesign": "Дизайн эксперимента",
+        "metricsPlan": "План метрик",
+        "riskAssessment": "Оценка рисков",
+        "aiRecommendations": "AI-рекомендации",
+        "srmCheck": "Проверка SRM"
+      },
+      "badges": {
+        "loaded": "Загружено",
+        "sidebar": "Панель",
+        "pending": "В ожидании",
+        "planning": "Планирование",
+        "significant": "Значимо",
+        "review": "Проверить",
+        "postTest": "После теста",
+        "available": "Доступно",
+        "offline": "Оффлайн",
+        "manual": "Вручную"
+      },
+      "variantsCount_one": "{{count}} вариант",
+      "variantsCount_few": "{{count}} варианта",
+      "variantsCount_many": "{{count}} вариантов",
+      "variantsCount_other": "{{count}} варианта",
+      "cellsCount_one": "{{count}} ячейка",
+      "cellsCount_few": "{{count}} ячейки",
+      "cellsCount_many": "{{count}} ячеек",
+      "cellsCount_other": "{{count}} ячейки",
+      "looksCount_one": "{{count}} этап",
+      "looksCount_few": "{{count}} этапа",
+      "looksCount_many": "{{count}} этапов",
+      "looksCount_other": "{{count}} этапа",
+      "warningsCount_one": "{{count}} предупреждение",
+      "warningsCount_few": "{{count}} предупреждения",
+      "warningsCount_many": "{{count}} предупреждений",
+      "warningsCount_other": "{{count}} предупреждения",
+      "metricsCount_one": "{{count}} метрика",
+      "metricsCount_few": "{{count}} метрики",
+      "metricsCount_many": "{{count}} метрик",
+      "metricsCount_other": "{{count}} метрики",
+      "itemsCount_one": "{{count}} пункт",
+      "itemsCount_few": "{{count}} пункта",
+      "itemsCount_many": "{{count}} пунктов",
+      "itemsCount_other": "{{count}} пункта",
+      "credibilityInterval": "{{percent}}% интервал",
+      "noAnalysisYet": "Анализа ещё нет. Завершите wizard и сначала запустите детерминированный backend-поток."
+    }
+  },
+  "errors": {
+    "analysis_failed": "Не удалось выполнить анализ",
+    "save_failed": "Не удалось сохранить",
+    "load_failed": "Не удалось загрузить проект",
+    "backend_offline": "Бэкенд недоступен",
+    "storage_full": "Хранилище браузера переполнено — черновик не сохранён"
+  },
+  "toasts": {
+    "project_saved": "Проект сохранён",
+    "project_updated": "Проект обновлён",
+    "export_success": "Отчёт экспортирован",
+    "import_success": "Рабочее пространство импортировано — восстановлено проектов: {{count}}",
+    "example_loaded": "Пример загружен — нажмите «Запустить анализ», чтобы увидеть результаты"
+  },
+  "errorBoundary": {
+    "title": "Что-то пошло не так",
+    "description": "Этот раздел упал во время рендера. Попробуйте смонтировать его заново.",
+    "retry": "Повторить"
+  },
+  "chartErrorBoundary": {
+    "title": "График недоступен",
+    "description": "Рендер завершился ошибкой. Ниже показаны исходные данные для проверки."
+  },
+  "toastSystem": {
+    "dismissAriaLabel": "Закрыть уведомление",
+    "close": "Закрыть"
+  },
+  "chartExport": {
+    "groupAriaLabel": "Параметры экспорта графика",
+    "downloadSvgAriaLabel": "Скачать график как SVG",
+    "downloadPngAriaLabel": "Скачать график как PNG",
+    "svg": "SVG",
+    "png": "PNG",
+    "errors": {
+      "imageRenderFailed": "Не удалось отрендерить изображение графика.",
+      "canvasUnavailable": "Контекст Canvas 2D недоступен."
+    }
+  },
+  "inlineConfirmButton": {
+    "confirmLabel": "Точно?"
+  },
+  "wizardPanel": {
+    "dismiss": "Скрыть",
+    "aria": {
+      "importDraftFile": "Импортировать файл черновика",
+      "importWorkspaceFile": "Импортировать файл рабочего пространства",
+      "stepHasErrors": "На этом шаге есть ошибки"
+    },
+    "status": {
+      "startedNewDraft": "Начат новый локальный черновик.",
+      "draftExported": "Черновик экспортирован как JSON.",
+      "importedDraftFrom": "Черновик импортирован из {{fileName}}. Сохраните его, чтобы создать новую локальную запись проекта.",
+      "restoredBrowserDraft": "Восстановлен несохранённый черновик из браузера.",
+      "templateLoaded": "Шаблон {{templateName}} загружен в wizard.",
+      "draftNotSavedStorageFull": "Черновик не сохранён — хранилище браузера переполнено."
+    },
+    "errors": {
+      "unexpectedDraftImport": "Непредвиденная ошибка импорта черновика"
+    }
+  },
+  "projectListFilters": {
+    "legend": "Фильтры сохранённых проектов",
+    "searchLabel": "Поиск экспериментов",
+    "searchPlaceholder": "Фильтр по названию или гипотезе",
+    "statusLabel": "Статус",
+    "status": {
+      "active": "Активные",
+      "archived": "Архивные",
+      "all": "Все"
+    },
+    "metricTypeLabel": "Тип метрики",
+    "metricType": {
+      "all": "Все",
+      "binary": "Бинарная",
+      "continuous": "Непрерывная"
+    },
+    "sortLabel": "Сортировка",
+    "sort": {
+      "updated": "Последнее обновление",
+      "name": "Название",
+      "duration": "Длительность"
+    },
+    "clear": "Сбросить фильтры"
+  },
+  "shortcutHelp": {
+    "title": "Горячие клавиши",
+    "description": "Быстрая навигация и экспортные действия для wizard.",
+    "close": "Закрыть",
+    "columns": {
+      "shortcut": "Сочетание",
+      "action": "Действие"
+    },
+    "shortcuts": {
+      "openHelp": "Открыть справку по горячим клавишам",
+      "focusSearch": "Перейти к поиску сохранённых проектов",
+      "runAnalysis": "Запустить анализ",
+      "moveSteps": "Переключаться между шагами wizard",
+      "exportMarkdown": "Экспортировать markdown-отчёт",
+      "saveProject": "Сохранить проект",
+      "toggleTheme": "Переключить светлую/тёмную тему",
+      "closeDialog": "Закрыть этот диалог"
+    }
+  },
+  "templateGallery": {
+    "title": "Шаблоны экспериментов",
+    "description": "Начните с встроенной конфигурации и настройте поля wizard перед сохранением или запуском анализа.",
+    "close": "Закрыть",
+    "loading": "Загрузка шаблонов...",
+    "usageCount_one": "{{count}} использование",
+    "usageCount_few": "{{count}} использования",
+    "usageCount_many": "{{count}} использований",
+    "usageCount_other": "{{count}} использования",
+    "builtInTemplate": "Встроенный шаблон",
+    "savedTemplate": "Сохранённый шаблон",
+    "useTemplateAriaLabel": "Использовать шаблон {{name}}",
+    "applying": "Применение...",
+    "useTemplate": "Использовать шаблон",
+    "empty": "Для этой категории шаблоны не найдены.",
+    "categories": {
+      "All": "Все",
+      "Revenue": "Выручка",
+      "Engagement": "Вовлечение",
+      "Performance": "Производительность"
+    },
+    "errors": {
+      "libraryUnavailable": "Библиотека шаблонов недоступна.",
+      "applyFailed": "Не удалось применить шаблон."
+    }
+  },
+  "sidebarPanel": {
+    "common": {
+      "notRecordedYet": "Пока не зафиксировано",
+      "unknownMetric": "неизвестная метрика",
+      "daysShort": "{{value}} дн."
+    },
+    "tabs": {
+      "projects": "Проекты",
+      "system": "Система",
+      "apiKeys": "API-ключи"
+    },
+    "apiKeysFallback": {
+      "title": "API-ключи",
+      "loading": "Загрузка менеджера API-ключей..."
+    },
+    "backendStatus": {
+      "title": "Статус backend",
+      "description": "Живое состояние FastAPI-рантайма, который обслуживает расчёты, хранилище и опциональные AI-рекомендации.",
+      "checking": "Проверка...",
+      "refresh": "Обновить статус backend",
+      "online": "API в сети",
+      "unavailable": "API недоступен.",
+      "notLoaded": "Статус backend пока не загружен.",
+      "labels": {
+        "service": "Сервис",
+        "version": "Версия",
+        "environment": "Среда"
+      }
+    },
+    "apiSessionToken": {
+      "title": "Сессионный API-токен",
+      "description": "Необязательный токен, который хранится только в этой сессии браузера. Он не вшивается во frontend-сборку или Docker-образ.",
+      "label": "Сессионный токен",
+      "placeholderConfigured": "Токен сохранён в текущей сессии браузера",
+      "placeholderEmpty": "Вставьте токен только для чтения или записи",
+      "save": "Сохранить токен",
+      "clear": "Очистить токен",
+      "configured": "Токен настроен",
+      "notStored": "Токен не сохранён"
+    },
+    "adminToken": {
+      "title": "Админ-токен API-ключей",
+      "description": "Хранится только в текущей сессии браузера и используется только для запросов управления `/api/v1/keys`.",
+      "label": "Админ-токен",
+      "placeholderConfigured": "Админ-токен сохранён в текущей сессии браузера",
+      "placeholderEmpty": "Вставьте AB_ADMIN_TOKEN",
+      "save": "Сохранить админ-токен",
+      "clear": "Очистить админ-токен",
+      "configured": "Админ-доступ настроен",
+      "disabled": "Админ-доступ выключен"
+    },
+    "workspaceBackup": {
+      "title": "Резервная копия рабочего пространства",
+      "systemDescription": "Экспортируйте или импортируйте полное SQLite-рабочее пространство, включая сохранённые проекты, историю, экспорты и ревизии.",
+      "projectsDescription": "Экспортируйте или импортируйте полное SQLite-рабочее пространство, включая сохранённые проекты, историю анализа, события экспорта и сохранённые ревизии. Перед записью в SQLite импорт проходит проверку контрольной суммы, опциональной подписи и ссылочной целостности.",
+      "exporting": "Экспорт...",
+      "export": "Экспортировать workspace JSON",
+      "importing": "Импорт...",
+      "import": "Импортировать workspace JSON"
+    },
+    "quickArchive": {
+      "title": "Сохранённые проекты",
+      "archiveAriaLabel": "Архивировать {{projectName}}",
+      "archiving": "Архивация..."
+    },
+    "diagnostics": {
+      "title": "Диагностика рантайма",
+      "description": "Лёгкая наблюдаемость для хранилища, frontend-раздачи, настроек orchestrator и uptime.",
+      "refreshing": "Обновление...",
+      "refresh": "Обновить диагностику",
+      "online": "Диагностика доступна",
+      "unavailable": "Диагностика недоступна.",
+      "notLoaded": "Диагностика пока не загружена.",
+      "storageSummary": "проектов: {{projects}}, запусков анализа: {{analysisRuns}}, событий экспорта: {{exportEvents}}, ревизий: {{revisions}}",
+      "labels": {
+        "uptime": "Uptime",
+        "storage": "Хранилище",
+        "latestProjectUpdate": "Последнее обновление проекта",
+        "sqlitePath": "Путь к SQLite",
+        "sqliteParent": "Родительская папка SQLite",
+        "storageFootprint": "Размер хранилища",
+        "sqliteMode": "Режим SQLite",
+        "sqliteWriteProbe": "Проба записи SQLite",
+        "workspaceBackups": "Резервные копии workspace",
+        "frontendDist": "Frontend dist",
+        "timingHeaders": "Заголовки timing",
+        "llmAdapter": "LLM-адаптер",
+        "logging": "Логирование",
+        "runtimeCounters": "Счётчики рантайма",
+        "lastRuntimeError": "Последняя ошибка рантайма",
+        "apiAuth": "API-авторизация",
+        "authHeaders": "Заголовки авторизации",
+        "securityGuards": "Защитные ограничители",
+        "bodyLimits": "Лимиты тела запроса"
+      },
+      "values": {
+        "db": "db",
+        "freeDisk": "свободно на диске",
+        "userVersion": "user_version",
+        "busyTimeout": "busy timeout",
+        "pass": "ok",
+        "fail": "fail",
+        "hmacSigned": "подписано HMAC",
+        "checksumOnly": "только контрольная сумма",
+        "enabled": "включено",
+        "disabled": "выключено",
+        "present": "есть",
+        "missing": "отсутствует",
+        "timeout": "timeout",
+        "attempts": "попытки",
+        "requests": "запросов",
+        "ok": "ok",
+        "none": "нет",
+        "authRejects": "отклонено по auth",
+        "bodyRejects": "отклонено по body",
+        "writeToken": "токен записи",
+        "noWriteToken": "нет токена записи",
+        "readOnlyToken": "токен только для чтения",
+        "noReadOnlyToken": "нет токена только для чтения",
+        "readMethods": "read methods",
+        "headersOn": "заголовки включены",
+        "headersOff": "заголовки выключены",
+        "rateLimit": "rate limit",
+        "authThrottle": "auth throttle",
+        "general": "общий",
+        "workspace": "workspace"
+      }
+    },
+    "workspaceStatus": {
+      "title": "Сводка по workspace",
+      "description": "Краткая сводка о покрытии сохранённых проектов, глубине снимков и синхронизации текущего черновика.",
+      "savedCount_one": "сохранён {{count}}",
+      "savedCount_few": "сохранено {{count}}",
+      "savedCount_many": "сохранено {{count}}",
+      "savedCount_other": "сохранено {{count}}",
+      "withSnapshotsCount_one": "со снимком: {{count}}",
+      "withSnapshotsCount_few": "со снимками: {{count}}",
+      "withSnapshotsCount_many": "со снимками: {{count}}",
+      "withSnapshotsCount_other": "со снимками: {{count}}",
+      "draftChanged": "Черновик изменён",
+      "sqliteWritable": "SQLite доступен для записи",
+      "readOnlyApi": "API только для чтения",
+      "snapshotCoverage": "{{ready}} готово | без сохранённого анализа: {{withoutSavedAnalysis}}",
+      "exportCoverage_one": "экспортирован {{count}} раз",
+      "exportCoverage_few": "экспортировано {{count}} раза",
+      "exportCoverage_many": "экспортировано {{count}} раз",
+      "exportCoverage_other": "экспортировано {{count}} раза",
+      "revisionDepth_one": "{{count}} проект с более чем одной сохранённой ревизией",
+      "revisionDepth_few": "{{count}} проекта с более чем одной сохранённой ревизией",
+      "revisionDepth_many": "{{count}} проектов с более чем одной сохранённой ревизией",
+      "revisionDepth_other": "{{count}} проекта с более чем одной сохранённой ревизией",
+      "labels": {
+        "savedProjects": "Сохранённые проекты",
+        "archivedProjects": "Архивные проекты",
+        "snapshotCoverage": "Покрытие снимками",
+        "exportCoverage": "Покрытие экспортами",
+        "revisionDepth": "Глубина ревизий",
+        "currentDraft": "Текущий черновик",
+        "latestWorkspaceUpdate": "Последнее обновление workspace"
+      },
+      "currentDraft": {
+        "loadedProjectWithUnsavedChanges": "загружен проект с несохранёнными изменениями",
+        "loadedProjectInSync": "загруженный проект синхронизирован",
+        "newLocalDraft": "новый локальный черновик"
+      }
+    },
+    "auditLog": {
+      "title": "Аудит-лог",
+      "description": "Недавняя активность записи во всём workspace с опциональной фильтрацией по сохранённому проекту.",
+      "refreshing": "Обновление...",
+      "refresh": "Обновить аудит-лог",
+      "export": "Экспортировать audit CSV",
+      "projectFilter": "Фильтр по проекту",
+      "allProjects": "Все проекты",
+      "unavailable": "Аудит-лог недоступен.",
+      "loading": "Загрузка аудит-лога...",
+      "showingEntries_one": "Показана {{visible}} из {{total}} записи.",
+      "showingEntries_few": "Показано {{visible}} из {{total}} записей.",
+      "showingEntries_many": "Показано {{visible}} из {{total}} записей.",
+      "showingEntries_other": "Показано {{visible}} из {{total}} записей.",
+      "workspace": "Workspace",
+      "unknownActor": "неизвестно",
+      "noEntries": "Записей аудита пока нет.",
+      "columns": {
+        "time": "Время",
+        "action": "Действие",
+        "project": "Проект",
+        "actor": "Источник"
+      }
+    },
+    "activeProject": {
+      "title": "Активный проект",
+      "unsavedChanges": "Есть несохранённые изменения",
+      "savedLocally": "Сохранён локально",
+      "unknownProject": "Неизвестный проект",
+      "statusNeedsLocalUpdate": "Требуется локальное обновление",
+      "statusInSync": "Синхронизирован с SQLite",
+      "empty": "Сохранённый проект не загружен. Вы всё равно можете работать в локальном черновике и сохранить его, когда будете готовы.",
+      "labels": {
+        "projectName": "Название проекта",
+        "projectId": "ID проекта",
+        "status": "Статус",
+        "payloadSchema": "Схема payload",
+        "savedRevisions": "Сохранённые ревизии",
+        "lastSave": "Последнее сохранение",
+        "lastAnalysis": "Последний анализ",
+        "lastExport": "Последний экспорт",
+        "snapshotStored": "Снимок сохранён"
+      }
+    },
+    "projectHistory": {
+      "title": "Недавняя история проекта",
+      "description": "Таймлайн сохранённых запусков анализа и событий экспорта для загруженного проекта.",
+      "refreshing": "Обновление...",
+      "refresh": "Обновить историю проекта",
+      "empty": "Загрузите сохранённый проект, чтобы просмотреть недавние запуски анализа и события экспорта.",
+      "unavailable": "История проекта недоступна.",
+      "loading": "Загрузка истории сохранённого проекта...",
+      "summary": "Показано {{analysisVisible}} из {{analysisTotal}} запусков анализа и {{exportVisible}} из {{exportTotal}} событий экспорта.",
+      "closeOpenedSnapshot": "Закрыть открытый снимок",
+      "analysisRunsTitle": "Запуски анализа",
+      "warningsCount_one": "{{count}} предупреждение",
+      "warningsCount_few": "{{count}} предупреждения",
+      "warningsCount_many": "{{count}} предупреждений",
+      "warningsCount_other": "{{count}} предупреждения",
+      "aiAdvice": "AI-рекомендации",
+      "opened": "Открыто",
+      "openSnapshot": "Открыть снимок",
+      "viewing": "Просмотр",
+      "noAnalysisHistory": "Истории анализа пока нет.",
+      "loadOlderAnalysisRuns": "Загрузить более ранние запуски анализа",
+      "exportEventsTitle": "События экспорта",
+      "linkedSnapshot": "связанный снимок",
+      "unlinkedExport": "экспорт без привязки",
+      "noExportHistory": "Истории экспорта пока нет.",
+      "loadOlderExportEvents": "Загрузить более ранние события экспорта",
+      "notLoaded": "История проекта пока не загружена."
+    },
+    "revisions": {
+      "title": "Сохранённые ревизии",
+      "description": "Снимки payload, сохранённые при создании, обновлении и импорте workspace. Загрузка ревизии оставляет текущий проект выбранным, но помечает форму как изменённую до следующего сохранения.",
+      "refreshing": "Обновление...",
+      "refresh": "Обновить ревизии",
+      "empty": "Загрузите сохранённый проект, чтобы просмотреть или восстановить более ранние ревизии payload.",
+      "unavailable": "Ревизии проекта недоступны.",
+      "loading": "Загрузка сохранённых ревизий...",
+      "summary": "Показано {{visible}} из {{total}} ревизий.",
+      "loadIntoWizard": "Загрузить в форму",
+      "noEntries": "Сохранённых ревизий пока нет.",
+      "loadOlder": "Загрузить более ранние ревизии",
+      "notLoaded": "Ревизии проекта пока не загружены.",
+      "sources": {
+        "importedWorkspaceSnapshot": "Импортированный снимок workspace",
+        "projectUpdate": "Обновление проекта",
+        "initialSave": "Первое сохранение"
+      }
+    },
+    "savedProjects": {
+      "title": "Сохранённые проекты",
+      "description": "Загружайте, сравнивайте и архивируйте черновики из локального workspace, хранящиеся в SQLite.",
+      "loading": "Загрузка...",
+      "load": "Загрузить сохранённые проекты",
+      "savedCount_one": "сохранён {{count}}",
+      "savedCount_few": "сохранено {{count}}",
+      "savedCount_many": "сохранено {{count}}",
+      "savedCount_other": "сохранено {{count}}",
+      "withoutSavedAnalysisCount_one": "без сохранённого анализа: {{count}}",
+      "withoutSavedAnalysisCount_few": "без сохранённого анализа: {{count}}",
+      "withoutSavedAnalysisCount_many": "без сохранённого анализа: {{count}}",
+      "withoutSavedAnalysisCount_other": "без сохранённого анализа: {{count}}",
+      "shownExperiments_one": "Показан {{count}} эксперимент.",
+      "shownExperiments_few": "Показано {{count}} эксперимента.",
+      "shownExperiments_many": "Показано {{count}} экспериментов.",
+      "shownExperiments_other": "Показано {{count}} эксперимента.",
+      "compareDescription": "Кнопки сравнения используют открытый снимок для загруженного проекта, если он выбран; иначе берётся последний сохранённый снимок.",
+      "currentComparison": "Текущее сравнение: {{baseProject}} vs {{candidateProject}}.",
+      "comparisonUnavailable": "Сравнение проектов недоступно.",
+      "compareRequiresSnapshot": "Сохраните хотя бы один снимок анализа, прежде чем сравнивать сохранённые проекты.",
+      "updatedAt": "Обновлён {{timestamp}}",
+      "savedAt": "Сохранён {{timestamp}}",
+      "analyzedAt": "Проанализирован {{timestamp}}",
+      "revisionsCount_one": "Ревизия {{count}}",
+      "revisionsCount_few": "Ревизии {{count}}",
+      "revisionsCount_many": "Ревизий {{count}}",
+      "revisionsCount_other": "Ревизии {{count}}",
+      "exportedAt": "Экспортирован {{timestamp}}",
+      "noExportsYet": "Экспортов пока нет",
+      "loadedInWizard": "Загружен в форму",
+      "archiveAriaLabel": "Архивировать {{projectName}}",
+      "deleteAriaLabel": "Удалить {{projectName}}",
+      "noMatches": "Ни один эксперимент не совпадает с фильтрами.",
+      "empty": "Сохранённых проектов нет.",
+      "badges": {
+        "loaded": "Загружен",
+        "snapshot": "Снимок",
+        "archived": "В архиве"
+      },
+      "actions": {
+        "comparing": "Сравнение...",
+        "compare": "Сравнить",
+        "restoring": "Восстановление...",
+        "restore": "Восстановить",
+        "archive": "В архив",
+        "delete": "Удалить"
+      }
+    },
+    "archivedProjects": {
+      "title": "Архивные проекты",
+      "description": "Архивные проекты остаются здесь, пока их не восстановят.",
+      "archivedAt": "Архивирован {{timestamp}}",
+      "lastAnalysisAt": "Последний анализ {{timestamp}}",
+      "empty": "Архивных проектов нет."
+    },
+    "backendEndpoints": {
+      "title": "Backend-endpoints"
+    },
+    "status": {
+      "readOnlyMode": "Backend работает в режиме только для чтения.",
+      "auditExported": "Аудит-лог экспортирован в CSV.",
+      "auditExportFailed": "Не удалось экспортировать аудит.",
+      "returnedToCurrentResults": "Вы вернулись к текущим результатам из памяти.",
+      "closedSnapshotPreview": "Просмотр сохранённого снимка закрыт.",
+      "openedSnapshotFromHistory": "Открыт сохранённый снимок анализа из истории проекта.",
+      "loadedProjectIntoWizard": "Проект {{projectName}} загружен в форму.",
+      "projectArchivedCurrentDraft": "Проект {{projectName}} архивирован. Текущая форма осталась как новый локальный черновик.",
+      "projectArchived": "Проект {{projectName}} архивирован.",
+      "projectRestored": "Проект {{projectName}} восстановлен из архива.",
+      "projectDeletedCurrentDraft": "Проект {{projectName}} удалён навсегда. Текущая форма осталась как новый локальный черновик.",
+      "projectDeleted": "Проект {{projectName}} удалён навсегда.",
+      "verifyingAdminToken": "Проверка админ-токена для управления API-ключами...",
+      "adminTokenAccepted": "Админ-токен принят для управления API-ключами в этой сессии браузера.",
+      "adminTokenVerificationFailed": "Не удалось проверить админ-токен.",
+      "adminTokenCleared": "Админ-токен удалён из этой сессии браузера."
+    }
+  }
+}

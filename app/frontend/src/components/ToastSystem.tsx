@@ -1,4 +1,5 @@
 import type { Toast } from "../hooks/useToast";
+import { t } from "../i18n";
 import Icon from "./Icon";
 import styles from "./ToastSystem.module.css";
 
@@ -37,10 +38,10 @@ export default function ToastSystem({ toasts, onDismiss }: ToastSystemProps) {
           <button
             type="button"
             className={styles["toast-close"]}
-            aria-label="Dismiss toast"
+            aria-label={t("toastSystem.dismissAriaLabel")}
             onClick={() => onDismiss(toast.id)}
           >
-            Close
+            {t("toastSystem.close")}
           </button>
         </div>
       ))}

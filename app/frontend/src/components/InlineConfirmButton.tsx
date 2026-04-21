@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
+import { t } from "../i18n";
 import styles from "./InlineConfirmButton.module.css";
 
 type InlineConfirmButtonProps = {
@@ -15,7 +16,7 @@ type InlineConfirmButtonProps = {
 export default function InlineConfirmButton({
   onConfirm,
   label,
-  confirmLabel = "Sure?",
+  confirmLabel = t("inlineConfirmButton.confirmLabel"),
   countdownSeconds = 3,
   variant = "danger",
   ariaLabel,

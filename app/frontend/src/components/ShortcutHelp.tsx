@@ -1,24 +1,25 @@
 import { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 
 type ShortcutHelpProps = {
   onClose: () => void;
 };
 
-const shortcuts = [
-  ["?", "Open keyboard shortcut help"],
-  ["/", "Focus saved project search"],
-  ["Ctrl+Enter", "Run analysis"],
-  ["ArrowLeft / ArrowRight", "Move between wizard steps"],
-  ["Ctrl+E", "Export markdown report"],
-  ["Ctrl+S", "Save project"],
-  ["Ctrl+Shift+D", "Toggle light/dark theme"],
-  ["Esc", "Close this dialog"],
-] as const;
-
 export default function ShortcutHelp({ onClose }: ShortcutHelpProps) {
+  const { t } = useTranslation();
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
+  const shortcuts = [
+    ["?", t("shortcutHelp.shortcuts.openHelp")],
+    ["/", t("shortcutHelp.shortcuts.focusSearch")],
+    ["Ctrl+Enter", t("shortcutHelp.shortcuts.runAnalysis")],
+    ["ArrowLeft / ArrowRight", t("shortcutHelp.shortcuts.moveSteps")],
+    ["Ctrl+E", t("shortcutHelp.shortcuts.exportMarkdown")],
+    ["Ctrl+S", t("shortcutHelp.shortcuts.saveProject")],
+    ["Ctrl+Shift+D", t("shortcutHelp.shortcuts.toggleTheme")],
+    ["Esc", t("shortcutHelp.shortcuts.closeDialog")],
+  ] as const;
 
   useEffect(() => {
     previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -106,20 +107,20 @@ export default function ShortcutHelp({ onClose }: ShortcutHelpProps) {
       >
         <div className="actions" style={{ justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
           <div>
-            <h2 id="shortcut-help-title" style={{ margin: 0 }}>Keyboard shortcuts</h2>
+            <h2 id="shortcut-help-title" style={{ margin: 0 }}>{t("shortcutHelp.title")}</h2>
             <p className="muted" style={{ margin: "8px 0 0" }}>
-              Faster navigation and export actions for the wizard.
+              {t("shortcutHelp.description")}
             </p>
           </div>
           <button ref={closeButtonRef} type="button" className="btn secondary" onClick={onClose}>
-            Close
+            {t("shortcutHelp.close")}
           </button>
         </div>
         <table>
           <thead>
             <tr>
-              <th>Shortcut</th>
-              <th>Action</th>
+              <th>{t("shortcutHelp.columns.shortcut")}</th>
+              <th>{t("shortcutHelp.columns.action")}</th>
             </tr>
           </thead>
           <tbody>

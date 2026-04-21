@@ -10,7 +10,7 @@ from app.backend.app.services.template_service import sync_built_in_templates
 
 
 def create_templates_router(settings, repository, rate_limiter, require_auth, require_write_auth) -> APIRouter:
-    router = APIRouter()
+    router = APIRouter(tags=["templates"])
 
     def ensure_templates_seeded() -> None:
         sync_built_in_templates(repository)

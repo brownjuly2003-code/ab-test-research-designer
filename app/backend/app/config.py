@@ -31,6 +31,7 @@ class Settings:
     log_format: str
     api_token: str | None
     readonly_api_token: str | None
+    admin_token: str | None
     workspace_signing_key: str | None
     rate_limit_enabled: bool
     rate_limit_requests: int
@@ -123,6 +124,8 @@ def _validate_settings(settings: Settings) -> Settings:
         raise ValueError("AB_API_TOKEN must be at least 8 characters when configured")
     if settings.readonly_api_token is not None and len(settings.readonly_api_token.strip()) < 8:
         raise ValueError("AB_READONLY_API_TOKEN must be at least 8 characters when configured")
+    if settings.admin_token is not None and len(settings.admin_token.strip()) < 8:
+        raise ValueError("AB_ADMIN_TOKEN must be at least 8 characters when configured")
     if settings.workspace_signing_key is not None and len(settings.workspace_signing_key.strip()) < 16:
         raise ValueError("AB_WORKSPACE_SIGNING_KEY must be at least 16 characters when configured")
     if settings.rate_limit_requests < 1:
@@ -172,6 +175,7 @@ def get_settings() -> Settings:
         log_format=os.getenv("AB_LOG_FORMAT", "plain").strip().lower(),
         api_token=(os.getenv("AB_API_TOKEN") or "").strip() or None,
         readonly_api_token=(os.getenv("AB_READONLY_API_TOKEN") or "").strip() or None,
+        admin_token=(os.getenv("AB_ADMIN_TOKEN") or "").strip() or None,
         workspace_signing_key=(os.getenv("AB_WORKSPACE_SIGNING_KEY") or "").strip() or None,
         rate_limit_enabled=_read_bool_env("AB_RATE_LIMIT_ENABLED", True),
         rate_limit_requests=_read_int_env("AB_RATE_LIMIT_REQUESTS", 240),

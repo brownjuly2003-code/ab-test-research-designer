@@ -16,6 +16,14 @@ ROUTE_EXAMPLES = {
     "/health": 'curl http://127.0.0.1:8008/health',
     "/readyz": 'curl http://127.0.0.1:8008/readyz',
     "/api/v1/diagnostics": 'curl http://127.0.0.1:8008/api/v1/diagnostics',
+    "/api/v1/audit": (
+        'curl "http://127.0.0.1:8008/api/v1/audit?action=api_key_used" ^\n'
+        '  -H "X-API-Key: YOUR_READ_OR_WRITE_KEY"'
+    ),
+    "/api/v1/audit/export": (
+        'curl "http://127.0.0.1:8008/api/v1/audit/export?action=api_key_created" ^\n'
+        '  -H "X-API-Key: YOUR_WRITE_KEY"'
+    ),
     "/api/v1/calculate": (
         'curl -X POST http://127.0.0.1:8008/api/v1/calculate ^\n'
         '  -H "Content-Type: application/json" ^\n'
@@ -35,6 +43,24 @@ ROUTE_EXAMPLES = {
     ),
     "/api/v1/projects/compare": (
         'curl "http://127.0.0.1:8008/api/v1/projects/compare?base_id=BASE&candidate_id=CANDIDATE"'
+    ),
+    ("GET", "/api/v1/keys"): (
+        'curl http://127.0.0.1:8008/api/v1/keys ^\n'
+        '  -H "Authorization: Bearer YOUR_AB_ADMIN_TOKEN"'
+    ),
+    ("POST", "/api/v1/keys"): (
+        'curl -X POST http://127.0.0.1:8008/api/v1/keys ^\n'
+        '  -H "Authorization: Bearer YOUR_AB_ADMIN_TOKEN" ^\n'
+        '  -H "Content-Type: application/json" ^\n'
+        '  -d "{\\"name\\":\\"Partner read key\\",\\"scope\\":\\"read\\",\\"rate_limit_requests\\":60,\\"rate_limit_window_seconds\\":60}"'
+    ),
+    ("DELETE", "/api/v1/keys/{api_key_id}"): (
+        'curl -X DELETE http://127.0.0.1:8008/api/v1/keys/KEY_ID ^\n'
+        '  -H "Authorization: Bearer YOUR_AB_ADMIN_TOKEN"'
+    ),
+    ("POST", "/api/v1/keys/{api_key_id}/revoke"): (
+        'curl -X POST http://127.0.0.1:8008/api/v1/keys/KEY_ID/revoke ^\n'
+        '  -H "Authorization: Bearer YOUR_AB_ADMIN_TOKEN"'
     ),
     "/api/v1/workspace/export": 'curl http://127.0.0.1:8008/api/v1/workspace/export',
     "/api/v1/workspace/validate": (
@@ -61,7 +87,9 @@ SECTION_ORDER = [
     "Health",
     "Readiness",
     "Diagnostics",
+    "Audit",
     "Deterministic analysis",
+    "Keys",
     "Project storage",
     "Project activity",
     "Comparison",
@@ -78,8 +106,12 @@ def classify_route(path: str) -> str:
         return "Readiness"
     if path == "/api/v1/diagnostics":
         return "Diagnostics"
+    if path in {"/api/v1/audit", "/api/v1/audit/export"}:
+        return "Audit"
     if path in {"/api/v1/calculate", "/api/v1/design", "/api/v1/analyze", "/api/v1/llm/advice"}:
         return "Deterministic analysis"
+    if path in {"/api/v1/keys", "/api/v1/keys/{api_key_id}", "/api/v1/keys/{api_key_id}/revoke"}:
+        return "Keys"
     if path in {"/api/v1/projects", "/api/v1/projects/{project_id}"}:
         return "Project storage"
     if path in {
@@ -109,7 +141,7 @@ def render_route_block(path: str, method: str, operation: dict) -> list[str]:
     if isinstance(description, str) and description.strip():
         lines.append(description.strip())
         lines.append("")
-    example = ROUTE_EXAMPLES.get(path)
+    example = ROUTE_EXAMPLES.get((method.upper(), path), ROUTE_EXAMPLES.get(path))
     if example:
         lines.append("```bash")
         lines.append(example)
@@ -160,8 +192,12 @@ def generate_api_markdown() -> str:
             "- `traffic_split` length must match `variants_count`",
             "- malformed request bodies return `422`",
             "- domain errors return structured `400`",
-            "- when `AB_API_TOKEN` or `AB_READONLY_API_TOKEN` is configured, `/api/v1/*`, `/readyz`, `/docs`, `/openapi.json`, and `/redoc` require `Authorization: Bearer` or `X-API-Key`",
+            "- when `AB_API_TOKEN`, `AB_READONLY_API_TOKEN`, or database-backed API keys are configured, protected runtime routes still accept `Authorization: Bearer` or `X-API-Key`",
+            "- `/docs`, `/redoc`, and `/openapi.json` remain public even when auth is enabled; only protected API routes and `/readyz` require a token",
             "- `AB_READONLY_API_TOKEN` is valid only for `GET`, `HEAD`, and `OPTIONS`; mutating routes still require `AB_API_TOKEN`",
+            "- `/api/v1/keys*` requires `AB_ADMIN_TOKEN`; without it the key-management endpoints return `401`",
+            "- database-backed API keys are stored as SHA-256 hashes, the plaintext secret is returned only once at creation time, and revoked keys are rejected",
+            "- per-key rate-limit overrides apply only to requests authenticated with a database API key; legacy shared tokens continue to use the global limiter",
             "- all API responses include `X-Request-ID` and `X-Process-Time-Ms` headers",
             "- error responses also include `error_code`, `status_code`, `request_id`, and `X-Error-Code`",
             "- diagnostics expose in-memory runtime counters plus the active guardrail configuration for security headers, rate limiting, auth throttling, and request-body limits",

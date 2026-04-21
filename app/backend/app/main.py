@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 import logging
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
@@ -14,11 +14,13 @@ from app.backend.app.http_runtime import (
     register_http_runtime,
 )
 from app.backend.app.http_utils import SlidingWindowRateLimiter, get_auth_mode
+from app.backend.app.i18n import reset_current_language, resolve_language, set_current_language
 from app.backend.app.logging_utils import configure_logging, log_event
 from app.backend.app.repository import ProjectRepository
 from app.backend.app.routes.audit import create_audit_router
 from app.backend.app.routes import analysis as analysis_routes
 from app.backend.app.routes.export import create_export_router
+from app.backend.app.routes.keys import create_keys_router
 from app.backend.app.routes.projects import create_projects_router
 from app.backend.app.routes.system import create_system_router
 from app.backend.app.routes.templates import create_templates_router
@@ -49,7 +51,7 @@ def create_app() -> FastAPI:
         window_seconds=settings.auth_failure_window_seconds,
     )
     cors_headers = list(settings.cors_headers)
-    if settings.api_token or settings.readonly_api_token:
+    if settings.api_token or settings.readonly_api_token or settings.admin_token or repository.has_api_keys():
         for header_name in ("Authorization", "X-API-Key"):
             if header_name not in cors_headers:
                 cors_headers.append(header_name)
@@ -67,15 +69,37 @@ def create_app() -> FastAPI:
             sqlite_journal_mode=settings.sqlite_journal_mode,
             sqlite_synchronous=settings.sqlite_synchronous,
             log_format=settings.log_format,
-            auth_mode=get_auth_mode(settings.api_token, settings.readonly_api_token),
+            auth_mode=get_auth_mode(
+                settings.api_token,
+                settings.readonly_api_token,
+                repository.has_api_keys(),
+            ),
             workspace_signing_enabled=settings.workspace_signing_key is not None,
         )
         yield
 
     app = FastAPI(
-        title=settings.app_name,
+        title="AB Test Research Designer API",
         version=settings.app_version,
-        description="Local backend for A/B experiment planning.",
+        description=(
+            "Public API for deterministic A/B and multivariate experiment planning. "
+            "It combines calculations, project storage, audit history, export flows, "
+            "and optional local AI advice while preserving legacy shared-token access."
+        ),
+        contact={"name": "AB Test Research Designer", "email": "support@example.invalid"},
+        license_info={"name": "UNLICENSED"},
+        docs_url="/docs",
+        redoc_url="/redoc",
+        openapi_url="/openapi.json",
+        openapi_tags=[
+            {"name": "calculations", "description": "Deterministic experiment calculations and analysis."},
+            {"name": "projects", "description": "Saved project CRUD, history, and reports."},
+            {"name": "templates", "description": "Built-in and custom project templates."},
+            {"name": "audit", "description": "Audit log listing and export."},
+            {"name": "keys", "description": "Admin-only API key lifecycle management."},
+            {"name": "workspace", "description": "Workspace backup, restore, and export utilities."},
+            {"name": "system", "description": "Health, readiness, and runtime diagnostics."},
+        ],
         lifespan=lifespan,
     )
     app.add_middleware(
@@ -85,10 +109,23 @@ def create_app() -> FastAPI:
         allow_methods=list(settings.cors_methods),
         allow_headers=cors_headers,
     )
-    require_auth, require_write_auth = register_http_runtime(
+
+    @app.middleware("http")
+    async def add_request_language(request: Request, call_next):
+        language = resolve_language(request.headers.get("Accept-Language"))
+        request.state.language = language
+        language_token = set_current_language(language)
+        try:
+            response = await call_next(request)
+        finally:
+            reset_current_language(language_token)
+        return response
+
+    require_auth, require_write_auth, require_admin_auth = register_http_runtime(
         app,
         settings=settings,
         logger=logger,
+        repository=repository,
         request_rate_limiter=request_rate_limiter,
         auth_failure_limiter=auth_failure_limiter,
         runtime_counters=runtime_counters,
@@ -113,6 +150,7 @@ def create_app() -> FastAPI:
             require_write_auth,
         )
     )
+    app.include_router(create_keys_router(settings, repository, require_admin_auth))
     app.include_router(
         create_projects_router(
             settings,

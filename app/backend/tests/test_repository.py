@@ -117,6 +117,65 @@ def test_repository_backfills_legacy_analysis_snapshot_into_history() -> None:
     assert history["analysis_runs"][0]["summary"]["sample_size_per_variant"] == 100
 
 
+def test_repository_migrates_api_keys_table_and_audit_key_id_column() -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+
+    with sqlite3.connect(db_path) as connection:
+        connection.execute(
+            """
+            CREATE TABLE projects (
+                id TEXT PRIMARY KEY,
+                project_name TEXT NOT NULL,
+                payload_json TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE TABLE audit_log (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ts TEXT NOT NULL,
+                action TEXT NOT NULL,
+                project_id TEXT,
+                project_name TEXT,
+                actor TEXT,
+                request_id TEXT,
+                payload_diff TEXT,
+                ip_address TEXT
+            )
+            """
+        )
+
+    ProjectRepository(str(db_path))
+
+    with sqlite3.connect(db_path) as connection:
+        api_key_columns = {
+            row[1]
+            for row in connection.execute("PRAGMA table_info(api_keys)").fetchall()
+        }
+        audit_columns = {
+            row[1]
+            for row in connection.execute("PRAGMA table_info(audit_log)").fetchall()
+        }
+
+    assert api_key_columns == {
+        "id",
+        "name",
+        "key_hash",
+        "scope",
+        "created_at",
+        "last_used_at",
+        "revoked_at",
+        "rate_limit_requests",
+        "rate_limit_window_seconds",
+    }
+    assert "key_id" in audit_columns
+
+
 def test_repository_normalizes_legacy_guardrail_metric_strings_for_workspace_export() -> None:
     temp_dir = Path(__file__).resolve().parent / ".tmp"
     temp_dir.mkdir(exist_ok=True)

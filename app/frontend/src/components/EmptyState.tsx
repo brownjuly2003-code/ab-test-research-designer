@@ -1,3 +1,5 @@
+import { useTranslation } from "react-i18next";
+
 import Icon from "./Icon";
 import styles from "./EmptyState.module.css";
 
@@ -7,36 +9,36 @@ type EmptyStateProps = {
   onImportProject: () => void;
 };
 
-const actionCards = [
-  {
-    title: "New experiment",
-    description: "Start from scratch",
-    icon: "plus" as const,
-    accent: "rgba(15, 118, 110, 0.12)"
-  },
-  {
-    title: "Load example",
-    description: "See a filled experiment in 1 click",
-    icon: "activity" as const,
-    accent: "rgba(79, 70, 229, 0.12)"
-  },
-  {
-    title: "Import project",
-    description: "Restore from a workspace backup",
-    icon: "download" as const,
-    accent: "rgba(245, 158, 11, 0.14)"
-  }
-];
-
 export default function EmptyState({
   onNewExperiment,
   onLoadExample,
   onImportProject
 }: EmptyStateProps) {
+  const { t } = useTranslation();
   const actions = [onNewExperiment, onLoadExample, onImportProject];
+  const actionCards = [
+    {
+      title: t("empty_state.new_experiment"),
+      description: t("empty_state.descriptions.new_experiment"),
+      icon: "plus" as const,
+      accent: "rgba(15, 118, 110, 0.12)"
+    },
+    {
+      title: t("empty_state.load_example"),
+      description: t("empty_state.descriptions.load_example"),
+      icon: "activity" as const,
+      accent: "rgba(79, 70, 229, 0.12)"
+    },
+    {
+      title: t("empty_state.import_project"),
+      description: t("empty_state.descriptions.import_project"),
+      icon: "download" as const,
+      accent: "rgba(245, 158, 11, 0.14)"
+    }
+  ];
 
   return (
-    <section className={styles.root} aria-label="Onboarding">
+    <section className={styles.root} aria-label={t("empty_state.ariaLabel")}>
       <div
         style={{
           display: "grid",
@@ -55,13 +57,13 @@ export default function EmptyState({
           }}
         >
           <span className={styles.eyebrow} style={{ justifySelf: "center" }}>
-            Start here
+            {t("empty_state.eyebrow")}
           </span>
           <h2 style={{ margin: 0, fontSize: "clamp(30px, 5vw, 42px)", lineHeight: 0.95 }}>
-            Plan your A/B experiment
+            {t("empty_state.title")}
           </h2>
           <p className={styles.description} style={{ margin: 0, fontSize: 14 }}>
-            Deterministic calculations. Local-first. No cloud required.
+            {t("empty_state.subtitle")}
           </p>
         </div>
 

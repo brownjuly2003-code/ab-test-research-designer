@@ -4,7 +4,7 @@ from app.backend.app.schemas.api import AuditLogResponse
 
 
 def create_audit_router(settings, repository, rate_limiter, require_auth, require_write_auth) -> APIRouter:
-    router = APIRouter()
+    router = APIRouter(tags=["audit"])
 
     @router.get(
         "/api/v1/audit",
@@ -13,11 +13,12 @@ def create_audit_router(settings, repository, rate_limiter, require_auth, requir
     )
     def get_audit_log(
         project_id: str | None = Query(default=None),
+        key_id: str | None = Query(default=None),
         action: str | None = Query(default=None),
         limit: int = Query(default=500, ge=1, le=500),
     ) -> AuditLogResponse:
         return AuditLogResponse.model_validate(
-            repository.list_audit_entries(project_id=project_id, action=action, limit=limit)
+            repository.list_audit_entries(project_id=project_id, key_id=key_id, action=action, limit=limit)
         )
 
     @router.get(
@@ -26,9 +27,10 @@ def create_audit_router(settings, repository, rate_limiter, require_auth, requir
     )
     def export_audit_log(
         project_id: str | None = Query(default=None),
+        key_id: str | None = Query(default=None),
         action: str | None = Query(default=None),
     ) -> Response:
-        content = repository.export_audit_entries_csv(project_id=project_id, action=action)
+        content = repository.export_audit_entries_csv(project_id=project_id, key_id=key_id, action=action)
         return Response(
             content=content,
             media_type="text/csv",

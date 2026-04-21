@@ -1,6 +1,14 @@
-import { memo, useEffect, useRef, useState, type ChangeEvent } from "react";
+import { lazy, memo, Suspense, useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useTranslation } from "react-i18next";
 
-import { exportAuditLogRequest, listAuditLogRequest } from "../lib/api";
+import {
+  clearAdminSessionToken,
+  exportAuditLogRequest,
+  hasAdminSessionToken,
+  listApiKeysRequest,
+  listAuditLogRequest,
+  setAdminSessionToken
+} from "../lib/api";
 import { hydrateLoadedPayload, stepLabels, type AuditLogEntry } from "../lib/experiment";
 import type { ToastType } from "../hooks/useToast";
 import { useAnalysisStore } from "../stores/analysisStore";
@@ -26,8 +34,8 @@ function formatProjectTimestamp(timestamp: string): string {
   }).format(parsed);
 }
 
-function formatOptionalTimestamp(timestamp: string | null | undefined): string {
-  return timestamp ? formatProjectTimestamp(timestamp) : "Not recorded yet";
+function formatOptionalTimestamp(timestamp: string | null | undefined, emptyLabel: string): string {
+  return timestamp ? formatProjectTimestamp(timestamp) : emptyLabel;
 }
 
 function formatUptime(seconds: number): string {
@@ -67,11 +75,18 @@ function formatBytes(bytes: number): string {
   return `${value.toFixed(digits)} ${units[unitIndex]}`;
 }
 
-function formatRevisionSource(source: string): string {
-  if (source === "workspace_import") {
-    return "Imported workspace snapshot";
+function formatRevisionSource(
+  source: string,
+  labels: {
+    importedWorkspaceSnapshot: string;
+    projectUpdate: string;
+    initialSave: string;
   }
-  return source === "update" ? "Project update" : "Initial save";
+): string {
+  if (source === "workspace_import") {
+    return labels.importedWorkspaceSnapshot;
+  }
+  return source === "update" ? labels.projectUpdate : labels.initialSave;
 }
 
 function downloadBlob(blob: Blob, filename: string) {
@@ -83,7 +98,10 @@ function downloadBlob(blob: Blob, filename: string) {
   window.URL.revokeObjectURL(objectUrl);
 }
 
+const ApiKeyManager = lazy(() => import("./ApiKeyManager"));
+
 const SidebarPanel = memo(function SidebarPanel() {
+  const { t } = useTranslation();
   const analysis = useAnalysisStore();
   const draftStore = useDraftStore();
   const project = useProjectStore();
@@ -124,7 +142,7 @@ const SidebarPanel = memo(function SidebarPanel() {
     apiTokenConfigured,
     apiTokenStatus
   } = project;
-  const [activeTab, setActiveTab] = useState<"projects" | "system">("projects");
+  const [activeTab, setActiveTab] = useState<"projects" | "system" | "apiKeys">("projects");
   const [projectQuery, setProjectQuery] = useState("");
   const [projectStatus, setProjectStatus] = useState<"active" | "archived" | "all">("active");
   const [projectMetricType, setProjectMetricType] = useState<"all" | "binary" | "continuous">("all");
@@ -134,6 +152,9 @@ const SidebarPanel = memo(function SidebarPanel() {
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditError, setAuditError] = useState("");
   const [auditProjectId, setAuditProjectId] = useState("");
+  const [adminTokenDraft, setAdminTokenDraft] = useState("");
+  const [adminTokenConfigured, setAdminTokenConfigured] = useState(hasAdminSessionToken());
+  const [adminTokenStatus, setAdminTokenStatus] = useState("");
   const onRefreshHealth = () => void project.loadBackendHealth();
   const onRefreshDiagnostics = () => void project.loadBackendDiagnostics();
   const onApiTokenDraftChange = (value: string) => project.updateApiTokenDraft(value);
@@ -157,7 +178,7 @@ const SidebarPanel = memo(function SidebarPanel() {
       return false;
     }
     analysis.clearFeedback();
-    analysis.showError(backendMutationMessage || "Backend is running in read-only mode.", "warning");
+    analysis.showError(backendMutationMessage || t("sidebarPanel.status.readOnlyMode"), "warning");
     return true;
   }
 
@@ -171,7 +192,7 @@ const SidebarPanel = memo(function SidebarPanel() {
     } catch (error) {
       setAuditEntries([]);
       setAuditTotal(0);
-      setAuditError(error instanceof Error ? error.message : "Audit log unavailable.");
+      setAuditError(error instanceof Error ? error.message : t("sidebarPanel.auditLog.unavailable"));
     } finally {
       setAuditLoading(false);
     }
@@ -181,9 +202,9 @@ const SidebarPanel = memo(function SidebarPanel() {
     try {
       const { blob, filename } = await exportAuditLogRequest(auditProjectId ? { projectId: auditProjectId } : {});
       downloadBlob(blob, filename);
-      analysis.showStatus("Audit log exported as CSV.", "success");
+      analysis.showStatus(t("sidebarPanel.status.auditExported"), "success");
     } catch (error) {
-      analysis.showError(error instanceof Error ? error.message : "Audit export failed.", "error");
+      analysis.showError(error instanceof Error ? error.message : t("sidebarPanel.status.auditExportFailed"), "error");
     }
   }
 
@@ -205,8 +226,8 @@ const SidebarPanel = memo(function SidebarPanel() {
     analysis.clearFeedback();
     analysis.showStatus(
       analysis.results.report
-        ? "Returned to the current in-memory analysis results."
-        : "Closed the saved snapshot preview.",
+        ? t("sidebarPanel.status.returnedToCurrentResults")
+        : t("sidebarPanel.status.closedSnapshotPreview"),
       "info"
     );
   }
@@ -216,7 +237,7 @@ const SidebarPanel = memo(function SidebarPanel() {
       return;
     }
     analysis.clearFeedback();
-    analysis.showStatus("Opened a saved analysis snapshot from project history.", "info");
+    analysis.showStatus(t("sidebarPanel.status.openedSnapshotFromHistory"), "info");
     openWizard(stepLabels.length - 1);
   }
 
@@ -271,7 +292,10 @@ const SidebarPanel = memo(function SidebarPanel() {
     }
     draftStore.replaceDraft(hydrateLoadedPayload(loaded.payload), { markDirty: true });
     analysis.clearAnalysis();
-    analysis.showStatus(`Loaded project ${String(loaded.project_name)} into the wizard.`, "info");
+    analysis.showStatus(
+      t("sidebarPanel.status.loadedProjectIntoWizard", { projectName: String(loaded.project_name) }),
+      "info"
+    );
     openWizard();
   }
 
@@ -286,10 +310,10 @@ const SidebarPanel = memo(function SidebarPanel() {
     }
     if (result.deletedActive) {
       analysis.clearAnalysis();
-      analysis.showStatus(`Project ${projectName} archived. Current form remains as a new local draft.`, "success");
+      analysis.showStatus(t("sidebarPanel.status.projectArchivedCurrentDraft", { projectName }), "success");
       return;
     }
-    analysis.showStatus(`Project ${projectName} archived.`, "success");
+    analysis.showStatus(t("sidebarPanel.status.projectArchived", { projectName }), "success");
   }
 
   async function onRestoreProject(projectId: string, _projectName: string) {
@@ -301,7 +325,10 @@ const SidebarPanel = memo(function SidebarPanel() {
     if (useProjectStore.getState().activeProjectId === projectId) {
       draftStore.replaceDraft(hydrateLoadedPayload(restored.payload), { markDirty: true });
     }
-    analysis.showStatus(`Project ${String(restored.project_name)} restored from archive.`, "success");
+    analysis.showStatus(
+      t("sidebarPanel.status.projectRestored", { projectName: String(restored.project_name) }),
+      "success"
+    );
   }
 
   async function onPermanentlyDeleteProject(projectId: string, projectName: string) {
@@ -315,10 +342,10 @@ const SidebarPanel = memo(function SidebarPanel() {
     }
     if (result.deletedActive) {
       analysis.clearAnalysis();
-      analysis.showStatus(`Project ${projectName} deleted permanently. Current form remains as a new local draft.`, "success");
+      analysis.showStatus(t("sidebarPanel.status.projectDeletedCurrentDraft", { projectName }), "success");
       return;
     }
-    analysis.showStatus(`Project ${projectName} deleted permanently.`, "success");
+    analysis.showStatus(t("sidebarPanel.status.projectDeleted", { projectName }), "success");
   }
   const compareEnabled = Boolean(activeProjectId && activeProject?.has_analysis_snapshot);
   const filteredProjects = allSavedProjects
@@ -369,6 +396,26 @@ const SidebarPanel = memo(function SidebarPanel() {
   const hasMoreProjectRevisions = Boolean(
     projectRevisions && projectRevisions.revisions.length < projectRevisions.total
   );
+  const formatOptionalProjectTimestamp = (timestamp: string | null | undefined) =>
+    formatOptionalTimestamp(timestamp, t("sidebarPanel.common.notRecordedYet"));
+  const translateMetricType = (metricType: string | null | undefined) => {
+    if (!metricType) {
+      return t("sidebarPanel.common.unknownMetric");
+    }
+    if (metricType === "binary") {
+      return t("projectListFilters.metricType.binary");
+    }
+    if (metricType === "continuous") {
+      return t("projectListFilters.metricType.continuous");
+    }
+    return metricType;
+  };
+  const translateRevisionSource = (source: string) =>
+    formatRevisionSource(source, {
+      importedWorkspaceSnapshot: t("sidebarPanel.revisions.sources.importedWorkspaceSnapshot"),
+      projectUpdate: t("sidebarPanel.revisions.sources.projectUpdate"),
+      initialSave: t("sidebarPanel.revisions.sources.initialSave")
+    });
 
   useEffect(() => {
     if (activeTab !== "system") {
@@ -377,6 +424,42 @@ const SidebarPanel = memo(function SidebarPanel() {
     void loadAuditLog(auditProjectId);
   }, [activeTab, auditProjectId]);
 
+  useEffect(() => {
+    if (adminTokenConfigured || activeTab !== "apiKeys") {
+      return;
+    }
+    setActiveTab("system");
+  }, [activeTab, adminTokenConfigured]);
+
+  async function onSaveAdminToken() {
+    const normalizedToken = adminTokenDraft.trim();
+    if (!normalizedToken) {
+      return;
+    }
+
+    setAdminTokenStatus(t("sidebarPanel.status.verifyingAdminToken"));
+    setAdminSessionToken(normalizedToken);
+
+    try {
+      await listApiKeysRequest();
+      setAdminTokenConfigured(true);
+      setAdminTokenDraft("");
+      setAdminTokenStatus(t("sidebarPanel.status.adminTokenAccepted"));
+      setActiveTab("apiKeys");
+    } catch (error) {
+      clearAdminSessionToken();
+      setAdminTokenConfigured(false);
+      setAdminTokenStatus(error instanceof Error ? error.message : t("sidebarPanel.status.adminTokenVerificationFailed"));
+    }
+  }
+
+  function onClearAdminToken() {
+    clearAdminSessionToken();
+    setAdminTokenConfigured(false);
+    setAdminTokenDraft("");
+    setAdminTokenStatus(t("sidebarPanel.status.adminTokenCleared"));
+  }
+
   return (
     <aside className={`panel ${styles.sidebar}`}>
       <input
@@ -384,7 +467,7 @@ const SidebarPanel = memo(function SidebarPanel() {
         type="file"
         accept="application/json,.json"
         style={{ display: "none" }}
-        aria-label="Import workspace file"
+        aria-label={t("wizardPanel.aria.importWorkspaceFile")}
         onChange={handleWorkspaceImport}
       />
       <div
@@ -408,7 +491,7 @@ const SidebarPanel = memo(function SidebarPanel() {
           }}
           onClick={() => setActiveTab("projects")}
         >
-          Projects
+          {t("sidebarPanel.tabs.projects")}
         </button>
         <button
           type="button"
@@ -420,78 +503,109 @@ const SidebarPanel = memo(function SidebarPanel() {
           }}
           onClick={() => setActiveTab("system")}
         >
-          System
+          {t("sidebarPanel.tabs.system")}
         </button>
+        {adminTokenConfigured ? (
+          <button
+            type="button"
+            className="btn"
+            style={{
+              background: activeTab === "apiKeys" ? "var(--color-secondary)" : "transparent",
+              color: activeTab === "apiKeys" ? "#ffffff" : "var(--muted)",
+              boxShadow: activeTab === "apiKeys" ? "0 10px 24px rgba(79, 70, 229, 0.2)" : "none"
+            }}
+            onClick={() => setActiveTab("apiKeys")}
+          >
+            {t("sidebarPanel.tabs.apiKeys")}
+          </button>
+        ) : null}
       </div>
 
-      {activeTab === "system" ? (
+      {activeTab === "apiKeys" ? (
+        <Suspense
+          fallback={
+            <div className="card">
+              <h3>{t("sidebarPanel.apiKeysFallback.title")}</h3>
+              <p className="muted">{t("sidebarPanel.apiKeysFallback.loading")}</p>
+            </div>
+          }
+        >
+          <ApiKeyManager />
+        </Suspense>
+      ) : activeTab === "system" ? (
         <>
       <div className="card">
         <div className="section-heading">
           <div className={styles["status-heading"]}>
             <StatusDot online={Boolean(backendHealth)} />
             <div>
-              <h3>Backend status</h3>
+              <h3>{t("sidebarPanel.backendStatus.title")}</h3>
               <p className={`muted ${styles["compact-text"]}`}>
-                Live health for the FastAPI runtime that serves calculations, storage, and optional AI advice.
+                {t("sidebarPanel.backendStatus.description")}
               </p>
             </div>
           </div>
           <button className="btn ghost" disabled={loadingHealth} onClick={onRefreshHealth}>
-            {loadingHealth ? "Checking..." : "Refresh backend status"}
+            {loadingHealth ? t("sidebarPanel.backendStatus.checking") : t("sidebarPanel.backendStatus.refresh")}
           </button>
         </div>
         {backendHealth ? (
           <>
-            <span className="pill">API online</span>
+            <span className="pill">{t("sidebarPanel.backendStatus.online")}</span>
             <ul className="list">
               <li>
-                <strong>Service:</strong> {backendHealth.service}
+                <strong>{t("sidebarPanel.backendStatus.labels.service")}:</strong> {backendHealth.service}
               </li>
               <li>
-                <strong>Version:</strong> {backendHealth.version}
+                <strong>{t("sidebarPanel.backendStatus.labels.version")}:</strong> {backendHealth.version}
               </li>
               <li>
-                <strong>Environment:</strong> {backendHealth.environment}
+                <strong>{t("sidebarPanel.backendStatus.labels.environment")}:</strong> {backendHealth.environment}
               </li>
             </ul>
           </>
         ) : healthError ? (
-          <div className="status">API unavailable. {healthError}</div>
+          <div className="status">{t("sidebarPanel.backendStatus.unavailable")} {healthError}</div>
         ) : (
-          <p className="muted">No backend status loaded yet.</p>
+          <p className="muted">{t("sidebarPanel.backendStatus.notLoaded")}</p>
         )}
       </div>
 
       <div className="card">
         <div className="section-heading">
           <div>
-            <h3>API session token</h3>
+            <h3>{t("sidebarPanel.apiSessionToken.title")}</h3>
             <p className={`muted ${styles["compact-text"]}`}>
-              Optional token stored only in this browser session. It is not baked into the frontend build or Docker image.
+              {t("sidebarPanel.apiSessionToken.description")}
             </p>
           </div>
         </div>
         <div className="field">
-          <label htmlFor="api-session-token">Session token</label>
+          <label htmlFor="api-session-token">{t("sidebarPanel.apiSessionToken.label")}</label>
           <input
             id="api-session-token"
             type="password"
-            placeholder={apiTokenConfigured ? "Token stored in current browser session" : "Paste read-only or write token"}
+            placeholder={apiTokenConfigured
+              ? t("sidebarPanel.apiSessionToken.placeholderConfigured")
+              : t("sidebarPanel.apiSessionToken.placeholderEmpty")}
             value={apiTokenDraft}
             onChange={(event) => onApiTokenDraftChange(event.target.value)}
           />
         </div>
         <div className="actions">
           <button className="btn secondary" disabled={apiTokenDraft.trim().length === 0} onClick={onSaveApiToken}>
-            Save token
+            {t("sidebarPanel.apiSessionToken.save")}
           </button>
           <button className="btn ghost" disabled={!apiTokenConfigured && apiTokenDraft.trim().length === 0} onClick={onClearApiToken}>
-            Clear token
+            {t("sidebarPanel.apiSessionToken.clear")}
           </button>
         </div>
         <div className="actions">
-          <span className="pill">{apiTokenConfigured ? "Token configured" : "No token stored"}</span>
+          <span className="pill">
+            {apiTokenConfigured
+              ? t("sidebarPanel.apiSessionToken.configured")
+              : t("sidebarPanel.apiSessionToken.notStored")}
+          </span>
         </div>
         {apiTokenStatus ? <div className="status">{apiTokenStatus}</div> : null}
       </div>
@@ -499,25 +613,64 @@ const SidebarPanel = memo(function SidebarPanel() {
       <div className="card">
         <div className="section-heading">
           <div>
-            <h3>Workspace backup</h3>
+            <h3>{t("sidebarPanel.adminToken.title")}</h3>
             <p className={`muted ${styles["compact-text"]}`}>
-              Export or import the full SQLite workspace, including saved projects, history, exports, and revisions.
+              {t("sidebarPanel.adminToken.description")}
+            </p>
+          </div>
+        </div>
+        <div className="field">
+          <label htmlFor="api-admin-token">{t("sidebarPanel.adminToken.label")}</label>
+          <input
+            id="api-admin-token"
+            type="password"
+            placeholder={adminTokenConfigured
+              ? t("sidebarPanel.adminToken.placeholderConfigured")
+              : t("sidebarPanel.adminToken.placeholderEmpty")}
+            value={adminTokenDraft}
+            onChange={(event) => setAdminTokenDraft(event.target.value)}
+          />
+        </div>
+        <div className="actions">
+          <button className="btn secondary" disabled={adminTokenDraft.trim().length === 0} onClick={onSaveAdminToken}>
+            {t("sidebarPanel.adminToken.save")}
+          </button>
+          <button className="btn ghost" disabled={!adminTokenConfigured && adminTokenDraft.trim().length === 0} onClick={onClearAdminToken}>
+            {t("sidebarPanel.adminToken.clear")}
+          </button>
+        </div>
+        <div className="actions">
+          <span className="pill">
+            {adminTokenConfigured
+              ? t("sidebarPanel.adminToken.configured")
+              : t("sidebarPanel.adminToken.disabled")}
+          </span>
+        </div>
+        {adminTokenStatus ? <div className="status">{adminTokenStatus}</div> : null}
+      </div>
+
+      <div className="card">
+        <div className="section-heading">
+          <div>
+            <h3>{t("sidebarPanel.workspaceBackup.title")}</h3>
+            <p className={`muted ${styles["compact-text"]}`}>
+              {t("sidebarPanel.workspaceBackup.systemDescription")}
             </p>
           </div>
         </div>
         <div className="actions">
           <button className="btn ghost" disabled={exportingWorkspace} onClick={onExportWorkspace}>
-            {exportingWorkspace ? "Exporting..." : "Export workspace JSON"}
+            {exportingWorkspace ? t("sidebarPanel.workspaceBackup.exporting") : t("sidebarPanel.workspaceBackup.export")}
           </button>
           <button className="btn secondary" disabled={!canMutateBackend || importingWorkspace} onClick={onImportWorkspace}>
-            {importingWorkspace ? "Importing..." : "Import workspace JSON"}
+            {importingWorkspace ? t("sidebarPanel.workspaceBackup.importing") : t("sidebarPanel.workspaceBackup.import")}
           </button>
         </div>
       </div>
 
       {savedProjects.length > 0 ? (
         <div className="card">
-          <h3>Saved projects</h3>
+          <h3>{t("sidebarPanel.quickArchive.title")}</h3>
           <div className="actions">
             {savedProjects.map((project) => (
               deletingProjectId === project.id ? (
@@ -525,16 +678,16 @@ const SidebarPanel = memo(function SidebarPanel() {
                   key={project.id}
                   className="btn secondary"
                   disabled={true}
-                  aria-label={`Archive ${project.project_name}`}
+                  aria-label={t("sidebarPanel.quickArchive.archiveAriaLabel", { projectName: project.project_name })}
                 >
-                  Archiving...
+                  {t("sidebarPanel.quickArchive.archiving")}
                 </button>
               ) : (
                 <InlineConfirmButton
                   key={project.id}
-                  label="Archive"
+                  label={t("sidebarPanel.savedProjects.actions.archive")}
                   disabled={!canMutateBackend}
-                  ariaLabel={`Archive ${project.project_name}`}
+                  ariaLabel={t("sidebarPanel.quickArchive.archiveAriaLabel", { projectName: project.project_name })}
                   onConfirm={() => onDeleteProject(project.id, project.project_name)}
                 />
               )
@@ -546,86 +699,111 @@ const SidebarPanel = memo(function SidebarPanel() {
       <div className="card">
         <div className="section-heading">
           <div>
-            <h3>Runtime diagnostics</h3>
+            <h3>{t("sidebarPanel.diagnostics.title")}</h3>
             <p className={`muted ${styles["compact-text"]}`}>
-              Lightweight observability for storage, frontend serving, orchestrator settings, and uptime.
+              {t("sidebarPanel.diagnostics.description")}
             </p>
           </div>
           <button className="btn ghost" disabled={loadingDiagnostics} onClick={onRefreshDiagnostics}>
-            {loadingDiagnostics ? "Refreshing..." : "Refresh diagnostics"}
+            {loadingDiagnostics ? t("sidebarPanel.diagnostics.refreshing") : t("sidebarPanel.diagnostics.refresh")}
           </button>
         </div>
         {backendDiagnostics ? (
           <>
-            <span className="pill">Diagnostics online</span>
+            <span className="pill">{t("sidebarPanel.diagnostics.online")}</span>
             <ul className="list">
               <li>
-                <strong>Uptime:</strong> {formatUptime(backendDiagnostics.uptime_seconds)}
+                <strong>{t("sidebarPanel.diagnostics.labels.uptime")}:</strong> {formatUptime(backendDiagnostics.uptime_seconds)}
               </li>
               <li>
-                <strong>Storage:</strong> {String(backendDiagnostics.storage.projects_total)} projects,{" "}
-                {String(backendDiagnostics.storage.analysis_runs_total)} analysis runs,{" "}
-                {String(backendDiagnostics.storage.export_events_total)} export events,{" "}
-                {String(backendDiagnostics.storage.project_revisions_total)} revisions
+                <strong>{t("sidebarPanel.diagnostics.labels.storage")}:</strong>{" "}
+                {t("sidebarPanel.diagnostics.storageSummary", {
+                  projects: String(backendDiagnostics.storage.projects_total),
+                  analysisRuns: String(backendDiagnostics.storage.analysis_runs_total),
+                  exportEvents: String(backendDiagnostics.storage.export_events_total),
+                  revisions: String(backendDiagnostics.storage.project_revisions_total)
+                })}
               </li>
               <li>
-                <strong>Latest project update:</strong> {formatOptionalTimestamp(backendDiagnostics.storage.latest_project_updated_at)}
+                <strong>{t("sidebarPanel.diagnostics.labels.latestProjectUpdate")}:</strong>{" "}
+                {formatOptionalProjectTimestamp(backendDiagnostics.storage.latest_project_updated_at)}
               </li>
               <li>
-                <strong>SQLite path:</strong> <code>{backendDiagnostics.storage.db_path}</code>
+                <strong>{t("sidebarPanel.diagnostics.labels.sqlitePath")}:</strong> <code>{backendDiagnostics.storage.db_path}</code>
               </li>
               <li>
-                <strong>SQLite parent:</strong> <code>{backendDiagnostics.storage.db_parent_path}</code>
+                <strong>{t("sidebarPanel.diagnostics.labels.sqliteParent")}:</strong> <code>{backendDiagnostics.storage.db_parent_path}</code>
               </li>
               <li>
-                <strong>Storage footprint:</strong> db {formatBytes(backendDiagnostics.storage.db_size_bytes)}
-                {" | free disk "}
+                <strong>{t("sidebarPanel.diagnostics.labels.storageFootprint")}:</strong>{" "}
+                {t("sidebarPanel.diagnostics.values.db")} {formatBytes(backendDiagnostics.storage.db_size_bytes)}
+                {" | "}
+                {t("sidebarPanel.diagnostics.values.freeDisk")}{" "}
                 {formatBytes(backendDiagnostics.storage.disk_free_bytes)}
               </li>
               <li>
-                <strong>SQLite mode:</strong> schema v{String(backendDiagnostics.storage.schema_version)}
-                {" | user_version "}
+                <strong>{t("sidebarPanel.diagnostics.labels.sqliteMode")}:</strong> schema v{String(backendDiagnostics.storage.schema_version)}
+                {" | "}
+                {t("sidebarPanel.diagnostics.values.userVersion")}{" "}
                 {String(backendDiagnostics.storage.sqlite_user_version)}
                 {" | "}
                 {backendDiagnostics.storage.journal_mode}
                 {" | "}
                 {backendDiagnostics.storage.synchronous}
-                {" | busy timeout "}
+                {" | "}
+                {t("sidebarPanel.diagnostics.values.busyTimeout")}{" "}
                 {String(backendDiagnostics.storage.busy_timeout_ms)}ms
               </li>
               <li>
-                <strong>SQLite write probe:</strong> {backendDiagnostics.storage.write_probe_ok ? "pass" : "fail"}
+                <strong>{t("sidebarPanel.diagnostics.labels.sqliteWriteProbe")}:</strong>{" "}
+                {backendDiagnostics.storage.write_probe_ok
+                  ? t("sidebarPanel.diagnostics.values.pass")
+                  : t("sidebarPanel.diagnostics.values.fail")}
                 {" | "}
                 {backendDiagnostics.storage.write_probe_detail}
               </li>
               <li>
-                <strong>Workspace backups:</strong> schema v{String(backendDiagnostics.storage.workspace_bundle_schema_version)}
+                <strong>{t("sidebarPanel.diagnostics.labels.workspaceBackups")}:</strong> schema v{String(backendDiagnostics.storage.workspace_bundle_schema_version)}
                 {" | "}
-                {backendDiagnostics.storage.workspace_signature_enabled ? "HMAC signed" : "checksum only"}
+                {backendDiagnostics.storage.workspace_signature_enabled
+                  ? t("sidebarPanel.diagnostics.values.hmacSigned")
+                  : t("sidebarPanel.diagnostics.values.checksumOnly")}
               </li>
               <li>
-                <strong>Frontend dist:</strong> {backendDiagnostics.frontend.serve_frontend_dist ? "enabled" : "disabled"}
+                <strong>{t("sidebarPanel.diagnostics.labels.frontendDist")}:</strong>{" "}
+                {backendDiagnostics.frontend.serve_frontend_dist
+                  ? t("sidebarPanel.diagnostics.values.enabled")
+                  : t("sidebarPanel.diagnostics.values.disabled")}
                 {" | "}
-                {backendDiagnostics.frontend.dist_exists ? "present" : "missing"}
+                {backendDiagnostics.frontend.dist_exists
+                  ? t("sidebarPanel.diagnostics.values.present")
+                  : t("sidebarPanel.diagnostics.values.missing")}
               </li>
               <li>
-                <strong>Timing headers:</strong> {backendDiagnostics.request_timing_headers_enabled ? "enabled" : "disabled"}
+                <strong>{t("sidebarPanel.diagnostics.labels.timingHeaders")}:</strong>{" "}
+                {backendDiagnostics.request_timing_headers_enabled
+                  ? t("sidebarPanel.diagnostics.values.enabled")
+                  : t("sidebarPanel.diagnostics.values.disabled")}
               </li>
               <li>
-                <strong>LLM adapter:</strong> {backendDiagnostics.llm.provider}
-                {" | timeout "}
+                <strong>{t("sidebarPanel.diagnostics.labels.llmAdapter")}:</strong> {backendDiagnostics.llm.provider}
+                {" | "}
+                {t("sidebarPanel.diagnostics.values.timeout")}{" "}
                 {String(backendDiagnostics.llm.timeout_seconds)}s
-                {" | attempts "}
+                {" | "}
+                {t("sidebarPanel.diagnostics.values.attempts")}{" "}
                 {String(backendDiagnostics.llm.max_attempts)}
               </li>
               <li>
-                <strong>Logging:</strong> {backendDiagnostics.logging.level}
+                <strong>{t("sidebarPanel.diagnostics.labels.logging")}:</strong> {backendDiagnostics.logging.level}
                 {" | "}
                 {backendDiagnostics.logging.format}
               </li>
               <li>
-                <strong>Runtime counters:</strong> {String(backendDiagnostics.runtime.total_requests)} requests
-                {" | ok "}
+                <strong>{t("sidebarPanel.diagnostics.labels.runtimeCounters")}:</strong>{" "}
+                {String(backendDiagnostics.runtime.total_requests)} {t("sidebarPanel.diagnostics.values.requests")}
+                {" | "}
+                {t("sidebarPanel.diagnostics.values.ok")}{" "}
                 {String(backendDiagnostics.runtime.success_responses)}
                 {" | 4xx "}
                 {String(backendDiagnostics.runtime.client_error_responses)}
@@ -635,86 +813,112 @@ const SidebarPanel = memo(function SidebarPanel() {
                 {String(backendDiagnostics.runtime.rate_limited_responses)}
               </li>
               <li>
-                <strong>Last runtime error:</strong> {backendDiagnostics.runtime.last_error_code ?? "none"}
-                {" | auth rejects "}
+                <strong>{t("sidebarPanel.diagnostics.labels.lastRuntimeError")}:</strong>{" "}
+                {backendDiagnostics.runtime.last_error_code ?? t("sidebarPanel.diagnostics.values.none")}
+                {" | "}
+                {t("sidebarPanel.diagnostics.values.authRejects")}{" "}
                 {String(backendDiagnostics.runtime.auth_rejections)}
-                {" | body rejects "}
+                {" | "}
+                {t("sidebarPanel.diagnostics.values.bodyRejects")}{" "}
                 {String(backendDiagnostics.runtime.request_body_rejections)}
               </li>
               <li>
-                <strong>API auth:</strong> {backendDiagnostics.auth.enabled ? backendDiagnostics.auth.mode : "disabled"}
+                <strong>{t("sidebarPanel.diagnostics.labels.apiAuth")}:</strong>{" "}
+                {backendDiagnostics.auth.enabled ? backendDiagnostics.auth.mode : t("sidebarPanel.diagnostics.values.disabled")}
                 {" | "}
-                {backendDiagnostics.auth.write_enabled ? "write token" : "no write token"}
+                {backendDiagnostics.auth.write_enabled
+                  ? t("sidebarPanel.diagnostics.values.writeToken")
+                  : t("sidebarPanel.diagnostics.values.noWriteToken")}
                 {" | "}
-                {backendDiagnostics.auth.readonly_enabled ? "read-only token" : "no read-only token"}
+                {backendDiagnostics.auth.readonly_enabled
+                  ? t("sidebarPanel.diagnostics.values.readOnlyToken")
+                  : t("sidebarPanel.diagnostics.values.noReadOnlyToken")}
               </li>
               <li>
-                <strong>Auth headers:</strong> {backendDiagnostics.auth.accepted_headers.join(", ")}
-                {" | read methods "}
+                <strong>{t("sidebarPanel.diagnostics.labels.authHeaders")}:</strong> {backendDiagnostics.auth.accepted_headers.join(", ")}
+                {" | "}
+                {t("sidebarPanel.diagnostics.values.readMethods")}{" "}
                 {backendDiagnostics.auth.read_only_methods.join(", ")}
               </li>
               <li>
-                <strong>Security guards:</strong> {backendDiagnostics.guards.security_headers_enabled ? "headers on" : "headers off"}
-                {" | rate limit "}
+                <strong>{t("sidebarPanel.diagnostics.labels.securityGuards")}:</strong>{" "}
+                {backendDiagnostics.guards.security_headers_enabled
+                  ? t("sidebarPanel.diagnostics.values.headersOn")
+                  : t("sidebarPanel.diagnostics.values.headersOff")}
+                {" | "}
+                {t("sidebarPanel.diagnostics.values.rateLimit")}{" "}
                 {backendDiagnostics.guards.rate_limit_enabled
                   ? `${String(backendDiagnostics.guards.rate_limit_requests)}/${String(backendDiagnostics.guards.rate_limit_window_seconds)}s`
-                  : "disabled"}
-                {" | auth throttle "}
+                  : t("sidebarPanel.diagnostics.values.disabled")}
+                {" | "}
+                {t("sidebarPanel.diagnostics.values.authThrottle")}{" "}
                 {String(backendDiagnostics.guards.auth_failure_limit)}/{String(backendDiagnostics.guards.auth_failure_window_seconds)}s
               </li>
               <li>
-                <strong>Body limits:</strong> general {formatBytes(backendDiagnostics.guards.max_request_body_bytes)}
-                {" | workspace "}
+                <strong>{t("sidebarPanel.diagnostics.labels.bodyLimits")}:</strong>{" "}
+                {t("sidebarPanel.diagnostics.values.general")} {formatBytes(backendDiagnostics.guards.max_request_body_bytes)}
+                {" | "}
+                {t("sidebarPanel.diagnostics.values.workspace")}{" "}
                 {formatBytes(backendDiagnostics.guards.max_workspace_body_bytes)}
               </li>
             </ul>
           </>
         ) : diagnosticsError ? (
-          <div className="status">Diagnostics unavailable. {diagnosticsError}</div>
+          <div className="status">{t("sidebarPanel.diagnostics.unavailable")} {diagnosticsError}</div>
         ) : (
-          <p className="muted">No diagnostics loaded yet.</p>
+          <p className="muted">{t("sidebarPanel.diagnostics.notLoaded")}</p>
         )}
       </div>
 
       <div className="card">
         <div className="section-heading">
           <div>
-            <h3>Workspace status board</h3>
+            <h3>{t("sidebarPanel.workspaceStatus.title")}</h3>
             <p className={`muted ${styles["compact-text"]}`}>
-              One-glance summary of saved-project coverage, snapshot depth, and whether the current draft is in sync.
+              {t("sidebarPanel.workspaceStatus.description")}
             </p>
           </div>
         </div>
         <div className="actions">
-          <span className="pill">{savedProjectsTotal} saved</span>
-          <span className="pill">{projectsWithSnapshots} with snapshots</span>
-          {hasUnsavedChanges ? <span className="pill">Draft changed</span> : null}
-          {backendDiagnostics?.storage.write_probe_ok ? <span className="pill">SQLite writable</span> : null}
-          {!canMutateBackend ? <span className="pill">Read-only API</span> : null}
+          <span className="pill">{t("sidebarPanel.workspaceStatus.savedCount", { count: savedProjectsTotal })}</span>
+          <span className="pill">{t("sidebarPanel.workspaceStatus.withSnapshotsCount", { count: projectsWithSnapshots })}</span>
+          {hasUnsavedChanges ? <span className="pill">{t("sidebarPanel.workspaceStatus.draftChanged")}</span> : null}
+          {backendDiagnostics?.storage.write_probe_ok ? <span className="pill">{t("sidebarPanel.workspaceStatus.sqliteWritable")}</span> : null}
+          {!canMutateBackend ? <span className="pill">{t("sidebarPanel.workspaceStatus.readOnlyApi")}</span> : null}
         </div>
         <ul className="list">
           <li>
-            <strong>Saved projects:</strong> {String(savedProjectsTotal)}
+            <strong>{t("sidebarPanel.workspaceStatus.labels.savedProjects")}:</strong> {String(savedProjectsTotal)}
           </li>
           <li>
-            <strong>Archived projects:</strong> {String(archivedProjectsTotal)}
+            <strong>{t("sidebarPanel.workspaceStatus.labels.archivedProjects")}:</strong> {String(archivedProjectsTotal)}
           </li>
           <li>
-            <strong>Snapshot coverage:</strong> {String(projectsWithSnapshots)} ready
-            {" | "}
-            {String(projectsWithoutSnapshots)} without saved analysis
+            <strong>{t("sidebarPanel.workspaceStatus.labels.snapshotCoverage")}:</strong>{" "}
+            {t("sidebarPanel.workspaceStatus.snapshotCoverage", {
+              ready: String(projectsWithSnapshots),
+              withoutSavedAnalysis: String(projectsWithoutSnapshots)
+            })}
           </li>
           <li>
-            <strong>Export coverage:</strong> {String(projectsWithExports)} exported at least once
+            <strong>{t("sidebarPanel.workspaceStatus.labels.exportCoverage")}:</strong>{" "}
+            {t("sidebarPanel.workspaceStatus.exportCoverage", { count: projectsWithExports })}
           </li>
           <li>
-            <strong>Revision depth:</strong> {String(projectsWithMultipleRevisions)} project(s) with more than one saved revision
+            <strong>{t("sidebarPanel.workspaceStatus.labels.revisionDepth")}:</strong>{" "}
+            {t("sidebarPanel.workspaceStatus.revisionDepth", { count: projectsWithMultipleRevisions })}
           </li>
           <li>
-            <strong>Current draft:</strong> {activeProjectId ? (hasUnsavedChanges ? "loaded project with unsaved changes" : "loaded project in sync") : "new local draft"}
+            <strong>{t("sidebarPanel.workspaceStatus.labels.currentDraft")}:</strong>{" "}
+            {activeProjectId
+              ? (hasUnsavedChanges
+                ? t("sidebarPanel.workspaceStatus.currentDraft.loadedProjectWithUnsavedChanges")
+                : t("sidebarPanel.workspaceStatus.currentDraft.loadedProjectInSync"))
+              : t("sidebarPanel.workspaceStatus.currentDraft.newLocalDraft")}
           </li>
           <li>
-            <strong>Latest workspace update:</strong> {formatOptionalTimestamp(latestWorkspaceUpdate)}
+            <strong>{t("sidebarPanel.workspaceStatus.labels.latestWorkspaceUpdate")}:</strong>{" "}
+            {formatOptionalProjectTimestamp(latestWorkspaceUpdate)}
           </li>
         </ul>
         {!canMutateBackend ? (
@@ -728,28 +932,28 @@ const SidebarPanel = memo(function SidebarPanel() {
       <div className="card">
         <div className="section-heading">
           <div>
-            <h3>Audit log</h3>
+            <h3>{t("sidebarPanel.auditLog.title")}</h3>
             <p className={`muted ${styles["compact-text"]}`}>
-              Recent write activity across the workspace, with optional filtering by saved project.
+              {t("sidebarPanel.auditLog.description")}
             </p>
           </div>
           <div className="actions">
             <button className="btn ghost" disabled={auditLoading} onClick={() => void loadAuditLog(auditProjectId)}>
-              {auditLoading ? "Refreshing..." : "Refresh audit log"}
+              {auditLoading ? t("sidebarPanel.auditLog.refreshing") : t("sidebarPanel.auditLog.refresh")}
             </button>
             <button className="btn secondary" disabled={!canMutateBackend} onClick={() => void onExportAuditLog()}>
-              Export audit CSV
+              {t("sidebarPanel.auditLog.export")}
             </button>
           </div>
         </div>
         <div className="field">
-          <label htmlFor="audit-project-filter">Project filter</label>
+          <label htmlFor="audit-project-filter">{t("sidebarPanel.auditLog.projectFilter")}</label>
           <select
             id="audit-project-filter"
             value={auditProjectId}
             onChange={(event) => setAuditProjectId(event.target.value)}
           >
-            <option value="">All projects</option>
+            <option value="">{t("sidebarPanel.auditLog.allProjects")}</option>
             {allSavedProjects.map((project) => (
               <option key={project.id} value={project.id}>
                 {project.project_name}
@@ -758,21 +962,25 @@ const SidebarPanel = memo(function SidebarPanel() {
           </select>
         </div>
         {auditError ? (
-          <div className="status">Audit log unavailable. {auditError}</div>
+          <div className="status">{t("sidebarPanel.auditLog.unavailable")} {auditError}</div>
         ) : auditLoading && auditEntries.length === 0 ? (
-          <p className="muted">Loading audit log...</p>
+          <p className="muted">{t("sidebarPanel.auditLog.loading")}</p>
         ) : (
           <>
             <p className="muted">
-              Showing {auditEntries.length} of {auditTotal} entr{auditTotal === 1 ? "y" : "ies"}.
+              {t("sidebarPanel.auditLog.showingEntries", {
+                count: auditTotal,
+                visible: auditEntries.length,
+                total: auditTotal
+              })}
             </p>
             <table>
               <thead>
                 <tr>
-                  <th>Time</th>
-                  <th>Action</th>
-                  <th>Project</th>
-                  <th>Actor</th>
+                  <th>{t("sidebarPanel.auditLog.columns.time")}</th>
+                  <th>{t("sidebarPanel.auditLog.columns.action")}</th>
+                  <th>{t("sidebarPanel.auditLog.columns.project")}</th>
+                  <th>{t("sidebarPanel.auditLog.columns.actor")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -781,13 +989,13 @@ const SidebarPanel = memo(function SidebarPanel() {
                     <tr key={entry.id}>
                       <td>{formatProjectTimestamp(entry.ts)}</td>
                       <td>{entry.action}</td>
-                      <td>{entry.project_name ?? entry.project_id ?? "Workspace"}</td>
-                      <td>{entry.actor ?? "unknown"}</td>
+                      <td>{entry.project_name ?? entry.project_id ?? t("sidebarPanel.auditLog.workspace")}</td>
+                      <td>{entry.actor ?? t("sidebarPanel.auditLog.unknownActor")}</td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={4}>No audit entries recorded yet.</td>
+                    <td colSpan={4}>{t("sidebarPanel.auditLog.noEntries")}</td>
                   </tr>
                 )}
               </tbody>
@@ -802,52 +1010,66 @@ const SidebarPanel = memo(function SidebarPanel() {
       {activeTab === "projects" ? (
         <>
       <div className="card">
-        <h3>Active project</h3>
+        <h3>{t("sidebarPanel.activeProject.title")}</h3>
         {activeProjectId ? (
           <>
             <div className="actions">
-              <span className="pill">{hasUnsavedChanges ? "Unsaved changes" : "Saved locally"}</span>
+              <span className="pill">
+                {hasUnsavedChanges
+                  ? t("sidebarPanel.activeProject.unsavedChanges")
+                  : t("sidebarPanel.activeProject.savedLocally")}
+              </span>
             </div>
             <ul className="list">
               <li>
-                <strong>Project name:</strong> {activeProject?.project_name ?? "Unknown project"}
+                <strong>{t("sidebarPanel.activeProject.labels.projectName")}:</strong>{" "}
+                {activeProject?.project_name ?? t("sidebarPanel.activeProject.unknownProject")}
               </li>
               <li>
-                <strong>Project id:</strong> {activeProjectId}
+                <strong>{t("sidebarPanel.activeProject.labels.projectId")}:</strong> {activeProjectId}
               </li>
               <li>
-                <strong>Status:</strong> {hasUnsavedChanges ? "Needs local update" : "In sync with SQLite"}
+                <strong>{t("sidebarPanel.activeProject.labels.status")}:</strong>{" "}
+                {hasUnsavedChanges
+                  ? t("sidebarPanel.activeProject.statusNeedsLocalUpdate")
+                  : t("sidebarPanel.activeProject.statusInSync")}
               </li>
               <li>
-                <strong>Payload schema:</strong> {String(activeProject?.payload_schema_version ?? 1)}
+                <strong>{t("sidebarPanel.activeProject.labels.payloadSchema")}:</strong>{" "}
+                {String(activeProject?.payload_schema_version ?? 1)}
               </li>
               <li>
-                <strong>Saved revisions:</strong> {String(activeProject?.revision_count ?? 0)}
+                <strong>{t("sidebarPanel.activeProject.labels.savedRevisions")}:</strong>{" "}
+                {String(activeProject?.revision_count ?? 0)}
               </li>
               <li>
-                <strong>Last save:</strong> {formatOptionalTimestamp(activeProject?.last_revision_at)}
+                <strong>{t("sidebarPanel.activeProject.labels.lastSave")}:</strong>{" "}
+                {formatOptionalProjectTimestamp(activeProject?.last_revision_at)}
               </li>
               <li>
-                <strong>Last analysis:</strong> {formatOptionalTimestamp(activeProject?.last_analysis_at)}
+                <strong>{t("sidebarPanel.activeProject.labels.lastAnalysis")}:</strong>{" "}
+                {formatOptionalProjectTimestamp(activeProject?.last_analysis_at)}
               </li>
               <li>
-                <strong>Last export:</strong> {formatOptionalTimestamp(activeProject?.last_exported_at)}
+                <strong>{t("sidebarPanel.activeProject.labels.lastExport")}:</strong>{" "}
+                {formatOptionalProjectTimestamp(activeProject?.last_exported_at)}
               </li>
               <li>
-                <strong>Snapshot stored:</strong> {activeProject?.has_analysis_snapshot ? "Yes" : "No"}
+                <strong>{t("sidebarPanel.activeProject.labels.snapshotStored")}:</strong>{" "}
+                {activeProject?.has_analysis_snapshot ? t("wizardDraft.common.yes") : t("wizardDraft.common.no")}
               </li>
             </ul>
           </>
         ) : (
-          <p className="muted">No saved project is loaded. You can still work in a local draft and save it when ready.</p>
+          <p className="muted">{t("sidebarPanel.activeProject.empty")}</p>
         )}
       </div>
 
       <div className="card">
         <div className="section-heading">
           <div>
-            <h3>Recent project history</h3>
-            <p className={`muted ${styles["compact-text"]}`}>Timeline of saved analysis runs and export events for the loaded project.</p>
+            <h3>{t("sidebarPanel.projectHistory.title")}</h3>
+            <p className={`muted ${styles["compact-text"]}`}>{t("sidebarPanel.projectHistory.description")}</p>
           </div>
           <button
             className="btn ghost"
@@ -858,31 +1080,34 @@ const SidebarPanel = memo(function SidebarPanel() {
               }
             }}
           >
-            {loadingProjectHistory ? "Refreshing..." : "Refresh project history"}
+            {loadingProjectHistory ? t("sidebarPanel.projectHistory.refreshing") : t("sidebarPanel.projectHistory.refresh")}
           </button>
         </div>
         {!activeProjectId ? (
-          <p className="muted">Load a saved project to inspect recent analysis runs and export events.</p>
+          <p className="muted">{t("sidebarPanel.projectHistory.empty")}</p>
         ) : projectHistoryError ? (
-          <div className="status">Project history unavailable. {projectHistoryError}</div>
+          <div className="status">{t("sidebarPanel.projectHistory.unavailable")} {projectHistoryError}</div>
         ) : loadingProjectHistory && !projectHistory ? (
-          <p className="muted">Loading saved-project history...</p>
+          <p className="muted">{t("sidebarPanel.projectHistory.loading")}</p>
         ) : projectHistory ? (
           <>
             <p className="muted">
-              Showing {projectHistory.analysis_runs.length} of {projectHistory.analysis_total} analysis run(s)
-              {" and "}
-              {projectHistory.export_events.length} of {projectHistory.export_total} export event(s).
+              {t("sidebarPanel.projectHistory.summary", {
+                analysisVisible: projectHistory.analysis_runs.length,
+                analysisTotal: projectHistory.analysis_total,
+                exportVisible: projectHistory.export_events.length,
+                exportTotal: projectHistory.export_total
+              })}
             </p>
             {selectedHistoryRunId ? (
               <div className="actions">
                 <button className="btn secondary" onClick={onClearHistoryRunSelection}>
-                  Close opened snapshot
+                  {t("sidebarPanel.projectHistory.closeOpenedSnapshot")}
                 </button>
               </div>
             ) : null}
             <div className={styles["timeline-card"]}>
-              <h3>Analysis runs</h3>
+              <h3>{t("sidebarPanel.projectHistory.analysisRunsTitle")}</h3>
               <div className={styles["timeline-list"]}>
                 {projectHistory.analysis_runs.length > 0 ? (
                   projectHistory.analysis_runs.map((run) => (
@@ -891,36 +1116,40 @@ const SidebarPanel = memo(function SidebarPanel() {
                         <strong>{formatProjectTimestamp(run.created_at)}</strong>
                       </div>
                       <div className="muted">
-                        {String(run.summary.metric_type ?? "unknown metric")}
+                        {translateMetricType(run.summary.metric_type)}
                         {" | "}n={String(run.summary.total_sample_size ?? "-")}
-                        {" | "}{String(run.summary.estimated_duration_days ?? "-")}d
-                        {" | "}warnings {String(run.summary.warnings_count)}
-                        {run.summary.advice_available ? " | AI advice" : ""}
+                        {" | "}
+                        {t("sidebarPanel.common.daysShort", { value: String(run.summary.estimated_duration_days ?? "-") })}
+                        {" | "}
+                        {t("sidebarPanel.projectHistory.warningsCount", { count: run.summary.warnings_count })}
+                        {run.summary.advice_available ? ` | ${t("sidebarPanel.projectHistory.aiAdvice")}` : ""}
                       </div>
                       <div className="actions">
                         <button className="btn secondary" onClick={() => onOpenHistoryRun(run.id)}>
-                          {selectedHistoryRunId === run.id ? "Opened" : "Open snapshot"}
+                          {selectedHistoryRunId === run.id
+                            ? t("sidebarPanel.projectHistory.opened")
+                            : t("sidebarPanel.projectHistory.openSnapshot")}
                         </button>
-                        {selectedHistoryRunId === run.id ? <span className="pill">Viewing</span> : null}
+                        {selectedHistoryRunId === run.id ? <span className="pill">{t("sidebarPanel.projectHistory.viewing")}</span> : null}
                       </div>
                     </div>
                   ))
                 ) : (
                   <div className={styles["timeline-item"]}>
-                    <div>No analysis history recorded yet.</div>
+                    <div>{t("sidebarPanel.projectHistory.noAnalysisHistory")}</div>
                   </div>
                 )}
               </div>
               {hasMoreAnalysisHistory && activeProjectId ? (
                 <div className="actions">
                   <button className="btn ghost" onClick={() => onLoadMoreAnalysisHistory(activeProjectId)}>
-                    Load older analysis runs
+                    {t("sidebarPanel.projectHistory.loadOlderAnalysisRuns")}
                   </button>
                 </div>
               ) : null}
             </div>
             <div className={styles["timeline-card"]}>
-              <h3>Export events</h3>
+              <h3>{t("sidebarPanel.projectHistory.exportEventsTitle")}</h3>
               <div className={styles["timeline-list"]}>
                 {projectHistory.export_events.length > 0 ? (
                   projectHistory.export_events.map((event) => (
@@ -930,36 +1159,38 @@ const SidebarPanel = memo(function SidebarPanel() {
                       </div>
                       <div className="muted">
                         {event.format.toUpperCase()}
-                        {event.analysis_run_id ? " | linked snapshot" : " | unlinked export"}
+                        {event.analysis_run_id
+                          ? ` | ${t("sidebarPanel.projectHistory.linkedSnapshot")}`
+                          : ` | ${t("sidebarPanel.projectHistory.unlinkedExport")}`}
                       </div>
                     </div>
                   ))
                 ) : (
                   <div className={styles["timeline-item"]}>
-                    <div>No export history recorded yet.</div>
+                    <div>{t("sidebarPanel.projectHistory.noExportHistory")}</div>
                   </div>
                 )}
               </div>
               {hasMoreExportHistory && activeProjectId ? (
                 <div className="actions">
                   <button className="btn ghost" onClick={() => onLoadMoreExportHistory(activeProjectId)}>
-                    Load older export events
+                    {t("sidebarPanel.projectHistory.loadOlderExportEvents")}
                   </button>
                 </div>
               ) : null}
             </div>
           </>
         ) : (
-          <p className="muted">No project history loaded yet.</p>
+          <p className="muted">{t("sidebarPanel.projectHistory.notLoaded")}</p>
         )}
       </div>
 
       <div className="card">
         <div className="section-heading">
           <div>
-            <h3>Saved revisions</h3>
+            <h3>{t("sidebarPanel.revisions.title")}</h3>
             <p className={`muted ${styles["compact-text"]}`}>
-              Payload snapshots captured on create, update, and workspace import. Loading a revision keeps the current project selected but marks the wizard as changed until you save.
+              {t("sidebarPanel.revisions.description")}
             </p>
           </div>
           <button
@@ -971,19 +1202,22 @@ const SidebarPanel = memo(function SidebarPanel() {
               }
             }}
           >
-            {loadingProjectRevisions ? "Refreshing..." : "Refresh revisions"}
+            {loadingProjectRevisions ? t("sidebarPanel.revisions.refreshing") : t("sidebarPanel.revisions.refresh")}
           </button>
         </div>
         {!activeProjectId ? (
-          <p className="muted">Load a saved project to inspect or restore earlier payload revisions.</p>
+          <p className="muted">{t("sidebarPanel.revisions.empty")}</p>
         ) : projectRevisionsError ? (
-          <div className="status">Project revisions unavailable. {projectRevisionsError}</div>
+          <div className="status">{t("sidebarPanel.revisions.unavailable")} {projectRevisionsError}</div>
         ) : loadingProjectRevisions && !projectRevisions ? (
-          <p className="muted">Loading saved revisions...</p>
+          <p className="muted">{t("sidebarPanel.revisions.loading")}</p>
         ) : projectRevisions ? (
           <>
             <p className="muted">
-              Showing {projectRevisions.revisions.length} of {projectRevisions.total} revision(s).
+              {t("sidebarPanel.revisions.summary", {
+                visible: projectRevisions.revisions.length,
+                total: projectRevisions.total
+              })}
             </p>
             <div className={styles["timeline-card"]}>
               <div className={styles["timeline-list"]}>
@@ -994,50 +1228,52 @@ const SidebarPanel = memo(function SidebarPanel() {
                         <strong>{formatProjectTimestamp(revision.created_at)}</strong>
                       </div>
                       <div className="muted">
-                        {formatRevisionSource(revision.source)}
+                        {translateRevisionSource(revision.source)}
                         {" | "}
                         {revision.payload.project.project_name}
                       </div>
                       <div className="actions">
                         <button className="btn secondary" onClick={() => onLoadProjectRevision(revision.id)}>
-                          Load into wizard
+                          {t("sidebarPanel.revisions.loadIntoWizard")}
                         </button>
                       </div>
                     </div>
                   ))
                 ) : (
                   <div className={styles["timeline-item"]}>
-                    <div>No saved revisions recorded yet.</div>
+                    <div>{t("sidebarPanel.revisions.noEntries")}</div>
                   </div>
                 )}
               </div>
               {hasMoreProjectRevisions && activeProjectId ? (
                 <div className="actions">
                   <button className="btn ghost" onClick={() => onLoadMoreProjectRevisions(activeProjectId)}>
-                    Load older revisions
+                    {t("sidebarPanel.revisions.loadOlder")}
                   </button>
                 </div>
               ) : null}
             </div>
           </>
         ) : (
-          <p className="muted">No project revisions loaded yet.</p>
+          <p className="muted">{t("sidebarPanel.revisions.notLoaded")}</p>
         )}
       </div>
 
       <div className="card">
         <div className="section-heading">
           <div>
-            <h3>Saved projects</h3>
-            <p className={`muted ${styles["compact-text"]}`}>Load, compare, and archive SQLite-backed drafts from the local workspace.</p>
+            <h3>{t("sidebarPanel.savedProjects.title")}</h3>
+            <p className={`muted ${styles["compact-text"]}`}>{t("sidebarPanel.savedProjects.description")}</p>
           </div>
           <button className="btn ghost" disabled={loadingProjects} onClick={onLoadProjects}>
-            {loadingProjects ? "Loading..." : "Load saved projects"}
+            {loadingProjects ? t("sidebarPanel.savedProjects.loading") : t("sidebarPanel.savedProjects.load")}
           </button>
         </div>
         <div className="actions">
-          <span className="pill">{savedProjectsTotal} saved</span>
-          <span className="pill">{projectsWithoutSnapshots} without saved analysis</span>
+          <span className="pill">{t("sidebarPanel.savedProjects.savedCount", { count: savedProjectsTotal })}</span>
+          <span className="pill">
+            {t("sidebarPanel.savedProjects.withoutSavedAnalysisCount", { count: projectsWithoutSnapshots })}
+          </span>
         </div>
         {loadingProjects ? (
           <ProjectListSkeleton />
@@ -1060,24 +1296,27 @@ const SidebarPanel = memo(function SidebarPanel() {
               }}
             />
             <p className="muted">
-              {filteredProjects.length} experiment{filteredProjects.length === 1 ? "" : "s"} shown.
+              {t("sidebarPanel.savedProjects.shownExperiments", { count: filteredProjects.length })}
             </p>
             {compareEnabled ? (
               <>
                 <p className="muted">
-                  Compare buttons use the opened snapshot for the loaded project when one is selected; otherwise they use the latest saved snapshot.
+                  {t("sidebarPanel.savedProjects.compareDescription")}
                 </p>
                 {projectComparison ? (
                   <p className="muted">
-                    Current comparison: {projectComparison.base_project.project_name} vs {projectComparison.candidate_project.project_name}.
+                    {t("sidebarPanel.savedProjects.currentComparison", {
+                      baseProject: projectComparison.base_project.project_name,
+                      candidateProject: projectComparison.candidate_project.project_name
+                    })}
                   </p>
                 ) : null}
                 {projectComparisonError ? (
-                  <div className="status">Project comparison unavailable. {projectComparisonError}</div>
+                  <div className="status">{t("sidebarPanel.savedProjects.comparisonUnavailable")} {projectComparisonError}</div>
                 ) : null}
               </>
             ) : activeProjectId ? (
-              <p className="muted">Save at least one analysis snapshot before comparing saved projects.</p>
+              <p className="muted">{t("sidebarPanel.savedProjects.compareRequiresSnapshot")}</p>
             ) : null}
             <div className={styles["project-card-list"]}>
               {filteredProjects.map((project) => (
@@ -1094,25 +1333,33 @@ const SidebarPanel = memo(function SidebarPanel() {
                       </button>
                     )}
                     <div className={styles["project-badges"]}>
-                      {project.id === activeProjectId ? <span className="pill">Loaded</span> : null}
-                      {project.has_analysis_snapshot ? <span className="pill">Snapshot</span> : null}
-                      {project.is_archived ? <span className="pill">Archived</span> : null}
+                      {project.id === activeProjectId ? <span className="pill">{t("sidebarPanel.savedProjects.badges.loaded")}</span> : null}
+                      {project.has_analysis_snapshot ? <span className="pill">{t("sidebarPanel.savedProjects.badges.snapshot")}</span> : null}
+                      {project.is_archived ? <span className="pill">{t("sidebarPanel.savedProjects.badges.archived")}</span> : null}
                     </div>
                   </div>
                   <div className={styles["project-meta"]}>
                     <div className="muted">
-                      Updated {formatProjectTimestamp(project.updated_at)}
-                      {project.last_revision_at ? ` | Saved ${formatProjectTimestamp(project.last_revision_at)}` : ""}
-                      {project.last_analysis_at ? ` | Analyzed ${formatProjectTimestamp(project.last_analysis_at)}` : ""}
+                      {t("sidebarPanel.savedProjects.updatedAt", { timestamp: formatProjectTimestamp(project.updated_at) })}
+                      {project.last_revision_at
+                        ? ` | ${t("sidebarPanel.savedProjects.savedAt", { timestamp: formatProjectTimestamp(project.last_revision_at) })}`
+                        : ""}
+                      {project.last_analysis_at
+                        ? ` | ${t("sidebarPanel.savedProjects.analyzedAt", { timestamp: formatProjectTimestamp(project.last_analysis_at) })}`
+                        : ""}
                     </div>
                     <div className="muted">
                       {project.hypothesis ? `${project.hypothesis} | ` : ""}
-                      {project.metric_type ? `${project.metric_type} | ` : ""}
-                      {project.duration_days ? `${String(project.duration_days)}d | ` : ""}
-                      {`Revisions ${String(project.revision_count ?? 0)}`}
+                      {project.metric_type ? `${translateMetricType(project.metric_type)} | ` : ""}
+                      {project.duration_days
+                        ? `${t("sidebarPanel.common.daysShort", { value: String(project.duration_days) })} | `
+                        : ""}
+                      {t("sidebarPanel.savedProjects.revisionsCount", { count: project.revision_count ?? 0 })}
                       {" | "}
-                      {project.last_exported_at ? `Exported ${formatProjectTimestamp(project.last_exported_at)}` : "No exports yet"}
-                      {project.id === activeProjectId ? " | Loaded in wizard" : ""}
+                      {project.last_exported_at
+                        ? t("sidebarPanel.savedProjects.exportedAt", { timestamp: formatProjectTimestamp(project.last_exported_at) })
+                        : t("sidebarPanel.savedProjects.noExportsYet")}
+                      {project.id === activeProjectId ? ` | ${t("sidebarPanel.savedProjects.loadedInWizard")}` : ""}
                     </div>
                   </div>
                   <div className="actions">
@@ -1122,7 +1369,9 @@ const SidebarPanel = memo(function SidebarPanel() {
                         disabled={loadingProjectComparison || deletingProjectId === project.id}
                         onClick={() => onCompareProject(project.id)}
                       >
-                        {comparingProjectId === project.id ? "Comparing..." : "Compare"}
+                        {comparingProjectId === project.id
+                          ? t("sidebarPanel.savedProjects.actions.comparing")
+                          : t("sidebarPanel.savedProjects.actions.compare")}
                       </button>
                     ) : null}
                     {project.is_archived ? (
@@ -1131,20 +1380,22 @@ const SidebarPanel = memo(function SidebarPanel() {
                         disabled={!canMutateBackend || restoringProjectId === project.id}
                         onClick={() => onRestoreProject(project.id, project.project_name)}
                       >
-                        {restoringProjectId === project.id ? "Restoring..." : "Restore"}
+                        {restoringProjectId === project.id
+                          ? t("sidebarPanel.savedProjects.actions.restoring")
+                          : t("sidebarPanel.savedProjects.actions.restore")}
                       </button>
                     ) : (
                       <>
                         <InlineConfirmButton
-                          label="Archive"
+                          label={t("sidebarPanel.savedProjects.actions.archive")}
                           disabled={!canMutateBackend || deletingProjectId === project.id}
-                          ariaLabel={`Archive ${project.project_name}`}
+                          ariaLabel={t("sidebarPanel.savedProjects.archiveAriaLabel", { projectName: project.project_name })}
                           onConfirm={() => onDeleteProject(project.id, project.project_name)}
                         />
                         <InlineConfirmButton
-                          label="Delete"
+                          label={t("sidebarPanel.savedProjects.actions.delete")}
                           disabled={!canMutateBackend || deletingProjectId === project.id}
-                          ariaLabel={`Delete ${project.project_name}`}
+                          ariaLabel={t("sidebarPanel.savedProjects.deleteAriaLabel", { projectName: project.project_name })}
                           onConfirm={() => onPermanentlyDeleteProject(project.id, project.project_name)}
                         />
                       </>
@@ -1155,7 +1406,7 @@ const SidebarPanel = memo(function SidebarPanel() {
             </div>
             {filteredProjects.length === 0 ? (
               <div className="actions">
-                <p className="muted">No experiments match your filters.</p>
+                <p className="muted">{t("sidebarPanel.savedProjects.noMatches")}</p>
                 <button
                   className="btn ghost"
                   type="button"
@@ -1166,13 +1417,13 @@ const SidebarPanel = memo(function SidebarPanel() {
                     setProjectSortBy("updated_desc");
                   }}
                 >
-                  Clear filters
+                  {t("projectListFilters.clear")}
                 </button>
               </div>
             ) : null}
           </>
         ) : (
-          <p className="muted">No saved projects available.</p>
+          <p className="muted">{t("sidebarPanel.savedProjects.empty")}</p>
         )}
       </div>
 
@@ -1180,8 +1431,8 @@ const SidebarPanel = memo(function SidebarPanel() {
       <div className="card">
         <div className="section-heading">
           <div>
-            <h3>Archived projects</h3>
-            <p className={`muted ${styles["compact-text"]}`}>Archived projects stay here until they are restored.</p>
+            <h3>{t("sidebarPanel.archivedProjects.title")}</h3>
+            <p className={`muted ${styles["compact-text"]}`}>{t("sidebarPanel.archivedProjects.description")}</p>
           </div>
         </div>
         {archivedProjects.length > 0 ? (
@@ -1191,18 +1442,26 @@ const SidebarPanel = memo(function SidebarPanel() {
                 <div className={styles["project-card-head"]}>
                   <strong>{project.project_name}</strong>
                   <div className={styles["project-badges"]}>
-                    <span className="pill">Archived</span>
+                    <span className="pill">{t("sidebarPanel.savedProjects.badges.archived")}</span>
                   </div>
                 </div>
                 <div className={styles["project-meta"]}>
                   <div className="muted">
-                    Archived {formatOptionalTimestamp(project.archived_at)}
-                    {project.last_analysis_at ? ` | Last analysis ${formatProjectTimestamp(project.last_analysis_at)}` : ""}
+                    {t("sidebarPanel.archivedProjects.archivedAt", {
+                      timestamp: formatOptionalProjectTimestamp(project.archived_at)
+                    })}
+                    {project.last_analysis_at
+                      ? ` | ${t("sidebarPanel.archivedProjects.lastAnalysisAt", {
+                        timestamp: formatProjectTimestamp(project.last_analysis_at)
+                      })}`
+                      : ""}
                   </div>
                   <div className="muted">
-                    {`Revisions ${String(project.revision_count ?? 0)}`}
+                    {t("sidebarPanel.savedProjects.revisionsCount", { count: project.revision_count ?? 0 })}
                     {" | "}
-                    {project.last_exported_at ? `Exported ${formatProjectTimestamp(project.last_exported_at)}` : "No exports yet"}
+                    {project.last_exported_at
+                      ? t("sidebarPanel.savedProjects.exportedAt", { timestamp: formatProjectTimestamp(project.last_exported_at) })
+                      : t("sidebarPanel.savedProjects.noExportsYet")}
                   </div>
                 </div>
                 <div className="actions">
@@ -1211,14 +1470,16 @@ const SidebarPanel = memo(function SidebarPanel() {
                     disabled={!canMutateBackend || restoringProjectId === project.id}
                     onClick={() => onRestoreProject(project.id, project.project_name)}
                   >
-                    {restoringProjectId === project.id ? "Restoring..." : "Restore"}
+                    {restoringProjectId === project.id
+                      ? t("sidebarPanel.savedProjects.actions.restoring")
+                      : t("sidebarPanel.savedProjects.actions.restore")}
                   </button>
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <p className="muted">No archived projects.</p>
+          <p className="muted">{t("sidebarPanel.archivedProjects.empty")}</p>
         )}
       </div>
       ) : null}
@@ -1226,18 +1487,18 @@ const SidebarPanel = memo(function SidebarPanel() {
       <div className="card">
         <div className="section-heading">
           <div>
-            <h3>Workspace backup</h3>
+            <h3>{t("sidebarPanel.workspaceBackup.title")}</h3>
             <p className={`muted ${styles["compact-text"]}`}>
-              Export or import the full SQLite workspace, including saved projects, analysis history, export events, and saved revisions. Imports run checksum, optional signature, and reference validation before SQLite writes begin.
+              {t("sidebarPanel.workspaceBackup.projectsDescription")}
             </p>
           </div>
         </div>
         <div className="actions">
           <button className="btn ghost" disabled={exportingWorkspace} onClick={onExportWorkspace}>
-            {exportingWorkspace ? "Exporting..." : "Export workspace JSON"}
+            {exportingWorkspace ? t("sidebarPanel.workspaceBackup.exporting") : t("sidebarPanel.workspaceBackup.export")}
           </button>
           <button className="btn secondary" disabled={!canMutateBackend || importingWorkspace} onClick={onImportWorkspace}>
-            {importingWorkspace ? "Importing..." : "Import workspace JSON"}
+            {importingWorkspace ? t("sidebarPanel.workspaceBackup.importing") : t("sidebarPanel.workspaceBackup.import")}
           </button>
         </div>
       </div>
@@ -1247,7 +1508,7 @@ const SidebarPanel = memo(function SidebarPanel() {
 
       {activeTab === "system" ? (
       <div className="card">
-        <h3>Backend endpoints</h3>
+        <h3>{t("sidebarPanel.backendEndpoints.title")}</h3>
         <ul className="list">
           <li><code>POST /api/v1/analyze</code></li>
           <li><code>GET /api/v1/diagnostics</code></li>

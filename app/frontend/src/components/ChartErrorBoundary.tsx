@@ -1,4 +1,5 @@
 import { useRef, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 
 import ErrorBoundary from "./ErrorBoundary";
 
@@ -23,6 +24,7 @@ export default function ChartErrorBoundary({
   data,
   onError
 }: ChartErrorBoundaryProps) {
+  const { t } = useTranslation();
   const fallbackData = rawData ?? data;
   const fallbackRef = useRef<HTMLDivElement | null>(null);
 
@@ -34,8 +36,8 @@ export default function ChartErrorBoundary({
       }}
       fallback={(
         <div ref={fallbackRef} className="card" role="alert" tabIndex={-1}>
-          <strong>Chart unavailable</strong>
-          <div className="muted">Rendering failed. Raw data is shown below for inspection.</div>
+          <strong>{t("chartErrorBoundary.title")}</strong>
+          <div className="muted">{t("chartErrorBoundary.description")}</div>
           {fallbackData !== undefined ? <pre>{formatChartData(fallbackData)}</pre> : null}
         </div>
       )}

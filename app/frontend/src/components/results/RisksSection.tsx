@@ -1,3 +1,4 @@
+import { t } from "../../i18n";
 import { useAnalysisStore } from "../../stores/analysisStore";
 import { useProjectStore } from "../../stores/projectStore";
 
@@ -13,7 +14,7 @@ export default function RisksSection() {
   return (
     <div className="two-col">
       <div className="card">
-        <h3>Statistical and operational considerations</h3>
+        <h3>{t("results.risks.statisticalAndOperational")}</h3>
         <ul className="list">
           {(displayedAnalysis.report.risks?.statistical ?? []).map((item) => (
             <li key={`statistical-${String(item)}`}>{String(item)}</li>
@@ -24,7 +25,7 @@ export default function RisksSection() {
         </ul>
       </div>
       <div className="card">
-        <h3>Product</h3>
+        <h3>{t("results.risks.product")}</h3>
         <ul className="list">
           {(displayedAnalysis.report.risks?.product ?? []).map((item) => (
             <li key={`product-${String(item)}`}>{String(item)}</li>
@@ -32,7 +33,7 @@ export default function RisksSection() {
         </ul>
       </div>
       <div className="card">
-        <h3>Technical</h3>
+        <h3>{t("results.risks.technical")}</h3>
         <ul className="list">
           {(displayedAnalysis.report.risks?.technical ?? []).map((item) => (
             <li key={`technical-${String(item)}`}>{String(item)}</li>
@@ -40,16 +41,16 @@ export default function RisksSection() {
         </ul>
       </div>
       <div className="card">
-        <h3>Recommendations</h3>
+        <h3>{t("results.risks.recommendations")}</h3>
         <ul className="list">
           {(displayedAnalysis.report.recommendations?.before_launch ?? []).map((item) => (
-            <li key={`before-${String(item)}`}>Before launch: {String(item)}</li>
+            <li key={`before-${String(item)}`}>{t("results.risks.beforeLaunch")}: {String(item)}</li>
           ))}
           {(displayedAnalysis.report.recommendations?.during_test ?? []).map((item) => (
-            <li key={`during-${String(item)}`}>During test: {String(item)}</li>
+            <li key={`during-${String(item)}`}>{t("results.risks.duringTest")}: {String(item)}</li>
           ))}
           {(displayedAnalysis.report.recommendations?.after_test ?? []).map((item) => (
-            <li key={`after-${String(item)}`}>After test: {String(item)}</li>
+            <li key={`after-${String(item)}`}>{t("results.risks.afterTest")}: {String(item)}</li>
           ))}
         </ul>
       </div>

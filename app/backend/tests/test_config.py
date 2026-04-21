@@ -68,6 +68,16 @@ def test_settings_reject_too_short_readonly_api_token(monkeypatch) -> None:
     get_settings.cache_clear()
 
 
+def test_settings_reject_too_short_admin_token(monkeypatch) -> None:
+    monkeypatch.setenv("AB_ADMIN_TOKEN", "short")
+    get_settings.cache_clear()
+
+    with pytest.raises(ValueError, match="AB_ADMIN_TOKEN must be at least 8 characters when configured"):
+        get_settings()
+
+    get_settings.cache_clear()
+
+
 def test_settings_reject_too_short_workspace_signing_key(monkeypatch) -> None:
     monkeypatch.setenv("AB_WORKSPACE_SIGNING_KEY", "too-short-key")
     get_settings.cache_clear()

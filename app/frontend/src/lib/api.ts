@@ -33,6 +33,7 @@ import type {
 } from "./generated/api-contract";
 
 const apiSessionTokenStorageKey = "ab-test-research-designer:api-token:v1";
+const adminSessionTokenStorageKey = "ab-test-research-designer:admin-token:v1";
 
 export type ProjectRecordResponse = ProjectRecordPayload;
 export type SaveProjectResponse = ProjectRecordPayload;
@@ -43,6 +44,30 @@ export type DiagnosticsResponse = ApiDiagnosticsResponse;
 export type WorkspaceExportResponse = WorkspaceBundle;
 export type WorkspaceValidationSummary = WorkspaceValidationResponse;
 export type WorkspaceImportSummary = WorkspaceImportResponse;
+export type ApiKeyScope = "read" | "write" | "admin";
+export type ApiKeyRecord = {
+  id: string;
+  name: string;
+  scope: ApiKeyScope;
+  created_at: string;
+  last_used_at?: string | null;
+  revoked_at?: string | null;
+  rate_limit_requests?: number | null;
+  rate_limit_window_seconds?: number | null;
+};
+export type ApiKeyCreateRequest = {
+  name: string;
+  scope: ApiKeyScope;
+  rate_limit_requests?: number | null;
+  rate_limit_window_seconds?: number | null;
+};
+export type ApiKeyCreateResponse = ApiKeyRecord & {
+  plaintext_key: string;
+};
+export type ApiKeyListResponse = {
+  keys: ApiKeyRecord[];
+  total?: number;
+};
 export type SrmCheckRequest = {
   observed_counts: number[];
   expected_fractions: number[];
@@ -100,8 +125,25 @@ function readApiSessionToken(): string {
   }
 }
 
+function readAdminSessionToken(): string {
+  const storage = typeof globalThis !== "undefined" ? globalThis.sessionStorage : undefined;
+  if (!storage) {
+    return "";
+  }
+
+  try {
+    return String(storage.getItem(adminSessionTokenStorageKey) ?? "").trim();
+  } catch {
+    return "";
+  }
+}
+
 export function hasApiSessionToken(): boolean {
   return readApiSessionToken().length > 0;
+}
+
+export function hasAdminSessionToken(): boolean {
+  return readAdminSessionToken().length > 0;
 }
 
 export function setApiSessionToken(token: string): void {
@@ -128,13 +170,43 @@ export function clearApiSessionToken(): void {
   storage.removeItem(apiSessionTokenStorageKey);
 }
 
-function buildHeaders(additionalHeaders: Record<string, string> = {}): Record<string, string> {
+export function setAdminSessionToken(token: string): void {
+  const storage = typeof globalThis !== "undefined" ? globalThis.sessionStorage : undefined;
+  if (!storage) {
+    return;
+  }
+
+  const normalized = token.trim();
+  if (!normalized) {
+    clearAdminSessionToken();
+    return;
+  }
+
+  storage.setItem(adminSessionTokenStorageKey, normalized);
+}
+
+export function clearAdminSessionToken(): void {
+  const storage = typeof globalThis !== "undefined" ? globalThis.sessionStorage : undefined;
+  if (!storage) {
+    return;
+  }
+
+  storage.removeItem(adminSessionTokenStorageKey);
+}
+
+function buildHeaders(
+  additionalHeaders: Record<string, string> = {},
+  token: string = readApiSessionToken()
+): Record<string, string> {
   const headers = { ...additionalHeaders };
-  const apiToken = readApiSessionToken();
-  if (apiToken) {
-    headers.Authorization = `Bearer ${apiToken}`;
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
   }
   return headers;
+}
+
+function buildAdminHeaders(additionalHeaders: Record<string, string> = {}): Record<string, string> {
+  return buildHeaders(additionalHeaders, readAdminSessionToken());
 }
 
 async function readJson<T>(response: Response): Promise<T> {
@@ -427,6 +499,62 @@ export async function listAuditLogRequest(options: AuditLogRequestOptions = {}):
 
   if (!response.ok) {
     throw new Error(getErrorMessage(data, response, "Audit log request failed"));
+  }
+
+  return data;
+}
+
+export async function listApiKeysRequest(): Promise<ApiKeyListResponse> {
+  const response = await fetch(apiUrl("/api/v1/keys"), {
+    headers: buildAdminHeaders()
+  });
+  const data = await readJson<ApiKeyListResponse & ApiErrorResponse>(response);
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(data, response, "API key list request failed"));
+  }
+
+  return data;
+}
+
+export async function createApiKeyRequest(payload: ApiKeyCreateRequest): Promise<ApiKeyCreateResponse> {
+  const response = await fetch(apiUrl("/api/v1/keys"), {
+    method: "POST",
+    headers: buildAdminHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify(payload)
+  });
+  const data = await readJson<ApiKeyCreateResponse & ApiErrorResponse>(response);
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(data, response, "API key creation failed"));
+  }
+
+  return data;
+}
+
+export async function revokeApiKeyRequest(apiKeyId: string): Promise<ApiKeyRecord> {
+  const response = await fetch(apiUrl(`/api/v1/keys/${apiKeyId}/revoke`), {
+    method: "POST",
+    headers: buildAdminHeaders()
+  });
+  const data = await readJson<ApiKeyRecord & ApiErrorResponse>(response);
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(data, response, "API key revoke failed"));
+  }
+
+  return data;
+}
+
+export async function deleteApiKeyRequest(apiKeyId: string): Promise<{ id: string; deleted: boolean }> {
+  const response = await fetch(apiUrl(`/api/v1/keys/${apiKeyId}`), {
+    method: "DELETE",
+    headers: buildAdminHeaders()
+  });
+  const data = await readJson<{ id: string; deleted: boolean } & ApiErrorResponse>(response);
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(data, response, "API key delete failed"));
   }
 
   return data;

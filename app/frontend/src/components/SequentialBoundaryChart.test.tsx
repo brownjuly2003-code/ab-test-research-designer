@@ -9,7 +9,7 @@ vi.mock("recharts", async () => {
   return {
     ...actual,
     ResponsiveContainer: ({ children }: { children: React.ReactElement }) =>
-      React.cloneElement(React.Children.only(children), { width: 720, height: 240 })
+      React.cloneElement(React.Children.only(children) as React.ReactElement<Record<string, unknown>>, { width: 720, height: 240 } as Record<string, unknown>)
   };
 });
 
@@ -21,6 +21,10 @@ import { flushEffects, renderIntoDocument } from "../test/dom";
 import SequentialBoundaryChart from "./SequentialBoundaryChart";
 
 expect.extend(matchers);
+
+type AxeMatcher = {
+  toHaveNoViolations: () => void;
+};
 
 const boundaries = [
   { look: 1, alpha_spent: 0.0008, upper_boundary_z: 3.8, lower_boundary_z: -3.8, sample_size_cumulative: 2500 },
@@ -75,7 +79,7 @@ describe("SequentialBoundaryChart", () => {
     try {
       await flushEffects();
 
-      expect(await axe(view.container)).toHaveNoViolations();
+      (expect(await axe(view.container)) as unknown as AxeMatcher).toHaveNoViolations();
     } finally {
       await view.unmount();
     }

@@ -1,4 +1,5 @@
 import { Suspense, lazy, useRef } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { SensitivityResponse } from "../../lib/generated/api-contract";
 import { useDraftStore } from "../../stores/draftStore";
@@ -23,6 +24,7 @@ export default function PowerCurveSection({
   sensitivityLoading,
   sensitivityUnavailableMessage
 }: PowerCurveSectionProps) {
+  const { t } = useTranslation();
   const chartRef = useRef<HTMLDivElement | null>(null);
   const analysisResult = useAnalysisStore((state) => state.analysisResult);
   const selectedHistoryAnalysis = useProjectStore((state) => state.selectedHistoryRun?.analysis ?? null);
@@ -42,18 +44,18 @@ export default function PowerCurveSection({
     <div className="card">
       <div className="section-heading">
         <div>
-          <h3>Power curve</h3>
-          <p className="muted">Compare MDE targets against planned power levels and required sample size.</p>
+          <h3>{t("results.powerCurve.title")}</h3>
+          <p className="muted">{t("results.powerCurve.description")}</p>
         </div>
       </div>
       {sensitivityLoading ? (
-        <p className="muted">Loading sensitivity analysis...</p>
+        <p className="muted">{t("results.powerCurve.loadingSensitivity")}</p>
       ) : sensitivityData?.cells.length ? (
         <div ref={chartRef}>
           <ChartExportMenu chartRef={chartRef} filenameBase={filenameBase} />
-          <div role="img" aria-label="Power curve chart showing minimum detectable effect versus target power">
+          <div role="img" aria-label={t("results.powerCurve.chartAriaLabel")}>
             <ChartErrorBoundary rawData={sensitivityData.cells}>
-              <Suspense fallback={<p className="muted">Loading chart...</p>}>
+              <Suspense fallback={<p className="muted">{t("results.powerCurve.loadingChart")}</p>}>
                 <PowerCurveChart
                   cells={sensitivityData.cells}
                   currentMde={currentMde}

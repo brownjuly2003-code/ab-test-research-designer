@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+import { t } from "../../i18n";
 import type { SrmCheckResponse } from "../../lib/api";
 import { apiUrl } from "../../lib/experiment";
 import { useAnalysisStore } from "../../stores/analysisStore";
@@ -63,13 +64,13 @@ export default function SrmCheckSection() {
       const body = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        const detail = typeof body.detail === "string" ? body.detail : "SRM check unavailable.";
+        const detail = typeof body.detail === "string" ? body.detail : t("results.srmCheck.serviceUnavailable");
         throw new Error(detail);
       }
 
       setSrmResult(body);
     } catch (requestError) {
-      setSrmError(requestError instanceof Error ? requestError.message : "SRM check unavailable.");
+      setSrmError(requestError instanceof Error ? requestError.message : t("results.srmCheck.serviceUnavailable"));
     } finally {
       setSrmLoading(false);
     }

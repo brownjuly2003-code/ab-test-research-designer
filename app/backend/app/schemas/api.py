@@ -3,6 +3,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.backend.app.constants import MAX_SUPPORTED_VARIANTS
+from app.backend.app.i18n import translate
 from app.backend.app.schemas.report import ExperimentReport
 
 
@@ -50,9 +51,9 @@ class ExperimentSetup(BaseModel):
     @model_validator(mode="after")
     def validate_variants(self) -> "ExperimentSetup":
         if len(self.traffic_split) != self.variants_count:
-            raise ValueError("traffic_split length must match variants_count")
+            raise ValueError(translate("errors.schemas.traffic_split_length"))
         if any(weight <= 0 for weight in self.traffic_split):
-            raise ValueError("traffic_split must contain positive values")
+            raise ValueError(translate("errors.schemas.traffic_split_positive"))
         return self
 
 
@@ -68,9 +69,9 @@ class GuardrailMetricInput(BaseModel):
     @model_validator(mode="after")
     def validate_metric_specific_fields(self) -> "GuardrailMetricInput":
         if self.metric_type == "binary" and self.baseline_rate is None:
-            raise ValueError("binary guardrail requires baseline_rate")
+            raise ValueError(translate("errors.schemas.binary_guardrail_requires_baseline_rate"))
         if self.metric_type == "continuous" and (self.baseline_mean is None or self.std_dev is None):
-            raise ValueError("continuous guardrail requires baseline_mean and std_dev")
+            raise ValueError(translate("errors.schemas.continuous_guardrail_requires_mean_and_std"))
         return self
 
 
@@ -93,12 +94,12 @@ class MetricsConfig(BaseModel):
     @model_validator(mode="after")
     def validate_metric_specific_fields(self) -> "MetricsConfig":
         if self.metric_type == "binary" and not 0 < self.baseline_value < 1:
-            raise ValueError("baseline_value must be between 0 and 1 for binary metrics")
+            raise ValueError(translate("errors.schemas.binary_baseline_range"))
         if self.metric_type == "continuous":
             if self.baseline_value <= 0:
-                raise ValueError("baseline_value must be positive for continuous metrics")
+                raise ValueError(translate("errors.schemas.continuous_baseline_positive"))
             if self.std_dev is None or self.std_dev <= 0:
-                raise ValueError("std_dev must be positive for continuous metrics")
+                raise ValueError(translate("errors.schemas.continuous_std_positive"))
         return self
 
 
@@ -122,7 +123,7 @@ class ConstraintsConfig(BaseModel):
     @model_validator(mode="after")
     def validate_analysis_mode(self) -> "ConstraintsConfig":
         if self.analysis_mode == "bayesian" and self.desired_precision is None:
-            raise ValueError("Bayesian mode requires desired_precision")
+            raise ValueError(translate("errors.schemas.bayesian_requires_precision"))
         return self
 
 
@@ -138,9 +139,9 @@ class ObservedResultsBinary(BaseModel):
     @model_validator(mode="after")
     def validate_counts(self) -> "ObservedResultsBinary":
         if self.control_conversions > self.control_users:
-            raise ValueError("control_conversions cannot exceed control_users")
+            raise ValueError(translate("errors.schemas.control_conversions_exceed_users"))
         if self.treatment_conversions > self.treatment_users:
-            raise ValueError("treatment_conversions cannot exceed treatment_users")
+            raise ValueError(translate("errors.schemas.treatment_conversions_exceed_users"))
         return self
 
 
@@ -167,14 +168,14 @@ class ResultsRequest(BaseModel):
     def check_type(self) -> "ResultsRequest":
         if self.metric_type == "binary":
             if self.binary is None:
-                raise ValueError("binary metric_type requires binary data")
+                raise ValueError(translate("errors.schemas.binary_requires_binary_data"))
             if self.continuous is not None:
-                raise ValueError("binary metric_type does not accept continuous data")
+                raise ValueError(translate("errors.schemas.binary_rejects_continuous_data"))
         if self.metric_type == "continuous":
             if self.continuous is None:
-                raise ValueError("continuous metric_type requires continuous data")
+                raise ValueError(translate("errors.schemas.continuous_requires_continuous_data"))
             if self.binary is not None:
-                raise ValueError("continuous metric_type does not accept binary data")
+                raise ValueError(translate("errors.schemas.continuous_rejects_binary_data"))
         return self
 
 
@@ -248,20 +249,20 @@ class CalculationRequest(BaseModel):
     @model_validator(mode="after")
     def validate_variants(self) -> "CalculationRequest":
         if len(self.traffic_split) != self.variants_count:
-            raise ValueError("traffic_split length must match variants_count")
+            raise ValueError(translate("errors.schemas.traffic_split_length"))
         if any(weight <= 0 for weight in self.traffic_split):
-            raise ValueError("traffic_split must contain positive values")
+            raise ValueError(translate("errors.schemas.traffic_split_positive"))
         return self
 
     @model_validator(mode="after")
     def validate_metric_specific_fields(self) -> "CalculationRequest":
         if self.metric_type == "binary" and not 0 < self.baseline_value < 1:
-            raise ValueError("baseline_value must be between 0 and 1 for binary metrics")
+            raise ValueError(translate("errors.schemas.binary_baseline_range"))
         if self.metric_type == "continuous":
             if self.baseline_value <= 0:
-                raise ValueError("baseline_value must be positive for continuous metrics")
+                raise ValueError(translate("errors.schemas.continuous_baseline_positive"))
             if self.std_dev is None or self.std_dev <= 0:
-                raise ValueError("std_dev must be positive for continuous metrics")
+                raise ValueError(translate("errors.schemas.continuous_std_positive"))
         return self
 
     @model_validator(mode="after")
@@ -269,17 +270,17 @@ class CalculationRequest(BaseModel):
         if self.actual_counts is None:
             return self
         if len(self.actual_counts) != self.variants_count:
-            raise ValueError("actual_counts length must match variants_count")
+            raise ValueError(translate("errors.schemas.actual_counts_length"))
         if any(count < 0 for count in self.actual_counts):
-            raise ValueError("actual_counts must be non-negative")
+            raise ValueError(translate("errors.schemas.actual_counts_non_negative"))
         if sum(self.actual_counts) <= 0:
-            raise ValueError("actual_counts must sum to a positive total")
+            raise ValueError(translate("errors.schemas.actual_counts_positive_sum"))
         return self
 
     @model_validator(mode="after")
     def validate_analysis_mode(self) -> "CalculationRequest":
         if self.analysis_mode == "bayesian" and self.desired_precision is None:
-            raise ValueError("Bayesian mode requires desired_precision")
+            raise ValueError(translate("errors.schemas.bayesian_requires_precision"))
         return self
 
 
@@ -302,16 +303,16 @@ class SensitivityRequest(BaseModel):
     def validate_metric_specific_fields(self) -> "SensitivityRequest":
         if self.metric_type == "binary":
             if self.baseline_rate is None or not 0 < self.baseline_rate < 100:
-                raise ValueError("baseline_rate must be between 0 and 100 for binary metrics")
+                raise ValueError(translate("errors.schemas.baseline_rate_range"))
         if self.metric_type == "continuous":
             if self.baseline_mean is None or self.baseline_mean <= 0:
-                raise ValueError("baseline_mean must be positive for continuous metrics")
+                raise ValueError(translate("errors.schemas.baseline_mean_positive"))
             if self.std_dev is None or self.std_dev <= 0:
-                raise ValueError("std_dev must be positive for continuous metrics")
+                raise ValueError(translate("errors.schemas.continuous_std_positive"))
         if any(value <= 0 for value in self.mde_values):
-            raise ValueError("mde_values must contain positive values")
+            raise ValueError(translate("errors.schemas.mde_values_positive"))
         if any(value <= 0 or value >= 1 for value in self.power_values):
-            raise ValueError("power_values must contain values between 0 and 1")
+            raise ValueError(translate("errors.schemas.power_values_range"))
         return self
 
     @model_validator(mode="after")
@@ -320,9 +321,9 @@ class SensitivityRequest(BaseModel):
             self.traffic_split = [1.0] * self.variants
             return self
         if len(self.traffic_split) != self.variants:
-            raise ValueError("traffic_split length must match variants")
+            raise ValueError(translate("errors.schemas.traffic_split_variants"))
         if any(weight <= 0 for weight in self.traffic_split):
-            raise ValueError("traffic_split must contain positive values")
+            raise ValueError(translate("errors.schemas.traffic_split_positive"))
         return self
 
 
@@ -348,14 +349,16 @@ class SrmCheckRequest(BaseModel):
     @model_validator(mode="after")
     def validate_lengths_and_fractions(self) -> "SrmCheckRequest":
         if len(self.observed_counts) != len(self.expected_fractions):
-            raise ValueError("observed_counts and expected_fractions must have same length")
+            raise ValueError(translate("errors.schemas.observed_expected_same_length"))
         if any(count < 0 for count in self.observed_counts):
-            raise ValueError("observed_counts must be non-negative")
+            raise ValueError(translate("errors.schemas.observed_counts_non_negative"))
         if any(fraction < 0 for fraction in self.expected_fractions):
-            raise ValueError("expected_fractions must be non-negative")
+            raise ValueError(translate("errors.schemas.expected_fractions_non_negative"))
         total_fraction = sum(self.expected_fractions)
         if abs(total_fraction - 1.0) > 0.01:
-            raise ValueError(f"expected_fractions must sum to 1.0, got {total_fraction:.4f}")
+            raise ValueError(
+                translate("errors.schemas.expected_fractions_sum", {"total": f"{total_fraction:.4f}"})
+            )
         return self
 
 
@@ -595,6 +598,13 @@ class DiagnosticsAuthSummary(BaseModel):
     mode: str
     write_enabled: bool
     readonly_enabled: bool
+    legacy_tokens_enabled: bool = False
+    api_keys_enabled: bool = False
+    admin_token_enabled: bool = False
+    session_scope: Literal["read", "write", "admin"] | None = None
+    session_source: Literal["legacy", "api_key", "admin_token"] | None = None
+    session_can_write: bool = False
+    session_admin_authenticated: bool = False
     accepted_headers: list[str]
     read_only_methods: list[str]
 
@@ -788,6 +798,7 @@ class AuditLogEntry(BaseModel):
     action: str
     project_id: str | None = None
     project_name: str | None = None
+    key_id: str | None = None
     actor: str | None = None
     request_id: str | None = None
     payload_diff: dict[str, list[Any]] | None = None
@@ -797,6 +808,40 @@ class AuditLogEntry(BaseModel):
 class AuditLogResponse(BaseModel):
     entries: list[AuditLogEntry]
     total: int = 0
+
+
+class ApiKeyCreateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(min_length=1, max_length=100)
+    scope: Literal["read", "write", "admin"]
+    rate_limit_requests: int | None = Field(default=None, ge=1)
+    rate_limit_window_seconds: int | None = Field(default=None, ge=1)
+
+
+class ApiKeyRecord(BaseModel):
+    id: str
+    name: str
+    scope: Literal["read", "write", "admin"]
+    created_at: str
+    last_used_at: str | None = None
+    revoked_at: str | None = None
+    rate_limit_requests: int | None = None
+    rate_limit_window_seconds: int | None = None
+
+
+class ApiKeyCreateResponse(ApiKeyRecord):
+    plaintext_key: str
+
+
+class ApiKeyListResponse(BaseModel):
+    keys: list[ApiKeyRecord]
+    total: int = 0
+
+
+class ApiKeyDeleteResponse(BaseModel):
+    id: str
+    deleted: bool
 
 
 class ProjectExportMarkRequest(BaseModel):
@@ -821,6 +866,11 @@ class ExportResponse(BaseModel):
 
 
 __all__ = [
+    "ApiKeyCreateRequest",
+    "ApiKeyCreateResponse",
+    "ApiKeyDeleteResponse",
+    "ApiKeyListResponse",
+    "ApiKeyRecord",
     "AuditLogEntry",
     "AuditLogResponse",
     "AnalysisResponse",

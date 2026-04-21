@@ -34,10 +34,13 @@ def _slugify_filename(value: str) -> str:
 
 
 def _resolve_audit_actor(request: Request) -> str:
+    actor = getattr(request.state, "audit_actor", None)
+    if isinstance(actor, str) and actor:
+        return actor
     auth_scope = getattr(request.state, "auth_scope", None)
-    if auth_scope == "write":
+    if auth_scope in {"write", "admin"}:
         return "api_key:rw"
-    if auth_scope == "readonly":
+    if auth_scope == "read":
         return "api_key:ro"
     return "anonymous"
 
@@ -47,7 +50,7 @@ def _request_ip(request: Request) -> str | None:
 
 
 def create_projects_router(settings, repository, rate_limiter, require_auth, require_write_auth) -> APIRouter:
-    router = APIRouter()
+    router = APIRouter(tags=["projects"])
 
     @router.get(
         "/api/v1/projects",
@@ -88,6 +91,7 @@ def create_projects_router(settings, repository, rate_limiter, require_auth, req
             action="project.create",
             project_id=project["id"],
             project_name=project["project_name"],
+            key_id=getattr(request.state, "auth_key_id", None),
             actor=_resolve_audit_actor(request),
             request_id=getattr(request.state, "request_id", None),
             ip_address=_request_ip(request),
@@ -224,6 +228,7 @@ def create_projects_router(settings, repository, rate_limiter, require_auth, req
             action="project.update",
             project_id=project["id"],
             project_name=project["project_name"],
+            key_id=getattr(request.state, "auth_key_id", None),
             actor=_resolve_audit_actor(request),
             request_id=getattr(request.state, "request_id", None),
             ip_address=_request_ip(request),
@@ -308,6 +313,7 @@ def create_projects_router(settings, repository, rate_limiter, require_auth, req
             action="project.archive",
             project_id=project_id,
             project_name=project["project_name"] if project else None,
+            key_id=getattr(request.state, "auth_key_id", None),
             actor=_resolve_audit_actor(request),
             request_id=getattr(request.state, "request_id", None),
             ip_address=_request_ip(request),
@@ -328,6 +334,7 @@ def create_projects_router(settings, repository, rate_limiter, require_auth, req
             action="project.delete",
             project_id=project_id,
             project_name=project["project_name"] if project else None,
+            key_id=getattr(request.state, "auth_key_id", None),
             actor=_resolve_audit_actor(request),
             request_id=getattr(request.state, "request_id", None),
             ip_address=_request_ip(request),
@@ -347,6 +354,7 @@ def create_projects_router(settings, repository, rate_limiter, require_auth, req
             action="project.restore",
             project_id=project["id"],
             project_name=project["project_name"],
+            key_id=getattr(request.state, "auth_key_id", None),
             actor=_resolve_audit_actor(request),
             request_id=getattr(request.state, "request_id", None),
             ip_address=_request_ip(request),

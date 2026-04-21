@@ -188,6 +188,56 @@ Workspace import fails:
 - ensure the integrity checksum still matches and that the bundle was not edited after export
 - if the runtime has `AB_WORKSPACE_SIGNING_KEY`, ensure the bundle still contains a valid `signature_hmac_sha256`
 
+## Rotating API keys
+
+Prerequisites:
+
+- `AB_ADMIN_TOKEN` is configured on the backend runtime
+- you can reach `GET /api/v1/keys` with `Authorization: Bearer <AB_ADMIN_TOKEN>`
+
+Recommended rotation flow:
+
+1. Create a replacement key with the same scope and any required per-key rate-limit override.
+2. Update the external consumer to use the new plaintext key.
+3. Verify traffic moved by checking `GET /api/v1/audit?key_id=<new-key-id>&action=api_key_used`.
+4. Revoke the previous key with `POST /api/v1/keys/{key_id}/revoke`.
+5. Delete the revoked key with `DELETE /api/v1/keys/{key_id}` once rollback is no longer needed.
+
+Create:
+
+```bash
+curl -X POST http://127.0.0.1:8008/api/v1/keys \
+  -H "Authorization: Bearer YOUR_AB_ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Partner write key","scope":"write"}'
+```
+
+Audit verification:
+
+```bash
+curl "http://127.0.0.1:8008/api/v1/audit?key_id=KEY_ID&action=api_key_used" \
+  -H "Authorization: Bearer YOUR_WRITE_TOKEN"
+```
+
+Revoke:
+
+```bash
+curl -X POST http://127.0.0.1:8008/api/v1/keys/KEY_ID/revoke \
+  -H "Authorization: Bearer YOUR_AB_ADMIN_TOKEN"
+```
+
+Delete:
+
+```bash
+curl -X DELETE http://127.0.0.1:8008/api/v1/keys/KEY_ID \
+  -H "Authorization: Bearer YOUR_AB_ADMIN_TOKEN"
+```
+
+Notes:
+
+- the plaintext key is returned only once in the create response; do not log or persist it outside the intended secret store
+- legacy `AB_API_TOKEN` and `AB_READONLY_API_TOKEN` continue to work during migration and can be retired separately from managed API keys
+
 ## Release hygiene
 
 - regenerate API contracts: `python scripts/generate_frontend_api_types.py`

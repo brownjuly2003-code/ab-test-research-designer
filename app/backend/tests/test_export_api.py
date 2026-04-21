@@ -158,6 +158,20 @@ def test_export_markdown_endpoint_returns_markdown_document() -> None:
     assert "## Executive Summary" in content
 
 
+def test_export_markdown_endpoint_localizes_content_for_russian() -> None:
+    client = TestClient(create_app())
+    response = client.post(
+        "/api/v1/export/markdown",
+        json=_report_payload(),
+        headers={"Accept-Language": "ru"},
+    )
+
+    assert response.status_code == 200
+    content = response.json()["content"]
+    assert "## Резюме" in content
+    assert "## Executive Summary" not in content
+
+
 def test_export_html_endpoint_returns_html_document() -> None:
     client = TestClient(create_app())
     response = client.post("/api/v1/export/html", json=_report_payload())

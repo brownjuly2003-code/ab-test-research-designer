@@ -9,6 +9,7 @@ from typing import Any
 
 from openpyxl import Workbook
 
+from app.backend.app.i18n import translate
 from app.backend.app.schemas.api import StandaloneExportRequest
 from app.backend.app.services.pdf_service import _build_sensitivity_rows
 
@@ -237,7 +238,7 @@ def _render_hypothesis_section(hypothesis: str | None) -> str:
     if not hypothesis:
         return ""
     return f"""<div class="section">
-  <h2>Hypothesis</h2>
+  <h2>{translate("export.standalone.hypothesis")}</h2>
   <p>{_as_html(hypothesis)}</p>
 </div>"""
 
@@ -270,16 +271,22 @@ def _render_design_section(design: dict[str, Any]) -> str:
 
 def _render_warnings_section(warnings: list[dict[str, Any]]) -> str:
     if not warnings:
-        return """<div class="section">
-  <h2>Warnings</h2>
-  <div class="warning-low">No warning rules fired for the current configuration.</div>
+        return (
+            """<div class="section">
+  <h2>{title}</h2>
+  <div class="warning-low">{message}</div>
 </div>"""
+            .format(
+                title=translate("export.standalone.warnings"),
+                message=translate("export.standalone.no_warning_rules"),
+            )
+        )
     content = "".join(
         f'<div class="warning-{_as_html(str(warning.get("severity", "low")))}"><strong>{_as_html(warning.get("code", "warning"))}</strong><div>{_as_html(warning.get("message", ""))}</div></div>'
         for warning in warnings
     )
     return f"""<div class="section">
-  <h2>Warnings</h2>
+  <h2>{translate("export.standalone.warnings")}</h2>
   {content}
 </div>"""
 
@@ -298,29 +305,29 @@ def _render_ai_section(ai_advice: dict[str, Any]) -> str:
     if not blocks:
         return ""
     return f"""<div class="section">
-  <h2>AI Recommendations</h2>
+  <h2>{translate("export.standalone.ai_recommendations")}</h2>
   {''.join(blocks)}
 </div>"""
 
 
 def _render_results_section(results: dict[str, Any]) -> str:
     cards = [
-        ("Observed effect", results.get("observed_effect")),
-        ("Relative change", f"{_format_metric_value(results.get('observed_effect_relative'))}%"),
-        ("p-value", results.get("p_value")),
-        ("Power achieved", results.get("power_achieved")),
+        (translate("export.standalone.observed_effect"), results.get("observed_effect")),
+        (translate("export.standalone.relative_change"), f"{_format_metric_value(results.get('observed_effect_relative'))}%"),
+        (translate("export.standalone.p_value"), results.get("p_value")),
+        (translate("export.standalone.power_achieved"), results.get("power_achieved")),
     ]
     metric_cards = "".join(
         f'<div class="metric-card"><div class="metric-value">{_format_metric_value(value)}</div><div class="metric-label">{_as_html(label)}</div></div>'
         for label, value in cards
     )
     summary_rows = [
-        ("Metric type", results.get("metric_type")),
-        ("Control rate", results.get("control_rate")),
-        ("Treatment rate", results.get("treatment_rate")),
-        ("Confidence interval", f"{_format_metric_value(results.get('ci_lower'))} to {_format_metric_value(results.get('ci_upper'))}"),
-        ("Verdict", results.get("verdict")),
-        ("Interpretation", results.get("interpretation")),
+        (translate("export.standalone.metric_type"), results.get("metric_type")),
+        (translate("export.standalone.control_rate"), results.get("control_rate")),
+        (translate("export.standalone.treatment_rate"), results.get("treatment_rate")),
+        (translate("export.standalone.confidence_interval"), f"{_format_metric_value(results.get('ci_lower'))} to {_format_metric_value(results.get('ci_upper'))}"),
+        (translate("export.standalone.verdict"), results.get("verdict")),
+        (translate("export.standalone.interpretation"), results.get("interpretation")),
     ]
     table_rows = "".join(
         f"<tr><th>{_as_html(label)}</th><td>{_as_html(value)}</td></tr>"
@@ -328,7 +335,7 @@ def _render_results_section(results: dict[str, Any]) -> str:
         if value not in (None, "")
     )
     return f"""<div class="section">
-  <h2>Post-experiment Results</h2>
+  <h2>{translate("export.standalone.post_experiment_results")}</h2>
   <div class="metric-grid">{metric_cards}</div>
   <table><tbody>{table_rows}</tbody></table>
 </div>"""
@@ -342,10 +349,10 @@ def build_standalone_html(request: StandaloneExportRequest) -> str:
     assumptions = calculation.get("assumptions", [])
     assumptions_html = "".join(f"<li>{_as_html(item)}</li>" for item in assumptions)
     key_metrics = [
-        ("Users / variant", results.get("sample_size_per_variant")),
-        ("Days estimated", results.get("estimated_duration_days")),
-        ("Total sample", results.get("total_sample_size")),
-        ("Alpha", summary.get("alpha")),
+        (translate("export.standalone.users_per_variant"), results.get("sample_size_per_variant")),
+        (translate("export.standalone.days_estimated"), results.get("estimated_duration_days")),
+        (translate("export.standalone.total_sample"), results.get("total_sample_size")),
+        (translate("export.standalone.alpha"), summary.get("alpha")),
     ]
     metric_cards = "".join(
         f'<div class="metric-card"><div class="metric-value">{_format_metric_value(value)}</div><div class="metric-label">{_as_html(label)}</div></div>'
@@ -362,7 +369,7 @@ def build_standalone_html(request: StandaloneExportRequest) -> str:
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>AB Test Report: {_as_html(request.project_name)}</title>
+    <title>{_as_html(translate("export.standalone.title", {"project_name": request.project_name}))}</title>
     <style>
       :root {{
         --color-primary: #0d9488;
@@ -415,26 +422,26 @@ def build_standalone_html(request: StandaloneExportRequest) -> str:
   <body>
     <div class="report">
       <header class="report-header">
-        <div class="eyebrow">Standalone Report</div>
+        <div class="eyebrow">{translate("export.standalone.eyebrow")}</div>
         <h1>{_as_html(request.project_name)}</h1>
-        <div class="meta">A/B test design snapshot generated {generated_at}</div>
+        <div class="meta">{_as_html(translate("export.standalone.meta", {"generated_at": generated_at}))}</div>
       </header>
       <div class="section">
-        <h2>Key Metrics</h2>
+        <h2>{translate("export.standalone.key_metrics")}</h2>
         <div class="metric-grid">{metric_cards}</div>
       </div>
       {_render_hypothesis_section(request.hypothesis)}
       {power_curve_svg}
       <div class="section">
-        <h2>Assumptions</h2>
-        <ul>{assumptions_html or '<li>None recorded.</li>'}</ul>
+        <h2>{translate("export.standalone.assumptions")}</h2>
+        <ul>{assumptions_html or f'<li>{translate("export.standalone.none_recorded")}</li>'}</ul>
       </div>
       {_render_design_section(request.design)}
       {warnings_section}
       {sensitivity_svg}
       {ai_section}
       {results_section}
-      <footer>Generated by AB Test Research Designer.</footer>
+      <footer>{translate("export.standalone.generated_by")}</footer>
     </div>
   </body>
 </html>"""
@@ -443,71 +450,101 @@ def build_standalone_html(request: StandaloneExportRequest) -> str:
 def export_report_to_markdown(report: dict) -> str:
     recommendations = report["recommendations"]
     risks = report["risks"]
+    labels = {
+        "title": translate("export.markdown.title"),
+        "executive_summary": translate("export.markdown.executive_summary"),
+        "calculations": translate("export.markdown.calculations"),
+        "sample_size_per_variant": translate("export.markdown.sample_size_per_variant"),
+        "total_sample_size": translate("export.markdown.total_sample_size"),
+        "estimated_duration_days": translate("export.markdown.estimated_duration_days"),
+        "assumptions": translate("export.markdown.assumptions"),
+        "experiment_design": translate("export.markdown.experiment_design"),
+        "randomization_unit": translate("export.markdown.randomization_unit"),
+        "traffic_split": translate("export.markdown.traffic_split"),
+        "target_audience": translate("export.markdown.target_audience"),
+        "inclusion_criteria": translate("export.markdown.inclusion_criteria"),
+        "exclusion_criteria": translate("export.markdown.exclusion_criteria"),
+        "metrics_plan": translate("export.markdown.metrics_plan"),
+        "primary": translate("export.markdown.primary"),
+        "secondary": translate("export.markdown.secondary"),
+        "guardrail": translate("export.markdown.guardrail"),
+        "diagnostic": translate("export.markdown.diagnostic"),
+        "risks": translate("export.markdown.risks"),
+        "statistical": translate("export.markdown.statistical"),
+        "product": translate("export.markdown.product"),
+        "technical": translate("export.markdown.technical"),
+        "operational": translate("export.markdown.operational"),
+        "recommendations": translate("export.markdown.recommendations"),
+        "before_launch": translate("export.markdown.before_launch"),
+        "during_test": translate("export.markdown.during_test"),
+        "after_test": translate("export.markdown.after_test"),
+        "open_questions": translate("export.markdown.open_questions"),
+    }
 
-    return f"""# Experiment Report
+    return f"""# {labels["title"]}
 
-## Executive Summary
+## {labels["executive_summary"]}
 
 {report["executive_summary"]}
 
-## Calculations
+## {labels["calculations"]}
 
-- Sample size per variant: {report["calculations"]["sample_size_per_variant"]}
-- Total sample size: {report["calculations"]["total_sample_size"]}
-- Estimated duration days: {report["calculations"]["estimated_duration_days"]}
+- {labels["sample_size_per_variant"]}: {report["calculations"]["sample_size_per_variant"]}
+- {labels["total_sample_size"]}: {report["calculations"]["total_sample_size"]}
+- {labels["estimated_duration_days"]}: {report["calculations"]["estimated_duration_days"]}
 
-### Assumptions
+### {labels["assumptions"]}
 
 {_list_to_markdown(report["calculations"]["assumptions"])}
 
-## Experiment Design
+## {labels["experiment_design"]}
 
-- Randomization unit: {report["experiment_design"]["randomization_unit"]}
-- Traffic split: {report["experiment_design"]["traffic_split"]}
-- Target audience: {report["experiment_design"]["target_audience"]}
-- Inclusion criteria: {report["experiment_design"]["inclusion_criteria"]}
-- Exclusion criteria: {report["experiment_design"]["exclusion_criteria"]}
+- {labels["randomization_unit"]}: {report["experiment_design"]["randomization_unit"]}
+- {labels["traffic_split"]}: {report["experiment_design"]["traffic_split"]}
+- {labels["target_audience"]}: {report["experiment_design"]["target_audience"]}
+- {labels["inclusion_criteria"]}: {report["experiment_design"]["inclusion_criteria"]}
+- {labels["exclusion_criteria"]}: {report["experiment_design"]["exclusion_criteria"]}
 
-## Metrics Plan
+## {labels["metrics_plan"]}
 
-### Primary
+### {labels["primary"]}
 {_list_to_markdown(report["metrics_plan"]["primary"])}
 
-### Secondary
+### {labels["secondary"]}
 {_list_to_markdown(report["metrics_plan"]["secondary"])}
 
-### Guardrail
+### {labels["guardrail"]}
 {_list_to_markdown(report["metrics_plan"]["guardrail"])}
 
-### Diagnostic
+### {labels["diagnostic"]}
 {_list_to_markdown(report["metrics_plan"]["diagnostic"])}
 
-## Risks
+## {labels["risks"]}
 
-### Statistical
+### {labels["statistical"]}
 {_list_to_markdown(risks["statistical"])}
 
-### Product
+### {labels["product"]}
 {_list_to_markdown(risks["product"])}
 
-### Technical
+### {labels["technical"]}
 {_list_to_markdown(risks["technical"])}
 
-### Operational
+### {labels["operational"]}
 {_list_to_markdown(risks["operational"])}
 
-## Recommendations
+## {labels["recommendations"]}
 
-### Before Launch
+### {labels["before_launch"]}
 {_list_to_markdown(recommendations["before_launch"])}
 
-### During Test
+### {labels["during_test"]}
 {_list_to_markdown(recommendations["during_test"])}
 
-### After Test
+### {labels["after_test"]}
 {_list_to_markdown(recommendations["after_test"])}
 
-## Open Questions
+## {labels["open_questions"]}
 
 {_list_to_markdown(report["open_questions"])}
 """
@@ -516,7 +553,7 @@ def export_report_to_markdown(report: dict) -> str:
 def export_report_to_html(report: dict) -> str:
     def as_list(items: list[str]) -> str:
         if not items:
-            return "<li>None</li>"
+            return f"<li>{_as_html(translate('export.html.none'))}</li>"
         return "".join(f"<li>{_as_html(item)}</li>" for item in items)
 
     recommendations = report["recommendations"]
@@ -528,13 +565,48 @@ def export_report_to_html(report: dict) -> str:
         f"<tr><td>{_as_html(item.get('name', ''))}</td><td>{_as_html(item.get('role', ''))}</td><td>{_as_html(item.get('definition', ''))}</td></tr>"
         for item in guardrails
     )
+    labels = {
+        "title": translate("export.html.title"),
+        "meta": translate("export.html.meta"),
+        "users_per_variant": translate("export.html.users_per_variant"),
+        "total_sample": translate("export.html.total_sample"),
+        "estimated_days": translate("export.html.estimated_days"),
+        "executive_summary": translate("export.html.executive_summary"),
+        "experiment_design": translate("export.html.experiment_design"),
+        "randomization_unit": translate("export.html.randomization_unit"),
+        "traffic_split": translate("export.html.traffic_split"),
+        "target_audience": translate("export.html.target_audience"),
+        "inclusion_criteria": translate("export.html.inclusion_criteria"),
+        "exclusion_criteria": translate("export.html.exclusion_criteria"),
+        "recommended_duration": translate("export.html.recommended_duration"),
+        "variants": translate("export.html.variants"),
+        "assumptions": translate("export.html.assumptions"),
+        "metrics_plan": translate("export.html.metrics_plan"),
+        "primary": translate("export.html.primary"),
+        "secondary": translate("export.html.secondary"),
+        "guardrail": translate("export.html.guardrail"),
+        "diagnostic": translate("export.html.diagnostic"),
+        "guardrail_metric_definitions": translate("export.html.guardrail_metric_definitions"),
+        "name": translate("export.html.name"),
+        "role": translate("export.html.role"),
+        "definition": translate("export.html.definition"),
+        "risks_and_recommendations": translate("export.html.risks_and_recommendations"),
+        "statistical": translate("export.html.statistical"),
+        "product": translate("export.html.product"),
+        "technical": translate("export.html.technical"),
+        "operational": translate("export.html.operational"),
+        "before_launch": translate("export.html.before_launch"),
+        "during_test": translate("export.html.during_test"),
+        "after_test": translate("export.html.after_test"),
+        "open_questions": translate("export.html.open_questions"),
+    }
 
     return f"""<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Experiment Report</title>
+    <title>{labels["title"]}</title>
     <style>
       :root {{
         --color-primary: #0f766e;
@@ -579,87 +651,87 @@ def export_report_to_html(report: dict) -> str:
   <body>
     <div class="report">
       <header class="report-header">
-        <h1>Experiment Report</h1>
-        <div class="meta">Print-ready summary for stakeholders and handoff reviews.</div>
+        <h1>{labels["title"]}</h1>
+        <div class="meta">{labels["meta"]}</div>
       </header>
       <section class="summary-grid">
         <div class="summary-card">
           <div class="summary-value">{_as_html(calculations["sample_size_per_variant"])}</div>
-          <div class="summary-label">Users / variant</div>
+          <div class="summary-label">{labels["users_per_variant"]}</div>
         </div>
         <div class="summary-card">
           <div class="summary-value">{_as_html(calculations["total_sample_size"])}</div>
-          <div class="summary-label">Total sample</div>
+          <div class="summary-label">{labels["total_sample"]}</div>
         </div>
         <div class="summary-card">
           <div class="summary-value">{_as_html(calculations["estimated_duration_days"])}</div>
-          <div class="summary-label">Estimated days</div>
+          <div class="summary-label">{labels["estimated_days"]}</div>
         </div>
       </section>
       <section class="panel">
-        <h2>Executive Summary</h2>
+        <h2>{labels["executive_summary"]}</h2>
         <p>{_as_html(report["executive_summary"])}</p>
       </section>
       <section class="panel">
-        <h2>Experiment Design</h2>
+        <h2>{labels["experiment_design"]}</h2>
         <table>
           <tbody>
-            <tr><th>Randomization unit</th><td>{_as_html(design["randomization_unit"])}</td></tr>
-            <tr><th>Traffic split</th><td>{_as_html(design["traffic_split"])}</td></tr>
-            <tr><th>Target audience</th><td>{_as_html(design["target_audience"])}</td></tr>
-            <tr><th>Inclusion criteria</th><td>{_as_html(design["inclusion_criteria"])}</td></tr>
-            <tr><th>Exclusion criteria</th><td>{_as_html(design["exclusion_criteria"])}</td></tr>
-            <tr><th>Recommended duration</th><td>{_as_html(design["recommended_duration_days"])}</td></tr>
+            <tr><th>{labels["randomization_unit"]}</th><td>{_as_html(design["randomization_unit"])}</td></tr>
+            <tr><th>{labels["traffic_split"]}</th><td>{_as_html(design["traffic_split"])}</td></tr>
+            <tr><th>{labels["target_audience"]}</th><td>{_as_html(design["target_audience"])}</td></tr>
+            <tr><th>{labels["inclusion_criteria"]}</th><td>{_as_html(design["inclusion_criteria"])}</td></tr>
+            <tr><th>{labels["exclusion_criteria"]}</th><td>{_as_html(design["exclusion_criteria"])}</td></tr>
+            <tr><th>{labels["recommended_duration"]}</th><td>{_as_html(design["recommended_duration_days"])}</td></tr>
           </tbody>
         </table>
-        <h3>Variants</h3>
+        <h3>{labels["variants"]}</h3>
         <ul>{as_list([f'{item["name"]}: {item["description"]}' for item in design["variants"]])}</ul>
-        <h3>Assumptions</h3>
+        <h3>{labels["assumptions"]}</h3>
         <ul>{as_list(calculations["assumptions"])}</ul>
       </section>
       <section class="panel">
-        <h2>Metrics Plan</h2>
+        <h2>{labels["metrics_plan"]}</h2>
         <div class="two-col">
           <div>
-            <h3>Primary</h3>
+            <h3>{labels["primary"]}</h3>
             <ul>{as_list(report["metrics_plan"]["primary"])}</ul>
-            <h3>Secondary</h3>
+            <h3>{labels["secondary"]}</h3>
             <ul>{as_list(report["metrics_plan"]["secondary"])}</ul>
           </div>
           <div>
-            <h3>Guardrail</h3>
+            <h3>{labels["guardrail"]}</h3>
             <ul>{as_list(report["metrics_plan"]["guardrail"])}</ul>
-            <h3>Diagnostic</h3>
+            <h3>{labels["diagnostic"]}</h3>
             <ul>{as_list(report["metrics_plan"]["diagnostic"])}</ul>
           </div>
         </div>
-        {f'<h3>Guardrail Metric Definitions</h3><table><thead><tr><th>Name</th><th>Role</th><th>Definition</th></tr></thead><tbody>{guardrail_rows}</tbody></table>' if guardrail_rows else ''}
+        {f'<h3>{labels["guardrail_metric_definitions"]}</h3><table><thead><tr><th>{labels["name"]}</th><th>{labels["role"]}</th><th>{labels["definition"]}</th></tr></thead><tbody>{guardrail_rows}</tbody></table>' if guardrail_rows else ''}
       </section>
       <section class="panel">
-        <h2>Risks & Recommendations</h2>
+        <h2>{labels["risks_and_recommendations"]}</h2>
         <div class="two-col">
           <div>
-            <h3>Statistical</h3>
+            <h3>{labels["statistical"]}</h3>
             <ul>{as_list(risks["statistical"])}</ul>
-            <h3>Product</h3>
+            <h3>{labels["product"]}</h3>
             <ul>{as_list(risks["product"])}</ul>
-            <h3>Technical</h3>
+            <h3>{labels["technical"]}</h3>
             <ul>{as_list(risks["technical"])}</ul>
-            <h3>Operational</h3>
+            <h3>{labels["operational"]}</h3>
             <ul>{as_list(risks["operational"])}</ul>
           </div>
           <div>
-            <h3>Before Launch</h3>
+            <h3>{labels["before_launch"]}</h3>
             <ul>{as_list(recommendations["before_launch"])}</ul>
-            <h3>During Test</h3>
+            <h3>{labels["during_test"]}</h3>
             <ul>{as_list(recommendations["during_test"])}</ul>
-            <h3>After Test</h3>
+            <h3>{labels["after_test"]}</h3>
             <ul>{as_list(recommendations["after_test"])}</ul>
           </div>
         </div>
       </section>
       <section class="panel">
-        <h2>Open Questions</h2>
+        <h2>{labels["open_questions"]}</h2>
         <ul>{as_list(report["open_questions"])}</ul>
       </section>
     </div>
@@ -722,13 +794,25 @@ def export_project_report_to_csv(project: dict[str, Any], analysis: dict[str, An
     buffer = StringIO()
     writer = csv.writer(buffer, lineterminator="\n")
 
-    writer.writerow(["# Sample Size Results"])
-    writer.writerow(["Variant", "Required N", "Daily Traffic", "Duration (days)", "Traffic Split %"])
+    writer.writerow([f'# {translate("export.project.sample_results_header")}'])
+    writer.writerow([
+        translate("export.project.variant"),
+        translate("export.project.required_n"),
+        translate("export.project.daily_traffic"),
+        translate("export.project.duration_days"),
+        translate("export.project.traffic_split_pct"),
+    ])
     writer.writerows(sections["sample_rows"])
     writer.writerow([])
 
-    writer.writerow(["# Sensitivity Analysis"])
-    writer.writerow(["Effect Size", "Required N (80% power)", "Duration (80% power)", "Required N (90% power)", "Duration (90% power)"])
+    writer.writerow([f'# {translate("export.project.sensitivity_header")}'])
+    writer.writerow([
+        translate("export.project.effect_size"),
+        translate("export.project.required_n_80"),
+        translate("export.project.duration_80"),
+        translate("export.project.required_n_90"),
+        translate("export.project.duration_90"),
+    ])
     for row in sections["sensitivity_rows"]:
         writer.writerow([
             row.get("effect_size"),
@@ -739,8 +823,13 @@ def export_project_report_to_csv(project: dict[str, Any], analysis: dict[str, An
         ])
     writer.writerow([])
 
-    writer.writerow(["# Guardrail Metrics"])
-    writer.writerow(["Metric Name", "Metric Type", "Detectable MDE", "Note"])
+    writer.writerow([f'# {translate("export.project.guardrails_header")}'])
+    writer.writerow([
+        translate("export.project.metric_name"),
+        translate("export.project.metric_type"),
+        translate("export.project.detectable_mde"),
+        translate("export.project.note"),
+    ])
     writer.writerows(sections["guardrail_rows"])
 
     return buffer.getvalue()
@@ -751,16 +840,28 @@ def export_project_report_to_xlsx(project: dict[str, Any], analysis: dict[str, A
     payload = project.get("payload", {})
     workbook = Workbook()
     summary_sheet = workbook.active
-    summary_sheet.title = "Summary"
-    summary_sheet.append(["Project name", project.get("project_name")])
-    summary_sheet.append(["Created at", project.get("created_at")])
+    summary_sheet.title = translate("export.project.summary_sheet")
+    summary_sheet.append([translate("export.project.project_name"), project.get("project_name")])
+    summary_sheet.append([translate("export.project.created_at"), project.get("created_at")])
     summary_sheet.append([])
-    summary_sheet.append(["Variant", "Required N", "Daily Traffic", "Duration (days)", "Traffic Split %"])
+    summary_sheet.append([
+        translate("export.project.variant"),
+        translate("export.project.required_n"),
+        translate("export.project.daily_traffic"),
+        translate("export.project.duration_days"),
+        translate("export.project.traffic_split_pct"),
+    ])
     for row in sections["sample_rows"]:
         summary_sheet.append(row)
 
-    sensitivity_sheet = workbook.create_sheet("Sensitivity")
-    sensitivity_sheet.append(["Effect Size", "Required N (80% power)", "Duration (80% power)", "Required N (90% power)", "Duration (90% power)"])
+    sensitivity_sheet = workbook.create_sheet(translate("export.project.sensitivity_sheet"))
+    sensitivity_sheet.append([
+        translate("export.project.effect_size"),
+        translate("export.project.required_n_80"),
+        translate("export.project.duration_80"),
+        translate("export.project.required_n_90"),
+        translate("export.project.duration_90"),
+    ])
     for row in sections["sensitivity_rows"]:
         sensitivity_sheet.append([
             row.get("effect_size"),
@@ -770,13 +871,18 @@ def export_project_report_to_xlsx(project: dict[str, Any], analysis: dict[str, A
             row.get("days_90"),
         ])
 
-    guardrails_sheet = workbook.create_sheet("Guardrails")
-    guardrails_sheet.append(["Metric Name", "Metric Type", "Detectable MDE", "Note"])
+    guardrails_sheet = workbook.create_sheet(translate("export.project.guardrails_sheet"))
+    guardrails_sheet.append([
+        translate("export.project.metric_name"),
+        translate("export.project.metric_type"),
+        translate("export.project.detectable_mde"),
+        translate("export.project.note"),
+    ])
     for row in sections["guardrail_rows"]:
         guardrails_sheet.append(row)
 
-    raw_inputs_sheet = workbook.create_sheet("Raw Inputs")
-    raw_inputs_sheet.append(["Field", "Value"])
+    raw_inputs_sheet = workbook.create_sheet(translate("export.project.raw_inputs_sheet"))
+    raw_inputs_sheet.append([translate("export.project.field"), translate("export.project.value")])
     for field, value in sections["raw_input_rows"]:
         if isinstance(value, list):
             raw_inputs_sheet.append([field, json.dumps(value)])

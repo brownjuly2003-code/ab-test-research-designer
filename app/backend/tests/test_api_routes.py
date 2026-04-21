@@ -10,6 +10,7 @@ import app.backend.app.main as main_module
 from app.backend.app.config import get_settings
 from app.backend.app.main import create_app
 from app.backend.app.llm.adapter import LocalOrchestratorAdapter
+from app.backend.app.repository import ProjectRepository
 
 
 def _full_payload() -> dict:
@@ -574,8 +575,8 @@ def test_diagnostics_endpoint_returns_runtime_summary(monkeypatch) -> None:
     assert payload["storage"]["db_parent_path"] == str(db_path.parent)
     assert payload["storage"]["db_size_bytes"] >= 0
     assert payload["storage"]["disk_free_bytes"] > 0
-    assert payload["storage"]["schema_version"] == 5
-    assert payload["storage"]["sqlite_user_version"] == 5
+    assert payload["storage"]["schema_version"] == 6
+    assert payload["storage"]["sqlite_user_version"] == 6
     assert payload["storage"]["journal_mode"] == "WAL"
     assert payload["storage"]["synchronous"] == "NORMAL"
     assert payload["storage"]["write_probe_ok"] is True
@@ -670,6 +671,30 @@ def test_api_token_protects_runtime_and_api_routes(monkeypatch) -> None:
     assert authorized_diagnostics.json()["auth"]["write_enabled"] is True
     assert authorized_diagnostics.json()["auth"]["readonly_enabled"] is False
     assert api_key_diagnostics.status_code == 200
+    get_settings.cache_clear()
+
+
+def test_docs_and_openapi_remain_public_when_auth_is_enabled(monkeypatch) -> None:
+    monkeypatch.setenv("AB_API_TOKEN", "super-secret-token")
+    monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")
+    get_settings.cache_clear()
+
+    with TestClient(create_app()) as client:
+        docs_response = client.get("/docs")
+        redoc_response = client.get("/redoc")
+        openapi_response = client.get("/openapi.json")
+
+    assert docs_response.status_code == 200
+    assert "Swagger UI" in docs_response.text
+    assert redoc_response.status_code == 200
+    assert "AB Test Research Designer API" in redoc_response.text
+    assert openapi_response.status_code == 200
+    payload = openapi_response.json()
+    assert payload["info"]["title"] == "AB Test Research Designer API"
+    assert payload["info"]["version"] == "1.0.0"
+    assert payload["info"]["description"]
+    assert payload["info"]["contact"]
+    assert payload["info"]["license"]
     get_settings.cache_clear()
 
 
@@ -824,6 +849,143 @@ def test_diagnostics_runtime_counters_track_errors_and_auth_rejections(monkeypat
     assert runtime["last_error_code"] == "forbidden"
     assert runtime["last_error_at"] is not None
     assert runtime["last_request_at"] is not None
+    get_settings.cache_clear()
+
+
+def test_database_api_keys_require_auth_and_enforce_scope(monkeypatch) -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+    repository = ProjectRepository(str(db_path))
+    write_key = repository.create_api_key(name="Write key", scope="write")["plaintext_key"]
+    read_key = repository.create_api_key(name="Read key", scope="read")["plaintext_key"]
+
+    monkeypatch.setenv("AB_DB_PATH", str(db_path))
+    monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")
+    get_settings.cache_clear()
+
+    with TestClient(create_app()) as client:
+        unauthorized = client.get("/api/v1/diagnostics")
+        write_response = client.get(
+            "/api/v1/diagnostics",
+            headers={"Authorization": f"Bearer {write_key}"},
+        )
+        readonly_projects = client.get(
+            "/api/v1/projects",
+            headers={"Authorization": f"Bearer {read_key}"},
+        )
+        forbidden_calculation = client.post(
+            "/api/v1/calculate",
+            headers={"Authorization": f"Bearer {read_key}"},
+            json={
+                "metric_type": "binary",
+                "baseline_value": 0.042,
+                "mde_pct": 5,
+                "alpha": 0.05,
+                "power": 0.8,
+                "expected_daily_traffic": 12000,
+                "audience_share_in_test": 0.6,
+                "traffic_split": [50, 50],
+                "variants_count": 2,
+            },
+        )
+
+    assert unauthorized.status_code == 401
+    assert write_response.status_code == 200
+    assert write_response.json()["auth"]["session_scope"] == "write"
+    assert write_response.json()["auth"]["session_can_write"] is True
+    assert readonly_projects.status_code == 200
+    assert forbidden_calculation.status_code == 403
+    assert forbidden_calculation.json()["error_code"] == "forbidden"
+    get_settings.cache_clear()
+
+
+def test_revoked_database_api_key_is_rejected(monkeypatch) -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+    repository = ProjectRepository(str(db_path))
+    created = repository.create_api_key(name="Temporary key", scope="write")
+    repository.revoke_api_key(created["id"])
+
+    monkeypatch.setenv("AB_DB_PATH", str(db_path))
+    monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")
+    get_settings.cache_clear()
+
+    with TestClient(create_app()) as client:
+        response = client.get(
+            "/api/v1/diagnostics",
+            headers={"Authorization": f"Bearer {created['plaintext_key']}"},
+        )
+
+    assert response.status_code == 401
+    assert response.json()["error_code"] == "unauthorized"
+    get_settings.cache_clear()
+
+
+def test_per_key_rate_limits_use_independent_buckets(monkeypatch) -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+    repository = ProjectRepository(str(db_path))
+    first_key = repository.create_api_key(name="Partner A", scope="write")
+    second_key = repository.create_api_key(name="Partner B", scope="write")
+
+    monkeypatch.setenv("AB_DB_PATH", str(db_path))
+    monkeypatch.setenv("AB_RATE_LIMIT_ENABLED", "true")
+    monkeypatch.setenv("AB_RATE_LIMIT_REQUESTS", "1")
+    monkeypatch.setenv("AB_RATE_LIMIT_WINDOW_SECONDS", "60")
+    monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")
+    get_settings.cache_clear()
+
+    with TestClient(create_app()) as client:
+        first_partner_first = client.get(
+            "/api/v1/diagnostics",
+            headers={"Authorization": f"Bearer {first_key['plaintext_key']}"},
+        )
+        second_partner_first = client.get(
+            "/api/v1/diagnostics",
+            headers={"Authorization": f"Bearer {second_key['plaintext_key']}"},
+        )
+        first_partner_second = client.get(
+            "/api/v1/diagnostics",
+            headers={"Authorization": f"Bearer {first_key['plaintext_key']}"},
+        )
+
+    assert first_partner_first.status_code == 200
+    assert second_partner_first.status_code == 200
+    assert first_partner_second.status_code == 429
+    assert first_partner_second.json()["error_code"] == "rate_limited"
+    get_settings.cache_clear()
+
+
+def test_api_key_usage_events_are_filterable_by_key_id(monkeypatch) -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+    repository = ProjectRepository(str(db_path))
+    created = repository.create_api_key(name="Audited key", scope="write")
+
+    monkeypatch.setenv("AB_DB_PATH", str(db_path))
+    monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")
+    get_settings.cache_clear()
+
+    with TestClient(create_app()) as client:
+        diagnostics = client.get(
+            "/api/v1/diagnostics",
+            headers={"Authorization": f"Bearer {created['plaintext_key']}"},
+        )
+        audit = client.get(
+            "/api/v1/audit",
+            params={"action": "api_key_used", "key_id": created["id"]},
+            headers={"Authorization": f"Bearer {created['plaintext_key']}"},
+        )
+
+    assert diagnostics.status_code == 200
+    assert audit.status_code == 200
+    assert audit.json()["entries"]
+    assert all(entry["key_id"] == created["id"] for entry in audit.json()["entries"])
+    assert any(entry["action"] == "api_key_used" for entry in audit.json()["entries"])
     get_settings.cache_clear()
 
 

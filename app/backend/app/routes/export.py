@@ -16,7 +16,7 @@ def _sanitize_filename(value: str) -> str:
 
 
 def create_export_router(settings, repository, rate_limiter, require_auth) -> APIRouter:
-    router = APIRouter()
+    router = APIRouter(tags=["workspace"])
 
     @router.post(
         "/api/v1/export/markdown",

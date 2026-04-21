@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends
 
+from app.backend.app.i18n import translate
 from app.backend.app.llm.adapter import LocalOrchestratorAdapter
 from app.backend.app.schemas.api import (
     AnalysisResponse,
@@ -65,7 +66,7 @@ def _build_llm_advice_payload(payload: ExperimentInput, calculation_result: dict
 
 
 def create_analysis_router(settings, repository, rate_limiter, require_auth, require_write_auth) -> APIRouter:
-    router = APIRouter()
+    router = APIRouter(tags=["calculations"])
     llm_adapter = LocalOrchestratorAdapter(
         base_url=settings.llm_base_url,
         timeout_seconds=settings.llm_timeout_seconds,
@@ -147,9 +148,9 @@ def create_analysis_router(settings, repository, rate_limiter, require_auth, req
             p_value=round(p_value, 6),
             is_srm=is_srm,
             verdict=(
-                "SRM detected - check your randomization or tracking implementation"
+                translate("errors.srm_detected")
                 if is_srm
-                else "No SRM detected"
+                else translate("errors.srm_not_detected")
             ),
             observed_counts=payload.observed_counts,
             expected_counts=[round(count, 1) for count in expected_counts],

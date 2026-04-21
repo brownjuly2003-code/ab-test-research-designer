@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import type { AnalysisResponsePayload, ProjectHistory, SavedProject, WarningItem } from "../../../lib/experiment";
 import type { SensitivityResponse } from "../../../lib/generated/api-contract";
+import { t } from "../../../i18n";
 import Icon from "../../Icon";
 import MetricCard from "../../MetricCard";
 import styles from "../../ResultsPanel.module.css";
@@ -34,12 +35,12 @@ function getHighestSeverity(warnings: WarningItem[]): WarningItem["severity"] {
   return "low";
 }
 
-function getWarningSeverityLabel(warnings: WarningItem[]): string {
+function getWarningSeverityLabel(warnings: WarningItem[], t: (key: string, options?: Record<string, unknown>) => string): string {
   const highCount = warnings.filter((warning) => warning.severity === "high").length;
-  if (highCount > 0) return `${highCount} high`;
+  if (highCount > 0) return t("results.sensitivityOverview.warningSeverity.high", { count: highCount });
   const mediumCount = warnings.filter((warning) => warning.severity === "medium").length;
-  if (mediumCount > 0) return `${mediumCount} medium`;
-  return warnings.length > 0 ? `${warnings.length} low` : "No warnings";
+  if (mediumCount > 0) return t("results.sensitivityOverview.warningSeverity.medium", { count: mediumCount });
+  return warnings.length > 0 ? t("results.sensitivityOverview.warningSeverity.low", { count: warnings.length }) : t("results.sensitivityOverview.warningSeverity.none");
 }
 
 export default function SensitivityOverview({
@@ -72,8 +73,8 @@ export default function SensitivityOverview({
     <>
       <div className="section-heading">
         <div>
-          <span className="pill">Report</span>
-          <h3>Deterministic experiment design</h3>
+          <span className="pill">{t("results.sensitivityOverview.reportPill")}</span>
+          <h3>{t("results.sensitivityOverview.title")}</h3>
         </div>
         <div className="actions">
           <button
@@ -84,14 +85,14 @@ export default function SensitivityOverview({
             onClick={() => setExportMenuOpen((current) => !current)}
           >
             <Icon name="download" className="icon icon-inline" />
-            Export
+            {t("results.sensitivityOverview.export")}
           </button>
         </div>
       </div>
       <div
         id="report-export-menu"
         role="menu"
-        aria-label="Report export options"
+        aria-label={t("results.sensitivityOverview.exportMenuAriaLabel")}
         style={{
           display: exportMenuOpen ? "grid" : "none",
           gap: "8px",
@@ -99,29 +100,29 @@ export default function SensitivityOverview({
           marginBottom: "12px"
         }}
       >
-        <button className="btn ghost" disabled={!canMutateBackend} title="Export report (Ctrl+E)" onClick={() => { setExportMenuOpen(false); onExportReport("markdown"); }}>
+        <button className="btn ghost" disabled={!canMutateBackend} title={t("results.sensitivityOverview.exportReportTitle")} onClick={() => { setExportMenuOpen(false); onExportReport("markdown"); }}>
           <Icon name="download" className="icon icon-inline" />
-          Export Markdown
+          {t("results.sensitivityOverview.exportMarkdown")}
         </button>
         <button className="btn ghost" disabled={!canMutateBackend} onClick={() => { setExportMenuOpen(false); onExportReport("html"); }}>
           <Icon name="code" className="icon icon-inline" />
-          Export HTML
+          {t("results.sensitivityOverview.exportHtml")}
         </button>
         <button className="btn ghost" disabled={!canMutateBackend || !canExportPdf} onClick={() => { setExportMenuOpen(false); onExportPdf(); }}>
           <Icon name="download" className="icon icon-inline" />
-          Export PDF
+          {t("results.sensitivityOverview.exportPdf")}
         </button>
         <button className="btn ghost" disabled={!canMutateBackend} onClick={() => { setExportMenuOpen(false); onExportProjectData("csv"); }}>
           <Icon name="download" className="icon icon-inline" />
-          CSV Data
+          {t("results.sensitivityOverview.exportCsv")}
         </button>
         <button className="btn ghost" disabled={!canMutateBackend} onClick={() => { setExportMenuOpen(false); onExportProjectData("xlsx"); }}>
           <Icon name="download" className="icon icon-inline" />
-          Excel Workbook
+          {t("results.sensitivityOverview.exportXlsx")}
         </button>
         <button className="btn primary" disabled={!canMutateBackend || standaloneExporting} onClick={() => { setExportMenuOpen(false); onExportStandalone(); }}>
           <Icon name="download" className="icon icon-inline" />
-          {standaloneExporting ? "Exporting..." : "Export Full Report"}
+          {standaloneExporting ? t("results.sensitivityOverview.exporting") : t("results.sensitivityOverview.exportFullReport")}
         </button>
       </div>
       <p className={`muted ${styles["result-summary"]}`}>{String(displayedAnalysis.report.executive_summary ?? "")}</p>
@@ -130,68 +131,68 @@ export default function SensitivityOverview({
       <div className={styles["metric-grid"]}>
         <MetricCard
           icon="activity"
-          title="Per variant"
+          title={t("results.sensitivityOverview.cards.perVariant")}
           value={String(displayedAnalysis.calculations.results.sample_size_per_variant ?? "-")}
-          subtitle="sample size / variant"
-          meta={`${String(displayedAnalysis.calculations.calculation_summary.power ?? "-")} power`}
-          badge={displayedAnalysis.calculations.bonferroni_note ? <span className={styles["inline-note"]}>Bonferroni</span> : null}
+          subtitle={t("results.sensitivityOverview.cards.sampleSizePerVariant")}
+          meta={t("results.sensitivityOverview.cards.powerMeta", { power: String(displayedAnalysis.calculations.calculation_summary.power ?? "-") })}
+          badge={displayedAnalysis.calculations.bonferroni_note ? <span className={styles["inline-note"]}>{t("results.sensitivityOverview.cards.bonferroni")}</span> : null}
         />
-        <MetricCard icon="check" title="Total sample" value={String(displayedAnalysis.calculations.results.total_sample_size ?? "-")} subtitle="total sample size" meta={`${String(variantsCount)} variants`} />
-        <MetricCard icon="clock" title="Duration" value={`${String(displayedAnalysis.calculations.results.estimated_duration_days ?? "-")} days`} subtitle="estimated duration" meta={`${String(displayedAnalysis.calculations.results.effective_daily_traffic ?? "-")}/day`} />
-        <MetricCard icon="warning" title="Warnings" value={String(warnings.length)} subtitle="heuristic checks" meta={getWarningSeverityLabel(warnings)} tone={warningSeverity === "high" ? "warning" : "default"} />
+        <MetricCard icon="check" title={t("results.sensitivityOverview.cards.totalSample")} value={String(displayedAnalysis.calculations.results.total_sample_size ?? "-")} subtitle={t("results.sensitivityOverview.cards.totalSampleSubtitle")} meta={t("results.sensitivityOverview.cards.variantsMeta", { count: variantsCount })} />
+        <MetricCard icon="clock" title={t("results.sensitivityOverview.cards.duration")} value={t("results.sensitivityOverview.cards.durationValue", { days: String(displayedAnalysis.calculations.results.estimated_duration_days ?? "-") })} subtitle={t("results.sensitivityOverview.cards.durationSubtitle")} meta={t("results.sensitivityOverview.cards.perDayMeta", { traffic: String(displayedAnalysis.calculations.results.effective_daily_traffic ?? "-") })} />
+        <MetricCard icon="warning" title={t("results.sensitivityOverview.cards.warnings")} value={String(warnings.length)} subtitle={t("results.sensitivityOverview.cards.warningsSubtitle")} meta={getWarningSeverityLabel(warnings, t)} tone={warningSeverity === "high" ? "warning" : "default"} />
       </div>
       {displayedAnalysis.calculations.bonferroni_note ? <div className={`callout ${styles["callout-info"]}`}><Icon name="info" className="icon icon-inline" /><span>{displayedAnalysis.calculations.bonferroni_note}</span></div> : null}
       {displayedAnalysis.calculations.bayesian_sample_size_per_variant !== null ? (
         <div className={styles["cuped-panel"]}>
-          <h3>Bayesian estimate</h3>
+          <h3>{t("results.sensitivityOverview.bayesianEstimate.title")}</h3>
           <div className={styles["cuped-comparison"]}>
-            <div className={styles["cuped-card"]}><span className={styles["cuped-label"]}>Frequentist</span><span className={styles["cuped-value"]}>{displayedAnalysis.calculations.results.sample_size_per_variant.toLocaleString()}</span><span className={styles["cuped-unit"]}>users / variant</span></div>
+            <div className={styles["cuped-card"]}><span className={styles["cuped-label"]}>{t("results.sensitivityOverview.bayesianEstimate.frequentist")}</span><span className={styles["cuped-value"]}>{displayedAnalysis.calculations.results.sample_size_per_variant.toLocaleString()}</span><span className={styles["cuped-unit"]}>{t("results.sensitivityOverview.bayesianEstimate.usersPerVariant")}</span></div>
             <div className={styles["cuped-arrow"]}>{"->"}</div>
-            <div className={[styles["cuped-card"], styles["cuped-card-adjusted"]].join(" ")}><span className={styles["cuped-label"]}>Bayesian{displayedAnalysis.calculations.bayesian_credibility != null ? ` (${Math.round(displayedAnalysis.calculations.bayesian_credibility * 100)}% CI)` : ""}</span><span className={styles["cuped-value"]}>{displayedAnalysis.calculations.bayesian_sample_size_per_variant?.toLocaleString()}</span><span className={styles["cuped-unit"]}>users / variant</span></div>
+            <div className={[styles["cuped-card"], styles["cuped-card-adjusted"]].join(" ")}><span className={styles["cuped-label"]}>{t("results.sensitivityOverview.bayesianEstimate.bayesian")}{displayedAnalysis.calculations.bayesian_credibility != null ? ` (${t("results.panel.credibilityInterval", { percent: Math.round(displayedAnalysis.calculations.bayesian_credibility * 100) })})` : ""}</span><span className={styles["cuped-value"]}>{displayedAnalysis.calculations.bayesian_sample_size_per_variant?.toLocaleString()}</span><span className={styles["cuped-unit"]}>{t("results.sensitivityOverview.bayesianEstimate.usersPerVariant")}</span></div>
           </div>
           {displayedAnalysis.calculations.bayesian_note ? <p className="muted">{displayedAnalysis.calculations.bayesian_note}</p> : null}
         </div>
       ) : null}
       {displayedAnalysis.calculations.cuped_sample_size_per_variant !== null ? (
         <div className={styles["cuped-panel"]}>
-          <h3>CUPED-adjusted estimate</h3>
+          <h3>{t("results.sensitivityOverview.cuped.title")}</h3>
           <div className={styles["cuped-comparison"]}>
-            <div className={styles["cuped-card"]}><span className={styles["cuped-label"]}>Without CUPED</span><span className={styles["cuped-value"]}>{displayedAnalysis.calculations.results.sample_size_per_variant.toLocaleString()}</span><span className={styles["cuped-unit"]}>users / variant</span></div>
+            <div className={styles["cuped-card"]}><span className={styles["cuped-label"]}>{t("results.sensitivityOverview.cuped.without")}</span><span className={styles["cuped-value"]}>{displayedAnalysis.calculations.results.sample_size_per_variant.toLocaleString()}</span><span className={styles["cuped-unit"]}>{t("results.sensitivityOverview.bayesianEstimate.usersPerVariant")}</span></div>
             <div className={styles["cuped-arrow"]}>{"->"}</div>
-            <div className={[styles["cuped-card"], styles["cuped-card-adjusted"]].join(" ")}><span className={styles["cuped-label"]}>With CUPED{displayedAnalysis.calculations.cuped_variance_reduction_pct !== null ? ` (rho squared=${displayedAnalysis.calculations.cuped_variance_reduction_pct}%)` : ""}</span><span className={styles["cuped-value"]}>{displayedAnalysis.calculations.cuped_sample_size_per_variant?.toLocaleString()}</span><span className={styles["cuped-unit"]}>users / variant</span></div>
-            {displayedAnalysis.calculations.cuped_variance_reduction_pct !== null ? <div className={styles["cuped-savings-badge"]}>-{displayedAnalysis.calculations.cuped_variance_reduction_pct}% sample size</div> : null}
+            <div className={[styles["cuped-card"], styles["cuped-card-adjusted"]].join(" ")}><span className={styles["cuped-label"]}>{t("results.sensitivityOverview.cuped.with")}{displayedAnalysis.calculations.cuped_variance_reduction_pct !== null ? ` (rho squared=${displayedAnalysis.calculations.cuped_variance_reduction_pct}%)` : ""}</span><span className={styles["cuped-value"]}>{displayedAnalysis.calculations.cuped_sample_size_per_variant?.toLocaleString()}</span><span className={styles["cuped-unit"]}>{t("results.sensitivityOverview.bayesianEstimate.usersPerVariant")}</span></div>
+            {displayedAnalysis.calculations.cuped_variance_reduction_pct !== null ? <div className={styles["cuped-savings-badge"]}>{t("results.sensitivityOverview.cuped.sampleSizeSavings", { pct: displayedAnalysis.calculations.cuped_variance_reduction_pct })}</div> : null}
           </div>
           <p className="muted">
-            {displayedAnalysis.calculations.cuped_duration_days !== null ? `Estimated duration changes from ${displayedAnalysis.calculations.results.estimated_duration_days} to ${displayedAnalysis.calculations.cuped_duration_days} days. ` : ""}
-            {displayedAnalysis.calculations.cuped_std !== null ? `Adjusted std dev: ${displayedAnalysis.calculations.cuped_std}.` : ""}
+            {displayedAnalysis.calculations.cuped_duration_days !== null ? t("results.sensitivityOverview.cuped.durationChange", { from: displayedAnalysis.calculations.results.estimated_duration_days, to: displayedAnalysis.calculations.cuped_duration_days }) : ""}
+            {displayedAnalysis.calculations.cuped_std !== null ? ` ${t("results.sensitivityOverview.cuped.adjustedStdDev", { value: displayedAnalysis.calculations.cuped_std })}` : ""}
           </p>
         </div>
       ) : null}
       <div className="two-col" style={{ marginTop: "var(--space-4)" }}>
         <div className="card">
-          <h3>Sensitivity table</h3>
-          <p className="muted">Duration matrix across the MDE and power scenarios returned by the backend.</p>
-          {sensitivityLoading ? <p className="muted">Loading sensitivity table...</p> : sensitivityData?.cells.length ? (
+          <h3>{t("results.sensitivityOverview.sensitivityTable.title")}</h3>
+          <p className="muted">{t("results.sensitivityOverview.sensitivityTable.description")}</p>
+          {sensitivityLoading ? <p className="muted">{t("results.sensitivityOverview.sensitivityTable.loading")}</p> : sensitivityData?.cells.length ? (
             <SensitivityTable cells={sensitivityData.cells} currentMde={currentMde} currentPower={currentPower} metricType={resolveMetricType(displayedAnalysis.calculations.calculation_summary.metric_type)} />
           ) : <div className="callout"><Icon name="info" className="icon icon-inline" /><span>{sensitivityUnavailableMessage}</span></div>}
         </div>
         <div className="card">
-          <h3>Sample size breakdown</h3>
-          <p className="muted">Per-variant sample requirement shown alongside the configured traffic allocation.</p>
+          <h3>{t("results.sensitivityOverview.sampleSizeBreakdown.title")}</h3>
+          <p className="muted">{t("results.sensitivityOverview.sampleSizeBreakdown.description")}</p>
           <SampleSizeBar sampleSizePerVariant={displayedAnalysis.calculations.results.sample_size_per_variant} variants={variantsCount} variantNames={displayedAnalysis.report.experiment_design?.variants.map((variant) => variant.name)} trafficSplit={displayedAnalysis.report.experiment_design?.traffic_split} />
         </div>
       </div>
       <div className="two-col" style={{ marginTop: "var(--space-4)" }}>
-        <div className="card"><h3>Calculation summary</h3><ul className="list"><li>Metric type: {String(displayedAnalysis.calculations.calculation_summary.metric_type)}</li><li>Baseline value: {String(displayedAnalysis.calculations.calculation_summary.baseline_value)}</li><li>MDE %: {String(displayedAnalysis.calculations.calculation_summary.mde_pct)}</li><li>MDE absolute: {String(displayedAnalysis.calculations.calculation_summary.mde_absolute)}</li><li>Alpha: {String(displayedAnalysis.calculations.calculation_summary.alpha)}</li><li>Power: {String(displayedAnalysis.calculations.calculation_summary.power)}</li></ul></div>
-        <div className="card"><h3>Assumptions</h3><ul className="list">{(displayedAnalysis.report.calculations?.assumptions ?? []).map((item) => <li key={String(item)}>{String(item)}</li>)}</ul></div>
+        <div className="card"><h3>{t("results.sensitivityOverview.calculationSummary.title")}</h3><ul className="list"><li>{t("results.sensitivityOverview.calculationSummary.metricType")}: {String(displayedAnalysis.calculations.calculation_summary.metric_type)}</li><li>{t("results.sensitivityOverview.calculationSummary.baselineValue")}: {String(displayedAnalysis.calculations.calculation_summary.baseline_value)}</li><li>{t("results.sensitivityOverview.calculationSummary.mdePct")}: {String(displayedAnalysis.calculations.calculation_summary.mde_pct)}</li><li>{t("results.sensitivityOverview.calculationSummary.mdeAbsolute")}: {String(displayedAnalysis.calculations.calculation_summary.mde_absolute)}</li><li>{t("results.sensitivityOverview.calculationSummary.alpha")}: {String(displayedAnalysis.calculations.calculation_summary.alpha)}</li><li>{t("results.sensitivityOverview.calculationSummary.power")}: {String(displayedAnalysis.calculations.calculation_summary.power)}</li></ul></div>
+        <div className="card"><h3>{t("results.sensitivityOverview.assumptions.title")}</h3><ul className="list">{(displayedAnalysis.report.calculations?.assumptions ?? []).map((item) => <li key={String(item)}>{String(item)}</li>)}</ul></div>
       </div>
       {activeProject ? (
         <>
-          <h3 style={{ marginTop: "var(--space-4)" }}>Project history context</h3>
+          <h3 style={{ marginTop: "var(--space-4)" }}>{t("results.sensitivityOverview.projectHistoryContext.title")}</h3>
           <div className="two-col">
-            <div className="card"><strong>Saved project</strong><div>{activeProject.project_name}</div><p className="muted">{String(activeProject.revision_count ?? 0)} revision(s){" | "}last save {activeProject.last_revision_at ? formatResultTimestamp(activeProject.last_revision_at) : "not recorded"}</p><p className="muted">{projectHistory?.analysis_runs.length ?? 0} of {projectHistory?.analysis_total ?? 0} analysis run(s){" | "}{projectHistory?.export_events.length ?? 0} of {projectHistory?.export_total ?? 0} export event(s)</p></div>
-            <div className="card"><strong>Latest analysis run</strong><div>{latestRun ? formatResultTimestamp(latestRun.created_at) : "No saved analysis run yet"}</div>{latestRun ? <p className="muted">{String(latestRun.summary.metric_type ?? "unknown metric")}{" | "}warnings {String(latestRun.summary.warnings_count ?? 0)}</p> : null}</div>
-            <div className="card"><strong>Latest export</strong><div>{latestExport ? formatResultTimestamp(latestExport.created_at) : "No export event yet"}</div>{latestExport ? <p className="muted">{latestExport.format.toUpperCase()}{latestExport.analysis_run_id ? " | linked snapshot" : " | unlinked export"}</p> : null}</div>
+            <div className="card"><strong>{t("results.sensitivityOverview.projectHistoryContext.savedProject")}</strong><div>{activeProject.project_name}</div><p className="muted">{t("results.sensitivityOverview.projectHistoryContext.revisionsCount", { count: String(activeProject.revision_count ?? 0) })}{" | "}{t("results.sensitivityOverview.projectHistoryContext.lastSave")} {activeProject.last_revision_at ? formatResultTimestamp(activeProject.last_revision_at) : t("results.sensitivityOverview.projectHistoryContext.notRecorded")}</p><p className="muted">{t("results.sensitivityOverview.projectHistoryContext.analysisRuns", { current: projectHistory?.analysis_runs.length ?? 0, total: projectHistory?.analysis_total ?? 0 })}{" | "}{t("results.sensitivityOverview.projectHistoryContext.exportEvents", { current: projectHistory?.export_events.length ?? 0, total: projectHistory?.export_total ?? 0 })}</p></div>
+            <div className="card"><strong>{t("results.sensitivityOverview.projectHistoryContext.latestAnalysisRun")}</strong><div>{latestRun ? formatResultTimestamp(latestRun.created_at) : t("results.sensitivityOverview.projectHistoryContext.noSavedAnalysisRunYet")}</div>{latestRun ? <p className="muted">{String(latestRun.summary.metric_type ?? t("results.sensitivityOverview.projectHistoryContext.unknownMetric"))}{" | "}{t("results.sensitivityOverview.projectHistoryContext.warnings")} {String(latestRun.summary.warnings_count ?? 0)}</p> : null}</div>
+            <div className="card"><strong>{t("results.sensitivityOverview.projectHistoryContext.latestExport")}</strong><div>{latestExport ? formatResultTimestamp(latestExport.created_at) : t("results.sensitivityOverview.projectHistoryContext.noExportEventYet")}</div>{latestExport ? <p className="muted">{latestExport.format.toUpperCase()}{latestExport.analysis_run_id ? ` | ${t("results.sensitivityOverview.projectHistoryContext.linkedSnapshot")}` : ` | ${t("results.sensitivityOverview.projectHistoryContext.unlinkedExport")}`}</p> : null}</div>
           </div>
         </>
       ) : null}

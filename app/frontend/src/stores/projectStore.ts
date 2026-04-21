@@ -277,12 +277,9 @@ function deriveProjectState(
       : null;
   const backendAuth = state.backendDiagnostics?.auth ?? null;
   const diagnosticsKnown = backendAuth !== null;
-  const canMutateBackend =
-    diagnosticsKnown &&
-    (
-      !backendAuth.enabled ||
-      backendAuth.write_enabled
-    );
+  const canMutateBackend: boolean = Boolean(
+    diagnosticsKnown && (!backendAuth.enabled || backendAuth.session_can_write)
+  );
   const backendMutationMessage =
     !state.backendHealth
       ? "Backend is unavailable. Mutating actions stay disabled until health and diagnostics recover."
@@ -786,7 +783,7 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => {
         return message;
       }
 
-      const message = diagnostics.auth.write_enabled
+      const message = diagnostics.auth.session_can_write
         ? "Token accepted. Write-capable backend access is available in this browser session."
         : "Token accepted, but this backend session remains read-only.";
 

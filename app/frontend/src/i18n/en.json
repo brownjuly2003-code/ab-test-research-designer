@@ -1,7 +1,31 @@
 {
   "app": {
+    "skipToMainContent": "Skip to main content",
+    "eyebrow": "Local Experiment Planner",
     "title": "AB Test Research Designer",
-    "tagline": "Deterministic calculations. Local-first. No cloud required."
+    "tagline": "Fill in experiment context, run deterministic calculations, inspect warnings, and keep AI advice separate from hard math.",
+    "language": {
+      "label": "Language",
+      "ariaLabel": "Language preference",
+      "options": {
+        "en": "English",
+        "ru": "Russian"
+      }
+    },
+    "theme": {
+      "label": "Theme",
+      "ariaLabel": "Theme preference",
+      "buttonAria": {
+        "light": "Light theme",
+        "dark": "Dark theme",
+        "system": "System theme"
+      },
+      "options": {
+        "light": "Light",
+        "dark": "Dark",
+        "system": "Auto"
+      }
+    }
   },
   "wizard": {
     "steps": {
@@ -20,12 +44,244 @@
       "export": "Export"
     }
   },
+  "wizardReview": {
+    "title": "Review inputs",
+    "savedProjectTitle": "Reviewing a saved project",
+    "newDraftTitle": "Reviewing a new draft",
+    "unsavedChangesPresent": "Unsaved changes are present.",
+    "syncedWithLocalStorage": "This loaded project is in sync with local storage.",
+    "description": "Check the values below before saving or running the deterministic backend flow.",
+    "fixFields": "Fix these fields before saving or running analysis",
+    "newDraftButton": "New draft",
+    "importing": "Importing...",
+    "importDraft": "Import draft JSON",
+    "exportDraft": "Export draft JSON",
+    "updateProjectTitle": "Update project (Ctrl+S)",
+    "saveProjectTitle": "Save project (Ctrl+S)",
+    "saving": "Saving...",
+    "updateProject": "Update project",
+    "runAnalysisTitle": "Run analysis (Ctrl+Enter)",
+    "analyzing": "Analyzing..."
+  },
+  "wizardDraft": {
+    "sections": {
+      "project": "Project context",
+      "hypothesis": "Hypothesis",
+      "setup": "Experiment setup",
+      "metrics": "Metrics",
+      "constraints": "Constraints"
+    },
+    "note": {
+      "editingSavedProject": "Editing saved project",
+      "workingOnNewDraft": "Working on a new draft",
+      "projectIdStatus": "Project id: {{projectId}}. {{status}}",
+      "unsavedChangesPending": "Unsaved changes pending local update.",
+      "allChangesSaved": "All changes saved locally.",
+      "savingCreatesProject": "Saving will create a new local project record."
+    },
+    "fixFields": "Fix these fields before saving or running analysis",
+    "analysisFramework": {
+      "title": "Analysis framework",
+      "description": "Choose whether planning uses classic NHST power or Bayesian precision.",
+      "frequentist": "Frequentist",
+      "frequentistDescription": "Set alpha and power for the classic fixed-horizon approach.",
+      "bayesian": "Bayesian",
+      "bayesianDescription": "Set desired precision and credibility for interval-based planning."
+    },
+    "common": {
+      "yes": "Yes",
+      "no": "No",
+      "optional": "Optional"
+    },
+    "fields": {
+      "project": {
+        "project_name": "Project name",
+        "domain": "Domain",
+        "product_type": "Product type",
+        "platform": "Platform",
+        "market": "Market",
+        "project_description": "Project description"
+      },
+      "hypothesis": {
+        "change_description": "Change description",
+        "target_audience": "Target audience",
+        "business_problem": "Business problem",
+        "hypothesis_statement": "Hypothesis statement",
+        "what_to_validate": "What to validate",
+        "desired_result": "Desired result"
+      },
+      "setup": {
+        "experiment_type": "Experiment type",
+        "randomization_unit": "Randomization unit",
+        "traffic_split": "Traffic split",
+        "expected_daily_traffic": "Expected daily traffic",
+        "audience_share_in_test": "Audience share in test",
+        "variants_count": "Variants count",
+        "inclusion_criteria": "Inclusion criteria",
+        "exclusion_criteria": "Exclusion criteria"
+      },
+      "metrics": {
+        "primary_metric_name": "Primary metric",
+        "metric_type": "Metric type",
+        "baseline_value": "Baseline value",
+        "expected_uplift_pct": "Expected uplift %",
+        "mde_pct": "MDE %",
+        "std_dev": "Std dev",
+        "secondary_metrics": "Secondary metrics",
+        "guardrail_metrics": "Guardrail metrics",
+        "alpha": "Alpha",
+        "power": "Power"
+      },
+      "constraints": {
+        "seasonality_present": "Seasonality present",
+        "active_campaigns_present": "Active campaigns present",
+        "returning_users_present": "Returning users present",
+        "interference_risk": "Interference risk",
+        "technical_constraints": "Technical constraints",
+        "legal_or_ethics_constraints": "Legal / ethics constraints",
+        "known_risks": "Known risks",
+        "deadline_pressure": "Deadline pressure",
+        "long_test_possible": "Long test possible"
+      },
+      "additional_context": {
+        "llm_context": "AI context"
+      }
+    },
+    "helpText": {
+      "traffic_split": "Relative traffic weights per variant. Example: 50,50 for a balanced A/B split or 34,33,33 for three variants.",
+      "expected_daily_traffic": "Average number of users or sessions entering the experiment each day. Example: 12000.",
+      "audience_share_in_test": "Share of daily traffic that is eligible for the test. Use 0.6 for 60% of incoming traffic.",
+      "variants_count": "Total number of variants including control. 2 = a classic A/B test, while 3+ variants increase sample needs.",
+      "baseline_value": "Current baseline metric. For binary metrics use 0.042 for 4.2%; for continuous metrics use the current mean, such as 45.20.",
+      "expected_uplift_pct": "Expected relative improvement versus baseline. Example: 8 means the treatment is expected to improve the metric by 8%.",
+      "mde_pct": "Minimum detectable effect as a percent of baseline. Smaller MDE values require larger sample sizes.",
+      "alpha": "False-positive threshold. 0.05 means accepting a 5% probability of a Type I error.",
+      "power": "Probability of detecting a real effect if it exists. 0.8 is the standard minimum for product experiments.",
+      "analysis_mode": "Choose whether planning is framed with classic NHST power or Bayesian credible-interval precision.",
+      "desired_precision": "Target half-width of the credible interval. For binary metrics use percentage points; for continuous metrics use raw units.",
+      "credibility": "Credibility level for the Bayesian interval. 0.95 corresponds to a 95% credible interval.",
+      "std_dev": "Standard deviation of the continuous metric. Required only for continuous metrics; example: 12.5 for average order value.",
+      "interference_risk": "Risk that users or units can influence one another across variants and break isolation."
+    },
+    "options": {
+      "setup": {
+        "randomization_unit": {
+          "user": "User",
+          "session": "Session",
+          "device": "Device",
+          "account": "Account"
+        }
+      },
+      "metrics": {
+        "metric_type": {
+          "binary": "Binary",
+          "continuous": "Continuous"
+        }
+      },
+      "constraints": {
+        "interference_risk": {
+          "low": "Low",
+          "medium": "Medium",
+          "high": "High"
+        },
+        "deadline_pressure": {
+          "low": "Low",
+          "medium": "Medium",
+          "high": "High"
+        }
+      }
+    },
+    "interimAnalyses": {
+      "title": "Interim analyses",
+      "tooltip": "Number of times you plan to check results during the experiment. 1 keeps the standard fixed-horizon test. 2-5 enables O'Brien-Fleming group sequential monitoring with early stopping boundaries.",
+      "options": {
+        "1": "1 - Fixed horizon (no interim analyses)",
+        "2": "2 - One interim + final",
+        "3": "3 - Two interims + final",
+        "4": "4 - Three interims + final",
+        "5": "5 - Four interims + final"
+      }
+    },
+    "cuped": {
+      "title": "CUPED variance reduction",
+      "description": "Use correlated pre-experiment behavior to reduce variance and compare naive versus CUPED-adjusted sample size.",
+      "enable": "Enable CUPED variance reduction",
+      "enableTooltip": "If you have pre-experiment data correlated with the outcome metric, CUPED can reduce required sample size by rho squared.",
+      "preExperimentStdDev": "Pre-experiment std dev",
+      "preExperimentStdDevTooltip": "Standard deviation of the pre-experiment covariate, such as revenue in the week before the test.",
+      "correlationWithOutcome": "Correlation with outcome",
+      "correlationWithOutcomeTooltip": "Pearson correlation between the pre-experiment covariate and the experiment outcome. Typical values are 0.3 to 0.7."
+    },
+    "guardrails": {
+      "title": "Guardrail metrics",
+      "description": "Metrics to monitor without changing primary sample size. Up to 3 guardrails are supported.",
+      "metricName": "Metric name",
+      "metricNameAriaLabel": "Guardrail metric name {{index}}",
+      "metricType": "Metric type",
+      "metricTypeAriaLabel": "Guardrail metric type {{index}}",
+      "binaryPct": "Binary (%)",
+      "continuous": "Continuous",
+      "remove": "Remove",
+      "removeAriaLabel": "Remove guardrail {{index}}",
+      "baselinePct": "Baseline %",
+      "baselineRateAriaLabel": "Guardrail baseline rate {{index}}",
+      "baselineMean": "Baseline mean",
+      "baselineMeanAriaLabel": "Guardrail baseline mean {{index}}",
+      "stdDev": "Std dev",
+      "stdDevAriaLabel": "Guardrail std dev {{index}}",
+      "add": "Add guardrail metric"
+    },
+    "buttons": {
+      "newDraft": "New draft",
+      "startFromTemplate": "Start from template",
+      "importing": "Importing...",
+      "importDraft": "Import draft JSON",
+      "exportDraft": "Export draft JSON",
+      "updateProjectTitle": "Update project (Ctrl+S)",
+      "saveProjectTitle": "Save project (Ctrl+S)",
+      "saving": "Saving...",
+      "updateProject": "Update project"
+    },
+    "validation": {
+      "projectNameRequired": "Project name is required.",
+      "changeDescriptionRequired": "Change description is required.",
+      "trafficSplitPositive": "Traffic split must contain at least two positive weights.",
+      "trafficSplitLength": "Traffic split length must match variants count.",
+      "expectedDailyTrafficPositive": "Expected daily traffic must be greater than 0.",
+      "audienceShareRange": "Audience share in test must be between 0 and 1.",
+      "variantsCountRange": "Variants count must be an integer between 2 and 10.",
+      "primaryMetricRequired": "Primary metric name is required.",
+      "binaryBaselineRange": "Binary baseline value must be between 0 and 1.",
+      "continuousBaselinePositive": "Continuous baseline value must be greater than 0.",
+      "mdePositive": "MDE % must be greater than 0.",
+      "alphaRange": "Alpha must be between 0 and 1.",
+      "powerRange": "Power must be between 0 and 1.",
+      "continuousStdPositive": "Continuous metrics require a positive std dev.",
+      "cupedStdPositive": "CUPED pre-experiment std dev must be positive.",
+      "cupedCorrelationRange": "CUPED correlation must be between -1 and 1.",
+      "desiredPrecisionPositive": "Desired precision must be greater than 0 in Bayesian mode.",
+      "credibilityRange": "Credibility must be between 0.5 and 1.",
+      "guardrailsMax": "Guardrail metrics cannot exceed 3 items.",
+      "guardrailNameRequired": "Guardrail metric names are required.",
+      "guardrailBinaryBaselineRange": "Binary guardrails require a baseline % between 0 and 100.",
+      "guardrailContinuousFields": "Continuous guardrails require baseline mean and positive std dev.",
+      "guardrailMetricType": "Guardrail metric type must be either binary or continuous.",
+      "metricType": "Metric type must be either binary or continuous."
+    }
+  },
   "empty_state": {
+    "ariaLabel": "Onboarding",
+    "eyebrow": "Start here",
     "title": "Plan your A/B experiment",
     "subtitle": "Deterministic calculations. Local-first. No cloud required.",
     "new_experiment": "New experiment",
     "load_example": "Load example",
-    "import_project": "Import project"
+    "import_project": "Import project",
+    "descriptions": {
+      "new_experiment": "Start from scratch",
+      "load_example": "See a filled experiment in 1 click",
+      "import_project": "Restore from a workspace backup"
+    }
   },
   "sidebar": {
     "tabs": {
@@ -47,7 +303,297 @@
     "srm_check": "SRM Check",
     "sequential_design": "Sequential design",
     "guardrail_metrics": "Guardrail metrics",
-    "actual_results": "Actual experiment results"
+    "actual_results": "Actual experiment results",
+    "aiAdvice": {
+      "title": "Local orchestrator output",
+      "provider": "Provider:",
+      "model": "Model:",
+      "assessment": "Assessment",
+      "designImprovements": "Design improvements",
+      "keyRisks": "Key risks",
+      "metricRecommendations": "Metric recommendations",
+      "interpretationPitfalls": "Interpretation pitfalls",
+      "additionalChecks": "Additional checks",
+      "unavailable": "AI advice unavailable. Core deterministic output still works."
+    },
+    "comparison": {
+      "empty": "Load a saved project comparison from the Projects sidebar to review baseline versus candidate snapshots."
+    },
+    "experimentDesign": {
+      "variantAndRolloutStructure": "Variant and rollout structure",
+      "setup": "Setup",
+      "randomizationUnit": "Randomization unit",
+      "trafficSplit": "Traffic split",
+      "targetAudience": "Target audience",
+      "inclusion": "Inclusion",
+      "exclusion": "Exclusion",
+      "recommendedDuration": "Recommended duration",
+      "days": "days",
+      "stoppingConditions": "Stopping conditions",
+      "openQuestions": "Open questions"
+    },
+    "metricsPlan": {
+      "coverage": "Primary, secondary, and guardrail coverage",
+      "primary": "Primary",
+      "secondary": "Secondary",
+      "guardrail": "Guardrail",
+      "diagnostic": "Diagnostic",
+      "guardrailMetrics": "Guardrail metrics",
+      "guardrailMetricsDescription": "These metrics are monitored, but they do not change primary sample sizing.",
+      "baseline": "Baseline"
+    },
+    "powerCurve": {
+      "title": "Power curve",
+      "description": "Compare MDE targets against planned power levels and required sample size.",
+      "loadingSensitivity": "Loading sensitivity analysis...",
+      "chartAriaLabel": "Power curve chart showing minimum detectable effect versus target power",
+      "loadingChart": "Loading chart..."
+    },
+    "risks": {
+      "statisticalAndOperational": "Statistical and operational considerations",
+      "product": "Product",
+      "technical": "Technical",
+      "recommendations": "Recommendations",
+      "beforeLaunch": "Before launch",
+      "duringTest": "During test",
+      "afterTest": "After test"
+    },
+    "bayesian": {
+      "title": "Bayesian posterior",
+      "unavailable": "Bayesian posterior inputs are unavailable for this analysis.",
+      "targetSampleSize": "Target sample size:",
+      "perVariantAt": "per variant at",
+      "credibilityAnd": "credibility and",
+      "intervalHalfWidth": "interval half-width."
+    },
+    "sequentialDesign": {
+      "unavailable": "Sequential boundaries are not configured for the current analysis.",
+      "title": "Group sequential design (O'Brien-Fleming)",
+      "adjustedSampleSize": "Adjusted sample size:",
+      "perVariant": "per variant",
+      "moreThanFixedHorizon": "more than fixed horizon",
+      "columns": {
+        "look": "Look",
+        "infoFraction": "Info fraction",
+        "cumulativeAlphaSpent": "Cum. α spent",
+        "zBoundary": "Z boundary",
+        "stopIf": "Stop if |Z| ≥"
+      },
+      "footer": "Stop early at any planned look if the observed absolute Z-statistic crosses the boundary. Otherwise continue to the next analysis."
+    },
+    "warnings": {
+      "noneTitle": "No warning rules fired.",
+      "noneDescription": "The heuristic layer did not detect duration, traffic, or contamination issues."
+    },
+    "srmCheck": {
+      "title": "Did traffic split as planned?",
+      "description": "Enter observed user counts per variant to check for sample ratio mismatch. A red result means assignment or tracking may be broken.",
+      "actualUsersPlaceholder": "Actual users",
+      "checking": "Checking...",
+      "checkButton": "Check for SRM",
+      "detected": "SRM detected",
+      "notDetected": "No SRM detected",
+      "serviceUnavailable": "SRM check unavailable.",
+      "chiSquare": "Chi-square = {{chiSquare}}, p = {{pValue}}",
+      "expectedObserved": "Expected: [{{expected}}] | Observed: [{{observed}}]"
+    },
+    "observedResults": {
+      "title": "Enter actual experiment results",
+      "description": "After the experiment finishes, enter observed data to compute statistical significance from actual outcomes.",
+      "historicalReadOnly": "Historical snapshots are read-only. Return to the live draft to save observed results.",
+      "saveProjectFirst": "Save the project first if you want to persist observed results.",
+      "analyzeButton": "Analyze results",
+      "analyzing": "Analyzing...",
+      "saveButton": "Save to project",
+      "saving": "Saving...",
+      "yes": "yes",
+      "no": "no",
+      "fields": {
+        "controlConversions": "Control conversions",
+        "controlUsers": "Control users",
+        "treatmentConversions": "Treatment conversions",
+        "treatmentUsers": "Treatment users",
+        "alpha": "Alpha",
+        "controlMean": "Control mean",
+        "controlStdDev": "Control std dev",
+        "controlN": "Control n",
+        "treatmentMean": "Treatment mean",
+        "treatmentStdDev": "Treatment std dev",
+        "treatmentN": "Treatment n"
+      },
+      "cards": {
+        "effect": "Effect",
+        "ciLabel": "{{percent}}% CI",
+        "pValue": "p-value",
+        "testStatistic": "Test statistic",
+        "relativeChange": "Relative change",
+        "powerAchieved": "Power achieved",
+        "forestPlot": "Forest plot",
+        "observedSummary": "Observed summary",
+        "controlRate": "Control rate",
+        "treatmentRate": "Treatment rate",
+        "significant": "Significant",
+        "verdict": "Verdict"
+      },
+      "validation": {
+        "fillAllFields": "Fill in all actual results fields with valid values before analysis.",
+        "analysisUnavailable": "Results analysis unavailable.",
+        "analyzeBeforeSaving": "Analyze results before saving them to a project.",
+        "saveUnavailable": "Observed results could not be saved.",
+        "savedToProject": "Observed results were saved to project {{projectName}}."
+      }
+    },
+    "sensitivityOverview": {
+      "reportPill": "Report",
+      "title": "Deterministic experiment design",
+      "export": "Export",
+      "exportMenuAriaLabel": "Report export options",
+      "exportReportTitle": "Export report (Ctrl+E)",
+      "exportMarkdown": "Export Markdown",
+      "exportHtml": "Export HTML",
+      "exportPdf": "Export PDF",
+      "exportCsv": "CSV Data",
+      "exportXlsx": "Excel Workbook",
+      "exporting": "Exporting...",
+      "exportFullReport": "Export Full Report",
+      "cards": {
+        "perVariant": "Per variant",
+        "sampleSizePerVariant": "sample size / variant",
+        "powerMeta": "{{power}} power",
+        "bonferroni": "Bonferroni",
+        "totalSample": "Total sample",
+        "totalSampleSubtitle": "total sample size",
+        "variantsMeta": "{{count}} variants",
+        "duration": "Duration",
+        "durationValue": "{{days}} days",
+        "durationSubtitle": "estimated duration",
+        "perDayMeta": "{{traffic}}/day",
+        "warnings": "Warnings",
+        "warningsSubtitle": "heuristic checks"
+      },
+      "warningSeverity": {
+        "high": "{{count}} high",
+        "medium": "{{count}} medium",
+        "low": "{{count}} low",
+        "none": "No warnings"
+      },
+      "bayesianEstimate": {
+        "title": "Bayesian estimate",
+        "frequentist": "Frequentist",
+        "bayesian": "Bayesian",
+        "usersPerVariant": "users / variant"
+      },
+      "cuped": {
+        "title": "CUPED-adjusted estimate",
+        "without": "Without CUPED",
+        "with": "With CUPED",
+        "sampleSizeSavings": "-{{pct}}% sample size",
+        "durationChange": "Estimated duration changes from {{from}} to {{to}} days.",
+        "adjustedStdDev": "Adjusted std dev: {{value}}."
+      },
+      "sensitivityTable": {
+        "title": "Sensitivity table",
+        "description": "Duration matrix across the MDE and power scenarios returned by the backend.",
+        "loading": "Loading sensitivity table..."
+      },
+      "sampleSizeBreakdown": {
+        "title": "Sample size breakdown",
+        "description": "Per-variant sample requirement shown alongside the configured traffic allocation."
+      },
+      "calculationSummary": {
+        "title": "Calculation summary",
+        "metricType": "Metric type",
+        "baselineValue": "Baseline value",
+        "mdePct": "MDE %",
+        "mdeAbsolute": "MDE absolute",
+        "alpha": "Alpha",
+        "power": "Power"
+      },
+      "assumptions": {
+        "title": "Assumptions"
+      },
+      "projectHistoryContext": {
+        "title": "Project history context",
+        "savedProject": "Saved project",
+        "revisionsCount": "{{count}} revision(s)",
+        "lastSave": "last save",
+        "notRecorded": "not recorded",
+        "analysisRuns": "{{current}} of {{total}} analysis run(s)",
+        "exportEvents": "{{current}} of {{total}} export event(s)",
+        "latestAnalysisRun": "Latest analysis run",
+        "noSavedAnalysisRunYet": "No saved analysis run yet",
+        "unknownMetric": "unknown metric",
+        "warnings": "warnings",
+        "latestExport": "Latest export",
+        "noExportEventYet": "No export event yet",
+        "linkedSnapshot": "linked snapshot",
+        "unlinkedExport": "unlinked export"
+      }
+    },
+    "panel": {
+      "sensitivityUnavailableHistorical": "Sensitivity analysis is unavailable for historical snapshots.",
+      "sensitivityUnavailableCurrentDraft": "Sensitivity analysis is unavailable for the current draft.",
+      "sensitivityUnavailable": "Sensitivity analysis unavailable.",
+      "sensitivityUnavailableForConfiguration": "Sensitivity analysis unavailable for this configuration.",
+      "backendReadOnly": "Backend is running in read-only mode.",
+      "runAnalysisBeforeExportingReport": "Run analysis before exporting a report.",
+      "saveProjectBeforePdf": "Save the project and persist an analysis snapshot before exporting a PDF.",
+      "runAnalysisBeforeExportingProjectData": "Run analysis before exporting project data.",
+      "saveProjectBeforeProjectData": "Save the project before exporting CSV or Excel data.",
+      "runAnalysisBeforeStandaloneExport": "Run analysis before exporting the full report.",
+      "standaloneExportFailed": "Full report export failed.",
+      "savedSnapshot": "Saved snapshot",
+      "viewingHistoricalAnalysis": "Viewing historical analysis",
+      "openedSnapshotFrom": "Opened snapshot from {{timestamp}}.",
+      "currentResultsAvailable": "Current in-memory results are still available.",
+      "returnedToCurrentAnalysis": "Returned to the current in-memory analysis results.",
+      "closedSnapshotPreview": "Closed the saved snapshot preview.",
+      "showCurrentAnalysis": "Show current analysis",
+      "closeSnapshotView": "Close snapshot view",
+      "analysisInProgress": "Analysis in progress",
+      "preparingDeterministicResults": "Preparing deterministic results",
+      "updatingSections": "Updating metrics, chart, and report sections.",
+      "accordion": {
+        "comparison": "Comparison",
+        "sensitivity": "Sensitivity",
+        "powerCurve": "Power curve",
+        "sequentialDesign": "Sequential design",
+        "bayesianPosterior": "Bayesian posterior",
+        "observedResults": "Observed results",
+        "warningsAndRisks": "Warnings & Risks",
+        "experimentDesign": "Experiment design",
+        "metricsPlan": "Metrics plan",
+        "riskAssessment": "Risk assessment",
+        "aiRecommendations": "AI recommendations",
+        "srmCheck": "SRM check"
+      },
+      "badges": {
+        "loaded": "Loaded",
+        "sidebar": "Sidebar",
+        "pending": "Pending",
+        "planning": "Planning",
+        "significant": "Significant",
+        "review": "Review",
+        "postTest": "Post-test",
+        "available": "Available",
+        "offline": "Offline",
+        "manual": "Manual"
+      },
+      "variantsCount_one": "{{count}} variant",
+      "variantsCount_other": "{{count}} variants",
+      "cellsCount_one": "{{count}} cell",
+      "cellsCount_other": "{{count}} cells",
+      "looksCount_one": "{{count}} look",
+      "looksCount_other": "{{count}} looks",
+      "warningsCount_one": "{{count}} warning",
+      "warningsCount_other": "{{count}} warnings",
+      "metricsCount_one": "{{count}} metric",
+      "metricsCount_other": "{{count}} metrics",
+      "itemsCount_one": "{{count}} item",
+      "itemsCount_other": "{{count}} items",
+      "credibilityInterval": "{{percent}}% interval",
+      "noAnalysisYet": "No analysis yet. Complete the wizard and run the deterministic backend flow first."
+    }
   },
   "errors": {
     "analysis_failed": "Analysis failed",
@@ -60,7 +606,435 @@
     "project_saved": "Project saved",
     "project_updated": "Project updated",
     "export_success": "Report exported",
-    "import_success": "Workspace imported - {count} projects restored",
+    "import_success": "Workspace imported - {{count}} projects restored",
     "example_loaded": "Example loaded - click Run analysis to see results"
+  },
+  "errorBoundary": {
+    "title": "Something went wrong",
+    "description": "This section crashed while rendering. Retry to mount it again.",
+    "retry": "Retry"
+  },
+  "chartErrorBoundary": {
+    "title": "Chart unavailable",
+    "description": "Rendering failed. Raw data is shown below for inspection."
+  },
+  "toastSystem": {
+    "dismissAriaLabel": "Dismiss toast",
+    "close": "Close"
+  },
+  "chartExport": {
+    "groupAriaLabel": "Chart export options",
+    "downloadSvgAriaLabel": "Download chart as SVG",
+    "downloadPngAriaLabel": "Download chart as PNG",
+    "svg": "SVG",
+    "png": "PNG",
+    "errors": {
+      "imageRenderFailed": "Chart image render failed.",
+      "canvasUnavailable": "Canvas 2D context is unavailable."
+    }
+  },
+  "inlineConfirmButton": {
+    "confirmLabel": "Sure?"
+  },
+  "wizardPanel": {
+    "dismiss": "Dismiss",
+    "aria": {
+      "importDraftFile": "Import draft file",
+      "importWorkspaceFile": "Import workspace file",
+      "stepHasErrors": "This step has errors"
+    },
+    "status": {
+      "startedNewDraft": "Started a new local draft.",
+      "draftExported": "Draft exported as JSON.",
+      "importedDraftFrom": "Imported draft from {{fileName}}. Save it to create a new local project record.",
+      "restoredBrowserDraft": "Restored unsaved browser draft.",
+      "templateLoaded": "Template {{templateName}} loaded into the wizard.",
+      "draftNotSavedStorageFull": "Draft not saved - browser storage full."
+    },
+    "errors": {
+      "unexpectedDraftImport": "Unexpected draft import error"
+    }
+  },
+  "projectListFilters": {
+    "legend": "Saved project filters",
+    "searchLabel": "Search experiments",
+    "searchPlaceholder": "Filter by name or hypothesis",
+    "statusLabel": "Status",
+    "status": {
+      "active": "Active",
+      "archived": "Archived",
+      "all": "All"
+    },
+    "metricTypeLabel": "Metric type",
+    "metricType": {
+      "all": "All",
+      "binary": "Binary",
+      "continuous": "Continuous"
+    },
+    "sortLabel": "Sort",
+    "sort": {
+      "updated": "Last updated",
+      "name": "Name",
+      "duration": "Duration"
+    },
+    "clear": "Clear filters"
+  },
+  "shortcutHelp": {
+    "title": "Keyboard shortcuts",
+    "description": "Faster navigation and export actions for the wizard.",
+    "close": "Close",
+    "columns": {
+      "shortcut": "Shortcut",
+      "action": "Action"
+    },
+    "shortcuts": {
+      "openHelp": "Open keyboard shortcut help",
+      "focusSearch": "Focus saved project search",
+      "runAnalysis": "Run analysis",
+      "moveSteps": "Move between wizard steps",
+      "exportMarkdown": "Export markdown report",
+      "saveProject": "Save project",
+      "toggleTheme": "Toggle light/dark theme",
+      "closeDialog": "Close this dialog"
+    }
+  },
+  "templateGallery": {
+    "title": "Experiment templates",
+    "description": "Start from a built-in setup and adjust the wizard fields before saving or running analysis.",
+    "close": "Close",
+    "loading": "Loading templates...",
+    "usageCount_one": "{{count}} use",
+    "usageCount_other": "{{count}} uses",
+    "builtInTemplate": "Built-in template",
+    "savedTemplate": "Saved template",
+    "useTemplateAriaLabel": "Use template {{name}}",
+    "applying": "Applying...",
+    "useTemplate": "Use template",
+    "empty": "No templates found for this category.",
+    "categories": {
+      "All": "All",
+      "Revenue": "Revenue",
+      "Engagement": "Engagement",
+      "Performance": "Performance"
+    },
+    "errors": {
+      "libraryUnavailable": "Template library unavailable.",
+      "applyFailed": "Template apply failed."
+    }
+  },
+  "sidebarPanel": {
+    "common": {
+      "notRecordedYet": "Not recorded yet",
+      "unknownMetric": "unknown metric",
+      "daysShort": "{{value}}d"
+    },
+    "tabs": {
+      "projects": "Projects",
+      "system": "System",
+      "apiKeys": "API keys"
+    },
+    "apiKeysFallback": {
+      "title": "API keys",
+      "loading": "Loading API key manager..."
+    },
+    "backendStatus": {
+      "title": "Backend status",
+      "description": "Live health for the FastAPI runtime that serves calculations, storage, and optional AI advice.",
+      "checking": "Checking...",
+      "refresh": "Refresh backend status",
+      "online": "API online",
+      "unavailable": "API unavailable.",
+      "notLoaded": "No backend status loaded yet.",
+      "labels": {
+        "service": "Service",
+        "version": "Version",
+        "environment": "Environment"
+      }
+    },
+    "apiSessionToken": {
+      "title": "API session token",
+      "description": "Optional token stored only in this browser session. It is not baked into the frontend build or Docker image.",
+      "label": "Session token",
+      "placeholderConfigured": "Token stored in current browser session",
+      "placeholderEmpty": "Paste read-only or write token",
+      "save": "Save token",
+      "clear": "Clear token",
+      "configured": "Token configured",
+      "notStored": "No token stored"
+    },
+    "adminToken": {
+      "title": "API key admin token",
+      "description": "Stored only in this browser session and used only for `/api/v1/keys` management requests.",
+      "label": "Admin token",
+      "placeholderConfigured": "Admin token stored in current browser session",
+      "placeholderEmpty": "Paste AB_ADMIN_TOKEN",
+      "save": "Save admin token",
+      "clear": "Clear admin token",
+      "configured": "Admin access configured",
+      "disabled": "Admin access disabled"
+    },
+    "workspaceBackup": {
+      "title": "Workspace backup",
+      "systemDescription": "Export or import the full SQLite workspace, including saved projects, history, exports, and revisions.",
+      "projectsDescription": "Export or import the full SQLite workspace, including saved projects, analysis history, export events, and saved revisions. Imports run checksum, optional signature, and reference validation before SQLite writes begin.",
+      "exporting": "Exporting...",
+      "export": "Export workspace JSON",
+      "importing": "Importing...",
+      "import": "Import workspace JSON"
+    },
+    "quickArchive": {
+      "title": "Saved projects",
+      "archiveAriaLabel": "Archive {{projectName}}",
+      "archiving": "Archiving..."
+    },
+    "diagnostics": {
+      "title": "Runtime diagnostics",
+      "description": "Lightweight observability for storage, frontend serving, orchestrator settings, and uptime.",
+      "refreshing": "Refreshing...",
+      "refresh": "Refresh diagnostics",
+      "online": "Diagnostics online",
+      "unavailable": "Diagnostics unavailable.",
+      "notLoaded": "No diagnostics loaded yet.",
+      "storageSummary": "{{projects}} projects, {{analysisRuns}} analysis runs, {{exportEvents}} export events, {{revisions}} revisions",
+      "labels": {
+        "uptime": "Uptime",
+        "storage": "Storage",
+        "latestProjectUpdate": "Latest project update",
+        "sqlitePath": "SQLite path",
+        "sqliteParent": "SQLite parent",
+        "storageFootprint": "Storage footprint",
+        "sqliteMode": "SQLite mode",
+        "sqliteWriteProbe": "SQLite write probe",
+        "workspaceBackups": "Workspace backups",
+        "frontendDist": "Frontend dist",
+        "timingHeaders": "Timing headers",
+        "llmAdapter": "LLM adapter",
+        "logging": "Logging",
+        "runtimeCounters": "Runtime counters",
+        "lastRuntimeError": "Last runtime error",
+        "apiAuth": "API auth",
+        "authHeaders": "Auth headers",
+        "securityGuards": "Security guards",
+        "bodyLimits": "Body limits"
+      },
+      "values": {
+        "db": "db",
+        "freeDisk": "free disk",
+        "userVersion": "user_version",
+        "busyTimeout": "busy timeout",
+        "pass": "pass",
+        "fail": "fail",
+        "hmacSigned": "HMAC signed",
+        "checksumOnly": "checksum only",
+        "enabled": "enabled",
+        "disabled": "disabled",
+        "present": "present",
+        "missing": "missing",
+        "timeout": "timeout",
+        "attempts": "attempts",
+        "requests": "requests",
+        "ok": "ok",
+        "none": "none",
+        "authRejects": "auth rejects",
+        "bodyRejects": "body rejects",
+        "writeToken": "write token",
+        "noWriteToken": "no write token",
+        "readOnlyToken": "read-only token",
+        "noReadOnlyToken": "no read-only token",
+        "readMethods": "read methods",
+        "headersOn": "headers on",
+        "headersOff": "headers off",
+        "rateLimit": "rate limit",
+        "authThrottle": "auth throttle",
+        "general": "general",
+        "workspace": "workspace"
+      }
+    },
+    "workspaceStatus": {
+      "title": "Workspace status board",
+      "description": "One-glance summary of saved-project coverage, snapshot depth, and whether the current draft is in sync.",
+      "savedCount_one": "{{count}} saved",
+      "savedCount_other": "{{count}} saved",
+      "withSnapshotsCount_one": "{{count}} with snapshots",
+      "withSnapshotsCount_other": "{{count}} with snapshots",
+      "draftChanged": "Draft changed",
+      "sqliteWritable": "SQLite writable",
+      "readOnlyApi": "Read-only API",
+      "snapshotCoverage": "{{ready}} ready | {{withoutSavedAnalysis}} without saved analysis",
+      "exportCoverage_one": "{{count}} exported at least once",
+      "exportCoverage_other": "{{count}} exported at least once",
+      "revisionDepth_one": "{{count}} project with more than one saved revision",
+      "revisionDepth_other": "{{count}} projects with more than one saved revision",
+      "labels": {
+        "savedProjects": "Saved projects",
+        "archivedProjects": "Archived projects",
+        "snapshotCoverage": "Snapshot coverage",
+        "exportCoverage": "Export coverage",
+        "revisionDepth": "Revision depth",
+        "currentDraft": "Current draft",
+        "latestWorkspaceUpdate": "Latest workspace update"
+      },
+      "currentDraft": {
+        "loadedProjectWithUnsavedChanges": "loaded project with unsaved changes",
+        "loadedProjectInSync": "loaded project in sync",
+        "newLocalDraft": "new local draft"
+      }
+    },
+    "auditLog": {
+      "title": "Audit log",
+      "description": "Recent write activity across the workspace, with optional filtering by saved project.",
+      "refreshing": "Refreshing...",
+      "refresh": "Refresh audit log",
+      "export": "Export audit CSV",
+      "projectFilter": "Project filter",
+      "allProjects": "All projects",
+      "unavailable": "Audit log unavailable.",
+      "loading": "Loading audit log...",
+      "showingEntries_one": "Showing {{visible}} of {{total}} entry.",
+      "showingEntries_other": "Showing {{visible}} of {{total}} entries.",
+      "workspace": "Workspace",
+      "unknownActor": "unknown",
+      "noEntries": "No audit entries recorded yet.",
+      "columns": {
+        "time": "Time",
+        "action": "Action",
+        "project": "Project",
+        "actor": "Actor"
+      }
+    },
+    "activeProject": {
+      "title": "Active project",
+      "unsavedChanges": "Unsaved changes",
+      "savedLocally": "Saved locally",
+      "unknownProject": "Unknown project",
+      "statusNeedsLocalUpdate": "Needs local update",
+      "statusInSync": "In sync with SQLite",
+      "empty": "No saved project is loaded. You can still work in a local draft and save it when ready.",
+      "labels": {
+        "projectName": "Project name",
+        "projectId": "Project id",
+        "status": "Status",
+        "payloadSchema": "Payload schema",
+        "savedRevisions": "Saved revisions",
+        "lastSave": "Last save",
+        "lastAnalysis": "Last analysis",
+        "lastExport": "Last export",
+        "snapshotStored": "Snapshot stored"
+      }
+    },
+    "projectHistory": {
+      "title": "Recent project history",
+      "description": "Timeline of saved analysis runs and export events for the loaded project.",
+      "refreshing": "Refreshing...",
+      "refresh": "Refresh project history",
+      "empty": "Load a saved project to inspect recent analysis runs and export events.",
+      "unavailable": "Project history unavailable.",
+      "loading": "Loading saved-project history...",
+      "summary": "Showing {{analysisVisible}} of {{analysisTotal}} analysis run(s) and {{exportVisible}} of {{exportTotal}} export event(s).",
+      "closeOpenedSnapshot": "Close opened snapshot",
+      "analysisRunsTitle": "Analysis runs",
+      "warningsCount_one": "{{count}} warning",
+      "warningsCount_other": "{{count}} warnings",
+      "aiAdvice": "AI advice",
+      "opened": "Opened",
+      "openSnapshot": "Open snapshot",
+      "viewing": "Viewing",
+      "noAnalysisHistory": "No analysis history recorded yet.",
+      "loadOlderAnalysisRuns": "Load older analysis runs",
+      "exportEventsTitle": "Export events",
+      "linkedSnapshot": "linked snapshot",
+      "unlinkedExport": "unlinked export",
+      "noExportHistory": "No export history recorded yet.",
+      "loadOlderExportEvents": "Load older export events",
+      "notLoaded": "No project history loaded yet."
+    },
+    "revisions": {
+      "title": "Saved revisions",
+      "description": "Payload snapshots captured on create, update, and workspace import. Loading a revision keeps the current project selected but marks the wizard as changed until you save.",
+      "refreshing": "Refreshing...",
+      "refresh": "Refresh revisions",
+      "empty": "Load a saved project to inspect or restore earlier payload revisions.",
+      "unavailable": "Project revisions unavailable.",
+      "loading": "Loading saved revisions...",
+      "summary": "Showing {{visible}} of {{total}} revision(s).",
+      "loadIntoWizard": "Load into wizard",
+      "noEntries": "No saved revisions recorded yet.",
+      "loadOlder": "Load older revisions",
+      "notLoaded": "No project revisions loaded yet.",
+      "sources": {
+        "importedWorkspaceSnapshot": "Imported workspace snapshot",
+        "projectUpdate": "Project update",
+        "initialSave": "Initial save"
+      }
+    },
+    "savedProjects": {
+      "title": "Saved projects",
+      "description": "Load, compare, and archive SQLite-backed drafts from the local workspace.",
+      "loading": "Loading...",
+      "load": "Load saved projects",
+      "savedCount_one": "{{count}} saved",
+      "savedCount_other": "{{count}} saved",
+      "withoutSavedAnalysisCount_one": "{{count}} without saved analysis",
+      "withoutSavedAnalysisCount_other": "{{count}} without saved analysis",
+      "shownExperiments_one": "{{count}} experiment shown.",
+      "shownExperiments_other": "{{count}} experiments shown.",
+      "compareDescription": "Compare buttons use the opened snapshot for the loaded project when one is selected; otherwise they use the latest saved snapshot.",
+      "currentComparison": "Current comparison: {{baseProject}} vs {{candidateProject}}.",
+      "comparisonUnavailable": "Project comparison unavailable.",
+      "compareRequiresSnapshot": "Save at least one analysis snapshot before comparing saved projects.",
+      "updatedAt": "Updated {{timestamp}}",
+      "savedAt": "Saved {{timestamp}}",
+      "analyzedAt": "Analyzed {{timestamp}}",
+      "revisionsCount_one": "Revision {{count}}",
+      "revisionsCount_other": "Revisions {{count}}",
+      "exportedAt": "Exported {{timestamp}}",
+      "noExportsYet": "No exports yet",
+      "loadedInWizard": "Loaded in wizard",
+      "archiveAriaLabel": "Archive {{projectName}}",
+      "deleteAriaLabel": "Delete {{projectName}}",
+      "noMatches": "No experiments match your filters.",
+      "empty": "No saved projects available.",
+      "badges": {
+        "loaded": "Loaded",
+        "snapshot": "Snapshot",
+        "archived": "Archived"
+      },
+      "actions": {
+        "comparing": "Comparing...",
+        "compare": "Compare",
+        "restoring": "Restoring...",
+        "restore": "Restore",
+        "archive": "Archive",
+        "delete": "Delete"
+      }
+    },
+    "archivedProjects": {
+      "title": "Archived projects",
+      "description": "Archived projects stay here until they are restored.",
+      "archivedAt": "Archived {{timestamp}}",
+      "lastAnalysisAt": "Last analysis {{timestamp}}",
+      "empty": "No archived projects."
+    },
+    "backendEndpoints": {
+      "title": "Backend endpoints"
+    },
+    "status": {
+      "readOnlyMode": "Backend is running in read-only mode.",
+      "auditExported": "Audit log exported as CSV.",
+      "auditExportFailed": "Audit export failed.",
+      "returnedToCurrentResults": "Returned to the current in-memory analysis results.",
+      "closedSnapshotPreview": "Closed the saved snapshot preview.",
+      "openedSnapshotFromHistory": "Opened a saved analysis snapshot from project history.",
+      "loadedProjectIntoWizard": "Loaded project {{projectName}} into the wizard.",
+      "projectArchivedCurrentDraft": "Project {{projectName}} archived. Current form remains as a new local draft.",
+      "projectArchived": "Project {{projectName}} archived.",
+      "projectRestored": "Project {{projectName}} restored from archive.",
+      "projectDeletedCurrentDraft": "Project {{projectName}} deleted permanently. Current form remains as a new local draft.",
+      "projectDeleted": "Project {{projectName}} deleted permanently.",
+      "verifyingAdminToken": "Verifying admin token for API key management...",
+      "adminTokenAccepted": "Admin token accepted for API key management in this browser session.",
+      "adminTokenVerificationFailed": "Admin token verification failed.",
+      "adminTokenCleared": "Admin token cleared from this browser session."
+    }
   }
 }

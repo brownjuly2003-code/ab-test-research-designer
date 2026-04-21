@@ -49,12 +49,53 @@ export type AnalysisRunSummary = {
   advice_available?: boolean;
 };
 
+export type ApiKeyCreateRequest = {
+  name: string;
+  scope: "read" | "write" | "admin";
+  rate_limit_requests?: number | null;
+  rate_limit_window_seconds?: number | null;
+};
+
+export type ApiKeyCreateResponse = {
+  id: string;
+  name: string;
+  scope: "read" | "write" | "admin";
+  created_at: string;
+  last_used_at?: string | null;
+  revoked_at?: string | null;
+  rate_limit_requests?: number | null;
+  rate_limit_window_seconds?: number | null;
+  plaintext_key: string;
+};
+
+export type ApiKeyDeleteResponse = {
+  id: string;
+  deleted: boolean;
+};
+
+export type ApiKeyListResponse = {
+  keys: ApiKeyRecord[];
+  total?: number;
+};
+
+export type ApiKeyRecord = {
+  id: string;
+  name: string;
+  scope: "read" | "write" | "admin";
+  created_at: string;
+  last_used_at?: string | null;
+  revoked_at?: string | null;
+  rate_limit_requests?: number | null;
+  rate_limit_window_seconds?: number | null;
+};
+
 export type AuditLogEntry = {
   id: number;
   ts: string;
   action: string;
   project_id?: string | null;
   project_name?: string | null;
+  key_id?: string | null;
   actor?: string | null;
   request_id?: string | null;
   payload_diff?: { [key: string]: unknown[]; } | null;
@@ -151,6 +192,13 @@ export type DiagnosticsAuthSummary = {
   mode: string;
   write_enabled: boolean;
   readonly_enabled: boolean;
+  legacy_tokens_enabled?: boolean;
+  api_keys_enabled?: boolean;
+  admin_token_enabled?: boolean;
+  session_scope?: ("read" | "write" | "admin") | null;
+  session_source?: ("legacy" | "api_key" | "admin_token") | null;
+  session_can_write?: boolean;
+  session_admin_authenticated?: boolean;
   accepted_headers: string[];
   read_only_methods: string[];
 };

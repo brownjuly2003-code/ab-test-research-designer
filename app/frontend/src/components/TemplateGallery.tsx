@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { hydrateLoadedPayload, type FullPayload, type TemplateRecord } from "../lib/experiment";
 import { listTemplatesRequest, useTemplateRequest } from "../lib/api";
@@ -11,6 +12,7 @@ type TemplateGalleryProps = {
 const categoryOrder = ["All", "Revenue", "Engagement", "Performance"] as const;
 
 export default function TemplateGallery({ onClose, onApplyTemplate }: TemplateGalleryProps) {
+  const { t } = useTranslation();
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
@@ -38,7 +40,7 @@ export default function TemplateGallery({ onClose, onApplyTemplate }: TemplateGa
         }
       } catch (requestError) {
         if (!cancelled) {
-          setError(requestError instanceof Error ? requestError.message : "Template library unavailable.");
+          setError(requestError instanceof Error ? requestError.message : t("templateGallery.errors.libraryUnavailable"));
         }
       } finally {
         if (!cancelled) {
@@ -108,7 +110,7 @@ export default function TemplateGallery({ onClose, onApplyTemplate }: TemplateGa
       onApplyTemplate(hydrateLoadedPayload(template.payload), template.name);
       onClose();
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Template apply failed.");
+      setError(requestError instanceof Error ? requestError.message : t("templateGallery.errors.applyFailed"));
     } finally {
       setUsingTemplateId(null);
     }
@@ -152,13 +154,13 @@ export default function TemplateGallery({ onClose, onApplyTemplate }: TemplateGa
       >
         <div className="actions" style={{ justifyContent: "space-between", alignItems: "center" }}>
           <div>
-            <h2 id="template-gallery-title" style={{ margin: 0 }}>Experiment templates</h2>
+            <h2 id="template-gallery-title" style={{ margin: 0 }}>{t("templateGallery.title")}</h2>
             <p className="muted" style={{ margin: "8px 0 0" }}>
-              Start from a built-in setup and adjust the wizard fields before saving or running analysis.
+              {t("templateGallery.description")}
             </p>
           </div>
           <button ref={closeButtonRef} type="button" className="btn secondary" onClick={onClose}>
-            Close
+            {t("templateGallery.close")}
           </button>
         </div>
 
@@ -171,13 +173,13 @@ export default function TemplateGallery({ onClose, onApplyTemplate }: TemplateGa
               aria-pressed={activeCategory === category}
               onClick={() => setActiveCategory(category)}
             >
-              {category}
+              {t(`templateGallery.categories.${category}`)}
             </button>
           ))}
         </div>
 
         {error ? <div className="error">{error}</div> : null}
-        {loading ? <p className="muted">Loading templates...</p> : null}
+        {loading ? <p className="muted">{t("templateGallery.loading")}</p> : null}
 
         {!loading ? (
           <div
@@ -202,7 +204,7 @@ export default function TemplateGallery({ onClose, onApplyTemplate }: TemplateGa
                     <strong>{template.name}</strong>
                     <div className="muted">{template.category}</div>
                   </div>
-                  <span className="pill">{template.usage_count} uses</span>
+                  <span className="pill">{t("templateGallery.usageCount", { count: template.usage_count })}</span>
                 </div>
                 <p className="muted" style={{ margin: 0 }}>{template.description}</p>
                 <div className="actions" style={{ flexWrap: "wrap", justifyContent: "flex-start" }}>
@@ -211,15 +213,15 @@ export default function TemplateGallery({ onClose, onApplyTemplate }: TemplateGa
                   ))}
                 </div>
                 <div className="actions" style={{ justifyContent: "space-between", alignItems: "center" }}>
-                  {template.built_in ? <span className="muted">Built-in template</span> : <span className="muted">Saved template</span>}
+                  {template.built_in ? <span className="muted">{t("templateGallery.builtInTemplate")}</span> : <span className="muted">{t("templateGallery.savedTemplate")}</span>}
                   <button
                     type="button"
                     className="btn primary"
-                    aria-label={`Use template ${template.name}`}
+                    aria-label={t("templateGallery.useTemplateAriaLabel", { name: template.name })}
                     disabled={usingTemplateId === template.id}
                     onClick={() => void handleUseTemplate(template.id)}
                   >
-                    {usingTemplateId === template.id ? "Applying..." : "Use template"}
+                    {usingTemplateId === template.id ? t("templateGallery.applying") : t("templateGallery.useTemplate")}
                   </button>
                 </div>
               </article>
@@ -228,7 +230,7 @@ export default function TemplateGallery({ onClose, onApplyTemplate }: TemplateGa
         ) : null}
 
         {!loading && filteredTemplates.length === 0 ? (
-          <p className="muted">No templates found for this category.</p>
+          <p className="muted">{t("templateGallery.empty")}</p>
         ) : null}
       </div>
     </div>

@@ -16,7 +16,7 @@ else:  # pragma: no cover - compatibility path for older Starlette/FastAPI build
     HTTP_413_BODY_TOO_LARGE = status.HTTP_413_REQUEST_ENTITY_TOO_LARGE
 
 AUTH_EXEMPT_PREFIXES = ("/assets",)
-AUTH_PROTECTED_EXACT_PATHS = {"/readyz", "/docs", "/openapi.json", "/redoc"}
+AUTH_PROTECTED_EXACT_PATHS = {"/readyz"}
 AUTH_READ_ONLY_METHODS = {"GET", "HEAD", "OPTIONS"}
 RATE_LIMITED_PATH_PREFIXES = ("/api/v1",)
 BODY_LIMITED_METHODS = {"POST", "PUT", "PATCH"}
@@ -54,15 +54,23 @@ class SlidingWindowRateLimiter:
         self._events: dict[str, deque[float]] = {}
         self._lock = Lock()
 
-    def allow(self, key: str) -> RateLimitDecision:
+    def allow(
+        self,
+        key: str,
+        *,
+        max_requests: int | None = None,
+        window_seconds: int | None = None,
+    ) -> RateLimitDecision:
+        resolved_max_requests = max_requests or self.max_requests
+        resolved_window_seconds = window_seconds or self.window_seconds
         now = monotonic()
         with self._lock:
             bucket = self._events.setdefault(key, deque())
-            window_start = now - self.window_seconds
+            window_start = now - resolved_window_seconds
             while bucket and bucket[0] <= window_start:
                 bucket.popleft()
-            if len(bucket) >= self.max_requests:
-                retry_after_seconds = max(1, ceil(bucket[0] + self.window_seconds - now))
+            if len(bucket) >= resolved_max_requests:
+                retry_after_seconds = max(1, ceil(bucket[0] + resolved_window_seconds - now))
                 return RateLimitDecision(allowed=False, retry_after_seconds=retry_after_seconds)
             bucket.append(now)
             return RateLimitDecision(allowed=True)
@@ -112,7 +120,15 @@ def extract_presented_token(request: Request) -> str | None:
     return api_key or None
 
 
-def get_auth_mode(write_token: str | None, readonly_token: str | None) -> str:
+def get_auth_mode(
+    write_token: str | None,
+    readonly_token: str | None,
+    api_keys_enabled: bool = False,
+) -> str:
+    if api_keys_enabled and (write_token or readonly_token):
+        return "hybrid"
+    if api_keys_enabled:
+        return "api_keys"
     if write_token and readonly_token:
         return "dual_token"
     if write_token:

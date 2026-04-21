@@ -1,5 +1,6 @@
 import { useState, type RefObject } from "react";
 
+import { t } from "../i18n";
 import {
   getFieldValidationMessage,
   getSectionFieldValue,
@@ -17,6 +18,38 @@ import SliderInput from "./SliderInput";
 import Spinner from "./Spinner";
 import Tooltip from "./Tooltip";
 import styles from "./WizardDraftStep.module.css";
+
+const validationIssueKeys: Record<string, string> = {
+  "Project name is required.": "wizardDraft.validation.projectNameRequired",
+  "Change description is required.": "wizardDraft.validation.changeDescriptionRequired",
+  "Traffic split must contain at least two positive weights.": "wizardDraft.validation.trafficSplitPositive",
+  "Traffic split length must match variants count.": "wizardDraft.validation.trafficSplitLength",
+  "Expected daily traffic must be greater than 0.": "wizardDraft.validation.expectedDailyTrafficPositive",
+  "Audience share in test must be between 0 and 1.": "wizardDraft.validation.audienceShareRange",
+  "Variants count must be an integer between 2 and 10.": "wizardDraft.validation.variantsCountRange",
+  "Primary metric name is required.": "wizardDraft.validation.primaryMetricRequired",
+  "Binary baseline value must be between 0 and 1.": "wizardDraft.validation.binaryBaselineRange",
+  "Continuous baseline value must be greater than 0.": "wizardDraft.validation.continuousBaselinePositive",
+  "MDE % must be greater than 0.": "wizardDraft.validation.mdePositive",
+  "Alpha must be between 0 and 1.": "wizardDraft.validation.alphaRange",
+  "Power must be between 0 and 1.": "wizardDraft.validation.powerRange",
+  "Continuous metrics require a positive std dev.": "wizardDraft.validation.continuousStdPositive",
+  "CUPED pre-experiment std dev must be positive.": "wizardDraft.validation.cupedStdPositive",
+  "CUPED correlation must be between -1 and 1.": "wizardDraft.validation.cupedCorrelationRange",
+  "Desired precision must be greater than 0 in Bayesian mode.": "wizardDraft.validation.desiredPrecisionPositive",
+  "Credibility must be between 0.5 and 1.": "wizardDraft.validation.credibilityRange",
+  "Guardrail metrics cannot exceed 3 items.": "wizardDraft.validation.guardrailsMax",
+  "Guardrail metric names are required.": "wizardDraft.validation.guardrailNameRequired",
+  "Binary guardrails require a baseline % between 0 and 100.": "wizardDraft.validation.guardrailBinaryBaselineRange",
+  "Continuous guardrails require baseline mean and positive std dev.": "wizardDraft.validation.guardrailContinuousFields",
+  "Guardrail metric type must be either binary or continuous.": "wizardDraft.validation.guardrailMetricType",
+  "Metric type must be either binary or continuous.": "wizardDraft.validation.metricType"
+};
+
+function translateValidationIssue(issue: string): string {
+  const key = validationIssueKeys[issue];
+  return key ? t(key) : issue;
+}
 
 type WizardDraftStepProps = {
   headingRef?: RefObject<HTMLHeadingElement | null>;
@@ -91,6 +124,7 @@ export default function WizardDraftStep({
     issue === "Continuous guardrails require baseline mean and positive std dev." ||
     issue === "Guardrail metric type must be either binary or continuous."
   ));
+  const translatedValidationErrors = validationErrors.map((issue) => translateValidationIssue(issue));
 
   function readNextNumberValue(rawValue: string): number;
   function readNextNumberValue(rawValue: string, emptyValue: number | "" | null | undefined): number | "" | null;
@@ -180,20 +214,25 @@ export default function WizardDraftStep({
 
   return (
     <div className={`${styles.section} ${styles["step-content"]}`}>
-      <h2 ref={headingRef} tabIndex={-1}>{current.title}</h2>
+      <h2 ref={headingRef} tabIndex={-1}>{t(`wizardDraft.sections.${current.section}`)}</h2>
       <div className="note">
-        <strong>{activeProjectId ? "Editing saved project" : "Working on a new draft"}</strong>
+        <strong>{activeProjectId ? t("wizardDraft.note.editingSavedProject") : t("wizardDraft.note.workingOnNewDraft")}</strong>
         <div className="muted">
           {activeProjectId
-            ? `Project id: ${activeProjectId}. ${hasUnsavedChanges ? "Unsaved changes pending local update." : "All changes saved locally."}`
-            : "Saving will create a new local project record."}
+            ? t("wizardDraft.note.projectIdStatus", {
+                projectId: activeProjectId,
+                status: hasUnsavedChanges
+                  ? t("wizardDraft.note.unsavedChangesPending")
+                  : t("wizardDraft.note.allChangesSaved")
+              })
+            : t("wizardDraft.note.savingCreatesProject")}
         </div>
       </div>
       {validationErrors.length > 0 ? (
         <div className="status" role="alert" aria-live="polite">
-          <strong>Fix these fields before saving or running analysis:</strong>
+          <strong>{t("wizardDraft.fixFields")}:</strong>
           <ul className="list">
-            {validationErrors.map((issue) => (
+            {translatedValidationErrors.map((issue) => (
               <li key={issue}>{issue}</li>
             ))}
           </ul>
@@ -210,10 +249,10 @@ export default function WizardDraftStep({
             <div className={styles["guardrail-header"]}>
               <div>
                 <label className={styles["guardrail-title"]} htmlFor="constraints-analysis_mode-frequentist">
-                  Analysis framework
+                  {t("wizardDraft.analysisFramework.title")}
                 </label>
                 <p className={styles["guardrail-hint"]}>
-                  Choose whether planning uses classic NHST power or Bayesian precision.
+                  {t("wizardDraft.analysisFramework.description")}
                 </p>
               </div>
             </div>
@@ -244,9 +283,9 @@ export default function WizardDraftStep({
                     checked={analysisMode === "frequentist"}
                     onChange={() => handleFieldChange("constraints", "analysis_mode", "frequentist", "constraints-analysis_mode")}
                   />
-                  <strong>Frequentist</strong>
+                  <strong>{t("wizardDraft.analysisFramework.frequentist")}</strong>
                 </span>
-                <span className="muted">Set alpha and power for the classic fixed-horizon approach.</span>
+                <span className="muted">{t("wizardDraft.analysisFramework.frequentistDescription")}</span>
               </label>
               <label
                 style={{
@@ -268,9 +307,9 @@ export default function WizardDraftStep({
                     checked={analysisMode === "bayesian"}
                     onChange={() => handleFieldChange("constraints", "analysis_mode", "bayesian", "constraints-analysis_mode")}
                   />
-                  <strong>Bayesian</strong>
+                  <strong>{t("wizardDraft.analysisFramework.bayesian")}</strong>
                 </span>
-                <span className="muted">Set desired precision and credibility for interval-based planning.</span>
+                <span className="muted">{t("wizardDraft.analysisFramework.bayesianDescription")}</span>
               </label>
             </div>
           </div>
@@ -285,6 +324,12 @@ export default function WizardDraftStep({
             (fieldId in fieldErrors ? "" : null);
           const globalFieldError = getFieldValidationMessage(targetSection, field.key, validationErrors);
           const showFieldState = Boolean(fieldError || globalFieldError);
+          const translatedFieldLabel = t(`wizardDraft.fields.${String(targetSection)}.${field.key}`, { defaultValue: field.label });
+          const translatedFieldError = fieldError ? translateValidationIssue(fieldError) : fieldError;
+          const translatedGlobalFieldError = globalFieldError ? translateValidationIssue(globalFieldError) : globalFieldError;
+          const translatedHelpText = field.helpText
+            ? t(`wizardDraft.helpText.${field.key}`, { defaultValue: field.helpText })
+            : null;
           const filled =
             typeof value === "boolean"
               ? true
@@ -303,10 +348,10 @@ export default function WizardDraftStep({
             <span className={styles["field-label"]}>
               <span>
                 {targetSection === "constraints" && field.key === "desired_precision"
-                  ? `${field.label} (${precisionUnit})`
-                  : field.label}
+                  ? `${translatedFieldLabel} (${precisionUnit})`
+                  : translatedFieldLabel}
               </span>
-              {field.helpText ? <Tooltip content={field.helpText} /> : null}
+              {translatedHelpText ? <Tooltip content={translatedHelpText} /> : null}
             </span>
           );
 
@@ -339,10 +384,10 @@ export default function WizardDraftStep({
                   onBlurCapture={() => handleFieldBlur(fieldId, targetSection, field.key)}
                   onBlur={() => handleFieldBlur(fieldId, targetSection, field.key)}
                 >
-                  <option value="true">Yes</option>
-                  <option value="false">No</option>
+                  <option value="true">{t("wizardDraft.common.yes")}</option>
+                  <option value="false">{t("wizardDraft.common.no")}</option>
                 </select>
-                {fieldError ? <span className={styles["field-error"]}>{fieldError}</span> : null}
+                {translatedFieldError ? <span className={styles["field-error"]}>{translatedFieldError}</span> : null}
               </div>
             );
           }
@@ -361,11 +406,11 @@ export default function WizardDraftStep({
                 >
                   {field.options.map((option) => (
                     <option key={option.value} value={option.value}>
-                      {option.label}
+                      {t(`wizardDraft.options.${String(targetSection)}.${field.key}.${option.value}`, { defaultValue: option.label })}
                     </option>
                   ))}
                 </select>
-                {fieldError ? <span className={styles["field-error"]}>{fieldError}</span> : null}
+                {translatedFieldError ? <span className={styles["field-error"]}>{translatedFieldError}</span> : null}
               </div>
             );
           }
@@ -387,7 +432,7 @@ export default function WizardDraftStep({
                   onBlur={() => handleFieldBlur(fieldId, targetSection, field.key)}
                   onChange={(nextValue) => handleFieldChange(targetSection, field.key, nextValue, fieldId)}
                 />
-                {fieldError ? <span className={styles["field-error"]}>{fieldError}</span> : null}
+                {translatedFieldError ? <span className={styles["field-error"]}>{translatedFieldError}</span> : null}
               </div>
             );
           }
@@ -408,7 +453,7 @@ export default function WizardDraftStep({
                   onBlur={() => handleFieldBlur(fieldId, targetSection, field.key)}
                   onChange={(nextValue) => handleFieldChange(targetSection, field.key, nextValue, fieldId)}
                 />
-                {fieldError ? <span className={styles["field-error"]}>{fieldError}</span> : null}
+                {translatedFieldError ? <span className={styles["field-error"]}>{translatedFieldError}</span> : null}
               </div>
             );
           }
@@ -429,7 +474,7 @@ export default function WizardDraftStep({
                   onBlur={() => handleFieldBlur(fieldId, targetSection, field.key)}
                   onChange={(nextValue) => handleFieldChange(targetSection, field.key, nextValue, fieldId)}
                 />
-                {fieldError ? <span className={styles["field-error"]}>{fieldError}</span> : null}
+                {translatedFieldError ? <span className={styles["field-error"]}>{translatedFieldError}</span> : null}
               </div>
             );
           }
@@ -456,16 +501,16 @@ export default function WizardDraftStep({
                 onBlurCapture={() => handleFieldBlur(fieldId, targetSection, field.key)}
                 onBlur={() => handleFieldBlur(fieldId, targetSection, field.key)}
               />
-              {fieldError ? <span className={styles["field-error"]}>{fieldError}</span> : null}
+              {translatedFieldError ? <span className={styles["field-error"]}>{translatedFieldError}</span> : null}
             </div>
           );
         })}
-        {current.section === "constraints" ? (
+      {current.section === "constraints" ? (
           <div className={["field", styles.full].join(" ")}>
             <label htmlFor="constraints-n_looks">
               <span className={styles["field-label"]}>
-                <span>Interim analyses</span>
-                <Tooltip content="Number of times you plan to check results during the experiment. 1 keeps the standard fixed-horizon test. 2-5 enables O'Brien-Fleming group sequential monitoring with early stopping boundaries." />
+                <span>{t("wizardDraft.interimAnalyses.title")}</span>
+                <Tooltip content={t("wizardDraft.interimAnalyses.tooltip")} />
               </span>
             </label>
             <select
@@ -475,11 +520,11 @@ export default function WizardDraftStep({
               onBlurCapture={() => handleFieldBlur("constraints-n_looks", "constraints", "n_looks")}
               onBlur={() => handleFieldBlur("constraints-n_looks", "constraints", "n_looks")}
             >
-              <option value="1">1 - Fixed horizon (no interim analyses)</option>
-              <option value="2">2 - One interim + final</option>
-              <option value="3">3 - Two interims + final</option>
-              <option value="4">4 - Three interims + final</option>
-              <option value="5">5 - Four interims + final</option>
+              <option value="1">{t("wizardDraft.interimAnalyses.options.1")}</option>
+              <option value="2">{t("wizardDraft.interimAnalyses.options.2")}</option>
+              <option value="3">{t("wizardDraft.interimAnalyses.options.3")}</option>
+              <option value="4">{t("wizardDraft.interimAnalyses.options.4")}</option>
+              <option value="5">{t("wizardDraft.interimAnalyses.options.5")}</option>
             </select>
           </div>
         ) : null}
@@ -496,13 +541,13 @@ export default function WizardDraftStep({
           <div className={styles["cuped-header"]}>
             <div>
               <label className={styles["guardrail-title"]} htmlFor="metrics-cuped_enabled">
-                CUPED variance reduction
+                {t("wizardDraft.cuped.title")}
               </label>
               <p className={styles["guardrail-hint"]}>
-                Use correlated pre-experiment behavior to reduce variance and compare naive versus CUPED-adjusted sample size.
+                {t("wizardDraft.cuped.description")}
               </p>
             </div>
-            <span className={styles["optional-badge"]}>Optional</span>
+            <span className={styles["optional-badge"]}>{t("wizardDraft.common.optional")}</span>
           </div>
           <label className={styles["cuped-toggle"]} htmlFor="metrics-cuped_enabled">
             <input
@@ -511,16 +556,16 @@ export default function WizardDraftStep({
               checked={form.metrics.cuped_enabled}
               onChange={(event) => handleFieldChange("metrics", "cuped_enabled", event.target.checked, "metrics-cuped_enabled")}
             />
-            <span>Enable CUPED variance reduction</span>
-            <Tooltip content="If you have pre-experiment data correlated with the outcome metric, CUPED can reduce required sample size by rho squared." />
+            <span>{t("wizardDraft.cuped.enable")}</span>
+            <Tooltip content={t("wizardDraft.cuped.enableTooltip")} />
           </label>
           {form.metrics.cuped_enabled ? (
             <div className={styles["cuped-fields"]}>
               <div className={["field", cupedStdFieldError || cupedStdGlobalError ? styles["error-state"] : ""].filter(Boolean).join(" ")}>
                 <label htmlFor={cupedStdFieldId}>
                   <span className={styles["field-label"]}>
-                    <span>Pre-experiment std dev</span>
-                    <Tooltip content="Standard deviation of the pre-experiment covariate, such as revenue in the week before the test." />
+                    <span>{t("wizardDraft.cuped.preExperimentStdDev")}</span>
+                    <Tooltip content={t("wizardDraft.cuped.preExperimentStdDevTooltip")} />
                   </span>
                 </label>
                 <input
@@ -535,14 +580,14 @@ export default function WizardDraftStep({
                   onBlur={() => handleFieldBlur(cupedStdFieldId, "metrics", "cuped_pre_experiment_std")}
                 />
                 {cupedStdFieldError || cupedStdGlobalError ? (
-                  <span className={styles["field-error"]}>{cupedStdFieldError || cupedStdGlobalError}</span>
+                  <span className={styles["field-error"]}>{translateValidationIssue((cupedStdFieldError || cupedStdGlobalError) ?? "")}</span>
                 ) : null}
               </div>
               <div className={["field", cupedCorrelationFieldError || cupedCorrelationGlobalError ? styles["error-state"] : ""].filter(Boolean).join(" ")}>
                 <label htmlFor={cupedCorrelationFieldId}>
                   <span className={styles["field-label"]}>
-                    <span>Correlation with outcome</span>
-                    <Tooltip content="Pearson correlation between the pre-experiment covariate and the experiment outcome. Typical values are 0.3 to 0.7." />
+                    <span>{t("wizardDraft.cuped.correlationWithOutcome")}</span>
+                    <Tooltip content={t("wizardDraft.cuped.correlationWithOutcomeTooltip")} />
                   </span>
                 </label>
                 <input
@@ -559,7 +604,7 @@ export default function WizardDraftStep({
                   onBlur={() => handleFieldBlur(cupedCorrelationFieldId, "metrics", "cuped_correlation")}
                 />
                 {cupedCorrelationFieldError || cupedCorrelationGlobalError ? (
-                  <span className={styles["field-error"]}>{cupedCorrelationFieldError || cupedCorrelationGlobalError}</span>
+                  <span className={styles["field-error"]}>{translateValidationIssue((cupedCorrelationFieldError || cupedCorrelationGlobalError) ?? "")}</span>
                 ) : null}
               </div>
             </div>
@@ -578,55 +623,55 @@ export default function WizardDraftStep({
           <div className={styles["guardrail-header"]}>
             <div>
               <label className={styles["guardrail-title"]} htmlFor="guardrail-metric-name-1">
-                Guardrail metrics
+                {t("wizardDraft.guardrails.title")}
               </label>
               <p className={styles["guardrail-hint"]}>
-                Metrics to monitor without changing primary sample size. Up to 3 guardrails are supported.
+                {t("wizardDraft.guardrails.description")}
               </p>
             </div>
-            <span className={styles["optional-badge"]}>Optional</span>
+            <span className={styles["optional-badge"]}>{t("wizardDraft.common.optional")}</span>
           </div>
           <div className={styles["guardrail-list"]}>
             {guardrailMetrics.map((guardrail, index) => (
               <div key={`${guardrail.name}-${index}`} className={styles["guardrail-item"]}>
                 <div className={styles["guardrail-row"]}>
                   <div className="field">
-                    <label htmlFor={`guardrail-metric-name-${index + 1}`}>Metric name</label>
+                    <label htmlFor={`guardrail-metric-name-${index + 1}`}>{t("wizardDraft.guardrails.metricName")}</label>
                     <input
                       id={`guardrail-metric-name-${index + 1}`}
-                      aria-label={`Guardrail metric name ${index + 1}`}
+                      aria-label={t("wizardDraft.guardrails.metricNameAriaLabel", { index: index + 1 })}
                       value={guardrail.name}
                       onChange={(event) => updateGuardrail(index, "name", event.target.value)}
                     />
                   </div>
                   <div className="field">
-                    <label htmlFor={`guardrail-metric-type-${index + 1}`}>Metric type</label>
+                    <label htmlFor={`guardrail-metric-type-${index + 1}`}>{t("wizardDraft.guardrails.metricType")}</label>
                     <select
                       id={`guardrail-metric-type-${index + 1}`}
-                      aria-label={`Guardrail metric type ${index + 1}`}
+                      aria-label={t("wizardDraft.guardrails.metricTypeAriaLabel", { index: index + 1 })}
                       value={guardrail.metric_type}
                       onChange={(event) => updateGuardrail(index, "metric_type", event.target.value)}
                     >
-                      <option value="binary">Binary (%)</option>
-                      <option value="continuous">Continuous</option>
+                      <option value="binary">{t("wizardDraft.guardrails.binaryPct")}</option>
+                      <option value="continuous">{t("wizardDraft.guardrails.continuous")}</option>
                     </select>
                   </div>
                   <button
                     className="btn ghost"
                     type="button"
-                    aria-label={`Remove guardrail ${index + 1}`}
+                    aria-label={t("wizardDraft.guardrails.removeAriaLabel", { index: index + 1 })}
                     onClick={() => removeGuardrail(index)}
                   >
-                    Remove
+                    {t("wizardDraft.guardrails.remove")}
                   </button>
                 </div>
                 <div className={styles["guardrail-metric-fields"]}>
                   {guardrail.metric_type === "binary" ? (
                     <div className="field">
-                      <label htmlFor={`guardrail-baseline-rate-${index + 1}`}>Baseline %</label>
+                      <label htmlFor={`guardrail-baseline-rate-${index + 1}`}>{t("wizardDraft.guardrails.baselinePct")}</label>
                       <input
                         id={`guardrail-baseline-rate-${index + 1}`}
-                        aria-label={`Guardrail baseline rate ${index + 1}`}
+                        aria-label={t("wizardDraft.guardrails.baselineRateAriaLabel", { index: index + 1 })}
                         type="number"
                         step="any"
                         value={String(guardrail.baseline_rate ?? "")}
@@ -636,10 +681,10 @@ export default function WizardDraftStep({
                   ) : (
                     <>
                       <div className="field">
-                        <label htmlFor={`guardrail-baseline-mean-${index + 1}`}>Baseline mean</label>
+                        <label htmlFor={`guardrail-baseline-mean-${index + 1}`}>{t("wizardDraft.guardrails.baselineMean")}</label>
                         <input
                           id={`guardrail-baseline-mean-${index + 1}`}
-                          aria-label={`Guardrail baseline mean ${index + 1}`}
+                          aria-label={t("wizardDraft.guardrails.baselineMeanAriaLabel", { index: index + 1 })}
                           type="number"
                           step="any"
                           value={String(guardrail.baseline_mean ?? "")}
@@ -647,10 +692,10 @@ export default function WizardDraftStep({
                         />
                       </div>
                       <div className="field">
-                        <label htmlFor={`guardrail-std-dev-${index + 1}`}>Std dev</label>
+                        <label htmlFor={`guardrail-std-dev-${index + 1}`}>{t("wizardDraft.guardrails.stdDev")}</label>
                         <input
                           id={`guardrail-std-dev-${index + 1}`}
-                          aria-label={`Guardrail std dev ${index + 1}`}
+                          aria-label={t("wizardDraft.guardrails.stdDevAriaLabel", { index: index + 1 })}
                           type="number"
                           step="any"
                           value={String(guardrail.std_dev ?? "")}
@@ -665,13 +710,13 @@ export default function WizardDraftStep({
           </div>
           {guardrailMetrics.length < 3 ? (
             <button className="btn secondary" type="button" onClick={addGuardrail}>
-              Add guardrail metric
+              {t("wizardDraft.guardrails.add")}
             </button>
           ) : null}
           {guardrailIssues.length > 0 ? (
             <ul className={`list ${styles["guardrail-errors"]}`}>
               {guardrailIssues.map((issue) => (
-                <li key={issue}>{issue}</li>
+                <li key={issue}>{translateValidationIssue(issue)}</li>
               ))}
             </ul>
           ) : null}
@@ -687,32 +732,32 @@ export default function WizardDraftStep({
 
       <div className="actions">
         <button className="btn secondary" disabled={!canGoBack || loading} onClick={onBack}>
-          Back
+          {t("wizard.actions.back")}
         </button>
         <button className="btn ghost" disabled={loading || saving} onClick={onStartNew}>
-          New draft
+          {t("wizardDraft.buttons.newDraft")}
         </button>
         {current.section === "project" ? (
           <button className="btn ghost" disabled={loading || saving} onClick={onOpenTemplateGallery}>
-            Start from template
+            {t("wizardDraft.buttons.startFromTemplate")}
           </button>
         ) : null}
         <button className="btn ghost" disabled={loading || saving || importingDraft} onClick={onImportDraft}>
-          {importingDraft ? <><Spinner /> Importing...</> : "Import draft JSON"}
+          {importingDraft ? <><Spinner /> {t("wizardDraft.buttons.importing")}</> : t("wizardDraft.buttons.importDraft")}
         </button>
         <button className="btn ghost" disabled={loading || saving || importingDraft} onClick={onExportDraft}>
-          Export draft JSON
+          {t("wizardDraft.buttons.exportDraft")}
         </button>
         <button
           className="btn ghost"
           disabled={!canMutateBackend || loading || saving}
-          title={activeProjectId ? "Update project (Ctrl+S)" : "Save project (Ctrl+S)"}
+          title={activeProjectId ? t("wizardDraft.buttons.updateProjectTitle") : t("wizardDraft.buttons.saveProjectTitle")}
           onClick={onSave}
         >
-          {saving ? <><Spinner /> Saving...</> : activeProjectId ? "Update project" : "Save project"}
+          {saving ? <><Spinner /> {t("wizardDraft.buttons.saving")}</> : activeProjectId ? t("wizardDraft.buttons.updateProject") : t("wizard.actions.save")}
         </button>
         <button className="btn primary" disabled={loading} onClick={onNext}>
-          Next
+          {t("wizard.actions.next")}
         </button>
       </div>
     </div>

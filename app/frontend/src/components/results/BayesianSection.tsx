@@ -1,4 +1,5 @@
 import { Suspense, lazy } from "react";
+import { useTranslation } from "react-i18next";
 
 import { useDraftStore } from "../../stores/draftStore";
 import { useAnalysisStore } from "../../stores/analysisStore";
@@ -74,6 +75,7 @@ function formatPrecision(value: number, metricType: "binary" | "continuous"): st
 }
 
 export default function BayesianSection() {
+  const { t } = useTranslation();
   const analysisResult = useAnalysisStore((state) => state.analysisResult);
   const selectedHistoryAnalysis = useProjectStore((state) => state.selectedHistoryRun?.analysis ?? null);
   const analysisMode = useDraftStore((state) => state.draft.constraints.analysis_mode ?? "frequentist");
@@ -102,8 +104,8 @@ export default function BayesianSection() {
   if (bayesianSampleSize === null || credibility === null || precisionValue === null) {
     return (
       <div className="card">
-        <h3>Bayesian posterior</h3>
-        <p className="muted">{note ?? "Bayesian posterior inputs are unavailable for this analysis."}</p>
+        <h3>{t("results.bayesian.title")}</h3>
+        <p className="muted">{note ?? t("results.bayesian.unavailable")}</p>
       </div>
     );
   }
@@ -121,10 +123,10 @@ export default function BayesianSection() {
     <div className="card">
       <div className="section-heading">
         <div>
-          <h3>Bayesian posterior</h3>
+          <h3>{t("results.bayesian.title")}</h3>
           <p className="muted">
-            Target sample size: <strong>{bayesianSampleSize.toLocaleString()}</strong> per variant at {Math.round(credibility * 100)}%
-            {" "}credibility and {formatPrecision(precisionValue, metricType)} interval half-width.
+            {t("results.bayesian.targetSampleSize")} <strong>{bayesianSampleSize.toLocaleString()}</strong> {t("results.bayesian.perVariantAt")} {Math.round(credibility * 100)}%
+            {" "}{t("results.bayesian.credibilityAnd")} {formatPrecision(precisionValue, metricType)} {t("results.bayesian.intervalHalfWidth")}
           </p>
         </div>
       </div>

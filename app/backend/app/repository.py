@@ -5,6 +5,7 @@ import hashlib
 from io import StringIO
 import json
 from pathlib import Path
+import secrets
 import shutil
 import sqlite3
 from typing import Any
@@ -17,7 +18,7 @@ from app.backend.app.schemas.api import ExperimentInput
 
 
 class ProjectRepository:
-    schema_version = 5
+    schema_version = 6
     payload_schema_version = 1
     workspace_schema_version = 3
     project_select_columns = """
@@ -90,6 +91,7 @@ class ProjectRepository:
             )
             self._create_history_tables(connection)
             self._create_audit_tables(connection)
+            self._create_api_key_tables(connection)
             self._create_template_tables(connection)
             self._migrate_db(connection)
             connection.execute(f"PRAGMA user_version = {self.schema_version}")
@@ -170,6 +172,7 @@ class ProjectRepository:
                 action TEXT NOT NULL,
                 project_id TEXT,
                 project_name TEXT,
+                key_id TEXT,
                 actor TEXT,
                 request_id TEXT,
                 payload_diff TEXT,
@@ -187,6 +190,30 @@ class ProjectRepository:
             """
             CREATE INDEX IF NOT EXISTS idx_audit_log_project
             ON audit_log (project_id, ts DESC, id DESC)
+            """
+        )
+
+    @staticmethod
+    def _create_api_key_tables(connection: sqlite3.Connection) -> None:
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS api_keys (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                key_hash TEXT NOT NULL UNIQUE,
+                scope TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                last_used_at TEXT,
+                revoked_at TEXT,
+                rate_limit_requests INTEGER,
+                rate_limit_window_seconds INTEGER
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_api_keys_scope_active
+            ON api_keys (scope, revoked_at, created_at DESC)
             """
         )
 
@@ -235,6 +262,18 @@ class ProjectRepository:
                 connection.execute(
                     f"ALTER TABLE projects ADD COLUMN {column_name} {column_definition}"
                 )
+        audit_columns = {
+            row["name"]
+            for row in connection.execute("PRAGMA table_info(audit_log)").fetchall()
+        }
+        if "key_id" not in audit_columns:
+            connection.execute("ALTER TABLE audit_log ADD COLUMN key_id TEXT")
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_audit_log_key
+            ON audit_log (key_id, ts DESC, id DESC)
+            """
+        )
 
         def normalize_payload_json(payload_json: str) -> str | None:
             try:
@@ -276,6 +315,7 @@ class ProjectRepository:
 
         ProjectRepository._create_history_tables(connection)
         ProjectRepository._create_audit_tables(connection)
+        ProjectRepository._create_api_key_tables(connection)
         ProjectRepository._create_template_tables(connection)
         for table_name in ("projects", "project_revisions"):
             rows = connection.execute(
@@ -433,6 +473,23 @@ class ProjectRepository:
             "created_at": row["created_at"],
             "payload": json.loads(row["payload_json"]),
         }
+
+    @staticmethod
+    def _api_key_row_to_record(row: sqlite3.Row) -> dict[str, Any]:
+        return {
+            "id": row["id"],
+            "name": row["name"],
+            "scope": row["scope"],
+            "created_at": row["created_at"],
+            "last_used_at": row["last_used_at"],
+            "revoked_at": row["revoked_at"],
+            "rate_limit_requests": row["rate_limit_requests"],
+            "rate_limit_window_seconds": row["rate_limit_window_seconds"],
+        }
+
+    @staticmethod
+    def build_api_key_hash(plaintext_key: str) -> str:
+        return hashlib.sha256(plaintext_key.encode("utf-8")).hexdigest()
 
     @classmethod
     def _project_row_to_workspace_record(cls, row: sqlite3.Row) -> dict:
@@ -978,10 +1035,229 @@ class ProjectRepository:
             "deleted": True,
         }
 
+    def has_api_keys(self) -> bool:
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT 1
+                FROM api_keys
+                LIMIT 1
+                """
+            ).fetchone()
+        return row is not None
+
+    def has_active_api_keys(self, *, scope: str | None = None) -> bool:
+        scope_filters = {
+            "write": ("write", "admin"),
+            "read": ("read", "write", "admin"),
+            "admin": ("admin",),
+        }
+        scopes = scope_filters.get(scope, None)
+        with self._connect() as connection:
+            if scopes is None:
+                row = connection.execute(
+                    """
+                    SELECT 1
+                    FROM api_keys
+                    WHERE revoked_at IS NULL
+                    LIMIT 1
+                    """
+                ).fetchone()
+            else:
+                placeholders = ", ".join("?" for _ in scopes)
+                row = connection.execute(
+                    f"""
+                    SELECT 1
+                    FROM api_keys
+                    WHERE revoked_at IS NULL AND scope IN ({placeholders})
+                    LIMIT 1
+                    """,
+                    scopes,
+                ).fetchone()
+        return row is not None
+
+    def create_api_key(
+        self,
+        *,
+        name: str,
+        scope: str,
+        rate_limit_requests: int | None = None,
+        rate_limit_window_seconds: int | None = None,
+    ) -> dict[str, Any]:
+        api_key_id = str(uuid.uuid4())
+        plaintext_key = f"abk_{secrets.token_urlsafe(32)}"
+        key_hash = self.build_api_key_hash(plaintext_key)
+        created_at = datetime.now(timezone.utc).isoformat()
+
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO api_keys (
+                    id,
+                    name,
+                    key_hash,
+                    scope,
+                    created_at,
+                    last_used_at,
+                    revoked_at,
+                    rate_limit_requests,
+                    rate_limit_window_seconds
+                )
+                VALUES (?, ?, ?, ?, ?, NULL, NULL, ?, ?)
+                """,
+                (
+                    api_key_id,
+                    name,
+                    key_hash,
+                    scope,
+                    created_at,
+                    rate_limit_requests,
+                    rate_limit_window_seconds,
+                ),
+            )
+
+        return {
+            "id": api_key_id,
+            "name": name,
+            "scope": scope,
+            "created_at": created_at,
+            "last_used_at": None,
+            "revoked_at": None,
+            "rate_limit_requests": rate_limit_requests,
+            "rate_limit_window_seconds": rate_limit_window_seconds,
+            "plaintext_key": plaintext_key,
+        }
+
+    def list_api_keys(self) -> dict[str, Any]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT
+                    id,
+                    name,
+                    scope,
+                    created_at,
+                    last_used_at,
+                    revoked_at,
+                    rate_limit_requests,
+                    rate_limit_window_seconds
+                FROM api_keys
+                ORDER BY created_at DESC, id DESC
+                """
+            ).fetchall()
+
+        keys = [self._api_key_row_to_record(row) for row in rows]
+        return {
+            "keys": keys,
+            "total": len(keys),
+        }
+
+    def revoke_api_key(self, api_key_id: str) -> dict[str, Any] | None:
+        timestamp = datetime.now(timezone.utc).isoformat()
+        with self._connect() as connection:
+            cursor = connection.execute(
+                """
+                UPDATE api_keys
+                SET revoked_at = COALESCE(revoked_at, ?)
+                WHERE id = ?
+                """,
+                (timestamp, api_key_id),
+            )
+            if cursor.rowcount == 0:
+                return None
+            row = connection.execute(
+                """
+                SELECT
+                    id,
+                    name,
+                    scope,
+                    created_at,
+                    last_used_at,
+                    revoked_at,
+                    rate_limit_requests,
+                    rate_limit_window_seconds
+                FROM api_keys
+                WHERE id = ?
+                """,
+                (api_key_id,),
+            ).fetchone()
+
+        return self._api_key_row_to_record(row) if row is not None else None
+
+    def delete_api_key(self, api_key_id: str) -> dict[str, Any] | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT id, revoked_at FROM api_keys WHERE id = ?",
+                (api_key_id,),
+            ).fetchone()
+            if row is None:
+                return None
+            if row["revoked_at"] is None:
+                raise ApiError(
+                    "API key must be revoked before deletion",
+                    error_code="api_key_not_revoked",
+                    status_code=409,
+                )
+            connection.execute(
+                "DELETE FROM api_keys WHERE id = ?",
+                (api_key_id,),
+            )
+
+        return {
+            "id": api_key_id,
+            "deleted": True,
+        }
+
+    def authenticate_api_key(self, plaintext_key: str) -> dict[str, Any] | None:
+        key_hash = self.build_api_key_hash(plaintext_key)
+        last_used_at = datetime.now(timezone.utc).isoformat()
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT
+                    id,
+                    name,
+                    scope,
+                    created_at,
+                    last_used_at,
+                    revoked_at,
+                    rate_limit_requests,
+                    rate_limit_window_seconds
+                FROM api_keys
+                WHERE key_hash = ? AND revoked_at IS NULL
+                """,
+                (key_hash,),
+            ).fetchone()
+            if row is None:
+                return None
+            connection.execute(
+                "UPDATE api_keys SET last_used_at = ? WHERE id = ?",
+                (last_used_at, row["id"]),
+            )
+            row = connection.execute(
+                """
+                SELECT
+                    id,
+                    name,
+                    scope,
+                    created_at,
+                    last_used_at,
+                    revoked_at,
+                    rate_limit_requests,
+                    rate_limit_window_seconds
+                FROM api_keys
+                WHERE id = ?
+                """,
+                (row["id"],),
+            ).fetchone()
+
+        return self._api_key_row_to_record(row) if row is not None else None
+
     def log_audit_entry(
         self,
         *,
         action: str,
+        key_id: str | None = None,
         actor: str,
         request_id: str | None,
         ip_address: str | None,
@@ -999,18 +1275,20 @@ class ProjectRepository:
                     action,
                     project_id,
                     project_name,
+                    key_id,
                     actor,
                     request_id,
                     payload_diff,
                     ip_address
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     timestamp,
                     action,
                     project_id,
                     project_name,
+                    key_id,
                     actor,
                     request_id,
                     json.dumps(payload_diff) if payload_diff else None,
@@ -1022,6 +1300,7 @@ class ProjectRepository:
         self,
         *,
         project_id: str | None = None,
+        key_id: str | None = None,
         action: str | None = None,
         limit: int = 500,
     ) -> dict[str, Any]:
@@ -1031,6 +1310,9 @@ class ProjectRepository:
         if project_id:
             where_clauses.append("project_id = ?")
             params.append(project_id)
+        if key_id:
+            where_clauses.append("key_id = ?")
+            params.append(key_id)
         if action:
             where_clauses.append("action = ?")
             params.append(action)
@@ -1045,7 +1327,7 @@ class ProjectRepository:
             )
             rows = connection.execute(
                 f"""
-                SELECT id, ts, action, project_id, project_name, actor, request_id, payload_diff, ip_address
+                SELECT id, ts, action, project_id, project_name, key_id, actor, request_id, payload_diff, ip_address
                 FROM audit_log
                 {where_sql}
                 ORDER BY ts DESC, id DESC
@@ -1069,12 +1351,15 @@ class ProjectRepository:
         self,
         *,
         project_id: str | None = None,
+        key_id: str | None = None,
         action: str | None = None,
     ) -> str:
-        audit_log = self.list_audit_entries(project_id=project_id, action=action, limit=500)
+        audit_log = self.list_audit_entries(project_id=project_id, key_id=key_id, action=action, limit=500)
         buffer = StringIO()
         writer = csv.writer(buffer, lineterminator="\n")
-        writer.writerow(["ts", "action", "project_id", "project_name", "actor", "request_id", "payload_diff", "ip_address"])
+        writer.writerow(
+            ["ts", "action", "project_id", "project_name", "actor", "key_id", "request_id", "payload_diff", "ip_address"]
+        )
         for entry in audit_log["entries"]:
             writer.writerow([
                 entry["ts"],
@@ -1082,6 +1367,7 @@ class ProjectRepository:
                 entry.get("project_id") or "",
                 entry.get("project_name") or "",
                 entry.get("actor") or "",
+                entry.get("key_id") or "",
                 entry.get("request_id") or "",
                 json.dumps(entry["payload_diff"], sort_keys=True) if entry.get("payload_diff") else "",
                 entry.get("ip_address") or "",

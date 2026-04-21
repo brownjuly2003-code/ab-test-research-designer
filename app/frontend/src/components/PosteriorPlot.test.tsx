@@ -9,7 +9,7 @@ vi.mock("recharts", async () => {
   return {
     ...actual,
     ResponsiveContainer: ({ children }: { children: React.ReactElement }) =>
-      React.cloneElement(React.Children.only(children), { width: 720, height: 260 })
+      React.cloneElement(React.Children.only(children) as React.ReactElement<Record<string, unknown>>, { width: 720, height: 260 } as Record<string, unknown>)
   };
 });
 
@@ -21,6 +21,10 @@ import { flushEffects, renderIntoDocument } from "../test/dom";
 import PosteriorPlot from "./PosteriorPlot";
 
 expect.extend(matchers);
+
+type AxeMatcher = {
+  toHaveNoViolations: () => void;
+};
 
 describe("PosteriorPlot", () => {
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
@@ -63,7 +67,7 @@ describe("PosteriorPlot", () => {
       const image = view.container.querySelector('[role="img"]');
 
       expect(image?.getAttribute("aria-label")).toContain("95% credibility interval");
-      expect(await axe(view.container)).toHaveNoViolations();
+      (expect(await axe(view.container)) as unknown as AxeMatcher).toHaveNoViolations();
     } finally {
       await view.unmount();
     }

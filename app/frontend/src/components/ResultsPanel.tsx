@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { ExportFormat, ResultsAnalysisResponse } from "../lib/experiment";
 import { apiUrl, buildApiPayload } from "../lib/experiment";
@@ -27,6 +28,7 @@ import { buildSensitivityPayload, fetchSensitivityData, isAbortError } from "./r
 type ResultsPanelProps = { onExportReport?: (format: ExportFormat) => void; readonly [key: string]: unknown };
 
 export default function ResultsPanel(_props: ResultsPanelProps) {
+  const { t } = useTranslation();
   const analysis = useAnalysisStore();
   const project = useProjectStore();
   const analysisMode = useDraftStore((state) => state.draft.constraints.analysis_mode ?? "frequentist");
@@ -57,14 +59,14 @@ export default function ResultsPanel(_props: ResultsPanelProps) {
     if (!displayedAnalysis?.report || project.selectedHistoryRun) {
       setSensitivityData(null);
       setSensitivityLoading(false);
-      setSensitivityError(displayedAnalysis?.report && project.selectedHistoryRun ? "Sensitivity analysis is unavailable for historical snapshots." : "");
+      setSensitivityError(displayedAnalysis?.report && project.selectedHistoryRun ? t("results.panel.sensitivityUnavailableHistorical") : "");
       return;
     }
     const payload = buildSensitivityPayload(displayedAnalysis);
     if (!payload) {
       setSensitivityData(null);
       setSensitivityLoading(false);
-      setSensitivityError("Sensitivity analysis is unavailable for the current draft.");
+      setSensitivityError(t("results.panel.sensitivityUnavailableCurrentDraft"));
       return;
     }
     const controller = new AbortController();
@@ -72,41 +74,41 @@ export default function ResultsPanel(_props: ResultsPanelProps) {
     setSensitivityLoading(true);
     setSensitivityError("");
     fetchSensitivityData(payload, controller.signal).then(setSensitivityData).catch((error) => {
-      if (!isAbortError(error)) setSensitivityError(error instanceof Error ? error.message : "Sensitivity analysis unavailable.");
+      if (!isAbortError(error)) setSensitivityError(error instanceof Error ? error.message : t("results.panel.sensitivityUnavailable"));
     }).finally(() => {
       if (!controller.signal.aborted) setSensitivityLoading(false);
     });
     return () => controller.abort();
-  }, [displayedAnalysis, project.selectedHistoryRun]);
+  }, [displayedAnalysis, project.selectedHistoryRun, t]);
 
   async function handleExportReport(format: "markdown" | "html") {
-    if (!project.canMutateBackend) return analysis.showError(project.backendMutationMessage || "Backend is running in read-only mode.", "warning");
-    if (!displayedAnalysis?.report) return analysis.showError("Run analysis before exporting a report.", "info");
+    if (!project.canMutateBackend) return analysis.showError(project.backendMutationMessage || t("results.panel.backendReadOnly"), "warning");
+    if (!displayedAnalysis?.report) return analysis.showError(t("results.panel.runAnalysisBeforeExportingReport"), "info");
     analysis.clearFeedback();
     const message = await project.exportReport(displayedAnalysis.report, format, exportProjectId, linkedRunId);
     if (message) analysis.showStatus(message, "success");
   }
 
   async function handleExportPdf() {
-    if (!project.canMutateBackend) return analysis.showError(project.backendMutationMessage || "Backend is running in read-only mode.", "warning");
-    if (!displayedAnalysis?.report) return analysis.showError("Run analysis before exporting a report.", "info");
-    if (!exportProjectId || !linkedRunId) return analysis.showError("Save the project and persist an analysis snapshot before exporting a PDF.", "info");
+    if (!project.canMutateBackend) return analysis.showError(project.backendMutationMessage || t("results.panel.backendReadOnly"), "warning");
+    if (!displayedAnalysis?.report) return analysis.showError(t("results.panel.runAnalysisBeforeExportingReport"), "info");
+    if (!exportProjectId || !linkedRunId) return analysis.showError(t("results.panel.saveProjectBeforePdf"), "info");
     analysis.clearFeedback();
     const message = await project.exportProjectPdf(exportProjectId, linkedRunId);
     if (message) analysis.showStatus(message, "success");
   }
 
   async function handleExportProjectData(format: "csv" | "xlsx") {
-    if (!project.canMutateBackend) return analysis.showError(project.backendMutationMessage || "Backend is running in read-only mode.", "warning");
-    if (!displayedAnalysis?.report) return analysis.showError("Run analysis before exporting project data.", "info");
-    if (!exportProjectId) return analysis.showError("Save the project before exporting CSV or Excel data.", "info");
+    if (!project.canMutateBackend) return analysis.showError(project.backendMutationMessage || t("results.panel.backendReadOnly"), "warning");
+    if (!displayedAnalysis?.report) return analysis.showError(t("results.panel.runAnalysisBeforeExportingProjectData"), "info");
+    if (!exportProjectId) return analysis.showError(t("results.panel.saveProjectBeforeProjectData"), "info");
     analysis.clearFeedback();
     const message = await project.exportProjectData(exportProjectId, format);
     if (message) analysis.showStatus(message, "success");
   }
 
   async function handleExportStandalone() {
-    if (!displayedAnalysis?.report) return setStandaloneExportError("Run analysis before exporting the full report.");
+    if (!displayedAnalysis?.report) return setStandaloneExportError(t("results.panel.runAnalysisBeforeStandaloneExport"));
     setStandaloneExporting(true);
     setStandaloneExportError("");
     try {
@@ -114,7 +116,7 @@ export default function ResultsPanel(_props: ResultsPanelProps) {
       const response = await fetch(apiUrl("/api/v1/export/html-standalone"), { method: "POST", headers: buildApiRequestHeaders(), body: JSON.stringify({ project_name: project.activeProject?.project_name || persistedDraft.project.project_name || "AB Test Research Designer", hypothesis: project.selectedHistoryRun ? null : persistedDraft.hypothesis.hypothesis_statement || persistedDraft.hypothesis.change_description || null, calculation: displayedAnalysis.calculations, design: displayedAnalysis.report.experiment_design, ai_advice: displayedAnalysis.advice, sensitivity: sensitivityData, results: resultsAnalysis }) });
       if (!response.ok) {
         const body = await response.json().catch(() => ({}));
-        throw new Error(typeof body.detail === "string" ? body.detail : "Full report export failed.");
+        throw new Error(typeof body.detail === "string" ? body.detail : t("results.panel.standaloneExportFailed"));
       }
       const blob = await response.blob();
       const objectUrl = window.URL.createObjectURL(blob);
@@ -127,7 +129,7 @@ export default function ResultsPanel(_props: ResultsPanelProps) {
       anchor.remove();
       window.URL.revokeObjectURL(objectUrl);
     } catch (error) {
-      setStandaloneExportError(error instanceof Error ? error.message : "Full report export failed.");
+      setStandaloneExportError(error instanceof Error ? error.message : t("results.panel.standaloneExportFailed"));
     } finally {
       setStandaloneExporting(false);
     }
@@ -135,23 +137,23 @@ export default function ResultsPanel(_props: ResultsPanelProps) {
 
   return (
     <>
-      {project.selectedHistoryRun ? <div className={`${styles["result-block"]} ${styles["results-enter"]}`}><span className="pill">Saved snapshot</span><h3>Viewing historical analysis</h3><p className="muted">Opened snapshot from {new Date(project.selectedHistoryRun.created_at).toLocaleString()}.{analysis.results.report ? " Current in-memory results are still available." : ""}</p><div className="actions"><button className="btn ghost" onClick={() => { if (project.clearHistoryRunSelection()) { analysis.clearFeedback(); analysis.showStatus(analysis.results.report ? "Returned to the current in-memory analysis results." : "Closed the saved snapshot preview.", "info"); } }}>{analysis.results.report ? "Show current analysis" : "Close snapshot view"}</button></div></div> : null}
-      {analysis.isAnalyzing && !project.projectComparison ? <div className={`${styles["result-block"]} ${styles["results-enter"]}`}><span className="pill">Analysis in progress</span><h3>Preparing deterministic results</h3><p className="muted">Updating metrics, chart, and report sections.</p><ResultsSkeleton /></div> : null}
+      {project.selectedHistoryRun ? <div className={`${styles["result-block"]} ${styles["results-enter"]}`}><span className="pill">{t("results.panel.savedSnapshot")}</span><h3>{t("results.panel.viewingHistoricalAnalysis")}</h3><p className="muted">{t("results.panel.openedSnapshotFrom", { timestamp: new Date(project.selectedHistoryRun.created_at).toLocaleString() })}{analysis.results.report ? ` ${t("results.panel.currentResultsAvailable")}` : ""}</p><div className="actions"><button className="btn ghost" onClick={() => { if (project.clearHistoryRunSelection()) { analysis.clearFeedback(); analysis.showStatus(analysis.results.report ? t("results.panel.returnedToCurrentAnalysis") : t("results.panel.closedSnapshotPreview"), "info"); } }}>{analysis.results.report ? t("results.panel.showCurrentAnalysis") : t("results.panel.closeSnapshotView")}</button></div></div> : null}
+      {analysis.isAnalyzing && !project.projectComparison ? <div className={`${styles["result-block"]} ${styles["results-enter"]}`}><span className="pill">{t("results.panel.analysisInProgress")}</span><h3>{t("results.panel.preparingDeterministicResults")}</h3><p className="muted">{t("results.panel.updatingSections")}</p><ResultsSkeleton /></div> : null}
       {displayedAnalysis?.report && !analysis.isAnalyzing ? <div className={`${styles.results} ${styles["results-enter"]}`}>
-        <Accordion title="Comparison" badge={project.projectComparison ? "Loaded" : "Sidebar"} defaultOpen={Boolean(project.projectComparison)}><ComparisonSection /></Accordion>
-        <Accordion title="Sensitivity" badge={`${displayedAnalysis.report.experiment_design?.variants.length ?? 0} variants`} defaultOpen><SensitivitySection sensitivityData={sensitivityData} sensitivityLoading={sensitivityLoading} sensitivityUnavailableMessage={sensitivityError || "Sensitivity analysis unavailable for this configuration."} standaloneExporting={standaloneExporting} standaloneExportError={standaloneExportError} canExportPdf={canExportPdf} onExportReport={handleExportReport} onExportPdf={() => void handleExportPdf()} onExportProjectData={(format) => void handleExportProjectData(format)} onExportStandalone={() => void handleExportStandalone()} /></Accordion>
-        <Accordion title="Power curve" badge={sensitivityData?.cells?.length ? `${sensitivityData.cells.length} cells` : "Pending"}><PowerCurveSection sensitivityData={sensitivityData} sensitivityLoading={sensitivityLoading} sensitivityUnavailableMessage={sensitivityError || "Sensitivity analysis unavailable for this configuration."} /></Accordion>
-        <Accordion title="Sequential design" badge={`${displayedAnalysis.calculations.sequential_boundaries?.length ?? 0} looks`}><SequentialDesignSection /></Accordion>
-        {showBayesianPosterior ? <Accordion title="Bayesian posterior" badge={displayedAnalysis.calculations.bayesian_credibility != null ? `${Math.round(displayedAnalysis.calculations.bayesian_credibility * 100)}% CI` : "Planning"}><BayesianSection /></Accordion> : null}
-        <Accordion title="Observed results" badge={resultsAnalysis ? (resultsAnalysis.is_significant ? "Significant" : "Review") : "Post-test"} badgeColor={resultsAnalysis ? (resultsAnalysis.is_significant ? "accent" : "warn") : "accent"} defaultOpen><ObservedResultsSection onResultsAnalysisChange={setResultsAnalysis} /></Accordion>
-        <Accordion title="Warnings & Risks" badge={`${warnings.length} warnings`} badgeColor={warningBadgeColor} defaultOpen={warnings.length > 0}><WarningsSection /></Accordion>
-        <Accordion title="Experiment design" badge={`${displayedAnalysis.report.experiment_design?.variants.length ?? 0} variants`}><ExperimentDesignSection /></Accordion>
-        <Accordion title="Metrics plan" badge={`${(displayedAnalysis.report.metrics_plan?.primary?.length ?? 0) + (displayedAnalysis.report.metrics_plan?.secondary?.length ?? 0) + (displayedAnalysis.report.metrics_plan?.guardrail?.length ?? 0) + (displayedAnalysis.report.metrics_plan?.diagnostic?.length ?? 0)} metrics`}><MetricsPlanSection /></Accordion>
-        <Accordion title="Risk assessment" badge={`${(displayedAnalysis.report.risks?.statistical?.length ?? 0) + (displayedAnalysis.report.risks?.product?.length ?? 0) + (displayedAnalysis.report.risks?.technical?.length ?? 0) + (displayedAnalysis.report.risks?.operational?.length ?? 0)} items`}><RisksSection /></Accordion>
-        <Accordion title="AI recommendations" badge={displayedAnalysis.advice.available ? "Available" : "Offline"}><AiAdviceSection /></Accordion>
-        <Accordion title="SRM check" badge="Manual"><SrmCheckSection /></Accordion>
+        <Accordion title={t("results.panel.accordion.comparison")} badge={project.projectComparison ? t("results.panel.badges.loaded") : t("results.panel.badges.sidebar")} defaultOpen={Boolean(project.projectComparison)}><ComparisonSection /></Accordion>
+        <Accordion title={t("results.panel.accordion.sensitivity")} badge={t("results.panel.variantsCount", { count: displayedAnalysis.report.experiment_design?.variants.length ?? 0 })} defaultOpen><SensitivitySection sensitivityData={sensitivityData} sensitivityLoading={sensitivityLoading} sensitivityUnavailableMessage={sensitivityError || t("results.panel.sensitivityUnavailableForConfiguration")} standaloneExporting={standaloneExporting} standaloneExportError={standaloneExportError} canExportPdf={canExportPdf} onExportReport={handleExportReport} onExportPdf={() => void handleExportPdf()} onExportProjectData={(format) => void handleExportProjectData(format)} onExportStandalone={() => void handleExportStandalone()} /></Accordion>
+        <Accordion title={t("results.panel.accordion.powerCurve")} badge={sensitivityData?.cells?.length ? t("results.panel.cellsCount", { count: sensitivityData.cells.length }) : t("results.panel.badges.pending")}><PowerCurveSection sensitivityData={sensitivityData} sensitivityLoading={sensitivityLoading} sensitivityUnavailableMessage={sensitivityError || t("results.panel.sensitivityUnavailableForConfiguration")} /></Accordion>
+        <Accordion title={t("results.panel.accordion.sequentialDesign")} badge={t("results.panel.looksCount", { count: displayedAnalysis.calculations.sequential_boundaries?.length ?? 0 })}><SequentialDesignSection /></Accordion>
+        {showBayesianPosterior ? <Accordion title={t("results.panel.accordion.bayesianPosterior")} badge={displayedAnalysis.calculations.bayesian_credibility != null ? t("results.panel.credibilityInterval", { percent: Math.round(displayedAnalysis.calculations.bayesian_credibility * 100) }) : t("results.panel.badges.planning")}><BayesianSection /></Accordion> : null}
+        <Accordion title={t("results.panel.accordion.observedResults")} badge={resultsAnalysis ? (resultsAnalysis.is_significant ? t("results.panel.badges.significant") : t("results.panel.badges.review")) : t("results.panel.badges.postTest")} badgeColor={resultsAnalysis ? (resultsAnalysis.is_significant ? "accent" : "warn") : "accent"} defaultOpen><ObservedResultsSection onResultsAnalysisChange={setResultsAnalysis} /></Accordion>
+        <Accordion title={t("results.panel.accordion.warningsAndRisks")} badge={t("results.panel.warningsCount", { count: warnings.length })} badgeColor={warningBadgeColor} defaultOpen={warnings.length > 0}><WarningsSection /></Accordion>
+        <Accordion title={t("results.panel.accordion.experimentDesign")} badge={t("results.panel.variantsCount", { count: displayedAnalysis.report.experiment_design?.variants.length ?? 0 })}><ExperimentDesignSection /></Accordion>
+        <Accordion title={t("results.panel.accordion.metricsPlan")} badge={t("results.panel.metricsCount", { count: (displayedAnalysis.report.metrics_plan?.primary?.length ?? 0) + (displayedAnalysis.report.metrics_plan?.secondary?.length ?? 0) + (displayedAnalysis.report.metrics_plan?.guardrail?.length ?? 0) + (displayedAnalysis.report.metrics_plan?.diagnostic?.length ?? 0) })}><MetricsPlanSection /></Accordion>
+        <Accordion title={t("results.panel.accordion.riskAssessment")} badge={t("results.panel.itemsCount", { count: (displayedAnalysis.report.risks?.statistical?.length ?? 0) + (displayedAnalysis.report.risks?.product?.length ?? 0) + (displayedAnalysis.report.risks?.technical?.length ?? 0) + (displayedAnalysis.report.risks?.operational?.length ?? 0) })}><RisksSection /></Accordion>
+        <Accordion title={t("results.panel.accordion.aiRecommendations")} badge={displayedAnalysis.advice.available ? t("results.panel.badges.available") : t("results.panel.badges.offline")}><AiAdviceSection /></Accordion>
+        <Accordion title={t("results.panel.accordion.srmCheck")} badge={t("results.panel.badges.manual")}><SrmCheckSection /></Accordion>
       </div> : null}
-      {!displayedAnalysis?.report && !analysis.isAnalyzing && !project.projectComparison ? <div className="status">No analysis yet. Complete the wizard and run the deterministic backend flow first.</div> : null}
+      {!displayedAnalysis?.report && !analysis.isAnalyzing && !project.projectComparison ? <div className="status">{t("results.panel.noAnalysisYet")}</div> : null}
       {analysis.statusMessage ? <div className="status">{analysis.statusMessage}</div> : null}
       {(analysis.analysisError || project.projectError) ? <div className="error">{analysis.analysisError || project.projectError}</div> : null}
     </>

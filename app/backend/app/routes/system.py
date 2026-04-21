@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from pathlib import Path
 
-from fastapi import APIRouter, Response, status
+from fastapi import APIRouter, Request, Response, status
 from pydantic import BaseModel
 
 from app.backend.app.http_utils import AUTH_READ_ONLY_METHODS, get_auth_mode
@@ -16,7 +16,7 @@ class HealthResponse(BaseModel):
 
 
 def create_system_router(settings, repository, runtime_counters, start_time) -> APIRouter:
-    router = APIRouter()
+    router = APIRouter(tags=["system"])
     frontend_dist_path = Path(settings.frontend_dist_path)
     frontend_index_path = frontend_dist_path / "index.html"
 
@@ -107,9 +107,13 @@ def create_system_router(settings, repository, runtime_counters, start_time) -> 
         )
 
     @router.get("/api/v1/diagnostics", response_model=DiagnosticsResponse)
-    def diagnostics() -> DiagnosticsResponse:
+    def diagnostics(request: Request) -> DiagnosticsResponse:
         diagnostics_generated_at = datetime.now(timezone.utc)
         storage_summary = repository.get_diagnostics_summary()
+        api_keys_enabled = repository.has_api_keys()
+        write_api_keys_enabled = repository.has_active_api_keys(scope="write")
+        read_api_keys_enabled = repository.has_active_api_keys(scope="read")
+        session_scope = getattr(request.state, "auth_scope", None)
         return DiagnosticsResponse(
             status="ok",
             generated_at=diagnostics_generated_at.isoformat(),
@@ -137,10 +141,17 @@ def create_system_router(settings, repository, runtime_counters, start_time) -> 
                 "format": settings.log_format,
             },
             auth={
-                "enabled": settings.api_token is not None or settings.readonly_api_token is not None,
-                "mode": get_auth_mode(settings.api_token, settings.readonly_api_token),
-                "write_enabled": settings.api_token is not None,
-                "readonly_enabled": settings.readonly_api_token is not None,
+                "enabled": settings.api_token is not None or settings.readonly_api_token is not None or api_keys_enabled,
+                "mode": get_auth_mode(settings.api_token, settings.readonly_api_token, api_keys_enabled),
+                "write_enabled": settings.api_token is not None or write_api_keys_enabled,
+                "readonly_enabled": settings.readonly_api_token is not None or read_api_keys_enabled,
+                "legacy_tokens_enabled": settings.api_token is not None or settings.readonly_api_token is not None,
+                "api_keys_enabled": api_keys_enabled,
+                "admin_token_enabled": settings.admin_token is not None,
+                "session_scope": session_scope,
+                "session_source": getattr(request.state, "auth_source", None),
+                "session_can_write": session_scope in {"write", "admin"},
+                "session_admin_authenticated": bool(getattr(request.state, "admin_authenticated", False)),
                 "accepted_headers": ["Authorization: Bearer", "X-API-Key"],
                 "read_only_methods": sorted(AUTH_READ_ONLY_METHODS),
             },

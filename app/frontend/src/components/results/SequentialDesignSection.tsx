@@ -1,5 +1,6 @@
 import { Suspense, lazy } from "react";
 
+import { t } from "../../i18n";
 import { useAnalysisStore } from "../../stores/analysisStore";
 import { useProjectStore } from "../../stores/projectStore";
 import Icon from "../Icon";
@@ -51,17 +52,17 @@ export default function SequentialDesignSection() {
     return (
       <div className="callout">
         <Icon name="info" className="icon icon-inline" />
-        <span>Sequential boundaries are not configured for the current analysis.</span>
+        <span>{t("results.sequentialDesign.unavailable")}</span>
       </div>
     );
   }
 
   return (
     <div className="card">
-      <h3>Group sequential design (O'Brien-Fleming)</h3>
+      <h3>{t("results.sequentialDesign.title")}</h3>
       <p className="muted">
-        Adjusted sample size: <strong>{sequentialAdjustedSampleSize.toLocaleString()}</strong> per variant (
-        {((sequentialInflationFactor - 1) * 100).toFixed(1)}% more than fixed horizon)
+        {t("results.sequentialDesign.adjustedSampleSize")} <strong>{sequentialAdjustedSampleSize.toLocaleString()}</strong> {t("results.sequentialDesign.perVariant")} (
+        {((sequentialInflationFactor - 1) * 100).toFixed(1)}% {t("results.sequentialDesign.moreThanFixedHorizon")})
       </p>
       {sequentialBoundaries.length > 0 ? (
         <div style={{ marginTop: "16px" }}>
@@ -82,11 +83,11 @@ export default function SequentialDesignSection() {
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr>
-              <th style={{ textAlign: "left", padding: "8px 12px", borderBottom: "1px solid var(--color-border-soft)" }}>Look</th>
-              <th style={{ textAlign: "left", padding: "8px 12px", borderBottom: "1px solid var(--color-border-soft)" }}>Info fraction</th>
-              <th style={{ textAlign: "left", padding: "8px 12px", borderBottom: "1px solid var(--color-border-soft)" }}>Cum. α spent</th>
-              <th style={{ textAlign: "left", padding: "8px 12px", borderBottom: "1px solid var(--color-border-soft)" }}>Z boundary</th>
-              <th style={{ textAlign: "left", padding: "8px 12px", borderBottom: "1px solid var(--color-border-soft)" }}>Stop if |Z| ≥</th>
+              <th style={{ textAlign: "left", padding: "8px 12px", borderBottom: "1px solid var(--color-border-soft)" }}>{t("results.sequentialDesign.columns.look")}</th>
+              <th style={{ textAlign: "left", padding: "8px 12px", borderBottom: "1px solid var(--color-border-soft)" }}>{t("results.sequentialDesign.columns.infoFraction")}</th>
+              <th style={{ textAlign: "left", padding: "8px 12px", borderBottom: "1px solid var(--color-border-soft)" }}>{t("results.sequentialDesign.columns.cumulativeAlphaSpent")}</th>
+              <th style={{ textAlign: "left", padding: "8px 12px", borderBottom: "1px solid var(--color-border-soft)" }}>{t("results.sequentialDesign.columns.zBoundary")}</th>
+              <th style={{ textAlign: "left", padding: "8px 12px", borderBottom: "1px solid var(--color-border-soft)" }}>{t("results.sequentialDesign.columns.stopIf")}</th>
             </tr>
           </thead>
           <tbody>
@@ -111,7 +112,7 @@ export default function SequentialDesignSection() {
         </table>
       </div>
       <p className="muted" style={{ marginTop: "12px" }}>
-        Stop early at any planned look if the observed absolute Z-statistic crosses the boundary. Otherwise continue to the next analysis.
+        {t("results.sequentialDesign.footer")}
       </p>
     </div>
   );

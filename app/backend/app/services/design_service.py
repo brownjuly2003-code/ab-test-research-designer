@@ -1,4 +1,5 @@
 from app.backend.app.schemas.report import ExperimentReport
+from app.backend.app.i18n import translate
 from app.backend.app.stats.binary import calculate_detectable_mde_binary
 from app.backend.app.stats.continuous import calculate_detectable_mde_continuous
 
@@ -27,9 +28,12 @@ def build_guardrail_section(guardrail_metrics: list[dict], primary_n: int) -> li
                     "metric_type": "binary",
                     "baseline": guardrail["baseline_rate"],
                     "detectable_mde_pp": round(detectable_mde * 100, 3),
-                    "note": (
-                        f"With N={primary_n:,} per variant, can detect >= "
-                        f"{detectable_mde * 100:.2f} pp change at 80% power"
+                    "note": translate(
+                        "report.guardrails.binary_note",
+                        {
+                            "sample_size_per_variant": f"{primary_n:,}",
+                            "detectable_mde": f"{detectable_mde * 100:.2f}",
+                        },
                     ),
                 }
             )
@@ -47,9 +51,12 @@ def build_guardrail_section(guardrail_metrics: list[dict], primary_n: int) -> li
                 "metric_type": "continuous",
                 "baseline": guardrail["baseline_mean"],
                 "detectable_mde_absolute": round(detectable_mde, 4),
-                "note": (
-                    f"With N={primary_n:,} per variant, can detect >= "
-                    f"{detectable_mde:.4f} change at 80% power"
+                "note": translate(
+                    "report.guardrails.continuous_note",
+                    {
+                        "sample_size_per_variant": f"{primary_n:,}",
+                        "detectable_mde": f"{detectable_mde:.4f}",
+                    },
                 ),
             }
         )
@@ -69,7 +76,11 @@ def build_experiment_report(payload: dict, calculation_result: dict, llm_advice:
     variants = [
         {
             "name": name,
-            "description": "current experience" if index == 0 else hypothesis["change_description"],
+            "description": (
+                translate("report.variant_control_description")
+                if index == 0
+                else hypothesis["change_description"]
+            ),
         }
         for index, name in enumerate(variant_names)
     ]
@@ -85,10 +96,17 @@ def build_experiment_report(payload: dict, calculation_result: dict, llm_advice:
 
     report = ExperimentReport(
         executive_summary=(
-            f"{project['project_name']} tests whether {hypothesis['change_description'].lower()} "
-            f"can improve {metrics['primary_metric_name']} for {hypothesis['target_audience']}. "
-            f"The deterministic plan estimates {calculation_result['results']['estimated_duration_days']} days "
-            f"with {calculation_result['results']['sample_size_per_variant']} users per variant."
+            translate(
+                "report.executive_summary",
+                {
+                    "project_name": project["project_name"],
+                    "change_description": hypothesis["change_description"].lower(),
+                    "primary_metric_name": metrics["primary_metric_name"],
+                    "target_audience": hypothesis["target_audience"],
+                    "estimated_duration_days": calculation_result["results"]["estimated_duration_days"],
+                    "sample_size_per_variant": calculation_result["results"]["sample_size_per_variant"],
+                },
+            )
         ),
         calculations={
             "sample_size_per_variant": calculation_result["results"]["sample_size_per_variant"],
@@ -105,8 +123,8 @@ def build_experiment_report(payload: dict, calculation_result: dict, llm_advice:
             "exclusion_criteria": setup["exclusion_criteria"],
             "recommended_duration_days": calculation_result["results"]["estimated_duration_days"],
             "stopping_conditions": [
-                "planned duration reached",
-                "critical instrumentation failure",
+                translate("report.stopping_conditions.planned_duration_reached"),
+                translate("report.stopping_conditions.critical_instrumentation_failure"),
             ],
         },
         metrics_plan={
@@ -114,41 +132,44 @@ def build_experiment_report(payload: dict, calculation_result: dict, llm_advice:
             "secondary": metrics.get("secondary_metrics") or [],
             "guardrail": guardrail_metric_names,
             "diagnostic": [
-                "assignment_rate",
-                "exposure_balance",
-                f"{metrics['primary_metric_name']}_by_segment",
+                translate("report.diagnostic_assignment_rate"),
+                translate("report.diagnostic_exposure_balance"),
+                translate(
+                    "report.diagnostic_segment_metric",
+                    {"primary_metric_name": metrics["primary_metric_name"]},
+                ),
             ],
         },
         guardrail_metrics=guardrail_report,
         risks={
-            "statistical": warning_messages or ["No major deterministic warnings identified at this stage."],
+            "statistical": warning_messages or [translate("report.risks.no_major_warnings")],
             "product": [
-                f"Expected result depends on the hypothesis that {hypothesis['desired_result']}.",
+                translate("report.risks.product", {"desired_result": hypothesis["desired_result"]}),
             ],
             "technical": [
-                constraints["technical_constraints"] or "No explicit technical constraints provided.",
+                constraints["technical_constraints"] or translate("report.risks.no_technical_constraints"),
             ],
             "operational": [
-                constraints["known_risks"] or "No explicit operational risks provided.",
+                constraints["known_risks"] or translate("report.risks.no_operational_risks"),
             ],
         },
         recommendations={
             "before_launch": [
-                "Validate tracking and assignment before exposing live traffic.",
+                translate("report.recommendations.before_launch_default"),
                 *llm_improvements,
-            ] or ["Validate tracking and assignment before exposing live traffic."],
+            ] or [translate("report.recommendations.before_launch_default")],
             "during_test": [
-                "Monitor guardrail metrics and sample accumulation daily.",
-                "Avoid stopping the test early on short-term volatility.",
+                translate("report.recommendations.during_test_monitor"),
+                translate("report.recommendations.during_test_avoid_early_stop"),
             ],
             "after_test": [
-                "Interpret lift together with guardrail and diagnostic metrics.",
-                "Document segmentation effects before rollout decisions.",
+                translate("report.recommendations.after_test_interpret"),
+                translate("report.recommendations.after_test_segment"),
             ],
         },
         open_questions=[
-            f"How will the team validate {hypothesis['what_to_validate']} before launch?",
-            f"Is the market context '{project['market']}' stable during the planned test window?",
+            translate("report.open_questions.validate", {"what_to_validate": hypothesis["what_to_validate"]}),
+            translate("report.open_questions.market_stability", {"market": project["market"]}),
         ],
     )
     return report.model_dump()

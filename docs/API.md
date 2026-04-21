@@ -38,6 +38,26 @@ Diagnostics
 curl http://127.0.0.1:8008/api/v1/diagnostics
 ```
 
+## Audit
+
+### `GET /api/v1/audit`
+
+Get Audit Log
+
+```bash
+curl "http://127.0.0.1:8008/api/v1/audit?action=api_key_used" ^
+  -H "X-API-Key: YOUR_READ_OR_WRITE_KEY"
+```
+
+### `GET /api/v1/audit/export`
+
+Export Audit Log
+
+```bash
+curl "http://127.0.0.1:8008/api/v1/audit/export?action=api_key_created" ^
+  -H "X-API-Key: YOUR_WRITE_KEY"
+```
+
 ## Deterministic analysis
 
 ### `POST /api/v1/analyze`
@@ -67,6 +87,46 @@ Design
 ### `POST /api/v1/llm/advice`
 
 Llm Advice
+
+## Keys
+
+### `GET /api/v1/keys`
+
+List Api Keys
+
+```bash
+curl http://127.0.0.1:8008/api/v1/keys ^
+  -H "Authorization: Bearer YOUR_AB_ADMIN_TOKEN"
+```
+
+### `POST /api/v1/keys`
+
+Create Api Key
+
+```bash
+curl -X POST http://127.0.0.1:8008/api/v1/keys ^
+  -H "Authorization: Bearer YOUR_AB_ADMIN_TOKEN" ^
+  -H "Content-Type: application/json" ^
+  -d "{\"name\":\"Partner read key\",\"scope\":\"read\",\"rate_limit_requests\":60,\"rate_limit_window_seconds\":60}"
+```
+
+### `DELETE /api/v1/keys/{api_key_id}`
+
+Delete Api Key
+
+```bash
+curl -X DELETE http://127.0.0.1:8008/api/v1/keys/KEY_ID ^
+  -H "Authorization: Bearer YOUR_AB_ADMIN_TOKEN"
+```
+
+### `POST /api/v1/keys/{api_key_id}/revoke`
+
+Revoke Api Key
+
+```bash
+curl -X POST http://127.0.0.1:8008/api/v1/keys/KEY_ID/revoke ^
+  -H "Authorization: Bearer YOUR_AB_ADMIN_TOKEN"
+```
 
 ## Project storage
 
@@ -190,14 +250,6 @@ curl -X POST http://127.0.0.1:8008/api/v1/export/markdown ^
 
 ## Other
 
-### `GET /api/v1/audit`
-
-Get Audit Log
-
-### `GET /api/v1/audit/export`
-
-Export Audit Log
-
 ### `POST /api/v1/export/html-standalone`
 
 Export Html Standalone
@@ -258,8 +310,12 @@ Use Template
 - `traffic_split` length must match `variants_count`
 - malformed request bodies return `422`
 - domain errors return structured `400`
-- when `AB_API_TOKEN` or `AB_READONLY_API_TOKEN` is configured, `/api/v1/*`, `/readyz`, `/docs`, `/openapi.json`, and `/redoc` require `Authorization: Bearer` or `X-API-Key`
+- when `AB_API_TOKEN`, `AB_READONLY_API_TOKEN`, or database-backed API keys are configured, protected runtime routes still accept `Authorization: Bearer` or `X-API-Key`
+- `/docs`, `/redoc`, and `/openapi.json` remain public even when auth is enabled; only protected API routes and `/readyz` require a token
 - `AB_READONLY_API_TOKEN` is valid only for `GET`, `HEAD`, and `OPTIONS`; mutating routes still require `AB_API_TOKEN`
+- `/api/v1/keys*` requires `AB_ADMIN_TOKEN`; without it the key-management endpoints return `401`
+- database-backed API keys are stored as SHA-256 hashes, the plaintext secret is returned only once at creation time, and revoked keys are rejected
+- per-key rate-limit overrides apply only to requests authenticated with a database API key; legacy shared tokens continue to use the global limiter
 - all API responses include `X-Request-ID` and `X-Process-Time-Ms` headers
 - error responses also include `error_code`, `status_code`, `request_id`, and `X-Error-Code`
 - diagnostics expose in-memory runtime counters plus the active guardrail configuration for security headers, rate limiting, auth throttling, and request-body limits

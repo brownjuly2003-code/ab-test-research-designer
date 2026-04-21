@@ -120,6 +120,37 @@ Vite default:
 http://127.0.0.1:5173
 ```
 
+## Public API access
+
+The runtime now supports two auth modes for external consumers:
+
+- legacy shared tokens via `AB_API_TOKEN` and `AB_READONLY_API_TOKEN`
+- managed database-backed API keys created with `AB_ADMIN_TOKEN`
+
+FastAPI documentation pages stay public:
+
+- Swagger UI: `http://127.0.0.1:8008/docs`
+- Redoc: `http://127.0.0.1:8008/redoc`
+- OpenAPI JSON: `http://127.0.0.1:8008/openapi.json`
+
+Create a scoped key once `AB_ADMIN_TOKEN` is configured:
+
+```bash
+curl -X POST http://127.0.0.1:8008/api/v1/keys \
+  -H "Authorization: Bearer YOUR_AB_ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Partner read key","scope":"read","rate_limit_requests":60,"rate_limit_window_seconds":60}'
+```
+
+Use the returned plaintext secret against protected routes:
+
+```bash
+curl http://127.0.0.1:8008/api/v1/projects \
+  -H "X-API-Key: abk_your_plaintext_key"
+```
+
+Only the hash is stored in SQLite, and the plaintext key is shown once at creation time. Legacy shared tokens remain available for backward compatibility and should be documented to external consumers as legacy access.
+
 ## Docker
 
 Build and run the full stack through the backend-served frontend:

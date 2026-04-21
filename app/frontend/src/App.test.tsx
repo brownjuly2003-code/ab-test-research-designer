@@ -6,19 +6,26 @@ import { axe } from "vitest-axe";
 
 vi.mock("./lib/api", () => ({
   archiveProjectRequest: vi.fn(),
+  clearAdminSessionToken: vi.fn(),
   clearApiSessionToken: vi.fn(),
   compareProjectsRequest: vi.fn(),
+  createApiKeyRequest: vi.fn(),
+  deleteApiKeyRequest: vi.fn(),
   exportAuditLogRequest: vi.fn(),
   downloadProjectReportDataRequest: vi.fn(),
   downloadProjectReportPdfRequest: vi.fn(),
   deleteProjectRequest: vi.fn(),
   exportWorkspaceRequest: vi.fn(),
   exportReportRequest: vi.fn(),
+  hasAdminSessionToken: vi.fn(),
   hasApiSessionToken: vi.fn(),
   importWorkspaceRequest: vi.fn(),
+  listApiKeysRequest: vi.fn(),
   listAuditLogRequest: vi.fn(),
   listTemplatesRequest: vi.fn(),
+  revokeApiKeyRequest: vi.fn(),
   restoreProjectRequest: vi.fn(),
+  setAdminSessionToken: vi.fn(),
   setApiSessionToken: vi.fn(),
   useTemplateRequest: vi.fn(),
   validateWorkspaceRequest: vi.fn(),
@@ -41,8 +48,11 @@ import WizardDraftStep from "./components/WizardDraftStep";
 import {
   type AnalysisResponse,
   archiveProjectRequest,
+  clearAdminSessionToken,
   clearApiSessionToken,
   compareProjectsRequest,
+  createApiKeyRequest,
+  deleteApiKeyRequest,
   exportAuditLogRequest,
   downloadProjectReportDataRequest,
   downloadProjectReportPdfRequest,
@@ -50,10 +60,14 @@ import {
   exportWorkspaceRequest,
   exportReportRequest,
   importWorkspaceRequest,
+  hasAdminSessionToken,
   listAuditLogRequest,
+  listApiKeysRequest,
   listTemplatesRequest,
   hasApiSessionToken,
+  revokeApiKeyRequest,
   restoreProjectRequest,
+  setAdminSessionToken,
   setApiSessionToken,
   useTemplateRequest,
   validateWorkspaceRequest,
@@ -551,16 +565,27 @@ describe("App UI flow", () => {
     window.sessionStorage.clear();
     window.localStorage.clear();
     vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    vi.mocked(hasAdminSessionToken).mockImplementation(
+      () => window.sessionStorage.getItem("ab-test-research-designer:admin-token:v1") !== null
+    );
     vi.mocked(hasApiSessionToken).mockImplementation(
       () => window.sessionStorage.getItem(apiSessionTokenStorageKey) !== null
     );
+    vi.mocked(setAdminSessionToken).mockImplementation((token: string) => {
+      window.sessionStorage.setItem("ab-test-research-designer:admin-token:v1", token.trim());
+    });
     vi.mocked(setApiSessionToken).mockImplementation((token: string) => {
       window.sessionStorage.setItem(apiSessionTokenStorageKey, token.trim());
+    });
+    vi.mocked(clearAdminSessionToken).mockImplementation(() => {
+      window.sessionStorage.removeItem("ab-test-research-designer:admin-token:v1");
     });
     vi.mocked(clearApiSessionToken).mockImplementation(() => {
       window.sessionStorage.removeItem(apiSessionTokenStorageKey);
     });
     vi.mocked(compareProjectsRequest).mockReset();
+    vi.mocked(createApiKeyRequest).mockReset();
+    vi.mocked(deleteApiKeyRequest).mockReset();
     vi.mocked(exportAuditLogRequest).mockReset();
     vi.mocked(downloadProjectReportDataRequest).mockReset();
     vi.mocked(archiveProjectRequest).mockReset();
@@ -568,8 +593,10 @@ describe("App UI flow", () => {
     vi.mocked(deleteProjectRequest).mockReset();
     vi.mocked(exportWorkspaceRequest).mockReset();
     vi.mocked(importWorkspaceRequest).mockReset();
+    vi.mocked(listApiKeysRequest).mockReset();
     vi.mocked(listAuditLogRequest).mockResolvedValue(buildAuditLogResponse());
     vi.mocked(listTemplatesRequest).mockResolvedValue([]);
+    vi.mocked(revokeApiKeyRequest).mockReset();
     vi.mocked(restoreProjectRequest).mockReset();
     vi.mocked(validateWorkspaceRequest).mockReset();
     vi.mocked(useTemplateRequest).mockReset();

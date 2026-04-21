@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ChangeEvent } from "react";
 
 import sampleProject from "../fixtures/sample-project.json";
 import { useToast, type ToastType } from "../hooks/useToast";
+import { t } from "../i18n";
 import {
   buildApiPayload,
   buildDraftTransferFile,
@@ -55,7 +56,7 @@ function blockMutations(): boolean {
     return false;
   }
   analysis.clearFeedback();
-  analysis.showError(project.backendMutationMessage || "Backend is running in read-only mode.", "warning");
+  analysis.showError(project.backendMutationMessage || t("results.panel.backendReadOnly"), "warning");
   return true;
 }
 
@@ -86,7 +87,7 @@ function startNewDraft() {
   draftStore.resetDraft();
   analysis.clearAnalysis();
   project.resetProjectSelection();
-  analysis.showStatus("Started a new local draft.", "info");
+  analysis.showStatus(t("wizardPanel.status.startedNewDraft"), "info");
   useWizardStore.getState().openWizard();
 }
 
@@ -98,7 +99,7 @@ function loadExampleDraft() {
   draftStore.replaceDraft(sampleProjectDraft, { markDirty: true });
   analysis.clearAnalysis();
   project.resetProjectSelection();
-  analysis.showStatus("Example loaded - click Run analysis to see results", "info");
+  analysis.showStatus(t("toasts.example_loaded"), "info");
   useWizardStore.getState().openWizard();
 }
 
@@ -116,7 +117,7 @@ function exportDraftFile() {
     JSON.stringify(buildDraftTransferFile(draftStore.draft), null, 2),
     `${safeName}.json`
   );
-  analysis.showStatus("Draft exported as JSON.", "success");
+  analysis.showStatus(t("wizardPanel.status.draftExported"), "success");
 }
 
 async function importDraftFromFile(event: ChangeEvent<HTMLInputElement>) {
@@ -135,10 +136,10 @@ async function importDraftFromFile(event: ChangeEvent<HTMLInputElement>) {
     draftStore.replaceDraft(draftStore.parseImportedDraftText(await file.text()), { markDirty: true });
     analysis.clearAnalysis();
     project.resetProjectSelection();
-    analysis.showStatus(`Imported draft from ${file.name}. Save it to create a new local project record.`, "success");
+    analysis.showStatus(t("wizardPanel.status.importedDraftFrom", { fileName: file.name }), "success");
     wizard.openWizard();
   } catch (error) {
-    analysis.showError(error instanceof Error ? error.message : "Unexpected draft import error", "error");
+    analysis.showError(error instanceof Error ? error.message : t("wizardPanel.errors.unexpectedDraftImport"), "error");
   } finally {
     event.target.value = "";
     wizard.setImportingDraft(false);
@@ -203,8 +204,8 @@ function clearHistoryRunSelection() {
   analysis.clearFeedback();
   analysis.showStatus(
     analysis.results.report
-      ? "Returned to the current in-memory analysis results."
-      : "Closed the saved snapshot preview.",
+      ? t("results.panel.returnedToCurrentAnalysis")
+      : t("results.panel.closedSnapshotPreview"),
     "info"
   );
 }
@@ -218,7 +219,7 @@ async function exportReportFlow(format: ExportFormat) {
   const displayedAnalysis = currentDisplayedAnalysis();
   if (!displayedAnalysis?.report) {
     analysis.clearFeedback();
-    analysis.showError("Run analysis before exporting a report.", "info");
+    analysis.showError(t("results.panel.runAnalysisBeforeExportingReport"), "info");
     return;
   }
   analysis.clearFeedback();
@@ -257,7 +258,7 @@ export function GlobalSideEffects() {
     useAnalysisStore.getState().clearAnalysis();
     if (bootstrap.restored) {
       useWizardStore.getState().setShowOnboarding(false);
-      useAnalysisStore.getState().showStatus("Restored unsaved browser draft.", "info");
+      useAnalysisStore.getState().showStatus(t("wizardPanel.status.restoredBrowserDraft"), "info");
     }
     void useProjectStore.getState().refreshBackendState();
   }, [hydrateTheme]);
@@ -391,13 +392,13 @@ export function GlobalSideEffects() {
         type="file"
         accept="application/json,.json"
         style={{ display: "none" }}
-        aria-label="Import draft file"
+        aria-label={t("wizardPanel.aria.importDraftFile")}
         onChange={importDraftFromFile}
       />
       {draftStorageWarning === "full" && draftStorageMessage ? (
         <div className="error" role="alert">
-          Draft not saved - browser storage full. {draftStorageMessage}
-          <button className="btn secondary" onClick={clearDraftStorageWarning}>Dismiss</button>
+          {t("wizardPanel.status.draftNotSavedStorageFull")} {draftStorageMessage}
+          <button className="btn secondary" onClick={clearDraftStorageWarning}>{t("wizardPanel.dismiss")}</button>
         </div>
       ) : null}
       {shortcutHelpOpen ? <ShortcutHelp onClose={() => setShortcutHelpOpen(false)} /> : null}
@@ -429,7 +430,7 @@ export function OnboardingPanel() {
         type="file"
         accept="application/json,.json"
         style={{ display: "none" }}
-        aria-label="Import workspace file"
+        aria-label={t("wizardPanel.aria.importWorkspaceFile")}
         onChange={importWorkspaceFromFile}
       />
       <EmptyState
@@ -460,6 +461,14 @@ export default function WizardPanel() {
   const isReviewStep = step >= sections.length;
   const current = sections[Math.min(step, sections.length - 1)];
   const uiError = analysis.analysisError || project.projectError;
+  const translatedStepLabels = [
+    t("wizard.steps.1"),
+    t("wizard.steps.2"),
+    t("wizard.steps.3"),
+    t("wizard.steps.4"),
+    t("wizard.steps.5"),
+    t("wizard.steps.6")
+  ];
 
   useEffect(() => {
     stepHeadingRef.current?.focus();
@@ -470,7 +479,7 @@ export default function WizardPanel() {
     draftStore.replaceDraft(nextDraft, { markDirty: true });
     analysis.clearAnalysis();
     project.resetProjectSelection();
-    analysis.showStatus(`Template ${templateName} loaded into the wizard.`, "success");
+    analysis.showStatus(t("wizardPanel.status.templateLoaded", { templateName }), "success");
     setTemplateGalleryOpen(false);
     openWizard();
   }
@@ -479,7 +488,7 @@ export default function WizardPanel() {
     <section className="panel">
       <ProgressBar currentStep={step} totalSteps={stepLabels.length - 1} />
       <div className={styles.steps}>
-        {stepLabels.map((label, index) => (
+        {translatedStepLabels.map((label, index) => (
           <div
             key={label}
             className={[
@@ -490,7 +499,7 @@ export default function WizardPanel() {
             data-step-index={index}
           >
             {index + 1}. {label}
-            {stepErrors[index] ? <span className={styles["error-dot"]} aria-label="This step has errors" /> : null}
+            {stepErrors[index] ? <span className={styles["error-dot"]} aria-label={t("wizardPanel.aria.stepHasErrors")} /> : null}
           </div>
         ))}
       </div>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 type ProjectListFiltersProps = {
   query: string;
@@ -23,6 +24,7 @@ export default function ProjectListFilters({
   onSortByChange,
   onClearFilters,
 }: ProjectListFiltersProps) {
+  const { t } = useTranslation();
   const [draftQuery, setDraftQuery] = useState(query);
   const hasActiveFilters = query.trim().length > 0 || status !== "active" || metricType !== "all" || sortBy !== "updated_desc";
 
@@ -64,14 +66,14 @@ export default function ProjectListFilters({
           border: 0
         }}
       >
-        Saved project filters
+        {t("projectListFilters.legend")}
       </legend>
       <div className="field">
-        <label htmlFor="saved-projects-search">Search experiments</label>
+        <label htmlFor="saved-projects-search">{t("projectListFilters.searchLabel")}</label>
         <input
           id="saved-projects-search"
           type="text"
-          placeholder="Filter by name or hypothesis"
+          placeholder={t("projectListFilters.searchPlaceholder")}
           value={draftQuery}
           onChange={(event) => setDraftQuery(event.target.value)}
         />
@@ -85,44 +87,44 @@ export default function ProjectListFilters({
         }}
       >
         <div className="field">
-          <label htmlFor="saved-projects-status">Status</label>
+          <label htmlFor="saved-projects-status">{t("projectListFilters.statusLabel")}</label>
           <select
             id="saved-projects-status"
             value={status}
             onChange={(event) => onStatusChange(event.target.value as "active" | "archived" | "all")}
           >
-            <option value="active">Active</option>
-            <option value="archived">Archived</option>
-            <option value="all">All</option>
+            <option value="active">{t("projectListFilters.status.active")}</option>
+            <option value="archived">{t("projectListFilters.status.archived")}</option>
+            <option value="all">{t("projectListFilters.status.all")}</option>
           </select>
         </div>
         <div className="field">
-          <label htmlFor="saved-projects-metric-type">Metric type</label>
+          <label htmlFor="saved-projects-metric-type">{t("projectListFilters.metricTypeLabel")}</label>
           <select
             id="saved-projects-metric-type"
             value={metricType}
             onChange={(event) => onMetricTypeChange(event.target.value as "all" | "binary" | "continuous")}
           >
-            <option value="all">All</option>
-            <option value="binary">Binary</option>
-            <option value="continuous">Continuous</option>
+            <option value="all">{t("projectListFilters.metricType.all")}</option>
+            <option value="binary">{t("projectListFilters.metricType.binary")}</option>
+            <option value="continuous">{t("projectListFilters.metricType.continuous")}</option>
           </select>
         </div>
         <div className="field">
-          <label htmlFor="saved-projects-sort">Sort</label>
+          <label htmlFor="saved-projects-sort">{t("projectListFilters.sortLabel")}</label>
           <select
             id="saved-projects-sort"
             value={sortBy}
             onChange={(event) => onSortByChange(event.target.value as "updated_desc" | "name_asc" | "duration_asc")}
           >
-            <option value="updated_desc">Last updated</option>
-            <option value="name_asc">Name</option>
-            <option value="duration_asc">Duration</option>
+            <option value="updated_desc">{t("projectListFilters.sort.updated")}</option>
+            <option value="name_asc">{t("projectListFilters.sort.name")}</option>
+            <option value="duration_asc">{t("projectListFilters.sort.duration")}</option>
           </select>
         </div>
         <div className="actions" style={{ justifyContent: "flex-start" }}>
           <button className="btn ghost" type="button" disabled={!hasActiveFilters} onClick={onClearFilters}>
-            Clear filters
+            {t("projectListFilters.clear")}
           </button>
         </div>
       </div>

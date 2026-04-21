@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { ResultsAnalysisResponse, ResultsRequestPayload } from "../../lib/experiment";
 import { apiUrl, buildApiPayload } from "../../lib/experiment";
@@ -14,6 +15,7 @@ type ObservedResultsSectionProps = {
 };
 
 export default function ObservedResultsSection({ onResultsAnalysisChange }: ObservedResultsSectionProps) {
+  const { t } = useTranslation();
   const analysisResult = useAnalysisStore((state) => state.analysisResult);
   const selectedHistoryRun = useProjectStore((state) => state.selectedHistoryRun);
   const activeProject = useProjectStore((state) => state.activeProject);
@@ -60,7 +62,7 @@ export default function ObservedResultsSection({ onResultsAnalysisChange }: Obse
   async function runObservedResultsAnalysis() {
     const payload = buildResultsRequest(analysisMetricType, actualResults);
     if (!payload) {
-      setResultsError("Fill in all actual results fields with valid values before analysis.");
+      setResultsError(t("results.observedResults.validation.fillAllFields"));
       setResultsSaveMessage("");
       return;
     }
@@ -70,11 +72,11 @@ export default function ObservedResultsSection({ onResultsAnalysisChange }: Obse
     try {
       const response = await fetch(apiUrl("/api/v1/results"), { method: "POST", headers: buildApiRequestHeaders(), body: JSON.stringify(payload) });
       const body = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(typeof body.detail === "string" ? body.detail : "Results analysis unavailable.");
+      if (!response.ok) throw new Error(typeof body.detail === "string" ? body.detail : t("results.observedResults.validation.analysisUnavailable"));
       setResultsRequest(payload);
       setResultsAnalysis(body);
     } catch (error) {
-      setResultsError(error instanceof Error ? error.message : "Results analysis unavailable.");
+      setResultsError(error instanceof Error ? error.message : t("results.observedResults.validation.analysisUnavailable"));
     } finally {
       setResultsLoading(false);
     }
@@ -82,7 +84,7 @@ export default function ObservedResultsSection({ onResultsAnalysisChange }: Obse
 
   async function saveObservedResults() {
     if (!activeProject || selectedHistoryRun || !resultsRequest || !resultsAnalysis) {
-      setResultsError("Analyze results before saving them to a project.");
+      setResultsError(t("results.observedResults.validation.analyzeBeforeSaving"));
       setResultsSaveMessage("");
       return;
     }
@@ -97,10 +99,12 @@ export default function ObservedResultsSection({ onResultsAnalysisChange }: Obse
         body: JSON.stringify({ ...persistedDraft, additional_context: { ...persistedDraft.additional_context, observed_results: { request: resultsRequest, analysis: resultsAnalysis, saved_at: new Date().toISOString() } } })
       });
       const body = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(typeof body.detail === "string" ? body.detail : "Observed results could not be saved.");
-      setResultsSaveMessage(`Observed results were saved to project ${typeof body.project_name === "string" && body.project_name.length > 0 ? body.project_name : activeProject.project_name}.`);
+      if (!response.ok) throw new Error(typeof body.detail === "string" ? body.detail : t("results.observedResults.validation.saveUnavailable"));
+      setResultsSaveMessage(t("results.observedResults.validation.savedToProject", {
+        projectName: typeof body.project_name === "string" && body.project_name.length > 0 ? body.project_name : activeProject.project_name
+      }));
     } catch (error) {
-      setResultsError(error instanceof Error ? error.message : "Observed results could not be saved.");
+      setResultsError(error instanceof Error ? error.message : t("results.observedResults.validation.saveUnavailable"));
     } finally {
       setResultsSaving(false);
     }

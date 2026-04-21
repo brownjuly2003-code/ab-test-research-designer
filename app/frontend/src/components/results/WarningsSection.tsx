@@ -1,9 +1,12 @@
+import { useTranslation } from "react-i18next";
+
 import { useAnalysisStore } from "../../stores/analysisStore";
 import { useProjectStore } from "../../stores/projectStore";
 import Icon from "../Icon";
 import styles from "./WarningsSection.module.css";
 
 export default function WarningsSection() {
+  const { t } = useTranslation();
   const analysisResult = useAnalysisStore((state) => state.analysisResult);
   const selectedHistoryAnalysis = useProjectStore((state) => state.selectedHistoryRun?.analysis ?? null);
   const displayedAnalysis = selectedHistoryAnalysis ?? analysisResult;
@@ -31,9 +34,9 @@ export default function WarningsSection() {
         <div className={[styles["warning-row"], styles["severity-low"]].join(" ")}>
           <div className={styles["warning-title"]}>
             <Icon name="check" className="icon icon-inline" />
-            <strong>No warning rules fired.</strong>
+            <strong>{t("results.warnings.noneTitle")}</strong>
           </div>
-          <div className="muted">The heuristic layer did not detect duration, traffic, or contamination issues.</div>
+          <div className="muted">{t("results.warnings.noneDescription")}</div>
         </div>
       )}
     </div>

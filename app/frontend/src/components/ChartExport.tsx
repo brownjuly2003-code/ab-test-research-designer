@@ -1,5 +1,7 @@
 import type { RefObject } from "react";
 
+import { t } from "../i18n";
+
 type ChartExportMenuProps = {
   chartRef: RefObject<HTMLDivElement | null>;
   filenameBase: string;
@@ -52,7 +54,7 @@ export async function downloadChartPng(svg: SVGSVGElement, filenameBase: string)
 
   await new Promise<void>((resolve, reject) => {
     image.onload = () => resolve();
-    image.onerror = () => reject(new Error("Chart image render failed."));
+    image.onerror = () => reject(new Error(t("chartExport.errors.imageRenderFailed")));
     image.src = svgUrl;
   });
 
@@ -62,7 +64,7 @@ export async function downloadChartPng(svg: SVGSVGElement, filenameBase: string)
   const context = canvas.getContext("2d");
   if (!context) {
     URL.revokeObjectURL(svgUrl);
-    throw new Error("Canvas 2D context is unavailable.");
+    throw new Error(t("chartExport.errors.canvasUnavailable"));
   }
   context.scale(2, 2);
   context.drawImage(image, 0, 0, width, height);
@@ -89,24 +91,24 @@ export default function ChartExportMenu({ chartRef, filenameBase }: ChartExportM
     <div
       className="actions"
       role="group"
-      aria-label="Chart export options"
+      aria-label={t("chartExport.groupAriaLabel")}
       style={{ justifyContent: "flex-end", marginBottom: "12px" }}
     >
       <button
         type="button"
         className="btn ghost"
-        aria-label="Download chart as SVG"
+        aria-label={t("chartExport.downloadSvgAriaLabel")}
         onClick={() => void exportChart("svg")}
       >
-        SVG
+        {t("chartExport.svg")}
       </button>
       <button
         type="button"
         className="btn ghost"
-        aria-label="Download chart as PNG"
+        aria-label={t("chartExport.downloadPngAriaLabel")}
         onClick={() => void exportChart("png")}
       >
-        PNG
+        {t("chartExport.png")}
       </button>
     </div>
   );

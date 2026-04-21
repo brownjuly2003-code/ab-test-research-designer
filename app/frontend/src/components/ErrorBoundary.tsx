@@ -1,5 +1,7 @@
 import { Component, Fragment, createRef, type ErrorInfo, type ReactNode } from "react";
 
+import { t } from "../i18n";
+
 type ErrorBoundaryProps = {
   children: ReactNode;
   fallback?: ReactNode;
@@ -43,11 +45,11 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
 
       return (
         <div ref={this.fallbackRef} className="callout" role="alert" tabIndex={-1}>
-          <strong>Something went wrong</strong>
-          <div className="muted">This section crashed while rendering. Retry to mount it again.</div>
+          <strong>{t("errorBoundary.title")}</strong>
+          <div className="muted">{t("errorBoundary.description")}</div>
           <div className="actions">
             <button className="btn secondary" type="button" onClick={this.handleRetry}>
-              Retry
+              {t("errorBoundary.retry")}
             </button>
           </div>
         </div>
