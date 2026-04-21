@@ -106,13 +106,13 @@ async function handleExportPDF() {
 
 ### Acceptance criteria
 
-- [ ] `GET /api/projects/{id}/report/pdf` returns `Content-Type: application/pdf`
-- [ ] PDF contains all 4 sections (summary, results, power curve, warnings)
-- [ ] Download triggered correctly from "Export PDF" button in UI
-- [ ] 404 if project doesn't exist
-- [ ] Auth required (same token as other endpoints)
-- [ ] `tests/test_api_routes.py` — 3 tests: success, no project, unauthenticated
-- [ ] PDF filename: `{project-name}-report.pdf` (slugified)
+- [x] `GET /api/projects/{id}/report/pdf` returns `Content-Type: application/pdf`
+- [x] PDF contains all 4 sections (summary, results, power curve, warnings)
+- [x] Download triggered correctly from "Export PDF" button in UI
+- [x] 404 if project doesn't exist
+- [x] Auth required (same token as other endpoints)
+- [x] `tests/test_api_routes.py` — 3 tests: success, no project, unauthenticated
+- [x] PDF filename: `{project-name}-report.pdf` (slugified)
 
 ---
 
@@ -185,13 +185,13 @@ UI elements:
 
 ### Acceptance criteria
 
-- [ ] `GET /api/projects?q=checkout` returns only projects matching "checkout" in name/hypothesis
-- [ ] `GET /api/projects?status=archived` returns only archived projects
-- [ ] `GET /api/projects?metric_type=binary&sort_by=name&sort_dir=asc` works
-- [ ] Response includes `total` count
-- [ ] Search input debounced (no request on every keystroke)
-- [ ] Empty state: "No experiments match your filters" with clear-filters link
-- [ ] `tests/test_api_routes.py` — 6 tests covering search, filter combos, sort
+- [x] `GET /api/projects?q=checkout` returns only projects matching "checkout" in name/hypothesis
+- [x] `GET /api/projects?status=archived` returns only archived projects
+- [x] `GET /api/projects?metric_type=binary&sort_by=name&sort_dir=asc` works
+- [x] Response includes `total` count
+- [x] Search input debounced (no request on every keystroke)
+- [x] Empty state: "No experiments match your filters" with clear-filters link
+- [x] `tests/test_api_routes.py` — 6 tests covering search, filter combos, sort
 
 ---
 
@@ -292,13 +292,13 @@ Add "Start from template" button to wizard step 1 (or new project creation scree
 
 ### Acceptance criteria
 
-- [ ] `GET /api/templates` returns 5 built-in templates on fresh install
-- [ ] `POST /api/templates/{id}/use` pre-fills wizard (returns the payload)
-- [ ] User can save their own template: `POST /api/templates` with name + description
-- [ ] Built-in templates cannot be deleted (403)
-- [ ] `TemplateGallery` modal opens/closes, shows all 5 built-ins
-- [ ] Selecting a template → wizard populates with template payload (user can edit all fields)
-- [ ] `tests/test_api_routes.py` — 5 tests: list, use, save, delete built-in (403), delete user
+- [x] `GET /api/templates` returns 5 built-in templates on fresh install
+- [x] `POST /api/templates/{id}/use` pre-fills wizard (returns the payload)
+- [x] User can save their own template: `POST /api/templates` with name + description
+- [x] Built-in templates cannot be deleted (403)
+- [x] `TemplateGallery` modal opens/closes, shows all 5 built-ins
+- [x] Selecting a template → wizard populates with template payload (user can edit all fields)
+- [x] `tests/test_api_routes.py` — 5 tests: list, use, save, delete built-in (403), delete user
 
 ---
 
@@ -358,13 +358,13 @@ Apply to:
 
 ### Acceptance criteria
 
-- [ ] Each chart has SVG + PNG download buttons (small, unobtrusive — top-right corner)
-- [ ] SVG download: valid SVG file, chart colors preserved
-- [ ] PNG download: 2× resolution (scale canvas before render)
-- [ ] Filename: `{project-name}-power-curve.svg` (slugified)
-- [ ] Works in Chrome and Firefox
-- [ ] No backend required (pure frontend)
-- [ ] `WizardDraftStep.test.tsx` or new test file — 2 tests: SVG blob creation, PNG canvas
+- [x] Each chart has SVG + PNG download buttons (small, unobtrusive — top-right corner)
+- [x] SVG download: valid SVG file, chart colors preserved
+- [x] PNG download: 2× resolution (scale canvas before render)
+- [x] Filename: `{project-name}-power-curve.svg` (slugified)
+- [x] Works in Chrome and Firefox
+- [x] No backend required (pure frontend)
+- [x] `WizardDraftStep.test.tsx` or new test file — 2 tests: SVG blob creation, PNG canvas
 
 ---
 
@@ -440,15 +440,15 @@ export function useKeyboardShortcuts(
 
 ### Acceptance criteria
 
-- [ ] `?` opens shortcut help modal (lists all shortcuts in a table)
-- [ ] `Ctrl+Enter` advances wizard step (or submits if on last step)
-- [ ] `←` / `→` navigates wizard steps (when not in input)
-- [ ] `/` focuses project search input
-- [ ] `Esc` closes any open modal
-- [ ] All form fields have `aria-label` or `aria-labelledby`
-- [ ] Error messages have `role="alert"`
-- [ ] No keyboard trap outside of modals
-- [ ] `experiment.test.ts` or new file — 4 shortcut hook tests
+- [x] `?` opens shortcut help modal (lists all shortcuts in a table)
+- [x] `Ctrl+Enter` advances wizard step (or submits if on last step)
+- [x] `←` / `→` navigates wizard steps (when not in input)
+- [x] `/` focuses project search input
+- [x] `Esc` closes any open modal
+- [x] All form fields have `aria-label` or `aria-labelledby`
+- [x] Error messages have `role="alert"`
+- [x] No keyboard trap outside of modals
+- [x] `experiment.test.ts` or new file — 4 shortcut hook tests
 
 ---
 
@@ -539,12 +539,12 @@ Add "Audit Log" tab to workspace/admin view (or collapsible section in project d
 
 ### Acceptance criteria
 
-- [ ] Every write operation (create/update/delete/archive) creates an audit entry
-- [ ] `GET /api/audit` returns entries newest-first
-- [ ] `GET /api/audit?project_id=X` returns only entries for that project
-- [ ] `GET /api/audit/export` returns `Content-Type: text/csv`
-- [ ] Auth required (read-only token can read audit log; cannot export if `AGENTFLOW_RO`)
-- [ ] `tests/test_api_routes.py` — 5 tests: create logs entry, update logs diff, filter by project, CSV export
+- [x] Every write operation (create/update/delete/archive) creates an audit entry
+- [x] `GET /api/audit` returns entries newest-first
+- [x] `GET /api/audit?project_id=X` returns only entries for that project
+- [x] `GET /api/audit/export` returns `Content-Type: text/csv`
+- [x] Auth required (read-only token can read audit log; cannot export if `AGENTFLOW_RO`)
+- [x] `tests/test_api_routes.py` — 5 tests: create logs entry, update logs diff, filter by project, CSV export
 
 ---
 
@@ -624,13 +624,13 @@ export function useTheme() {
 
 ### Acceptance criteria
 
-- [ ] Toggle button (sun/moon icon) in top-right header
-- [ ] All UI surfaces use CSS variables (no hardcoded `#fff` / `#000`)
-- [ ] Charts (Recharts) use theme-aware colors (passed as props from CSS vars)
-- [ ] System preference respected on first load (no flash)
-- [ ] Preference persists across page reloads (localStorage)
-- [ ] `Ctrl+Shift+D` also toggles dark mode (keyboard shortcut from Task 5)
-- [ ] No white flash on dark-mode page load (set `data-theme` before React mounts)
+- [x] Toggle button (sun/moon icon) in top-right header
+- [x] All UI surfaces use CSS variables (no hardcoded `#fff` / `#000`)
+- [x] Charts (Recharts) use theme-aware colors (passed as props from CSS vars)
+- [x] System preference respected on first load (no flash)
+- [x] Preference persists across page reloads (localStorage)
+- [x] `Ctrl+Shift+D` also toggles dark mode (keyboard shortcut from Task 5)
+- [x] No white flash on dark-mode page load (set `data-theme` before React mounts)
 
 ---
 
@@ -702,11 +702,11 @@ Add "Export" dropdown to `ResultsPanel.tsx`:
 
 ### Acceptance criteria
 
-- [ ] `GET /api/projects/{id}/report/csv` returns `Content-Type: text/csv` with all 3 sections
-- [ ] `GET /api/projects/{id}/report/xlsx` returns valid `.xlsx` with 4 sheets
-- [ ] Export dropdown in UI replaces individual export buttons (unified UX)
-- [ ] Auth required
-- [ ] `tests/test_api_routes.py` — 4 tests: CSV success, XLSX success, 404, unauth
+- [x] `GET /api/projects/{id}/report/csv` returns `Content-Type: text/csv` with all 3 sections
+- [x] `GET /api/projects/{id}/report/xlsx` returns valid `.xlsx` with 4 sheets
+- [x] Export dropdown in UI replaces individual export buttons (unified UX)
+- [x] Auth required
+- [x] `tests/test_api_routes.py` — 4 tests: CSV success, XLSX success, 404, unauth
 
 ---
 

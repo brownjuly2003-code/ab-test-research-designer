@@ -9,6 +9,29 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
+    <script>
+      (() => {
+        try {
+          const root = document.documentElement;
+          const storedTheme = localStorage.getItem("ab-test:theme") || localStorage.getItem("ab-test-research-designer:theme:v1");
+          const resolvedTheme =
+            storedTheme === "light" || storedTheme === "dark"
+              ? storedTheme
+              : storedTheme === "system"
+                ? null
+                : window.matchMedia("(prefers-color-scheme: dark)").matches
+                  ? "dark"
+                  : "light";
+          if (resolvedTheme) {
+            root.setAttribute("data-theme", resolvedTheme);
+            root.style.colorScheme = resolvedTheme;
+          } else {
+            root.removeAttribute("data-theme");
+            root.style.removeProperty("color-scheme");
+          }
+        } catch {}
+      })();
+    </script>
     <title>AB Test Research Designer</title>
   </head>
   <body>

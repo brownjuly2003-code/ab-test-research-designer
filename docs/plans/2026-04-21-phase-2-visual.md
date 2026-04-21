@@ -37,7 +37,7 @@
 - Точка коммита: если был fix — commit `style: honor prefers-reduced-motion in animated components` (или аналогичный).
 
 ### C. Commit 1 — Phase 1 core refactor
-Stage только файлы рефакторинга App/ResultsPanel и Zustand-store:
+Плановая цель: stage только файлы рефакторинга App/ResultsPanel и Zustand-store:
 - `app/frontend/src/App.tsx`, `App.test.tsx`
 - `app/frontend/src/stores/**`
 - `app/frontend/src/components/WizardPanel.tsx`, `WizardReviewStep.tsx`, `WizardDraftStep.tsx`, `SidebarPanel.tsx`, `ResultsPanel.tsx` (structural part only, без визуальных новых секций — если разделить неочевидно, см. Risks)
@@ -48,9 +48,15 @@ Stage только файлы рефакторинга App/ResultsPanel и Zusta
 - `app/frontend/src/lib/generated/api-contract.ts`
 - `docs/API.md`
 
-Commit: `refactor: decompose App/ResultsPanel and introduce Zustand stores (BCG Phase 1)`.
+Commit (план): `refactor: decompose App/ResultsPanel and introduce Zustand stores (BCG Phase 1)`.
 
-Verify: `scripts\verify_all.cmd` = 0.
+Verify (план): `scripts\verify_all.cmd` = 0.
+
+Статус по факту 2026-04-21:
+- Чистый Phase 1-only commit не был выделен.
+- Вместо него landed fallback-коммит `8413328e` — `refactor: decompose App/ResultsPanel with Zustand stores and ship backend stats groundwork (BCG Phases 1+3+4)`.
+- Причина: `api-contract.ts`, `schemas/api.py`, backend routes/tests и store/UI-рефакторинг оказались связаны; разрезать их на отдельный Commit 1 без лишнего churn не получилось.
+- Текущий незакоммиченный хвост в `SidebarPanel.tsx`, `ResultsPanel.tsx`, `projectStore.ts`, `routes/projects.py`, `test_api_routes.py`, `api-contract.ts`, `docs/API.md` уже содержит более поздние изменения (project filters/query metadata, PDF export) и не должен считаться частью этого шага.
 
 ### D. Commit 2 — Phase 2 visual
 Stage:
@@ -79,9 +85,16 @@ Stage:
 - `app/backend/app/services/calculations_service.py`, `design_service.py`, `export_service.py` в части новых фич
 - `app/backend/app/stats/binary.py`, `continuous.py` правки под multi-metric
 
-Commit: `feat: multi-metric guardrails, SRM, sequential, CUPED, and bayesian power (BCG Phases 3-4)`.
+Commit (план): `feat: multi-metric guardrails, SRM, sequential, CUPED, and bayesian power (BCG Phases 3-4)`.
 
-Verify: `scripts\verify_all.cmd` = 0.
+Verify (план): `scripts\verify_all.cmd` = 0.
+
+Статус по факту 2026-04-21:
+- Отдельный Commit 3 для Phase 3+4 не был выделен.
+- Основной объём этого шага (`stats/*`, `services/results_service.py`, `rules/*`, изменения в `schemas/api.py` и `schemas/report.py`, backend tests) уже landed в fallback-коммит `8413328e` вместе с Commit 1.
+- Причина: multi-metric schema/contract changes, backend services и routes оказались связаны с Phase 1 refactor; разрезать их на отдельный чистый commit без лишнего churn не получилось.
+- Фактический verify для этого куска был выполнен в составе `8413328e`: `python -m pytest app\backend\tests -q`, `npm.cmd exec tsc -- --noEmit -p .`, `python scripts\generate_frontend_api_types.py --check`, `python scripts\generate_api_docs.py --check` — все команды вышли с `0`.
+- Текущий незакоммиченный diff в `app/backend/app/schemas/api.py` относится уже к более поздним изменениям (`pdf` export format, project list metadata) и не должен считаться частью этого шага.
 
 ### F. Commit 4 — Infra, docs, scripts
 Stage:
