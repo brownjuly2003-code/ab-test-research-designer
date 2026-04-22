@@ -29,6 +29,7 @@ class Settings:
     sqlite_synchronous: str
     log_level: str
     log_format: str
+    seed_demo_on_startup: bool
     api_token: str | None
     readonly_api_token: str | None
     admin_token: str | None
@@ -173,6 +174,7 @@ def get_settings() -> Settings:
         sqlite_synchronous=os.getenv("AB_SQLITE_SYNCHRONOUS", "NORMAL").strip().upper(),
         log_level=os.getenv("AB_LOG_LEVEL", "INFO").strip().upper(),
         log_format=os.getenv("AB_LOG_FORMAT", "plain").strip().lower(),
+        seed_demo_on_startup=_read_bool_env("AB_SEED_DEMO_ON_STARTUP", False),
         api_token=(os.getenv("AB_API_TOKEN") or "").strip() or None,
         readonly_api_token=(os.getenv("AB_READONLY_API_TOKEN") or "").strip() or None,
         admin_token=(os.getenv("AB_ADMIN_TOKEN") or "").strip() or None,

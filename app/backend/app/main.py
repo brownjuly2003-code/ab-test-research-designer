@@ -27,6 +27,7 @@ from app.backend.app.routes.templates import create_templates_router
 from app.backend.app.routes.webhooks import create_webhooks_router
 from app.backend.app.routes.workspace import create_workspace_router
 from app.backend.app.services.design_service import build_experiment_report
+from app.backend.app.startup_seed import seed_demo_workspace
 from app.backend.app.services.webhook_service import WebhookService
 
 logger = logging.getLogger(__name__)
@@ -80,6 +81,11 @@ def create_app() -> FastAPI:
             ),
             workspace_signing_enabled=settings.workspace_signing_key is not None,
         )
+        if settings.seed_demo_on_startup:
+            try:
+                seed_demo_workspace(settings, repository)
+            except Exception:
+                logger.exception("demo-seed: failed")
         yield
         webhook_service.shutdown(wait=True)
 

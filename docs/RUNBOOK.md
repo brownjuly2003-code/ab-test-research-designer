@@ -56,6 +56,27 @@ set AB_MAX_WORKSPACE_BODY_BYTES=8388608
 docker compose up --build
 ```
 
+## Demo seeding on Hugging Face
+
+When `AB_SEED_DEMO_ON_STARTUP=true`, the backend runs a one-time startup hook after SQLite initialization and seeds the workspace with three demo projects: checkout conversion, pricing sensitivity, and onboarding completion. Each seeded project gets a saved analysis snapshot, and the checkout project also gets a markdown export event so the hosted UI shows populated sidebar and history views on first load.
+
+For Hugging Face Spaces Docker deployments, keep the image default as `AB_SEED_DEMO_ON_STARTUP=false` and set `AB_SEED_DEMO_ON_STARTUP=true` in the Space Settings UI. Hugging Face Spaces currently injects runtime variables from Settings, not README frontmatter.
+
+Disable seeding by setting:
+
+```bash
+set AB_SEED_DEMO_ON_STARTUP=false
+```
+
+Re-seed by starting from a fresh SQLite file and restarting the container. On Hugging Face Spaces basic storage this already happens on cold restarts because `/app/data/projects.sqlite3` is ephemeral. On a persistent runtime, either delete the SQLite file before restart or delete the demo projects through `DELETE /api/v1/projects/{id}` with a write-capable token and restart the app.
+
+Quick verification after deploy:
+
+```bash
+curl https://YOUR-SPACE.hf.space/api/v1/projects
+curl https://YOUR-SPACE.hf.space/api/v1/projects/PROJECT_ID/history
+```
+
 ## Quick checks
 
 - health: `http://127.0.0.1:8008/health`
