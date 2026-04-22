@@ -2,8 +2,8 @@
 
 ## Demo Links
 
-- Hosted demo: `<placeholder — fill after fly deploy>`
-- Docker image: `<placeholder — after docker push>`
+- Hosted demo: https://liovina-ab-test-research-designer.hf.space
+- Docker image: *(not published; build locally with `docker compose up --build`)*
 
 ## Executive Summary
 
@@ -51,11 +51,9 @@ No migration required. Optional configuration:
 
 ## Verification Steps For Publishing
 
-1. Confirm the hosted demo placeholder now points at the live Fly URL and that `/health`, `/readyz`, and `/api/v1/diagnostics` return `200` with `"version": "1.1.0"`.
-2. Confirm the Docker image placeholder now points at the pushed registry tag or digest for `1.1.0`.
-3. Re-run `scripts\verify_all.cmd --with-e2e`.
-4. Attach the assets listed below.
-5. Replace any remaining placeholders before clicking **Publish release**.
+1. Hosted demo on Hugging Face Spaces verified: `/health` returns `200` with `"version": "1.1.0"`.
+2. Re-run `scripts\verify_all.cmd --with-e2e` locally before re-tagging.
+3. Attach the assets listed below.
 
 ## Verification Commands
 

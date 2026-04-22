@@ -36,7 +36,7 @@ It combines:
 
 ## Demo
 
-Hosted demo placeholder: `<fly-url-after-deploy>`
+**Live demo:** https://liovina-ab-test-research-designer.hf.space (hosted on Hugging Face Spaces, free CPU tier — first cold request may take a few seconds)
 
 Deploy your own: see [docs/DEPLOY.md](docs/DEPLOY.md). Release prep files: [fly.toml](fly.toml) and [docs/RELEASE_NOTES_v1.1.0.md](docs/RELEASE_NOTES_v1.1.0.md).
 
