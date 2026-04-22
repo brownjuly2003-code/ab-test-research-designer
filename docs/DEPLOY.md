@@ -9,6 +9,34 @@ docker build -t ab-test-research-designer:1.0.0 -t ab-test-research-designer:lat
 docker inspect ab-test-research-designer:1.0.0 --format '{{.Size}}'
 ```
 
+### Pulling from GHCR
+
+```bash
+docker pull ghcr.io/brownjuly2003-code/ab-test-research-designer:latest
+docker run --rm -p 8008:8008 ghcr.io/brownjuly2003-code/ab-test-research-designer:latest
+```
+
+### Automated publish via GitHub Actions
+
+`.github/workflows/docker-publish.yml` publishes the multi-arch image (`linux/amd64`, `linux/arm64`) to `ghcr.io/brownjuly2003-code/ab-test-research-designer` on every pushed tag matching `v*`. The same workflow also supports manual `workflow_dispatch`: provide a specific tag or leave the input empty to republish the latest `v*` tag already present in git.
+
+First GHCR release checklist:
+
+1. Push a release tag such as `v1.1.0`.
+2. Wait for the `Publish Docker image` workflow to finish successfully.
+3. Open https://github.com/brownjuly2003-code/ab-test-research-designer/pkgs/container/ab-test-research-designer, go to `Settings`, and switch package visibility to **Public**.
+4. Verify anonymous pull from a clean machine:
+
+```bash
+docker pull ghcr.io/brownjuly2003-code/ab-test-research-designer:v1.1.0
+```
+
+Notes:
+
+- GHCR creates the package as private on the first push even when it is linked to the repository, so the visibility switch is a one-time manual step.
+- The workflow authenticates with the repository `GITHUB_TOKEN`; no personal access token is required.
+- Build cache uses `type=gha`; GitHub may evict it after about 7 days of inactivity, so the first build after an idle period can be slower.
+
 ## Tag For Registry
 
 Set `<REGISTRY>` explicitly for your target registry namespace, for example `ghcr.io/<owner>` or `docker.io/<user>`.

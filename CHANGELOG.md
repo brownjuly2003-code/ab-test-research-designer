@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Added Checkout-redesign case study section to README with reproducible numbers from backend calculation and Bayesian interim check.
+
 ## [1.1.0] - 2026-04-21
 
 ### Added

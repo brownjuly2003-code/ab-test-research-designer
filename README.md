@@ -38,6 +38,10 @@ It combines:
 
 **Live demo:** https://liovina-ab-test-research-designer.hf.space (hosted on Hugging Face Spaces, free CPU tier — first cold request may take a few seconds)
 
+The hosted demo is seeded with three sample projects (checkout conversion, pricing sensitivity, onboarding completion), each with a completed analysis run and an export on the first one, so the sidebar and history views are populated on first load. For Hugging Face Spaces, set `AB_SEED_DEMO_ON_STARTUP=true` in Space Settings.
+
+[![GHCR](https://img.shields.io/github/v/tag/brownjuly2003-code/ab-test-research-designer?label=ghcr.io&logo=docker)](https://github.com/brownjuly2003-code/ab-test-research-designer/pkgs/container/ab-test-research-designer)
+
 Deploy your own: see [docs/DEPLOY.md](docs/DEPLOY.md). Release prep files: [fly.toml](fly.toml) and [docs/RELEASE_NOTES_v1.1.0.md](docs/RELEASE_NOTES_v1.1.0.md).
 
 Sample import payload:
@@ -51,6 +55,37 @@ runs analysis, and exports a report:
 ![Wizard overview](docs/demo/wizard-overview.png)
 ![Review step](docs/demo/review-step.png)
 ![Results dashboard](docs/demo/results-dashboard.png)
+
+## Case study: Checkout redesign
+
+Retailer testing two checkout variants against control to lift conversion from a 4.2% baseline.
+
+**Setup** - 80k daily visitors, 50% share into test, 3 variants (34/33/33), alpha = 0.05, power = 0.80, two-sided, relative MDE = 10%.
+
+**Sizing (from `POST /api/v1/calculate`).**
+
+| Metric | Value |
+| --- | --- |
+| Per-variant sample | 45,429 users |
+| Total sample | 136,287 users |
+| Required duration | 4 days |
+| Bonferroni adjustment | 2 treatment-vs-control comparisons, adjusted alpha 0.025 |
+
+**Design guidance (from `POST /api/v1/design`).**
+- Primary risk: More than two variants trigger a Bonferroni alpha correction. This is conservative and may overstate the required sample size.
+- Key recommendation: Validate tracking and assignment before exposing live traffic.
+- Guardrail to monitor: Payment error rate
+
+**Interim check.**
+An early snapshot came in after 1.2 test-days, 48,000 visitors, and 3,812 conversions (35.2% of the planned per-variant sample):
+- P(variant A > control) = 93.4%
+- P(variant B > control) = 99.8%
+Variant A is still ambiguous; variant B is the only treatment with a decisive early signal.
+
+**Decision.**
+Stop spending exposure on variant A, keep variant B against control until the planned read is complete, and ship B only if payment error rate and refund value stay in range. The value here is that sizing, multivariant correction, design risks, and the Bayesian interim view all come from the same backend run.
+
+Full inputs and outputs: [docs/case-studies/checkout-redesign.json](docs/case-studies/checkout-redesign.json). Rerun with `python scripts/generate_case_study_numbers.py`.
 
 ## Roadmap
 
@@ -68,6 +103,7 @@ Planned work after v1.1.0. See [progress.md](progress.md) for the full tiered ba
 - Optional AI path: local orchestrator adapter with retry/backoff
 - Verification: backend tests, frontend unit tests, typecheck, build, smoke, Playwright E2E
 - CI: [.github/workflows/test.yml](.github/workflows/test.yml)
+- Container image published to GHCR on each tag (`linux/amd64`, `linux/arm64`)
 - canonical cross-platform verification entrypoint: [verify_all.py](scripts/verify_all.py) and [verify_all.cmd](scripts/verify_all.cmd)
 
 ## Main capabilities

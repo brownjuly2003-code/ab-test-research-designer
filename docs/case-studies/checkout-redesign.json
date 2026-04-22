@@ -1,0 +1,358 @@
+{
+  "case_study": "checkout-redesign",
+  "inputs": {
+    "prior": {
+      "name": "Beta(1,1)",
+      "alpha": 1,
+      "beta": 1,
+      "description": "Uniform conjugate prior for conversion rates."
+    },
+    "experiment_payload": {
+      "project": {
+        "project_name": "Checkout redesign case study",
+        "domain": "e-commerce",
+        "product_type": "web app",
+        "platform": "web",
+        "market": "US",
+        "project_description": "Evaluate two checkout redesigns against the current flow."
+      },
+      "hypothesis": {
+        "change_description": "Test two shorter checkout redesigns against the current flow",
+        "target_audience": "all checkout visitors on web",
+        "business_problem": "checkout abandonment suppresses completed orders",
+        "hypothesis_statement": "Reducing checkout friction can lift purchase conversion.",
+        "what_to_validate": "whether either redesign improves purchase conversion vs control",
+        "desired_result": "ship the strongest redesign without harming guardrails"
+      },
+      "setup": {
+        "experiment_type": "ab",
+        "randomization_unit": "user",
+        "traffic_split": [
+          34,
+          33,
+          33
+        ],
+        "expected_daily_traffic": 80000,
+        "audience_share_in_test": 0.5,
+        "variants_count": 3,
+        "inclusion_criteria": "all checkout visitors",
+        "exclusion_criteria": "internal staff and QA sessions"
+      },
+      "metrics": {
+        "primary_metric_name": "purchase_conversion",
+        "metric_type": "binary",
+        "baseline_value": 0.042,
+        "expected_uplift_pct": 10,
+        "mde_pct": 10,
+        "alpha": 0.05,
+        "power": 0.8,
+        "std_dev": null,
+        "secondary_metrics": [
+          "add_to_cart_rate"
+        ],
+        "guardrail_metrics": [
+          {
+            "name": "Payment error rate",
+            "metric_type": "binary",
+            "baseline_rate": 2.4
+          },
+          {
+            "name": "Refund value",
+            "metric_type": "continuous",
+            "baseline_mean": 18.0,
+            "std_dev": 6.5
+          }
+        ]
+      },
+      "constraints": {
+        "seasonality_present": true,
+        "active_campaigns_present": false,
+        "returning_users_present": true,
+        "interference_risk": "medium",
+        "technical_constraints": "legacy event logging",
+        "legal_or_ethics_constraints": "none",
+        "known_risks": "tracking quality",
+        "deadline_pressure": "medium",
+        "long_test_possible": true,
+        "n_looks": 1,
+        "analysis_mode": "frequentist",
+        "desired_precision": null,
+        "credibility": 0.95
+      },
+      "additional_context": {
+        "llm_context": "README case study scenario for a checkout redesign."
+      }
+    },
+    "calculation_payload": {
+      "metric_type": "binary",
+      "baseline_value": 0.042,
+      "mde_pct": 10,
+      "alpha": 0.05,
+      "power": 0.8,
+      "expected_daily_traffic": 80000,
+      "audience_share_in_test": 0.5,
+      "traffic_split": [
+        34,
+        33,
+        33
+      ],
+      "variants_count": 3,
+      "seasonality_present": true,
+      "active_campaigns_present": false,
+      "long_test_possible": true,
+      "n_looks": 1,
+      "analysis_mode": "frequentist",
+      "credibility": 0.95
+    },
+    "interim_observations": {
+      "control": {
+        "conversions": 1200,
+        "users": 16000
+      },
+      "variant_a": {
+        "conversions": 1272,
+        "users": 16000
+      },
+      "variant_b": {
+        "conversions": 1340,
+        "users": 16000
+      }
+    }
+  },
+  "outputs": {
+    "calculate": {
+      "calculation_summary": {
+        "metric_type": "binary",
+        "baseline_value": 0.042,
+        "mde_pct": 10.0,
+        "mde_absolute": 0.004200000000000001,
+        "alpha": 0.05,
+        "power": 0.8
+      },
+      "results": {
+        "sample_size_per_variant": 45429,
+        "total_sample_size": 136287,
+        "effective_daily_traffic": 40000.0,
+        "estimated_duration_days": 4
+      },
+      "assumptions": [
+        "Two-sided fixed-horizon test with equal variance approximation.",
+        "MDE is interpreted as a relative uplift over the baseline rate.",
+        "Bonferroni-adjusted alpha is 0.025 across 2 treatment-vs-control comparisons. This is conservative for multi-variant designs."
+      ],
+      "warnings": [
+        {
+          "code": "CONSERVATIVE_MULTIVARIANT_ALPHA",
+          "severity": "medium",
+          "message": "More than two variants trigger a Bonferroni alpha correction. This is conservative and may overstate the required sample size.",
+          "source": "rules_engine"
+        },
+        {
+          "code": "SEASONALITY_PRESENT",
+          "severity": "medium",
+          "message": "Seasonality is present. Cover at least one full weekly cycle.",
+          "source": "rules_engine"
+        }
+      ],
+      "bonferroni_note": "Bonferroni correction is applied across 2 treatment-vs-control comparisons with adjusted alpha 0.025. Consider a less conservative correction if the design becomes impractically large.",
+      "bayesian_sample_size_per_variant": null,
+      "bayesian_credibility": null,
+      "bayesian_note": null,
+      "sequential_boundaries": null,
+      "sequential_inflation_factor": null,
+      "sequential_adjusted_sample_size": null,
+      "cuped_std": null,
+      "cuped_sample_size_per_variant": null,
+      "cuped_variance_reduction_pct": null,
+      "cuped_duration_days": null
+    },
+    "design": {
+      "executive_summary": "Checkout redesign case study tests whether test two shorter checkout redesigns against the current flow can improve purchase_conversion for all checkout visitors on web. The deterministic plan estimates 4 days with 45429 users per variant.",
+      "calculations": {
+        "sample_size_per_variant": 45429,
+        "total_sample_size": 136287,
+        "estimated_duration_days": 4,
+        "assumptions": [
+          "Two-sided fixed-horizon test with equal variance approximation.",
+          "MDE is interpreted as a relative uplift over the baseline rate.",
+          "Bonferroni-adjusted alpha is 0.025 across 2 treatment-vs-control comparisons. This is conservative for multi-variant designs."
+        ]
+      },
+      "experiment_design": {
+        "variants": [
+          {
+            "name": "A",
+            "description": "current experience"
+          },
+          {
+            "name": "B",
+            "description": "Test two shorter checkout redesigns against the current flow"
+          },
+          {
+            "name": "C",
+            "description": "Test two shorter checkout redesigns against the current flow"
+          }
+        ],
+        "randomization_unit": "user",
+        "traffic_split": [
+          34,
+          33,
+          33
+        ],
+        "target_audience": "all checkout visitors on web",
+        "inclusion_criteria": "all checkout visitors",
+        "exclusion_criteria": "internal staff and QA sessions",
+        "recommended_duration_days": 4,
+        "stopping_conditions": [
+          "planned duration reached",
+          "critical instrumentation failure"
+        ]
+      },
+      "metrics_plan": {
+        "primary": [
+          "purchase_conversion"
+        ],
+        "secondary": [
+          "add_to_cart_rate"
+        ],
+        "guardrail": [
+          "Payment error rate",
+          "Refund value"
+        ],
+        "diagnostic": [
+          "assignment_rate",
+          "exposure_balance",
+          "purchase_conversion_by_segment"
+        ]
+      },
+      "guardrail_metrics": [
+        {
+          "name": "Payment error rate",
+          "metric_type": "binary",
+          "baseline": 2.4,
+          "detectable_mde_pp": 0.293,
+          "detectable_mde_absolute": null,
+          "note": "With N=45,429 per variant, can detect >= 0.29 pp change at 80% power"
+        },
+        {
+          "name": "Refund value",
+          "metric_type": "continuous",
+          "baseline": 18.0,
+          "detectable_mde_pp": null,
+          "detectable_mde_absolute": 0.1208,
+          "note": "With N=45,429 per variant, can detect >= 0.1208 change at 80% power"
+        }
+      ],
+      "risks": {
+        "statistical": [
+          "More than two variants trigger a Bonferroni alpha correction. This is conservative and may overstate the required sample size.",
+          "Seasonality is present. Cover at least one full weekly cycle."
+        ],
+        "product": [
+          "Expected result depends on the hypothesis that ship the strongest redesign without harming guardrails."
+        ],
+        "technical": [
+          "legacy event logging"
+        ],
+        "operational": [
+          "tracking quality"
+        ]
+      },
+      "recommendations": {
+        "before_launch": [
+          "Validate tracking and assignment before exposing live traffic."
+        ],
+        "during_test": [
+          "Monitor guardrail metrics and sample accumulation daily.",
+          "Avoid stopping the test early on short-term volatility."
+        ],
+        "after_test": [
+          "Interpret lift together with guardrail and diagnostic metrics.",
+          "Document segmentation effects before rollout decisions."
+        ]
+      },
+      "open_questions": [
+        "How will the team validate whether either redesign improves purchase conversion vs control before launch?",
+        "Is the market context 'US' stable during the planned test window?"
+      ]
+    },
+    "interim": {
+      "totals": {
+        "total_users": 48000,
+        "total_conversions": 3812,
+        "elapsed_test_days": 1.2,
+        "planned_duration_days": 4,
+        "observed_fraction_of_planned_sample_pct": 35.2198
+      },
+      "bonferroni_short_note": "2 treatment-vs-control comparisons, adjusted alpha 0.025",
+      "variants": {
+        "control": {
+          "observed": {
+            "conversions": 1200,
+            "users": 16000
+          },
+          "posterior": {
+            "alpha": 1201,
+            "beta": 14801
+          }
+        },
+        "variant_a": {
+          "observed": {
+            "conversions": 1272,
+            "users": 16000
+          },
+          "posterior": {
+            "alpha": 1273,
+            "beta": 14729
+          },
+          "frequentist_results": {
+            "metric_type": "binary",
+            "observed_effect": 0.45,
+            "observed_effect_relative": 6.0,
+            "control_rate": 7.5,
+            "treatment_rate": 7.95,
+            "ci_lower": -0.135,
+            "ci_upper": 1.035,
+            "ci_level": 0.95,
+            "p_value": 0.131675,
+            "test_statistic": 1.5075,
+            "is_significant": false,
+            "power_achieved": 0.325,
+            "verdict": "No statistically significant difference at alpha=0.050",
+            "interpretation": "Treatment conversion 7.9500% vs control 7.5000%. Absolute effect +0.4500 pp with 95.0% CI [-0.1350, 1.0350] pp. Two-sided p-value 0.131675; result is not statistically significant."
+          },
+          "bayesian_probability_beats_control": 0.9341334595224784,
+          "bayesian_probability_beats_control_pct": 93.4133
+        },
+        "variant_b": {
+          "observed": {
+            "conversions": 1340,
+            "users": 16000
+          },
+          "posterior": {
+            "alpha": 1341,
+            "beta": 14661
+          },
+          "frequentist_results": {
+            "metric_type": "binary",
+            "observed_effect": 0.875,
+            "observed_effect_relative": 11.67,
+            "control_rate": 7.5,
+            "treatment_rate": 8.375,
+            "ci_lower": 0.2827,
+            "ci_upper": 1.4673,
+            "ci_level": 0.95,
+            "p_value": 0.00379,
+            "test_statistic": 2.8951,
+            "is_significant": true,
+            "power_achieved": 0.825,
+            "verdict": "Statistically significant uplift at alpha=0.050",
+            "interpretation": "Treatment conversion 8.3750% vs control 7.5000%. Absolute effect +0.8750 pp with 95.0% CI [0.2827, 1.4673] pp. Two-sided p-value 0.003790; result is statistically significant."
+          },
+          "bayesian_probability_beats_control": 0.9981054615532955,
+          "bayesian_probability_beats_control_pct": 99.8105
+        }
+      }
+    }
+  }
+}
