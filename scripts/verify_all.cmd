@@ -99,11 +99,7 @@ npm.cmd exec tsc -- --noEmit -p .
 if errorlevel 1 exit /b %errorlevel%
 
 echo [verify] frontend unit tests
-if "%ARTIFACTS_DIR%"=="" (
-  npm.cmd run test:unit
-) else (
-  npm.cmd run test:unit -- --reporter=junit --outputFile=%ARTIFACTS_DIR%\frontend-junit.xml
-)
+npm.cmd run test:unit
 if errorlevel 1 exit /b %errorlevel%
 
 if "%SKIP_BUILD%"=="0" (

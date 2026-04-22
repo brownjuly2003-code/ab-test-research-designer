@@ -51,7 +51,6 @@ jobs:
           name: verify-metrics
           path: |
             .ci-artifacts/backend-junit.xml
-            .ci-artifacts/frontend-junit.xml
             .ci-artifacts/coverage-backend.json
           if-no-files-found: warn
 
