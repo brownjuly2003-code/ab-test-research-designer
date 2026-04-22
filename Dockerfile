@@ -39,6 +39,6 @@ RUN mkdir -p /app/data
 
 EXPOSE 8008
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8008/health', timeout=3)" || exit 1
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 CMD python -c "import os, urllib.request; port=os.environ.get('PORT') or os.environ.get('AB_PORT') or '8008'; urllib.request.urlopen(f'http://127.0.0.1:{port}/health', timeout=3)" || exit 1
 
 CMD ["sh", "-c", "exec python -m uvicorn app.backend.app.main:app --host \"${AB_HOST:-0.0.0.0}\" --port \"${PORT:-${AB_PORT:-8008}}\""]
