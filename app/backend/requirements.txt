@@ -5,6 +5,7 @@ httpx==0.28.1
 pytest==8.4.2
 pytest-cov==5.0.0
 hypothesis==6.152.1
+pypdf==6.9.2
 matplotlib==3.10.8
 openpyxl==3.1.5
 PyYAML==6.0.3
