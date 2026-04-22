@@ -1,3 +1,14 @@
+---
+title: AB Test Research Designer
+emoji: 🧪
+colorFrom: blue
+colorTo: green
+sdk: docker
+app_port: 7860
+pinned: false
+license: mit
+---
+
 # AB Test Research Designer
 
 [![Release](https://img.shields.io/github/v/release/brownjuly2003-code/ab-test-research-designer?include_prereleases&display_name=tag)](https://github.com/brownjuly2003-code/ab-test-research-designer/releases)
