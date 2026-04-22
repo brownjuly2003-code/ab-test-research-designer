@@ -783,8 +783,6 @@ export type ValidationError = {
   loc: (string | number)[];
   msg: string;
   type: string;
-  input?: unknown;
-  ctx?: {};
 };
 
 export type VariantDefinition = {
