@@ -52,6 +52,14 @@ runs analysis, and exports a report:
 ![Review step](docs/demo/review-step.png)
 ![Results dashboard](docs/demo/results-dashboard.png)
 
+## Roadmap
+
+Planned work after v1.1.0. See [progress.md](progress.md) for the full tiered backlog.
+
+- **Portfolio polish.** Seed demo workspace on HF Space startup, regenerate screenshots against the v1.1.0 UI, add a case-study section, publish a Docker image to GHCR, add dynamic quality-gate badges.
+- **Product quality.** Finish the German and Spanish UI translation, snapshot SQLite to a private HF Dataset for persistent hosted state, add an optional OpenAI / Anthropic adapter behind a browser-session token, publish a `mkdocs-material` documentation site, expand the template gallery to ten industry presets.
+- **Hardening.** Monte-Carlo and permutation overlays in the comparison flow, Slack App packaging, French / Chinese locales, manual NVDA + JAWS audit, deeper Hypothesis property coverage, bundle-size profiling, optional Postgres backend.
+
 ## Product shape
 
 - Frontend: React 19 + TypeScript + Vite

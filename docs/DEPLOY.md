@@ -53,7 +53,71 @@ Signed workspace backup mode:
 docker run --rm --name ab-test-v1-signed -e AB_WORKSPACE_SIGNING_KEY=replace-with-a-long-random-secret -p 8008:8008 ab-test-research-designer:1.0.0
 ```
 
-## Fly.io Demo Deploy
+## Hugging Face Spaces Deploy (active hosted demo)
+
+The current production demo lives on Hugging Face Spaces on the free CPU tier — no credit card required, Docker SDK, always-on.
+
+**Live URL:** https://liovina-ab-test-research-designer.hf.space
+
+Initial setup (one-time):
+
+1. Generate a write-scoped token at https://huggingface.co/settings/tokens
+2. Authenticate: `hf auth login --token <HF_TOKEN> --add-to-git-credential`
+3. Create the Space via API:
+
+```python
+from huggingface_hub import create_repo
+create_repo(
+    repo_id="liovina/ab-test-research-designer",
+    repo_type="space",
+    space_sdk="docker",
+    private=False,
+)
+```
+
+Required README frontmatter (already landed in `README.md`):
+
+```yaml
+---
+title: AB Test Research Designer
+emoji: 🧪
+colorFrom: blue
+colorTo: green
+sdk: docker
+app_port: 8008
+license: mit
+---
+```
+
+Note: `app_port` must match the port uvicorn listens on inside the container (`AB_PORT=8008` from `Dockerfile`). HF routes HTTPS traffic to that exact port.
+
+Sync code (preferred — HF rejects binary PNGs >LFS-threshold on direct git push, so use API):
+
+```python
+from huggingface_hub import upload_folder
+upload_folder(
+    folder_path=".",
+    repo_id="liovina/ab-test-research-designer",
+    repo_type="space",
+    ignore_patterns=[".git/**", "**/__pycache__/**", "archive/**", "docs/demo/*.png", "*.sqlite3*", "**/node_modules/**"],
+    commit_message="Sync from GitHub main",
+)
+```
+
+Verify after HF finishes `APP_STARTING`:
+
+```bash
+curl https://liovina-ab-test-research-designer.hf.space/health
+# {"status":"ok","service":"AB Test Research Designer API","version":"1.1.0","environment":"local"}
+```
+
+Known limits of the HF free tier:
+
+- container filesystem is ephemeral — SQLite data resets on every redeploy or container restart
+- 2 vCPU + 16 GB RAM, no GPU
+- docs/demo screenshots are referenced from `raw.githubusercontent.com` URLs since HF rejects large binaries without Xet storage
+
+## Fly.io Demo Deploy (blocked — credit card required)
 
 Open mode is recommended for a public showcase. This keeps the hosted demo anonymous and matches the default open runtime in the app.
 
@@ -95,7 +159,7 @@ curl http://127.0.0.1:8008/
 
 Expected responses:
 
-- `GET /health` -> `200` with `"status":"ok"` and `"version":"1.0.0"`.
+- `GET /health` -> `200` with `"status":"ok"` and `"version":"1.1.0"`.
 - `GET /readyz` -> `200` with `"status":"ready"` and all readiness checks marked `ok`.
 - `GET /api/v1/diagnostics` -> `200` and `storage.write_probe_ok=true`.
 - `GET /` -> `200` and HTML title `AB Test Research Designer`.

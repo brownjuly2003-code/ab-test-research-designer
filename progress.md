@@ -222,6 +222,16 @@ Release hardening and final verification completed
 - aligned verify scripts and CI Playwright install syntax with the hardened E2E flow
 - reran full local verification including `python scripts/verify_all.py --with-e2e`
 
+### v1.1.0 published + hosted demo live
+
+- published release `v1.1.0` on GitHub: https://github.com/brownjuly2003-code/ab-test-research-designer/releases/tag/v1.1.0
+- deployed hosted demo on Hugging Face Spaces (Docker SDK, free CPU tier): https://liovina-ab-test-research-designer.hf.space
+- verified `/health` returns `200` with `{"status":"ok","version":"1.1.0"}` on the public endpoint
+- added LICENSE (MIT), shield badges, and a concise product pitch to README; repaired Windows-absolute links so GitHub renders screenshots
+- set 10 GitHub topics (ab-testing, statistics, fastapi, react, typescript, sqlite, experiment-design, hypothesis-testing, bayesian-statistics, local-first) and pointed the GitHub homepage to the live HF URL
+- made the Docker `CMD` and `HEALTHCHECK` respect the `PORT` env var so the same image boots correctly on Render, Railway, Heroku-style PaaS, and Hugging Face Spaces
+- documented the HF Spaces deploy procedure in `docs/DEPLOY.md` alongside the original Fly.io path
+
 ### Post-v1.0 feature wave completed
 
 - added multi-project comparison dashboard (lazy-loaded React chunk, power-curve and forest-plot overlays, shared/unique insights panels) with `POST /api/v1/projects/compare` and `POST /api/v1/export/comparison`
@@ -232,20 +242,33 @@ Release hardening and final verification completed
 
 ---
 
-## Next Phase
+## Roadmap
 
-Optional production hardening
+### Tier 1 — portfolio polish (high ROI, low effort)
 
-Goals:
+- seed demo workspace on HF Space startup so the public demo loads with pre-populated projects, analysis runs, and export history instead of an empty wizard
+- regenerate `docs/demo/*.png` screenshots so README matches the v1.1.0 UI (comparison dashboard, webhook manager, language switcher)
+- add a README case-study section with a realistic checkout-redesign example (baseline 4.2 %, MDE 10 %, Bayesian posterior after first interim)
+- publish a Docker image to `ghcr.io/brownjuly2003-code/ab-test-research-designer` via a GitHub Actions workflow triggered on tag push
+- add dynamic `shields.io` badges for test count, coverage, and Lighthouse score
 
-- expand Docker usage into a fuller deployment/devcontainer story
-- broader deployment/ops hardening if the project moves beyond local-demo scope
+### Tier 2 — product quality
 
----
+- finish the German and Spanish frontend translation (~1100 keys currently falling back to English via `react-i18next` `fallbackLng`)
+- add persistent storage on Hugging Face Spaces by snapshotting SQLite to a private HF Dataset on graceful shutdown and restoring it at startup
+- add an optional real LLM adapter (OpenAI / Anthropic) behind a browser-session token so the AI advice section is no longer `unavailable` on the hosted demo
+- publish a documentation site through GitHub Pages using `mkdocs-material` against the existing `docs/*.md` tree
+- expand the template gallery to ten industry-specific experiment presets (e-commerce, SaaS onboarding, media paywall, mobile push, email subject, ad creative, landing CTA, pricing, search ranking, recommendations)
 
-## Future Phases
+### Tier 3 — deeper hardening
 
-No mandatory MVP phases left
+- Monte-Carlo and permutation simulations in the comparison flow
+- Slack App packaging with a manifest and install URL
+- additional locales (`fr`, `zh`, and RTL `ar`)
+- manual NVDA / JAWS screen-reader audit pass
+- Hypothesis property coverage for group-sequential early stopping, SRM on unbalanced allocations, CUPED on noisy covariates
+- bundle-size profiling and route-level code splitting
+- Postgres backend as an alternative to SQLite for multi-user deployments
 
 ---
 
