@@ -13,9 +13,9 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            run_e2e: true
+            verify_args: "--with-e2e --with-coverage --artifacts-dir .ci-artifacts"
           - os: windows-latest
-            run_e2e: false
+            verify_args: ""
 
     steps:
       - uses: actions/checkout@v4
@@ -37,11 +37,22 @@ jobs:
         run: npm --prefix app/frontend ci
 
       - name: Install Playwright browser
-        if: matrix.run_e2e
+        if: matrix.os == 'ubuntu-latest'
         run: npm --prefix app/frontend exec -- playwright install --with-deps chromium
 
       - name: Run verify pipeline
-        run: python scripts/verify_all.py ${{ matrix.run_e2e && '--with-e2e' || '' }}
+        run: python scripts/verify_all.py ${{ matrix.verify_args }}
+
+      - name: Upload verify metrics artifacts
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: verify-metrics
+          path: |
+            .ci-artifacts/backend-junit.xml
+            .ci-artifacts/frontend-junit.xml
+            .ci-artifacts/coverage-backend.json
+          if-no-files-found: warn
 
   docker:
     runs-on: ubuntu-latest
@@ -99,3 +110,57 @@ jobs:
           name: lighthouseci
           path: .lighthouseci/
           if-no-files-found: warn
+
+  update-metrics-badges:
+    runs-on: ubuntu-latest
+    needs:
+      - verify
+      - lighthouse
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install backend dependencies
+        run: python -m pip install -r app/backend/requirements.txt
+
+      - name: Download verify metrics artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: verify-metrics
+          path: .badge-inputs
+
+      - name: Download Lighthouse artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: lighthouseci
+          path: .badge-inputs/lighthouseci
+
+      - name: Refresh badge payloads
+        run: >
+          python scripts/collect_badge_metrics.py
+          --coverage .badge-inputs/coverage-backend.json
+          --lighthouse .badge-inputs/lighthouseci/manifest.json
+          --test-results .badge-inputs/backend-junit.xml
+          --test-results .badge-inputs/frontend-junit.xml
+          --output badges/metrics.json
+
+      - name: Commit badge payloads
+        run: |
+          if [ -z "$(git status --porcelain -- badges)" ]; then
+            echo "No badge updates"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add badges/*.json
+          git commit -m "chore: update badge metrics [skip ci]"
+          git push

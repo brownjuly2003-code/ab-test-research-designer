@@ -44,9 +44,18 @@ def main() -> int:
     parser.add_argument("--skip-build", action="store_true", help="Skip the frontend production build.")
     parser.add_argument("--with-e2e", action="store_true", help="Run the frontend Playwright E2E flow.")
     parser.add_argument(
+        "--with-coverage",
+        action="store_true",
+        help="Write a backend coverage JSON report without enforcing a threshold.",
+    )
+    parser.add_argument(
         "--with-lighthouse",
         action="store_true",
         help="Run Lighthouse CI against the backend-served production frontend.",
+    )
+    parser.add_argument(
+        "--artifacts-dir",
+        help="Write backend/frontend test result artifacts to this directory.",
     )
     docker_group = parser.add_mutually_exclusive_group()
     docker_group.add_argument("--with-docker", action="store_true", help="Run the secure docker compose verification flow.")
@@ -56,6 +65,12 @@ def main() -> int:
         help="Run the secure docker compose verification flow without tearing the stack down.",
     )
     args = parser.parse_args()
+    artifacts_dir: Path | None = None
+    if args.artifacts_dir:
+        artifacts_dir = Path(args.artifacts_dir)
+        if not artifacts_dir.is_absolute():
+            artifacts_dir = ROOT_DIR / artifacts_dir
+        artifacts_dir.mkdir(parents=True, exist_ok=True)
 
     if os.name == "nt":
         delegated_command = ["cmd.exe", "/d", "/c", "scripts\\verify_all.cmd"]
@@ -65,6 +80,10 @@ def main() -> int:
             delegated_command.append("--skip-build")
         if args.with_e2e:
             delegated_command.append("--with-e2e")
+        if args.with_coverage:
+            delegated_command.append("--with-coverage")
+        if artifacts_dir is not None:
+            delegated_command.extend(["--artifacts-dir", str(artifacts_dir)])
         if args.with_lighthouse:
             delegated_command.append("--with-lighthouse")
         if args.with_docker:
@@ -100,14 +119,37 @@ def main() -> int:
         ROOT_DIR,
         env=signed_backup_env,
     )
-    run_step("backend tests", [sys.executable, "-m", "pytest", "app/backend/tests", "-q"], ROOT_DIR)
+    backend_tests_command = [sys.executable, "-m", "pytest", "app/backend/tests", "-q"]
+    if artifacts_dir is not None:
+        backend_tests_command.extend(["--junitxml", str(artifacts_dir / "backend-junit.xml")])
+    if args.with_coverage:
+        coverage_json = (
+            artifacts_dir / "coverage-backend.json" if artifacts_dir is not None else ROOT_DIR / "coverage-backend.json"
+        )
+        backend_tests_command.extend(
+            [
+                "--cov=app/backend/app",
+                "--cov-report=term",
+                f"--cov-report=json:{coverage_json}",
+            ]
+        )
+    run_step("backend tests", backend_tests_command, ROOT_DIR)
     run_step(
         "backend benchmark",
         [sys.executable, "scripts/benchmark_backend.py", "--payload", "binary", "--assert-ms", "100"],
         ROOT_DIR,
     )
     run_step("frontend typecheck", [NPM_EXECUTABLE, "exec", "tsc", "--", "--noEmit", "-p", "."], FRONTEND_DIR)
-    run_step("frontend unit tests", [NPM_EXECUTABLE, "run", "test:unit"], FRONTEND_DIR)
+    frontend_tests_command = [NPM_EXECUTABLE, "run", "test:unit"]
+    if artifacts_dir is not None:
+        frontend_tests_command.extend(
+            [
+                "--",
+                "--reporter=junit",
+                f"--outputFile={artifacts_dir / 'frontend-junit.xml'}",
+            ]
+        )
+    run_step("frontend unit tests", frontend_tests_command, FRONTEND_DIR)
 
     if not args.skip_build:
         run_step("frontend build", [NPM_EXECUTABLE, "run", "build"], FRONTEND_DIR)

@@ -15,6 +15,9 @@ license: mit
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/)
 [![Node](https://img.shields.io/badge/node-LTS-green.svg)](https://nodejs.org/)
+[![Tests](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/brownjuly2003-code/ab-test-research-designer/main/badges/tests.json)](https://github.com/brownjuly2003-code/ab-test-research-designer/actions/workflows/test.yml)
+[![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/brownjuly2003-code/ab-test-research-designer/main/badges/coverage.json)](https://github.com/brownjuly2003-code/ab-test-research-designer/actions/workflows/test.yml)
+[![Lighthouse](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/brownjuly2003-code/ab-test-research-designer/main/badges/lighthouse.json)](https://github.com/brownjuly2003-code/ab-test-research-designer/actions/workflows/test.yml)
 
 Local-first experiment planning tool for A/B and multi-variant tests. Plan sample size and duration from the wizard, review deterministic statistical guidance (SRM, Bayesian, group-sequential, CUPED, guardrails), compare saved experiments side by side, and export decision-ready reports in four languages — all against a local SQLite workspace with no cloud required.
 

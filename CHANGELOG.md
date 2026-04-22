@@ -6,6 +6,10 @@
 
 - Added Checkout-redesign case study section to README with reproducible numbers from backend calculation and Bayesian interim check.
 - Regenerated demo screenshots to match v1.1.0 UI (comparison dashboard, webhook manager).
+- Seeded the Hugging Face Space demo workspace on startup with an idempotent backend hook so the public demo loads with pre-populated projects.
+- Added GitHub Actions workflow `docker-publish.yml` to publish multi-arch Docker images to `ghcr.io/brownjuly2003-code/ab-test-research-designer` on every `v*` tag push.
+- Added dynamic shields.io badges (tests count, backend coverage, Lighthouse performance) in README, refreshed by a new CI job `update-metrics-badges` that commits `badges/*.json` back to `main` after green verify + lighthouse runs.
+- Added `scripts/collect_badge_metrics.py` plus `--with-coverage` and `--artifacts-dir` flags on `scripts/verify_all.{py,cmd}` so the same collector can run locally and in CI.
 
 ## [1.1.0] - 2026-04-21
 

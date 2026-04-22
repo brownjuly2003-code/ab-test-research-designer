@@ -4,6 +4,8 @@ setlocal
 set "SKIP_SMOKE=0"
 set "SKIP_BUILD=0"
 set "WITH_E2E=0"
+set "WITH_COVERAGE=0"
+set "ARTIFACTS_DIR="
 set "WITH_LIGHTHOUSE=0"
 set "WITH_DOCKER=0"
 set "WITH_DOCKER_PRESERVE=0"
@@ -13,6 +15,13 @@ if "%~1"=="" goto args_done
 if /I "%~1"=="--skip-smoke" set "SKIP_SMOKE=1"
 if /I "%~1"=="--skip-build" set "SKIP_BUILD=1"
 if /I "%~1"=="--with-e2e" set "WITH_E2E=1"
+if /I "%~1"=="--with-coverage" set "WITH_COVERAGE=1"
+if /I "%~1"=="--artifacts-dir" (
+  set "ARTIFACTS_DIR=%~2"
+  shift
+  shift
+  goto parse_args
+)
 if /I "%~1"=="--with-lighthouse" set "WITH_LIGHTHOUSE=1"
 if /I "%~1"=="--with-docker" set "WITH_DOCKER=1"
 if /I "%~1"=="--with-docker-preserve" set "WITH_DOCKER_PRESERVE=1"
@@ -28,6 +37,10 @@ set "ROOT_DIR=%CD%\"
 if not exist "%ROOT_DIR%scripts\generate_frontend_api_types.py" (
   for %%I in ("%~f0") do set "SCRIPT_DIR=%%~dpI"
   for %%I in ("%SCRIPT_DIR%..") do set "ROOT_DIR=%%~fI"
+)
+if not "%ARTIFACTS_DIR%"=="" (
+  if not exist "%ARTIFACTS_DIR%" mkdir "%ARTIFACTS_DIR%"
+  for %%I in ("%ARTIFACTS_DIR%") do set "ARTIFACTS_DIR=%%~fI"
 )
 
 echo [verify] generated api contracts
@@ -50,7 +63,29 @@ if errorlevel 1 exit /b %errorlevel%
 set "AB_WORKSPACE_SIGNING_KEY=%ORIGINAL_AB_WORKSPACE_SIGNING_KEY%"
 
 echo [verify] backend tests
-python -m pytest "%ROOT_DIR%app\backend\tests" -q
+set "BACKEND_JUNIT_PATH="
+if not "%ARTIFACTS_DIR%"=="" set "BACKEND_JUNIT_PATH=%ARTIFACTS_DIR%\backend-junit.xml"
+set "BACKEND_COVERAGE_PATH="
+if "%WITH_COVERAGE%"=="1" (
+  if "%ARTIFACTS_DIR%"=="" (
+    set "BACKEND_COVERAGE_PATH=%ROOT_DIR%coverage-backend.json"
+  ) else (
+    set "BACKEND_COVERAGE_PATH=%ARTIFACTS_DIR%\coverage-backend.json"
+  )
+)
+if "%WITH_COVERAGE%"=="1" (
+  if "%ARTIFACTS_DIR%"=="" (
+    python -m pytest "%ROOT_DIR%app\backend\tests" -q --cov=app/backend/app --cov-report=term --cov-report=json:"%BACKEND_COVERAGE_PATH%"
+  ) else (
+    python -m pytest "%ROOT_DIR%app\backend\tests" -q --junitxml "%BACKEND_JUNIT_PATH%" --cov=app/backend/app --cov-report=term --cov-report=json:"%BACKEND_COVERAGE_PATH%"
+  )
+) else (
+  if "%ARTIFACTS_DIR%"=="" (
+    python -m pytest "%ROOT_DIR%app\backend\tests" -q
+  ) else (
+    python -m pytest "%ROOT_DIR%app\backend\tests" -q --junitxml "%BACKEND_JUNIT_PATH%"
+  )
+)
 if errorlevel 1 exit /b %errorlevel%
 
 echo [verify] backend benchmark
@@ -64,7 +99,11 @@ npm.cmd exec tsc -- --noEmit -p .
 if errorlevel 1 exit /b %errorlevel%
 
 echo [verify] frontend unit tests
-npm.cmd run test:unit
+if "%ARTIFACTS_DIR%"=="" (
+  npm.cmd run test:unit
+) else (
+  npm.cmd run test:unit -- --reporter=junit --outputFile=%ARTIFACTS_DIR%\frontend-junit.xml
+)
 if errorlevel 1 exit /b %errorlevel%
 
 if "%SKIP_BUILD%"=="0" (

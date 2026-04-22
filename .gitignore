@@ -45,3 +45,8 @@ archive/smoke-runs/*
 !archive/smoke-runs/.gitkeep
 !archive/smoke-runs/README.md
 archive/verify-workspace-backup/*
+
+# verify artifacts (CI uploads these; should not be tracked)
+.ci-artifacts/
+.coverage
+/--artifacts-dir/
