@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 
+import "../i18n";
 import {
   createWebhookRequest,
   deleteWebhookRequest,
@@ -227,7 +228,7 @@ export default function WebhookManager() {
 
   return (
     <>
-      <div className="card">
+      <div className="card" data-testid="webhook-manager">
         <div className="section-heading">
           <div>
             <h3>{t("webhooks.title")}</h3>
@@ -253,6 +254,7 @@ export default function WebhookManager() {
             {subscriptions.map((subscription) => (
               <div
                 key={subscription.id}
+                data-testid="webhook-subscription-row"
                 style={{
                   border: "1px solid var(--line)",
                   borderRadius: 16,

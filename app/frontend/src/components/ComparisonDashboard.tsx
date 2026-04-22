@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import "../i18n";
 import { exportComparisonRequest } from "../lib/api";
 import type { MultiProjectComparison } from "../lib/experiment";
 import ForestPlot from "./ForestPlot";
@@ -90,7 +91,7 @@ export default function ComparisonDashboard({ comparison, onClose }: ComparisonD
   }
 
   return (
-    <div style={{ display: "grid", gap: 16 }}>
+    <div data-testid="comparison-dashboard" style={{ display: "grid", gap: 16 }}>
       <div className="card" style={{ display: "grid", gap: 12 }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
           <div>

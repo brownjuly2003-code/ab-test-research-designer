@@ -5,6 +5,7 @@
 ### Added
 
 - Added Checkout-redesign case study section to README with reproducible numbers from backend calculation and Bayesian interim check.
+- Regenerated demo screenshots to match v1.1.0 UI (comparison dashboard, webhook manager).
 
 ## [1.1.0] - 2026-04-21
 
