@@ -153,16 +153,17 @@ def main() -> int:
     args = parser.parse_args()
 
     generated = generate_typescript()
+    generated_bytes = generated.encode("utf-8")
 
     if args.check:
-        if not OUTPUT_PATH.exists() or OUTPUT_PATH.read_text(encoding="utf-8") != generated:
+        if not OUTPUT_PATH.exists() or OUTPUT_PATH.read_bytes() != generated_bytes:
             print(f"{OUTPUT_PATH} is out of date")
             return 1
         print(f"{OUTPUT_PATH} is up to date")
         return 0
 
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    OUTPUT_PATH.write_text(generated, encoding="utf-8")
+    OUTPUT_PATH.write_text(generated, encoding="utf-8", newline="\n")
     print(f"Wrote {OUTPUT_PATH}")
     return 0
 

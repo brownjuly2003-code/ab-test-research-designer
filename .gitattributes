@@ -1,0 +1,23 @@
+# Default to LF for all text files; Git converts on checkout to native on platforms
+# that have eol=native, but these explicit rules keep generated artifacts stable.
+* text=auto eol=lf
+
+# Windows-only scripts must stay CRLF so cmd.exe / powershell parse them cleanly
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Generated frontend contract is regenerated from backend OpenAPI and must be LF
+app/frontend/src/lib/generated/*.ts text eol=lf
+
+# Binary artefacts are never normalized
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.tar.gz binary
+*.sqlite3 binary
+*.db binary
