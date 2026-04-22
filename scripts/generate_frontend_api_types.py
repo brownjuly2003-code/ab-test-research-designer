@@ -158,6 +158,23 @@ def main() -> int:
     if args.check:
         if not OUTPUT_PATH.exists() or OUTPUT_PATH.read_bytes() != generated_bytes:
             print(f"{OUTPUT_PATH} is out of date")
+            if OUTPUT_PATH.exists():
+                import difflib
+
+                existing_text = OUTPUT_PATH.read_text(encoding="utf-8")
+                diff = difflib.unified_diff(
+                    existing_text.splitlines(keepends=False),
+                    generated.splitlines(keepends=False),
+                    fromfile="committed",
+                    tofile="generated",
+                    n=3,
+                    lineterm="",
+                )
+                for index, line in enumerate(diff):
+                    if index >= 120:
+                        print("... (diff truncated at 120 lines)")
+                        break
+                    print(line)
             return 1
         print(f"{OUTPUT_PATH} is up to date")
         return 0
