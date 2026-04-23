@@ -390,6 +390,7 @@ const SidebarPanel = memo(function SidebarPanel() {
       return right.updated_at.localeCompare(left.updated_at);
     });
   const compareCandidates = filteredProjects.filter((savedProject) => savedProject.has_analysis_snapshot && !savedProject.is_archived);
+  const compareCandidateIdsKey = compareCandidates.map((savedProject) => savedProject.id).join("|");
   const canCompareSelected = selectedComparisonProjectIds.length >= 2 && selectedComparisonProjectIds.length <= 5;
   const savedProjectsTotal = allSavedProjects.length;
   const archivedProjectsTotal = allSavedProjects.filter((project) => project.is_archived).length;
@@ -432,10 +433,11 @@ const SidebarPanel = memo(function SidebarPanel() {
     });
 
   useEffect(() => {
-    setSelectedComparisonProjectIds((current) =>
-      current.filter((projectId) => compareCandidates.some((projectItem) => projectItem.id === projectId))
-    );
-  }, [compareCandidates]);
+    setSelectedComparisonProjectIds((current) => {
+      const next = current.filter((projectId) => compareCandidates.some((projectItem) => projectItem.id === projectId));
+      return next.length === current.length ? current : next;
+    });
+  }, [compareCandidateIdsKey]);
 
   useEffect(() => {
     if (activeTab !== "system") {
@@ -1353,13 +1355,11 @@ const SidebarPanel = memo(function SidebarPanel() {
             ) : (
               <p className="muted">{t("sidebarPanel.savedProjects.compareRequiresSnapshot")}</p>
             )}
-            <div className={styles["project-card-list"]} role="listbox" aria-multiselectable="true">
+            <div className={styles["project-card-list"]}>
               {filteredProjects.map((project) => (
                 <div
                   key={project.id}
                   className={[styles["project-card"], project.id === activeProjectId ? styles.active : ""].filter(Boolean).join(" ")}
-                  role="option"
-                  aria-selected={selectedComparisonProjectIds.includes(project.id)}
                 >
                   <div className={styles["project-card-head"]}>
                     {project.is_archived ? (
@@ -1416,6 +1416,18 @@ const SidebarPanel = memo(function SidebarPanel() {
                         />
                         <span>{t("sidebarPanel.savedProjects.actions.selectForComparison")}</span>
                       </label>
+                    ) : null}
+                    {activeProjectId && project.id !== activeProjectId && project.has_analysis_snapshot && !project.is_archived ? (
+                      <button
+                        className="btn secondary"
+                        type="button"
+                        disabled={loadingProjectComparison}
+                        onClick={() => void onCompareProject(project.id)}
+                      >
+                        {loadingProjectComparison && comparingProjectId === project.id
+                          ? t("sidebarPanel.savedProjects.actions.comparing")
+                          : t("sidebarPanel.savedProjects.actions.compare")}
+                      </button>
                     ) : null}
                     {project.is_archived ? (
                       <button

@@ -48,11 +48,18 @@ test("imports the demo project and completes the browser smoke flow", async ({ p
   await expect(page.getByText("Analysis completed.", { exact: false }).first()).toBeVisible({ timeout: 30000 });
   await expect(page.getByText("Deterministic experiment design")).toBeVisible();
 
+  const exportButton = page.getByRole("button", { name: "Export", exact: true });
+  await expect(exportButton).toBeVisible();
+
+  await exportButton.click();
+  await expect(page.getByRole("button", { name: "Export Markdown" })).toBeVisible();
   const markdownDownloadPromise = page.waitForEvent("download");
   await page.getByRole("button", { name: "Export Markdown" }).click();
   const markdownDownload = await markdownDownloadPromise;
   expect(markdownDownload.suggestedFilename()).toContain("report");
 
+  await exportButton.click();
+  await expect(page.getByRole("button", { name: "Export HTML" })).toBeVisible();
   const htmlDownloadPromise = page.waitForEvent("download");
   await page.getByRole("button", { name: "Export HTML" }).click();
   const htmlDownload = await htmlDownloadPromise;

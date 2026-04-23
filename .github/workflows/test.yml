@@ -14,7 +14,7 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            verify_args: "--with-e2e --skip-frontend-unit"
+            verify_args: "--with-e2e --with-coverage --artifacts-dir .ci-artifacts"
           - os: windows-latest
             verify_args: ""
 
@@ -43,6 +43,17 @@ jobs:
 
       - name: Run verify pipeline
         run: python scripts/verify_all.py ${{ matrix.verify_args }}
+
+      - name: Upload verify metrics artifacts
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: verify-metrics
+          path: |
+            .ci-artifacts/backend-junit.xml
+            .ci-artifacts/frontend-junit.xml
+            .ci-artifacts/coverage-backend.json
+          if-no-files-found: warn
 
   docker:
     runs-on: ubuntu-latest
@@ -106,7 +117,7 @@ jobs:
     needs:
       - verify
       - lighthouse
-    if: false  # disabled: pending investigation of the vitest hang blocking coverage artifact generation
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     permissions:
       contents: write
 
