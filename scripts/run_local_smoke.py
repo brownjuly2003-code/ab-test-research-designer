@@ -120,6 +120,7 @@ def run_browser_smoke(
     log_path: Path,
 ) -> None:
     DEMO_DIR.mkdir(parents=True, exist_ok=True)
+    download_dir.mkdir(parents=True, exist_ok=True)
     archive_screenshots_dir = download_dir.parent / "screenshots"
     archive_screenshots_dir.mkdir(parents=True, exist_ok=True)
     compare_diagnostics_path = download_dir.parent / "compare-diagnostics.txt"
@@ -175,77 +176,124 @@ def run_browser_smoke(
 
     def write_compare_diagnostics(page, compare_error: Exception) -> str:
         compare_diagnostics_path.parent.mkdir(parents=True, exist_ok=True)
-        diagnostics_lines = [f"compare_error: {type(compare_error).__name__}: {compare_error}"]
+        diagnostics_lines = ["Compare smoke selector failure."]
 
         try:
-            diagnostics_lines.append(f"url: {page.url}")
+            diagnostics_lines.append(f"URL: {page.url}")
         except Exception as lookup_error:  # pragma: no cover - best effort diagnostics only
-            diagnostics_lines.append(f"url: <lookup failed: {lookup_error}>")
+            diagnostics_lines.append(f"URL: <lookup failed: {lookup_error!r}>")
+        diagnostics_lines.append(f"Timestamp: {datetime.now(UTC).isoformat(timespec='seconds')}")
+        diagnostics_lines.append("")
 
-        diagnostics_lines.append("locator_counts:")
-        locator_counts = [
-            ('[data-testid="project-compare-panel"]', page.locator('[data-testid="project-compare-panel"]')),
-            ('[data-testid="project-compare-checkbox"]', page.locator('[data-testid="project-compare-checkbox"]')),
-            ('[data-testid="project-compare-submit"]', page.locator('[data-testid="project-compare-submit"]')),
-            ('#compare-selected-projects-button', page.locator("#compare-selected-projects-button")),
-            ('legacy [role="option"] input[type="checkbox"]', page.locator('[role="option"] input[type="checkbox"]')),
-            ('generic input[type="checkbox"]', page.locator('input[type="checkbox"]')),
-        ]
-        for label, locator in locator_counts:
-            try:
-                diagnostics_lines.append(f"{label}: {locator.count()}")
-            except Exception as lookup_error:  # pragma: no cover - best effort diagnostics only
-                diagnostics_lines.append(f"{label}: <lookup failed: {lookup_error}>")
+        diagnostics_lines.append("Selector counts:")
+        try:
+            diagnostics_lines.append(
+                f"  [data-testid=\"project-compare-panel\"]: {page.locator('[data-testid=\"project-compare-panel\"]').count()}"
+            )
+        except Exception as lookup_error:  # pragma: no cover - best effort diagnostics only
+            diagnostics_lines.append(
+                f'  [data-testid="project-compare-panel"]: <count failed: {lookup_error!r}>'
+            )
+        try:
+            diagnostics_lines.append(
+                f"  [data-testid=\"project-compare-checkbox\"]: {page.locator('[data-testid=\"project-compare-checkbox\"]').count()}"
+            )
+        except Exception as lookup_error:  # pragma: no cover - best effort diagnostics only
+            diagnostics_lines.append(
+                f'  [data-testid="project-compare-checkbox"]: <count failed: {lookup_error!r}>'
+            )
+        try:
+            diagnostics_lines.append(
+                f"  [data-testid=\"project-compare-submit\"]: {page.locator('[data-testid=\"project-compare-submit\"]').count()}"
+            )
+        except Exception as lookup_error:  # pragma: no cover - best effort diagnostics only
+            diagnostics_lines.append(
+                f'  [data-testid="project-compare-submit"]: <count failed: {lookup_error!r}>'
+            )
+        try:
+            diagnostics_lines.append(
+                f'  #compare-selected-projects-button: {page.locator("#compare-selected-projects-button").count()}'
+            )
+        except Exception as lookup_error:  # pragma: no cover - best effort diagnostics only
+            diagnostics_lines.append(
+                f'  #compare-selected-projects-button: <count failed: {lookup_error!r}>'
+            )
+        try:
+            diagnostics_lines.append(
+                '  legacy [role="option"] input[type="checkbox"]: '
+                f"{page.locator('[role=\"option\"] input[type=\"checkbox\"]').count()}  (drift canary)"
+            )
+        except Exception as lookup_error:  # pragma: no cover - best effort diagnostics only
+            diagnostics_lines.append(
+                '  legacy [role="option"] input[type="checkbox"]: '
+                f'<count failed: {lookup_error!r}>  (drift canary)'
+            )
+        try:
+            diagnostics_lines.append(
+                '  get_by_role("checkbox", name="Select for comparison"): '
+                f'{page.get_by_role("checkbox", name="Select for comparison").count()}'
+            )
+        except Exception as lookup_error:  # pragma: no cover - best effort diagnostics only
+            diagnostics_lines.append(
+                '  get_by_role("checkbox", name="Select for comparison"): '
+                f'<count failed: {lookup_error!r}>'
+            )
+        try:
+            diagnostics_lines.append(
+                f"  generic input[type=\"checkbox\"]: {page.locator('input[type=\"checkbox\"]').count()}"
+            )
+        except Exception as lookup_error:  # pragma: no cover - best effort diagnostics only
+            diagnostics_lines.append(
+                f'  generic input[type="checkbox"]: <count failed: {lookup_error!r}>'
+            )
+        diagnostics_lines.append("")
 
         try:
             checkbox_rows = resolve_compare_checkbox_locator(page).evaluate_all(
                 """
-                els => {
-                  const normalize = (value) => (value || "").replace(/\\s+/g, " ").trim();
-                  return els.slice(0, 10).map((el, index) => {
-                    const input = el.matches("input") ? el : el.querySelector("input");
-                    const label = el.matches("label") ? el : el.closest("label") || el.querySelector("label");
-                    const textSource = label || el.parentElement || el;
-                    return {
-                      index,
-                      tag: el.tagName.toLowerCase(),
-                      type: el.getAttribute("type") || (input && input.getAttribute("type")),
-                      role: el.getAttribute("role") || (input && input.getAttribute("role")),
-                      testid: el.getAttribute("data-testid") || (input && input.getAttribute("data-testid")),
-                      projectId: el.getAttribute("data-project-id") || (input && input.getAttribute("data-project-id")),
-                      ariaLabel: el.getAttribute("aria-label") || (input && input.getAttribute("aria-label")),
-                      labelText: normalize(label ? label.textContent : ""),
-                      visibleText: normalize((textSource.innerText || textSource.textContent || "")).slice(0, 200),
-                      checked: input ? input.checked : undefined,
-                      disabled: input ? input.disabled : undefined,
-                      outerHTML: el.outerHTML.slice(0, 500),
-                    };
-                  });
-                }
+                els => els.slice(0, 10).map((el, index) => {
+                  const input = el.matches('input') ? el : el.querySelector('input');
+                  const labelTexts = input && input.labels
+                    ? Array.from(input.labels).map(label => label.innerText.replace(/\\s+/g, ' ').trim())
+                    : [];
+                  return {
+                    index,
+                    tag: el.tagName.toLowerCase(),
+                    type: el.getAttribute('type'),
+                    role: el.getAttribute('role'),
+                    testid: el.getAttribute('data-testid'),
+                    projectId: el.getAttribute('data-project-id')
+                      || (input && input.getAttribute('data-project-id')),
+                    ariaLabel: el.getAttribute('aria-label')
+                      || (input && input.getAttribute('aria-label')),
+                    labelText: labelTexts.join(' | '),
+                    visibleText: (el.innerText || '').replace(/\\s+/g, ' ').trim().slice(0, 200),
+                    checked: input ? input.checked : undefined,
+                    disabled: input ? input.disabled : undefined,
+                    outerHTML: el.outerHTML.slice(0, 500),
+                  };
+                })
                 """
             )
-            diagnostics_lines.append("compare_checkbox_rows:")
+            diagnostics_lines.append("Matched compare checkbox details (first 10):")
             diagnostics_lines.append(json.dumps(checkbox_rows, indent=2, ensure_ascii=False))
         except Exception as lookup_error:  # pragma: no cover - best effort diagnostics only
-            diagnostics_lines.append("compare_checkbox_rows:")
-            diagnostics_lines.append(f"<lookup failed: {lookup_error}>")
+            diagnostics_lines.append("Matched compare checkbox details (first 10):")
+            diagnostics_lines.append(f"<lookup failed: {lookup_error!r}>")
+        diagnostics_lines.append("")
 
         try:
             panel_outer_html = resolve_compare_panel_locator(page).evaluate_all(
-                """
-                els => {
-                  if (!els.length) {
-                    return "<no matches>";
-                  }
-                  return els[0].outerHTML.slice(0, 8000);
-                }
-                """
+                "(els, maxChars) => els.slice(0, 2).map(el => el.outerHTML.slice(0, maxChars))",
+                8000,
             )
-            diagnostics_lines.append("compare_panel_outer_html:")
-            diagnostics_lines.append(panel_outer_html)
+            diagnostics_lines.append("Compare panel outerHTML (first 2, truncated):")
+            diagnostics_lines.append(
+                "\n\n--- matched panel ---\n\n".join(panel_outer_html) if panel_outer_html else "<no matches>"
+            )
         except Exception as lookup_error:  # pragma: no cover - best effort diagnostics only
-            diagnostics_lines.append("compare_panel_outer_html:")
-            diagnostics_lines.append(f"<lookup failed: {lookup_error}>")
+            diagnostics_lines.append("Compare panel outerHTML (first 2, truncated):")
+            diagnostics_lines.append(f"<lookup failed: {lookup_error!r}>")
 
         diagnostics = "\n".join(diagnostics_lines)
         try:
