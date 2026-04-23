@@ -492,8 +492,8 @@ def run_browser_smoke(
                 raise RuntimeError("Smoke import did not populate the demo project description.")
 
             language_switcher_buttons = page.locator('[role="group"]').nth(0).locator("button.theme-toggle-button")
-            if language_switcher_buttons.count() != 4:
-                raise RuntimeError("Smoke expected the 4-button language switcher to remain visible.")
+            if language_switcher_buttons.count() != 7:
+                raise RuntimeError("Smoke expected the 7-button language switcher to remain visible.")
 
             append_smoke_log(log_path, "verifying browser draft persistence")
             print("[smoke] verifying browser draft persistence", flush=True)
