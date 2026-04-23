@@ -1282,7 +1282,7 @@ const SidebarPanel = memo(function SidebarPanel() {
         )}
       </div>
 
-      <div className="card">
+      <div className="card" data-testid="project-compare-panel">
         <div className="section-heading">
           <div>
             <h3>{t("sidebarPanel.savedProjects.title")}</h3>
@@ -1328,6 +1328,7 @@ const SidebarPanel = memo(function SidebarPanel() {
                   <span className="pill">{t("sidebarPanel.savedProjects.selectedForComparison", { count: selectedComparisonProjectIds.length })}</span>
                   <button
                     className="btn secondary"
+                    data-testid="project-compare-submit"
                     id="compare-selected-projects-button"
                     type="button"
                     disabled={!canCompareSelected || loadingProjectComparison}
@@ -1403,6 +1404,8 @@ const SidebarPanel = memo(function SidebarPanel() {
                     {project.has_analysis_snapshot && !project.is_archived ? (
                       <label style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
                         <input
+                          data-project-id={project.id}
+                          data-testid="project-compare-checkbox"
                           type="checkbox"
                           checked={selectedComparisonProjectIds.includes(project.id)}
                           onChange={(event) => {

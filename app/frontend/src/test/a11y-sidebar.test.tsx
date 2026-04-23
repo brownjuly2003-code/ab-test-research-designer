@@ -272,6 +272,47 @@ describe("Sidebar and modal accessibility", () => {
     }
   }, 15000);
 
+  it("renders compare controls with stable test ids", async () => {
+    const projectState = useProjectStore.getState();
+    const savedProjects = projectState.savedProjects.map((project) =>
+      project.id === "p-2"
+        ? {
+            ...project,
+            archived_at: null,
+            is_archived: false,
+            has_analysis_snapshot: true,
+            last_analysis_at: "2026-03-08T12:10:00Z"
+          }
+        : project
+    );
+
+    useProjectStore.setState({
+      ...projectState,
+      savedProjects,
+      activeSavedProjects: savedProjects,
+      archivedProjects: []
+    });
+
+    const view = await renderIntoDocument(<SidebarPanel />);
+    try {
+      await flushEffects();
+
+      const panel = view.container.querySelector('[data-testid="project-compare-panel"]');
+      expect(panel).not.toBeNull();
+
+      const checkboxes = panel?.querySelectorAll('[data-testid="project-compare-checkbox"]') ?? [];
+      expect(checkboxes).toHaveLength(2);
+      expect(checkboxes[0]?.getAttribute("data-project-id")).toBe("p-1");
+      expect(checkboxes[1]?.getAttribute("data-project-id")).toBe("p-2");
+
+      const submit = panel?.querySelector('[data-testid="project-compare-submit"]');
+      expect(submit).not.toBeNull();
+      expect(submit?.getAttribute("id")).toBe("compare-selected-projects-button");
+    } finally {
+      await view.unmount();
+    }
+  }, 15000);
+
   it("has no critical or serious accessibility violations for workspace backup controls", async () => {
     const view = await renderIntoDocument(<SidebarPanel />);
     try {
