@@ -140,21 +140,7 @@ def main() -> int:
         ROOT_DIR,
     )
     run_step("frontend typecheck", [NPM_EXECUTABLE, "exec", "tsc", "--", "--noEmit", "-p", "."], FRONTEND_DIR)
-    run_step(
-        "frontend unit tests",
-        [
-            NPM_EXECUTABLE,
-            "run",
-            "test:unit",
-            "--",
-            "--reporter=verbose",
-            "--testTimeout=30000",
-            "--hookTimeout=30000",
-            "--teardownTimeout=15000",
-            "--bail=1",
-        ],
-        FRONTEND_DIR,
-    )
+    run_step("frontend unit tests", [NPM_EXECUTABLE, "run", "test:unit"], FRONTEND_DIR)
 
     if not args.skip_build:
         run_step("frontend build", [NPM_EXECUTABLE, "run", "build"], FRONTEND_DIR)
