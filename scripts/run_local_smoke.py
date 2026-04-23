@@ -12,6 +12,7 @@ import time
 from urllib.error import URLError
 from urllib.request import urlopen
 
+from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from playwright.sync_api import expect
 from playwright.sync_api import sync_playwright
@@ -121,6 +122,7 @@ def run_browser_smoke(
     DEMO_DIR.mkdir(parents=True, exist_ok=True)
     archive_screenshots_dir = download_dir.parent / "screenshots"
     archive_screenshots_dir.mkdir(parents=True, exist_ok=True)
+    compare_diagnostics_path = download_dir.parent / "compare-diagnostics.txt"
 
     def write_screenshot(page, target: Path, *, full_page: bool = False, scroll_to_top: bool = True) -> None:
         if scroll_to_top:
@@ -145,6 +147,112 @@ def run_browser_smoke(
         stable_target = DEMO_DIR / stable_name
         write_screenshot(page, archive_target, full_page=full_page, scroll_to_top=scroll_to_top)
         stable_target.write_bytes(archive_target.read_bytes())
+
+    def has_compare_testid_contract(page) -> bool:
+        try:
+            return (
+                page.get_by_test_id("project-compare-panel").count() > 0
+                or page.get_by_test_id("project-compare-checkbox").count() > 0
+                or page.get_by_test_id("project-compare-submit").count() > 0
+            )
+        except Exception:
+            return False
+
+    def resolve_compare_panel_locator(page):
+        panel = page.get_by_test_id("project-compare-panel")
+        if has_compare_testid_contract(page):
+            return panel
+        return page.locator(".card").filter(has=page.locator("#compare-selected-projects-button")).first
+
+    def resolve_compare_checkbox_locator(page):
+        compare_checkboxes = page.get_by_test_id("project-compare-checkbox")
+        try:
+            if compare_checkboxes.count() > 0:
+                return compare_checkboxes
+        except Exception:
+            pass
+        return page.get_by_role("checkbox", name="Select for comparison")
+
+    def write_compare_diagnostics(page, compare_error: Exception) -> str:
+        compare_diagnostics_path.parent.mkdir(parents=True, exist_ok=True)
+        diagnostics_lines = [f"compare_error: {type(compare_error).__name__}: {compare_error}"]
+
+        try:
+            diagnostics_lines.append(f"url: {page.url}")
+        except Exception as lookup_error:  # pragma: no cover - best effort diagnostics only
+            diagnostics_lines.append(f"url: <lookup failed: {lookup_error}>")
+
+        diagnostics_lines.append("locator_counts:")
+        locator_counts = [
+            ('[data-testid="project-compare-panel"]', page.locator('[data-testid="project-compare-panel"]')),
+            ('[data-testid="project-compare-checkbox"]', page.locator('[data-testid="project-compare-checkbox"]')),
+            ('[data-testid="project-compare-submit"]', page.locator('[data-testid="project-compare-submit"]')),
+            ('#compare-selected-projects-button', page.locator("#compare-selected-projects-button")),
+            ('legacy [role="option"] input[type="checkbox"]', page.locator('[role="option"] input[type="checkbox"]')),
+            ('generic input[type="checkbox"]', page.locator('input[type="checkbox"]')),
+        ]
+        for label, locator in locator_counts:
+            try:
+                diagnostics_lines.append(f"{label}: {locator.count()}")
+            except Exception as lookup_error:  # pragma: no cover - best effort diagnostics only
+                diagnostics_lines.append(f"{label}: <lookup failed: {lookup_error}>")
+
+        try:
+            checkbox_rows = resolve_compare_checkbox_locator(page).evaluate_all(
+                """
+                els => {
+                  const normalize = (value) => (value || "").replace(/\\s+/g, " ").trim();
+                  return els.slice(0, 10).map((el, index) => {
+                    const input = el.matches("input") ? el : el.querySelector("input");
+                    const label = el.matches("label") ? el : el.closest("label") || el.querySelector("label");
+                    const textSource = label || el.parentElement || el;
+                    return {
+                      index,
+                      tag: el.tagName.toLowerCase(),
+                      type: el.getAttribute("type") || (input && input.getAttribute("type")),
+                      role: el.getAttribute("role") || (input && input.getAttribute("role")),
+                      testid: el.getAttribute("data-testid") || (input && input.getAttribute("data-testid")),
+                      projectId: el.getAttribute("data-project-id") || (input && input.getAttribute("data-project-id")),
+                      ariaLabel: el.getAttribute("aria-label") || (input && input.getAttribute("aria-label")),
+                      labelText: normalize(label ? label.textContent : ""),
+                      visibleText: normalize((textSource.innerText || textSource.textContent || "")).slice(0, 200),
+                      checked: input ? input.checked : undefined,
+                      disabled: input ? input.disabled : undefined,
+                      outerHTML: el.outerHTML.slice(0, 500),
+                    };
+                  });
+                }
+                """
+            )
+            diagnostics_lines.append("compare_checkbox_rows:")
+            diagnostics_lines.append(json.dumps(checkbox_rows, indent=2, ensure_ascii=False))
+        except Exception as lookup_error:  # pragma: no cover - best effort diagnostics only
+            diagnostics_lines.append("compare_checkbox_rows:")
+            diagnostics_lines.append(f"<lookup failed: {lookup_error}>")
+
+        try:
+            panel_outer_html = resolve_compare_panel_locator(page).evaluate_all(
+                """
+                els => {
+                  if (!els.length) {
+                    return "<no matches>";
+                  }
+                  return els[0].outerHTML.slice(0, 8000);
+                }
+                """
+            )
+            diagnostics_lines.append("compare_panel_outer_html:")
+            diagnostics_lines.append(panel_outer_html)
+        except Exception as lookup_error:  # pragma: no cover - best effort diagnostics only
+            diagnostics_lines.append("compare_panel_outer_html:")
+            diagnostics_lines.append(f"<lookup failed: {lookup_error}>")
+
+        diagnostics = "\n".join(diagnostics_lines)
+        try:
+            compare_diagnostics_path.write_text(diagnostics, encoding="utf-8")
+        except Exception as write_error:  # pragma: no cover - best effort diagnostics only
+            diagnostics = f"{diagnostics}\n\ncompare_diagnostics_write_error: {write_error}"
+        return diagnostics
 
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=True)
@@ -438,23 +546,41 @@ def run_browser_smoke(
 
             append_smoke_log(log_path, "opening comparison dashboard")
             print("[smoke] opening comparison dashboard", flush=True)
-            page.get_by_role("button", name="Projects", exact=True).click()
-            panel = page.get_by_test_id("project-compare-panel")
-            checkboxes = panel.get_by_test_id("project-compare-checkbox")
-            submit = panel.get_by_test_id("project-compare-submit")
-            expect(panel).to_be_visible(timeout=10_000)
-            expect(checkboxes.nth(1)).to_be_visible(timeout=10_000)
-            for index in (0, 1):
-                expect(checkboxes.nth(index)).to_be_enabled(timeout=5_000)
-                checkboxes.nth(index).check()
-            expect(panel.locator('[data-testid="project-compare-checkbox"]:checked')).to_have_count(2, timeout=5_000)
-            expect(submit).to_be_enabled(timeout=5_000)
-            submit.click()
-            comparison_toggle = page.locator("button").filter(has_text="Comparison").first
-            if comparison_toggle.get_attribute("aria-expanded") != "true":
-                comparison_toggle.click()
-            page.locator('[data-testid="comparison-dashboard"]').wait_for(state="visible", timeout=15000)
-            page.locator('[data-testid="forest-plot-row"]').first.wait_for(state="visible", timeout=15000)
+            try:
+                page.get_by_role("button", name="Projects", exact=True).click()
+                if has_compare_testid_contract(page):
+                    panel = page.get_by_test_id("project-compare-panel")
+                    checkboxes = panel.get_by_test_id("project-compare-checkbox")
+                    submit = panel.get_by_test_id("project-compare-submit")
+                    expect(panel).to_be_visible(timeout=10_000)
+                    expect(checkboxes.nth(1)).to_be_visible(timeout=10_000)
+                    for index in (0, 1):
+                        expect(checkboxes.nth(index)).to_be_enabled(timeout=5_000)
+                        checkboxes.nth(index).check()
+                    expect(panel.locator('[data-testid="project-compare-checkbox"]:checked')).to_have_count(2, timeout=5_000)
+                    expect(submit).to_be_enabled(timeout=5_000)
+                    submit.click()
+                else:
+                    compare_checkboxes = page.get_by_role("checkbox", name="Select for comparison")
+                    compare_checkboxes.nth(1).wait_for(state="visible", timeout=15000)
+                    if compare_checkboxes.count() < 2:
+                        raise AssertionError("Smoke expected at least two comparison-ready project checkboxes.")
+                    compare_checkboxes.nth(0).check()
+                    compare_checkboxes.nth(1).check()
+                    page.locator("#compare-selected-projects-button:not([disabled])").wait_for(
+                        state="visible",
+                        timeout=15000,
+                    )
+                    page.locator("#compare-selected-projects-button").click()
+                comparison_toggle = page.locator("button").filter(has_text="Comparison").first
+                if comparison_toggle.get_attribute("aria-expanded") != "true":
+                    comparison_toggle.click()
+                page.locator('[data-testid="comparison-dashboard"]').wait_for(state="visible", timeout=15000)
+                page.locator('[data-testid="forest-plot-row"]').first.wait_for(state="visible", timeout=15000)
+            except (AssertionError, PlaywrightError) as compare_error:
+                diagnostics = write_compare_diagnostics(page, compare_error)
+                append_smoke_log(log_path, f"compare diagnostics written to {compare_diagnostics_path}")
+                raise RuntimeError(diagnostics) from compare_error
             append_smoke_log(log_path, "capturing comparison dashboard")
             print("[smoke] capturing comparison dashboard", flush=True)
             capture_success_screenshot(
