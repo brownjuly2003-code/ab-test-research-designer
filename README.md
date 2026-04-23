@@ -9,15 +9,17 @@ pinned: false
 license: mit
 ---
 
+<!-- docs-site:index:start -->
 # AB Test Research Designer
 
 [![Release](https://img.shields.io/github/v/release/brownjuly2003-code/ab-test-research-designer?include_prereleases&display_name=tag)](https://github.com/brownjuly2003-code/ab-test-research-designer/releases)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/brownjuly2003-code/ab-test-research-designer/blob/main/LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/)
 [![Node](https://img.shields.io/badge/node-LTS-green.svg)](https://nodejs.org/)
 [![Tests](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/brownjuly2003-code/ab-test-research-designer/main/badges/tests.json)](https://github.com/brownjuly2003-code/ab-test-research-designer/actions/workflows/test.yml)
 [![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/brownjuly2003-code/ab-test-research-designer/main/badges/coverage.json)](https://github.com/brownjuly2003-code/ab-test-research-designer/actions/workflows/test.yml)
 [![Lighthouse](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/brownjuly2003-code/ab-test-research-designer/main/badges/lighthouse.json)](https://github.com/brownjuly2003-code/ab-test-research-designer/actions/workflows/test.yml)
+[![Docs](https://img.shields.io/badge/docs-mkdocs--material-blue)](https://brownjuly2003-code.github.io/ab-test-research-designer/)
 
 Local-first experiment planning tool for A/B and multi-variant tests. Plan sample size and duration from the wizard, review deterministic statistical guidance (SRM, Bayesian, group-sequential, CUPED, guardrails), compare saved experiments side by side, and export decision-ready reports in four languages — all against a local SQLite workspace with no cloud required.
 
@@ -36,6 +38,7 @@ It combines:
 - optional API token protection for runtime and project APIs
 - workspace backup and restore for saved projects plus history, integrity counts, checksums, and optional HMAC signatures
 - preflight workspace validation before import, plus runtime SQLite write-probe diagnostics
+<!-- docs-site:index:end -->
 
 ## Demo
 
@@ -65,6 +68,7 @@ The screenshots follow the real v1.1.0 path through the product: wizard overview
 They then switch to saved-project comparison to show the multi-project power-curve and forest-plot dashboard with seeded snapshots.
 The final image shows the admin-side webhook manager with a seeded Slack-style subscription in the sidebar tools area.
 
+<!-- docs-site:case-study:start -->
 ## Case study: Checkout redesign
 
 Retailer testing two checkout variants against control to lift conversion from a 4.2% baseline.
@@ -94,14 +98,15 @@ Variant A is still ambiguous; variant B is the only treatment with a decisive ea
 **Decision.**
 Stop spending exposure on variant A, keep variant B against control until the planned read is complete, and ship B only if payment error rate and refund value stay in range. The value here is that sizing, multivariant correction, design risks, and the Bayesian interim view all come from the same backend run.
 
-Full inputs and outputs: [docs/case-studies/checkout-redesign.json](docs/case-studies/checkout-redesign.json). Rerun with `python scripts/generate_case_study_numbers.py`.
+Full inputs and outputs: [docs/case-studies/checkout-redesign.json](https://github.com/brownjuly2003-code/ab-test-research-designer/blob/main/docs/case-studies/checkout-redesign.json). Rerun with `python scripts/generate_case_study_numbers.py`.
+<!-- docs-site:case-study:end -->
 
 ## Roadmap
 
 Planned work after v1.1.0. See the [archived progress log](archive/2026-04-23-bcg-planning-docs/progress.md) for the full tiered backlog.
 
 - **Portfolio polish.** Seed demo workspace on HF Space startup, regenerate screenshots against the v1.1.0 UI, add a case-study section, publish a Docker image to GHCR, add dynamic quality-gate badges.
-- **Product quality.** Finish the German and Spanish UI translation, snapshot SQLite to a private HF Dataset for persistent hosted state, add an optional OpenAI / Anthropic adapter behind a browser-session token, publish a `mkdocs-material` documentation site, expand the template gallery to ten industry presets.
+- **Product quality.** Finish the German and Spanish UI translation, snapshot SQLite to a private HF Dataset for persistent hosted state, add an optional OpenAI / Anthropic adapter behind a browser-session token, ✅ Published at brownjuly2003-code.github.io/ab-test-research-designer/, expand the template gallery to ten industry presets.
 - **Hardening.** Monte-Carlo and permutation overlays in the comparison flow, Slack App packaging, French / Chinese locales, manual NVDA + JAWS audit, deeper Hypothesis property coverage, bundle-size profiling, optional Postgres backend.
 
 ## Product shape

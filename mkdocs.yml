@@ -1,0 +1,72 @@
+site_name: A/B Test Research Designer
+site_description: FastAPI + React A/B-testing experiment designer. Bayesian + frequentist statistics, comparison dashboard, webhooks, multi-language UI.
+site_url: https://brownjuly2003-code.github.io/ab-test-research-designer/
+repo_url: https://github.com/brownjuly2003-code/ab-test-research-designer
+repo_name: brownjuly2003-code/ab-test-research-designer
+edit_uri: edit/main/docs-site/
+docs_dir: docs-site
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tabs
+    - navigation.top
+    - content.code.copy
+    - content.code.annotate
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.tabbed:
+      alternate_style: true
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Quickstart: getting-started/quickstart.md
+      - Configuration: getting-started/configuration.md
+      - Deploy: getting-started/deploy.md
+  - Features:
+      - Wizard flow: features/wizard.md
+      - Results dashboard: features/results.md
+      - Multi-project comparison: features/comparison.md
+      - Webhooks: features/webhooks.md
+      - Localization: features/localization.md
+  - Reference:
+      - REST API: reference/api.md
+      - Architecture: reference/architecture.md
+      - Statistics methods: reference/statistics.md
+  - Case Studies:
+      - Checkout redesign: case-studies/checkout-redesign.md
+  - Operations:
+      - Runbook: operations/runbook.md
+      - Release checklist: operations/release-checklist.md
+  - Changelog: changelog.md
+
+plugins:
+  - search
+  - include-markdown
+  - mermaid2
