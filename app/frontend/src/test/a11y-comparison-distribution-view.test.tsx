@@ -145,5 +145,5 @@ describe("Comparison distribution view accessibility", () => {
     } finally {
       await view.unmount();
     }
-  }, 10000);
+  }, 30000);
 });

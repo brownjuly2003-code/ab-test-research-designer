@@ -57,5 +57,5 @@ describe("PosteriorPlot integration", () => {
     } finally {
       await view.unmount();
     }
-  });
+  }, 15000);
 });

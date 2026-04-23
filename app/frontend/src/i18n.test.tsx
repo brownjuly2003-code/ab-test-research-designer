@@ -2,7 +2,7 @@
 
 import { act } from "react";
 import { I18nextProvider, useTranslation } from "react-i18next";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import i18n from "./i18n";
 import { flushEffects, renderIntoDocument } from "./test/dom";
@@ -25,6 +25,21 @@ describe("frontend i18n", () => {
 
   it("supports all shipped locales", () => {
     expect(i18n.options.supportedLngs).toEqual(expect.arrayContaining(["en", "ru", "de", "es", "fr", "zh", "ar"]));
+  });
+
+  it("loads a target locale asynchronously before switching language", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    fetchSpy.mockClear();
+
+    try {
+      await act(async () => {
+        await i18n.changeLanguage("fr");
+      });
+
+      expect(fetchSpy).toHaveBeenCalledWith("/locales/fr.json");
+    } finally {
+      fetchSpy.mockRestore();
+    }
   });
 
   it.each([

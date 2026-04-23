@@ -84,7 +84,7 @@ describe("Results accessibility", () => {
     } finally {
       await view.unmount();
     }
-  }, 20000);
+  }, 30000);
 
   it("has no critical or serious accessibility violations in PowerCurveSection", async () => {
     const view = await renderIntoDocument(

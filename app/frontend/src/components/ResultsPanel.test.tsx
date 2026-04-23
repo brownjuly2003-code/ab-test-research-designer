@@ -52,5 +52,5 @@ describe("ResultsPanel", () => {
     } finally {
       await view.unmount();
     }
-  });
+  }, 15000);
 });

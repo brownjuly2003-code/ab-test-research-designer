@@ -6,8 +6,21 @@ export default defineConfig({
   server: {
     port: 5173
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          "vendor-react": ["react", "react-dom"],
+          "vendor-i18n": ["i18next", "react-i18next", "i18next-browser-languagedetector"],
+          "vendor-state": ["zustand"]
+        }
+      }
+    },
+    chunkSizeWarningLimit: 500
+  },
   test: {
     environment: "node",
-    include: ["src/**/*.test.{ts,tsx}"]
+    include: ["src/**/*.test.{ts,tsx}"],
+    setupFiles: ["src/test/setup.ts"]
   }
 });
