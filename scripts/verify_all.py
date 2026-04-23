@@ -42,6 +42,11 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--skip-smoke", action="store_true", help="Skip the Playwright smoke flow.")
     parser.add_argument("--skip-build", action="store_true", help="Skip the frontend production build.")
+    parser.add_argument(
+        "--skip-frontend-unit",
+        action="store_true",
+        help="Skip the vitest unit suite (used by the Ubuntu CI matrix where vitest currently hangs).",
+    )
     parser.add_argument("--with-e2e", action="store_true", help="Run the frontend Playwright E2E flow.")
     parser.add_argument(
         "--with-coverage",
@@ -80,6 +85,8 @@ def main() -> int:
             delegated_command.append("--skip-build")
         if args.with_e2e:
             delegated_command.append("--with-e2e")
+        if args.skip_frontend_unit:
+            delegated_command.append("--skip-frontend-unit")
         if args.with_coverage:
             delegated_command.append("--with-coverage")
         if artifacts_dir is not None:
@@ -140,7 +147,8 @@ def main() -> int:
         ROOT_DIR,
     )
     run_step("frontend typecheck", [NPM_EXECUTABLE, "exec", "tsc", "--", "--noEmit", "-p", "."], FRONTEND_DIR)
-    run_step("frontend unit tests", [NPM_EXECUTABLE, "run", "test:unit"], FRONTEND_DIR)
+    if not args.skip_frontend_unit:
+        run_step("frontend unit tests", [NPM_EXECUTABLE, "run", "test:unit"], FRONTEND_DIR)
 
     if not args.skip_build:
         run_step("frontend build", [NPM_EXECUTABLE, "run", "build"], FRONTEND_DIR)

@@ -14,7 +14,7 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            verify_args: "--with-e2e"
+            verify_args: "--with-e2e --skip-frontend-unit"
           - os: windows-latest
             verify_args: ""
 
