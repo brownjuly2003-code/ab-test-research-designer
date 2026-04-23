@@ -22,6 +22,7 @@ FRONTEND_DIST_DIR = FRONTEND_DIR / "dist"
 DEMO_DIR = ROOT_DIR / "docs" / "demo"
 BACKEND_HOST = "127.0.0.1"
 BROWSER_DRAFT_STORAGE_KEY = "ab-test-research-designer:draft:v1"
+NPM_EXECUTABLE = "npm.cmd" if os.name == "nt" else "npm"
 
 
 def run_command(command: list[str], workdir: Path, env: dict[str, str] | None = None) -> None:
@@ -504,10 +505,10 @@ def main() -> int:
     args = parse_args()
 
     if not args.skip_build:
-        run_command(["npm.cmd", "run", "build"], FRONTEND_DIR)
+        run_command([NPM_EXECUTABLE, "run", "build"], FRONTEND_DIR)
 
     if not (FRONTEND_DIST_DIR / "index.html").exists():
-        raise RuntimeError("Frontend dist is missing. Run `npm.cmd run build` in app/frontend first.")
+        raise RuntimeError("Frontend dist is missing. Run `npm run build` in app/frontend first.")
 
     run_id = datetime.now().strftime("%Y%m%d-%H%M%S")
     temp_dir = ROOT_DIR / "archive" / "smoke-runs" / run_id
