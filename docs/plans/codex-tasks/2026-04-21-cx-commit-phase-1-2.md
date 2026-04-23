@@ -68,14 +68,14 @@
 - `app/backend/app/stats/binary.py`, `continuous.py` — multi-variant/multi-metric правки
 
 ### Commit 4 — Infra & docs
-- `.env.example`, `Dockerfile`, `docker-compose.yml`, `.github/workflows/test.yml`, `.gitignore`, `.lighthouserc.json`, `README.md`, `CHANGELOG.md`, `progress.md`
+- `.env.example`, `Dockerfile`, `docker-compose.yml`, `.github/workflows/test.yml`, `.gitignore`, `.lighthouserc.json`, `README.md`, `CHANGELOG.md`, `archive/2026-04-23-bcg-planning-docs/progress.md`
 - `scripts/run_frontend_e2e.py`, `update_ai_state_new.py`, `run_local_smoke.py`, `run_backend_for_e2e.py`, `generate_api_docs.py`, `verify_all.cmd`, `verify_all.ps1`, `verify_all.py`, `verify_docker_compose.py`, `verify_workspace_backup.py`, `benchmark_backend.py`
 - `docs/ARCHITECTURE.md`, `HISTORY.md`, `RUNBOOK.md`, `RELEASE_CHECKLIST.md`
 - `docs/plans/**` (включая `2026-04-21-phase-2-visual.md`, этот CX-таск, и новый commit-log)
 - `docs/research-grey-market-digital-subscriptions.md`
 - `docs/demo/*.png`, `docs/demo/sample-project.json`
 - `app/backend/app/main.py`, `config.py`, `repository.py` — оставшиеся infra-only hunks
-- `BCG_audit.md`, `BCG_plan.md`, `bcg-phase-1-execution.md`, `commercial-upgrade-plan.md`
+- `archive/2026-04-23-bcg-planning-docs/BCG_audit.md`, `archive/2026-04-23-bcg-planning-docs/BCG_plan.md`, `archive/2026-04-23-bcg-planning-docs/bcg-phase-1-execution.md`, `archive/2026-04-23-bcg-planning-docs/commercial-upgrade-plan.md`
 - Новые файлы под `archive/` (если их планируется хранить в истории; если нет — оставить untracked)
 
 ## Runbook
@@ -105,6 +105,6 @@
 ## Out of scope
 - Push / PR на remote
 - Новые фичи / рефакторы кода
-- Обновление `BCG_plan.md` чеклиста (это сделает главный агент после merge)
+- Обновление чеклиста в `archive/2026-04-23-bcg-planning-docs/BCG_plan.md` (это сделает главный агент после merge)
 - Regen `api-contract.ts` / `API.md` (они уже up-to-date)
 - Исправление reduced-motion / bundle-budget gaps (отдельный CX-таск)

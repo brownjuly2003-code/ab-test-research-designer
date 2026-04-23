@@ -2,7 +2,7 @@
 
 Дата: 2026-04-21
 
-## Чеклист BCG_plan.md L186
+## Чеклист `archive/2026-04-23-bcg-planning-docs/BCG_plan.md` L186
 - [x] App.tsx < 120 строк (фактически: 59)
 - [x] ResultsPanel.tsx < 150 строк (фактически: 127)
 - [x] 5 Zustand stores работают (`analysisStore`, `draftStore`, `projectStore`, `themeStore`, `wizardStore`)

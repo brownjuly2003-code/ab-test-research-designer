@@ -7,7 +7,7 @@
 - Запускать **после** `2026-04-21-cx-post-phase-2-commit-wave.md` (post-Phase-2 волна должна быть залита).
 - В `archive/` сейчас копится:
   - Run-артефакты (создаются скриптами verify): `archive/e2e-runs/`, `archive/manual-smoke-runs/`, `archive/smoke-runs/`, `archive/verify-workspace-backup/` — это timestamped папки, постоянно растут. Не нужны в истории.
-  - Исторические docs (один раз созданы): `archive/audit.md`, `archive/rec.md`, `archive/questions.md`, `archive/prompt_for_github.md`, `archive/ab_test_for_gihub.md` — может быть ценны.
+  - Исторические docs (один раз созданы): `archive/2026-03-08-legacy-loose-docs/audit.md`, `archive/2026-03-08-legacy-loose-docs/rec.md`, `archive/2026-03-08-legacy-loose-docs/questions.md`, `archive/2026-03-08-legacy-loose-docs/prompt_for_github.md`, `archive/2026-03-08-legacy-loose-docs/ab_test_for_gihub.md` — может быть ценны.
 - Плюс корневые untracked, которые уже попали в `.gitignore` во время Phase 2 cleanup: `tmp/`, `.hypothesis/`, `.qa/`, `.docker-cli/`. Проверить что они действительно в `.gitignore` и в истории.
 
 ## Deliverables
@@ -36,7 +36,7 @@
    ```
 3. `git check-ignore archive/e2e-runs/<some-timestamped-dir>` — подтвердить match.
 4. Если run-артефакты уже затрекены (маловероятно, но проверить `git ls-files archive/e2e-runs/`) — `git rm -r --cached archive/e2e-runs/ archive/manual-smoke-runs/ archive/smoke-runs/ archive/verify-workspace-backup/`.
-5. `git add archive/audit.md archive/rec.md archive/questions.md archive/prompt_for_github.md archive/ab_test_for_gihub.md` (если решили commit).
+5. `git add archive/2026-03-08-legacy-loose-docs/audit.md archive/2026-03-08-legacy-loose-docs/rec.md archive/2026-03-08-legacy-loose-docs/questions.md archive/2026-03-08-legacy-loose-docs/prompt_for_github.md archive/2026-03-08-legacy-loose-docs/ab_test_for_gihub.md` (если решили commit).
 6. `git add .gitignore`.
 7. `git diff --cached --stat` — проверить что diff ≤ 10 файлов.
 8. `git commit -m "chore: ignore archive run artefacts, restore historical docs" -m "" -m "Co-Authored-By: Codex <noreply@anthropic.com>"`
@@ -47,7 +47,7 @@
 - **Не** удалять папки с диска. Только gitignore.
 - **Не** трогать `tmp/`, `.hypothesis/`, `.qa/`, `.docker-cli/` в `.gitignore` (уже должны быть покрыты post-Phase-2 коммитом).
 - Если `.qa/` не в `.gitignore` — добавить; если есть — оставить.
-- Если решаем **не** commit-ить исторические md — в commit-msg добавить секцию `# Skipped`: `archive/audit.md, archive/rec.md, … оставлены untracked по решению` и в отдельный коммит не делать.
+- Если решаем **не** commit-ить исторические md — в commit-msg добавить секцию `# Skipped`: `archive/2026-03-08-legacy-loose-docs/audit.md, archive/2026-03-08-legacy-loose-docs/rec.md, … оставлены untracked по решению` и в отдельный коммит не делать.
 - **Не** пушить.
 
 ## Out of scope

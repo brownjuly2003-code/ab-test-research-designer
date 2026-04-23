@@ -16,7 +16,7 @@ Read these files before starting:
 - `.github/workflows/test.yml`
 - `app/frontend/package.json`
 
-Current a11y issues (from `rec.md`):
+Current a11y issues (from `archive/2026-03-08-legacy-loose-docs/rec.md`):
 - Accordion missing `aria-expanded` and `aria-controls`
 - Wizard step changes don't move focus to new content
 - No skip-to-content link

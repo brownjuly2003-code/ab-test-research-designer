@@ -139,7 +139,7 @@ Verify: `scripts\verify_all.cmd --with-e2e` = 0.
 - **Не** пушить на remote.
 - Если `git add -p` разрезать не удаётся (hunks слишком связаны) — bundle в меньше коммитов: допустимо слить Commit 1+2 (templates+PDF = "experiment content pipeline") или Commit 3+4 (UX+audit = "ops helpers"). Минимум 2 коммита, максимум 4. Зафиксировать deviation в commit-log.
 - **Не** коммитить `archive/e2e-runs/**`, `archive/manual-smoke-runs/**`, `archive/verify-workspace-backup/**`, `archive/smoke-runs/**` — это diagnostic runs, они мусорят историю. Если они не покрыты `.gitignore` — **не** расширять `.gitignore` в этом таске (оставить untracked, упомянуть в commit-log).
-- Архивные файлы `archive/audit.md`, `archive/rec.md`, `archive/questions.md`, `archive/prompt_for_github.md`, `archive/ab_test_for_gihub.md` — оставить untracked, они исторические; если юзер решит их сохранить — отдельный docs-таск.
+- Архивные файлы `archive/2026-03-08-legacy-loose-docs/audit.md`, `archive/2026-03-08-legacy-loose-docs/rec.md`, `archive/2026-03-08-legacy-loose-docs/questions.md`, `archive/2026-03-08-legacy-loose-docs/prompt_for_github.md`, `archive/2026-03-08-legacy-loose-docs/ab_test_for_gihub.md` — оставить untracked, они исторические; если юзер решит их сохранить — отдельный docs-таск.
 - Регенерация `api-contract.ts` / `docs/API.md` — только через `python scripts\generate_*.py` (без `--check`); после регена `--check` должен проходить.
 - Backend test_performance p95-guard может флапнуть — перезапустить один раз.
 

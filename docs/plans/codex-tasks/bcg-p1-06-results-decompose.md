@@ -12,7 +12,7 @@
 - `app/frontend/src/components/ResultsPanel.tsx` — полный файл
 - `src/components/ResultsPanel.test.tsx`
 - `src/components/ResultsPanel.module.css`
-- `BCG_plan.md` §1.3.1-1.3.12
+- `archive/2026-04-23-bcg-planning-docs/BCG_plan.md` §1.3.1-1.3.12
 
 ## Goal
 

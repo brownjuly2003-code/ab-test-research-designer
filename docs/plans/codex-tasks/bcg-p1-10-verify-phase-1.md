@@ -6,7 +6,7 @@
 
 ## Context
 
-Последняя задача Phase 1. Проверить, что все цели из `BCG_plan.md` L186 (checkpoint Фаза 1) достигнуты, и запустить полный verify-pipeline.
+Последняя задача Phase 1. Проверить, что все цели из `archive/2026-04-23-bcg-planning-docs/BCG_plan.md` L186 (checkpoint Фаза 1) достигнуты, и запустить полный verify-pipeline.
 
 ## Goal
 
@@ -14,7 +14,7 @@
 
 ## Steps
 
-### 1. Чеклист из BCG_plan.md §1 checkpoint
+### 1. Чеклист из `archive/2026-04-23-bcg-planning-docs/BCG_plan.md` §1 checkpoint
 
 Проверить по одному пункту:
 
@@ -90,7 +90,7 @@ cmd /c scripts\verify_all.cmd --with-e2e
 
 Дата: YYYY-MM-DD
 
-## Чеклист BCG_plan.md L186
+## Чеклист `archive/2026-04-23-bcg-planning-docs/BCG_plan.md` L186
 - [x] App.tsx < 120 строк (фактически: NN)
 - [x] ResultsPanel.tsx < 150 строк (фактически: NN)
 - [x] 5 Zustand stores работают

@@ -10,7 +10,7 @@
 
 Читать перед стартом:
 - `app/frontend/src/App.tsx` (487 стр) — строки с `theme`, `step`, `showOnboarding`, `importingDraft`
-- `BCG_plan.md` §1.2.1-1.2.3
+- `archive/2026-04-23-bcg-planning-docs/BCG_plan.md` §1.2.1-1.2.3
 
 ## Goal
 

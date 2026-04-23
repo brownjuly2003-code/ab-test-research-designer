@@ -1,6 +1,6 @@
 # Codex Tasks: AB Test Research Designer → Commercial Product
 
-> Based on `commercial-upgrade-plan.md`  
+> Based on `archive/2026-04-23-bcg-planning-docs/commercial-upgrade-plan.md`  
 > Generated: 2026-04-10  
 > Total tasks: 18 | Estimated: ~9 weeks (1 dev)
 

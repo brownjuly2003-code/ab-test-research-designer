@@ -9,7 +9,7 @@
 Финальная фаза — закрыть type-safety дыры после всех рефакторингов.
 
 Читать:
-- `BCG_plan.md` §1.6.1-1.6.2
+- `archive/2026-04-23-bcg-planning-docs/BCG_plan.md` §1.6.1-1.6.2
 
 ## Goal
 

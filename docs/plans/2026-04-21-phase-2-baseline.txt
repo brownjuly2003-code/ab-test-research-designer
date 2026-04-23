@@ -63,8 +63,8 @@
  docs/demo/review-step.png                        | Bin 779146 -> 668418 bytes
  docs/demo/sample-project.json                    |  14 +-
  docs/demo/wizard-overview.png                    | Bin 687622 -> 621175 bytes
- progress.md                                      |  19 +-
- questions.md                                     |  17 -
+ archive/2026-04-23-bcg-planning-docs/progress.md |  19 +-
+ archive/2026-03-08-legacy-loose-docs/questions.md |  17 -
  scripts/generate_api_docs.py                     |  13 +-
  scripts/run_backend_for_e2e.py                   |  35 +-
  scripts/run_local_smoke.py                       | 190 +++--

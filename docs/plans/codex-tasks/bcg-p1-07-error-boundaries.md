@@ -11,7 +11,7 @@
 2. `ChartErrorBoundary` — специфичный, показывает "Chart unavailable" + raw data
 
 Читать:
-- `BCG_plan.md` §1.4.1-1.4.3
+- `archive/2026-04-23-bcg-planning-docs/BCG_plan.md` §1.4.1-1.4.3
 - `src/App.tsx`, `src/components/results/*` (PowerCurveSection, ForestPlot)
 
 ## Goal

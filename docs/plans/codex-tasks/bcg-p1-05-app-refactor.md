@@ -16,7 +16,7 @@
 - `app/frontend/src/App.tsx`
 - `src/components/WizardPanel.tsx`
 - `src/components/SidebarPanel.tsx` (994 стр)
-- `BCG_plan.md` §1.2.7, §1.2.8
+- `archive/2026-04-23-bcg-planning-docs/BCG_plan.md` §1.2.7, §1.2.8
 
 ## Goal
 

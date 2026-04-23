@@ -99,5 +99,5 @@ This runs:
 
 ## Notes
 
-- `progress.md` remains the running changelog for implementation passes.
+- `CHANGELOG.md` remains the running changelog for implementation passes; `archive/2026-04-23-bcg-planning-docs/progress.md` is now historical only.
 - This file replaces the old split between build-plan style notes and current-state history.

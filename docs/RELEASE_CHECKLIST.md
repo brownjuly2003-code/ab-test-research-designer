@@ -47,4 +47,4 @@
 
 - update `README.md` when setup, verification, or endpoints change
 - append a short note to `CHANGELOG.md`
-- update `progress.md` only for meaningful milestone-level changes
+- use `CHANGELOG.md` for meaningful milestone-level changes; keep `archive/2026-04-23-bcg-planning-docs/progress.md` as historical reference only

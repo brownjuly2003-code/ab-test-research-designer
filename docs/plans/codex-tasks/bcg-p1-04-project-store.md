@@ -12,7 +12,7 @@
 - `app/frontend/src/hooks/useProjectManager.ts` — полный файл
 - `src/hooks/useProjectManager.test.tsx` (479 стр) — все сценарии должны работать
 - `app/frontend/src/lib/api.ts` — какие endpoints вызываются
-- `BCG_plan.md` §1.2.5
+- `archive/2026-04-23-bcg-planning-docs/BCG_plan.md` §1.2.5
 
 ## Goal
 

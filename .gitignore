@@ -48,5 +48,6 @@ archive/verify-workspace-backup/*
 
 # verify artifacts (CI uploads these; should not be tracked)
 .ci-artifacts/
+.tmp-gh-artifacts/
 .coverage
 /--artifacts-dir/

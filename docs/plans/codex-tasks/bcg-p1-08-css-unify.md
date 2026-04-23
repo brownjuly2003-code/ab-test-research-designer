@@ -11,7 +11,7 @@
 Читать:
 - `src/App.css`
 - `src/styles/tokens.css` (если есть)
-- `BCG_plan.md` §1.5.1-1.5.2
+- `archive/2026-04-23-bcg-planning-docs/BCG_plan.md` §1.5.1-1.5.2
 
 ## Goal
 
@@ -41,7 +41,7 @@
 
 ### 3. Компоненты без CSS Modules → модули
 
-Список из `BCG_plan.md` §1.5.2:
+Список из `archive/2026-04-23-bcg-planning-docs/BCG_plan.md` §1.5.2:
 - `EmptyState`
 - `ToastSystem`
 - `Accordion`

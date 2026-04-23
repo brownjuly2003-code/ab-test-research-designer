@@ -13,7 +13,7 @@
 - `app/frontend/src/hooks/useDraftPersistence.ts` — полный файл
 - `src/hooks/useAnalysis.test.tsx` — все сценарии должны продолжать работать
 - `src/hooks/useDraftPersistence.test.tsx`
-- `BCG_plan.md` §1.2.4, §1.2.6
+- `archive/2026-04-23-bcg-planning-docs/BCG_plan.md` §1.2.4, §1.2.6
 
 ## Goal
 

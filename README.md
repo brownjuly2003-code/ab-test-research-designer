@@ -98,7 +98,7 @@ Full inputs and outputs: [docs/case-studies/checkout-redesign.json](docs/case-st
 
 ## Roadmap
 
-Planned work after v1.1.0. See [progress.md](progress.md) for the full tiered backlog.
+Planned work after v1.1.0. See the [archived progress log](archive/2026-04-23-bcg-planning-docs/progress.md) for the full tiered backlog.
 
 - **Portfolio polish.** Seed demo workspace on HF Space startup, regenerate screenshots against the v1.1.0 UI, add a case-study section, publish a Docker image to GHCR, add dynamic quality-gate badges.
 - **Product quality.** Finish the German and Spanish UI translation, snapshot SQLite to a private HF Dataset for persistent hosted state, add an optional OpenAI / Anthropic adapter behind a browser-session token, publish a `mkdocs-material` documentation site, expand the template gallery to ten industry presets.
