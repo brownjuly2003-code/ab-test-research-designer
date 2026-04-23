@@ -13,6 +13,7 @@ from urllib.error import URLError
 from urllib.request import urlopen
 
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
+from playwright.sync_api import expect
 from playwright.sync_api import sync_playwright
 
 
@@ -438,17 +439,17 @@ def run_browser_smoke(
             append_smoke_log(log_path, "opening comparison dashboard")
             print("[smoke] opening comparison dashboard", flush=True)
             page.get_by_role("button", name="Projects", exact=True).click()
-            compare_checkboxes = page.get_by_role("checkbox", name="Select for comparison")
-            compare_checkboxes.nth(1).wait_for(state="visible", timeout=15000)
-            if compare_checkboxes.count() < 2:
-                raise RuntimeError("Smoke expected at least two comparison-ready project checkboxes.")
-            compare_checkboxes.nth(0).check()
-            compare_checkboxes.nth(1).check()
-            page.locator("#compare-selected-projects-button:not([disabled])").wait_for(
-                state="visible",
-                timeout=15000,
-            )
-            page.locator("#compare-selected-projects-button").click()
+            panel = page.get_by_test_id("project-compare-panel")
+            checkboxes = panel.get_by_test_id("project-compare-checkbox")
+            submit = panel.get_by_test_id("project-compare-submit")
+            expect(panel).to_be_visible(timeout=10_000)
+            expect(checkboxes.nth(1)).to_be_visible(timeout=10_000)
+            for index in (0, 1):
+                expect(checkboxes.nth(index)).to_be_enabled(timeout=5_000)
+                checkboxes.nth(index).check()
+            expect(panel.locator('[data-testid="project-compare-checkbox"]:checked')).to_have_count(2, timeout=5_000)
+            expect(submit).to_be_enabled(timeout=5_000)
+            submit.click()
             comparison_toggle = page.locator("button").filter(has_text="Comparison").first
             if comparison_toggle.get_attribute("aria-expanded") != "true":
                 comparison_toggle.click()
