@@ -46,6 +46,14 @@ It combines:
 
 The hosted demo is seeded with three sample projects (checkout conversion, pricing sensitivity, onboarding completion), each with a completed analysis run and an export on the first one, so the sidebar and history views are populated on first load. For Hugging Face Spaces, set `AB_SEED_DEMO_ON_STARTUP=true` in Space Settings.
 
+For persistent hosted state on Hugging Face Spaces, also set:
+
+- `AB_HF_SNAPSHOT_REPO` to the private dataset repo id, for example `liovina/ab-test-designer-snapshots`
+- `AB_HF_TOKEN` to a Hugging Face token with dataset write access, stored only as a Space Secret
+- `AB_HF_SNAPSHOT_INTERVAL_SECONDS` to control periodic snapshot uploads; default is `900`, and `0` disables the background loop
+
+With those variables configured, the backend restores the latest `projects.sqlite3` snapshot on startup, skips the demo seed when a snapshot was restored, uploads periodic dataset snapshots while the Space is running, and attempts one final push during shutdown.
+
 [![GHCR](https://img.shields.io/github/v/tag/brownjuly2003-code/ab-test-research-designer?label=ghcr.io&logo=docker)](https://github.com/brownjuly2003-code/ab-test-research-designer/pkgs/container/ab-test-research-designer)
 
 Deploy your own: see [docs/DEPLOY.md](docs/DEPLOY.md). Release prep files: [fly.toml](fly.toml) and [docs/RELEASE_NOTES_v1.1.0.md](docs/RELEASE_NOTES_v1.1.0.md).
@@ -151,6 +159,8 @@ Environment template:
 - set `AB_API_TOKEN` if you want write-capable `/api/v1/*` routes protected
 - optionally set `AB_READONLY_API_TOKEN` for read-only access to diagnostics, readiness, docs, and `GET` project routes
 - optionally set `AB_WORKSPACE_SIGNING_KEY` to HMAC-sign exported workspace backups and require signed imports on that runtime
+- optionally set `AB_HF_SNAPSHOT_REPO` and `AB_HF_TOKEN` to restore/persist the SQLite workspace through a private Hugging Face Dataset snapshot
+- optionally set `AB_HF_SNAPSHOT_INTERVAL_SECONDS` to change the snapshot cadence; the default is `900`, and `0` disables the background snapshot task
 - rate limiting and auth-failure throttling are enabled by default; tune `AB_RATE_LIMIT_*` and `AB_AUTH_FAILURE_*` for stricter or looser local behavior
 - request body guards are enabled by default; tune `AB_MAX_REQUEST_BODY_BYTES` and `AB_MAX_WORKSPACE_BODY_BYTES` if you expect unusually large workspace bundles
 - when the backend is protected, paste the token into the frontend "API session token" field; it stays only in the current browser session and is not baked into the build

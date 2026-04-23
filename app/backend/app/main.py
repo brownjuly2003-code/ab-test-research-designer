@@ -1,6 +1,9 @@
+import asyncio
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 import logging
+import os
+from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -27,6 +30,7 @@ from app.backend.app.routes.templates import create_templates_router
 from app.backend.app.routes.webhooks import create_webhooks_router
 from app.backend.app.routes.workspace import create_workspace_router
 from app.backend.app.services.design_service import build_experiment_report
+from app.backend.app.services.snapshot_service import SnapshotService
 from app.backend.app.startup_seed import seed_demo_workspace
 from app.backend.app.services.webhook_service import WebhookService
 
@@ -63,6 +67,21 @@ def create_app() -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
+        snapshot_service: SnapshotService | None = None
+        snapshot_task: asyncio.Task | None = None
+        seed_enabled = settings.seed_demo_on_startup
+        snapshot_repo = (os.getenv("AB_HF_SNAPSHOT_REPO") or "").strip()
+        snapshot_token = (os.getenv("AB_HF_TOKEN") or "").strip()
+        snapshot_interval_raw = (os.getenv("AB_HF_SNAPSHOT_INTERVAL_SECONDS") or "900").strip()
+        try:
+            snapshot_interval_seconds = max(0, int(snapshot_interval_raw))
+        except ValueError:
+            snapshot_interval_seconds = 900
+            logger.warning(
+                "snapshot: invalid interval %r, using default 900",
+                snapshot_interval_raw,
+            )
+
         log_event(
             logger,
             logging.INFO,
@@ -81,12 +100,52 @@ def create_app() -> FastAPI:
             ),
             workspace_signing_enabled=settings.workspace_signing_key is not None,
         )
-        if settings.seed_demo_on_startup:
+
+        if snapshot_repo and snapshot_token:
+            snapshot_service = SnapshotService(
+                repo_id=snapshot_repo,
+                local_db_path=Path(settings.db_path),
+                hf_token=snapshot_token,
+            )
+            restored = await snapshot_service.restore_latest()
+            if restored:
+                seed_enabled = False
+                logger.info(
+                    "snapshot: restored from %s",
+                    snapshot_service.last_restored_commit or "unknown",
+                )
+            elif settings.seed_demo_on_startup:
+                logger.info("snapshot: no snapshot available, falling back to seed")
+        else:
+            logger.info("snapshot: disabled (env not set)")
+
+        if seed_enabled:
             try:
                 seed_demo_workspace(settings, repository)
             except Exception:
                 logger.exception("demo-seed: failed")
+
+        if snapshot_service is not None and snapshot_interval_seconds > 0:
+            async def run_snapshot_loop() -> None:
+                while True:
+                    await asyncio.sleep(snapshot_interval_seconds)
+                    await snapshot_service.push_snapshot()
+
+            snapshot_task = asyncio.create_task(run_snapshot_loop())
         yield
+        if snapshot_task is not None:
+            snapshot_task.cancel()
+            try:
+                await snapshot_task
+            except asyncio.CancelledError:
+                pass
+        if snapshot_service is not None:
+            try:
+                await asyncio.wait_for(snapshot_service.push_snapshot(), timeout=10)
+            except asyncio.TimeoutError:
+                logger.warning("snapshot: final push timed out")
+            except Exception:
+                logger.warning("snapshot: final push failed", exc_info=True)
         webhook_service.shutdown(wait=True)
 
     app = FastAPI(
