@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   archiveProjectRequest,
   clearApiSessionToken,
+  clearLlmSessionConfig,
   compareProjectsRequest,
   deleteProjectRequest,
   exportWorkspaceRequest,
@@ -22,7 +23,9 @@ import {
   requestDiagnostics,
   requestHealth,
   requestAnalysis,
-  saveProjectRequest
+  saveProjectRequest,
+  setLlmSessionProvider,
+  setLlmSessionToken
 } from "./api";
 import { buildApiPayload, buildCalculationPayload, cloneInitialState } from "./experiment";
 
@@ -174,6 +177,7 @@ describe("frontend api wrapper", () => {
 
   afterEach(() => {
     clearApiSessionToken();
+    clearLlmSessionConfig();
     vi.unstubAllGlobals();
   });
 
@@ -298,6 +302,114 @@ describe("frontend api wrapper", () => {
       }
     });
     expect(hasApiSessionToken()).toBe(true);
+  });
+
+  it("adds session-only LLM headers to analysis requests without leaking the token into URL or body", async () => {
+    setLlmSessionProvider("openai");
+    setLlmSessionToken("sk-llm-secret");
+    vi.mocked(fetch).mockResolvedValueOnce(
+      jsonResponse({
+        calculations: {
+          calculation_summary: {
+            metric_type: "binary",
+            baseline_value: 0.042,
+            mde_pct: 5,
+            mde_absolute: 0.0021,
+            alpha: 0.05,
+            power: 0.8
+          },
+          results: {
+            sample_size_per_variant: 100,
+            total_sample_size: 200,
+            effective_daily_traffic: 5000,
+            estimated_duration_days: 10
+          },
+          assumptions: [],
+          warnings: []
+        },
+        report: buildReportPayload(),
+        advice: {
+          available: true,
+          provider: "openai",
+          model: "gpt-4o-mini",
+          advice: {
+            brief_assessment: "Remote advice is available.",
+            key_risks: ["Tracking quality"],
+            design_improvements: ["Validate event schema"],
+            metric_recommendations: ["Track checkout step completion"],
+            interpretation_pitfalls: ["Do not stop early"],
+            additional_checks: ["Verify exposure balance"]
+          },
+          raw_text: "{\"brief_assessment\":\"Remote advice is available.\"}",
+          error: null,
+          error_code: null
+        }
+      })
+    );
+
+    await requestAnalysis(cloneInitialState());
+
+    const [url, options] = vi.mocked(fetch).mock.calls[0] ?? [];
+
+    expect(options).toMatchObject({
+      headers: {
+        "Content-Type": "application/json",
+        "X-AB-LLM-Provider": "openai",
+        "X-AB-LLM-Token": "sk-llm-secret"
+      }
+    });
+    expect(String(url)).not.toContain("sk-llm-secret");
+    expect(String(options?.body ?? "")).not.toContain("sk-llm-secret");
+  });
+
+  it("does not add LLM headers when the provider is remote but no token is configured", async () => {
+    setLlmSessionProvider("anthropic");
+    vi.mocked(fetch).mockResolvedValueOnce(
+      jsonResponse({
+        calculations: {
+          calculation_summary: {
+            metric_type: "binary",
+            baseline_value: 0.042,
+            mde_pct: 5,
+            mde_absolute: 0.0021,
+            alpha: 0.05,
+            power: 0.8
+          },
+          results: {
+            sample_size_per_variant: 100,
+            total_sample_size: 200,
+            effective_daily_traffic: 5000,
+            estimated_duration_days: 10
+          },
+          assumptions: [],
+          warnings: []
+        },
+        report: buildReportPayload(),
+        advice: {
+          available: false,
+          provider: "local_orchestrator",
+          model: "offline",
+          advice: null,
+          raw_text: null,
+          error: "offline",
+          error_code: "request_error"
+        }
+      })
+    );
+
+    await requestAnalysis(cloneInitialState());
+
+    expect(vi.mocked(fetch).mock.calls[0]?.[1]).toMatchObject({
+      headers: {
+        "Content-Type": "application/json"
+      }
+    });
+    expect(vi.mocked(fetch).mock.calls[0]?.[1]).not.toMatchObject({
+      headers: {
+        "X-AB-LLM-Provider": expect.any(String),
+        "X-AB-LLM-Token": expect.any(String)
+      }
+    });
   });
 
   it("loads backend diagnostics", async () => {

@@ -453,6 +453,14 @@ export type MetricsPlanSection = {
   diagnostic: string[];
 };
 
+export type MonteCarloSimulationResponse = {
+  num_simulations: number;
+  percentiles: { [key: string]: number; };
+  probability_uplift_positive: number;
+  probability_uplift_above_threshold: { [key: string]: number; };
+  simulated_uplifts: number[];
+};
+
 export type MultiProjectComparisonRequest = {
   project_ids: string[];
 };
@@ -467,6 +475,7 @@ export type MultiProjectComparisonResponse = {
   duration_range: ComparisonRangeSummary;
   metric_types_used: string[];
   recommendation_highlights: string[];
+  monte_carlo_distribution?: { [key: string]: MonteCarloSimulationResponse; } | null;
 };
 
 export type ObservedResultsBinary = {

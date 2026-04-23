@@ -585,6 +585,14 @@ class ProjectUniqueInsights(BaseModel):
     assumptions: list[str]
 
 
+class MonteCarloSimulationResponse(BaseModel):
+    num_simulations: int
+    percentiles: dict[str, float]
+    probability_uplift_positive: float
+    probability_uplift_above_threshold: dict[str, float]
+    simulated_uplifts: list[float]
+
+
 class MultiProjectComparisonResponse(BaseModel):
     projects: list[ProjectComparisonItem]
     shared_warnings: list[str]
@@ -595,6 +603,7 @@ class MultiProjectComparisonResponse(BaseModel):
     duration_range: ComparisonRangeSummary
     metric_types_used: list[str]
     recommendation_highlights: list[str]
+    monte_carlo_distribution: dict[str, MonteCarloSimulationResponse] | None = None
 
 
 class DiagnosticsStorageSummary(BaseModel):
@@ -1030,6 +1039,7 @@ __all__ = [
     "ExperimentReport",
     "ComparisonExportRequest",
     "ComparisonRangeSummary",
+    "MonteCarloSimulationResponse",
     "ExportResponse",
     "GuardrailMetricInput",
     "MultiProjectComparisonRequest",

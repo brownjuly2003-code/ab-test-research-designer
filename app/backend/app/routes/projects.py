@@ -2,6 +2,7 @@ import re
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
+from fastapi.responses import JSONResponse
 
 from app.backend.app.schemas.api import (
     AnalysisResponse,
@@ -22,6 +23,7 @@ from app.backend.app.services.export_service import (
     export_project_report_to_csv,
     export_project_report_to_xlsx,
 )
+from app.backend.app.services.monte_carlo_service import simulate_comparison
 from app.backend.app.services.pdf_service import generate_report_pdf
 
 
@@ -152,8 +154,13 @@ def create_projects_router(settings, repository, rate_limiter, require_auth, req
         response_model=MultiProjectComparisonResponse,
         dependencies=[Depends(require_auth)],
     )
-    def compare_multiple_projects(payload: MultiProjectComparisonRequest) -> MultiProjectComparisonResponse:
+    def compare_multiple_projects(
+        payload: MultiProjectComparisonRequest,
+        include_monte_carlo: bool = Query(default=False),
+        monte_carlo_simulations: int = Query(default=10000, ge=1000, le=50000),
+    ) -> JSONResponse:
         projects_with_runs: list[tuple[dict, dict]] = []
+        project_records: list[dict] = []
         for project_id in payload.project_ids:
             project = repository.get_project(project_id)
             if project is None:
@@ -161,9 +168,19 @@ def create_projects_router(settings, repository, rate_limiter, require_auth, req
             analysis_run = repository.get_latest_analysis_run(project_id)
             if analysis_run is None:
                 raise HTTPException(status_code=404, detail="Project analysis snapshot not found")
+            project_records.append(project)
             projects_with_runs.append((project, analysis_run))
         comparison = build_multi_project_comparison(projects_with_runs)
-        return MultiProjectComparisonResponse.model_validate(comparison)
+        if include_monte_carlo:
+            comparison["monte_carlo_distribution"] = simulate_comparison(
+                project_records,
+                num_simulations=monte_carlo_simulations,
+                seed=None,
+            )
+        response_payload = MultiProjectComparisonResponse.model_validate(comparison).model_dump(mode="json")
+        if not include_monte_carlo:
+            response_payload.pop("monte_carlo_distribution", None)
+        return JSONResponse(content=response_payload)
 
     @router.get(
         "/api/v1/projects/{project_id}",

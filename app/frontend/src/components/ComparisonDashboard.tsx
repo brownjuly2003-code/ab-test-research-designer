@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import "../i18n";
 import { exportComparisonRequest } from "../lib/api";
 import type { MultiProjectComparison } from "../lib/experiment";
+import DistributionView from "./ComparisonDashboard/DistributionView";
 import ForestPlot from "./ForestPlot";
 import PowerCurveChart from "./PowerCurveChart";
 import SensitivityTable from "./SensitivityTable";
@@ -79,7 +80,7 @@ export default function ComparisonDashboard({ comparison, onClose }: ComparisonD
         );
       }
     } catch (error) {
-      setExportError(error instanceof Error ? error.message : t("comparison.dashboard.exportFailed"));
+      setExportError(error instanceof Error ? error.message : t("results.comparison.dashboard.exportFailed"));
     } finally {
       setExportingFormat(null);
     }
@@ -95,11 +96,11 @@ export default function ComparisonDashboard({ comparison, onClose }: ComparisonD
       <div className="card" style={{ display: "grid", gap: 12 }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
           <div>
-            <span className="pill">{t("comparison.dashboard.loaded", { count: comparison.projects.length })}</span>
+            <span className="pill">{t("results.comparison.dashboard.loaded", { count: comparison.projects.length })}</span>
             <h3 id="comparison-dashboard-heading" ref={headingRef} tabIndex={-1} style={{ marginTop: 12 }}>
-              {t("comparison.dashboard.title")}
+              {t("results.comparison.dashboard.title")}
             </h3>
-            <p className="muted">{t("comparison.dashboard.subtitle")}</p>
+            <p className="muted">{t("results.comparison.dashboard.subtitle")}</p>
           </div>
           <div className="actions">
             <button
@@ -108,7 +109,7 @@ export default function ComparisonDashboard({ comparison, onClose }: ComparisonD
               disabled={exportingFormat !== null}
               onClick={() => void handleExport("markdown")}
             >
-              {exportingFormat === "markdown" ? t("comparison.dashboard.exporting") : t("comparison.dashboard.exportMarkdown")}
+              {exportingFormat === "markdown" ? t("results.comparison.dashboard.exporting") : t("results.comparison.dashboard.exportMarkdown")}
             </button>
             <button
               className="btn secondary"
@@ -116,7 +117,7 @@ export default function ComparisonDashboard({ comparison, onClose }: ComparisonD
               disabled={exportingFormat !== null}
               onClick={() => void handleExport("pdf")}
             >
-              {exportingFormat === "pdf" ? t("comparison.dashboard.exporting") : t("comparison.dashboard.exportPdf")}
+              {exportingFormat === "pdf" ? t("results.comparison.dashboard.exporting") : t("results.comparison.dashboard.exportPdf")}
             </button>
             <button
               className="btn ghost"
@@ -124,22 +125,22 @@ export default function ComparisonDashboard({ comparison, onClose }: ComparisonD
               data-testid="comparison-dashboard-close"
               onClick={handleClose}
             >
-              {t("comparison.dashboard.close")}
+              {t("results.comparison.dashboard.close")}
             </button>
           </div>
         </div>
         {exportError ? <div className="error">{exportError}</div> : null}
         {hasMixedMetricTypes ? (
           <div className="callout">
-            <strong>{t("comparison.dashboard.mixedMetricTypes")}</strong>
+            <strong>{t("results.comparison.dashboard.mixedMetricTypes")}</strong>
           </div>
         ) : null}
       </div>
 
       <section role="region" aria-labelledby="comparison-projects-heading" className="card" style={{ display: "grid", gap: 12 }}>
         <div>
-          <h3 id="comparison-projects-heading">{t("comparison.dashboard.projectsTitle")}</h3>
-          <p className="muted">{t("comparison.dashboard.projectsSubtitle")}</p>
+          <h3 id="comparison-projects-heading">{t("results.comparison.dashboard.projectsTitle")}</h3>
+          <p className="muted">{t("results.comparison.dashboard.projectsSubtitle")}</p>
         </div>
         <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
           {comparison.projects.map((project) => (
@@ -154,9 +155,9 @@ export default function ComparisonDashboard({ comparison, onClose }: ComparisonD
                 </span>
               </div>
               <span className="muted">{project.metric_type}</span>
-              <span>{t("comparison.dashboard.sampleSize", { value: project.total_sample_size })}</span>
-              <span>{t("comparison.dashboard.duration", { value: project.estimated_duration_days })}</span>
-              <span>{t("comparison.dashboard.warnings", { value: project.warnings_count })}</span>
+              <span>{t("results.comparison.dashboard.sampleSize", { value: project.total_sample_size })}</span>
+              <span>{t("results.comparison.dashboard.duration", { value: project.estimated_duration_days })}</span>
+              <span>{t("results.comparison.dashboard.warnings", { value: project.warnings_count })}</span>
             </article>
           ))}
         </div>
@@ -164,16 +165,16 @@ export default function ComparisonDashboard({ comparison, onClose }: ComparisonD
 
       <section role="region" aria-labelledby="comparison-power-curves-heading" className="card" style={{ display: "grid", gap: 12 }}>
         <div>
-          <h3 id="comparison-power-curves-heading">{t("comparison.dashboard.powerCurvesTitle")}</h3>
-          <p className="muted">{t("comparison.dashboard.powerCurvesSubtitle")}</p>
+          <h3 id="comparison-power-curves-heading">{t("results.comparison.dashboard.powerCurvesTitle")}</h3>
+          <p className="muted">{t("results.comparison.dashboard.powerCurvesSubtitle")}</p>
         </div>
         <PowerCurveChart series={powerCurveSeries} />
       </section>
 
       <section role="region" aria-labelledby="comparison-sensitivity-heading" className="card" style={{ display: "grid", gap: 12 }}>
         <div>
-          <h3 id="comparison-sensitivity-heading">{t("comparison.dashboard.sensitivityTitle")}</h3>
-          <p className="muted">{t("comparison.dashboard.sensitivitySubtitle")}</p>
+          <h3 id="comparison-sensitivity-heading">{t("results.comparison.dashboard.sensitivityTitle")}</h3>
+          <p className="muted">{t("results.comparison.dashboard.sensitivitySubtitle")}</p>
         </div>
         <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
           {comparison.projects.map((project) => (
@@ -187,7 +188,7 @@ export default function ComparisonDashboard({ comparison, onClose }: ComparisonD
                   metricType={project.metric_type === "continuous" ? "continuous" : "binary"}
                 />
               ) : (
-                <span className="muted">{t("comparison.dashboard.sensitivityUnavailable")}</span>
+                <span className="muted">{t("results.comparison.dashboard.sensitivityUnavailable")}</span>
               )}
             </article>
           ))}
@@ -196,8 +197,8 @@ export default function ComparisonDashboard({ comparison, onClose }: ComparisonD
 
       <section role="region" aria-labelledby="comparison-observed-effects-heading" className="card" style={{ display: "grid", gap: 12 }}>
         <div>
-          <h3 id="comparison-observed-effects-heading">{t("comparison.dashboard.observedEffectsTitle")}</h3>
-          <p className="muted">{t("comparison.dashboard.observedEffectsSubtitle")}</p>
+          <h3 id="comparison-observed-effects-heading">{t("results.comparison.dashboard.observedEffectsTitle")}</h3>
+          <p className="muted">{t("results.comparison.dashboard.observedEffectsSubtitle")}</p>
         </div>
         <div style={{ display: "grid", gap: 12 }}>
           {observedProjects.map((project) => (
@@ -214,40 +215,42 @@ export default function ComparisonDashboard({ comparison, onClose }: ComparisonD
         </div>
       </section>
 
+      <DistributionView comparison={comparison} />
+
       <section role="region" aria-labelledby="comparison-insights-heading" className="card" style={{ display: "grid", gap: 12 }}>
         <div>
-          <h3 id="comparison-insights-heading">{t("comparison.dashboard.insightsTitle")}</h3>
-          <p className="muted">{t("comparison.dashboard.insightsSubtitle")}</p>
+          <h3 id="comparison-insights-heading">{t("results.comparison.dashboard.insightsTitle")}</h3>
+          <p className="muted">{t("results.comparison.dashboard.insightsSubtitle")}</p>
         </div>
         <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
           <div className="card">
-            <strong>{t("comparison.dashboard.sharedWarnings")}</strong>
+            <strong>{t("results.comparison.dashboard.sharedWarnings")}</strong>
             <ul className="list">
-              {(comparison.shared_warnings.length ? comparison.shared_warnings : [t("comparison.dashboard.none")]).map((item) => (
+              {(comparison.shared_warnings.length ? comparison.shared_warnings : [t("results.comparison.dashboard.none")]).map((item) => (
                 <li key={item}>{item}</li>
               ))}
             </ul>
           </div>
           <div className="card">
-            <strong>{t("comparison.dashboard.sharedRisks")}</strong>
+            <strong>{t("results.comparison.dashboard.sharedRisks")}</strong>
             <ul className="list">
-              {(comparison.shared_risks.length ? comparison.shared_risks : [t("comparison.dashboard.none")]).map((item) => (
+              {(comparison.shared_risks.length ? comparison.shared_risks : [t("results.comparison.dashboard.none")]).map((item) => (
                 <li key={item}>{item}</li>
               ))}
             </ul>
           </div>
           <div className="card">
-            <strong>{t("comparison.dashboard.sharedAssumptions")}</strong>
+            <strong>{t("results.comparison.dashboard.sharedAssumptions")}</strong>
             <ul className="list">
-              {(comparison.shared_assumptions.length ? comparison.shared_assumptions : [t("comparison.dashboard.none")]).map((item) => (
+              {(comparison.shared_assumptions.length ? comparison.shared_assumptions : [t("results.comparison.dashboard.none")]).map((item) => (
                 <li key={item}>{item}</li>
               ))}
             </ul>
           </div>
           <div className="card">
-            <strong>{t("comparison.dashboard.recommendationHighlights")}</strong>
+            <strong>{t("results.comparison.dashboard.recommendationHighlights")}</strong>
             <ul className="list">
-              {(comparison.recommendation_highlights.length ? comparison.recommendation_highlights : [t("comparison.dashboard.none")]).map((item) => (
+              {(comparison.recommendation_highlights.length ? comparison.recommendation_highlights : [t("results.comparison.dashboard.none")]).map((item) => (
                 <li key={item}>{item}</li>
               ))}
             </ul>
@@ -256,10 +259,10 @@ export default function ComparisonDashboard({ comparison, onClose }: ComparisonD
         <table>
           <thead>
             <tr>
-              <th>{t("comparison.dashboard.project")}</th>
-              <th>{t("comparison.dashboard.uniqueWarnings")}</th>
-              <th>{t("comparison.dashboard.uniqueRisks")}</th>
-              <th>{t("comparison.dashboard.uniqueAssumptions")}</th>
+              <th>{t("results.comparison.dashboard.project")}</th>
+              <th>{t("results.comparison.dashboard.uniqueWarnings")}</th>
+              <th>{t("results.comparison.dashboard.uniqueRisks")}</th>
+              <th>{t("results.comparison.dashboard.uniqueAssumptions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -268,9 +271,9 @@ export default function ComparisonDashboard({ comparison, onClose }: ComparisonD
               return (
                 <tr key={project.id}>
                   <th scope="row">{project.project_name}</th>
-                  <td>{uniqueInsights?.warnings.join(", ") || t("comparison.dashboard.none")}</td>
-                  <td>{uniqueInsights?.risks.join(", ") || t("comparison.dashboard.none")}</td>
-                  <td>{uniqueInsights?.assumptions.join(", ") || t("comparison.dashboard.none")}</td>
+                  <td>{uniqueInsights?.warnings.join(", ") || t("results.comparison.dashboard.none")}</td>
+                  <td>{uniqueInsights?.risks.join(", ") || t("results.comparison.dashboard.none")}</td>
+                  <td>{uniqueInsights?.assumptions.join(", ") || t("results.comparison.dashboard.none")}</td>
                 </tr>
               );
             })}

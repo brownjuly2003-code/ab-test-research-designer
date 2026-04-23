@@ -153,10 +153,19 @@ async function runAnalysisFlow() {
   const analysis = useAnalysisStore.getState();
   const draftStore = useDraftStore.getState();
   const project = useProjectStore.getState();
+  const llmProvider = typeof window === "undefined"
+    ? "local"
+    : String(window.sessionStorage.getItem("ab_llm_provider") ?? "").trim().toLowerCase();
+  const llmToken = typeof window === "undefined"
+    ? ""
+    : String(window.sessionStorage.getItem("ab_llm_token") ?? "").trim();
   project.clearProjectError();
   const result = await analysis.runAnalysis(draftStore.draft);
   if (!result) {
     return;
+  }
+  if ((llmProvider === "openai" || llmProvider === "anthropic") && llmToken.length === 0) {
+    analysis.showStatus(t("app.preferences.llm.tokenRequiredFallback"), "warning");
   }
   const outcome = await project.persistAnalysisSnapshot(draftStore.draft, result);
   analysis.linkResultToProject(outcome.projectId, outcome.analysisRunId);

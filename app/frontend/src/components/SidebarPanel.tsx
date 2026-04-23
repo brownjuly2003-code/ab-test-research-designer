@@ -19,6 +19,7 @@ import Icon from "./Icon";
 import InlineConfirmButton from "./InlineConfirmButton";
 import ProjectListFilters from "./ProjectListFilters";
 import ProjectListSkeleton from "./ProjectListSkeleton";
+import LlmProviderSettings from "./Settings/llm-provider";
 import StatusDot from "./StatusDot";
 import styles from "./SidebarPanel.module.css";
 
@@ -632,6 +633,8 @@ const SidebarPanel = memo(function SidebarPanel() {
         </div>
         {apiTokenStatus ? <div className="status">{apiTokenStatus}</div> : null}
       </div>
+
+      <LlmProviderSettings />
 
       <div className="card">
         <div className="section-heading">

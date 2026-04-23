@@ -1,0 +1,68 @@
+name: Trial to Paid
+category: SaaS Monetization
+description: Compare a 14-day versus 7-day trial onboarding path using monetization and activation outcomes.
+tags:
+  - continuous
+  - saas
+  - monetization
+payload:
+  project:
+    project_name: ""
+    domain: saas
+    product_type: web app
+    platform: web
+    market: Global
+    project_description: Optimize the trial experience to improve paid conversion quality for self-serve accounts.
+  hypothesis:
+    change_description: Test a shorter 7-day onboarding path against the current 14-day trial
+    target_audience: new self-serve trial accounts
+    business_problem: trial-to-paid conversion is slow and monetization per trial is below target
+    hypothesis_statement: A shorter, more guided trial will improve MRR per trial start without degrading customer quality.
+    what_to_validate: monetization impact of changing trial length and onboarding intensity
+    desired_result: higher MRR realized per trial started with stable customer value
+  setup:
+    experiment_type: ab
+    randomization_unit: account
+    traffic_split:
+      - 50
+      - 50
+    expected_daily_traffic: 1200
+    audience_share_in_test: 0.96
+    variants_count: 2
+    inclusion_criteria: new self-serve trials starting from the default pricing funnel
+    exclusion_criteria: sales-assisted, partner-sourced, or enterprise proof-of-concept accounts
+  metrics:
+    primary_metric_name: mrr_per_trial_start
+    metric_type: continuous
+    baseline_value: 21.4
+    expected_uplift_pct: 9
+    mde_pct: 6
+    alpha: 0.05
+    power: 0.8
+    std_dev: 58.0
+    cuped_pre_experiment_std: 58.0
+    cuped_correlation: 0.42
+    secondary_metrics:
+      - activation_rate
+      - paid_conversion_rate
+    guardrail_metrics:
+      - name: ARPU
+        metric_type: continuous
+        baseline_mean: 74.0
+        std_dev: 24.0
+  constraints:
+    seasonality_present: false
+    active_campaigns_present: true
+    returning_users_present: false
+    interference_risk: medium
+    technical_constraints: billing state and in-app onboarding checkpoints must stay versioned together
+    legal_or_ethics_constraints: billing disclosures and renewal notices must remain unchanged
+    known_risks: sales follow-up can unevenly affect higher-intent cohorts
+    deadline_pressure: high
+    long_test_possible: true
+    n_looks: 1
+    analysis_mode: frequentist
+    desired_precision: null
+    credibility: 0.95
+  additional_context:
+    llm_context: Compare both variants on revenue realized per trial start, not only raw paid conversion volume.

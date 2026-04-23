@@ -136,6 +136,7 @@ Planned work after v1.1.0. See the [archived progress log](archive/2026-04-23-bc
 - warning engine for traffic, duration, seasonality, campaigns, and design quality
 - deterministic report with design, metrics plan, risks, and recommendations
 - optional AI advice kept separate from the hard-math output
+- optional OpenAI and Anthropic adapters via browser-session token, without backend key persistence
 - local project save, load, update, archive, restore, compare, history, and export flows
 - saved-project revision history with payload restore into the wizard
 - richer snapshot comparison with assumption/risk overlap and recommendation highlights

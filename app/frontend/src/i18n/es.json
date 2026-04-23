@@ -27,6 +27,22 @@
         "dark": "Oscuro",
         "system": "Auto"
       }
+    },
+    "preferences": {
+      "llm": {
+        "title": "Proveedor de LLM",
+        "description": "Sugerencias remotas opcionales solo para la sesion actual del navegador.",
+        "providerLabel": "Proveedor",
+        "providers": {
+          "local": "Local (predeterminado)",
+          "openai": "OpenAI",
+          "anthropic": "Anthropic"
+        },
+        "tokenLabel": "API key (solo sesion, nunca se guarda)",
+        "info": "Tu clave permanece en el session storage del navegador y se borra cuando cierras esta pestana.",
+        "useLocal": "Usar local en su lugar",
+        "tokenRequiredFallback": "Se requiere token - se usaran sugerencias locales"
+      }
     }
   },
   "wizard": {
@@ -324,6 +340,21 @@
     "comparison": {
       "empty": "Cargue una comparaci?n de proyectos guardados desde la barra lateral de Proyectos para revisar instant?neas de la l?nea base y de los candidatos.",
       "loading": "Cargando panel de comparación...",
+      "monteCarlo": {
+        "title": "Vista de distribuciÃ³n",
+        "subtitle": "Ejecute un overlay Monte-Carlo bajo demanda para comparar distribuciones de uplift y riesgo de cola.",
+        "showToggle": "Mostrar vista de distribuciÃ³n",
+        "hideToggle": "Ocultar vista de distribuciÃ³n",
+        "loading": "Ejecutando simulaciones Monte-Carlo...",
+        "loadFailed": "No se pudo cargar la vista de distribuciÃ³n.",
+        "empty": "Los datos de distribuciÃ³n no estÃ¡n disponibles para los proyectos seleccionados.",
+        "sliderLabel": "Probabilidad de uplift > {{threshold}}",
+        "thresholdHint": "Entre los umbrales del servidor, el cliente interpola las probabilidades.",
+        "probabilityValue": "{{probability}} por encima del umbral",
+        "positiveProbability": "{{probability}} de probabilidad de uplift positivo",
+        "percentileLegend": "Leyenda de percentiles",
+        "percentileValue": "{{label}} {{value}}"
+      },
       "dashboard": {
         "loaded": "{{count}} proyectos comparados",
         "title": "Panel de comparación",

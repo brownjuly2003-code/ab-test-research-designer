@@ -1,0 +1,68 @@
+name: Search Ranking CTR
+category: Search Discovery
+description: Measure how search rank-fusion tuning changes result-page click-through at high query volume.
+tags:
+  - binary
+  - search
+  - ctr
+payload:
+  project:
+    project_name: ""
+    domain: content platform
+    product_type: search experience
+    platform: web
+    market: Global
+    project_description: Tune result ranking weights to improve click-through on search result pages.
+  hypothesis:
+    change_description: Increase semantic relevance weight relative to recency in rank fusion
+    target_audience: signed-in and anonymous users issuing navigational or exploratory searches
+    business_problem: current ranking under-serves high-intent queries and wastes result impressions
+    hypothesis_statement: Better fusion weights will raise SERP click-through without increasing low-quality clicks.
+    what_to_validate: search result engagement after the ranking change
+    desired_result: a statistically reliable CTR increase at production search scale
+  setup:
+    experiment_type: ab
+    randomization_unit: session
+    traffic_split:
+      - 50
+      - 50
+    expected_daily_traffic: 5500000
+    audience_share_in_test: 0.88
+    variants_count: 2
+    inclusion_criteria: eligible web search sessions with full result ranking enabled
+    exclusion_criteria: bot traffic, empty queries, and sessions routed to fallback search infrastructure
+  metrics:
+    primary_metric_name: serp_ctr
+    metric_type: binary
+    baseline_value: 0.22
+    expected_uplift_pct: 4
+    mde_pct: 3
+    alpha: 0.05
+    power: 0.8
+    std_dev: null
+    secondary_metrics:
+      - refinement_rate
+      - long_click_rate
+    guardrail_metrics:
+      - name: Zero-result rate
+        metric_type: binary
+        baseline_rate: 3.4
+      - name: Failed search latency share
+        metric_type: binary
+        baseline_rate: 1.1
+  constraints:
+    seasonality_present: false
+    active_campaigns_present: false
+    returning_users_present: true
+    interference_risk: high
+    technical_constraints: cache invalidation and ranking-service shadow traffic must be aligned
+    legal_or_ethics_constraints: ranking changes must preserve safe-search and compliance filters
+    known_risks: query mix shifts quickly during major news or entertainment events
+    deadline_pressure: medium
+    long_test_possible: true
+    n_looks: 1
+    analysis_mode: frequentist
+    desired_precision: null
+    credibility: 0.95
+  additional_context:
+    llm_context: Segment by query intent and device type because CTR gains can hide low-quality traffic shifts.

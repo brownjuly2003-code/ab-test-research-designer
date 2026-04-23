@@ -1,7 +1,10 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 
+from app.backend.app.errors import ApiError
 from app.backend.app.i18n import translate
-from app.backend.app.llm.adapter import LocalOrchestratorAdapter
+from app.backend.app.llm.adapter import LLMAuthError, LLMTransientError, LocalOrchestratorAdapter
+from app.backend.app.llm.anthropic_adapter import AnthropicAdapter
+from app.backend.app.llm.openai_adapter import OpenAIAdapter
 from app.backend.app.schemas.api import (
     AnalysisResponse,
     CalculationRequest,
@@ -65,10 +68,38 @@ def _build_llm_advice_payload(payload: ExperimentInput, calculation_result: dict
     }
 
 
+def pick_adapter(
+    request: Request,
+    *,
+    local_adapter: LocalOrchestratorAdapter,
+    openai_adapter: OpenAIAdapter,
+    anthropic_adapter: AnthropicAdapter,
+) -> tuple[LocalOrchestratorAdapter | OpenAIAdapter | AnthropicAdapter, str]:
+    provider = request.headers.get("X-AB-LLM-Provider", "").strip().lower()
+    token = request.headers.get("X-AB-LLM-Token", "").strip()
+    if provider == "openai" and token:
+        return openai_adapter, token
+    if provider == "anthropic" and token:
+        return anthropic_adapter, token
+    return local_adapter, ""
+
+
 def create_analysis_router(settings, repository, rate_limiter, require_auth, require_write_auth) -> APIRouter:
     router = APIRouter(tags=["calculations"])
-    llm_adapter = LocalOrchestratorAdapter(
+    local_adapter = LocalOrchestratorAdapter(
         base_url=settings.llm_base_url,
+        timeout_seconds=settings.llm_timeout_seconds,
+        max_attempts=settings.llm_max_attempts,
+        initial_backoff_seconds=settings.llm_initial_backoff_seconds,
+        backoff_multiplier=settings.llm_backoff_multiplier,
+    )
+    openai_adapter = OpenAIAdapter(
+        timeout_seconds=settings.llm_timeout_seconds,
+        max_attempts=settings.llm_max_attempts,
+        initial_backoff_seconds=settings.llm_initial_backoff_seconds,
+        backoff_multiplier=settings.llm_backoff_multiplier,
+    )
+    anthropic_adapter = AnthropicAdapter(
         timeout_seconds=settings.llm_timeout_seconds,
         max_attempts=settings.llm_max_attempts,
         initial_backoff_seconds=settings.llm_initial_backoff_seconds,
@@ -180,11 +211,23 @@ def create_analysis_router(settings, repository, rate_limiter, require_auth, req
         response_model=AnalysisResponse,
         dependencies=[Depends(require_write_auth)],
     )
-    def analyze(payload: ExperimentInput) -> AnalysisResponse:
+    def analyze(request: Request, payload: ExperimentInput) -> AnalysisResponse:
         calculation_payload = _build_calculation_payload(payload)
         calculation_result = calculate_experiment_metrics(calculation_payload.model_dump())
         report = build_experiment_report(payload.model_dump(), calculation_result)
-        advice = llm_adapter.request_advice(_build_llm_advice_payload(payload, calculation_result))
+        adapter, token = pick_adapter(
+            request,
+            local_adapter=local_adapter,
+            openai_adapter=openai_adapter,
+            anthropic_adapter=anthropic_adapter,
+        )
+        advice_payload = _build_llm_advice_payload(payload, calculation_result)
+        try:
+            advice = adapter.request_advice(advice_payload, token=token) if token else adapter.request_advice(advice_payload)
+        except LLMAuthError as exc:
+            raise ApiError(str(exc), error_code="llm_auth", status_code=exc.status_code) from exc
+        except LLMTransientError as exc:
+            raise ApiError(str(exc), error_code="llm_transient", status_code=503) from exc
         return AnalysisResponse(
             calculations=CalculationResponse.model_validate(calculation_result),
             report=ExperimentReport.model_validate(report),
@@ -196,8 +239,20 @@ def create_analysis_router(settings, repository, rate_limiter, require_auth, req
         response_model=LlmAdviceResponse,
         dependencies=[Depends(require_write_auth)],
     )
-    def llm_advice(payload: LlmAdviceRequest) -> LlmAdviceResponse:
-        result = llm_adapter.request_advice(payload.model_dump(exclude_none=True))
+    def llm_advice(request: Request, payload: LlmAdviceRequest) -> LlmAdviceResponse:
+        adapter, token = pick_adapter(
+            request,
+            local_adapter=local_adapter,
+            openai_adapter=openai_adapter,
+            anthropic_adapter=anthropic_adapter,
+        )
+        advice_payload = payload.model_dump(exclude_none=True)
+        try:
+            result = adapter.request_advice(advice_payload, token=token) if token else adapter.request_advice(advice_payload)
+        except LLMAuthError as exc:
+            raise ApiError(str(exc), error_code="llm_auth", status_code=exc.status_code) from exc
+        except LLMTransientError as exc:
+            raise ApiError(str(exc), error_code="llm_transient", status_code=503) from exc
         return LlmAdviceResponse.model_validate(result)
 
     return router

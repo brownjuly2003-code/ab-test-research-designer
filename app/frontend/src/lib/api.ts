@@ -35,6 +35,14 @@ import type {
 
 const apiSessionTokenStorageKey = "ab-test-research-designer:api-token:v1";
 const adminSessionTokenStorageKey = "ab-test-research-designer:admin-token:v1";
+const llmProviderSessionStorageKey = "ab_llm_provider";
+const llmTokenSessionStorageKey = "ab_llm_token";
+
+export type LlmProvider = "local" | "openai" | "anthropic";
+export type LlmSessionConfig = {
+  provider: LlmProvider;
+  token: string;
+};
 
 export type ProjectRecordResponse = ProjectRecordPayload;
 export type SaveProjectResponse = ProjectRecordPayload;
@@ -153,6 +161,10 @@ export type ProjectRevisionRequestOptions = {
   limit?: number;
   offset?: number;
 };
+export type CompareMultipleProjectsRequestOptions = {
+  includeMonteCarlo?: boolean;
+  monteCarloSimulations?: number;
+};
 type TemplateListResponse = {
   templates?: TemplateRecord[];
   total?: number;
@@ -189,6 +201,79 @@ function readAdminSessionToken(): string {
   } catch {
     return "";
   }
+}
+
+function readLlmSessionProvider(): LlmProvider {
+  const storage = typeof globalThis !== "undefined" ? globalThis.sessionStorage : undefined;
+  if (!storage) {
+    return "local";
+  }
+
+  try {
+    const provider = String(storage.getItem(llmProviderSessionStorageKey) ?? "").trim().toLowerCase();
+    return provider === "openai" || provider === "anthropic" ? provider : "local";
+  } catch {
+    return "local";
+  }
+}
+
+function readLlmSessionToken(): string {
+  const storage = typeof globalThis !== "undefined" ? globalThis.sessionStorage : undefined;
+  if (!storage) {
+    return "";
+  }
+
+  try {
+    return String(storage.getItem(llmTokenSessionStorageKey) ?? "").trim();
+  } catch {
+    return "";
+  }
+}
+
+export function getLlmSessionConfig(): LlmSessionConfig {
+  return {
+    provider: readLlmSessionProvider(),
+    token: readLlmSessionToken()
+  };
+}
+
+export function setLlmSessionProvider(provider: LlmProvider): void {
+  const storage = typeof globalThis !== "undefined" ? globalThis.sessionStorage : undefined;
+  if (!storage) {
+    return;
+  }
+
+  if (provider === "local") {
+    clearLlmSessionConfig();
+    return;
+  }
+
+  storage.setItem(llmProviderSessionStorageKey, provider);
+}
+
+export function setLlmSessionToken(token: string): void {
+  const storage = typeof globalThis !== "undefined" ? globalThis.sessionStorage : undefined;
+  if (!storage) {
+    return;
+  }
+
+  const normalized = token.trim();
+  if (!normalized) {
+    storage.removeItem(llmTokenSessionStorageKey);
+    return;
+  }
+
+  storage.setItem(llmTokenSessionStorageKey, normalized);
+}
+
+export function clearLlmSessionConfig(): void {
+  const storage = typeof globalThis !== "undefined" ? globalThis.sessionStorage : undefined;
+  if (!storage) {
+    return;
+  }
+
+  storage.removeItem(llmProviderSessionStorageKey);
+  storage.removeItem(llmTokenSessionStorageKey);
 }
 
 export function hasApiSessionToken(): boolean {
@@ -260,6 +345,22 @@ function buildHeaders(
 
 function buildAdminHeaders(additionalHeaders: Record<string, string> = {}): Record<string, string> {
   return buildHeaders(additionalHeaders, readAdminSessionToken());
+}
+
+function buildLlmHeaders(path: string): Record<string, string> {
+  if (path !== "/api/v1/analyze" && !path.startsWith("/api/v1/llm/")) {
+    return {};
+  }
+
+  const config = getLlmSessionConfig();
+  if ((config.provider === "openai" || config.provider === "anthropic") && config.token) {
+    return {
+      "X-AB-LLM-Provider": config.provider,
+      "X-AB-LLM-Token": config.token
+    };
+  }
+
+  return {};
 }
 
 async function readJson<T>(response: Response): Promise<T> {
@@ -363,7 +464,7 @@ export async function requestAnalysis(form: FullPayload, options: RequestOptions
   const payload = buildApiPayload(form);
   const response = await fetch(apiUrl("/api/v1/analyze"), {
     method: "POST",
-    headers: buildHeaders({ "Content-Type": "application/json" }),
+    headers: buildHeaders({ "Content-Type": "application/json", ...buildLlmHeaders("/api/v1/analyze") }),
     body: JSON.stringify(payload),
     signal: options.signal
   });
@@ -864,8 +965,19 @@ export async function compareProjectsRequest(
   return data;
 }
 
-export async function compareMultipleProjectsRequest(projectIds: string[]): Promise<MultiProjectComparison> {
-  const response = await fetch(apiUrl("/api/v1/projects/compare"), {
+export async function compareMultipleProjectsRequest(
+  projectIds: string[],
+  options: CompareMultipleProjectsRequestOptions = {}
+): Promise<MultiProjectComparison> {
+  const params = new URLSearchParams();
+  if (options.includeMonteCarlo) {
+    params.set("include_monte_carlo", "true");
+    if (typeof options.monteCarloSimulations === "number") {
+      params.set("monte_carlo_simulations", String(options.monteCarloSimulations));
+    }
+  }
+  const path = params.size > 0 ? `/api/v1/projects/compare?${params.toString()}` : "/api/v1/projects/compare";
+  const response = await fetch(apiUrl(path), {
     method: "POST",
     headers: buildHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ project_ids: projectIds })

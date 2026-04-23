@@ -60,6 +60,9 @@ def create_app() -> FastAPI:
         window_seconds=settings.auth_failure_window_seconds,
     )
     cors_headers = list(settings.cors_headers)
+    for header_name in ("X-AB-LLM-Provider", "X-AB-LLM-Token"):
+        if header_name not in cors_headers:
+            cors_headers.append(header_name)
     if settings.api_token or settings.readonly_api_token or settings.admin_token or repository.has_api_keys():
         for header_name in ("Authorization", "X-API-Key"):
             if header_name not in cors_headers:

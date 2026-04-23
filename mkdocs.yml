@@ -51,6 +51,7 @@ nav:
       - Deploy: getting-started/deploy.md
   - Features:
       - Wizard flow: features/wizard.md
+      - Optional LLM adapter: features/llm-adapter.md
       - Results dashboard: features/results.md
       - Multi-project comparison: features/comparison.md
       - Webhooks: features/webhooks.md

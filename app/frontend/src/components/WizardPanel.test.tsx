@@ -16,12 +16,22 @@ vi.mock("./ResultsPanel", () => ({
   }
 }));
 
-import { cloneInitialState, sections } from "../lib/experiment";
+vi.mock("../lib/api", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../lib/api")>();
+  return {
+    ...actual,
+    listTemplatesRequest: vi.fn(),
+    useTemplateRequest: vi.fn()
+  };
+});
+
+import { buildApiPayload, cloneInitialState, sections } from "../lib/experiment";
+import { listTemplatesRequest } from "../lib/api";
 import { useAnalysisStore } from "../stores/analysisStore";
 import { useDraftStore } from "../stores/draftStore";
 import { useProjectStore } from "../stores/projectStore";
 import { useWizardStore } from "../stores/wizardStore";
-import { flushEffects, renderIntoDocument } from "../test/dom";
+import { click, findButton, flushEffects, renderIntoDocument } from "../test/dom";
 import WizardPanel from "./WizardPanel";
 import WizardReviewStep from "./WizardReviewStep";
 
@@ -182,6 +192,46 @@ describe("Wizard snapshots", () => {
       }
 
       expect(projectNameInput.value).toBe("Store-backed wizard");
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("renders at least 10 templates grouped by category in the wizard template picker", async () => {
+    const payload = buildApiPayload(cloneInitialState());
+    payload.project.project_name = "";
+    vi.mocked(listTemplatesRequest).mockResolvedValueOnce([
+      { id: "checkout_conversion", name: "Checkout Conversion", category: "Revenue", description: "Test checkout changes against conversion.", built_in: true, payload, tags: ["binary", "checkout"], usage_count: 0 },
+      { id: "feature_adoption", name: "Feature Adoption", category: "Engagement", description: "Use this template to evaluate feature discoverability and adoption among existing users.", built_in: true, payload, tags: ["binary", "feature"], usage_count: 0 },
+      { id: "latency_impact", name: "Latency Impact", category: "Performance", description: "Assess whether latency changes affect conversion or engagement outcomes.", built_in: true, payload, tags: ["continuous", "latency"], usage_count: 0 },
+      { id: "onboarding_completion", name: "Onboarding Completion", category: "Engagement", description: "Measure whether onboarding changes improve completion rate for new accounts.", built_in: true, payload, tags: ["binary", "onboarding"], usage_count: 0 },
+      { id: "pricing_sensitivity", name: "Pricing Sensitivity", category: "Revenue", description: "Evaluate price or packaging changes using revenue-oriented continuous metrics.", built_in: true, payload, tags: ["continuous", "pricing"], usage_count: 0 },
+      { id: "email_campaign", name: "Email Campaign", category: "Marketing", description: "Test email subject line and preheader changes against click-through with deliverability guardrails.", built_in: true, payload, tags: ["binary", "email"], usage_count: 0 },
+      { id: "push_notification_reactivation", name: "Push Notification Reactivation", category: "Lifecycle", description: "Evaluate reactivation push copy and timing for dormant mobile users over a 30-day return window.", built_in: true, payload, tags: ["binary", "push"], usage_count: 0 },
+      { id: "trial_to_paid", name: "Trial to Paid", category: "SaaS Monetization", description: "Compare a 14-day versus 7-day trial onboarding path using monetization and activation outcomes.", built_in: true, payload, tags: ["continuous", "saas"], usage_count: 0 },
+      { id: "search_ranking_ctr", name: "Search Ranking CTR", category: "Search Discovery", description: "Measure how search rank-fusion tuning changes result-page click-through at high query volume.", built_in: true, payload, tags: ["binary", "search"], usage_count: 0 },
+      { id: "app_onboarding_drop_off", name: "App Onboarding Drop-off", category: "Mobile Activation", description: "Test a 3-step mobile onboarding against the legacy 5-step flow using 24-hour activation as the primary outcome.", built_in: true, payload, tags: ["binary", "mobile"], usage_count: 0 }
+    ]);
+    seedWizardPanelState();
+
+    const view = await renderIntoDocument(<WizardPanel />);
+    try {
+      await flushEffects();
+      await click(findButton(view.container, "Start from template"));
+      await flushEffects();
+
+      const dialog = document.querySelector('[role="dialog"]');
+      if (!(dialog instanceof HTMLDivElement)) {
+        throw new Error("Template gallery dialog was not rendered");
+      }
+
+      expect(dialog.textContent).toContain("Experiment templates");
+      expect(dialog.querySelectorAll('button[aria-label^="Use template "]')).toHaveLength(10);
+      expect(dialog.textContent).toContain("Revenue");
+      expect(dialog.textContent).toContain("Marketing");
+      expect(dialog.textContent).toContain("SaaS Monetization");
+      expect(dialog.textContent).toContain("Mobile Activation");
+      expect(dialog.querySelectorAll("section").length).toBeGreaterThanOrEqual(6);
     } finally {
       await view.unmount();
     }

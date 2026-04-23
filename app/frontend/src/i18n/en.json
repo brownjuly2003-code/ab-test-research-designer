@@ -27,6 +27,22 @@
         "dark": "Dark",
         "system": "Auto"
       }
+    },
+    "preferences": {
+      "llm": {
+        "title": "LLM provider",
+        "description": "Optional remote suggestions for the current browser session only.",
+        "providerLabel": "Provider",
+        "providers": {
+          "local": "Local (default)",
+          "openai": "OpenAI",
+          "anthropic": "Anthropic"
+        },
+        "tokenLabel": "API key (session only, never saved)",
+        "info": "Your key stays in browser session storage and is cleared when you close this tab.",
+        "useLocal": "Use local instead",
+        "tokenRequiredFallback": "Token required - falling back to local suggestions"
+      }
     }
   },
   "wizard": {
@@ -321,6 +337,21 @@
     "comparison": {
       "empty": "Load a saved project comparison from the Projects sidebar to review baseline versus candidate snapshots.",
       "loading": "Loading comparison dashboard...",
+      "monteCarlo": {
+        "title": "Distribution view",
+        "subtitle": "Run an on-demand Monte-Carlo overlay to compare uplift distributions and tail risk.",
+        "showToggle": "Show distribution view",
+        "hideToggle": "Hide distribution view",
+        "loading": "Running Monte-Carlo simulations...",
+        "loadFailed": "Distribution view failed to load.",
+        "empty": "Distribution data is unavailable for the selected projects.",
+        "sliderLabel": "Probability uplift > {{threshold}}",
+        "thresholdHint": "Probabilities between server thresholds are interpolated in the client.",
+        "probabilityValue": "{{probability}} above threshold",
+        "positiveProbability": "{{probability}} chance uplift stays positive",
+        "percentileLegend": "Percentile legend",
+        "percentileValue": "{{label}} {{value}}"
+      },
       "dashboard": {
         "loaded": "{{count}} projects compared",
         "title": "Comparison dashboard",

@@ -59,5 +59,5 @@ Open:
 ## First things to try
 
 1. Open the sample wizard payload from `docs/demo/sample-project.json`.
-2. Run sizing for the default checkout conversion example.
-3. Switch the analysis mode to Bayesian or increase `n_looks` to surface the extra guidance blocks.
+2. On first launch, click `Start from template` in the wizard and pick one of the 10 built-in presets grouped by category to prefill a realistic draft.
+3. Run sizing for the selected template, or switch the analysis mode to Bayesian and increase `n_looks` to surface the extra guidance blocks.

@@ -757,7 +757,9 @@ def test_calculate_endpoint_allows_vite_preflight_origin() -> None:
     assert response.status_code == 200
     assert response.headers["access-control-allow-origin"] == "http://127.0.0.1:5173"
     assert response.headers["access-control-allow-methods"] == "GET, POST, PUT, DELETE, OPTIONS"
-    assert response.headers["access-control-allow-headers"] == "Accept, Accept-Language, Content-Language, Content-Type"
+    assert response.headers["access-control-allow-headers"] == (
+        "Accept, Accept-Language, Content-Language, Content-Type, X-AB-LLM-Provider, X-AB-LLM-Token"
+    )
 
 
 def test_calculate_endpoint_rejects_too_many_variants() -> None:
@@ -1857,7 +1859,7 @@ def test_project_report_data_export_requires_auth(monkeypatch) -> None:
     get_settings.cache_clear()
 
 
-def test_templates_list_returns_five_builtins_on_fresh_install(monkeypatch) -> None:
+def test_templates_list_returns_ten_builtins_on_fresh_install(monkeypatch) -> None:
     temp_dir = Path(__file__).resolve().parent / ".tmp"
     temp_dir.mkdir(exist_ok=True)
     db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
@@ -1871,8 +1873,8 @@ def test_templates_list_returns_five_builtins_on_fresh_install(monkeypatch) -> N
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["total"] == 5
-    assert len(payload["templates"]) == 5
+    assert payload["total"] == 10
+    assert len(payload["templates"]) == 10
     assert all(template["built_in"] is True for template in payload["templates"])
     get_settings.cache_clear()
 

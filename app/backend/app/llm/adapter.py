@@ -7,6 +7,16 @@ from app.backend.app.llm.parser import LlmAdviceParseError, parse_llm_advice
 from app.backend.app.llm.prompt_builder import build_llm_advice_prompt
 
 
+class LLMAuthError(Exception):
+    def __init__(self, message: str, *, status_code: int = 401) -> None:
+        super().__init__(message)
+        self.status_code = status_code
+
+
+class LLMTransientError(Exception):
+    pass
+
+
 class LocalOrchestratorAdapter:
     def __init__(
         self,

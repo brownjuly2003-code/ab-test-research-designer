@@ -1,0 +1,68 @@
+name: Email Campaign
+category: Marketing
+description: Test email subject line and preheader changes against click-through with deliverability guardrails.
+tags:
+  - binary
+  - email
+  - lifecycle
+payload:
+  project:
+    project_name: ""
+    domain: e-commerce
+    product_type: crm campaign
+    platform: email
+    market: US
+    project_description: Improve newsletter click-through from promotional email sends.
+  hypothesis:
+    change_description: Rewrite subject line and preheader to emphasize limited-time value
+    target_audience: opted-in subscribers active in the last 90 days
+    business_problem: campaign click-through is below seasonal benchmark
+    hypothesis_statement: Clearer value messaging in the inbox will lift email-to-click conversion.
+    what_to_validate: downstream click propensity from delivered emails
+    desired_result: a measurable click-through uplift without hurting deliverability
+  setup:
+    experiment_type: ab
+    randomization_unit: user
+    traffic_split:
+      - 50
+      - 50
+    expected_daily_traffic: 180000
+    audience_share_in_test: 0.92
+    variants_count: 2
+    inclusion_criteria: marketable subscribers scheduled for the campaign
+    exclusion_criteria: hard-bounced, recently unsubscribed, or suppressed profiles
+  metrics:
+    primary_metric_name: email_to_click_rate
+    metric_type: binary
+    baseline_value: 0.038
+    expected_uplift_pct: 12
+    mde_pct: 10
+    alpha: 0.05
+    power: 0.8
+    std_dev: null
+    secondary_metrics:
+      - open_rate
+      - session_conversion_rate
+    guardrail_metrics:
+      - name: Unsubscribe rate
+        metric_type: binary
+        baseline_rate: 0.21
+      - name: Spam complaint rate
+        metric_type: binary
+        baseline_rate: 0.03
+  constraints:
+    seasonality_present: true
+    active_campaigns_present: true
+    returning_users_present: true
+    interference_risk: medium
+    technical_constraints: send-time optimization must stay fixed across both variants
+    legal_or_ethics_constraints: respect consent and regional suppression rules
+    known_risks: inbox provider filtering may differ by domain mix
+    deadline_pressure: medium
+    long_test_possible: false
+    n_looks: 1
+    analysis_mode: frequentist
+    desired_precision: null
+    credibility: 0.95
+  additional_context:
+    llm_context: Hold audience and send window constant so the lift comes from copy changes rather than timing.

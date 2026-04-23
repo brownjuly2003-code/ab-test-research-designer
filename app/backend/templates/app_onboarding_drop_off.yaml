@@ -1,0 +1,68 @@
+name: App Onboarding Drop-off
+category: Mobile Activation
+description: Test a 3-step mobile onboarding against the legacy 5-step flow using 24-hour activation as the primary outcome.
+tags:
+  - binary
+  - mobile
+  - onboarding
+payload:
+  project:
+    project_name: ""
+    domain: consumer app
+    product_type: mobile app
+    platform: ios/android
+    market: US
+    project_description: Reduce early onboarding drop-off for new app installs.
+  hypothesis:
+    change_description: Replace the legacy 5-step intro with a shorter 3-step onboarding and clearer value framing
+    target_audience: first-time mobile installs
+    business_problem: too many new users abandon the flow before reaching the first key action
+    hypothesis_statement: A shorter onboarding path will improve activation within the first 24 hours.
+    what_to_validate: impact on early activation after install
+    desired_result: more new installs complete the first key action without harming retention quality
+  setup:
+    experiment_type: ab
+    randomization_unit: user
+    traffic_split:
+      - 50
+      - 50
+    expected_daily_traffic: 20000
+    audience_share_in_test: 0.94
+    variants_count: 2
+    inclusion_criteria: brand-new installs entering onboarding from the default app entry point
+    exclusion_criteria: reinstalls, test devices, and traffic from employee networks
+  metrics:
+    primary_metric_name: activation_within_24h
+    metric_type: binary
+    baseline_value: 0.41
+    expected_uplift_pct: 7
+    mde_pct: 5
+    alpha: 0.05
+    power: 0.8
+    std_dev: null
+    secondary_metrics:
+      - step_two_completion_rate
+      - day_one_retention
+    guardrail_metrics:
+      - name: Permission opt-in rate
+        metric_type: binary
+        baseline_rate: 61.0
+      - name: Crash-free onboarding sessions
+        metric_type: binary
+        baseline_rate: 97.8
+  constraints:
+    seasonality_present: false
+    active_campaigns_present: true
+    returning_users_present: false
+    interference_risk: low
+    technical_constraints: remote config and analytics events must ship together for both variants
+    legal_or_ethics_constraints: permission prompts and consent copy must remain policy-compliant
+    known_risks: acquisition mix may shift during paid app-install bursts
+    deadline_pressure: medium
+    long_test_possible: true
+    n_looks: 1
+    analysis_mode: frequentist
+    desired_precision: null
+    credibility: 0.95
+  additional_context:
+    llm_context: Review activation by acquisition channel because shorter onboarding often benefits paid traffic most.

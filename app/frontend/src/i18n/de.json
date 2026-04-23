@@ -27,6 +27,22 @@
         "dark": "Dunkel",
         "system": "Auto"
       }
+    },
+    "preferences": {
+      "llm": {
+        "title": "LLM-Anbieter",
+        "description": "Optionale Remote-Vorschlaege nur fuer die aktuelle Browser-Sitzung.",
+        "providerLabel": "Anbieter",
+        "providers": {
+          "local": "Lokal (Standard)",
+          "openai": "OpenAI",
+          "anthropic": "Anthropic"
+        },
+        "tokenLabel": "API-Schluessel (nur Sitzung, nie gespeichert)",
+        "info": "Ihr Schluessel bleibt im Session Storage des Browsers und wird geloescht, wenn Sie diesen Tab schliessen.",
+        "useLocal": "Stattdessen lokal verwenden",
+        "tokenRequiredFallback": "Token erforderlich - es wird auf lokale Vorschlaege zurueckgefallen"
+      }
     }
   },
   "wizard": {
@@ -324,6 +340,21 @@
     "comparison": {
       "empty": "Laden Sie einen gespeicherten Projektvergleich aus der Seitenleiste „Projekte“, um Referenz- und Kandidaten-Snapshots zu überprüfen.",
       "loading": "Vergleichs-Dashboard wird geladen...",
+      "monteCarlo": {
+        "title": "Verteilungsansicht",
+        "subtitle": "Starten Sie bei Bedarf ein Monte-Carlo-Overlay, um Uplift-Verteilungen und Tail-Risiken zu vergleichen.",
+        "showToggle": "Verteilungsansicht anzeigen",
+        "hideToggle": "Verteilungsansicht ausblenden",
+        "loading": "Monte-Carlo-Simulationen werden ausgefÃ¼hrt...",
+        "loadFailed": "Die Verteilungsansicht konnte nicht geladen werden.",
+        "empty": "FÃ¼r die ausgewÃ¤hlten Projekte sind keine Verteilungsdaten verfÃ¼gbar.",
+        "sliderLabel": "Wahrscheinlichkeit fÃ¼r Uplift > {{threshold}}",
+        "thresholdHint": "Zwischen den serverseitigen Schwellen interpoliert der Client die Wahrscheinlichkeiten.",
+        "probabilityValue": "{{probability}} Ã¼ber dem Schwellenwert",
+        "positiveProbability": "{{probability}} Wahrscheinlichkeit fÃ¼r positiven Uplift",
+        "percentileLegend": "Perzentil-Legende",
+        "percentileValue": "{{label}} {{value}}"
+      },
       "dashboard": {
         "loaded": "{{count}} Projekte verglichen",
         "title": "Vergleichs-Dashboard",

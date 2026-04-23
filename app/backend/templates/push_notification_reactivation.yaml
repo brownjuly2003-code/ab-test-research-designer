@@ -1,0 +1,68 @@
+name: Push Notification Reactivation
+category: Lifecycle
+description: Evaluate reactivation push copy and timing for dormant mobile users over a 30-day return window.
+tags:
+  - binary
+  - push
+  - reactivation
+payload:
+  project:
+    project_name: ""
+    domain: consumer app
+    product_type: mobile app
+    platform: ios/android
+    market: Global
+    project_description: Bring dormant app users back with a reactivation push sequence.
+  hypothesis:
+    change_description: Replace generic reminder copy with a personalized win-back message and urgency cue
+    target_audience: users inactive for at least 30 days with push opt-in
+    business_problem: reactivation efficiency is too low for the dormant base
+    hypothesis_statement: More relevant push messaging will increase 30-day reactivation rate.
+    what_to_validate: dormant-user return rate after exposure to the push
+    desired_result: higher reactivation without materially increasing opt-outs or uninstalls
+  setup:
+    experiment_type: ab
+    randomization_unit: user
+    traffic_split:
+      - 50
+      - 50
+    expected_daily_traffic: 95000
+    audience_share_in_test: 0.68
+    variants_count: 2
+    inclusion_criteria: dormant push-opted users eligible for the win-back campaign
+    exclusion_criteria: users reactivated in the last 7 days or currently in paid re-engagement flows
+  metrics:
+    primary_metric_name: thirty_day_reactivation_rate
+    metric_type: binary
+    baseline_value: 0.012
+    expected_uplift_pct: 18
+    mde_pct: 15
+    alpha: 0.05
+    power: 0.8
+    std_dev: null
+    secondary_metrics:
+      - seven_day_session_rate
+      - purchase_within_thirty_days
+    guardrail_metrics:
+      - name: Push opt-out rate
+        metric_type: binary
+        baseline_rate: 1.6
+      - name: Uninstall rate
+        metric_type: binary
+        baseline_rate: 0.74
+  constraints:
+    seasonality_present: false
+    active_campaigns_present: true
+    returning_users_present: true
+    interference_risk: medium
+    technical_constraints: delivery throttling differs by device token freshness
+    legal_or_ethics_constraints: notifications must stay within consent and quiet-hour policies
+    known_risks: OS delivery behavior can vary across platforms and token age
+    deadline_pressure: medium
+    long_test_possible: true
+    n_looks: 1
+    analysis_mode: frequentist
+    desired_precision: null
+    credibility: 0.95
+  additional_context:
+    llm_context: Keep send cadence identical between variants and evaluate reactivation within a 30-day attribution window.
