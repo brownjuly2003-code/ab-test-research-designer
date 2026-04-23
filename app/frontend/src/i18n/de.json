@@ -16,7 +16,7 @@
     },
     "theme": {
       "label": "Thema",
-      "ariaLabel": "Thema-Einstellung",
+      "ariaLabel": "Themenpr?ferenz",
       "buttonAria": {
         "light": "Helles Thema",
         "dark": "Dunkles Thema",
@@ -27,6 +27,1131 @@
         "dark": "Dunkel",
         "system": "Auto"
       }
+    }
+  },
+  "wizard": {
+    "steps": {
+      "1": "Projekt",
+      "2": "Hypothese",
+      "3": "Setup",
+      "4": "Metriken",
+      "5": "Einschränkungen",
+      "6": "Pr?fung"
+    },
+    "actions": {
+      "next": "Weiter",
+      "back": "Zurück",
+      "save": "Projekt speichern",
+      "runAnalysis": "Analyse ausf?hren",
+      "export": "Export"
+    }
+  },
+  "wizardReview": {
+    "title": "Eingaben pr?fen",
+    "savedProjectTitle": "Gespeichertes Projekt pr?fen",
+    "newDraftTitle": "Neuen Entwurf pr?fen",
+    "unsavedChangesPresent": "Es sind nicht gespeicherte Änderungen vorhanden.",
+    "syncedWithLocalStorage": "Dieses geladene Projekt ist mit dem lokalen Speicher synchronisiert.",
+    "description": "Überprüfen Sie die folgenden Werte, bevor Sie den deterministischen Backend-Flow speichern oder ausführen.",
+    "fixFields": "Korrigieren Sie diese Felder, bevor Sie die Analyse speichern oder ausführen",
+    "newDraftButton": "Neuer Entwurf",
+    "importing": "Importieren...",
+    "importDraft": "Entwurf als JSON importieren",
+    "exportDraft": "Entwurf als JSON exportieren",
+    "updateProjectTitle": "Projekt aktualisieren (Ctrl+S)",
+    "saveProjectTitle": "Projekt speichern (Ctrl+S)",
+    "saving": "Speichern...",
+    "updateProject": "Projekt aktualisieren",
+    "runAnalysisTitle": "Analyse ausführen (Ctrl+Enter)",
+    "analyzing": "Analysieren..."
+  },
+  "wizardDraft": {
+    "sections": {
+      "project": "Projektkontext",
+      "hypothesis": "Hypothese",
+      "setup": "Versuchsaufbau",
+      "metrics": "Metriken",
+      "constraints": "Einschränkungen"
+    },
+    "note": {
+      "editingSavedProject": "Gespeichertes Projekt bearbeiten",
+      "workingOnNewDraft": "Neuen Entwurf bearbeiten",
+      "projectIdStatus": "Projekt-ID: {{projectId}}. {{status}}",
+      "unsavedChangesPending": "Nicht gespeicherte Änderungen warten auf lokale Aktualisierung.",
+      "allChangesSaved": "Alle ?nderungen lokal gespeichert.",
+      "savingCreatesProject": "Durch das Speichern wird ein neuer lokaler Projektdatensatz erstellt."
+    },
+    "fixFields": "Korrigieren Sie diese Felder, bevor Sie die Analyse speichern oder ausführen",
+    "analysisFramework": {
+      "title": "Analyseansatz",
+      "description": "W?hlen Sie, ob die Planung klassische NHST-Power oder bayesianische Pr?zision verwendet.",
+      "frequentist": "Frequentistisch",
+      "frequentistDescription": "Legen Sie Alpha und Power f?r den klassischen Ansatz mit festem Horizont fest.",
+      "bayesian": "Bayesianisch",
+      "bayesianDescription": "Legen Sie die gew?nschte Pr?zision und das Kredibilit?tsniveau f?r die intervallbasierte Planung fest."
+    },
+    "common": {
+      "yes": "Ja",
+      "no": "Nein",
+      "optional": "Optional"
+    },
+    "fields": {
+      "project": {
+        "project_name": "Projektname",
+        "domain": "Bereich",
+        "product_type": "Produkttyp",
+        "platform": "Plattform",
+        "market": "Markt",
+        "project_description": "Projektbeschreibung"
+      },
+      "hypothesis": {
+        "change_description": "?nderungsbeschreibung",
+        "target_audience": "Zielgruppe",
+        "business_problem": "Geschäftsproblem",
+        "hypothesis_statement": "Hypothesenaussage",
+        "what_to_validate": "Zu validieren",
+        "desired_result": "Gewünschtes Ergebnis"
+      },
+      "setup": {
+        "experiment_type": "Experimenttyp",
+        "randomization_unit": "Randomisierungseinheit",
+        "traffic_split": "Traffic-Aufteilung",
+        "expected_daily_traffic": "Erwarteter täglicher Verkehr",
+        "audience_share_in_test": "Anteil der Zielgruppe im Test",
+        "variants_count": "Anzahl der Varianten",
+        "inclusion_criteria": "Einschlusskriterien",
+        "exclusion_criteria": "Ausschlusskriterien"
+      },
+      "metrics": {
+        "primary_metric_name": "Primäre Metrik",
+        "metric_type": "Metriktyp",
+        "baseline_value": "Referenzwert",
+        "expected_uplift_pct": "Erwarteter Anstieg %",
+        "mde_pct": "MDE %",
+        "std_dev": "Standard-Entw",
+        "secondary_metrics": "Sekundäre Metriken",
+        "guardrail_metrics": "Guardrail-Metriken",
+        "alpha": "Alpha",
+        "power": "Power"
+      },
+      "constraints": {
+        "seasonality_present": "Saisonalität vorhanden",
+        "active_campaigns_present": "Aktive Kampagnen vorhanden",
+        "returning_users_present": "Wiederkehrende Nutzer vorhanden",
+        "interference_risk": "Störungsrisiko",
+        "technical_constraints": "Technische Einschränkungen",
+        "legal_or_ethics_constraints": "Rechtliche/ethische Einschränkungen",
+        "known_risks": "Bekannte Risiken",
+        "deadline_pressure": "Termindruck",
+        "long_test_possible": "Langzeittest möglich"
+      },
+      "additional_context": {
+        "llm_context": "KI-Kontext"
+      }
+    },
+    "helpText": {
+      "traffic_split": "Relative Verkehrsgewichte pro Variante. Beispiel: 50,50 für eine ausgeglichene A/B-Aufteilung oder 34,33,33 für drei Varianten.",
+      "expected_daily_traffic": "Durchschnittliche Anzahl an Nutzern oder Sitzungen, die t?glich am Experiment teilnehmen. Beispiel: 12000.",
+      "audience_share_in_test": "Anteil des t?glichen Traffics, der f?r den Test infrage kommt. Verwenden Sie 0,6 f?r 60 % des eingehenden Traffics.",
+      "variants_count": "Gesamtzahl der Varianten inklusive Kontrolle. 2 = klassischer A/B-Test; 3+ Varianten erh?hen den Stichprobenbedarf.",
+      "baseline_value": "Aktueller Referenzwert. F?r bin?re Metriken verwenden Sie 0,042 f?r 4,2 %; f?r kontinuierliche Metriken den aktuellen Mittelwert, z. B. 45,20.",
+      "expected_uplift_pct": "Erwartete relative Verbesserung gegen?ber der Referenz. Beispiel: 8 bedeutet, dass die Testvariante die Metrik voraussichtlich um 8 % verbessert.",
+      "mde_pct": "Minimal detektierbarer Effekt als Prozentsatz der Referenz. Kleinere MDE-Werte erfordern gr??ere Stichprobengr??en.",
+      "alpha": "Falsch-positiver Schwellenwert. 0,05 bedeutet, dass eine Wahrscheinlichkeit von 5 % für einen Fehler vom Typ I akzeptiert wird.",
+      "power": "Wahrscheinlichkeit, einen echten Effekt zu erkennen, falls vorhanden. 0,8 ist das Standardminimum für Produktexperimente.",
+      "analysis_mode": "W?hlen Sie, ob die Planung mit klassischer NHST-Power oder bayesianischer Pr?zision ?ber Kredibilit?tsintervalle erfolgt.",
+      "desired_precision": "Ziel-Halbbreite des Kredibilit?tsintervalls. F?r bin?re Metriken verwenden Sie Prozentpunkte; f?r kontinuierliche Metriken Roheinheiten.",
+      "credibility": "Kredibilit?tsniveau f?r das bayesianische Intervall. 0,95 entspricht einem 95-%-Kredibilit?tsintervall.",
+      "std_dev": "Standardabweichung der kontinuierlichen Metrik. Nur für kontinuierliche Metriken erforderlich; Beispiel: 12,5 für den durchschnittlichen Bestellwert.",
+      "interference_risk": "Risiko, dass Benutzer oder Einheiten sich variantenübergreifend gegenseitig beeinflussen und die Isolation durchbrechen können."
+    },
+    "options": {
+      "setup": {
+        "randomization_unit": {
+          "user": "Benutzer",
+          "session": "Sitzung",
+          "device": "Gerät",
+          "account": "Konto"
+        }
+      },
+      "metrics": {
+        "metric_type": {
+          "binary": "Binär",
+          "continuous": "Kontinuierlich"
+        }
+      },
+      "constraints": {
+        "interference_risk": {
+          "low": "Niedrig",
+          "medium": "Medium",
+          "high": "Hoch"
+        },
+        "deadline_pressure": {
+          "low": "Niedrig",
+          "medium": "Medium",
+          "high": "Hoch"
+        }
+      }
+    },
+    "interimAnalyses": {
+      "title": "Zwischenanalysen",
+      "tooltip": "Wie oft Sie die Ergebnisse w?hrend des Experiments pr?fen m?chten. 1 bel?sst den Standardtest mit festem Horizont. 2-5 aktiviert O?Brien-Fleming-Gruppensequenz-Monitoring mit fr?hen Stoppgrenzen.",
+      "options": {
+        "1": "1 - Fester Horizont (keine Zwischenanalysen)",
+        "2": "2 ? Eine Zwischenanalyse + Finale",
+        "3": "3 ? Zwei Zwischenanalysen + Finale",
+        "4": "4 ? Drei Zwischenanalysen + Finale",
+        "5": "5 ? Vier Zwischenanalysen + Finale"
+      }
+    },
+    "cuped": {
+      "title": "CUPED Varianzreduktion",
+      "description": "Verwenden Sie korreliertes Verhalten vor dem Experiment, um die Varianz zu reduzieren und die naive mit der CUPED-bereinigten Stichprobengr??e zu vergleichen.",
+      "enable": "CUPED-Varianzreduktion aktivieren",
+      "enableTooltip": "Wenn Sie Daten vor dem Experiment haben, die mit der Zielmetrik korrelieren, kann CUPED die erforderliche Stichprobengr??e um rho? reduzieren.",
+      "preExperimentStdDev": "Standardabweichung vor dem Experiment",
+      "preExperimentStdDevTooltip": "Standardabweichung der Kovariate vor dem Experiment, z. B. Umsatz in der Woche vor dem Test.",
+      "correlationWithOutcome": "Korrelation mit dem Ergebnis",
+      "correlationWithOutcomeTooltip": "Pearson-Korrelation zwischen der Kovariate vor dem Experiment und dem Ergebnis des Experiments. Typische Werte liegen bei 0,3 bis 0,7."
+    },
+    "guardrails": {
+      "title": "Guardrail-Metriken",
+      "description": "Metriken, die ?berwacht werden, ohne die prim?re Stichprobengr??e zu ?ndern. Bis zu 3 Guardrails werden unterst?tzt.",
+      "metricName": "Metrikname",
+      "metricNameAriaLabel": "Name der Guardrail-Metrik {{index}}",
+      "metricType": "Metriktyp",
+      "metricTypeAriaLabel": "Typ der Guardrail-Metrik {{index}}",
+      "binaryPct": "Binär (%)",
+      "continuous": "Kontinuierlich",
+      "remove": "Entfernen",
+      "removeAriaLabel": "Guardrail entfernen {{index}}",
+      "baselinePct": "Referenz %",
+      "baselineRateAriaLabel": "Guardrail-Referenzrate {{index}}",
+      "baselineMean": "Basismittelwert",
+      "baselineMeanAriaLabel": "Guardrail-Referenzmittelwert {{index}}",
+      "stdDev": "Standard-Entw",
+      "stdDevAriaLabel": "Guardrail Standard-Entwickler {{index}}",
+      "add": "Guardrail-Metrik hinzuf?gen"
+    },
+    "buttons": {
+      "newDraft": "Neuer Entwurf",
+      "startFromTemplate": "Beginnen Sie mit der Vorlage",
+      "importing": "Importieren...",
+      "importDraft": "Entwurf als JSON importieren",
+      "exportDraft": "Entwurf exportieren JSON",
+      "updateProjectTitle": "Projekt aktualisieren (Ctrl+S)",
+      "saveProjectTitle": "Projekt speichern (Ctrl+S)",
+      "saving": "Speichern...",
+      "updateProject": "Projekt aktualisieren"
+    },
+    "validation": {
+      "projectNameRequired": "Projektname ist erforderlich.",
+      "changeDescriptionRequired": "Änderungsbeschreibung ist erforderlich.",
+      "trafficSplitPositive": "Die Verkehrsaufteilung muss mindestens zwei positive Gewichtungen enthalten.",
+      "trafficSplitLength": "Die Länge der Traffic-Aufteilung muss mit der Anzahl der Varianten übereinstimmen.",
+      "expectedDailyTrafficPositive": "Der erwartete tägliche Traffic muss größer als 0 sein.",
+      "audienceShareRange": "Der Zuschaueranteil im Test muss zwischen 0 und 1 liegen.",
+      "variantsCountRange": "Die Anzahl der Varianten muss eine ganze Zahl zwischen 2 und 10 sein.",
+      "primaryMetricRequired": "Der Name der primären Metrik ist erforderlich.",
+      "binaryBaselineRange": "Der binäre Basiswert muss zwischen 0 und 1 liegen.",
+      "continuousBaselinePositive": "Der kontinuierliche Basiswert muss größer als 0 sein.",
+      "mdePositive": "MDE % muss größer als 0 sein.",
+      "alphaRange": "Alpha muss zwischen 0 und 1 liegen.",
+      "powerRange": "Die Power muss zwischen 0 und 1 liegen.",
+      "continuousStdPositive": "Kontinuierliche Metriken erfordern eine positive Standardabweichung.",
+      "cupedStdPositive": "Die CUPED-Standardabweichung vor dem Experiment muss positiv sein.",
+      "cupedCorrelationRange": "Die CUPED-Korrelation muss zwischen -1 und 1 liegen.",
+      "desiredPrecisionPositive": "Die gew?nschte Pr?zision muss im bayesianischen Modus gr??er als 0 sein.",
+      "credibilityRange": "Die Glaubwürdigkeit muss zwischen 0,5 und 1 liegen.",
+      "guardrailsMax": "Guardrail-Metriken d?rfen h?chstens 3 Eintr?ge enthalten.",
+      "guardrailNameRequired": "Namen von Guardrail-Metriken sind erforderlich.",
+      "guardrailBinaryBaselineRange": "Binäre Guardrails erfordern einen Basisprozentsatz zwischen 0 und 100.",
+      "guardrailContinuousFields": "Kontinuierliche Guardrails erfordern einen Basismittelwert und eine positive Standardabweichung.",
+      "guardrailMetricType": "Der Typ der Guardrail-Metrik muss entweder binär oder kontinuierlich sein.",
+      "metricType": "Der Metriktyp muss entweder binär oder kontinuierlich sein."
+    }
+  },
+  "empty_state": {
+    "ariaLabel": "Onboarding",
+    "eyebrow": "Beginnen Sie hier",
+    "title": "Planen Sie Ihr A/B-Experiment",
+    "subtitle": "Deterministische Berechnungen. Lokal zuerst. Keine Cloud erforderlich.",
+    "new_experiment": "Neues Experiment",
+    "load_example": "Beispiel laden",
+    "import_project": "Projekt importieren",
+    "descriptions": {
+      "new_experiment": "Fangen Sie bei Null an",
+      "load_example": "Sehen Sie sich ein ausgefülltes Experiment mit einem Klick an",
+      "import_project": "Wiederherstellung aus einem Workspace-Backup"
+    }
+  },
+  "sidebar": {
+    "tabs": {
+      "projects": "Projekte",
+      "system": "System"
+    },
+    "actions": {
+      "export_workspace": "Arbeitsbereich exportieren",
+      "import_workspace": "Arbeitsbereich importieren",
+      "compare": "Vergleichen Sie Projekte"
+    }
+  },
+  "results": {
+    "sample_size_per_variant": "Nutzer / Variante",
+    "duration_days": "Geschätzte Tage",
+    "total_sample_size": "Gesamtstichprobe",
+    "warnings": {
+      "noneTitle": "Es wurden keine Warnregeln ausgelöst.",
+      "noneDescription": "Die heuristische Ebene hat keine Probleme mit der Dauer, dem Datenverkehr oder der Kontamination erkannt."
+    },
+    "ai_advice": "KI-Empfehlungen",
+    "srm_check": "SRM Prüfen",
+    "sequential_design": "Sequenzielles Design",
+    "guardrail_metrics": "Guardrail-Metriken",
+    "actual_results": "Tatsächliche Experimentergebnisse",
+    "aiAdvice": {
+      "title": "Ausgabe des lokalen Orchestrators",
+      "provider": "Anbieter:",
+      "model": "Modell:",
+      "assessment": "Bewertung",
+      "designImprovements": "Designverbesserungen",
+      "keyRisks": "Hauptrisiken",
+      "metricRecommendations": "Metrikempfehlungen",
+      "interpretationPitfalls": "Interpretationsfallen",
+      "additionalChecks": "Zusätzliche Kontrollen",
+      "unavailable": "KI-Ratschläge nicht verfügbar. Die kerndeterministische Ausgabe funktioniert weiterhin."
+    },
+    "comparison": {
+      "empty": "Laden Sie einen gespeicherten Projektvergleich aus der Seitenleiste „Projekte“, um Referenz- und Kandidaten-Snapshots zu überprüfen.",
+      "loading": "Vergleichs-Dashboard wird geladen...",
+      "dashboard": {
+        "loaded": "{{count}} Projekte verglichen",
+        "title": "Vergleichs-Dashboard",
+        "subtitle": "Überprüfen Sie gespeicherte Experimente nebeneinander hinsichtlich Planungsannahmen, Sensitivität und beobachteten Effekten.",
+        "exporting": "Exportieren...",
+        "exportMarkdown": "Vergleichs-Markdown exportieren",
+        "exportPdf": "Vergleichs-PDF exportieren",
+        "close": "Dashboard schließen",
+        "exportFailed": "Der Vergleichsexport ist fehlgeschlagen.",
+        "mixedMetricTypes": "Gemischte Metriktypen – direkter Effektvergleich nicht aussagekräftig.",
+        "projectsTitle": "Projekte",
+        "projectsSubtitle": "Top-Planungsmetadaten für die ausgewählten Experimente.",
+        "sampleSize": "Gesamtstichprobe: {{value}}",
+        "duration": "Dauer: {{value}} Tage",
+        "warnings": "Warnungen: {{value}}",
+        "powerCurvesTitle": "Power-Kurven",
+        "powerCurvesSubtitle": "Jede Zeile zeigt pro Variante Stichprobengr??e über MDE Punkte bei der konfigurierten Power des Projekts.",
+        "sensitivityTitle": "Empfindlichkeitsraster",
+        "sensitivitySubtitle": "Laufzeitmatrizen je Projekt ?ber MDE- und Power-Kombinationen.",
+        "sensitivityUnavailable": "Empfindlichkeitsdaten nicht verfügbar.",
+        "observedEffectsTitle": "Beobachtete Effekte",
+        "observedEffectsSubtitle": "Gespeicherte beobachtete Ergebnisse werden als eine Waldparzellenzeile pro Projekt angezeigt.",
+        "insightsTitle": "Geteilte / einzigartige Erkenntnisse",
+        "insightsSubtitle": "Gemeinsame Warnungen, Risiken, Annahmen und projektbezogene Unterschiede.",
+        "sharedWarnings": "Geteilte Warnungen",
+        "sharedRisks": "Geteilte Risiken",
+        "sharedAssumptions": "Gemeinsame Annahmen",
+        "recommendationHighlights": "Empfehlungs-Highlights",
+        "project": "Projekt",
+        "uniqueWarnings": "Einzigartige Warnungen",
+        "uniqueRisks": "Einzigartige Risiken",
+        "uniqueAssumptions": "Einzigartige Annahmen",
+        "none": "Keine"
+      }
+    },
+    "experimentDesign": {
+      "variantAndRolloutStructure": "Varianten- und Rollout-Struktur",
+      "setup": "Setup",
+      "randomizationUnit": "Randomisierungseinheit",
+      "trafficSplit": "Traffic-Aufteilung",
+      "targetAudience": "Zielgruppe",
+      "inclusion": "Einschluss",
+      "exclusion": "Ausschluss",
+      "recommendedDuration": "Empfohlene Dauer",
+      "days": "Tage",
+      "stoppingConditions": "Stoppbedingungen",
+      "openQuestions": "Offene Fragen"
+    },
+    "metricsPlan": {
+      "coverage": "Abdeckung von Prim?r-, Sekund?r- und Guardrail-Metriken",
+      "primary": "Primär",
+      "secondary": "Sekundär",
+      "guardrail": "Guardrail",
+      "diagnostic": "Diagnostisch",
+      "guardrailMetrics": "Guardrail-Metriken",
+      "guardrailMetricsDescription": "Diese Metriken werden überwacht, ändern jedoch nicht die Größe der Primärstichprobe.",
+      "baseline": "Referenz"
+    },
+    "powerCurve": {
+      "title": "Power-Kurve",
+      "description": "Vergleichen Sie MDE-Ziele mit geplanter Power und erforderlicher Stichprobengr??e.",
+      "loadingSensitivity": "Sensitivit?tsdaten werden geladen...",
+      "chartAriaLabel": "Power-Kurvendiagramm mit minimal detektierbarem Effekt gegen?ber Ziel-Power",
+      "loadingChart": "Diagramm wird geladen..."
+    },
+    "risks": {
+      "statisticalAndOperational": "Statistische und betriebliche Überlegungen",
+      "product": "Produkt",
+      "technical": "Technisch",
+      "recommendations": "Empfehlungen",
+      "beforeLaunch": "Vor dem Start",
+      "duringTest": "Während des Tests",
+      "afterTest": "Nach dem Test"
+    },
+    "bayesian": {
+      "title": "Bayesianische A-posteriori-Verteilung",
+      "unavailable": "Eingaben f?r die bayesianische A-posteriori-Verteilung sind f?r diese Analyse nicht verf?gbar.",
+      "targetSampleSize": "Ziel-Stichprobengr??e:",
+      "perVariantAt": "pro Variante bei",
+      "credibilityAnd": "Kredibilit?tsniveau und",
+      "intervalHalfWidth": "Halbe Intervallbreite."
+    },
+    "sequentialDesign": {
+      "unavailable": "Sequentielle Grenzen sind für die aktuelle Analyse nicht konfiguriert.",
+      "title": "Gruppensequenzielles Design (O'Brien-Fleming)",
+      "adjustedSampleSize": "Angepasste Stichprobengr??e:",
+      "perVariant": "pro Variante",
+      "moreThanFixedHorizon": "mehr als ein fester Horizont",
+      "columns": {
+        "look": "Blick",
+        "infoFraction": "Info-Fraktion",
+        "cumulativeAlphaSpent": "Kumuliertes ?",
+        "zBoundary": "Z-Grenze",
+        "stopIf": "Stoppen, wenn |Z| ≥"
+      },
+      "footer": "Stoppen Sie bei jedem geplanten Blick frühzeitig, wenn die beobachtete absolute Z-Statistik die Grenze überschreitet. Andernfalls fahren Sie mit der nächsten Analyse fort."
+    },
+    "srmCheck": {
+      "title": "Wurde der Traffic wie geplant aufgeteilt?",
+      "description": "Geben Sie die beobachteten Benutzerzahlen pro Variante ein, um nach Stichprobenverh?ltnis-Abweichung zu suchen. Ein rotes Ergebnis bedeutet, dass die Zuweisung oder Nachverfolgung möglicherweise fehlerhaft ist.",
+      "actualUsersPlaceholder": "Tats?chliche Nutzer",
+      "checking": "Überprüfung...",
+      "checkButton": "SRM pr?fen",
+      "detected": "SRM erkannt",
+      "notDetected": "Kein SRM erkannt",
+      "serviceUnavailable": "SRM-Pr?fung nicht verf?gbar.",
+      "chiSquare": "Chi-Quadrat = {{chiSquare}}, p = {{pValue}}",
+      "expectedObserved": "Erwartet: [{{expected}}] | Beobachtet: [{{observed}}]"
+    },
+    "observedResults": {
+      "title": "Beobachtete Experimentergebnisse eingeben",
+      "description": "Geben Sie nach Abschluss des Experiments beobachtete Daten ein, um statistische Signifikanz aus den tatsächlichen Ergebnissen zu berechnen.",
+      "historicalReadOnly": "Historische Snapshots sind schreibgeschützt. Kehren Sie zum Live-Entwurf zurück, um die beobachteten Ergebnisse zu speichern.",
+      "saveProjectFirst": "Speichern Sie das Projekt zunächst, wenn Sie die beobachteten Ergebnisse beibehalten möchten.",
+      "analyzeButton": "Ergebnisse analysieren",
+      "analyzing": "Analysieren...",
+      "saveButton": "Im Projekt speichern",
+      "saving": "Speichern...",
+      "yes": "Ja",
+      "no": "Nein",
+      "fields": {
+        "controlConversions": "Konversionen der Kontrollgruppe",
+        "controlUsers": "Nutzer der Kontrollgruppe",
+        "treatmentConversions": "Konversionen der Testvariante",
+        "treatmentUsers": "Nutzer der Testvariante",
+        "alpha": "Alpha",
+        "controlMean": "Mittelwert der Kontrollgruppe",
+        "controlStdDev": "Standardabweichung der Kontrollgruppe",
+        "controlN": "n der Kontrollgruppe",
+        "treatmentMean": "Mittelwert der Testvariante",
+        "treatmentStdDev": "Standardabweichung der Testvariante",
+        "treatmentN": "n der Testvariante"
+      },
+      "cards": {
+        "effect": "Wirkung",
+        "ciLabel": "{{percent}}% KI",
+        "pValue": "p-Wert",
+        "testStatistic": "Teststatistik",
+        "relativeChange": "Relative Veränderung",
+        "powerAchieved": "Erreichte Power",
+        "forestPlot": "Forest-Plot",
+        "observedSummary": "Beobachtete Zusammenfassung",
+        "controlRate": "Kontrollrate",
+        "treatmentRate": "Rate der Testvariante",
+        "significant": "Signifikant",
+        "verdict": "Urteil"
+      },
+      "validation": {
+        "fillAllFields": "Füllen Sie vor der Analyse alle tatsächlichen Ergebnisfelder mit gültigen Werten aus.",
+        "analysisUnavailable": "Ergebnisanalyse nicht verfügbar.",
+        "analyzeBeforeSaving": "Analysieren Sie die Ergebnisse, bevor Sie sie in einem Projekt speichern.",
+        "saveUnavailable": "Beobachtete Ergebnisse konnten nicht gespeichert werden.",
+        "savedToProject": "Die beobachteten Ergebnisse wurden im Projekt {{projectName}} gespeichert."
+      }
+    },
+    "sensitivityOverview": {
+      "reportPill": "Bericht",
+      "title": "Deterministisches Experimentdesign",
+      "export": "Export",
+      "exportMenuAriaLabel": "Exportoptionen für Berichte",
+      "exportReportTitle": "Bericht exportieren (Ctrl+E)",
+      "exportMarkdown": "Markdown exportieren",
+      "exportHtml": "HTML exportieren",
+      "exportPdf": "PDF exportieren",
+      "exportCsv": "CSV exportieren",
+      "exportXlsx": "Excel-Arbeitsmappe",
+      "exporting": "Exportieren...",
+      "exportFullReport": "Vollständigen Bericht exportieren",
+      "cards": {
+        "perVariant": "Pro Variante",
+        "sampleSizePerVariant": "Stichprobengr??e / Variante",
+        "powerMeta": "{{power}} Power",
+        "bonferroni": "Bonferroni",
+        "totalSample": "Gesamtstichprobe",
+        "totalSampleSubtitle": "Gesamt Stichprobengr??e",
+        "variantsMeta": "{{count}} Varianten",
+        "duration": "Dauer",
+        "durationValue": "{{days}} Tage",
+        "durationSubtitle": "geschätzte Dauer",
+        "perDayMeta": "{{traffic}}/Tag",
+        "warnings": "Warnungen",
+        "warningsSubtitle": "heuristische Prüfungen"
+      },
+      "warningSeverity": {
+        "high": "{{count}} hoch",
+        "medium": "{{count}} mittel",
+        "low": "{{count}} niedrig",
+        "none": "Keine Warnungen"
+      },
+      "bayesianEstimate": {
+        "title": "Bayesianische Schätzung",
+        "frequentist": "Frequentistisch",
+        "bayesian": "Bayesianisch",
+        "usersPerVariant": "Nutzer / Variante"
+      },
+      "cuped": {
+        "title": "CUPED-angepasste Schätzung",
+        "without": "Ohne CUPED",
+        "with": "Mit CUPED",
+        "sampleSizeSavings": "-{{pct}}% Stichprobengr??e",
+        "durationChange": "Die geschätzte Dauer ändert sich von {{from}} auf {{to}} Tage.",
+        "adjustedStdDev": "Angepasste Standardabweichung: {{value}}."
+      },
+      "sensitivityTable": {
+        "title": "Sensitivitätstabelle",
+        "description": "Laufzeitmatrix ?ber die vom Backend zur?ckgegebenen MDE- und Power-Szenarien.",
+        "loading": "Sensitivit?tstabelle wird geladen..."
+      },
+      "sampleSizeBreakdown": {
+        "title": "Aufschl?sselung der Stichprobengr??e",
+        "description": "Beispielanforderung pro Variante, die neben der konfigurierten Traffic-Zuteilung angezeigt wird."
+      },
+      "calculationSummary": {
+        "title": "Berechnungszusammenfassung",
+        "metricType": "Metriktyp",
+        "baselineValue": "Grundwert",
+        "mdePct": "MDE %",
+        "mdeAbsolute": "MDE absolut",
+        "alpha": "Alpha",
+        "power": "Power"
+      },
+      "assumptions": {
+        "title": "Annahmen"
+      },
+      "projectHistoryContext": {
+        "title": "Kontext der Projektgeschichte",
+        "savedProject": "Gespeichertes Projekt",
+        "revisionsCount": "{{count}} Revision(en)",
+        "lastSave": "letzte Speicherung",
+        "notRecorded": "nicht erfasst",
+        "analysisRuns": "{{current}} von {{total}} Analyselauf(en)",
+        "exportEvents": "{{current}} von {{total}} Exportereignis(s)",
+        "latestAnalysisRun": "Letzter Analyselauf",
+        "noSavedAnalysisRunYet": "Noch kein gespeicherter Analyselauf",
+        "unknownMetric": "unbekannte Metrik",
+        "warnings": "Warnungen",
+        "latestExport": "Letzter Export",
+        "noExportEventYet": "Noch kein Exportereignis",
+        "linkedSnapshot": "verlinkter Schnappschuss",
+        "unlinkedExport": "nicht verknüpfter Export"
+      }
+    },
+    "panel": {
+      "sensitivityUnavailableHistorical": "Für historische Snapshots ist keine Sensitivitätsanalyse verfügbar.",
+      "sensitivityUnavailableCurrentDraft": "Für den aktuellen Entwurf ist keine Sensitivitätsanalyse verfügbar.",
+      "sensitivityUnavailable": "Sensitivitätsanalyse nicht verfügbar.",
+      "sensitivityUnavailableForConfiguration": "Sensitivitätsanalyse ist für diese Konfiguration nicht verfügbar.",
+      "backendReadOnly": "Das Backend läuft im schreibgeschützten Modus.",
+      "runAnalysisBeforeExportingReport": "Führen Sie eine Analyse durch, bevor Sie einen Bericht exportieren.",
+      "saveProjectBeforePdf": "Speichern Sie das Projekt und behalten Sie einen Analyse-Snapshot bei, bevor Sie eine PDF-Datei exportieren.",
+      "runAnalysisBeforeExportingProjectData": "Führen Sie eine Analyse durch, bevor Sie Projektdaten exportieren.",
+      "saveProjectBeforeProjectData": "Speichern Sie das Projekt, bevor Sie CSV- oder Excel-Daten exportieren.",
+      "runAnalysisBeforeStandaloneExport": "Führen Sie eine Analyse durch, bevor Sie den vollständigen Bericht exportieren.",
+      "standaloneExportFailed": "Der Export des vollständigen Berichts ist fehlgeschlagen.",
+      "savedSnapshot": "Schnappschuss gespeichert",
+      "viewingHistoricalAnalysis": "Historische Analyse anzeigen",
+      "openedSnapshotFrom": "Geöffneter Snapshot von {{timestamp}}.",
+      "currentResultsAvailable": "Aktuelle In-Memory-Ergebnisse sind weiterhin verfügbar.",
+      "returnedToCurrentAnalysis": "Kehrt zu den aktuellen In-Memory-Analyseergebnissen zurück.",
+      "closedSnapshotPreview": "Die Vorschau des gespeicherten Schnappschusses wurde geschlossen.",
+      "showCurrentAnalysis": "Aktuelle Analyse anzeigen",
+      "closeSnapshotView": "Snapshot-Ansicht schließen",
+      "analysisInProgress": "Analyse läuft",
+      "preparingDeterministicResults": "Aufbereitung deterministischer Ergebnisse",
+      "updatingSections": "Aktualisieren von Metriken, Diagrammen und Berichtsabschnitten.",
+      "accordion": {
+        "comparison": "Vergleich",
+        "sensitivity": "Sensitivität",
+        "powerCurve": "Power-Kurve",
+        "sequentialDesign": "Sequenzielles Design",
+        "bayesianPosterior": "Bayesianische A-posteriori-Verteilung",
+        "observedResults": "Beobachtete Ergebnisse",
+        "warningsAndRisks": "Warnungen und Risiken",
+        "experimentDesign": "Experimentdesign",
+        "metricsPlan": "Metrikplan",
+        "riskAssessment": "Risikobewertung",
+        "aiRecommendations": "KI-Empfehlungen",
+        "srmCheck": "SRM-Pr?fung"
+      },
+      "badges": {
+        "loaded": "Geladen",
+        "sidebar": "Seitenleiste",
+        "pending": "Ausstehend",
+        "planning": "Planung",
+        "significant": "Signifikant",
+        "review": "Pr?fung",
+        "postTest": "Nachtest",
+        "available": "Verfügbar",
+        "offline": "Offline",
+        "manual": "Handbuch"
+      },
+      "variantsCount_one": "Variante {{count}}",
+      "variantsCount_other": "{{count}} Varianten",
+      "cellsCount_one": "{{count}} Zelle",
+      "cellsCount_other": "{{count}} Zellen",
+      "looksCount_one": "{{count}} schauen",
+      "looksCount_other": "{{count}} sieht aus",
+      "warningsCount_one": "{{count}} Warnung",
+      "warningsCount_other": "{{count}} Warnungen",
+      "metricsCount_one": "{{count}} Metrik",
+      "metricsCount_other": "{{count}} Metriken",
+      "itemsCount_one": "{{count}} Artikel",
+      "itemsCount_other": "{{count}} Artikel",
+      "credibilityInterval": "{{percent}}% Intervall",
+      "noAnalysisYet": "Noch keine Analyse. Schließen Sie den Assistenten ab und führen Sie zuerst den deterministischen Backend-Flow aus."
+    }
+  },
+  "errors": {
+    "analysis_failed": "Die Analyse ist fehlgeschlagen",
+    "save_failed": "Speichern fehlgeschlagen",
+    "load_failed": "Projekt konnte nicht geladen werden",
+    "backend_offline": "Backend ist offline",
+    "storage_full": "Der Browserspeicher ist voll – Entwurf nicht gespeichert"
+  },
+  "toasts": {
+    "project_saved": "Projekt gespeichert",
+    "project_updated": "Projekt aktualisiert",
+    "export_success": "Bericht exportiert",
+    "import_success": "Arbeitsbereich importiert – {{count}} Projekte wiederhergestellt",
+    "example_loaded": "Beispiel geladen – Klicken Sie auf Analyse ausführen, um die Ergebnisse anzuzeigen"
+  },
+  "errorBoundary": {
+    "title": "Etwas ist schief gelaufen",
+    "description": "Dieser Abschnitt ist beim Rendern abgestürzt. Versuchen Sie erneut, es zu mounten.",
+    "retry": "Wiederholen"
+  },
+  "chartErrorBoundary": {
+    "title": "Diagramm nicht verfügbar",
+    "description": "Das Rendern ist fehlgeschlagen. Nachfolgend werden Rohdaten zur Überprüfung angezeigt."
+  },
+  "toastSystem": {
+    "dismissAriaLabel": "Toast verwerfen",
+    "close": "Schließen"
+  },
+  "chartExport": {
+    "groupAriaLabel": "Optionen für den Diagrammexport",
+    "downloadSvgAriaLabel": "Diagramm als SVG herunterladen",
+    "downloadPngAriaLabel": "Diagramm als PNG herunterladen",
+    "svg": "SVG",
+    "png": "PNG",
+    "errors": {
+      "imageRenderFailed": "Das Rendern des Diagrammbilds ist fehlgeschlagen.",
+      "canvasUnavailable": "Canvas 2D-Kontext ist nicht verfügbar."
+    }
+  },
+  "inlineConfirmButton": {
+    "confirmLabel": "Sicher?"
+  },
+  "wizardPanel": {
+    "dismiss": "Zurückweisen",
+    "aria": {
+      "importDraftFile": "Entwurfsdatei importieren",
+      "importWorkspaceFile": "Arbeitsbereichsdatei importieren",
+      "stepHasErrors": "Dieser Schritt weist Fehler auf"
+    },
+    "status": {
+      "startedNewDraft": "Einen neuen lokalen Entwurf gestartet.",
+      "draftExported": "Entwurf exportiert als JSON.",
+      "importedDraftFrom": "Importierter Entwurf von {{fileName}}. Speichern Sie es, um einen neuen lokalen Projektdatensatz zu erstellen.",
+      "restoredBrowserDraft": "Nicht gespeicherter Browserentwurf wiederhergestellt.",
+      "templateLoaded": "Vorlage {{templateName}} in den Assistenten geladen.",
+      "draftNotSavedStorageFull": "Entwurf nicht gespeichert – Browserspeicher voll."
+    },
+    "errors": {
+      "unexpectedDraftImport": "Unerwarteter Entwurfsimportfehler"
+    }
+  },
+  "projectListFilters": {
+    "legend": "Gespeicherte Projektfilter",
+    "searchLabel": "Suchexperimente",
+    "searchPlaceholder": "Filtern Sie nach Name oder Hypothese",
+    "statusLabel": "Status",
+    "status": {
+      "active": "Aktiv",
+      "archived": "Archiviert",
+      "all": "Alle"
+    },
+    "metricTypeLabel": "Metriktyp",
+    "metricType": {
+      "all": "Alle",
+      "binary": "Binär",
+      "continuous": "Kontinuierlich"
+    },
+    "sortLabel": "Sortieren",
+    "sort": {
+      "updated": "Zuletzt aktualisiert",
+      "name": "Name",
+      "duration": "Dauer"
+    },
+    "clear": "Filter löschen"
+  },
+  "shortcutHelp": {
+    "title": "Tastaturkürzel",
+    "description": "Schnellere Navigation und Exportaktionen für den Assistenten.",
+    "close": "Schließen",
+    "columns": {
+      "shortcut": "Abkürzung",
+      "action": "Aktion"
+    },
+    "shortcuts": {
+      "openHelp": "Hilfe zu Tastaturkürzeln öffnen",
+      "focusSearch": "Fokus gespeicherte Projektsuche",
+      "runAnalysis": "Analyse ausf?hren",
+      "moveSteps": "Wechseln Sie zwischen den Schritten des Assistenten",
+      "exportMarkdown": "Markdown-Bericht exportieren",
+      "saveProject": "Projekt speichern",
+      "toggleTheme": "Schalten Sie das Hell-/Dunkel-Thema um",
+      "closeDialog": "Schließen Sie diesen Dialog"
+    }
+  },
+  "templateGallery": {
+    "title": "Experimentiervorlagen",
+    "description": "Beginnen Sie mit einem integrierten Setup und passen Sie die Felder des Assistenten an, bevor Sie die Analyse speichern oder ausführen.",
+    "close": "Schließen",
+    "loading": "Vorlagen werden geladen...",
+    "usageCount_one": "{{count}} verwenden",
+    "usageCount_other": "{{count}} verwendet",
+    "builtInTemplate": "Integrierte Vorlage",
+    "savedTemplate": "Vorlage gespeichert",
+    "useTemplateAriaLabel": "Verwenden Sie die Vorlage {{name}}",
+    "applying": "Bewerben...",
+    "useTemplate": "Vorlage verwenden",
+    "empty": "Für diese Kategorie wurden keine Vorlagen gefunden.",
+    "categories": {
+      "All": "Alle",
+      "Revenue": "Einnahmen",
+      "Engagement": "Engagement",
+      "Performance": "Leistung"
+    },
+    "errors": {
+      "libraryUnavailable": "Vorlagenbibliothek nicht verfügbar.",
+      "applyFailed": "Die Vorlage konnte nicht angewendet werden."
+    }
+  },
+  "webhooks": {
+    "title": "Webhooks",
+    "description": "Senden Sie Prüfereignisse an Slack oder generische HTTP-Endpunkte.",
+    "loading": "Webhook-Abonnements werden geladen...",
+    "empty": "Noch keine Webhook-Abonnements.",
+    "actions": {
+      "create": "Webhook erstellen",
+      "save": "Webhook speichern",
+      "saving": "Speichern...",
+      "close": "Schließen",
+      "test": "Prüfen",
+      "deliveries": "Lieferungen",
+      "delete": "Löschen"
+    },
+    "status": {
+      "created": "Webhook-Abonnement erstellt.",
+      "deleted": "Webhook-Abonnement gelöscht.",
+      "loadFailed": "Webhook-Abonnements nicht verfügbar.",
+      "createFailed": "Die Erstellung des Webhooks ist fehlgeschlagen.",
+      "testSuccess": "Testlieferung mit HTTP {{code}} abgeschlossen.",
+      "testFailed": "Der Webhook-Test ist fehlgeschlagen.",
+      "deliveriesFailed": "Der Webhook-Übermittlungsverlauf ist nicht verfügbar.",
+      "deleteFailed": "Das Löschen des Webhooks ist fehlgeschlagen."
+    },
+    "fields": {
+      "name": "Name",
+      "targetUrl": "Ziel-URL",
+      "secret": "Geheimnis",
+      "format": "Format",
+      "scope": "Umfang",
+      "apiKeyId": "API Schlüssel-ID",
+      "eventFilter": "Ereignisfilter"
+    },
+    "placeholders": {
+      "name": "Partnerbenachrichtigungen",
+      "targetUrl": "https://example.com/webhook",
+      "secret": "Gemeinsames Signaturgeheimnis",
+      "apiKeyId": "Fügen Sie eine vorhandene Schlüssel-ID API ein",
+      "eventFilter": "api_key_created, project.archive"
+    },
+    "formats": {
+      "generic": "generisch",
+      "slack": "locker"
+    },
+    "scopes": {
+      "global": "Global",
+      "apiKey": "API Schlüssel"
+    },
+    "labels": {
+      "enabled": "Ermöglicht",
+      "disabled": "Deaktiviert",
+      "targetUrl": "Ziel-URL",
+      "events": "Veranstaltungen",
+      "allEvents": "Alle Veranstaltungen",
+      "apiKeyId": "API Schlüssel-ID",
+      "lastDelivered": "Zuletzt geliefert",
+      "lastError": "Letzter Fehler",
+      "never": "Niemals"
+    },
+    "createDialog": {
+      "title": "Webhook erstellen",
+      "description": "Konfigurieren Sie einen eingehenden Slack-Webhook oder einen generischen JSON-Endpunkt."
+    },
+    "drawer": {
+      "title": "Lieferungen: {{name}}",
+      "description": "Letzte Zustellversuche für dieses Abonnement.",
+      "loading": "Lieferungen werden geladen...",
+      "empty": "Es wurden noch keine Lieferungen registriert.",
+      "labels": {
+        "responseCode": "Antwortcode",
+        "attempts": "Versuche",
+        "lastAttempt": "Letzter Versuch",
+        "error": "Fehler"
+      }
+    }
+  },
+  "sidebarPanel": {
+    "common": {
+      "notRecordedYet": "Noch nicht erfasst",
+      "unknownMetric": "unbekannte Metrik",
+      "daysShort": "{{value}}d"
+    },
+    "tabs": {
+      "projects": "Projekte",
+      "system": "System",
+      "apiKeys": "API Schlüssel"
+    },
+    "apiKeysFallback": {
+      "title": "API Schlüssel",
+      "loading": "API Schlüsselmanager wird geladen..."
+    },
+    "backendStatus": {
+      "title": "Backend-Status",
+      "description": "Live-Zustand für die FastAPI-Laufzeit, die Berechnungen, Speicherung und optionale KI-Beratung bereitstellt.",
+      "checking": "Überprüfung...",
+      "refresh": "Backend-Status aktualisieren",
+      "online": "API online",
+      "unavailable": "API nicht verfügbar.",
+      "notLoaded": "Noch kein Backend-Status geladen.",
+      "labels": {
+        "service": "Service",
+        "version": "Version",
+        "environment": "Umfeld"
+      }
+    },
+    "apiSessionToken": {
+      "title": "API Sitzungstoken",
+      "description": "Optionales Token, das nur in dieser Browsersitzung gespeichert wird. Es ist nicht in den Frontend-Build oder das Docker-Image integriert.",
+      "label": "Sitzungstoken",
+      "placeholderConfigured": "In der aktuellen Browsersitzung gespeichertes Token",
+      "placeholderEmpty": "Schreibgeschütztes oder Schreibtoken einfügen",
+      "save": "Token speichern",
+      "clear": "Token löschen",
+      "configured": "Token konfiguriert",
+      "notStored": "Kein Token gespeichert"
+    },
+    "adminToken": {
+      "title": "API Schlüssel-Administrator-Token",
+      "description": "Wird nur in dieser Browsersitzung gespeichert und nur für Verwaltungsanfragen „/api/v1/keys“ und „/api/v1/webhooks“ verwendet.",
+      "label": "Admin-Token",
+      "placeholderConfigured": "In der aktuellen Browsersitzung gespeichertes Admin-Token",
+      "placeholderEmpty": "AB_ADMIN_TOKEN einfügen",
+      "save": "Admin-Token speichern",
+      "clear": "Admin-Token löschen",
+      "configured": "Admin-Zugriff konfiguriert",
+      "disabled": "Administratorzugriff deaktiviert"
+    },
+    "workspaceBackup": {
+      "title": "Sicherung des Arbeitsbereichs",
+      "systemDescription": "Exportieren oder importieren Sie den gesamten SQLite-Arbeitsbereich, einschließlich gespeicherter Projekte, Verlauf, Exporte und Revisionen.",
+      "projectsDescription": "Exportieren oder importieren Sie den gesamten SQLite-Arbeitsbereich, einschließlich gespeicherter Projekte, Analyseverlauf, Exportereignisse und gespeicherter Revisionen. Importe führen Prüfsumme, optionale Signatur und Referenzvalidierung aus, bevor SQLite-Schreibvorgänge beginnen.",
+      "exporting": "Exportieren...",
+      "export": "Arbeitsbereich exportieren JSON",
+      "importing": "Importieren...",
+      "import": "Arbeitsbereich importieren JSON"
+    },
+    "quickArchive": {
+      "title": "Gespeicherte Projekte",
+      "archiveAriaLabel": "Archiv {{projectName}}",
+      "archiving": "Archivierung..."
+    },
+    "diagnostics": {
+      "title": "Laufzeitdiagnose",
+      "description": "Leichte Beobachtbarkeit für Speicher, Frontend-Bereitstellung, Orchestrator-Einstellungen und Betriebszeit.",
+      "refreshing": "Erfrischend...",
+      "refresh": "Diagnose aktualisieren",
+      "online": "Diagnose online",
+      "unavailable": "Diagnose nicht verfügbar.",
+      "notLoaded": "Noch keine Diagnose geladen.",
+      "storageSummary": "{{projects}} Projekte, {{analysisRuns}} Analyseläufe, {{exportEvents}} Exportereignisse, {{revisions}} Revisionen",
+      "labels": {
+        "uptime": "Betriebszeit",
+        "storage": "Lagerung",
+        "latestProjectUpdate": "Neuestes Projekt-Update",
+        "sqlitePath": "SQLite-Pfad",
+        "sqliteParent": "SQLite-Elternteil",
+        "storageFootprint": "Speicherbedarf",
+        "sqliteMode": "SQLite-Modus",
+        "sqliteWriteProbe": "SQLite-Schreibprobe",
+        "workspaceBackups": "Arbeitsbereich-Backups",
+        "frontendDist": "Frontend-Dist",
+        "timingHeaders": "Timing-Header",
+        "llmAdapter": "LLM-Adapter",
+        "logging": "Protokollierung",
+        "runtimeCounters": "Laufzeitzähler",
+        "lastRuntimeError": "Letzter Laufzeitfehler",
+        "apiAuth": "API Autor",
+        "authHeaders": "Auth-Header",
+        "securityGuards": "Sicherheitspersonal",
+        "bodyLimits": "Körperliche Grenzen"
+      },
+      "values": {
+        "db": "db",
+        "freeDisk": "freie Festplatte",
+        "userVersion": "user_version",
+        "busyTimeout": "beschäftigte Auszeit",
+        "pass": "passieren",
+        "fail": "scheitern",
+        "hmacSigned": "HMAC unterzeichnet",
+        "checksumOnly": "Nur Prüfsumme",
+        "enabled": "ermöglicht",
+        "disabled": "deaktiviert",
+        "present": "gegenwärtig",
+        "missing": "fehlen",
+        "timeout": "Time-out",
+        "attempts": "Versuche",
+        "requests": "Anfragen",
+        "ok": "OK",
+        "none": "keiner",
+        "authRejects": "Auth lehnt ab",
+        "bodyRejects": "Körper lehnt ab",
+        "writeToken": "Schreibtoken",
+        "noWriteToken": "kein Schreibtoken",
+        "readOnlyToken": "Nur-Lese-Token",
+        "noReadOnlyToken": "kein schreibgeschütztes Token",
+        "readMethods": "Lesemethoden",
+        "headersOn": "Kopfzeilen an",
+        "headersOff": "Kopfzeilen aus",
+        "rateLimit": "Tarifbegrenzung",
+        "authThrottle": "Authentifizierungsdrossel",
+        "general": "allgemein",
+        "workspace": "Arbeitsplatz"
+      }
+    },
+    "workspaceStatus": {
+      "title": "Statustafel für den Arbeitsbereich",
+      "description": "Zusammenfassung der gespeicherten Projektabdeckung, der Snapshot-Tiefe und der Synchronisierung des aktuellen Entwurfs auf einen Blick.",
+      "savedCount_one": "{{count}} gespeichert",
+      "savedCount_other": "{{count}} gespeichert",
+      "withSnapshotsCount_one": "{{count}} mit Schnappschüssen",
+      "withSnapshotsCount_other": "{{count}} mit Schnappschüssen",
+      "draftChanged": "Entwurf geändert",
+      "sqliteWritable": "SQLite beschreibbar",
+      "readOnlyApi": "Schreibgeschützt API",
+      "snapshotCoverage": "{{ready}} bereit | {{withoutSavedAnalysis}} ohne gespeicherte Analyse",
+      "exportCoverage_one": "{{count}} wurde mindestens einmal exportiert",
+      "exportCoverage_other": "{{count}} wurde mindestens einmal exportiert",
+      "revisionDepth_one": "{{count}} Projekt mit mehr als einer gespeicherten Revision",
+      "revisionDepth_other": "{{count}} Projekte mit mehr als einer gespeicherten Revision",
+      "labels": {
+        "savedProjects": "Gespeicherte Projekte",
+        "archivedProjects": "Archivierte Projekte",
+        "snapshotCoverage": "Snapshot-Berichterstattung",
+        "exportCoverage": "Exportabdeckung",
+        "revisionDepth": "Revisionstiefe",
+        "currentDraft": "Aktueller Entwurf",
+        "latestWorkspaceUpdate": "Neuestes Workspace-Update"
+      },
+      "currentDraft": {
+        "loadedProjectWithUnsavedChanges": "geladenes Projekt mit nicht gespeicherten Änderungen",
+        "loadedProjectInSync": "geladenes Projekt synchron",
+        "newLocalDraft": "neuer lokaler Entwurf"
+      }
+    },
+    "auditLog": {
+      "title": "Audit-Protokoll",
+      "description": "Aktuelle Schreibaktivitäten im gesamten Arbeitsbereich, mit optionaler Filterung nach gespeichertem Projekt.",
+      "refreshing": "Erfrischend...",
+      "refresh": "Audit-Protokoll aktualisieren",
+      "export": "Audit-CSV exportieren",
+      "projectFilter": "Projektfilter",
+      "allProjects": "Alle Projekte",
+      "unavailable": "Audit-Protokoll nicht verfügbar.",
+      "loading": "Prüfprotokoll wird geladen...",
+      "showingEntries_one": "{{visible}} von {{total}} Eintrag wird angezeigt.",
+      "showingEntries_other": "Zeigt {{visible}} von {{total}} Einträgen.",
+      "workspace": "Arbeitsplatz",
+      "unknownActor": "unbekannt",
+      "noEntries": "Es wurden noch keine Audit-Einträge erfasst.",
+      "columns": {
+        "time": "Zeit",
+        "action": "Aktion",
+        "project": "Projekt",
+        "actor": "Schauspieler"
+      }
+    },
+    "activeProject": {
+      "title": "Aktives Projekt",
+      "unsavedChanges": "Nicht gespeicherte Änderungen",
+      "savedLocally": "Lokal gespeichert",
+      "unknownProject": "Unbekanntes Projekt",
+      "statusNeedsLocalUpdate": "Benötigt lokales Update",
+      "statusInSync": "Synchronisiert mit SQLite",
+      "empty": "Es wird kein gespeichertes Projekt geladen. Sie können weiterhin an einem lokalen Entwurf arbeiten und ihn speichern, wenn Sie fertig sind.",
+      "labels": {
+        "projectName": "Projektname",
+        "projectId": "Projekt-ID",
+        "status": "Status",
+        "payloadSchema": "Nutzlastschema",
+        "savedRevisions": "Gespeicherte Revisionen",
+        "lastSave": "Letzte Speicherung",
+        "lastAnalysis": "Letzte Analyse",
+        "lastExport": "Letzter Export",
+        "snapshotStored": "Snapshot gespeichert"
+      }
+    },
+    "projectHistory": {
+      "title": "Aktuelle Projekthistorie",
+      "description": "Zeitleiste der gespeicherten Analyseläufe und Exportereignisse für das geladene Projekt.",
+      "refreshing": "Erfrischend...",
+      "refresh": "Projektverlauf aktualisieren",
+      "empty": "Laden Sie ein gespeichertes Projekt, um aktuelle Analyseläufe zu überprüfen und Ereignisse zu exportieren.",
+      "unavailable": "Projektverlauf nicht verfügbar.",
+      "loading": "Gespeicherter Projektverlauf wird geladen...",
+      "summary": "Zeigt {{analysisVisible}} von {{analysisTotal}} Analyseläufen und {{exportVisible}} von {{exportTotal}} Exportereignissen.",
+      "closeOpenedSnapshot": "Geöffneten Snapshot schließen",
+      "analysisRunsTitle": "Analyse läuft",
+      "warningsCount_one": "{{count}} Warnung",
+      "warningsCount_other": "{{count}} Warnungen",
+      "aiAdvice": "KI-Beratung",
+      "opened": "Geöffnet",
+      "openSnapshot": "Schnappschuss öffnen",
+      "viewing": "Anzeigen",
+      "noAnalysisHistory": "Es wurde noch kein Analyseverlauf aufgezeichnet.",
+      "loadOlderAnalysisRuns": "Ältere Analyseläufe laden",
+      "exportEventsTitle": "Ereignisse exportieren",
+      "linkedSnapshot": "verlinkter Schnappschuss",
+      "unlinkedExport": "nicht verknüpfter Export",
+      "noExportHistory": "Noch keine Exporthistorie erfasst.",
+      "loadOlderExportEvents": "Ältere Exportereignisse laden",
+      "notLoaded": "Noch kein Projektverlauf geladen."
+    },
+    "revisions": {
+      "title": "Gespeicherte Revisionen",
+      "description": "Nutzlast-Snapshots, die beim Erstellen, Aktualisieren und Arbeitsbereich-Import erfasst werden. Beim Laden einer Revision bleibt das aktuelle Projekt ausgewählt, der Assistent wird jedoch bis zum Speichern als geändert markiert.",
+      "refreshing": "Erfrischend...",
+      "refresh": "Revisionen aktualisieren",
+      "empty": "Laden Sie ein gespeichertes Projekt, um frühere Nutzlastrevisionen zu überprüfen oder wiederherzustellen.",
+      "unavailable": "Projektrevisionen nicht verfügbar.",
+      "loading": "Gespeicherte Revisionen werden geladen...",
+      "summary": "Zeigt {{visible}} von {{total}} Revision(en).",
+      "loadIntoWizard": "In den Assistenten laden",
+      "noEntries": "Es wurden noch keine gespeicherten Revisionen aufgezeichnet.",
+      "loadOlder": "Ältere Revisionen laden",
+      "notLoaded": "Es wurden noch keine Projektrevisionen geladen.",
+      "sources": {
+        "importedWorkspaceSnapshot": "Importierter Arbeitsbereichs-Snapshot",
+        "projectUpdate": "Projektaktualisierung",
+        "initialSave": "Erstspeicherung"
+      }
+    },
+    "savedProjects": {
+      "title": "Gespeicherte Projekte",
+      "description": "Laden, vergleichen und archivieren Sie SQLite-gestützte Entwürfe aus dem lokalen Arbeitsbereich.",
+      "loading": "Laden...",
+      "load": "Gespeicherte Projekte laden",
+      "savedCount_one": "{{count}} gespeichert",
+      "savedCount_other": "{{count}} gespeichert",
+      "withoutSavedAnalysisCount_one": "{{count}} ohne gespeicherte Analyse",
+      "withoutSavedAnalysisCount_other": "{{count}} ohne gespeicherte Analyse",
+      "shownExperiments_one": "{{count}} Experiment angezeigt.",
+      "shownExperiments_other": "{{count}} Experimente angezeigt.",
+      "compareDescription": "Wählen Sie 2 bis 5 gespeicherte Projekte mit Snapshots aus, um das Vergleichs-Dashboard zu öffnen.",
+      "selectedForComparison_one": "{{count}} ausgewählt",
+      "selectedForComparison_other": "{{count}} ausgewählt",
+      "currentComparison": "Aktueller Vergleich: {{baseProject}} vs. {{candidateProject}}.",
+      "currentDashboard": "Aktuelles Dashboard: {{count}} Projekte.",
+      "comparisonUnavailable": "Projektvergleich nicht verfügbar.",
+      "compareRequiresSnapshot": "Speichern Sie mindestens einen Analyse-Snapshot, bevor Sie gespeicherte Projekte vergleichen.",
+      "updatedAt": "Aktualisiert {{timestamp}}",
+      "savedAt": "Gespeichert {{timestamp}}",
+      "analyzedAt": "Analysiert {{timestamp}}",
+      "revisionsCount_one": "Revision {{count}}",
+      "revisionsCount_other": "Überarbeitungen {{count}}",
+      "exportedAt": "Exportiert {{timestamp}}",
+      "noExportsYet": "Noch keine Exporte",
+      "loadedInWizard": "Im Assistenten geladen",
+      "archiveAriaLabel": "Archiv {{projectName}}",
+      "deleteAriaLabel": "{{projectName}} löschen",
+      "noMatches": "Keine Experimente entsprechen Ihren Filtern.",
+      "empty": "Keine gespeicherten Projekte verfügbar.",
+      "badges": {
+        "loaded": "Geladen",
+        "snapshot": "Schnappschuss",
+        "archived": "Archiviert"
+      },
+      "actions": {
+        "comparing": "Vergleichen...",
+        "compare": "Vergleichen",
+        "compareSelected": "Ausgewählte vergleichen",
+        "selectForComparison": "Zum Vergleich auswählen",
+        "restoring": "Wiederherstellung...",
+        "restore": "Wiederherstellen",
+        "archive": "Archiv",
+        "delete": "Löschen"
+      }
+    },
+    "archivedProjects": {
+      "title": "Archivierte Projekte",
+      "description": "Archivierte Projekte bleiben hier, bis sie wiederhergestellt werden.",
+      "archivedAt": "Archiviert {{timestamp}}",
+      "lastAnalysisAt": "Letzte Analyse {{timestamp}}",
+      "empty": "Keine archivierten Projekte."
+    },
+    "backendEndpoints": {
+      "title": "Backend-Endpunkte"
+    },
+    "status": {
+      "readOnlyMode": "Das Backend läuft im schreibgeschützten Modus.",
+      "auditExported": "Audit-Protokoll als CSV exportiert.",
+      "auditExportFailed": "Der Audit-Export ist fehlgeschlagen.",
+      "returnedToCurrentResults": "Kehrt zu den aktuellen In-Memory-Analyseergebnissen zurück.",
+      "closedSnapshotPreview": "Die Vorschau des gespeicherten Schnappschusses wurde geschlossen.",
+      "openedSnapshotFromHistory": "Öffnet einen gespeicherten Analyse-Snapshot aus dem Projektverlauf.",
+      "loadedProjectIntoWizard": "Projekt {{projectName}} in den Assistenten geladen.",
+      "projectArchivedCurrentDraft": "Projekt {{projectName}} archiviert. Die aktuelle Form bleibt als neuer lokaler Entwurf erhalten.",
+      "projectArchived": "Projekt {{projectName}} archiviert.",
+      "projectRestored": "Projekt {{projectName}} aus dem Archiv wiederhergestellt.",
+      "projectDeletedCurrentDraft": "Projekt {{projectName}} endgültig gelöscht. Die aktuelle Form bleibt als neuer lokaler Entwurf erhalten.",
+      "projectDeleted": "Projekt {{projectName}} endgültig gelöscht.",
+      "verifyingAdminToken": "Admin-Token für API-Schlüsselverwaltung wird überprüft...",
+      "adminTokenAccepted": "Admin-Token für API-Schlüsselverwaltung in dieser Browsersitzung akzeptiert.",
+      "adminTokenVerificationFailed": "Die Überprüfung des Admin-Tokens ist fehlgeschlagen.",
+      "adminTokenCleared": "Admin-Token aus dieser Browsersitzung gelöscht."
     }
   }
 }

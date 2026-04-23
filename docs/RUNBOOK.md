@@ -333,7 +333,7 @@ curl "http://127.0.0.1:8008/api/v1/webhooks/WEBHOOK_ID/deliveries?limit=50&statu
 
 The project ships with four locales: `en`, `ru`, `de`, `es`. Adding a new one takes a matching pair of JSON files plus three registration touches.
 
-1. **Frontend translation** — copy `app/frontend/src/i18n/en.json` to `<code>.json` in the same directory and translate the strings. Missing keys fall back to English via `react-i18next` `fallbackLng`, so partial coverage is safe to ship incrementally.
+1. **Frontend translation** — copy `app/frontend/src/i18n/en.json` to `<code>.json` in the same directory and translate the strings. Missing keys still fall back to English via `react-i18next` `fallbackLng`, but `de` and `es` now ship with full coverage rather than partial locale files.
 2. **Frontend registration** — add the new code to `app/frontend/src/i18n/index.ts`: import the JSON, add it to `resources`, and extend `supportedLngs`.
 3. **Language switcher** — extend `SUPPORTED_LANGUAGES` in `app/frontend/src/App.tsx` so the header switcher renders the new button. Add a label under `app.language.options.<code>` to every shipped locale file.
 4. **Backend translation** — copy `app/backend/app/i18n/en.json` to `app/backend/app/i18n/<code>.json`. Translate at least the `export.markdown`, `export.html`, `warnings`, and `report` subtrees, since those feed the `/api/v1/export/*` payloads and the deterministic report builder.
