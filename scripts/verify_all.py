@@ -142,7 +142,17 @@ def main() -> int:
     run_step("frontend typecheck", [NPM_EXECUTABLE, "exec", "tsc", "--", "--noEmit", "-p", "."], FRONTEND_DIR)
     run_step(
         "frontend unit tests",
-        [NPM_EXECUTABLE, "run", "test:unit", "--", "--testTimeout=30000", "--hookTimeout=30000"],
+        [
+            NPM_EXECUTABLE,
+            "run",
+            "test:unit",
+            "--",
+            "--reporter=verbose",
+            "--testTimeout=30000",
+            "--hookTimeout=30000",
+            "--teardownTimeout=15000",
+            "--bail=1",
+        ],
         FRONTEND_DIR,
     )
 

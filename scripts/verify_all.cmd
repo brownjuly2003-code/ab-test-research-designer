@@ -99,7 +99,7 @@ npm.cmd exec tsc -- --noEmit -p .
 if errorlevel 1 exit /b %errorlevel%
 
 echo [verify] frontend unit tests
-npm.cmd run test:unit -- --testTimeout=30000 --hookTimeout=30000
+npm.cmd run test:unit -- --reporter=verbose --testTimeout=30000 --hookTimeout=30000 --teardownTimeout=15000 --bail=1
 if errorlevel 1 exit /b %errorlevel%
 
 if "%SKIP_BUILD%"=="0" (
