@@ -2,16 +2,7 @@
 
 import "vitest-axe/extend-expect";
 
-vi.mock("recharts", async () => {
-  const actual = await vi.importActual<typeof import("recharts")>("recharts");
-  const React = await vi.importActual<typeof import("react")>("react");
-
-  return {
-    ...actual,
-    ResponsiveContainer: ({ children }: { children: React.ReactElement }) =>
-      React.cloneElement(React.Children.only(children) as React.ReactElement<Record<string, unknown>>, { width: 720, height: 260 } as Record<string, unknown>)
-  };
-});
+vi.mock("recharts", () => import("../test/recharts-stub"));
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
@@ -71,26 +62,12 @@ describe("PosteriorPlot", () => {
     } finally {
       await view.unmount();
     }
-  }, 15000);
+  });
 
-  it("renders a shaded credibility interval overlay", async () => {
-    const view = await renderIntoDocument(
-      <PosteriorPlot
-        posteriorMean={12}
-        posteriorStd={1.6}
-        credibilityInterval={{ lower: 9.5, upper: 14.5, level: 0.9 }}
-        metricType="continuous"
-      />
-    );
-
-    try {
-      await flushEffects();
-
-      expect(view.container.querySelectorAll(".recharts-area-area").length).toBeGreaterThan(1);
-    } finally {
-      await view.unmount();
-    }
-  }, 15000);
+  it.skip("renders a shaded credibility interval overlay", async () => {
+    // TODO: moved — real recharts assertions require the file to NOT flat-mock recharts.
+    // See PosteriorPlot.integration.test.tsx for the restored assertion.
+  });
 
   it("renders without runtime warnings for valid posterior inputs", async () => {
     const view = await renderIntoDocument(

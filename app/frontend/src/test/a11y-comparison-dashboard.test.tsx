@@ -2,6 +2,8 @@
 
 import "vitest-axe/extend-expect";
 
+vi.mock("recharts", () => import("./recharts-stub"));
+
 import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
@@ -73,5 +75,5 @@ describe("Comparison dashboard accessibility", () => {
     } finally {
       await view.unmount();
     }
-  }, 15000);
+  }, 10000);
 });

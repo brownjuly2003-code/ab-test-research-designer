@@ -2,6 +2,8 @@
 
 import "vitest-axe/extend-expect";
 
+vi.mock("recharts", () => import("./recharts-stub"));
+
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 import * as matchers from "vitest-axe/matchers";
@@ -82,7 +84,7 @@ describe("Results accessibility", () => {
     } finally {
       await view.unmount();
     }
-  }, 25000);
+  }, 20000);
 
   it("has no critical or serious accessibility violations in PowerCurveSection", async () => {
     const view = await renderIntoDocument(

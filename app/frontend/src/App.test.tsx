@@ -559,6 +559,14 @@ async function openSystemTab(view: AppView) {
 
 describe("App UI flow", () => {
   beforeEach(() => {
+    vi.stubGlobal(
+      "ResizeObserver",
+      class ResizeObserver {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      }
+    );
     vi.stubGlobal("URL", {
       createObjectURL: vi.fn(() => "blob:test"),
       revokeObjectURL: vi.fn()
@@ -816,6 +824,7 @@ describe("App UI flow", () => {
 
     const view = await renderIntoDocument(<App />);
     try {
+      await flushEffects();
       await flushEffects();
 
       const results = await axe(view.container, {
