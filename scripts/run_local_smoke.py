@@ -81,6 +81,7 @@ def start_backend_process(
             "AB_CORS_ORIGINS": "http://127.0.0.1:5173,http://localhost:5173",
             "AB_LLM_TIMEOUT_SECONDS": "1",
             "AB_LLM_MAX_ATTEMPTS": "1",
+            "AB_SEED_DEMO_ON_STARTUP": "true",
         }
     )
 
