@@ -164,44 +164,56 @@ def normalize_lighthouse_score(raw_score: Any) -> int | None:
 
 
 def lighthouse_score(path: Path) -> int | None:
-    if not path.exists():
-        return None
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return None
+    def score_from_report(report_path: Path) -> int | None:
+        try:
+            report_payload = json.loads(report_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return None
+        if not isinstance(report_payload, dict):
+            return None
+        categories = report_payload.get("categories")
+        if not isinstance(categories, dict):
+            return None
+        performance = categories.get("performance")
+        if not isinstance(performance, dict):
+            return None
+        return normalize_lighthouse_score(performance.get("score"))
 
-    if not isinstance(payload, list):
-        return None
-    entries = [entry for entry in payload if isinstance(entry, dict)]
-    if not entries:
-        return None
-    representative_entries = [entry for entry in entries if entry.get("isRepresentativeRun") is True]
-    selected_entries = representative_entries or entries
     scores: list[int] = []
-    for entry in selected_entries:
-        summary = entry.get("summary")
-        score = None
-        if isinstance(summary, dict):
-            score = normalize_lighthouse_score(summary.get("performance"))
-        if score is None:
-            json_path = entry.get("jsonPath")
-            if json_path:
-                report_path = Path(json_path)
-                if not report_path.is_absolute():
-                    report_path = path.parent / report_path
-                try:
-                    report_payload = json.loads(report_path.read_text(encoding="utf-8"))
-                except (OSError, json.JSONDecodeError):
-                    report_payload = None
-                if isinstance(report_payload, dict):
-                    categories = report_payload.get("categories")
-                    if isinstance(categories, dict):
-                        performance = categories.get("performance")
-                        if isinstance(performance, dict):
-                            score = normalize_lighthouse_score(performance.get("score"))
-        if score is not None:
-            scores.append(score)
+    entries: list[dict[str, Any]] = []
+
+    if path.exists():
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            payload = None
+        if isinstance(payload, list):
+            entries = [entry for entry in payload if isinstance(entry, dict)]
+
+    if entries:
+        representative_entries = [entry for entry in entries if entry.get("isRepresentativeRun") is True]
+        selected_entries = representative_entries or entries
+        for entry in selected_entries:
+            summary = entry.get("summary")
+            score = None
+            if isinstance(summary, dict):
+                score = normalize_lighthouse_score(summary.get("performance"))
+            if score is None:
+                json_path = entry.get("jsonPath")
+                if json_path:
+                    report_path = Path(json_path)
+                    if not report_path.is_absolute():
+                        report_path = path.parent / report_path
+                    score = score_from_report(report_path)
+            if score is not None:
+                scores.append(score)
+    else:
+        fallback_dir = path if path.is_dir() else path.parent
+        for report_path in sorted(fallback_dir.glob("lhr-*.json")):
+            score = score_from_report(report_path)
+            if score is not None:
+                scores.append(score)
+
     if not scores:
         return None
     return round(sum(scores) / len(scores))

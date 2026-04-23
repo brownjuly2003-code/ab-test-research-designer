@@ -438,11 +438,16 @@ def run_browser_smoke(
             append_smoke_log(log_path, "opening comparison dashboard")
             print("[smoke] opening comparison dashboard", flush=True)
             page.get_by_role("button", name="Projects", exact=True).click()
-            compare_checkboxes = page.locator('[role="option"] input[type="checkbox"]')
+            compare_checkboxes = page.get_by_role("checkbox", name="Select for comparison")
+            compare_checkboxes.nth(1).wait_for(state="visible", timeout=15000)
             if compare_checkboxes.count() < 2:
                 raise RuntimeError("Smoke expected at least two comparison-ready project checkboxes.")
             compare_checkboxes.nth(0).check()
             compare_checkboxes.nth(1).check()
+            page.locator("#compare-selected-projects-button:not([disabled])").wait_for(
+                state="visible",
+                timeout=15000,
+            )
             page.locator("#compare-selected-projects-button").click()
             comparison_toggle = page.locator("button").filter(has_text="Comparison").first
             if comparison_toggle.get_attribute("aria-expanded") != "true":

@@ -59,6 +59,14 @@ jobs:
             .ci-artifacts/coverage-backend.json
           if-no-files-found: warn
 
+      - name: Upload smoke failure dump
+        if: failure() && matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-failure
+          path: archive/smoke-runs/
+          if-no-files-found: ignore
+
   docker:
     runs-on: ubuntu-latest
     env:
