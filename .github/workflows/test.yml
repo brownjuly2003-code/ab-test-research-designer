@@ -37,9 +37,13 @@ jobs:
       - name: Install frontend dependencies
         run: npm --prefix app/frontend ci
 
-      - name: Install Playwright browser
+      - name: Install Playwright browser (node)
         if: matrix.os == 'ubuntu-latest'
         run: npm --prefix app/frontend exec -- playwright install --with-deps chromium
+
+      - name: Install Playwright browser (python)
+        if: matrix.os == 'ubuntu-latest'
+        run: python -m playwright install chromium
 
       - name: Run verify pipeline
         run: python scripts/verify_all.py ${{ matrix.verify_args }}
