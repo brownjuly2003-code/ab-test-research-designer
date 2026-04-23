@@ -42,21 +42,20 @@ type AxeMatcher = {
   toHaveNoViolations: () => void;
 };
 
-describe.each([
-  { locale: "de", activeLabel: "DE" },
-  { locale: "es", activeLabel: "ES" }
-] as const)("Locale accessibility: $locale", ({ locale, activeLabel }) => {
+describe("Arabic RTL accessibility", () => {
   beforeEach(async () => {
     document.documentElement.lang = "en";
+    document.documentElement.dir = "ltr";
     window.localStorage.clear();
-    await i18n.changeLanguage(locale);
+    await i18n.changeLanguage("ar");
   });
 
   afterEach(async () => {
+    document.documentElement.dir = "ltr";
     await i18n.changeLanguage("en");
   });
 
-  it("renders the full language switcher and updates html lang", async () => {
+  it("renders a 7-language switcher and updates html lang/dir", async () => {
     const view = await renderIntoDocument(<App />);
 
     try {
@@ -68,16 +67,16 @@ describe.each([
       const buttons = Array.from(languageGroup?.querySelectorAll("button") ?? []);
       expect(buttons.map((button) => button.textContent?.trim())).toEqual(["EN", "RU", "DE", "ES", "FR", "ZH", "AR"]);
 
-      const activeButton = buttons.find((button) => button.textContent?.trim() === activeLabel);
+      const activeButton = buttons.find((button) => button.textContent?.trim() === "AR");
       expect(activeButton?.getAttribute("aria-pressed")).toBe("true");
-      expect(document.documentElement.lang).toBe(locale);
-      expect(document.documentElement.dir).toBe("ltr");
+      expect(document.documentElement.lang).toBe("ar");
+      expect(document.documentElement.dir).toBe("rtl");
     } finally {
       await view.unmount();
     }
   });
 
-  it("has no critical or serious accessibility violations", async () => {
+  it("has no critical or serious accessibility violations in rtl", async () => {
     const view = await renderIntoDocument(<App />);
 
     try {

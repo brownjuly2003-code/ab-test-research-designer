@@ -1,0 +1,1191 @@
+{
+  "app": {
+    "skipToMainContent": "Passer au contenu principal",
+    "eyebrow": "Planificateur d'expériences locales",
+    "title": "Concepteur de recherche pour tests A/B",
+    "tagline": "Remplissez le contexte de l'expérience, exécutez des calculs déterministes, inspectez les avertissements et séparez les conseils de l'IA des mathématiques difficiles.",
+    "language": {
+      "label": "Langue",
+      "ariaLabel": "Language preference",
+      "options": {
+        "en": "Anglais",
+        "ru": "Russe",
+        "de": "Allemand",
+        "es": "Espagnol",
+        "fr": "Français",
+        "zh": "Chinois simplifié",
+        "ar": "Arabe"
+      }
+    },
+    "theme": {
+      "label": "Thème",
+      "ariaLabel": "Préférence de thème",
+      "buttonAria": {
+        "light": "Thème lumière",
+        "dark": "Thème sombre",
+        "system": "Thème système"
+      },
+      "options": {
+        "light": "Lumière",
+        "dark": "Sombre",
+        "system": "Auto"
+      }
+    },
+    "preferences": {
+      "llm": {
+        "title": "Fournisseur LLM",
+        "description": "Suggestions à distance facultatives pour la session de navigateur en cours uniquement.",
+        "providerLabel": "Fournisseur",
+        "providers": {
+          "local": "Local (par défaut)",
+          "openai": "OpenAI",
+          "anthropic": "Anthropique"
+        },
+        "tokenLabel": "Clé API (session uniquement, jamais enregistrée)",
+        "info": "Votre clé reste dans le stockage de la session du navigateur et est effacée lorsque vous fermez cet onglet.",
+        "useLocal": "Utilisez plutôt local",
+        "tokenRequiredFallback": "Jeton requis - retour aux suggestions locales"
+      }
+    }
+  },
+  "wizard": {
+    "steps": {
+      "1": "Projet",
+      "2": "Hypothèse",
+      "3": "Installation",
+      "4": "Métrique",
+      "5": "Contraintes",
+      "6": "Revoir"
+    },
+    "actions": {
+      "next": "Suivant",
+      "back": "Dos",
+      "save": "Enregistrer le projet",
+      "runAnalysis": "Exécuter une analyse",
+      "export": "Exporter"
+    }
+  },
+  "wizardReview": {
+    "title": "Examiner les entrées",
+    "savedProjectTitle": "Révision d'un projet enregistré",
+    "newDraftTitle": "Réviser un nouveau brouillon",
+    "unsavedChangesPresent": "Les modifications non enregistrées sont présentes.",
+    "syncedWithLocalStorage": "Ce projet chargé est synchronisé avec le stockage local.",
+    "description": "Vérifiez les valeurs ci-dessous avant d'enregistrer ou d'exécuter le flux backend déterministe.",
+    "fixFields": "Corrigez ces champs avant d'enregistrer ou d'exécuter une analyse",
+    "newDraftButton": "Nouveau brouillon",
+    "importing": "Importation...",
+    "importDraft": "Importer le brouillon JSON",
+    "exportDraft": "Exporter le brouillon JSON",
+    "updateProjectTitle": "Projet de mise à jour (Ctrl+S)",
+    "saveProjectTitle": "Enregistrer le projet (Ctrl+S)",
+    "saving": "Économie...",
+    "updateProject": "Mettre à jour le projet",
+    "runAnalysisTitle": "Exécuter l'analyse (Ctrl+Enter)",
+    "analyzing": "Analyser..."
+  },
+  "wizardDraft": {
+    "sections": {
+      "project": "Contexte du projet",
+      "hypothesis": "Hypothèse",
+      "setup": "Configuration de l'expérience",
+      "metrics": "Métrique",
+      "constraints": "Contraintes"
+    },
+    "note": {
+      "editingSavedProject": "Modification du projet enregistré",
+      "workingOnNewDraft": "Travailler sur un nouveau brouillon",
+      "projectIdStatus": "ID du projet : {{projectId}}. {{status}}",
+      "unsavedChangesPending": "Modifications non enregistrées en attente de mise à jour locale.",
+      "allChangesSaved": "Toutes les modifications enregistrées localement.",
+      "savingCreatesProject": "L'enregistrement créera un nouvel enregistrement de projet local."
+    },
+    "fixFields": "Corrigez ces champs avant d'enregistrer ou d'exécuter une analyse",
+    "analysisFramework": {
+      "title": "Cadre d'analyse",
+      "description": "Choisissez si la planification utilise la puissance NHST classique ou la précision bayésienne.",
+      "frequentist": "Fréquentiste",
+      "frequentistDescription": "Réglez l'alpha et la puissance pour l'approche classique à horizon fixe.",
+      "bayesian": "Bayésien",
+      "bayesianDescription": "Définissez la précision et la crédibilité souhaitées pour une planification basée sur des intervalles."
+    },
+    "common": {
+      "yes": "Oui",
+      "no": "Non",
+      "optional": "Facultatif"
+    },
+    "fields": {
+      "project": {
+        "project_name": "Nom du projet",
+        "domain": "Domaine",
+        "product_type": "Type de produit",
+        "platform": "Plate-forme",
+        "market": "Marché",
+        "project_description": "Descriptif du projet"
+      },
+      "hypothesis": {
+        "change_description": "Modifier la description",
+        "target_audience": "Public cible",
+        "business_problem": "Problème commercial",
+        "hypothesis_statement": "Énoncé d'hypothèse",
+        "what_to_validate": "Que valider",
+        "desired_result": "Résultat souhaité"
+      },
+      "setup": {
+        "experiment_type": "Type d'expérience",
+        "randomization_unit": "Unité de randomisation",
+        "traffic_split": "Répartition du trafic",
+        "expected_daily_traffic": "Trafic quotidien attendu",
+        "audience_share_in_test": "Part d'audience en test",
+        "variants_count": "Les variantes comptent",
+        "inclusion_criteria": "Critères d'inclusion",
+        "exclusion_criteria": "Critères d'exclusion"
+      },
+      "metrics": {
+        "primary_metric_name": "Métrique principale",
+        "metric_type": "Type métrique",
+        "baseline_value": "Valeur de référence",
+        "expected_uplift_pct": "% d'augmentation attendue",
+        "mde_pct": "MDE%",
+        "std_dev": "Développeur standard",
+        "secondary_metrics": "Métriques secondaires",
+        "guardrail_metrics": "Métriques de garde-corps",
+        "alpha": "Alpha",
+        "power": "Pouvoir"
+      },
+      "constraints": {
+        "seasonality_present": "Saisonnalité présente",
+        "active_campaigns_present": "Campagnes actives présentes",
+        "returning_users_present": "Utilisateurs connus présents",
+        "interference_risk": "Risque d'interférence",
+        "technical_constraints": "Contraintes techniques",
+        "legal_or_ethics_constraints": "Contraintes juridiques/éthiques",
+        "known_risks": "Risques connus",
+        "deadline_pressure": "Pression des délais",
+        "long_test_possible": "Test long possible"
+      },
+      "additional_context": {
+        "llm_context": "Contexte de l'IA"
+      }
+    },
+    "helpText": {
+      "traffic_split": "Poids du trafic relatif par variante. Exemple : 50,50 pour un split A/B équilibré ou 34,33,33 pour trois variantes.",
+      "expected_daily_traffic": "Nombre moyen d'utilisateurs ou de sessions participant au test chaque jour. Exemple : 12 000.",
+      "audience_share_in_test": "Part du trafic quotidien éligible au test. Utilisez 0,6 pour 60 % du trafic entrant.",
+      "variants_count": "Nombre total de variantes, y compris le contrôle. 2 = un test A/B classique, tandis que plus de 3 variantes augmentent les besoins en échantillons.",
+      "baseline_value": "Métrique de référence actuelle. Pour les métriques binaires, utilisez 0,042 pour 4,2 % ; pour les mesures continues, utilisez la moyenne actuelle, telle que 45,20.",
+      "expected_uplift_pct": "Amélioration relative attendue par rapport à la ligne de base. Exemple : 8 signifie que le traitement devrait améliorer la métrique de 8 %.",
+      "mde_pct": "Effet minimum détectable en pourcentage de la valeur de référence. Des valeurs MDE plus petites nécessitent des tailles d’échantillon plus grandes.",
+      "alpha": "Seuil de faux positifs. 0,05 signifie accepter une probabilité de 5 % d’erreur de type I.",
+      "power": "Probabilité de détecter un effet réel s'il existe. 0,8 est le minimum standard pour les expériences de produits.",
+      "analysis_mode": "Choisissez si la planification est encadrée avec la puissance NHST classique ou avec une précision bayésienne à intervalle crédible.",
+      "desired_precision": "Ciblez la moitié de la largeur de l’intervalle de crédibilité. Pour les mesures binaires, utilisez des points de pourcentage ; pour les mesures continues, utilisez des unités brutes.",
+      "credibility": "Niveau de crédibilité de l'intervalle bayésien. 0,95 correspond à un intervalle de crédibilité de 95 %.",
+      "std_dev": "Écart type de la métrique continue. Obligatoire uniquement pour les métriques continues ; exemple : 12,5 pour la valeur moyenne de la commande.",
+      "interference_risk": "Risque que les utilisateurs ou les unités puissent s’influencer mutuellement à travers les variantes et rompre l’isolement."
+    },
+    "options": {
+      "setup": {
+        "randomization_unit": {
+          "user": "Utilisateur",
+          "session": "Session",
+          "device": "Appareil",
+          "account": "Compte"
+        }
+      },
+      "metrics": {
+        "metric_type": {
+          "binary": "Binaire",
+          "continuous": "Continu"
+        }
+      },
+      "constraints": {
+        "interference_risk": {
+          "low": "Faible",
+          "medium": "Moyen",
+          "high": "Haut"
+        },
+        "deadline_pressure": {
+          "low": "Faible",
+          "medium": "Moyen",
+          "high": "Haut"
+        }
+      }
+    },
+    "interimAnalyses": {
+      "title": "Analyses intermédiaires",
+      "tooltip": "Nombre de fois où vous prévoyez de vérifier les résultats au cours de l'expérience. 1 conserve le test standard à horizon fixe. 2-5 permet une surveillance séquentielle du groupe O'Brien-Fleming avec des limites d'arrêt précoces.",
+      "options": {
+        "1": "1 - Horizon fixe (pas d'analyses intermédiaires)",
+        "2": "2 - Un intérim + final",
+        "3": "3 - Deux intérimaires + finale",
+        "4": "4 - Trois intérimaires + finale",
+        "5": "5 - Quatre intérimaires + finale"
+      }
+    },
+    "cuped": {
+      "title": "Réduction des écarts CUPED",
+      "description": "Utilisez un comportement pré-expérimental corrélé pour réduire la variance et comparer la taille d’échantillon naïve à la taille d’échantillon ajustée de CUPED-.",
+      "enable": "Activer la réduction des écarts CUPED",
+      "enableTooltip": "Si vous disposez de données pré-expérimentales corrélées à la métrique de résultat, CUPED peut réduire la taille de l'échantillon requise du rho au carré.",
+      "preExperimentStdDev": "Développement standard pré-expérimental",
+      "preExperimentStdDevTooltip": "Écart type de la covariable pré-expérimentation, telle que les revenus de la semaine précédant le test.",
+      "correlationWithOutcome": "Corrélation avec le résultat",
+      "correlationWithOutcomeTooltip": "Corrélation de Pearson entre la covariable pré-expérience et le résultat de l'expérience. Les valeurs typiques sont de 0,3 à 0,7."
+    },
+    "guardrails": {
+      "title": "Métriques de garde-corps",
+      "description": "Métriques à surveiller sans modifier la taille de l’échantillon principal. Jusqu'à 3 garde-corps sont pris en charge.",
+      "metricName": "Nom de la métrique",
+      "metricNameAriaLabel": "Nom métrique du garde-corps {{index}}",
+      "metricType": "Type métrique",
+      "metricTypeAriaLabel": "Garde-corps type métrique {{index}}",
+      "binaryPct": "Binaire (%)",
+      "continuous": "Continu",
+      "remove": "Retirer",
+      "removeAriaLabel": "Retirer le garde-corps {{index}}",
+      "baselinePct": "% de référence",
+      "baselineRateAriaLabel": "Tarif de base du garde-corps {{index}}",
+      "baselineMean": "Moyenne de base",
+      "baselineMeanAriaLabel": "Moyenne de base du garde-corps {{index}}",
+      "stdDev": "Développeur standard",
+      "stdDevAriaLabel": "Garde-corps standard dév. {{index}}",
+      "add": "Ajouter une métrique de garde-corps"
+    },
+    "buttons": {
+      "newDraft": "Nouveau brouillon",
+      "startFromTemplate": "Commencer à partir du modèle",
+      "importing": "Importation...",
+      "importDraft": "Importer le brouillon JSON",
+      "exportDraft": "Exporter le brouillon JSON",
+      "updateProjectTitle": "Projet de mise à jour (Ctrl+S)",
+      "saveProjectTitle": "Enregistrer le projet (Ctrl+S)",
+      "saving": "Économie...",
+      "updateProject": "Mettre à jour le projet"
+    },
+    "validation": {
+      "projectNameRequired": "Le nom du projet est requis.",
+      "changeDescriptionRequired": "La description du changement est requise.",
+      "trafficSplitPositive": "La répartition du trafic doit contenir au moins deux poids positifs.",
+      "trafficSplitLength": "La longueur de répartition du trafic doit correspondre au nombre de variantes.",
+      "expectedDailyTrafficPositive": "Le trafic quotidien attendu doit être supérieur à 0.",
+      "audienceShareRange": "La part d'audience du test doit être comprise entre 0 et 1.",
+      "variantsCountRange": "Le nombre de variantes doit être un nombre entier compris entre 2 et 10.",
+      "primaryMetricRequired": "Le nom de la métrique principale est obligatoire.",
+      "binaryBaselineRange": "La valeur de base binaire doit être comprise entre 0 et 1.",
+      "continuousBaselinePositive": "La valeur de référence continue doit être supérieure à 0.",
+      "mdePositive": "MDE % doit être supérieur à 0.",
+      "alphaRange": "Alpha doit être compris entre 0 et 1.",
+      "powerRange": "La puissance doit être comprise entre 0 et 1.",
+      "continuousStdPositive": "Les métriques continues nécessitent un développement standard positif.",
+      "cupedStdPositive": "Le développement standard préalable au test CUPED doit être positif.",
+      "cupedCorrelationRange": "La corrélation CUPED doit être comprise entre -1 et 1.",
+      "desiredPrecisionPositive": "La précision souhaitée doit être supérieure à 0 en mode bayésien.",
+      "credibilityRange": "La crédibilité doit être comprise entre 0,5 et 1.",
+      "guardrailsMax": "Les métriques de garde-corps ne peuvent pas dépasser 3 éléments.",
+      "guardrailNameRequired": "Les noms de métriques de garde-corps sont obligatoires.",
+      "guardrailBinaryBaselineRange": "Les garde-corps binaires nécessitent un % de base compris entre 0 et 100.",
+      "guardrailContinuousFields": "Les garde-corps continus nécessitent une moyenne de base et une évolution standard positive.",
+      "guardrailMetricType": "Le type de métrique de garde-corps doit être binaire ou continu.",
+      "metricType": "Le type de métrique doit être binaire ou continu."
+    }
+  },
+  "empty_state": {
+    "ariaLabel": "Intégration",
+    "eyebrow": "Commencez ici",
+    "title": "Planifiez votre expérience A/B",
+    "subtitle": "Calculs déterministes. Le local d’abord. Aucun cloud requis.",
+    "new_experiment": "Nouvelle expérience",
+    "load_example": "Charger un exemple",
+    "import_project": "Importer un projet",
+    "descriptions": {
+      "new_experiment": "Repartir de zéro",
+      "load_example": "Voir une expérience remplie en 1 clic",
+      "import_project": "Restaurer à partir d'une sauvegarde d'espace de travail"
+    }
+  },
+  "sidebar": {
+    "tabs": {
+      "projects": "Projets",
+      "system": "Système"
+    },
+    "actions": {
+      "export_workspace": "Exporter l'espace de travail",
+      "import_workspace": "Importer un espace de travail",
+      "compare": "Comparez les projets"
+    }
+  },
+  "results": {
+    "sample_size_per_variant": "Utilisateurs / variante",
+    "duration_days": "Jours estimés",
+    "total_sample_size": "Échantillon total",
+    "warnings": {
+      "noneTitle": "Aucune règle d'avertissement déclenchée.",
+      "noneDescription": "La couche heuristique n’a pas détecté de problèmes de durée, de trafic ou de contamination."
+    },
+    "ai_advice": "Recommandations IA",
+    "srm_check": "SRM Vérifier",
+    "sequential_design": "Conception séquentielle",
+    "guardrail_metrics": "Métriques de garde-corps",
+    "actual_results": "Résultats réels de l'expérience",
+    "aiAdvice": {
+      "title": "Sortie de l'orchestrateur local",
+      "provider": "Fournisseur:",
+      "model": "Modèle:",
+      "assessment": "Évaluation",
+      "designImprovements": "Améliorations de la conception",
+      "keyRisks": "Principaux risques",
+      "metricRecommendations": "Recommandations métriques",
+      "interpretationPitfalls": "Pièges d’interprétation",
+      "additionalChecks": "Contrôles supplémentaires",
+      "unavailable": "Conseils IA indisponibles. La sortie déterministe de base fonctionne toujours."
+    },
+    "comparison": {
+      "empty": "Chargez une comparaison de projet enregistrée à partir de la barre latérale Projets pour examiner la référence par rapport aux instantanés candidats.",
+      "loading": "Chargement du tableau de bord de comparaison...",
+      "monteCarlo": {
+        "title": "Vue de répartition",
+        "subtitle": "Exécutez une superposition Monte-Carlo à la demande pour comparer les distributions de hausse et le risque extrême.",
+        "showToggle": "Afficher la vue de distribution",
+        "hideToggle": "Masquer la vue de distribution",
+        "loading": "Exécution de simulations Monte-Carlo...",
+        "loadFailed": "La vue de distribution n'a pas pu être chargée.",
+        "empty": "Les données de distribution ne sont pas disponibles pour les projets sélectionnés.",
+        "sliderLabel": "Augmentation de probabilité > {{threshold}}",
+        "thresholdHint": "Les probabilités entre les seuils du serveur sont interpolées dans le client.",
+        "probabilityValue": "{{probability}} au-dessus du seuil",
+        "positiveProbability": "L'augmentation des chances {{probability}} reste positive",
+        "percentileLegend": "Légende du centile",
+        "percentileValue": "{{label}} {{value}}"
+      },
+      "dashboard": {
+        "loaded": "Projets {{count}} comparés",
+        "title": "Tableau de bord de comparaison",
+        "subtitle": "Examinez côte à côte les expériences enregistrées en fonction des hypothèses de planification, de la sensibilité et des effets observés.",
+        "exporting": "Exportation...",
+        "exportMarkdown": "Comparaison des exportations",
+        "exportPdf": "Comparaison des exportations PDF",
+        "close": "Fermer le tableau de bord",
+        "exportFailed": "L'exportation de comparaison a échoué.",
+        "mixedMetricTypes": "Types de métriques mixtes – comparaison directe des effets non significative.",
+        "projectsTitle": "Projets",
+        "projectsSubtitle": "Métadonnées de planification principales pour les expériences sélectionnées.",
+        "sampleSize": "Échantillon total : {{value}}",
+        "duration": "Durée : {{value}} jours",
+        "warnings": "Avertissements : {{value}}",
+        "powerCurvesTitle": "Courbes de puissance",
+        "powerCurvesSubtitle": "Chaque ligne affiche la taille de l'échantillon par variante sur les points MDE à la puissance configurée du projet.",
+        "sensitivityTitle": "Grille de sensibilité",
+        "sensitivitySubtitle": "Matrices de durée par projet pour MDE et combinaisons de puissance.",
+        "sensitivityUnavailable": "Données de sensibilité indisponibles.",
+        "observedEffectsTitle": "Effets observés",
+        "observedEffectsSubtitle": "Résultats observés enregistrés, présentés sous la forme d'une ligne de parcelle forestière par projet.",
+        "insightsTitle": "Informations partagées/uniques",
+        "insightsSubtitle": "Avertissements, risques, hypothèses et différences par projet partagés.",
+        "sharedWarnings": "Avertissements partagés",
+        "sharedRisks": "Risques partagés",
+        "sharedAssumptions": "Hypothèses partagées",
+        "recommendationHighlights": "Points saillants des recommandations",
+        "project": "Projet",
+        "uniqueWarnings": "Avertissements uniques",
+        "uniqueRisks": "Des risques uniques",
+        "uniqueAssumptions": "Hypothèses uniques",
+        "none": "Aucun"
+      }
+    },
+    "experimentDesign": {
+      "variantAndRolloutStructure": "Structure des variantes et du déploiement",
+      "setup": "Installation",
+      "randomizationUnit": "Unité de randomisation",
+      "trafficSplit": "Répartition du trafic",
+      "targetAudience": "Public cible",
+      "inclusion": "Inclusion",
+      "exclusion": "Exclusion",
+      "recommendedDuration": "Durée recommandée",
+      "days": "jours",
+      "stoppingConditions": "Conditions d'arrêt",
+      "openQuestions": "Questions ouvertes"
+    },
+    "metricsPlan": {
+      "coverage": "Couverture primaire, secondaire et garde-corps",
+      "primary": "Primaire",
+      "secondary": "Secondaire",
+      "guardrail": "Rambarde",
+      "diagnostic": "Diagnostique",
+      "guardrailMetrics": "Métriques de garde-corps",
+      "guardrailMetricsDescription": "Ces mesures sont surveillées, mais elles ne modifient pas la taille de l'échantillon principal.",
+      "baseline": "Référence"
+    },
+    "powerCurve": {
+      "title": "Courbe de puissance",
+      "description": "Comparez les cibles MDE aux niveaux de puissance prévus et à la taille d’échantillon requise.",
+      "loadingSensitivity": "Chargement de l'analyse de sensibilité...",
+      "chartAriaLabel": "Graphique de courbe de puissance montrant l'effet minimum détectable par rapport à la puissance cible",
+      "loadingChart": "Chargement du graphique..."
+    },
+    "risks": {
+      "statisticalAndOperational": "Considérations statistiques et opérationnelles",
+      "product": "Produit",
+      "technical": "Technique",
+      "recommendations": "Recommandations",
+      "beforeLaunch": "Avant le lancement",
+      "duringTest": "Pendant l'essai",
+      "afterTest": "Après essai"
+    },
+    "bayesian": {
+      "title": "Bayésien postérieur",
+      "unavailable": "Les entrées bayésiennes postérieures ne sont pas disponibles pour cette analyse.",
+      "targetSampleSize": "Taille de l'échantillon cible :",
+      "perVariantAt": "par variante à",
+      "credibilityAnd": "crédibilité et",
+      "intervalHalfWidth": "intervalle demi-largeur."
+    },
+    "sequentialDesign": {
+      "unavailable": "Les limites séquentielles ne sont pas configurées pour l'analyse actuelle.",
+      "title": "Conception séquentielle de groupe (O'Brien-Fleming)",
+      "adjustedSampleSize": "Taille de l'échantillon ajustée :",
+      "perVariant": "par variante",
+      "moreThanFixedHorizon": "plus qu'un horizon fixe",
+      "columns": {
+        "look": "Regarder",
+        "infoFraction": "Fraction d'information",
+        "cumulativeAlphaSpent": "Sperme. α dépensé",
+        "zBoundary": "Limite Z",
+        "stopIf": "Arrêtez si |Z| ≥"
+      },
+      "footer": "Arrêtez-vous tôt à tout examen prévu si la statistique Z absolue observée dépasse la limite. Sinon, passez à l’analyse suivante."
+    },
+    "srmCheck": {
+      "title": "Le trafic s’est-il réparti comme prévu ?",
+      "description": "Saisissez le nombre d’utilisateurs observés par variante pour vérifier l’inadéquation du rapport d’échantillonnage. Un résultat rouge signifie que l’affectation ou le suivi peut être interrompu.",
+      "actualUsersPlaceholder": "Utilisateurs réels",
+      "checking": "Vérification...",
+      "checkButton": "Rechercher SRM",
+      "detected": "SRM détecté",
+      "notDetected": "Aucun SRM détecté",
+      "serviceUnavailable": "Chèque SRM indisponible.",
+      "chiSquare": "Chi carré = {{chiSquare}}, p = {{pValue}}",
+      "expectedObserved": "Attendu : [{{expected}}] | Observé : [{{observed}}]"
+    },
+    "observedResults": {
+      "title": "Saisir les résultats réels de l'expérience",
+      "description": "Une fois l'expérience terminée, saisissez les données observées pour calculer la signification statistique à partir des résultats réels.",
+      "historicalReadOnly": "Les instantanés historiques sont en lecture seule. Revenez au brouillon en direct pour enregistrer les résultats observés.",
+      "saveProjectFirst": "Enregistrez d'abord le projet si vous souhaitez conserver les résultats observés.",
+      "analyzeButton": "Analyser les résultats",
+      "analyzing": "Analyser...",
+      "saveButton": "Enregistrer dans le projet",
+      "saving": "Économie...",
+      "yes": "Oui",
+      "no": "Non",
+      "fields": {
+        "controlConversions": "Contrôler les conversions",
+        "controlUsers": "Contrôler les utilisateurs",
+        "treatmentConversions": "Conversions de traitement",
+        "treatmentUsers": "Utilisateurs du traitement",
+        "alpha": "Alpha",
+        "controlMean": "Moyenne de contrôle",
+        "controlStdDev": "Contrôler le développement standard",
+        "controlN": "Contrôle n",
+        "treatmentMean": "Moyenne de traitement",
+        "treatmentStdDev": "Développement standard du traitement",
+        "treatmentN": "Traitement n"
+      },
+      "cards": {
+        "effect": "Effet",
+        "ciLabel": "{{percent}}%CI",
+        "pValue": "valeur p",
+        "testStatistic": "Statistique de test",
+        "relativeChange": "Changement relatif",
+        "powerAchieved": "Puissance atteinte",
+        "forestPlot": "Parcelle forestière",
+        "observedSummary": "Résumé observé",
+        "controlRate": "Taux de contrôle",
+        "treatmentRate": "Taux de traitement",
+        "significant": "Significatif",
+        "verdict": "Verdict"
+      },
+      "validation": {
+        "fillAllFields": "Remplissez tous les champs de résultats réels avec des valeurs valides avant l'analyse.",
+        "analysisUnavailable": "Analyse des résultats indisponible.",
+        "analyzeBeforeSaving": "Analysez les résultats avant de les enregistrer dans un projet.",
+        "saveUnavailable": "Les résultats observés n'ont pas pu être enregistrés.",
+        "savedToProject": "Les résultats observés ont été enregistrés dans le projet {{projectName}}."
+      }
+    },
+    "sensitivityOverview": {
+      "reportPill": "Rapport",
+      "title": "Conception d'expériences déterministes",
+      "export": "Exporter",
+      "exportMenuAriaLabel": "Options d'exportation du rapport",
+      "exportReportTitle": "Rapport d'exportation (Ctrl+E)",
+      "exportMarkdown": "Exporter la démarque",
+      "exportHtml": "Exporter HTML",
+      "exportPdf": "Exporter PDF",
+      "exportCsv": "Données CSV",
+      "exportXlsx": "Classeur Excel",
+      "exporting": "Exportation...",
+      "exportFullReport": "Exporter le rapport complet",
+      "cards": {
+        "perVariant": "Par variante",
+        "sampleSizePerVariant": "taille de l'échantillon / variante",
+        "powerMeta": "Puissance {{power}}",
+        "bonferroni": "Bonferroni",
+        "totalSample": "Échantillon total",
+        "totalSampleSubtitle": "taille totale de l'échantillon",
+        "variantsMeta": "Variantes de {{count}}",
+        "duration": "Durée",
+        "durationValue": "{{days}} jours",
+        "durationSubtitle": "durée estimée",
+        "perDayMeta": "{{traffic}}/jour",
+        "warnings": "Avertissements",
+        "warningsSubtitle": "vérifications heuristiques"
+      },
+      "warningSeverity": {
+        "high": "{{count}} élevé",
+        "medium": "{{count}} moyen",
+        "low": "{{count}} faible",
+        "none": "Aucun avertissement"
+      },
+      "bayesianEstimate": {
+        "title": "Estimation bayésienne",
+        "frequentist": "Fréquentiste",
+        "bayesian": "Bayésien",
+        "usersPerVariant": "utilisateurs / variante"
+      },
+      "cuped": {
+        "title": "CUPED-Estimation ajustée",
+        "without": "Sans CUPED",
+        "with": "Avec CUPED",
+        "sampleSizeSavings": "-{{pct}}% taille de l'échantillon",
+        "durationChange": "La durée estimée passe de {{from}} à {{to}} jours.",
+        "adjustedStdDev": "Développement standard ajusté : {{value}}."
+      },
+      "sensitivityTable": {
+        "title": "Tableau de sensibilité",
+        "description": "Matrice de durée sur le MDE et scénarios de puissance renvoyés par le backend.",
+        "loading": "Chargement du tableau de sensibilité..."
+      },
+      "sampleSizeBreakdown": {
+        "title": "Répartition de la taille de l'échantillon",
+        "description": "Exemple d'exigence par variante affiché à côté de l'allocation de trafic configurée."
+      },
+      "calculationSummary": {
+        "title": "Résumé du calcul",
+        "metricType": "Type métrique",
+        "baselineValue": "Valeur de référence",
+        "mdePct": "MDE%",
+        "mdeAbsolute": "MDE absolu",
+        "alpha": "Alpha",
+        "power": "Pouvoir"
+      },
+      "assumptions": {
+        "title": "Hypothèses"
+      },
+      "projectHistoryContext": {
+        "title": "Contexte historique du projet",
+        "savedProject": "Projet enregistré",
+        "revisionsCount": "Révision(s) {{count}}",
+        "lastSave": "dernière sauvegarde",
+        "notRecorded": "non enregistré",
+        "analysisRuns": "{{current}} des analyses {{total}}",
+        "exportEvents": "{{current}} ou événement(s) d'exportation {{total}}",
+        "latestAnalysisRun": "Dernière analyse",
+        "noSavedAnalysisRunYet": "Aucune analyse enregistrée pour l'instant",
+        "unknownMetric": "métrique inconnue",
+        "warnings": "avertissements",
+        "latestExport": "Dernière exportation",
+        "noExportEventYet": "Aucun événement d'exportation pour l'instant",
+        "linkedSnapshot": "instantané lié",
+        "unlinkedExport": "exportation non liée"
+      }
+    },
+    "panel": {
+      "sensitivityUnavailableHistorical": "L'analyse de sensibilité n'est pas disponible pour les instantanés historiques.",
+      "sensitivityUnavailableCurrentDraft": "L’analyse de sensibilité n’est pas disponible pour la version actuelle.",
+      "sensitivityUnavailable": "Analyse de sensibilité indisponible.",
+      "sensitivityUnavailableForConfiguration": "Analyse de sensibilité non disponible pour cette configuration.",
+      "backendReadOnly": "Le backend s'exécute en mode lecture seule.",
+      "runAnalysisBeforeExportingReport": "Exécutez une analyse avant d’exporter un rapport.",
+      "saveProjectBeforePdf": "Enregistrez le projet et conservez un instantané d'analyse avant d'exporter un PDF..",
+      "runAnalysisBeforeExportingProjectData": "Exécutez une analyse avant d’exporter les données du projet.",
+      "saveProjectBeforeProjectData": "Enregistrez le projet avant d'exporter les données CSV ou Excel.",
+      "runAnalysisBeforeStandaloneExport": "Exécutez une analyse avant d’exporter le rapport complet.",
+      "standaloneExportFailed": "L'exportation du rapport complet a échoué.",
+      "savedSnapshot": "Instantané enregistré",
+      "viewingHistoricalAnalysis": "Affichage de l'analyse historique",
+      "openedSnapshotFrom": "Instantané ouvert à partir de {{timestamp}}.",
+      "currentResultsAvailable": "Les résultats actuels en mémoire sont toujours disponibles.",
+      "returnedToCurrentAnalysis": "Retour aux résultats actuels de l'analyse en mémoire.",
+      "closedSnapshotPreview": "Fermeture de l'aperçu de l'instantané enregistré.",
+      "showCurrentAnalysis": "Afficher l'analyse actuelle",
+      "closeSnapshotView": "Fermer la vue de l'instantané",
+      "analysisInProgress": "Analyse en cours",
+      "preparingDeterministicResults": "Préparation de résultats déterministes",
+      "updatingSections": "Mise à jour des sections de métriques, de graphiques et de rapports.",
+      "accordion": {
+        "comparison": "Comparaison",
+        "sensitivity": "Sensibilité",
+        "powerCurve": "Courbe de puissance",
+        "sequentialDesign": "Conception séquentielle",
+        "bayesianPosterior": "Bayésien postérieur",
+        "observedResults": "Résultats observés",
+        "warningsAndRisks": "Avertissements et risques",
+        "experimentDesign": "Conception d'expériences",
+        "metricsPlan": "Plan de métriques",
+        "riskAssessment": "L'évaluation des risques",
+        "aiRecommendations": "Recommandations IA",
+        "srmCheck": "Contrôle SRM"
+      },
+      "badges": {
+        "loaded": "Chargé",
+        "sidebar": "Barre latérale",
+        "pending": "En attente",
+        "planning": "Planification",
+        "significant": "Significatif",
+        "review": "Revoir",
+        "postTest": "Post-test",
+        "available": "Disponible",
+        "offline": "Hors ligne",
+        "manual": "Manuel"
+      },
+      "variantsCount_one": "Variante {{count}}",
+      "variantsCount_other": "Variantes de {{count}}",
+      "cellsCount_one": "Cellule {{count}}",
+      "cellsCount_other": "Cellules {{count}}",
+      "looksCount_one": "Look {{count}}",
+      "looksCount_other": "{{count}} ressemble",
+      "warningsCount_one": "Avertissement {{count}}",
+      "warningsCount_other": "Avertissements {{count}}",
+      "metricsCount_one": "Métrique {{count}}",
+      "metricsCount_other": "Métriques {{count}}",
+      "itemsCount_one": "Article {{count}}",
+      "itemsCount_other": "Articles {{count}}",
+      "credibilityInterval": "Intervalle {{percent}}%",
+      "noAnalysisYet": "Aucune analyse pour l'instant. Terminez l’assistant et exécutez d’abord le flux backend déterministe."
+    }
+  },
+  "errors": {
+    "analysis_failed": "L'analyse a échoué",
+    "save_failed": "Échec de l'enregistrement",
+    "load_failed": "Échec du chargement du projet",
+    "backend_offline": "Le back-end est hors ligne",
+    "storage_full": "L'espace de stockage du navigateur est plein - le brouillon n'a pas été enregistré"
+  },
+  "toasts": {
+    "project_saved": "Projet enregistré",
+    "project_updated": "Projet mis à jour",
+    "export_success": "Rapport exporté",
+    "import_success": "Espace de travail importé - Projets {{count}} restaurés",
+    "example_loaded": "Exemple chargé - cliquez sur Exécuter l'analyse pour voir les résultats"
+  },
+  "errorBoundary": {
+    "title": "Quelque chose s'est mal passé",
+    "description": "Cette section s'est écrasée lors du rendu. Réessayez de le monter à nouveau.",
+    "retry": "Réessayer"
+  },
+  "chartErrorBoundary": {
+    "title": "Graphique indisponible",
+    "description": "Le rendu a échoué. Les données brutes sont présentées ci-dessous pour inspection."
+  },
+  "toastSystem": {
+    "dismissAriaLabel": "Ignorer le toast",
+    "close": "Fermer"
+  },
+  "chartExport": {
+    "groupAriaLabel": "Options d'exportation de graphiques",
+    "downloadSvgAriaLabel": "Télécharger le graphique sous le nom SVG",
+    "downloadPngAriaLabel": "Télécharger le graphique sous le nom PNG",
+    "svg": "SVG",
+    "png": "PNG",
+    "errors": {
+      "imageRenderFailed": "Le rendu de l'image graphique a échoué.",
+      "canvasUnavailable": "Le contexte Canvas 2D n’est pas disponible."
+    }
+  },
+  "inlineConfirmButton": {
+    "confirmLabel": "Bien sûr?"
+  },
+  "wizardPanel": {
+    "dismiss": "Rejeter",
+    "aria": {
+      "importDraftFile": "Importer un brouillon",
+      "importWorkspaceFile": "Importer un fichier d'espace de travail",
+      "stepHasErrors": "Cette étape comporte des erreurs"
+    },
+    "status": {
+      "startedNewDraft": "Démarrage d'un nouveau brouillon local.",
+      "draftExported": "Brouillon exporté sous JSON.",
+      "importedDraftFrom": "Brouillon importé de {{fileName}}. Enregistrez-le pour créer un nouvel enregistrement de projet local.",
+      "restoredBrowserDraft": "Brouillon de navigateur non enregistré restauré.",
+      "templateLoaded": "Modèle {{templateName}} chargé dans l'assistant.",
+      "draftNotSavedStorageFull": "Brouillon non enregistré - stockage du navigateur saturé."
+    },
+    "errors": {
+      "unexpectedDraftImport": "Erreur d'importation de brouillon inattendue"
+    }
+  },
+  "projectListFilters": {
+    "legend": "Filtres de projet enregistrés",
+    "searchLabel": "Expériences de recherche",
+    "searchPlaceholder": "Filtrer par nom ou hypothèse",
+    "statusLabel": "Statut",
+    "status": {
+      "active": "Actif",
+      "archived": "Archivé",
+      "all": "Tous"
+    },
+    "metricTypeLabel": "Type métrique",
+    "metricType": {
+      "all": "Tous",
+      "binary": "Binaire",
+      "continuous": "Continu"
+    },
+    "sortLabel": "Trier",
+    "sort": {
+      "updated": "Dernière mise à jour",
+      "name": "Nom",
+      "duration": "Durée"
+    },
+    "clear": "Effacer les filtres"
+  },
+  "shortcutHelp": {
+    "title": "Raccourcis clavier",
+    "description": "Actions de navigation et d’exportation plus rapides pour l’assistant.",
+    "close": "Fermer",
+    "columns": {
+      "shortcut": "Raccourci",
+      "action": "Action"
+    },
+    "shortcuts": {
+      "openHelp": "Ouvrir l'aide sur les raccourcis clavier",
+      "focusSearch": "Focus sur la recherche de projets enregistrés",
+      "runAnalysis": "Exécuter une analyse",
+      "moveSteps": "Passer d'une étape à l'autre de l'assistant",
+      "exportMarkdown": "Exporter le rapport de démarque",
+      "saveProject": "Enregistrer le projet",
+      "toggleTheme": "Basculer le thème clair/sombre",
+      "closeDialog": "Fermez cette boîte de dialogue"
+    }
+  },
+  "templateGallery": {
+    "title": "Modèles d'expérience",
+    "description": "Commencez à partir d'une configuration intégrée et ajustez les champs de l'assistant avant d'enregistrer ou d'exécuter une analyse.",
+    "close": "Fermer",
+    "loading": "Chargement des modèles...",
+    "usageCount_one": "Utilisation de {{count}}",
+    "usageCount_other": "{{count}} utilise",
+    "builtInTemplate": "Modèle intégré",
+    "savedTemplate": "Modèle enregistré",
+    "useTemplateAriaLabel": "Utiliser le modèle {{name}}",
+    "applying": "Candidature...",
+    "useTemplate": "Utiliser un modèle",
+    "empty": "Aucun modèle trouvé pour cette catégorie.",
+    "categories": {
+      "All": "Tous",
+      "Revenue": "Revenu",
+      "Engagement": "Fiançailles",
+      "Performance": "Performance"
+    },
+    "errors": {
+      "libraryUnavailable": "Bibliothèque de modèles indisponible.",
+      "applyFailed": "L'application du modèle a échoué."
+    }
+  },
+  "webhooks": {
+    "title": "Webhooks",
+    "description": "Envoyez des événements d’audit aux points de terminaison Slack ou génériques HTTP.",
+    "loading": "Chargement des abonnements aux webhooks...",
+    "empty": "Aucun abonnement webhook pour l’instant.",
+    "actions": {
+      "create": "Créer un webhook",
+      "save": "Enregistrer le webhook",
+      "saving": "Économie...",
+      "close": "Fermer",
+      "test": "Test",
+      "deliveries": "Livraisons",
+      "delete": "Supprimer"
+    },
+    "status": {
+      "created": "Abonnement Webhook créé.",
+      "deleted": "Abonnement Webhook supprimé.",
+      "loadFailed": "Abonnements Webhook indisponibles.",
+      "createFailed": "La création du webhook a échoué.",
+      "testSuccess": "Livraison du test terminée avec HTTP {{code}}.",
+      "testFailed": "Le test du webhook a échoué.",
+      "deliveriesFailed": "Historique de diffusion du webhook indisponible.",
+      "deleteFailed": "La suppression du webhook a échoué."
+    },
+    "fields": {
+      "name": "Nom",
+      "targetUrl": "Cible URL",
+      "secret": "Secrète",
+      "format": "Format",
+      "scope": "Portée",
+      "apiKeyId": "ID de clé API",
+      "eventFilter": "Filtre d'événements"
+    },
+    "placeholders": {
+      "name": "Alertes partenaires",
+      "targetUrl": "https://example.com/webhook",
+      "secret": "Secret de signature partagé",
+      "apiKeyId": "Collez un ID de clé API existant",
+      "eventFilter": "api_key_created, projet.archive"
+    },
+    "formats": {
+      "generic": "générique",
+      "slack": "mou"
+    },
+    "scopes": {
+      "global": "Mondial",
+      "apiKey": "Clé API"
+    },
+    "labels": {
+      "enabled": "Activé",
+      "disabled": "Désactivé",
+      "targetUrl": "Cible URL",
+      "events": "Événements",
+      "allEvents": "Tous les événements",
+      "apiKeyId": "ID de clé API",
+      "lastDelivered": "Dernière livraison",
+      "lastError": "Dernière erreur",
+      "never": "Jamais"
+    },
+    "createDialog": {
+      "title": "Créer un webhook",
+      "description": "Configurez un webhook entrant Slack ou un point de terminaison JSON générique."
+    },
+    "drawer": {
+      "title": "Livraisons : {{name}}",
+      "description": "Tentatives de livraison récentes pour cet abonnement.",
+      "loading": "Chargement des livraisons...",
+      "empty": "Aucune livraison enregistrée pour le moment.",
+      "labels": {
+        "responseCode": "Code de réponse",
+        "attempts": "Tentatives",
+        "lastAttempt": "Dernière tentative",
+        "error": "Erreur"
+      }
+    }
+  },
+  "sidebarPanel": {
+    "common": {
+      "notRecordedYet": "Pas encore enregistré",
+      "unknownMetric": "métrique inconnue",
+      "daysShort": "{{value}}d"
+    },
+    "tabs": {
+      "projects": "Projets",
+      "system": "Système",
+      "apiKeys": "Clés API"
+    },
+    "apiKeysFallback": {
+      "title": "Clés API",
+      "loading": "Chargement du gestionnaire de clés API..."
+    },
+    "backendStatus": {
+      "title": "Statut du back-end",
+      "description": "Santé en direct pour le runtime FastAPI qui sert aux calculs, au stockage et aux conseils facultatifs en matière d'IA.",
+      "checking": "Vérification...",
+      "refresh": "Actualiser l'état du backend",
+      "online": "API en ligne",
+      "unavailable": "API indisponible.",
+      "notLoaded": "Aucun statut du backend n'est encore chargé.",
+      "labels": {
+        "service": "Service",
+        "version": "Version",
+        "environment": "Environnement"
+      }
+    },
+    "apiSessionToken": {
+      "title": "Jeton de session API",
+      "description": "Jeton facultatif stocké uniquement dans cette session de navigateur. Il n'est pas intégré à la version frontale ou à l'image Docker.",
+      "label": "Jeton de session",
+      "placeholderConfigured": "Jeton stocké dans la session actuelle du navigateur",
+      "placeholderEmpty": "Coller un jeton en lecture seule ou en écriture",
+      "save": "Enregistrer le jeton",
+      "clear": "Effacer le jeton",
+      "configured": "Jeton configuré",
+      "notStored": "Aucun jeton stocké"
+    },
+    "adminToken": {
+      "title": "Jeton d'administrateur de clé API",
+      "description": "Stocké uniquement dans cette session de navigateur et utilisé uniquement pour les demandes de gestion `/api/v1/keys` et `/api/v1/webhooks`.",
+      "label": "Jeton d'administrateur",
+      "placeholderConfigured": "Jeton d'administrateur stocké dans la session actuelle du navigateur",
+      "placeholderEmpty": "Coller AB_ADMIN_TOKEN",
+      "save": "Enregistrer le jeton d'administrateur",
+      "clear": "Effacer le jeton d'administrateur",
+      "configured": "Accès administrateur configuré",
+      "disabled": "Accès administrateur désactivé"
+    },
+    "workspaceBackup": {
+      "title": "Sauvegarde de l'espace de travail",
+      "systemDescription": "Exportez ou importez l'espace de travail complet de SQLite, y compris les projets enregistrés, l'historique, les exportations et les révisions.",
+      "projectsDescription": "Exportez ou importez l'espace de travail complet SQLite, y compris les projets enregistrés, l'historique d'analyse, les événements d'exportation et les révisions enregistrées. Les importations exécutent la somme de contrôle, la signature facultative et la validation de référence avant le début des écritures SQLite.",
+      "exporting": "Exportation...",
+      "export": "Exporter l'espace de travail JSON",
+      "importing": "Importation...",
+      "import": "Importer l'espace de travail JSON"
+    },
+    "quickArchive": {
+      "title": "Projets enregistrés",
+      "archiveAriaLabel": "Archiver {{projectName}}",
+      "archiving": "Archivage..."
+    },
+    "diagnostics": {
+      "title": "Diagnostics d'exécution",
+      "description": "Observabilité légère pour le stockage, le service frontend, les paramètres de l'orchestrateur et la disponibilité.",
+      "refreshing": "Rafraîchissant...",
+      "refresh": "Actualiser les diagnostics",
+      "online": "Diagnostic en ligne",
+      "unavailable": "Diagnostic indisponible.",
+      "notLoaded": "Aucun diagnostic chargé pour l'instant.",
+      "storageSummary": "Projets {{projects}}, exécutions d'analyse {{analysisRuns}}, événements d'exportation {{exportEvents}}, révisions {{revisions}}",
+      "labels": {
+        "uptime": "Temps de disponibilité",
+        "storage": "Stockage",
+        "latestProjectUpdate": "Dernière mise à jour du projet",
+        "sqlitePath": "Chemin SQLite",
+        "sqliteParent": "Parent SQLite",
+        "storageFootprint": "Empreinte de stockage",
+        "sqliteMode": "Mode SQLite",
+        "sqliteWriteProbe": "Sonde d'écriture SQLite",
+        "workspaceBackups": "Sauvegardes de l'espace de travail",
+        "frontendDist": "Distribution frontale",
+        "timingHeaders": "En-têtes de synchronisation",
+        "llmAdapter": "Adaptateur LLM",
+        "logging": "Enregistrement",
+        "runtimeCounters": "Compteurs d'exécution",
+        "lastRuntimeError": "Dernière erreur d'exécution",
+        "apiAuth": "Authentification API",
+        "authHeaders": "En-têtes d'authentification",
+        "securityGuards": "Agents de sécurité",
+        "bodyLimits": "Limites du corps"
+      },
+      "values": {
+        "db": "base de données",
+        "freeDisk": "disque libre",
+        "userVersion": "version_utilisateur",
+        "busyTimeout": "délai d'attente occupé",
+        "pass": "passer",
+        "fail": "échouer",
+        "hmacSigned": "signé HMAC",
+        "checksumOnly": "somme de contrôle uniquement",
+        "enabled": "activé",
+        "disabled": "désactivé",
+        "present": "présent",
+        "missing": "manquant",
+        "timeout": "temps mort",
+        "attempts": "tentatives",
+        "requests": "demandes",
+        "ok": "d'accord",
+        "none": "aucun",
+        "authRejects": "l'authentification est rejetée",
+        "bodyRejects": "le corps rejette",
+        "writeToken": "écrire un jeton",
+        "noWriteToken": "pas de jeton d'écriture",
+        "readOnlyToken": "jeton en lecture seule",
+        "noReadOnlyToken": "pas de jeton en lecture seule",
+        "readMethods": "méthodes de lecture",
+        "headersOn": "en-têtes sur",
+        "headersOff": "en-têtes désactivés",
+        "rateLimit": "limite de taux",
+        "authThrottle": "limitation d'authentification",
+        "general": "général",
+        "workspace": "espace de travail"
+      }
+    },
+    "workspaceStatus": {
+      "title": "Tableau d'état de l'espace de travail",
+      "description": "Résumé en un coup d'œil de la couverture du projet enregistré, de la profondeur de l'instantané et de la synchronisation du brouillon actuel.",
+      "savedCount_one": "{{count}} enregistré",
+      "savedCount_other": "{{count}} enregistré",
+      "withSnapshotsCount_one": "{{count}} avec instantanés",
+      "withSnapshotsCount_other": "{{count}} avec instantanés",
+      "draftChanged": "Brouillon modifié",
+      "sqliteWritable": "SQLite inscriptible",
+      "readOnlyApi": "Lecture seule API",
+      "snapshotCoverage": "{{ready}} prêt | {{withoutSavedAnalysis}} sans analyse enregistrée",
+      "exportCoverage_one": "{{count}} exporté au moins une fois",
+      "exportCoverage_other": "{{count}} exporté au moins une fois",
+      "revisionDepth_one": "Projet {{count}} avec plusieurs révisions enregistrées",
+      "revisionDepth_other": "Projets {{count}} avec plusieurs révisions enregistrées",
+      "labels": {
+        "savedProjects": "Projets enregistrés",
+        "archivedProjects": "Projets archivés",
+        "snapshotCoverage": "Couverture instantanée",
+        "exportCoverage": "Couverture des exportations",
+        "revisionDepth": "Profondeur de révision",
+        "currentDraft": "Projet actuel",
+        "latestWorkspaceUpdate": "Dernière mise à jour de l'espace de travail"
+      },
+      "currentDraft": {
+        "loadedProjectWithUnsavedChanges": "projet chargé avec des modifications non enregistrées",
+        "loadedProjectInSync": "projet chargé en synchronisation",
+        "newLocalDraft": "nouveau projet local"
+      }
+    },
+    "auditLog": {
+      "title": "Journal d'audit",
+      "description": "Activité d'écriture récente dans l'espace de travail, avec filtrage facultatif par projet enregistré.",
+      "refreshing": "Rafraîchissant...",
+      "refresh": "Actualiser le journal d'audit",
+      "export": "Audit export CSV",
+      "projectFilter": "Filtre de projet",
+      "allProjects": "Tous les projets",
+      "unavailable": "Journal d'audit indisponible.",
+      "loading": "Chargement du journal d'audit...",
+      "showingEntries_one": "Affichage de {{visible}} de l'entrée {{total}}.",
+      "showingEntries_other": "Affichage des entrées {{visible}} sur {{total}}.",
+      "workspace": "Espace de travail",
+      "unknownActor": "inconnu",
+      "noEntries": "Aucune entrée d'audit enregistrée pour le moment.",
+      "columns": {
+        "time": "Temps",
+        "action": "Action",
+        "project": "Projet",
+        "actor": "Acteur"
+      }
+    },
+    "activeProject": {
+      "title": "Projet actif",
+      "unsavedChanges": "Modifications non enregistrées",
+      "savedLocally": "Enregistré localement",
+      "unknownProject": "Projet inconnu",
+      "statusNeedsLocalUpdate": "Nécessite une mise à jour locale",
+      "statusInSync": "En synchronisation avec SQLite",
+      "empty": "Aucun projet enregistré n'est chargé. Vous pouvez toujours travailler sur un brouillon local et l'enregistrer lorsque vous êtes prêt.",
+      "labels": {
+        "projectName": "Nom du projet",
+        "projectId": "Identifiant du projet",
+        "status": "Statut",
+        "payloadSchema": "Schéma de charge utile",
+        "savedRevisions": "Révisions enregistrées",
+        "lastSave": "Dernière sauvegarde",
+        "lastAnalysis": "Dernière analyse",
+        "lastExport": "Dernière exportation",
+        "snapshotStored": "Instantané stocké"
+      }
+    },
+    "projectHistory": {
+      "title": "Historique récent du projet",
+      "description": "Chronologie des analyses enregistrées et des événements d'exportation pour le projet chargé.",
+      "refreshing": "Rafraîchissant...",
+      "refresh": "Actualiser l'historique du projet",
+      "empty": "Chargez un projet enregistré pour inspecter les analyses récentes et exporter les événements.",
+      "unavailable": "Historique du projet indisponible.",
+      "loading": "Chargement de l'historique du projet enregistré...",
+      "summary": "Affichage de {{analysisVisible}} des exécutions d'analyse {{analysisTotal}} et de {{exportVisible}} des événements d'exportation {{exportTotal}}.",
+      "closeOpenedSnapshot": "Fermer l'instantané ouvert",
+      "analysisRunsTitle": "Exécutions d'analyse",
+      "warningsCount_one": "Avertissement {{count}}",
+      "warningsCount_other": "Avertissements {{count}}",
+      "aiAdvice": "Conseils en IA",
+      "opened": "Ouvert",
+      "openSnapshot": "Ouvrir un instantané",
+      "viewing": "Affichage",
+      "noAnalysisHistory": "Aucun historique d'analyse n'a encore été enregistré.",
+      "loadOlderAnalysisRuns": "Charger des analyses plus anciennes",
+      "exportEventsTitle": "Exporter des événements",
+      "linkedSnapshot": "instantané lié",
+      "unlinkedExport": "exportation non liée",
+      "noExportHistory": "Aucun historique d'exportation n'a encore été enregistré.",
+      "loadOlderExportEvents": "Charger les anciens événements d'exportation",
+      "notLoaded": "Aucun historique de projet n'a encore été chargé."
+    },
+    "revisions": {
+      "title": "Révisions enregistrées",
+      "description": "Instantanés de charge utile capturés lors de la création, de la mise à jour et de l'importation de l'espace de travail. Le chargement d'une révision conserve le projet actuel sélectionné mais marque l'assistant comme modifié jusqu'à ce que vous l'enregistriez.",
+      "refreshing": "Rafraîchissant...",
+      "refresh": "Actualiser les révisions",
+      "empty": "Chargez un projet enregistré pour inspecter ou restaurer les révisions antérieures de la charge utile.",
+      "unavailable": "Les révisions du projet ne sont pas disponibles.",
+      "loading": "Chargement des révisions enregistrées...",
+      "summary": "Affichage de {{visible}} de la ou des révisions {{total}}.",
+      "loadIntoWizard": "Charger dans l'assistant",
+      "noEntries": "Aucune révision enregistrée pour le moment.",
+      "loadOlder": "Charger les anciennes révisions",
+      "notLoaded": "Aucune révision de projet chargée pour le moment.",
+      "sources": {
+        "importedWorkspaceSnapshot": "Instantané de l'espace de travail importé",
+        "projectUpdate": "Mise à jour du projet",
+        "initialSave": "Sauvegarde initiale"
+      }
+    },
+    "savedProjects": {
+      "title": "Projets enregistrés",
+      "description": "Chargez, comparez et archivez les brouillons basés sur SQLite à partir de l'espace de travail local.",
+      "loading": "Chargement...",
+      "load": "Charger les projets enregistrés",
+      "savedCount_one": "{{count}} enregistré",
+      "savedCount_other": "{{count}} enregistré",
+      "withoutSavedAnalysisCount_one": "{{count}} sans analyse enregistrée",
+      "withoutSavedAnalysisCount_other": "{{count}} sans analyse enregistrée",
+      "shownExperiments_one": "Expérience {{count}} présentée.",
+      "shownExperiments_other": "Expériences {{count}} présentées.",
+      "compareDescription": "Sélectionnez 2 à 5 projets enregistrés avec des instantanés pour ouvrir le tableau de bord de comparaison.",
+      "selectedForComparison_one": "{{count}} sélectionné",
+      "selectedForComparison_other": "{{count}} sélectionné",
+      "currentComparison": "Comparaison actuelle : {{baseProject}} vs {{candidateProject}}.",
+      "currentDashboard": "Tableau de bord actuel : projets {{count}}.",
+      "comparisonUnavailable": "Comparaison de projets indisponible.",
+      "compareRequiresSnapshot": "Enregistrez au moins un instantané d'analyse avant de comparer les projets enregistrés.",
+      "updatedAt": "{{timestamp}} mis à jour",
+      "savedAt": "Enregistré {{timestamp}}",
+      "analyzedAt": "Analysé {{timestamp}}",
+      "revisionsCount_one": "Révision {{count}}",
+      "revisionsCount_other": "Révisions {{count}}",
+      "exportedAt": "Exporté {{timestamp}}",
+      "noExportsYet": "Aucune exportation pour l'instant",
+      "loadedInWizard": "Chargé dans l'assistant",
+      "archiveAriaLabel": "Archiver {{projectName}}",
+      "deleteAriaLabel": "Supprimer {{projectName}}",
+      "noMatches": "Aucune expérience ne correspond à vos filtres.",
+      "empty": "Aucun projet enregistré disponible.",
+      "badges": {
+        "loaded": "Chargé",
+        "snapshot": "Instantané",
+        "archived": "Archivé"
+      },
+      "actions": {
+        "comparing": "En comparant...",
+        "compare": "Comparer",
+        "compareSelected": "Comparer la sélection",
+        "selectForComparison": "Sélectionner pour comparaison",
+        "restoring": "Restauration...",
+        "restore": "Restaurer",
+        "archive": "Archive",
+        "delete": "Supprimer"
+      }
+    },
+    "archivedProjects": {
+      "title": "Projets archivés",
+      "description": "Les projets archivés restent ici jusqu'à ce qu'ils soient restaurés.",
+      "archivedAt": "Archivé {{timestamp}}",
+      "lastAnalysisAt": "Dernière analyse {{timestamp}}",
+      "empty": "Aucun projet archivé."
+    },
+    "backendEndpoints": {
+      "title": "Points de terminaison back-end"
+    },
+    "status": {
+      "readOnlyMode": "Le backend s'exécute en mode lecture seule.",
+      "auditExported": "Journal d'audit exporté sous CSV.",
+      "auditExportFailed": "L'exportation de l'audit a échoué.",
+      "returnedToCurrentResults": "Retour aux résultats actuels de l'analyse en mémoire.",
+      "closedSnapshotPreview": "Fermeture de l'aperçu de l'instantané enregistré.",
+      "openedSnapshotFromHistory": "Ouverture d'un instantané d'analyse enregistré à partir de l'historique du projet.",
+      "loadedProjectIntoWizard": "Projet chargé {{projectName}} dans l'assistant.",
+      "projectArchivedCurrentDraft": "Projet {{projectName}} archivé. La forme actuelle reste une nouvelle ébauche locale.",
+      "projectArchived": "Projet {{projectName}} archivé.",
+      "projectRestored": "Projet {{projectName}} restauré à partir des archives.",
+      "projectDeletedCurrentDraft": "Projet {{projectName}} supprimé définitivement. La forme actuelle reste une nouvelle ébauche locale.",
+      "projectDeleted": "Projet {{projectName}} supprimé définitivement.",
+      "verifyingAdminToken": "Vérification du jeton d'administrateur pour la gestion des clés API...",
+      "adminTokenAccepted": "Jeton d'administrateur accepté pour la gestion des clés API dans cette session de navigateur.",
+      "adminTokenVerificationFailed": "La vérification du jeton d'administrateur a échoué.",
+      "adminTokenCleared": "Jeton d'administrateur effacé de cette session de navigateur."
+    }
+  }
+}

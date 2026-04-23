@@ -1,6 +1,6 @@
 .toast-stack {
   position: fixed;
-  right: var(--space-5);
+  inset-inline-end: var(--space-5);
   bottom: var(--space-5);
   z-index: 1000;
   display: grid;
@@ -28,22 +28,22 @@
 
 .toast-success {
   background: var(--color-success-light);
-  border-left: 3px solid var(--color-success);
+  border-inline-start: 3px solid var(--color-success);
 }
 
 .toast-error {
   background: var(--color-danger-light);
-  border-left: 3px solid var(--color-danger);
+  border-inline-start: 3px solid var(--color-danger);
 }
 
 .toast-warning {
   background: var(--color-warning-light);
-  border-left: 3px solid var(--color-warning);
+  border-inline-start: 3px solid var(--color-warning);
 }
 
 .toast-info {
   background: var(--color-surface-muted);
-  border-left: 3px solid var(--color-primary);
+  border-inline-start: 3px solid var(--color-primary);
 }
 
 .toast-close {

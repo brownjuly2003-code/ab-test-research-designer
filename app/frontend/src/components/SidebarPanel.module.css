@@ -25,14 +25,14 @@
 
 .input-with-icon :global(.icon) {
   position: absolute;
-  left: 12px;
+  inset-inline-start: 12px;
   top: 50%;
   transform: translateY(-50%);
   color: var(--color-text-secondary);
 }
 
 .input-with-icon :global(input) {
-  padding-left: 38px;
+  padding-inline-start: 38px;
 }
 
 .project-card-list,
@@ -110,14 +110,14 @@
 
 .timeline-item {
   position: relative;
-  padding-left: 24px;
+  padding-inline-start: 24px;
   padding-bottom: var(--space-4);
 }
 
 .timeline-item::before {
   content: "";
   position: absolute;
-  left: 7px;
+  inset-inline-start: 7px;
   top: 6px;
   width: 9px;
   height: 9px;
@@ -128,7 +128,7 @@
 .timeline-item::after {
   content: "";
   position: absolute;
-  left: 10px;
+  inset-inline-start: 10px;
   top: 18px;
   bottom: 0;
   width: 2px;

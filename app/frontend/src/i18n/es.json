@@ -11,7 +11,10 @@
         "en": "Inglés",
         "ru": "Ruso",
         "de": "Alemán",
-        "es": "Español"
+        "es": "Español",
+        "fr": "Franc?s",
+        "zh": "Chino simplificado",
+        "ar": "?rabe"
       }
     },
     "theme": {

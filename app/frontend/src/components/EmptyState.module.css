@@ -22,7 +22,7 @@
 .card {
   display: grid;
   gap: 14px;
-  text-align: left;
+  text-align: start;
   padding: 20px;
   cursor: pointer;
   border-radius: var(--radius-lg);

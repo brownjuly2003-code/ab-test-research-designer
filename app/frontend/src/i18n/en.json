@@ -11,7 +11,10 @@
         "en": "English",
         "ru": "Russian",
         "de": "German",
-        "es": "Spanish"
+        "es": "Spanish",
+        "fr": "French",
+        "zh": "Simplified Chinese",
+        "ar": "Arabic"
       }
     },
     "theme": {
@@ -316,7 +319,10 @@
     "sample_size_per_variant": "Users / variant",
     "duration_days": "Days estimated",
     "total_sample_size": "Total sample",
-    "warnings": "Warnings",
+    "warnings": {
+      "noneTitle": "No warning rules fired.",
+      "noneDescription": "The heuristic layer did not detect duration, traffic, or contamination issues."
+    },
     "ai_advice": "AI recommendations",
     "srm_check": "SRM Check",
     "sequential_design": "Sequential design",
@@ -448,10 +454,6 @@
         "stopIf": "Stop if |Z| ≥"
       },
       "footer": "Stop early at any planned look if the observed absolute Z-statistic crosses the boundary. Otherwise continue to the next analysis."
-    },
-    "warnings": {
-      "noneTitle": "No warning rules fired.",
-      "noneDescription": "The heuristic layer did not detect duration, traffic, or contamination issues."
     },
     "srmCheck": {
       "title": "Did traffic split as planned?",

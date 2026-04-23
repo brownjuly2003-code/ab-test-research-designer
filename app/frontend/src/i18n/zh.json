@@ -1,0 +1,1191 @@
+{
+  "app": {
+    "skipToMainContent": "跳至主要内容",
+    "eyebrow": "本地实验计划员",
+    "title": "A/B 实验研究设计器",
+    "tagline": "填写实验背景、运行确定性计算、检查警告并将人工智能建议与硬数学分开。",
+    "language": {
+      "label": "语言",
+      "ariaLabel": "Language preference",
+      "options": {
+        "en": "英语",
+        "ru": "俄语",
+        "de": "德语",
+        "es": "西班牙语",
+        "fr": "法语",
+        "zh": "简体中文",
+        "ar": "阿拉伯语"
+      }
+    },
+    "theme": {
+      "label": "主题",
+      "ariaLabel": "主题偏好",
+      "buttonAria": {
+        "light": "浅色主题",
+        "dark": "深色主题",
+        "system": "系统主题"
+      },
+      "options": {
+        "light": "光",
+        "dark": "黑暗的",
+        "system": "汽车"
+      }
+    },
+    "preferences": {
+      "llm": {
+        "title": "LLM 提供商",
+        "description": "仅适用于当前浏览器会话的可选远程建议。",
+        "providerLabel": "提供者",
+        "providers": {
+          "local": "本地（默认）",
+          "openai": "开放人工智能",
+          "anthropic": "人择"
+        },
+        "tokenLabel": "API 密钥（仅限会话，从未保存）",
+        "info": "您的密钥保留在浏览器会话存储中，并在您关闭此选项卡时被清除。",
+        "useLocal": "使用本地代替",
+        "tokenRequiredFallback": "需要令牌 - 回到本地建议"
+      }
+    }
+  },
+  "wizard": {
+    "steps": {
+      "1": "项目",
+      "2": "假设",
+      "3": "设置",
+      "4": "指标",
+      "5": "约束条件",
+      "6": "审查"
+    },
+    "actions": {
+      "next": "下一个",
+      "back": "后退",
+      "save": "保存项目",
+      "runAnalysis": "运行分析",
+      "export": "出口"
+    }
+  },
+  "wizardReview": {
+    "title": "审核输入",
+    "savedProjectTitle": "查看已保存的项目",
+    "newDraftTitle": "审查新草案",
+    "unsavedChangesPresent": "存在未保存的更改。",
+    "syncedWithLocalStorage": "此加载的项目与本地存储同步。",
+    "description": "在保存或运行确定性后端流之前检查以下值。",
+    "fixFields": "在保存或运行分析之前修复这些字段",
+    "newDraftButton": "新草案",
+    "importing": "输入...",
+    "importDraft": "进口汇票JSON",
+    "exportDraft": "出口汇票JSON",
+    "updateProjectTitle": "更新项目（Ctrl+S）",
+    "saveProjectTitle": "保存项目（Ctrl+S）",
+    "saving": "保存...",
+    "updateProject": "更新项目",
+    "runAnalysisTitle": "运行分析（Ctrl+Enter）",
+    "analyzing": "正在分析..."
+  },
+  "wizardDraft": {
+    "sections": {
+      "project": "项目背景",
+      "hypothesis": "假设",
+      "setup": "实验设置",
+      "metrics": "指标",
+      "constraints": "约束条件"
+    },
+    "note": {
+      "editingSavedProject": "编辑保存的项目",
+      "workingOnNewDraft": "正在制定新草案",
+      "projectIdStatus": "项目编号：{{projectId}}。 {{status}}",
+      "unsavedChangesPending": "未保存的更改等待本地更新。",
+      "allChangesSaved": "所有更改均保存在本地。",
+      "savingCreatesProject": "保存将创建一个新的本地项目记录。"
+    },
+    "fixFields": "在保存或运行分析之前修复这些字段",
+    "analysisFramework": {
+      "title": "分析框架",
+      "description": "选择规划是使用经典的 NHST 功能还是贝叶斯精度。",
+      "frequentist": "频率论者",
+      "frequentistDescription": "为经典的固定范围方法设置 alpha 和 power。",
+      "bayesian": "贝叶斯",
+      "bayesianDescription": "为基于时间间隔的计划设置所需的精度和可信度。"
+    },
+    "common": {
+      "yes": "是的",
+      "no": "不",
+      "optional": "选修的"
+    },
+    "fields": {
+      "project": {
+        "project_name": "项目名称",
+        "domain": "领域",
+        "product_type": "产品类型",
+        "platform": "平台",
+        "market": "市场",
+        "project_description": "项目描述"
+      },
+      "hypothesis": {
+        "change_description": "更改说明",
+        "target_audience": "目标受众",
+        "business_problem": "业务问题",
+        "hypothesis_statement": "假设陈述",
+        "what_to_validate": "要验证什么",
+        "desired_result": "期望的结果"
+      },
+      "setup": {
+        "experiment_type": "实验类型",
+        "randomization_unit": "随机化单位",
+        "traffic_split": "流量分割",
+        "expected_daily_traffic": "预计每日客流量",
+        "audience_share_in_test": "测试中的观众份额",
+        "variants_count": "变体计数",
+        "inclusion_criteria": "纳入标准",
+        "exclusion_criteria": "排除标准"
+      },
+      "metrics": {
+        "primary_metric_name": "主要指标",
+        "metric_type": "公制类型",
+        "baseline_value": "基线值",
+        "expected_uplift_pct": "预期提升%",
+        "mde_pct": "MDE %",
+        "std_dev": "标准差",
+        "secondary_metrics": "次要指标",
+        "guardrail_metrics": "护栏指标",
+        "alpha": "阿尔法",
+        "power": "力量"
+      },
+      "constraints": {
+        "seasonality_present": "季节性存在",
+        "active_campaigns_present": "目前正在进行的活动",
+        "returning_users_present": "现有回访用户",
+        "interference_risk": "干扰风险",
+        "technical_constraints": "技术限制",
+        "legal_or_ethics_constraints": "法律/道德约束",
+        "known_risks": "已知风险",
+        "deadline_pressure": "截止日期的压力",
+        "long_test_possible": "可进行长时间测试"
+      },
+      "additional_context": {
+        "llm_context": "人工智能背景"
+      }
+    },
+    "helpText": {
+      "traffic_split": "每个变体的相对流量权重。示例：平衡 A/B 拆分为 50,50，或三个变体为 34,33,33。",
+      "expected_daily_traffic": "每天进入实验的平均用户或会话数。示例：12000。",
+      "audience_share_in_test": "符合测试条件的每日流量份额。对于 60% 的传入流量使用 0.6。",
+      "variants_count": "包括对照在内的变体总数。 2 = 经典的 A/B 测试，而 3+ 变体则增加了样本需求。",
+      "baseline_value": "当前基线指标。对于二进制指标，使用 0.042 表示 4.2%；对于连续指标，请使用当前平均值，例如 45.20。",
+      "expected_uplift_pct": "与基线相比的预期相对改善。示例：8 表示治疗预计可将指标提高 8%。",
+      "mde_pct": "最小可检测效果以基线的百分比表示。较小的 MDE 值需要较大的样本量。",
+      "alpha": "假阳性阈值。 0.05 表示接受 5% 的 I 类错误概率。",
+      "power": "检测到真实效果（如果存在）的概率。 0.8 是产品实验的标准最小值。",
+      "analysis_mode": "选择是否使用经典的 NHST 功能或贝叶斯可信区间精度来构建规划。",
+      "desired_precision": "可信区间的目标半宽。对于二进制指标，使用百分点；对于连续指标，请使用原始单位。",
+      "credibility": "贝叶斯区间的可信度级别。 0.95 对应于 95% 的可信区间。",
+      "std_dev": "连续指标的标准差。仅对于连续指标需要；例如：平均订单价值为 12.5。",
+      "interference_risk": "用户或单位可能会跨变体相互影响并打破隔离的风险。"
+    },
+    "options": {
+      "setup": {
+        "randomization_unit": {
+          "user": "用户",
+          "session": "会议",
+          "device": "设备",
+          "account": "帐户"
+        }
+      },
+      "metrics": {
+        "metric_type": {
+          "binary": "二进制",
+          "continuous": "连续的"
+        }
+      },
+      "constraints": {
+        "interference_risk": {
+          "low": "低的",
+          "medium": "中等的",
+          "high": "高的"
+        },
+        "deadline_pressure": {
+          "low": "低的",
+          "medium": "中等的",
+          "high": "高的"
+        }
+      }
+    },
+    "interimAnalyses": {
+      "title": "中期分析",
+      "tooltip": "您计划在实验期间检查结果的次数。 1 保持标准固定水平测试。 2-5 启用具有早期停止边界的 O'Brien-Fleming 组顺序监控。",
+      "options": {
+        "1": "1 - 固定范围（无中期分析）",
+        "2": "2 - 一场临时赛+决赛",
+        "3": "3 - 两次中期+决赛",
+        "4": "4 - 三场中期比赛 + 决赛",
+        "5": "5 - 四场中期比赛 + 决赛"
+      }
+    },
+    "cuped": {
+      "title": "CUPED 方差减少",
+      "description": "使用相关的实验前行为来减少方差并比较原始样本量与 CUPED- 调整后的样本量。",
+      "enable": "启用 CUPED 方差减少",
+      "enableTooltip": "如果您有与结果指标相关的实验前数据，CUPED 可以将所需的样本量减少 rho 平方。",
+      "preExperimentStdDev": "实验前标准开发",
+      "preExperimentStdDevTooltip": "实验前协变量的标准差，例如测试前一周的收入。",
+      "correlationWithOutcome": "与结果的相关性",
+      "correlationWithOutcomeTooltip": "实验前协变量与实验结果之间的皮尔逊相关性。典型值为 0.3 至 0.7。"
+    },
+    "guardrails": {
+      "title": "护栏指标",
+      "description": "在不改变主要样本大小的情况下进行监控的指标。最多支持 3 个护栏。",
+      "metricName": "指标名称",
+      "metricNameAriaLabel": "护栏公制名称 {{index}}",
+      "metricType": "公制类型",
+      "metricTypeAriaLabel": "护栏公制型{{index}}",
+      "binaryPct": "二进制 (%)",
+      "continuous": "连续的",
+      "remove": "消除",
+      "removeAriaLabel": "拆除护栏{{index}}",
+      "baselinePct": "基线%",
+      "baselineRateAriaLabel": "护栏基线率{{index}}",
+      "baselineMean": "基线平均值",
+      "baselineMeanAriaLabel": "护栏基线平均值{{index}}",
+      "stdDev": "标准差",
+      "stdDevAriaLabel": "护栏标准开发 {{index}}",
+      "add": "添加护栏指标"
+    },
+    "buttons": {
+      "newDraft": "新草案",
+      "startFromTemplate": "从模板开始",
+      "importing": "输入...",
+      "importDraft": "进口汇票JSON",
+      "exportDraft": "出口汇票JSON",
+      "updateProjectTitle": "更新项目（Ctrl+S）",
+      "saveProjectTitle": "保存项目（Ctrl+S）",
+      "saving": "保存...",
+      "updateProject": "更新项目"
+    },
+    "validation": {
+      "projectNameRequired": "项目名称为必填项。",
+      "changeDescriptionRequired": "需要更改说明。",
+      "trafficSplitPositive": "流量分割必须至少包含两个正权重。",
+      "trafficSplitLength": "流量分割长度必须与变体计数相匹配。",
+      "expectedDailyTrafficPositive": "预计每日流量必须大于 0。",
+      "audienceShareRange": "测试中的受众份额必须介于 0 和 1 之间。",
+      "variantsCountRange": "变体计数必须是 2 到 10 之间的整数。",
+      "primaryMetricRequired": "主要指标名称是必需的。",
+      "binaryBaselineRange": "二进制基线值必须介于 0 和 1 之间。",
+      "continuousBaselinePositive": "连续基线值必须大于 0。",
+      "mdePositive": "MDE % 必须大于 0。",
+      "alphaRange": "Alpha 必须介于 0 和 1 之间。",
+      "powerRange": "功率必须介于 0 和 1 之间。",
+      "continuousStdPositive": "连续指标需要正的标准差。",
+      "cupedStdPositive": "CUPED 预实验标准差必须为正。",
+      "cupedCorrelationRange": "CUPED 相关性必须介于 -1 和 1 之间。",
+      "desiredPrecisionPositive": "在贝叶斯模式下，所需精度必须大于 0。",
+      "credibilityRange": "可信度必须在 0.5 到 1 之间。",
+      "guardrailsMax": "Guardrail 指标不能超过 3 项。",
+      "guardrailNameRequired": "Guardrail 指标名称是必需的。",
+      "guardrailBinaryBaselineRange": "二进制护栏需要 0 到 100 之间的基线百分比。",
+      "guardrailContinuousFields": "连续护栏需要基线均值和正标准差。",
+      "guardrailMetricType": "护栏度量类型必须是二进制或连续。",
+      "metricType": "度量类型必须是二进制或连续。"
+    }
+  },
+  "empty_state": {
+    "ariaLabel": "入职",
+    "eyebrow": "从这里开始",
+    "title": "规划您的 A/B 实验",
+    "subtitle": "确定性计算。本地优先。无需云。",
+    "new_experiment": "新实验",
+    "load_example": "负载示例",
+    "import_project": "导入项目",
+    "descriptions": {
+      "new_experiment": "从头开始",
+      "load_example": "一键查看完整的实验",
+      "import_project": "从工作区备份恢复"
+    }
+  },
+  "sidebar": {
+    "tabs": {
+      "projects": "项目",
+      "system": "系统"
+    },
+    "actions": {
+      "export_workspace": "导出工作区",
+      "import_workspace": "导入工作区",
+      "compare": "比较项目"
+    }
+  },
+  "results": {
+    "sample_size_per_variant": "用户/变体",
+    "duration_days": "预计天数",
+    "total_sample_size": "样本总数",
+    "warnings": {
+      "noneTitle": "没有触发警告规则。",
+      "noneDescription": "启发式层没有检测到持续时间、流量或污染问题。"
+    },
+    "ai_advice": "人工智能建议",
+    "srm_check": "SRM 检查",
+    "sequential_design": "序贯设计",
+    "guardrail_metrics": "护栏指标",
+    "actual_results": "实际实验结果",
+    "aiAdvice": {
+      "title": "本地协调器输出",
+      "provider": "提供商：",
+      "model": "模型：",
+      "assessment": "评估",
+      "designImprovements": "设计改进",
+      "keyRisks": "主要风险",
+      "metricRecommendations": "指标建议",
+      "interpretationPitfalls": "解释陷阱",
+      "additionalChecks": "额外检查",
+      "unavailable": "人工智能建议不可用。核心确定性输出仍然有效。"
+    },
+    "comparison": {
+      "empty": "从项目侧边栏加载已保存的项目比较，以查看基线与候选快照。",
+      "loading": "正在加载比较仪表板...",
+      "monteCarlo": {
+        "title": "分布图",
+        "subtitle": "运行按需蒙特卡罗叠加来比较提升分布和尾部风险。",
+        "showToggle": "显示分布视图",
+        "hideToggle": "隐藏分布视图",
+        "loading": "运行蒙特卡罗模拟...",
+        "loadFailed": "分布视图加载失败。",
+        "empty": "所选项目的分布数据不可用。",
+        "sliderLabel": "概率提升 > {{threshold}}",
+        "thresholdHint": "服务器阈值之间的概率在客户端中进行插值。",
+        "probabilityValue": "{{probability}} 高于阈值",
+        "positiveProbability": "{{probability}} 机会提升保持正值",
+        "percentileLegend": "百分位数图例",
+        "percentileValue": "{{label}} {{value}}"
+      },
+      "dashboard": {
+        "loaded": "{{count}}项目比较",
+        "title": "比较仪表板",
+        "subtitle": "并排审查已保存的实验，包括计划假设、敏感性和观察到的效果。",
+        "exporting": "出口...",
+        "exportMarkdown": "导出比较 Markdown",
+        "exportPdf": "出口对比 PDF",
+        "close": "关闭仪表板",
+        "exportFailed": "比较导出失败。",
+        "mixedMetricTypes": "混合指标类型——直接效果比较没有意义。",
+        "projectsTitle": "项目",
+        "projectsSubtitle": "所选实验的主要规划元数据。",
+        "sampleSize": "样本总数：{{value}}",
+        "duration": "持续时间：{{value}} 天",
+        "warnings": "警告：{{value}}",
+        "powerCurvesTitle": "功率曲线",
+        "powerCurvesSubtitle": "每条线显示项目配置功率下 MDE 点上每个变体的样本大小。",
+        "sensitivityTitle": "灵敏度网格",
+        "sensitivitySubtitle": "MDE 和功率组合的每个项目持续时间矩阵。",
+        "sensitivityUnavailable": "敏感性数据不可用。",
+        "observedEffectsTitle": "观察到的效果",
+        "observedEffectsSubtitle": "保存的观察结果显示为每个项目的一个林地行。",
+        "insightsTitle": "共享/独特见解",
+        "insightsSubtitle": "共享警告、风险、假设和每个项目的差异。",
+        "sharedWarnings": "共享警告",
+        "sharedRisks": "共同风险",
+        "sharedAssumptions": "共同的假设",
+        "recommendationHighlights": "推荐亮点",
+        "project": "项目",
+        "uniqueWarnings": "独特的警告",
+        "uniqueRisks": "独特的风险",
+        "uniqueAssumptions": "独特的假设",
+        "none": "没有任何"
+      }
+    },
+    "experimentDesign": {
+      "variantAndRolloutStructure": "变体和推出结构",
+      "setup": "设置",
+      "randomizationUnit": "随机化单位",
+      "trafficSplit": "流量分割",
+      "targetAudience": "目标受众",
+      "inclusion": "包容性",
+      "exclusion": "排除",
+      "recommendedDuration": "建议持续时间",
+      "days": "天",
+      "stoppingConditions": "停止条件",
+      "openQuestions": "开放式问题"
+    },
+    "metricsPlan": {
+      "coverage": "主要、次要和护栏覆盖",
+      "primary": "基本的",
+      "secondary": "中学",
+      "guardrail": "护栏",
+      "diagnostic": "诊断",
+      "guardrailMetrics": "护栏指标",
+      "guardrailMetricsDescription": "这些指标受到监控，但它们不会改变主要样本大小。",
+      "baseline": "基线"
+    },
+    "powerCurve": {
+      "title": "功率曲线",
+      "description": "将 MDE 目标与计划的功率水平和所需的样本大小进行比较。",
+      "loadingSensitivity": "加载敏感性分析...",
+      "chartAriaLabel": "显示最小可检测效果与目标功率的功率曲线图",
+      "loadingChart": "加载图表..."
+    },
+    "risks": {
+      "statisticalAndOperational": "统计和操作考虑因素",
+      "product": "产品",
+      "technical": "技术的",
+      "recommendations": "建议",
+      "beforeLaunch": "发布前",
+      "duringTest": "测试期间",
+      "afterTest": "测试后"
+    },
+    "bayesian": {
+      "title": "贝叶斯后验",
+      "unavailable": "贝叶斯后验输入不可用于此分析。",
+      "targetSampleSize": "目标样本量：",
+      "perVariantAt": "每个变体在",
+      "credibilityAnd": "可信度和",
+      "intervalHalfWidth": "间隔半宽。"
+    },
+    "sequentialDesign": {
+      "unavailable": "当前分析未配置顺序边界。",
+      "title": "组序贯设计（O'Brien-Fleming）",
+      "adjustedSampleSize": "调整后的样本量：",
+      "perVariant": "每个变体",
+      "moreThanFixedHorizon": "超过固定的地平线",
+      "columns": {
+        "look": "看",
+        "infoFraction": "信息分数",
+        "cumulativeAlphaSpent": "暨。 α消耗",
+        "zBoundary": "Z 边界",
+        "stopIf": "如果 |Z| 则停止≥"
+      },
+      "footer": "如果观察到的绝对 Z 统计量跨越边界，请尽早停止任何计划的查看。否则继续下一步分析。"
+    },
+    "srmCheck": {
+      "title": "流量是否按计划分配？",
+      "description": "输入每个变体观察到的用户计数，以检查样本比率是否不匹配。红色结果意味着分配或跟踪可能被破坏。",
+      "actualUsersPlaceholder": "实际用户",
+      "checking": "检查...",
+      "checkButton": "检查 SRM",
+      "detected": "检测到 SRM",
+      "notDetected": "未检测到 SRM",
+      "serviceUnavailable": "SRM 检查不可用。",
+      "chiSquare": "卡方 = {{chiSquare}}，p = {{pValue}}",
+      "expectedObserved": "预期：[{{expected}}] |观察到：[{{observed}}]"
+    },
+    "observedResults": {
+      "title": "输入实际实验结果",
+      "description": "实验完成后，输入观察到的数据以计算实际结果的统计显着性。",
+      "historicalReadOnly": "历史快照是只读的。返回实时草稿以保存观察到的结果。",
+      "saveProjectFirst": "如果您想保留观察到的结果，请先保存项目。",
+      "analyzeButton": "分析结果",
+      "analyzing": "正在分析...",
+      "saveButton": "保存到项目",
+      "saving": "保存...",
+      "yes": "是的",
+      "no": "不",
+      "fields": {
+        "controlConversions": "控制转换",
+        "controlUsers": "控制用户",
+        "treatmentConversions": "治疗转化",
+        "treatmentUsers": "治疗使用者",
+        "alpha": "阿尔法",
+        "controlMean": "控制平均值",
+        "controlStdDev": "控制标准开发",
+        "controlN": "控制n",
+        "treatmentMean": "治疗均值",
+        "treatmentStdDev": "治疗标准制定",
+        "treatmentN": "治疗次数"
+      },
+      "cards": {
+        "effect": "影响",
+        "ciLabel": "{{percent}}% CI",
+        "pValue": "p 值",
+        "testStatistic": "检验统计量",
+        "relativeChange": "相对变化",
+        "powerAchieved": "达到的功率",
+        "forestPlot": "森林图",
+        "observedSummary": "观察总结",
+        "controlRate": "控制率",
+        "treatmentRate": "治疗率",
+        "significant": "重要的",
+        "verdict": "判决"
+      },
+      "validation": {
+        "fillAllFields": "在分析之前，用有效值填充所有实际结果字段。",
+        "analysisUnavailable": "结果分析不可用。",
+        "analyzeBeforeSaving": "在将结果保存到项目之前对其进行分析。",
+        "saveUnavailable": "观察结果无法保存。",
+        "savedToProject": "观察结果保存到项目 {{projectName}} 中。"
+      }
+    },
+    "sensitivityOverview": {
+      "reportPill": "报告",
+      "title": "确定性实验设计",
+      "export": "出口",
+      "exportMenuAriaLabel": "报告导出选项",
+      "exportReportTitle": "出口报告（Ctrl+E）",
+      "exportMarkdown": "导出降价",
+      "exportHtml": "导出HTML",
+      "exportPdf": "导出PDF",
+      "exportCsv": "CSV数据",
+      "exportXlsx": "Excel工作簿",
+      "exporting": "出口...",
+      "exportFullReport": "导出完整报告",
+      "cards": {
+        "perVariant": "每个变体",
+        "sampleSizePerVariant": "样本量/变体",
+        "powerMeta": "{{power}}电源",
+        "bonferroni": "邦费罗尼",
+        "totalSample": "样本总数",
+        "totalSampleSubtitle": "总样本量",
+        "variantsMeta": "{{count}} 变体",
+        "duration": "期间",
+        "durationValue": "{{days}}天",
+        "durationSubtitle": "预计持续时间",
+        "perDayMeta": "{{traffic}}/天",
+        "warnings": "警告",
+        "warningsSubtitle": "启发式检查"
+      },
+      "warningSeverity": {
+        "high": "{{count}} 高",
+        "medium": "{{count}} 中型",
+        "low": "{{count}}低",
+        "none": "无警告"
+      },
+      "bayesianEstimate": {
+        "title": "贝叶斯估计",
+        "frequentist": "频率论者",
+        "bayesian": "贝叶斯",
+        "usersPerVariant": "用户/变体"
+      },
+      "cuped": {
+        "title": "CUPED-调整后的估计",
+        "without": "不带CUPED",
+        "with": "配CUPED",
+        "sampleSizeSavings": "-{{pct}}%样本量",
+        "durationChange": "预计持续时间从 {{from}} 天更改为 {{to}} 天。",
+        "adjustedStdDev": "调整后的标准差：{{value}}。"
+      },
+      "sensitivityTable": {
+        "title": "灵敏度表",
+        "description": "后端返回的 MDE 和功率场景的持续时间矩阵。",
+        "loading": "正在加载灵敏度表..."
+      },
+      "sampleSizeBreakdown": {
+        "title": "样本量细分",
+        "description": "每个变体的示例要求与配置的流量分配一起显示。"
+      },
+      "calculationSummary": {
+        "title": "计算总结",
+        "metricType": "公制类型",
+        "baselineValue": "基线值",
+        "mdePct": "MDE %",
+        "mdeAbsolute": "MDE绝对",
+        "alpha": "阿尔法",
+        "power": "力量"
+      },
+      "assumptions": {
+        "title": "假设"
+      },
+      "projectHistoryContext": {
+        "title": "项目历史背景",
+        "savedProject": "已保存的项目",
+        "revisionsCount": "{{count}} 修订版",
+        "lastSave": "最后保存",
+        "notRecorded": "未记录",
+        "analysisRuns": "{{total}} 分析运行的 {{current}}",
+        "exportEvents": "{{total}} 导出事件的 {{current}}",
+        "latestAnalysisRun": "最新分析运行",
+        "noSavedAnalysisRunYet": "尚未保存分析运行",
+        "unknownMetric": "未知指标",
+        "warnings": "警告",
+        "latestExport": "最新出口",
+        "noExportEventYet": "还没有导出事件",
+        "linkedSnapshot": "链接快照",
+        "unlinkedExport": "未链接的导出"
+      }
+    },
+    "panel": {
+      "sensitivityUnavailableHistorical": "历史快照不支持敏感性分析。",
+      "sensitivityUnavailableCurrentDraft": "当前草案无法进行敏感性分析。",
+      "sensitivityUnavailable": "无法进行敏感性分析。",
+      "sensitivityUnavailableForConfiguration": "此配置无法进行敏感性分析。",
+      "backendReadOnly": "后端以只读模式运行。",
+      "runAnalysisBeforeExportingReport": "在导出报告之前运行分析。",
+      "saveProjectBeforePdf": "在导出 PDF. 之前保存项目并保留分析快照",
+      "runAnalysisBeforeExportingProjectData": "在导出项目数据之前运行分析。",
+      "saveProjectBeforeProjectData": "导出 CSV 或 Excel 数据之前保存项目。",
+      "runAnalysisBeforeStandaloneExport": "在导出完整报告之前运行分析。",
+      "standaloneExportFailed": "完整报告导出失败。",
+      "savedSnapshot": "保存的快照",
+      "viewingHistoricalAnalysis": "查看历史分析",
+      "openedSnapshotFrom": "从 {{timestamp}} 打开快照。",
+      "currentResultsAvailable": "当前内存中的结果仍然可用。",
+      "returnedToCurrentAnalysis": "返回当前内存中的分析结果。",
+      "closedSnapshotPreview": "关闭保存的快照预览。",
+      "showCurrentAnalysis": "显示当前分析",
+      "closeSnapshotView": "关闭快照视图",
+      "analysisInProgress": "分析正在进行中",
+      "preparingDeterministicResults": "准备确定性结果",
+      "updatingSections": "更新指标、图表和报告部分。",
+      "accordion": {
+        "comparison": "比较",
+        "sensitivity": "灵敏度",
+        "powerCurve": "功率曲线",
+        "sequentialDesign": "序贯设计",
+        "bayesianPosterior": "贝叶斯后验",
+        "observedResults": "观察结果",
+        "warningsAndRisks": "警告和风险",
+        "experimentDesign": "实验设计",
+        "metricsPlan": "指标计划",
+        "riskAssessment": "风险评估",
+        "aiRecommendations": "人工智能建议",
+        "srmCheck": "SRM 检查"
+      },
+      "badges": {
+        "loaded": "已加载",
+        "sidebar": "侧边栏",
+        "pending": "待办的",
+        "planning": "规划",
+        "significant": "重要的",
+        "review": "审查",
+        "postTest": "后测",
+        "available": "可用的",
+        "offline": "离线",
+        "manual": "手动的"
+      },
+      "variantsCount_one": "{{count}} 变体",
+      "variantsCount_other": "{{count}} 变体",
+      "cellsCount_one": "{{count}}电池",
+      "cellsCount_other": "{{count}} 细胞",
+      "looksCount_one": "{{count}} 外观",
+      "looksCount_other": "{{count}} 外观",
+      "warningsCount_one": "{{count}} 警告",
+      "warningsCount_other": "{{count}} 警告",
+      "metricsCount_one": "{{count}} 公制",
+      "metricsCount_other": "{{count}} 指标",
+      "itemsCount_one": "{{count}} 项目",
+      "itemsCount_other": "{{count}} 项目",
+      "credibilityInterval": "{{percent}}%区间",
+      "noAnalysisYet": "还没有分析。完成向导并首先运行确定性后端流程。"
+    }
+  },
+  "errors": {
+    "analysis_failed": "分析失败",
+    "save_failed": "保存失败",
+    "load_failed": "无法加载项目",
+    "backend_offline": "后台离线",
+    "storage_full": "浏览器存储已满 - 草稿未保存"
+  },
+  "toasts": {
+    "project_saved": "项目已保存",
+    "project_updated": "项目已更新",
+    "export_success": "报告导出",
+    "import_success": "导入工作空间 - {{count}} 项目已恢复",
+    "example_loaded": "已加载示例 - 单击运行分析以查看结果"
+  },
+  "errorBoundary": {
+    "title": "出了点问题",
+    "description": "此部分在渲染时崩溃。重新尝试安装它。",
+    "retry": "重试"
+  },
+  "chartErrorBoundary": {
+    "title": "图表不可用",
+    "description": "渲染失败。原始数据如下所示，以供检查。"
+  },
+  "toastSystem": {
+    "dismissAriaLabel": "解雇吐司",
+    "close": "关闭"
+  },
+  "chartExport": {
+    "groupAriaLabel": "图表导出选项",
+    "downloadSvgAriaLabel": "下载图表为 SVG",
+    "downloadPngAriaLabel": "下载图表为 PNG",
+    "svg": "SVG",
+    "png": "PNG",
+    "errors": {
+      "imageRenderFailed": "图表图像渲染失败。",
+      "canvasUnavailable": "Canvas 2D 上下文不可用。"
+    }
+  },
+  "inlineConfirmButton": {
+    "confirmLabel": "当然？"
+  },
+  "wizardPanel": {
+    "dismiss": "解雇",
+    "aria": {
+      "importDraftFile": "导入草稿文件",
+      "importWorkspaceFile": "导入工作区文件",
+      "stepHasErrors": "这一步有错误"
+    },
+    "status": {
+      "startedNewDraft": "开始了新的本地草案。",
+      "draftExported": "草稿导出为 JSON.",
+      "importedDraftFrom": "从 {{fileName}} 导入草稿。保存以创建新的本地项目记录。",
+      "restoredBrowserDraft": "恢复未保存的浏览器草稿。",
+      "templateLoaded": "模板 {{templateName}} 已加载到向导中。",
+      "draftNotSavedStorageFull": "草稿未保存 - 浏览器存储空间已满。"
+    },
+    "errors": {
+      "unexpectedDraftImport": "意外的草稿导入错误"
+    }
+  },
+  "projectListFilters": {
+    "legend": "保存的项目过滤器",
+    "searchLabel": "搜索实验",
+    "searchPlaceholder": "按名称或假设过滤",
+    "statusLabel": "地位",
+    "status": {
+      "active": "积极的",
+      "archived": "已存档",
+      "all": "全部"
+    },
+    "metricTypeLabel": "公制类型",
+    "metricType": {
+      "all": "全部",
+      "binary": "二进制",
+      "continuous": "连续的"
+    },
+    "sortLabel": "种类",
+    "sort": {
+      "updated": "最后更新",
+      "name": "姓名",
+      "duration": "期间"
+    },
+    "clear": "清除过滤器"
+  },
+  "shortcutHelp": {
+    "title": "键盘快捷键",
+    "description": "向导的导航和导出操作更快。",
+    "close": "关闭",
+    "columns": {
+      "shortcut": "捷径",
+      "action": "行动"
+    },
+    "shortcuts": {
+      "openHelp": "打开键盘快捷键帮助",
+      "focusSearch": "焦点保存的项目搜索",
+      "runAnalysis": "运行分析",
+      "moveSteps": "在向导步骤之间移动",
+      "exportMarkdown": "导出降价报告",
+      "saveProject": "保存项目",
+      "toggleTheme": "切换浅色/深色主题",
+      "closeDialog": "关闭此对话框"
+    }
+  },
+  "templateGallery": {
+    "title": "实验模板",
+    "description": "从内置设置开始，并在保存或运行分析之前调整向导字段。",
+    "close": "关闭",
+    "loading": "正在加载模板...",
+    "usageCount_one": "{{count}}用途",
+    "usageCount_other": "{{count}}用途",
+    "builtInTemplate": "内置模板",
+    "savedTemplate": "已保存的模板",
+    "useTemplateAriaLabel": "使用模板{{name}}",
+    "applying": "正在申请...",
+    "useTemplate": "使用模板",
+    "empty": "没有找到该类别的模板。",
+    "categories": {
+      "All": "全部",
+      "Revenue": "收入",
+      "Engagement": "订婚",
+      "Performance": "表现"
+    },
+    "errors": {
+      "libraryUnavailable": "模板库不可用。",
+      "applyFailed": "模板应用失败。"
+    }
+  },
+  "webhooks": {
+    "title": "网络钩子",
+    "description": "将审核事件发送到 Slack 或通用 HTTP 端点。",
+    "loading": "正在加载 webhook 订阅...",
+    "empty": "还没有 webhook 订阅。",
+    "actions": {
+      "create": "创建网络钩子",
+      "save": "保存网络钩子",
+      "saving": "保存...",
+      "close": "关闭",
+      "test": "测试",
+      "deliveries": "交货",
+      "delete": "删除"
+    },
+    "status": {
+      "created": "Webhook 订阅已创建。",
+      "deleted": "Webhook 订阅已删除。",
+      "loadFailed": "Webhook 订阅不可用。",
+      "createFailed": "Webhook 创建失败。",
+      "testSuccess": "测试交付已完成，HTTP {{code}}。",
+      "testFailed": "Webhook 测试失败。",
+      "deliveriesFailed": "Webhook 传送历史记录不可用。",
+      "deleteFailed": "Webhook 删除失败。"
+    },
+    "fields": {
+      "name": "姓名",
+      "targetUrl": "目标URL",
+      "secret": "秘密",
+      "format": "格式",
+      "scope": "范围",
+      "apiKeyId": "API 密钥 ID",
+      "eventFilter": "事件过滤器"
+    },
+    "placeholders": {
+      "name": "合作伙伴提醒",
+      "targetUrl": "https://example.com/webhook",
+      "secret": "共享签名秘密",
+      "apiKeyId": "粘贴现有的 API 密钥 ID",
+      "eventFilter": "api_key_created，项目.archive"
+    },
+    "formats": {
+      "generic": "通用的",
+      "slack": "松弛"
+    },
+    "scopes": {
+      "global": "全球的",
+      "apiKey": "API钥匙"
+    },
+    "labels": {
+      "enabled": "启用",
+      "disabled": "残疾人",
+      "targetUrl": "目标URL",
+      "events": "活动",
+      "allEvents": "所有活动",
+      "apiKeyId": "API 密钥 ID",
+      "lastDelivered": "最后交付",
+      "lastError": "最后一个错误",
+      "never": "绝不"
+    },
+    "createDialog": {
+      "title": "创建网络钩子",
+      "description": "配置 Slack 传入 Webhook 或通用 JSON 端点。"
+    },
+    "drawer": {
+      "title": "交货：{{name}}",
+      "description": "此订阅的最近交付尝试。",
+      "loading": "正在加载交货...",
+      "empty": "尚未记录交货情况。",
+      "labels": {
+        "responseCode": "响应码",
+        "attempts": "尝试",
+        "lastAttempt": "最后一次尝试",
+        "error": "错误"
+      }
+    }
+  },
+  "sidebarPanel": {
+    "common": {
+      "notRecordedYet": "尚未记录",
+      "unknownMetric": "未知指标",
+      "daysShort": "{{value}}d"
+    },
+    "tabs": {
+      "projects": "项目",
+      "system": "系统",
+      "apiKeys": "API按键"
+    },
+    "apiKeysFallback": {
+      "title": "API按键",
+      "loading": "正在加载 API 密钥管理器..."
+    },
+    "backendStatus": {
+      "title": "后端状态",
+      "description": "FastAPI 运行时的实时运行状况，提供计算、存储和可选的 AI 建议。",
+      "checking": "检查...",
+      "refresh": "刷新后台状态",
+      "online": "API在线",
+      "unavailable": "API 不可用。",
+      "notLoaded": "尚未加载后端状态。",
+      "labels": {
+        "service": "服务",
+        "version": "版本",
+        "environment": "环境"
+      }
+    },
+    "apiSessionToken": {
+      "title": "API 会话令牌",
+      "description": "仅存储在此浏览器会话中的可选令牌。它没有被烘焙到前端构建或 Docker 镜像中。",
+      "label": "会话令牌",
+      "placeholderConfigured": "存储在当前浏览器会话中的令牌",
+      "placeholderEmpty": "粘贴只读或写入令牌",
+      "save": "保存令牌",
+      "clear": "清除令牌",
+      "configured": "令牌已配置",
+      "notStored": "没有存储令牌"
+    },
+    "adminToken": {
+      "title": "API 密钥管理令牌",
+      "description": "仅存储在此浏览器会话中，并且仅用于 `/api/v1/keys` 和 `/api/v1/webhooks` 管理请求。",
+      "label": "管理员令牌",
+      "placeholderConfigured": "存储在当前浏览器会话中的管理令牌",
+      "placeholderEmpty": "粘贴AB_ADMIN_TOKEN",
+      "save": "保存管理员令牌",
+      "clear": "清除管理员令牌",
+      "configured": "已配置管理员访问权限",
+      "disabled": "管理员访问权限已禁用"
+    },
+    "workspaceBackup": {
+      "title": "工作区备份",
+      "systemDescription": "导出或导入完整的 SQLite 工作区，包括保存的项目、历史记录、导出和修订。",
+      "projectsDescription": "导出或导入完整的 SQLite 工作区，包括保存的项目、分析历史记录、导出事件和保存的修订。在 SQLite 写入开始之前导入运行校验和、可选签名和引用验证。",
+      "exporting": "出口...",
+      "export": "导出工作区 JSON",
+      "importing": "输入...",
+      "import": "导入工作区 JSON"
+    },
+    "quickArchive": {
+      "title": "已保存的项目",
+      "archiveAriaLabel": "存档 {{projectName}}",
+      "archiving": "存档..."
+    },
+    "diagnostics": {
+      "title": "运行时诊断",
+      "description": "存储、前端服务、编排器设置和正常运行时间的轻量级可观察性。",
+      "refreshing": "清爽...",
+      "refresh": "刷新诊断",
+      "online": "在线诊断",
+      "unavailable": "诊断不可用。",
+      "notLoaded": "尚未加载诊断程序。",
+      "storageSummary": "{{projects}} 项目、{{analysisRuns}} 分析运行、{{exportEvents}} 导出事件、{{revisions}} 修订",
+      "labels": {
+        "uptime": "正常运行时间",
+        "storage": "贮存",
+        "latestProjectUpdate": "最新项目更新",
+        "sqlitePath": "SQLite路径",
+        "sqliteParent": "SQLite家长",
+        "storageFootprint": "存储占用空间",
+        "sqliteMode": "SQLite模式",
+        "sqliteWriteProbe": "SQLite写探针",
+        "workspaceBackups": "工作区备份",
+        "frontendDist": "前端分布",
+        "timingHeaders": "计时标头",
+        "llmAdapter": "LLM适配器",
+        "logging": "记录",
+        "runtimeCounters": "运行时计数器",
+        "lastRuntimeError": "上次运行时错误",
+        "apiAuth": "API 授权",
+        "authHeaders": "身份验证标头",
+        "securityGuards": "保安人员",
+        "bodyLimits": "身体限制"
+      },
+      "values": {
+        "db": "数据库",
+        "freeDisk": "空闲磁盘",
+        "userVersion": "用户版本",
+        "busyTimeout": "繁忙超时",
+        "pass": "经过",
+        "fail": "失败",
+        "hmacSigned": "HMAC 已签名",
+        "checksumOnly": "仅校验和",
+        "enabled": "已启用",
+        "disabled": "残疾人",
+        "present": "展示",
+        "missing": "丢失的",
+        "timeout": "暂停",
+        "attempts": "尝试",
+        "requests": "要求",
+        "ok": "好的",
+        "none": "没有任何",
+        "authRejects": "授权拒绝",
+        "bodyRejects": "身体排斥",
+        "writeToken": "写令牌",
+        "noWriteToken": "没有写令牌",
+        "readOnlyToken": "只读令牌",
+        "noReadOnlyToken": "没有只读令牌",
+        "readMethods": "读取方法",
+        "headersOn": "标题打开",
+        "headersOff": "标题关闭",
+        "rateLimit": "速率限制",
+        "authThrottle": "授权节流阀",
+        "general": "一般的",
+        "workspace": "工作区"
+      }
+    },
+    "workspaceStatus": {
+      "title": "工作区状态板",
+      "description": "已保存项目覆盖范围、快照深度以及当前草稿是否同步的概览。",
+      "savedCount_one": "{{count}} 已保存",
+      "savedCount_other": "{{count}} 已保存",
+      "withSnapshotsCount_one": "{{count}} 带快照",
+      "withSnapshotsCount_other": "{{count}} 带快照",
+      "draftChanged": "草稿已更改",
+      "sqliteWritable": "SQLite可写",
+      "readOnlyApi": "只读 API",
+      "snapshotCoverage": "{{ready}} 准备好了 | {{withoutSavedAnalysis}} 不保存分析",
+      "exportCoverage_one": "{{count}} 至少导出一次",
+      "exportCoverage_other": "{{count}} 至少导出一次",
+      "revisionDepth_one": "{{count}} 项目已保存多个修订版本",
+      "revisionDepth_other": "{{count}} 项目已保存多个修订版本",
+      "labels": {
+        "savedProjects": "已保存的项目",
+        "archivedProjects": "存档项目",
+        "snapshotCoverage": "快照覆盖范围",
+        "exportCoverage": "出口覆盖范围",
+        "revisionDepth": "修订深度",
+        "currentDraft": "当前草案",
+        "latestWorkspaceUpdate": "最新工作区更新"
+      },
+      "currentDraft": {
+        "loadedProjectWithUnsavedChanges": "已加载未保存更改的项目",
+        "loadedProjectInSync": "同步加载的项目",
+        "newLocalDraft": "新的地方草案"
+      }
+    },
+    "auditLog": {
+      "title": "审核日志",
+      "description": "工作区中最近的写入活动，可以选择按保存的项目进行过滤。",
+      "refreshing": "清爽...",
+      "refresh": "刷新审核日志",
+      "export": "出口审核CSV",
+      "projectFilter": "项目过滤器",
+      "allProjects": "所有项目",
+      "unavailable": "审核日志不可用。",
+      "loading": "正在加载审核日志...",
+      "showingEntries_one": "显示 {{total}} 条目的 {{visible}}。",
+      "showingEntries_other": "显示 {{total}} 条目中的 {{visible}}。",
+      "workspace": "工作空间",
+      "unknownActor": "未知",
+      "noEntries": "尚未记录审核条目。",
+      "columns": {
+        "time": "时间",
+        "action": "行动",
+        "project": "项目",
+        "actor": "演员"
+      }
+    },
+    "activeProject": {
+      "title": "活跃项目",
+      "unsavedChanges": "未保存的更改",
+      "savedLocally": "保存在本地",
+      "unknownProject": "未知项目",
+      "statusNeedsLocalUpdate": "需要本地更新",
+      "statusInSync": "与SQLite同步",
+      "empty": "未加载已保存的项目。您仍然可以使用本地草稿并在准备好后保存。",
+      "labels": {
+        "projectName": "项目名称",
+        "projectId": "项目编号",
+        "status": "地位",
+        "payloadSchema": "有效负载架构",
+        "savedRevisions": "已保存的修订",
+        "lastSave": "最后保存",
+        "lastAnalysis": "最后分析",
+        "lastExport": "最后导出",
+        "snapshotStored": "已存储快照"
+      }
+    },
+    "projectHistory": {
+      "title": "最近的项目历史",
+      "description": "已加载项目的已保存分析运行和导出事件的时间线。",
+      "refreshing": "清爽...",
+      "refresh": "刷新项目历史记录",
+      "empty": "加载已保存的项目以检查最近的分析运行和导出事件。",
+      "unavailable": "项目历史记录不可用。",
+      "loading": "正在加载保存的项目历史记录...",
+      "summary": "显示 {{analysisTotal}} 分析运行的 {{analysisVisible}} 和 {{exportTotal}} 导出事件的 {{exportVisible}}。",
+      "closeOpenedSnapshot": "关闭打开的快照",
+      "analysisRunsTitle": "分析运行",
+      "warningsCount_one": "{{count}} 警告",
+      "warningsCount_other": "{{count}} 警告",
+      "aiAdvice": "人工智能建议",
+      "opened": "已开通",
+      "openSnapshot": "打开快照",
+      "viewing": "观看",
+      "noAnalysisHistory": "尚未记录分析历史记录。",
+      "loadOlderAnalysisRuns": "加载旧的分析运行",
+      "exportEventsTitle": "导出事件",
+      "linkedSnapshot": "链接快照",
+      "unlinkedExport": "未链接的导出",
+      "noExportHistory": "尚未记录出口历史记录。",
+      "loadOlderExportEvents": "加载旧的导出事件",
+      "notLoaded": "尚未加载项目历史记录。"
+    },
+    "revisions": {
+      "title": "已保存的修订",
+      "description": "在创建、更新和工作区导入时捕获的有效负载快照。加载修订版会使当前项目保持选中状态，但将向导标记为已更改，直到您保存。",
+      "refreshing": "清爽...",
+      "refresh": "刷新修订版",
+      "empty": "加载已保存的项目以检查或恢复早期的有效负载修订。",
+      "unavailable": "项目修订不可用。",
+      "loading": "正在加载保存的修订...",
+      "summary": "显示 {{total}} 修订版的 {{visible}}。",
+      "loadIntoWizard": "加载到向导中",
+      "noEntries": "尚未记录保存的修订。",
+      "loadOlder": "加载旧版本",
+      "notLoaded": "尚未加载项目修订。",
+      "sources": {
+        "importedWorkspaceSnapshot": "导入的工作区快照",
+        "projectUpdate": "项目更新",
+        "initialSave": "初始保存"
+      }
+    },
+    "savedProjects": {
+      "title": "已保存的项目",
+      "description": "从本地工作区加载、比较和存档 SQLite 支持的草稿。",
+      "loading": "加载中...",
+      "load": "加载保存的项目",
+      "savedCount_one": "{{count}} 已保存",
+      "savedCount_other": "{{count}} 已保存",
+      "withoutSavedAnalysisCount_one": "{{count}} 不保存分析",
+      "withoutSavedAnalysisCount_other": "{{count}} 不保存分析",
+      "shownExperiments_one": "{{count}} 实验所示。",
+      "shownExperiments_other": "{{count}} 实验表明。",
+      "compareDescription": "选择 2 到 5 个已保存的带有快照的项目以打开比较仪表板。",
+      "selectedForComparison_one": "{{count}} 已选择",
+      "selectedForComparison_other": "{{count}} 已选择",
+      "currentComparison": "当前比较：{{baseProject}} 与 {{candidateProject}}。",
+      "currentDashboard": "当前仪表板：{{count}} 项目。",
+      "comparisonUnavailable": "无法进行项目比较。",
+      "compareRequiresSnapshot": "在比较已保存的项目之前，至少保存一个分析快照。",
+      "updatedAt": "更新了{{timestamp}}",
+      "savedAt": "已保存 {{timestamp}}",
+      "analyzedAt": "分析了{{timestamp}}",
+      "revisionsCount_one": "修订版 {{count}}",
+      "revisionsCount_other": "修订版 {{count}}",
+      "exportedAt": "出口{{timestamp}}",
+      "noExportsYet": "还没有出口",
+      "loadedInWizard": "已加载到向导中",
+      "archiveAriaLabel": "存档 {{projectName}}",
+      "deleteAriaLabel": "删除{{projectName}}",
+      "noMatches": "没有实验符合您的筛选条件。",
+      "empty": "没有可用的已保存项目。",
+      "badges": {
+        "loaded": "已加载",
+        "snapshot": "快照",
+        "archived": "已存档"
+      },
+      "actions": {
+        "comparing": "比较...",
+        "compare": "比较",
+        "compareSelected": "比较所选的",
+        "selectForComparison": "选择进行比较",
+        "restoring": "正在恢复...",
+        "restore": "恢复",
+        "archive": "档案",
+        "delete": "删除"
+      }
+    },
+    "archivedProjects": {
+      "title": "存档项目",
+      "description": "存档的项目将保留在此处，直至恢复。",
+      "archivedAt": "已归档 {{timestamp}}",
+      "lastAnalysisAt": "最后分析{{timestamp}}",
+      "empty": "没有存档的项目。"
+    },
+    "backendEndpoints": {
+      "title": "后端端点"
+    },
+    "status": {
+      "readOnlyMode": "后端以只读模式运行。",
+      "auditExported": "审核日志导出为 CSV.",
+      "auditExportFailed": "审核导出失败。",
+      "returnedToCurrentResults": "返回当前内存中的分析结果。",
+      "closedSnapshotPreview": "关闭保存的快照预览。",
+      "openedSnapshotFromHistory": "从项目历史记录中打开保存的分析快照。",
+      "loadedProjectIntoWizard": "将项目 {{projectName}} 加载到向导中。",
+      "projectArchivedCurrentDraft": "项目 {{projectName}} 已存档。目前的形式仍然是新的本地草案。",
+      "projectArchived": "项目 {{projectName}} 已存档。",
+      "projectRestored": "项目 {{projectName}} 从存档中恢复。",
+      "projectDeletedCurrentDraft": "项目 {{projectName}} 永久删除。目前的形式仍然是新的本地草案。",
+      "projectDeleted": "项目 {{projectName}} 永久删除。",
+      "verifyingAdminToken": "正在验证 API 密钥管理的管理员令牌...",
+      "adminTokenAccepted": "在此浏览器会话中接受用于 API 密钥管理的管理令牌。",
+      "adminTokenVerificationFailed": "管理员令牌验证失败。",
+      "adminTokenCleared": "从此浏览器会话中清除了管理令牌。"
+    }
+  }
+}

@@ -16,7 +16,7 @@
   color: inherit;
   cursor: pointer;
   padding: var(--space-4) 18px;
-  text-align: left;
+  text-align: start;
 }
 
 .accordion-toggle:focus-visible {

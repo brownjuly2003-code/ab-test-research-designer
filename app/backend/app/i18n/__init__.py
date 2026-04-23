@@ -6,8 +6,8 @@ from contextvars import ContextVar, Token
 from pathlib import Path
 from typing import Literal, Mapping
 
-Language = Literal["en", "ru", "de", "es"]
-SUPPORTED_LANGUAGES: tuple[Language, ...] = ("en", "ru", "de", "es")
+Language = Literal["en", "ru", "de", "es", "fr", "zh", "ar"]
+SUPPORTED_LANGUAGES: tuple[Language, ...] = ("en", "ru", "de", "es", "fr", "zh", "ar")
 
 _current_language: ContextVar[Language] = ContextVar("backend_language", default="en")
 _translations = {

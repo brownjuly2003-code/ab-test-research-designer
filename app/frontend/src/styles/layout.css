@@ -20,7 +20,7 @@ body {
 .skip-link {
   position: absolute;
   top: -48px;
-  left: 0;
+  inset-inline-start: 0;
   padding: var(--space-2) var(--space-4);
   border-radius: 0 0 var(--radius-sm) 0;
   background: var(--color-primary);

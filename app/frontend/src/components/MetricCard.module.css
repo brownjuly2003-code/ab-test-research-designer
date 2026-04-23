@@ -34,7 +34,7 @@
 }
 
 .metric-badge {
-  margin-left: auto;
+  margin-inline-start: auto;
 }
 
 .metric-icon {

@@ -66,6 +66,8 @@ echo [verify] backend tests
 set "BACKEND_JUNIT_PATH="
 if not "%ARTIFACTS_DIR%"=="" set "BACKEND_JUNIT_PATH=%ARTIFACTS_DIR%\backend-junit.xml"
 set "BACKEND_COVERAGE_PATH="
+set "ORIGINAL_PYTEST_DISABLE_PLUGIN_AUTOLOAD=%PYTEST_DISABLE_PLUGIN_AUTOLOAD%"
+set "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1"
 if "%WITH_COVERAGE%"=="1" (
   if "%ARTIFACTS_DIR%"=="" (
     set "BACKEND_COVERAGE_PATH=%ROOT_DIR%coverage-backend.json"
@@ -86,7 +88,11 @@ if "%WITH_COVERAGE%"=="1" (
     python -m pytest "%ROOT_DIR%app\backend\tests" -q --junitxml "%BACKEND_JUNIT_PATH%"
   )
 )
-if errorlevel 1 exit /b %errorlevel%
+if errorlevel 1 (
+  set "PYTEST_DISABLE_PLUGIN_AUTOLOAD=%ORIGINAL_PYTEST_DISABLE_PLUGIN_AUTOLOAD%"
+  exit /b %errorlevel%
+)
+set "PYTEST_DISABLE_PLUGIN_AUTOLOAD=%ORIGINAL_PYTEST_DISABLE_PLUGIN_AUTOLOAD%"
 
 echo [verify] backend benchmark
 python "%ROOT_DIR%scripts\benchmark_backend.py" --payload binary --assert-ms 100

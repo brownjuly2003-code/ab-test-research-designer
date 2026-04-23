@@ -416,9 +416,56 @@ def test_export_markdown_endpoint_localizes_content_for_spanish() -> None:
     assert "## Executive Summary" not in content
 
 
+def test_export_markdown_endpoint_localizes_content_for_french() -> None:
+    client = TestClient(create_app())
+    response = client.post(
+        "/api/v1/export/markdown",
+        json=_report_payload(),
+        headers={"Accept-Language": "fr"},
+    )
+
+    assert response.status_code == 200
+    content = response.json()["content"]
+    assert "## Résumé exécutif" in content
+    assert "## Executive Summary" not in content
+
+
+def test_export_markdown_endpoint_localizes_content_for_simplified_chinese() -> None:
+    client = TestClient(create_app())
+    response = client.post(
+        "/api/v1/export/markdown",
+        json=_report_payload(),
+        headers={"Accept-Language": "zh"},
+    )
+
+    assert response.status_code == 200
+    content = response.json()["content"]
+    assert "## 执行摘要" in content
+    assert "## Executive Summary" not in content
+
+
+def test_export_markdown_endpoint_localizes_content_for_arabic() -> None:
+    client = TestClient(create_app())
+    response = client.post(
+        "/api/v1/export/markdown",
+        json=_report_payload(),
+        headers={"Accept-Language": "ar"},
+    )
+
+    assert response.status_code == 200
+    content = response.json()["content"]
+    assert "## الملخص التنفيذي" in content
+    assert "## Executive Summary" not in content
+
+
 def test_export_markdown_endpoint_falls_back_to_primary_language_for_regional_locales() -> None:
     client = TestClient(create_app())
 
+    fr_response = client.post(
+        "/api/v1/export/markdown",
+        json=_report_payload(),
+        headers={"Accept-Language": "fr-CA"},
+    )
     de_response = client.post(
         "/api/v1/export/markdown",
         json=_report_payload(),
@@ -429,6 +476,30 @@ def test_export_markdown_endpoint_falls_back_to_primary_language_for_regional_lo
         json=_report_payload(),
         headers={"Accept-Language": "es-MX"},
     )
+    zh_cn_response = client.post(
+        "/api/v1/export/markdown",
+        json=_report_payload(),
+        headers={"Accept-Language": "zh-CN"},
+    )
+    zh_tw_response = client.post(
+        "/api/v1/export/markdown",
+        json=_report_payload(),
+        headers={"Accept-Language": "zh-TW"},
+    )
+    ar_sa_response = client.post(
+        "/api/v1/export/markdown",
+        json=_report_payload(),
+        headers={"Accept-Language": "ar-SA"},
+    )
+    ar_eg_response = client.post(
+        "/api/v1/export/markdown",
+        json=_report_payload(),
+        headers={"Accept-Language": "ar-EG"},
+    )
+
+    assert fr_response.status_code == 200
+    assert "## Résumé exécutif" in fr_response.json()["content"]
+    assert "## Executive Summary" not in fr_response.json()["content"]
 
     assert de_response.status_code == 200
     assert "## Zusammenfassung" in de_response.json()["content"]
@@ -437,6 +508,22 @@ def test_export_markdown_endpoint_falls_back_to_primary_language_for_regional_lo
     assert es_response.status_code == 200
     assert "## Resumen" in es_response.json()["content"]
     assert "## Executive Summary" not in es_response.json()["content"]
+
+    assert zh_cn_response.status_code == 200
+    assert "## 执行摘要" in zh_cn_response.json()["content"]
+    assert "## Executive Summary" not in zh_cn_response.json()["content"]
+
+    assert zh_tw_response.status_code == 200
+    assert "## 执行摘要" in zh_tw_response.json()["content"]
+    assert "## Executive Summary" not in zh_tw_response.json()["content"]
+
+    assert ar_sa_response.status_code == 200
+    assert "## الملخص التنفيذي" in ar_sa_response.json()["content"]
+    assert "## Executive Summary" not in ar_sa_response.json()["content"]
+
+    assert ar_eg_response.status_code == 200
+    assert "## الملخص التنفيذي" in ar_eg_response.json()["content"]
+    assert "## Executive Summary" not in ar_eg_response.json()["content"]
 
 
 def test_export_html_endpoint_returns_html_document() -> None:

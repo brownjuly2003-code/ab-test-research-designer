@@ -9,7 +9,7 @@ import { useProjectStore } from "./stores/projectStore";
 import { useThemeStore } from "./stores/themeStore";
 import { useWizardStore } from "./stores/wizardStore";
 
-const SUPPORTED_LANGUAGES = ["en", "ru", "de", "es"] as const;
+const SUPPORTED_LANGUAGES = ["en", "ru", "de", "es", "fr", "zh", "ar"] as const;
 type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
 
 function resolveLanguage(candidate: string | undefined): SupportedLanguage {
@@ -31,6 +31,7 @@ export default function App() {
 
   useEffect(() => {
     document.documentElement.lang = language;
+    document.documentElement.dir = language === "ar" ? "rtl" : "ltr";
   }, [language]);
 
   async function handleLanguageChange(nextLanguage: SupportedLanguage) {

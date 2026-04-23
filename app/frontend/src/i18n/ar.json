@@ -1,0 +1,1191 @@
+{
+  "app": {
+    "skipToMainContent": "انتقل إلى المحتوى الرئيسي",
+    "eyebrow": "مخطط التجارب المحلية",
+    "title": "مصمم أبحاث اختبارات A/B",
+    "tagline": "املأ سياق التجربة، وقم بإجراء الحسابات الحتمية، وافحص التحذيرات، وافصل نصائح الذكاء الاصطناعي عن الرياضيات الصعبة.",
+    "language": {
+      "label": "اللغة",
+      "ariaLabel": "Language preference",
+      "options": {
+        "en": "الإنجليزية",
+        "ru": "الروسية",
+        "de": "الألمانية",
+        "es": "الإسبانية",
+        "fr": "الفرنسية",
+        "zh": "الصينية المبسطة",
+        "ar": "العربية"
+      }
+    },
+    "theme": {
+      "label": "سمة",
+      "ariaLabel": "تفضيل الموضوع",
+      "buttonAria": {
+        "light": "موضوع خفيف",
+        "dark": "موضوع مظلم",
+        "system": "موضوع النظام"
+      },
+      "options": {
+        "light": "ضوء",
+        "dark": "مظلم",
+        "system": "آلي"
+      }
+    },
+    "preferences": {
+      "llm": {
+        "title": "مزود LLM",
+        "description": "اقتراحات اختيارية عن بعد لجلسة المتصفح الحالية فقط.",
+        "providerLabel": "مزود",
+        "providers": {
+          "local": "محلي (افتراضي)",
+          "openai": "OpenAI",
+          "anthropic": "أنثروبي"
+        },
+        "tokenLabel": "مفتاح API (الجلسة فقط، لم يتم حفظها مطلقًا)",
+        "info": "يبقى مفتاحك في مساحة تخزين جلسة المتصفح ويتم مسحه عند إغلاق علامة التبويب هذه.",
+        "useLocal": "استخدم المحلية بدلا من ذلك",
+        "tokenRequiredFallback": "الرمز المميز مطلوب - الرجوع إلى الاقتراحات المحلية"
+      }
+    }
+  },
+  "wizard": {
+    "steps": {
+      "1": "مشروع",
+      "2": "فرضية",
+      "3": "يثبت",
+      "4": "المقاييس",
+      "5": "قيود",
+      "6": "مراجعة"
+    },
+    "actions": {
+      "next": "التالي",
+      "back": "خلف",
+      "save": "حفظ المشروع",
+      "runAnalysis": "تشغيل التحليل",
+      "export": "يصدّر"
+    }
+  },
+  "wizardReview": {
+    "title": "مراجعة المدخلات",
+    "savedProjectTitle": "مراجعة مشروع محفوظ",
+    "newDraftTitle": "مراجعة مسودة جديدة",
+    "unsavedChangesPresent": "التغييرات غير المحفوظة موجودة.",
+    "syncedWithLocalStorage": "هذا المشروع المحمل متزامن مع التخزين المحلي.",
+    "description": "تحقق من القيم أدناه قبل حفظ أو تشغيل تدفق الواجهة الخلفية الحتمية.",
+    "fixFields": "قم بإصلاح هذه الحقول قبل حفظ التحليل أو تشغيله",
+    "newDraftButton": "مسودة جديدة",
+    "importing": "جارٍ الاستيراد...",
+    "importDraft": "استيراد مسودة JSON",
+    "exportDraft": "تصدير مسودة JSON",
+    "updateProjectTitle": "تحديث المشروع (Ctrl+S)",
+    "saveProjectTitle": "حفظ المشروع (Ctrl+S)",
+    "saving": "توفير...",
+    "updateProject": "تحديث المشروع",
+    "runAnalysisTitle": "تشغيل التحليل (Ctrl+Enter)",
+    "analyzing": "جارٍ التحليل..."
+  },
+  "wizardDraft": {
+    "sections": {
+      "project": "سياق المشروع",
+      "hypothesis": "فرضية",
+      "setup": "إعداد التجربة",
+      "metrics": "المقاييس",
+      "constraints": "قيود"
+    },
+    "note": {
+      "editingSavedProject": "تحرير المشروع المحفوظ",
+      "workingOnNewDraft": "العمل على مسودة جديدة",
+      "projectIdStatus": "معرف المشروع: {{projectId}}. {{status}}",
+      "unsavedChangesPending": "التغييرات غير المحفوظة في انتظار التحديث المحلي.",
+      "allChangesSaved": "تم حفظ جميع التغييرات محليًا.",
+      "savingCreatesProject": "سيؤدي الحفظ إلى إنشاء سجل مشروع محلي جديد."
+    },
+    "fixFields": "قم بإصلاح هذه الحقول قبل حفظ التحليل أو تشغيله",
+    "analysisFramework": {
+      "title": "إطار التحليل",
+      "description": "اختر ما إذا كان التخطيط يستخدم قوة NHST الكلاسيكية أو الدقة الافتراضية.",
+      "frequentist": "متكرر",
+      "frequentistDescription": "قم بتعيين ألفا وقوة لنهج الأفق الثابت الكلاسيكي.",
+      "bayesian": "بايزي",
+      "bayesianDescription": "قم بتعيين الدقة والمصداقية المطلوبة للتخطيط على أساس الفاصل الزمني."
+    },
+    "common": {
+      "yes": "نعم",
+      "no": "لا",
+      "optional": "خياري"
+    },
+    "fields": {
+      "project": {
+        "project_name": "اسم المشروع",
+        "domain": "اِختِصاص",
+        "product_type": "نوع المنتج",
+        "platform": "منصة",
+        "market": "سوق",
+        "project_description": "وصف المشروع"
+      },
+      "hypothesis": {
+        "change_description": "تغيير الوصف",
+        "target_audience": "الجمهور المستهدف",
+        "business_problem": "مشكلة العمل",
+        "hypothesis_statement": "بيان الفرضية",
+        "what_to_validate": "ما للتحقق من صحة",
+        "desired_result": "النتيجة المرجوة"
+      },
+      "setup": {
+        "experiment_type": "نوع التجربة",
+        "randomization_unit": "وحدة التوزيع العشوائي",
+        "traffic_split": "تقسيم حركة المرور",
+        "expected_daily_traffic": "حركة المرور اليومية المتوقعة",
+        "audience_share_in_test": "حصة الجمهور في الاختبار",
+        "variants_count": "عدد المتغيرات",
+        "inclusion_criteria": "معايير الاشتمال",
+        "exclusion_criteria": "معايير الاستبعاد"
+      },
+      "metrics": {
+        "primary_metric_name": "المقياس الأساسي",
+        "metric_type": "نوع متري",
+        "baseline_value": "القيمة الأساسية",
+        "expected_uplift_pct": "الارتفاع المتوقع %",
+        "mde_pct": "MDE %",
+        "std_dev": "التطوير القياسي",
+        "secondary_metrics": "المقاييس الثانوية",
+        "guardrail_metrics": "مقاييس الدرابزين",
+        "alpha": "ألفا",
+        "power": "قوة"
+      },
+      "constraints": {
+        "seasonality_present": "الموسمية موجودة",
+        "active_campaigns_present": "الحملات النشطة موجودة",
+        "returning_users_present": "عودة المستخدمين الحاضرين",
+        "interference_risk": "خطر التدخل",
+        "technical_constraints": "القيود الفنية",
+        "legal_or_ethics_constraints": "القيود القانونية / الأخلاقية",
+        "known_risks": "المخاطر المعروفة",
+        "deadline_pressure": "ضغط الموعد النهائي",
+        "long_test_possible": "اختبار طويل ممكن"
+      },
+      "additional_context": {
+        "llm_context": "سياق الذكاء الاصطناعي"
+      }
+    },
+    "helpText": {
+      "traffic_split": "أوزان حركة المرور النسبية لكل متغير. مثال: 50,50 لتقسيم A/B المتوازن أو 34,33,33 لثلاثة متغيرات.",
+      "expected_daily_traffic": "متوسط ​​عدد المستخدمين أو الجلسات التي تدخل إلى التجربة كل يوم. مثال: 12000.",
+      "audience_share_in_test": "حصة حركة المرور اليومية المؤهلة للاختبار. استخدم 0.6 لـ 60% من حركة المرور الواردة.",
+      "variants_count": "إجمالي عدد المتغيرات بما في ذلك التحكم. 2 = اختبار A/B الكلاسيكي، في حين أن 3+ متغيرات تزيد من احتياجات العينة.",
+      "baseline_value": "مقياس خط الأساس الحالي. بالنسبة للمقاييس الثنائية، استخدم 0.042 لـ 4.2%؛ بالنسبة للمقاييس المستمرة، استخدم المتوسط ​​الحالي، مثل 45.20.",
+      "expected_uplift_pct": "التحسن النسبي المتوقع مقابل خط الأساس. مثال: 8 يعني أنه من المتوقع أن يؤدي العلاج إلى تحسين المقياس بنسبة 8%.",
+      "mde_pct": "الحد الأدنى من التأثير القابل للاكتشاف كنسبة مئوية من خط الأساس. تتطلب قيم MDE الأصغر أحجامًا أكبر للعينات.",
+      "alpha": "عتبة إيجابية كاذبة. 0.05 يعني قبول احتمال 5% لحدوث خطأ من النوع الأول.",
+      "power": "احتمال اكتشاف التأثير الحقيقي إن وجد. 0.8 هو الحد الأدنى القياسي لتجارب المنتج.",
+      "analysis_mode": "اختر ما إذا كان التخطيط مؤطرًا بقوة NHST الكلاسيكية أو دقة الفاصل الزمني الموثوق بها.",
+      "desired_precision": "استهدف نصف عرض الفاصل الزمني الموثوق. بالنسبة للمقاييس الثنائية، استخدم النقاط المئوية؛ للمقاييس المستمرة استخدم الوحدات الأولية.",
+      "credibility": "مستوى المصداقية للفاصل بايزي. 0.95 يتوافق مع فاصل زمني موثوق به بنسبة 95٪.",
+      "std_dev": "الانحراف المعياري للقياس المستمر. مطلوبة فقط للمقاييس المستمرة؛ مثال: 12.5 لمتوسط ​​قيمة الطلب.",
+      "interference_risk": "خطر إمكانية تأثير المستخدمين أو الوحدات على بعضهم البعض عبر المتغيرات وكسر العزلة."
+    },
+    "options": {
+      "setup": {
+        "randomization_unit": {
+          "user": "مستخدم",
+          "session": "حصة",
+          "device": "جهاز",
+          "account": "حساب"
+        }
+      },
+      "metrics": {
+        "metric_type": {
+          "binary": "ثنائي",
+          "continuous": "مستمر"
+        }
+      },
+      "constraints": {
+        "interference_risk": {
+          "low": "قليل",
+          "medium": "واسطة",
+          "high": "عالي"
+        },
+        "deadline_pressure": {
+          "low": "قليل",
+          "medium": "واسطة",
+          "high": "عالي"
+        }
+      }
+    },
+    "interimAnalyses": {
+      "title": "التحليلات المؤقتة",
+      "tooltip": "عدد المرات التي تخطط فيها للتحقق من النتائج أثناء التجربة. 1 يحافظ على اختبار الأفق الثابت القياسي. 2-5 يتيح المراقبة التسلسلية لمجموعة O'Brien-Fleming مع حدود التوقف المبكر.",
+      "options": {
+        "1": "1 - أفق ثابت (لا توجد تحليلات مرحلية)",
+        "2": "2 - مرحلية + نهائية",
+        "3": "3 - فترتان + نهائية",
+        "4": "4 - ثلاث فواصل + نهائية",
+        "5": "5 - أربع فواصل + نهائية"
+      }
+    },
+    "cuped": {
+      "title": "CUPED تخفيض التباين",
+      "description": "استخدم سلوك ما قبل التجربة المترابط لتقليل التباين ومقارنة حجم العينة الساذج مقابل حجم العينة المعدل CUPED-.",
+      "enable": "تمكين تقليل التباين CUPED",
+      "enableTooltip": "إذا كانت لديك بيانات ما قبل التجربة مرتبطة بمقياس النتائج، فيمكن لـ CUPED تقليل حجم العينة المطلوبة بواسطة مربع rho.",
+      "preExperimentStdDev": "التطوير القياسي للتجربة المسبقة",
+      "preExperimentStdDevTooltip": "الانحراف المعياري للمتغير المشترك قبل التجربة، مثل الإيرادات في الأسبوع السابق للاختبار.",
+      "correlationWithOutcome": "العلاقة مع النتيجة",
+      "correlationWithOutcomeTooltip": "علاقة بيرسون بين المتغير قبل التجربة ونتائج التجربة. القيم النموذجية هي 0.3 إلى 0.7."
+    },
+    "guardrails": {
+      "title": "مقاييس الدرابزين",
+      "description": "مقاييس للمراقبة دون تغيير حجم العينة الأولية. يتم دعم ما يصل إلى 3 حواجز حماية.",
+      "metricName": "اسم متري",
+      "metricNameAriaLabel": "اسم مقياس الدرابزين {{index}}",
+      "metricType": "نوع متري",
+      "metricTypeAriaLabel": "الدرابزين المتري من النوع {{index}}",
+      "binaryPct": "ثنائي (%)",
+      "continuous": "مستمر",
+      "remove": "يزيل",
+      "removeAriaLabel": "قم بإزالة الدرابزين {{index}}",
+      "baselinePct": "خط الأساس٪",
+      "baselineRateAriaLabel": "معدل خط الأساس للدرابزين {{index}}",
+      "baselineMean": "خط الأساس يعني",
+      "baselineMeanAriaLabel": "خط الأساس للدرابزين يعني {{index}}",
+      "stdDev": "التطوير القياسي",
+      "stdDevAriaLabel": "الدرابزين المعياري المطور {{index}}",
+      "add": "أضف مقياس الدرابزين"
+    },
+    "buttons": {
+      "newDraft": "مسودة جديدة",
+      "startFromTemplate": "ابدأ من القالب",
+      "importing": "جارٍ الاستيراد...",
+      "importDraft": "استيراد مسودة JSON",
+      "exportDraft": "تصدير مسودة JSON",
+      "updateProjectTitle": "تحديث المشروع (Ctrl+S)",
+      "saveProjectTitle": "حفظ المشروع (Ctrl+S)",
+      "saving": "توفير...",
+      "updateProject": "تحديث المشروع"
+    },
+    "validation": {
+      "projectNameRequired": "اسم المشروع مطلوب.",
+      "changeDescriptionRequired": "وصف التغيير مطلوب.",
+      "trafficSplitPositive": "يجب أن يحتوي تقسيم حركة المرور على وزنين موجبين على الأقل.",
+      "trafficSplitLength": "يجب أن يتطابق طول تقسيم حركة المرور مع عدد المتغيرات.",
+      "expectedDailyTrafficPositive": "يجب أن تكون حركة المرور اليومية المتوقعة أكبر من 0.",
+      "audienceShareRange": "يجب أن تكون حصة الجمهور في الاختبار بين 0 و1.",
+      "variantsCountRange": "يجب أن يكون عدد المتغيرات عددًا صحيحًا بين 2 و10.",
+      "primaryMetricRequired": "اسم المقياس الأساسي مطلوب.",
+      "binaryBaselineRange": "يجب أن تكون قيمة خط الأساس الثنائي بين 0 و1.",
+      "continuousBaselinePositive": "يجب أن تكون قيمة خط الأساس المستمر أكبر من 0.",
+      "mdePositive": "MDE % يجب أن تكون أكبر من 0.",
+      "alphaRange": "يجب أن يكون ألفا بين 0 و 1.",
+      "powerRange": "يجب أن تكون الطاقة بين 0 و 1.",
+      "continuousStdPositive": "تتطلب المقاييس المستمرة تطويرًا إيجابيًا.",
+      "cupedStdPositive": "يجب أن يكون التطوير القياسي للتجربة المسبقة CUPED إيجابيًا.",
+      "cupedCorrelationRange": "يجب أن يكون الارتباط CUPED بين -1 و1.",
+      "desiredPrecisionPositive": "يجب أن تكون الدقة المطلوبة أكبر من 0 في الوضع الافتراضي.",
+      "credibilityRange": "يجب أن تتراوح المصداقية بين 0.5 و 1.",
+      "guardrailsMax": "لا يمكن أن تتجاوز مقاييس الدرابزين 3 عناصر.",
+      "guardrailNameRequired": "أسماء قياسات الدرابزين مطلوبة.",
+      "guardrailBinaryBaselineRange": "تتطلب حواجز الحماية الثنائية نسبة أساسية تتراوح بين 0 و100.",
+      "guardrailContinuousFields": "تتطلب حواجز الحماية المستمرة متوسطًا أساسيًا وتطويرًا إيجابيًا قياسيًا.",
+      "guardrailMetricType": "يجب أن يكون نوع مقياس الدرابزين ثنائيًا أو مستمرًا.",
+      "metricType": "يجب أن يكون نوع المقياس ثنائيًا أو مستمرًا."
+    }
+  },
+  "empty_state": {
+    "ariaLabel": "الإعداد",
+    "eyebrow": "ابدأ هنا",
+    "title": "خطط لتجربة A/B الخاصة بك",
+    "subtitle": "الحسابات الحتمية. محلي أولاً. لا سحابة المطلوبة.",
+    "new_experiment": "تجربة جديدة",
+    "load_example": "تحميل المثال",
+    "import_project": "مشروع الاستيراد",
+    "descriptions": {
+      "new_experiment": "ابدأ من الصفر",
+      "load_example": "شاهد تجربة مليئة بنقرة واحدة",
+      "import_project": "الاستعادة من نسخة احتياطية لمساحة العمل"
+    }
+  },
+  "sidebar": {
+    "tabs": {
+      "projects": "المشاريع",
+      "system": "نظام"
+    },
+    "actions": {
+      "export_workspace": "تصدير مساحة العمل",
+      "import_workspace": "استيراد مساحة العمل",
+      "compare": "قارن المشاريع"
+    }
+  },
+  "results": {
+    "sample_size_per_variant": "المستخدمون/البديل",
+    "duration_days": "الأيام المقدرة",
+    "total_sample_size": "العينة الإجمالية",
+    "warnings": {
+      "noneTitle": "لم يتم إطلاق أي قواعد تحذير.",
+      "noneDescription": "لم تكتشف الطبقة الإرشادية مشكلات المدة أو حركة المرور أو التلوث."
+    },
+    "ai_advice": "توصيات الذكاء الاصطناعي",
+    "srm_check": "فحص SRM",
+    "sequential_design": "تصميم متسلسل",
+    "guardrail_metrics": "مقاييس الدرابزين",
+    "actual_results": "نتائج التجربة الفعلية",
+    "aiAdvice": {
+      "title": "إخراج المنسق المحلي",
+      "provider": "مزود:",
+      "model": "نموذج:",
+      "assessment": "تقدير",
+      "designImprovements": "تحسينات التصميم",
+      "keyRisks": "المخاطر الرئيسية",
+      "metricRecommendations": "توصيات مترية",
+      "interpretationPitfalls": "مطبات التفسير",
+      "additionalChecks": "فحوصات إضافية",
+      "unavailable": "نصيحة الذكاء الاصطناعي غير متوفرة. لا يزال الناتج الحتمي الأساسي يعمل."
+    },
+    "comparison": {
+      "empty": "قم بتحميل مقارنة المشروع المحفوظة من الشريط الجانبي للمشاريع لمراجعة خط الأساس مقابل اللقطات المرشحة.",
+      "loading": "جارٍ تحميل لوحة المقارنة...",
+      "monteCarlo": {
+        "title": "عرض التوزيع",
+        "subtitle": "قم بتشغيل تراكب مونت كارلو عند الطلب لمقارنة توزيعات الارتفاع ومخاطر الذيل.",
+        "showToggle": "عرض طريقة عرض التوزيع",
+        "hideToggle": "إخفاء عرض التوزيع",
+        "loading": "تشغيل محاكاة مونت كارلو...",
+        "loadFailed": "فشل تحميل عرض التوزيع.",
+        "empty": "بيانات التوزيع غير متاحة للمشاريع المختارة.",
+        "sliderLabel": "رفع الاحتمال > {{threshold}}",
+        "thresholdHint": "يتم استيفاء الاحتمالات بين عتبات الخادم في العميل.",
+        "probabilityValue": "{{probability}} فوق العتبة",
+        "positiveProbability": "يظل ارتفاع فرصة {{probability}} إيجابيًا",
+        "percentileLegend": "أسطورة النسبة المئوية",
+        "percentileValue": "{{label}} {{value}}"
+      },
+      "dashboard": {
+        "loaded": "مقارنة مشاريع {{count}}",
+        "title": "لوحة المقارنة",
+        "subtitle": "قم بمراجعة التجارب المحفوظة جنبًا إلى جنب عبر افتراضات التخطيط والحساسية والتأثيرات الملحوظة.",
+        "exporting": "جارٍ التصدير...",
+        "exportMarkdown": "تصدير مقارنة تخفيض السعر",
+        "exportPdf": "مقارنة التصدير PDF",
+        "close": "إغلاق لوحة القيادة",
+        "exportFailed": "فشل تصدير المقارنة.",
+        "mixedMetricTypes": "أنواع المقاييس المختلطة - مقارنة التأثير المباشر غير ذات معنى.",
+        "projectsTitle": "المشاريع",
+        "projectsSubtitle": "البيانات الوصفية للتخطيط العلوي للتجارب المحددة.",
+        "sampleSize": "العينة الإجمالية: {{value}}",
+        "duration": "المدة: أيام {{value}}",
+        "warnings": "التحذيرات: {{value}}",
+        "powerCurvesTitle": "منحنيات القوة",
+        "powerCurvesSubtitle": "يعرض كل سطر حجم العينة لكل متغير عبر نقاط MDE عند الطاقة التي تم تكوينها للمشروع.",
+        "sensitivityTitle": "شبكة الحساسية",
+        "sensitivitySubtitle": "مصفوفات المدة لكل مشروع عبر MDE ومجموعات الطاقة.",
+        "sensitivityUnavailable": "بيانات الحساسية غير متوفرة.",
+        "observedEffectsTitle": "التأثيرات الملحوظة",
+        "observedEffectsSubtitle": "تظهر النتائج المحفوظة كصف واحد من قطع الغابات لكل مشروع.",
+        "insightsTitle": "رؤى مشتركة / فريدة من نوعها",
+        "insightsSubtitle": "التحذيرات المشتركة والمخاطر والافتراضات والاختلافات لكل مشروع.",
+        "sharedWarnings": "التحذيرات المشتركة",
+        "sharedRisks": "المخاطر المشتركة",
+        "sharedAssumptions": "الافتراضات المشتركة",
+        "recommendationHighlights": "أبرز التوصيات",
+        "project": "مشروع",
+        "uniqueWarnings": "تحذيرات فريدة من نوعها",
+        "uniqueRisks": "مخاطر فريدة من نوعها",
+        "uniqueAssumptions": "افتراضات فريدة",
+        "none": "لا أحد"
+      }
+    },
+    "experimentDesign": {
+      "variantAndRolloutStructure": "هيكل البديل والطرح",
+      "setup": "يثبت",
+      "randomizationUnit": "وحدة التوزيع العشوائي",
+      "trafficSplit": "تقسيم حركة المرور",
+      "targetAudience": "الجمهور المستهدف",
+      "inclusion": "الشمول",
+      "exclusion": "الاستبعاد",
+      "recommendedDuration": "المدة الموصى بها",
+      "days": "أيام",
+      "stoppingConditions": "شروط التوقف",
+      "openQuestions": "أسئلة مفتوحة"
+    },
+    "metricsPlan": {
+      "coverage": "التغطية الأولية والثانوية والدرابزين",
+      "primary": "أساسي",
+      "secondary": "ثانوي",
+      "guardrail": "الدرابزين",
+      "diagnostic": "التشخيص",
+      "guardrailMetrics": "مقاييس الدرابزين",
+      "guardrailMetricsDescription": "تتم مراقبة هذه المقاييس، لكنها لا تغير حجم العينة الأولية.",
+      "baseline": "خط الأساس"
+    },
+    "powerCurve": {
+      "title": "منحنى القوة",
+      "description": "قارن أهداف MDE بمستويات الطاقة المخططة وحجم العينة المطلوب.",
+      "loadingSensitivity": "جارٍ تحميل تحليل الحساسية...",
+      "chartAriaLabel": "مخطط منحنى الطاقة يوضح الحد الأدنى من التأثير القابل للاكتشاف مقابل الطاقة المستهدفة",
+      "loadingChart": "جارٍ تحميل الرسم البياني..."
+    },
+    "risks": {
+      "statisticalAndOperational": "الاعتبارات الإحصائية والتشغيلية",
+      "product": "منتج",
+      "technical": "اِصطِلاحِيّ",
+      "recommendations": "التوصيات",
+      "beforeLaunch": "قبل الإطلاق",
+      "duringTest": "أثناء الاختبار",
+      "afterTest": "بعد الاختبار"
+    },
+    "bayesian": {
+      "title": "بايزي الخلفي",
+      "unavailable": "المدخلات الخلفية البايزية غير متاحة لهذا التحليل.",
+      "targetSampleSize": "حجم العينة المستهدفة:",
+      "perVariantAt": "لكل متغير في",
+      "credibilityAnd": "المصداقية و",
+      "intervalHalfWidth": "الفاصل الزمني نصف العرض."
+    },
+    "sequentialDesign": {
+      "unavailable": "لم يتم تكوين الحدود التسلسلية للتحليل الحالي.",
+      "title": "التصميم التسلسلي للمجموعة (O'Brien-Fleming)",
+      "adjustedSampleSize": "حجم العينة المعدل:",
+      "perVariant": "لكل متغير",
+      "moreThanFixedHorizon": "أكثر من الأفق الثابت",
+      "columns": {
+        "look": "ينظر",
+        "infoFraction": "جزء المعلومات",
+        "cumulativeAlphaSpent": "النُطَف المَنَويّة. α قضى",
+        "zBoundary": "حدود Z",
+        "stopIf": "توقف إذا |Z| ≥"
+      },
+      "footer": "توقف مبكرًا عند أي نظرة مخططة إذا كانت إحصائية Z المطلقة المرصودة تعبر الحدود. وإلا تابع إلى التحليل التالي."
+    },
+    "srmCheck": {
+      "title": "هل تم تقسيم حركة المرور كما هو مخطط لها؟",
+      "description": "أدخل أعداد المستخدمين المرصودة لكل متغير للتحقق من عدم تطابق نسبة العينة. تعني النتيجة الحمراء أن المهمة أو التتبع قد يكون معطلاً.",
+      "actualUsersPlaceholder": "المستخدمين الفعليين",
+      "checking": "جارٍ التحقق...",
+      "checkButton": "تحقق من وجود SRM",
+      "detected": "تم اكتشاف SRM",
+      "notDetected": "لم يتم اكتشاف SRM",
+      "serviceUnavailable": "الشيك SRM غير متاح.",
+      "chiSquare": "مربع كاي = {{chiSquare}}، p = {{pValue}}",
+      "expectedObserved": "المتوقع: [{{expected}}] | تمت الملاحظة: [{{observed}}]"
+    },
+    "observedResults": {
+      "title": "أدخل نتائج التجربة الفعلية",
+      "description": "بعد انتهاء التجربة، أدخل البيانات المرصودة لحساب الأهمية الإحصائية من النتائج الفعلية.",
+      "historicalReadOnly": "اللقطات التاريخية للقراءة فقط. ارجع إلى المسودة المباشرة لحفظ النتائج التي تمت ملاحظتها.",
+      "saveProjectFirst": "احفظ المشروع أولاً إذا كنت تريد استمرار النتائج التي تمت ملاحظتها.",
+      "analyzeButton": "تحليل النتائج",
+      "analyzing": "جارٍ التحليل...",
+      "saveButton": "حفظ في المشروع",
+      "saving": "توفير...",
+      "yes": "نعم",
+      "no": "لا",
+      "fields": {
+        "controlConversions": "التحكم في التحويلات",
+        "controlUsers": "التحكم في المستخدمين",
+        "treatmentConversions": "تحويلات العلاج",
+        "treatmentUsers": "مستخدمي العلاج",
+        "alpha": "ألفا",
+        "controlMean": "التحكم يعني",
+        "controlStdDev": "التحكم في التطوير القياسي",
+        "controlN": "التحكم ن",
+        "treatmentMean": "العلاج يعني",
+        "treatmentStdDev": "علاج الأمراض المنقولة جنسيا",
+        "treatmentN": "العلاج ن"
+      },
+      "cards": {
+        "effect": "تأثير",
+        "ciLabel": "{{percent}}٪ CI",
+        "pValue": "القيمة p",
+        "testStatistic": "إحصائية الاختبار",
+        "relativeChange": "التغيير النسبي",
+        "powerAchieved": "تم تحقيق القوة",
+        "forestPlot": "مؤامرة الغابات",
+        "observedSummary": "ملخص ملاحظ",
+        "controlRate": "معدل التحكم",
+        "treatmentRate": "معدل العلاج",
+        "significant": "بارِز",
+        "verdict": "الحكم"
+      },
+      "validation": {
+        "fillAllFields": "املأ جميع حقول النتائج الفعلية بقيم صالحة قبل التحليل.",
+        "analysisUnavailable": "تحليل النتائج غير متاح.",
+        "analyzeBeforeSaving": "تحليل النتائج قبل حفظها في المشروع.",
+        "saveUnavailable": "لا يمكن حفظ النتائج المرصودة.",
+        "savedToProject": "تم حفظ النتائج المرصودة في المشروع {{projectName}}."
+      }
+    },
+    "sensitivityOverview": {
+      "reportPill": "تقرير",
+      "title": "تصميم التجربة الحتمية",
+      "export": "يصدّر",
+      "exportMenuAriaLabel": "تقرير خيارات التصدير",
+      "exportReportTitle": "تصدير التقرير (Ctrl+E)",
+      "exportMarkdown": "تصدير تخفيض السعر",
+      "exportHtml": "تصدير HTML",
+      "exportPdf": "تصدير PDF",
+      "exportCsv": "بيانات CSV",
+      "exportXlsx": "مصنف اكسل",
+      "exporting": "جارٍ التصدير...",
+      "exportFullReport": "تصدير التقرير الكامل",
+      "cards": {
+        "perVariant": "لكل متغير",
+        "sampleSizePerVariant": "حجم العينة / البديل",
+        "powerMeta": "قوة {{power}}",
+        "bonferroni": "بونفيروني",
+        "totalSample": "العينة الإجمالية",
+        "totalSampleSubtitle": "إجمالي حجم العينة",
+        "variantsMeta": "المتغيرات {{count}}",
+        "duration": "مدة",
+        "durationValue": "أيام {{days}}",
+        "durationSubtitle": "المدة المقدرة",
+        "perDayMeta": "{{traffic}}/يوم",
+        "warnings": "تحذيرات",
+        "warningsSubtitle": "الشيكات ارشادي"
+      },
+      "warningSeverity": {
+        "high": "{{count}} عالية",
+        "medium": "المتوسطة {{count}}",
+        "low": "{{count}} منخفض",
+        "none": "لا توجد تحذيرات"
+      },
+      "bayesianEstimate": {
+        "title": "تقدير بايزي",
+        "frequentist": "متكرر",
+        "bayesian": "بايزي",
+        "usersPerVariant": "المستخدمين / البديل"
+      },
+      "cuped": {
+        "title": "CUPED-التقدير المعدل",
+        "without": "بدون CUPED",
+        "with": "مع CUPED",
+        "sampleSizeSavings": "-{{pct}}% حجم العينة",
+        "durationChange": "تتغير المدة المقدرة من {{from}} إلى {{to}} من الأيام.",
+        "adjustedStdDev": "التطوير القياسي المعدل: {{value}}."
+      },
+      "sensitivityTable": {
+        "title": "جدول الحساسية",
+        "description": "مصفوفة المدة عبر MDE وسيناريوهات الطاقة التي يتم إرجاعها بواسطة الواجهة الخلفية.",
+        "loading": "جارٍ تحميل جدول الحساسية..."
+      },
+      "sampleSizeBreakdown": {
+        "title": "تفصيل حجم العينة",
+        "description": "يتم عرض متطلبات العينة لكل متغير بجانب تخصيص حركة المرور التي تم تكوينها."
+      },
+      "calculationSummary": {
+        "title": "ملخص الحساب",
+        "metricType": "نوع متري",
+        "baselineValue": "القيمة الأساسية",
+        "mdePct": "MDE %",
+        "mdeAbsolute": "MDE المطلق",
+        "alpha": "ألفا",
+        "power": "قوة"
+      },
+      "assumptions": {
+        "title": "الافتراضات"
+      },
+      "projectHistoryContext": {
+        "title": "سياق تاريخ المشروع",
+        "savedProject": "المشروع المحفوظ",
+        "revisionsCount": "مراجعة (مراجعات) {{count}}",
+        "lastSave": "الحفظ الأخير",
+        "notRecorded": "لم يتم تسجيلها",
+        "analysisRuns": "{{current}} لعمليات تحليل {{total}}",
+        "exportEvents": "{{current}} لحدث (أحداث) التصدير {{total}}",
+        "latestAnalysisRun": "تشغيل أحدث التحليل",
+        "noSavedAnalysisRunYet": "لم يتم تشغيل أي تحليل محفوظ حتى الآن",
+        "unknownMetric": "متري غير معروف",
+        "warnings": "تحذيرات",
+        "latestExport": "أحدث الصادرات",
+        "noExportEventYet": "لا يوجد حدث تصدير حتى الآن",
+        "linkedSnapshot": "لقطة مرتبطة",
+        "unlinkedExport": "تصدير غير مرتبط"
+      }
+    },
+    "panel": {
+      "sensitivityUnavailableHistorical": "تحليل الحساسية غير متاح للقطات التاريخية.",
+      "sensitivityUnavailableCurrentDraft": "تحليل الحساسية غير متاح للمسودة الحالية.",
+      "sensitivityUnavailable": "تحليل الحساسية غير متوفر.",
+      "sensitivityUnavailableForConfiguration": "تحليل الحساسية غير متاح لهذا التكوين.",
+      "backendReadOnly": "يتم تشغيل الواجهة الخلفية في وضع القراءة فقط.",
+      "runAnalysisBeforeExportingReport": "قم بتشغيل التحليل قبل تصدير التقرير.",
+      "saveProjectBeforePdf": "احفظ المشروع واستمر في الحصول على لقطة تحليلية قبل تصدير PDF.",
+      "runAnalysisBeforeExportingProjectData": "قم بإجراء التحليل قبل تصدير بيانات المشروع.",
+      "saveProjectBeforeProjectData": "احفظ المشروع قبل تصدير بيانات CSV أو Excel.",
+      "runAnalysisBeforeStandaloneExport": "قم بتشغيل التحليل قبل تصدير التقرير الكامل.",
+      "standaloneExportFailed": "فشل تصدير التقرير الكامل.",
+      "savedSnapshot": "لقطة محفوظة",
+      "viewingHistoricalAnalysis": "عرض التحليل التاريخي",
+      "openedSnapshotFrom": "تم فتح لقطة من {{timestamp}}.",
+      "currentResultsAvailable": "النتائج الحالية في الذاكرة لا تزال متاحة.",
+      "returnedToCurrentAnalysis": "تم العودة إلى نتائج التحليل الحالية في الذاكرة.",
+      "closedSnapshotPreview": "تم إغلاق معاينة اللقطة المحفوظة.",
+      "showCurrentAnalysis": "عرض التحليل الحالي",
+      "closeSnapshotView": "إغلاق عرض اللقطة",
+      "analysisInProgress": "التحليل قيد التقدم",
+      "preparingDeterministicResults": "إعداد النتائج الحتمية",
+      "updatingSections": "تحديث أقسام المقاييس والمخطط والتقرير.",
+      "accordion": {
+        "comparison": "مقارنة",
+        "sensitivity": "حساسية",
+        "powerCurve": "منحنى القوة",
+        "sequentialDesign": "تصميم متسلسل",
+        "bayesianPosterior": "بايزي الخلفي",
+        "observedResults": "النتائج المرصودة",
+        "warningsAndRisks": "التحذيرات والمخاطر",
+        "experimentDesign": "تصميم التجربة",
+        "metricsPlan": "خطة المقاييس",
+        "riskAssessment": "تقييم المخاطر",
+        "aiRecommendations": "توصيات الذكاء الاصطناعي",
+        "srmCheck": "فحص SRM"
+      },
+      "badges": {
+        "loaded": "محملة",
+        "sidebar": "الشريط الجانبي",
+        "pending": "قيد الانتظار",
+        "planning": "تخطيط",
+        "significant": "بارِز",
+        "review": "مراجعة",
+        "postTest": "ما بعد الاختبار",
+        "available": "متاح",
+        "offline": "غير متصل",
+        "manual": "يدوي"
+      },
+      "variantsCount_one": "البديل {{count}}",
+      "variantsCount_other": "المتغيرات {{count}}",
+      "cellsCount_one": "خلية {{count}}",
+      "cellsCount_other": "خلايا {{count}}",
+      "looksCount_one": "نظرة {{count}}",
+      "looksCount_other": "يبدو {{count}}",
+      "warningsCount_one": "تحذير {{count}}",
+      "warningsCount_other": "تحذيرات {{count}}",
+      "metricsCount_one": "متري {{count}}",
+      "metricsCount_other": "مقاييس {{count}}",
+      "itemsCount_one": "البند {{count}}",
+      "itemsCount_other": "عناصر {{count}}",
+      "credibilityInterval": "الفاصل الزمني {{percent}}٪",
+      "noAnalysisYet": "لا يوجد تحليل بعد. أكمل المعالج وقم بتشغيل تدفق الواجهة الخلفية الحتمية أولاً."
+    }
+  },
+  "errors": {
+    "analysis_failed": "فشل التحليل",
+    "save_failed": "فشل الحفظ",
+    "load_failed": "فشل تحميل المشروع",
+    "backend_offline": "الواجهة الخلفية غير متصلة بالإنترنت",
+    "storage_full": "مساحة تخزين المتصفح ممتلئة - ولم يتم حفظ المسودة"
+  },
+  "toasts": {
+    "project_saved": "تم حفظ المشروع",
+    "project_updated": "تم تحديث المشروع",
+    "export_success": "تم تصدير التقرير",
+    "import_success": "تم استيراد مساحة العمل - تمت استعادة مشاريع {{count}}",
+    "example_loaded": "تم تحميل المثال - انقر فوق تشغيل التحليل لرؤية النتائج"
+  },
+  "errorBoundary": {
+    "title": "حدث خطأ ما",
+    "description": "تعطل هذا القسم أثناء العرض. أعد محاولة تثبيته مرة أخرى.",
+    "retry": "أعد المحاولة"
+  },
+  "chartErrorBoundary": {
+    "title": "الرسم البياني غير متاح",
+    "description": "فشل العرض. يتم عرض البيانات الأولية أدناه للفحص."
+  },
+  "toastSystem": {
+    "dismissAriaLabel": "رفض الخبز المحمص",
+    "close": "يغلق"
+  },
+  "chartExport": {
+    "groupAriaLabel": "خيارات تصدير الرسم البياني",
+    "downloadSvgAriaLabel": "قم بتنزيل المخطط باسم SVG",
+    "downloadPngAriaLabel": "قم بتنزيل المخطط باسم PNG",
+    "svg": "SVG",
+    "png": "PNG",
+    "errors": {
+      "imageRenderFailed": "فشل عرض صورة المخطط.",
+      "canvasUnavailable": "سياق Canvas 2D غير متاح."
+    }
+  },
+  "inlineConfirmButton": {
+    "confirmLabel": "بالتأكيد؟"
+  },
+  "wizardPanel": {
+    "dismiss": "رفض",
+    "aria": {
+      "importDraftFile": "استيراد ملف المسودة",
+      "importWorkspaceFile": "استيراد ملف مساحة العمل",
+      "stepHasErrors": "هذه الخطوة بها أخطاء"
+    },
+    "status": {
+      "startedNewDraft": "بدأت مسودة محلية جديدة.",
+      "draftExported": "تم تصدير المسودة بتنسيق JSON.",
+      "importedDraftFrom": "مسودة مستوردة من {{fileName}}. احفظه لإنشاء سجل مشروع محلي جديد.",
+      "restoredBrowserDraft": "تمت استعادة مسودة المتصفح غير المحفوظة.",
+      "templateLoaded": "تم تحميل القالب {{templateName}} في المعالج.",
+      "draftNotSavedStorageFull": "لم يتم حفظ المسودة - مساحة تخزين المتصفح ممتلئة."
+    },
+    "errors": {
+      "unexpectedDraftImport": "خطأ غير متوقع في استيراد المسودة"
+    }
+  },
+  "projectListFilters": {
+    "legend": "مرشحات المشروع المحفوظة",
+    "searchLabel": "تجارب البحث",
+    "searchPlaceholder": "تصفية حسب الاسم أو الفرضية",
+    "statusLabel": "حالة",
+    "status": {
+      "active": "نشيط",
+      "archived": "مؤرشف",
+      "all": "الجميع"
+    },
+    "metricTypeLabel": "نوع متري",
+    "metricType": {
+      "all": "الجميع",
+      "binary": "ثنائي",
+      "continuous": "مستمر"
+    },
+    "sortLabel": "نوع",
+    "sort": {
+      "updated": "آخر تحديث",
+      "name": "اسم",
+      "duration": "مدة"
+    },
+    "clear": "مسح المرشحات"
+  },
+  "shortcutHelp": {
+    "title": "اختصارات لوحة المفاتيح",
+    "description": "إجراءات تنقل وتصدير أسرع للمعالج.",
+    "close": "يغلق",
+    "columns": {
+      "shortcut": "الاختصار",
+      "action": "فعل"
+    },
+    "shortcuts": {
+      "openHelp": "فتح تعليمات اختصارات لوحة المفاتيح",
+      "focusSearch": "التركيز على البحث عن المشروع المحفوظ",
+      "runAnalysis": "تشغيل التحليل",
+      "moveSteps": "التنقل بين خطوات المعالج",
+      "exportMarkdown": "تصدير تقرير تخفيض السعر",
+      "saveProject": "حفظ المشروع",
+      "toggleTheme": "تبديل المظهر الفاتح/الداكن",
+      "closeDialog": "أغلق مربع الحوار هذا"
+    }
+  },
+  "templateGallery": {
+    "title": "قوالب التجارب",
+    "description": "ابدأ من الإعداد المضمن واضبط حقول المعالج قبل حفظ التحليل أو تشغيله.",
+    "close": "يغلق",
+    "loading": "جارٍ تحميل النماذج...",
+    "usageCount_one": "استخدام {{count}}",
+    "usageCount_other": "يستخدم {{count}}",
+    "builtInTemplate": "قالب مدمج",
+    "savedTemplate": "القالب المحفوظ",
+    "useTemplateAriaLabel": "استخدم القالب {{name}}",
+    "applying": "جارٍ التقديم...",
+    "useTemplate": "استخدم القالب",
+    "empty": "لم يتم العثور على قوالب لهذه الفئة.",
+    "categories": {
+      "All": "الجميع",
+      "Revenue": "ربح",
+      "Engagement": "ارتباط",
+      "Performance": "أداء"
+    },
+    "errors": {
+      "libraryUnavailable": "مكتبة النماذج غير متاحة.",
+      "applyFailed": "فشل تطبيق القالب."
+    }
+  },
+  "webhooks": {
+    "title": "خطافات الويب",
+    "description": "أرسل أحداث التدقيق إلى نقاط نهاية Slack أو HTTP العامة.",
+    "loading": "جارٍ تحميل اشتراكات الرد التلقائي على الويب...",
+    "empty": "لا توجد اشتراكات webhook حتى الآن.",
+    "actions": {
+      "create": "إنشاء خطاف على الويب",
+      "save": "حفظ خطاف الويب",
+      "saving": "توفير...",
+      "close": "يغلق",
+      "test": "امتحان",
+      "deliveries": "التسليم",
+      "delete": "يمسح"
+    },
+    "status": {
+      "created": "تم إنشاء اشتراك Webhook.",
+      "deleted": "تم حذف اشتراك Webhook.",
+      "loadFailed": "اشتراكات Webhook غير متاحة.",
+      "createFailed": "فشل إنشاء الرد التلقائي على الويب.",
+      "testSuccess": "انتهى اختبار التسليم بـ HTTP {{code}}.",
+      "testFailed": "فشل اختبار Webhook.",
+      "deliveriesFailed": "سجل تسليم الرد التلقائي على الويب غير متاح.",
+      "deleteFailed": "فشل حذف Webhook."
+    },
+    "fields": {
+      "name": "اسم",
+      "targetUrl": "الهدف URL",
+      "secret": "سر",
+      "format": "شكل",
+      "scope": "نِطَاق",
+      "apiKeyId": "معرف المفتاح API",
+      "eventFilter": "مرشح الحدث"
+    },
+    "placeholders": {
+      "name": "تنبيهات الشركاء",
+      "targetUrl": "https://example.com/webhook",
+      "secret": "سر التوقيع المشترك",
+      "apiKeyId": "قم بلصق معرف مفتاح API الموجود",
+      "eventFilter": "api_key_created، project.archive"
+    },
+    "formats": {
+      "generic": "نوعي",
+      "slack": "الركود"
+    },
+    "scopes": {
+      "global": "عالمي",
+      "apiKey": "مفتاح API"
+    },
+    "labels": {
+      "enabled": "ممكّن",
+      "disabled": "عاجز",
+      "targetUrl": "الهدف URL",
+      "events": "الأحداث",
+      "allEvents": "جميع الأحداث",
+      "apiKeyId": "معرف المفتاح API",
+      "lastDelivered": "آخر تسليم",
+      "lastError": "الخطأ الأخير",
+      "never": "أبداً"
+    },
+    "createDialog": {
+      "title": "إنشاء خطاف على الويب",
+      "description": "قم بتكوين خطاف ويب وارد لـ Slack أو نقطة نهاية JSON عامة."
+    },
+    "drawer": {
+      "title": "التسليم: {{name}}",
+      "description": "محاولات التسليم الأخيرة لهذا الاشتراك.",
+      "loading": "جارٍ تحميل عمليات التسليم...",
+      "empty": "لم يتم تسجيل أي تسليمات حتى الآن.",
+      "labels": {
+        "responseCode": "رمز الاستجابة",
+        "attempts": "محاولات",
+        "lastAttempt": "المحاولة الأخيرة",
+        "error": "خطأ"
+      }
+    }
+  },
+  "sidebarPanel": {
+    "common": {
+      "notRecordedYet": "لم يتم تسجيلها بعد",
+      "unknownMetric": "متري غير معروف",
+      "daysShort": "{{value}}d"
+    },
+    "tabs": {
+      "projects": "المشاريع",
+      "system": "نظام",
+      "apiKeys": "مفاتيح API"
+    },
+    "apiKeysFallback": {
+      "title": "مفاتيح API",
+      "loading": "جارٍ تحميل مدير المفاتيح API..."
+    },
+    "backendStatus": {
+      "title": "حالة الخلفية",
+      "description": "عش بصحة جيدة في وقت تشغيل FastAPI الذي يقدم العمليات الحسابية والتخزين ونصائح الذكاء الاصطناعي الاختيارية.",
+      "checking": "جارٍ التحقق...",
+      "refresh": "تحديث حالة الواجهة الخلفية",
+      "online": "API على الانترنت",
+      "unavailable": "API غير متاح.",
+      "notLoaded": "لم يتم تحميل حالة الواجهة الخلفية حتى الآن.",
+      "labels": {
+        "service": "خدمة",
+        "version": "إصدار",
+        "environment": "بيئة"
+      }
+    },
+    "apiSessionToken": {
+      "title": "رمز الجلسة API",
+      "description": "الرمز المميز الاختياري المُخزن فقط في جلسة المتصفح هذه. لم يتم دمجها في بنية الواجهة الأمامية أو صورة Docker.",
+      "label": "رمز الجلسة",
+      "placeholderConfigured": "الرمز المميز المخزن في جلسة المتصفح الحالية",
+      "placeholderEmpty": "لصق رمز القراءة فقط أو الكتابة",
+      "save": "حفظ الرمز المميز",
+      "clear": "رمز واضح",
+      "configured": "تم تكوين الرمز المميز",
+      "notStored": "لا يوجد رمز مخزن"
+    },
+    "adminToken": {
+      "title": "API رمز المشرف الرئيسي",
+      "description": "يتم تخزينه فقط في جلسة المتصفح هذه ويستخدم فقط لطلبات إدارة `/api/v1/keys` و`/api/v1/webhooks`.",
+      "label": "رمز المشرف",
+      "placeholderConfigured": "رمز المشرف المخزن في جلسة المتصفح الحالية",
+      "placeholderEmpty": "لصق AB_ADMIN_TOKEN",
+      "save": "حفظ رمز المشرف",
+      "clear": "مسح رمز المشرف",
+      "configured": "تم تكوين وصول المسؤول",
+      "disabled": "تم تعطيل وصول المشرف"
+    },
+    "workspaceBackup": {
+      "title": "النسخ الاحتياطي لمساحة العمل",
+      "systemDescription": "قم بتصدير أو استيراد مساحة عمل SQLite الكاملة، بما في ذلك المشاريع المحفوظة والتاريخ والصادرات والمراجعات.",
+      "projectsDescription": "قم بتصدير أو استيراد مساحة عمل SQLite الكاملة، بما في ذلك المشاريع المحفوظة وتاريخ التحليل وأحداث التصدير والمراجعات المحفوظة. تقوم عمليات الاستيراد بتشغيل المجموع الاختباري والتوقيع الاختياري والتحقق من صحة المرجع قبل بدء كتابة SQLite.",
+      "exporting": "جارٍ التصدير...",
+      "export": "تصدير مساحة العمل JSON",
+      "importing": "جارٍ الاستيراد...",
+      "import": "استيراد مساحة العمل JSON"
+    },
+    "quickArchive": {
+      "title": "المشاريع المحفوظة",
+      "archiveAriaLabel": "أرشيف {{projectName}}",
+      "archiving": "أرشفة..."
+    },
+    "diagnostics": {
+      "title": "تشخيص وقت التشغيل",
+      "description": "إمكانية المراقبة خفيفة الوزن للتخزين وخدمة الواجهة الأمامية وإعدادات المنسق ووقت التشغيل.",
+      "refreshing": "منعش...",
+      "refresh": "تحديث التشخيص",
+      "online": "التشخيص على الانترنت",
+      "unavailable": "التشخيص غير متوفر.",
+      "notLoaded": "لم يتم تحميل أي تشخيصات حتى الآن.",
+      "storageSummary": "مشاريع {{projects}}، عمليات تحليل {{analysisRuns}}، أحداث تصدير {{exportEvents}}، مراجعات {{revisions}}",
+      "labels": {
+        "uptime": "الجهوزية",
+        "storage": "تخزين",
+        "latestProjectUpdate": "آخر تحديث للمشروع",
+        "sqlitePath": "مسار SQLite",
+        "sqliteParent": "SQLite الوالد",
+        "storageFootprint": "بصمة التخزين",
+        "sqliteMode": "وضع SQLite",
+        "sqliteWriteProbe": "SQLite مسبار الكتابة",
+        "workspaceBackups": "النسخ الاحتياطية لمساحة العمل",
+        "frontendDist": "منطقة الواجهة الأمامية",
+        "timingHeaders": "رؤوس التوقيت",
+        "llmAdapter": "محول LLM",
+        "logging": "التسجيل",
+        "runtimeCounters": "عدادات وقت التشغيل",
+        "lastRuntimeError": "خطأ وقت التشغيل الأخير",
+        "apiAuth": "مصادقة API",
+        "authHeaders": "رؤوس المصادقة",
+        "securityGuards": "حراس الأمن",
+        "bodyLimits": "حدود الجسم"
+      },
+      "values": {
+        "db": "ديسيبل",
+        "freeDisk": "قرص مجاني",
+        "userVersion": "user_version",
+        "busyTimeout": "مهلة مشغولة",
+        "pass": "يمر",
+        "fail": "يفشل",
+        "hmacSigned": "وقع HMAC",
+        "checksumOnly": "المجموع الاختباري فقط",
+        "enabled": "ممكّن",
+        "disabled": "عاجز",
+        "present": "حاضر",
+        "missing": "مفتقد",
+        "timeout": "نفذ الوقت",
+        "attempts": "محاولات",
+        "requests": "طلبات",
+        "ok": "نعم",
+        "none": "لا أحد",
+        "authRejects": "المصادقة ترفض",
+        "bodyRejects": "يرفض الجسم",
+        "writeToken": "رمز الكتابة",
+        "noWriteToken": "لا يوجد رمز الكتابة",
+        "readOnlyToken": "رمز للقراءة فقط",
+        "noReadOnlyToken": "لا يوجد رمز مميز للقراءة فقط",
+        "readMethods": "طرق القراءة",
+        "headersOn": "رؤوس على",
+        "headersOff": "الرؤوس معطلة",
+        "rateLimit": "حد المعدل",
+        "authThrottle": "خنق المصادقة",
+        "general": "عام",
+        "workspace": "مساحة العمل"
+      }
+    },
+    "workspaceStatus": {
+      "title": "لوحة حالة مساحة العمل",
+      "description": "ملخص سريع لتغطية المشروع المحفوظ وعمق اللقطة وما إذا كانت المسودة الحالية متزامنة.",
+      "savedCount_one": "تم حفظ {{count}}",
+      "savedCount_other": "تم حفظ {{count}}",
+      "withSnapshotsCount_one": "{{count}} مع لقطات",
+      "withSnapshotsCount_other": "{{count}} مع لقطات",
+      "draftChanged": "تم تغيير المسودة",
+      "sqliteWritable": "SQLite قابل للكتابة",
+      "readOnlyApi": "للقراءة فقط API",
+      "snapshotCoverage": "{{ready}} جاهز | {{withoutSavedAnalysis}} بدون تحليل محفوظ",
+      "exportCoverage_one": "تم تصدير {{count}} مرة واحدة على الأقل",
+      "exportCoverage_other": "تم تصدير {{count}} مرة واحدة على الأقل",
+      "revisionDepth_one": "مشروع {{count}} مع أكثر من مراجعة محفوظة",
+      "revisionDepth_other": "مشاريع {{count}} مع أكثر من مراجعة محفوظة",
+      "labels": {
+        "savedProjects": "المشاريع المحفوظة",
+        "archivedProjects": "المشاريع المؤرشفة",
+        "snapshotCoverage": "تغطية لقطة",
+        "exportCoverage": "تغطية التصدير",
+        "revisionDepth": "عمق المراجعة",
+        "currentDraft": "المسودة الحالية",
+        "latestWorkspaceUpdate": "آخر تحديث لمساحة العمل"
+      },
+      "currentDraft": {
+        "loadedProjectWithUnsavedChanges": "مشروع محمل بالتغييرات غير المحفوظة",
+        "loadedProjectInSync": "تم تحميل المشروع بشكل متزامن",
+        "newLocalDraft": "مسودة محلية جديدة"
+      }
+    },
+    "auditLog": {
+      "title": "سجل التدقيق",
+      "description": "نشاط الكتابة الأخير عبر مساحة العمل، مع التصفية الاختيارية حسب المشروع المحفوظ.",
+      "refreshing": "منعش...",
+      "refresh": "تحديث سجل التدقيق",
+      "export": "تدقيق التصدير CSV",
+      "projectFilter": "مرشح المشروع",
+      "allProjects": "جميع المشاريع",
+      "unavailable": "سجل التدقيق غير متاح.",
+      "loading": "جارٍ تحميل سجل التدقيق...",
+      "showingEntries_one": "عرض {{visible}} لإدخال {{total}}.",
+      "showingEntries_other": "عرض {{visible}} لإدخالات {{total}}.",
+      "workspace": "مساحة العمل",
+      "unknownActor": "مجهول",
+      "noEntries": "لم يتم تسجيل إدخالات التدقيق حتى الآن.",
+      "columns": {
+        "time": "وقت",
+        "action": "فعل",
+        "project": "مشروع",
+        "actor": "ممثل"
+      }
+    },
+    "activeProject": {
+      "title": "مشروع نشط",
+      "unsavedChanges": "التغييرات غير المحفوظة",
+      "savedLocally": "تم الحفظ محليًا",
+      "unknownProject": "مشروع غير معروف",
+      "statusNeedsLocalUpdate": "يحتاج إلى التحديث المحلي",
+      "statusInSync": "متزامن مع SQLite",
+      "empty": "لم يتم تحميل أي مشروع محفوظ. لا يزال بإمكانك العمل في مسودة محلية وحفظها عندما تصبح جاهزة.",
+      "labels": {
+        "projectName": "اسم المشروع",
+        "projectId": "معرف المشروع",
+        "status": "حالة",
+        "payloadSchema": "مخطط الحمولة",
+        "savedRevisions": "المراجعات المحفوظة",
+        "lastSave": "الحفظ الأخير",
+        "lastAnalysis": "التحليل الأخير",
+        "lastExport": "آخر تصدير",
+        "snapshotStored": "لقطة مخزنة"
+      }
+    },
+    "projectHistory": {
+      "title": "تاريخ المشروع الحديث",
+      "description": "الجدول الزمني لعمليات تشغيل التحليل المحفوظة وأحداث التصدير للمشروع الذي تم تحميله.",
+      "refreshing": "منعش...",
+      "refresh": "تحديث تاريخ المشروع",
+      "empty": "قم بتحميل مشروع محفوظ لفحص عمليات التحليل الأخيرة وأحداث التصدير.",
+      "unavailable": "تاريخ المشروع غير متوفر.",
+      "loading": "جارٍ تحميل سجل المشروع المحفوظ...",
+      "summary": "عرض {{analysisVisible}} لعمليات تشغيل التحليل {{analysisTotal}} و{{exportVisible}} لحدث (أحداث) التصدير {{exportTotal}}.",
+      "closeOpenedSnapshot": "إغلاق اللقطة المفتوحة",
+      "analysisRunsTitle": "يعمل التحليل",
+      "warningsCount_one": "تحذير {{count}}",
+      "warningsCount_other": "تحذيرات {{count}}",
+      "aiAdvice": "نصيحة الذكاء الاصطناعي",
+      "opened": "مفتوح",
+      "openSnapshot": "فتح لقطة",
+      "viewing": "المشاهدة",
+      "noAnalysisHistory": "لم يتم تسجيل تاريخ التحليل حتى الآن.",
+      "loadOlderAnalysisRuns": "تحميل عمليات التحليل الأقدم",
+      "exportEventsTitle": "أحداث التصدير",
+      "linkedSnapshot": "لقطة مرتبطة",
+      "unlinkedExport": "تصدير غير مرتبط",
+      "noExportHistory": "لم يتم تسجيل تاريخ التصدير حتى الآن.",
+      "loadOlderExportEvents": "تحميل أحداث التصدير الأقدم",
+      "notLoaded": "لم يتم تحميل سجل المشروع بعد."
+    },
+    "revisions": {
+      "title": "المراجعات المحفوظة",
+      "description": "يتم التقاط لقطات الحمولة عند الإنشاء والتحديث واستيراد مساحة العمل. يؤدي تحميل المراجعة إلى إبقاء المشروع الحالي محددًا ولكنه يضع علامة على المعالج على أنه تم تغييره حتى تقوم بالحفظ.",
+      "refreshing": "منعش...",
+      "refresh": "تحديث المراجعات",
+      "empty": "قم بتحميل مشروع محفوظ لفحص مراجعات الحمولة النافعة السابقة أو استعادتها.",
+      "unavailable": "مراجعات المشروع غير متوفرة.",
+      "loading": "جارٍ تحميل المراجعات المحفوظة...",
+      "summary": "عرض {{visible}} لمراجعة (مراجعات) {{total}}.",
+      "loadIntoWizard": "تحميل في المعالج",
+      "noEntries": "لم يتم تسجيل أي مراجعات محفوظة حتى الآن.",
+      "loadOlder": "تحميل المراجعات القديمة",
+      "notLoaded": "لم يتم تحميل أي مراجعات للمشروع حتى الآن.",
+      "sources": {
+        "importedWorkspaceSnapshot": "لقطة مساحة العمل المستوردة",
+        "projectUpdate": "تحديث المشروع",
+        "initialSave": "الحفظ الأولي"
+      }
+    },
+    "savedProjects": {
+      "title": "المشاريع المحفوظة",
+      "description": "قم بتحميل ومقارنة وأرشفة المسودات المدعومة من SQLite من مساحة العمل المحلية.",
+      "loading": "تحميل...",
+      "load": "تحميل المشاريع المحفوظة",
+      "savedCount_one": "تم حفظ {{count}}",
+      "savedCount_other": "تم حفظ {{count}}",
+      "withoutSavedAnalysisCount_one": "{{count}} بدون تحليل محفوظ",
+      "withoutSavedAnalysisCount_other": "{{count}} بدون تحليل محفوظ",
+      "shownExperiments_one": "تم عرض تجربة {{count}}.",
+      "shownExperiments_other": "أظهرت تجارب {{count}}.",
+      "compareDescription": "حدد من 2 إلى 5 مشاريع محفوظة تحتوي على لقطات لفتح لوحة معلومات المقارنة.",
+      "selectedForComparison_one": "تم تحديد {{count}}",
+      "selectedForComparison_other": "تم تحديد {{count}}",
+      "currentComparison": "المقارنة الحالية: {{baseProject}} مقابل {{candidateProject}}.",
+      "currentDashboard": "لوحة المعلومات الحالية: مشاريع {{count}}.",
+      "comparisonUnavailable": "مقارنة المشروع غير متاحة.",
+      "compareRequiresSnapshot": "احفظ لقطة تحليلية واحدة على الأقل قبل مقارنة المشاريع المحفوظة.",
+      "updatedAt": "تم تحديث {{timestamp}}",
+      "savedAt": "تم الحفظ {{timestamp}}",
+      "analyzedAt": "تم تحليل {{timestamp}}",
+      "revisionsCount_one": "مراجعة {{count}}",
+      "revisionsCount_other": "المراجعات {{count}}",
+      "exportedAt": "تصدير {{timestamp}}",
+      "noExportsYet": "لا توجد صادرات حتى الآن",
+      "loadedInWizard": "تم تحميلها في المعالج",
+      "archiveAriaLabel": "أرشيف {{projectName}}",
+      "deleteAriaLabel": "حذف {{projectName}}",
+      "noMatches": "لا توجد تجارب تتطابق مع الفلاتر التي تستخدمها.",
+      "empty": "لا توجد مشاريع محفوظة متاحة.",
+      "badges": {
+        "loaded": "محملة",
+        "snapshot": "لقطة",
+        "archived": "مؤرشف"
+      },
+      "actions": {
+        "comparing": "مقارنة...",
+        "compare": "يقارن",
+        "compareSelected": "قارن المحدد",
+        "selectForComparison": "اختر للمقارنة",
+        "restoring": "جارٍ الاستعادة...",
+        "restore": "يعيد",
+        "archive": "أرشيف",
+        "delete": "يمسح"
+      }
+    },
+    "archivedProjects": {
+      "title": "المشاريع المؤرشفة",
+      "description": "تبقى المشاريع المؤرشفة هنا حتى يتم استعادتها.",
+      "archivedAt": "مؤرشفة {{timestamp}}",
+      "lastAnalysisAt": "التحليل الأخير {{timestamp}}",
+      "empty": "لا توجد مشاريع مؤرشفة."
+    },
+    "backendEndpoints": {
+      "title": "نقاط النهاية الخلفية"
+    },
+    "status": {
+      "readOnlyMode": "يتم تشغيل الواجهة الخلفية في وضع القراءة فقط.",
+      "auditExported": "تم تصدير سجل التدقيق كـ CSV.",
+      "auditExportFailed": "فشل تصدير التدقيق.",
+      "returnedToCurrentResults": "تم العودة إلى نتائج التحليل الحالية في الذاكرة.",
+      "closedSnapshotPreview": "تم إغلاق معاينة اللقطة المحفوظة.",
+      "openedSnapshotFromHistory": "تم فتح لقطة تحليلية محفوظة من سجل المشروع.",
+      "loadedProjectIntoWizard": "تم تحميل المشروع {{projectName}} في المعالج.",
+      "projectArchivedCurrentDraft": "تم أرشفة المشروع {{projectName}}. يبقى النموذج الحالي كمسودة محلية جديدة.",
+      "projectArchived": "تم أرشفة المشروع {{projectName}}.",
+      "projectRestored": "تمت استعادة المشروع {{projectName}} من الأرشيف.",
+      "projectDeletedCurrentDraft": "تم حذف المشروع {{projectName}} نهائيًا. يبقى النموذج الحالي كمسودة محلية جديدة.",
+      "projectDeleted": "تم حذف المشروع {{projectName}} نهائيًا.",
+      "verifyingAdminToken": "التحقق من رمز المشرف لإدارة المفاتيح API...",
+      "adminTokenAccepted": "تم قبول رمز المشرف لإدارة المفاتيح API في جلسة المتصفح هذه.",
+      "adminTokenVerificationFailed": "فشل التحقق من الرمز المميز للمشرف.",
+      "adminTokenCleared": "تم مسح رمز المشرف المميز من جلسة المتصفح هذه."
+    }
+  }
+}

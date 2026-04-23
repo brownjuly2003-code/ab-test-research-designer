@@ -331,14 +331,15 @@ curl "http://127.0.0.1:8008/api/v1/webhooks/WEBHOOK_ID/deliveries?limit=50&statu
 
 ## Adding a new locale
 
-The project ships with four locales: `en`, `ru`, `de`, `es`. Adding a new one takes a matching pair of JSON files plus three registration touches.
+The project ships with seven locales: `en`, `ru`, `de`, `es`, `fr`, `zh`, `ar`. Adding a new one takes a matching pair of JSON files plus registration, switcher, and verification touches.
 
-1. **Frontend translation** — copy `app/frontend/src/i18n/en.json` to `<code>.json` in the same directory and translate the strings. Missing keys still fall back to English via `react-i18next` `fallbackLng`, but `de` and `es` now ship with full coverage rather than partial locale files.
-2. **Frontend registration** — add the new code to `app/frontend/src/i18n/index.ts`: import the JSON, add it to `resources`, and extend `supportedLngs`.
-3. **Language switcher** — extend `SUPPORTED_LANGUAGES` in `app/frontend/src/App.tsx` so the header switcher renders the new button. Add a label under `app.language.options.<code>` to every shipped locale file.
-4. **Backend translation** — copy `app/backend/app/i18n/en.json` to `app/backend/app/i18n/<code>.json`. Translate at least the `export.markdown`, `export.html`, `warnings`, and `report` subtrees, since those feed the `/api/v1/export/*` payloads and the deterministic report builder.
-5. **Backend registration** — extend the `Language` literal and `SUPPORTED_LANGUAGES` tuple in `app/backend/app/i18n/__init__.py`. The `resolve_language` helper already accepts any supported primary tag, so regional variants like `de-AT` fall back automatically.
-6. **Tests** — extend `app/frontend/src/i18n.test.tsx` and `app/frontend/src/test/a11y-locales.test.tsx` with `changeLanguage('<code>')` cases, and add backend export assertions to `app/backend/tests/test_export_api.py` covering the translated markdown header.
+1. **Frontend translation** - copy `app/frontend/src/i18n/en.json` to `<code>.json` in the same directory and translate the strings. Current shipped locales (`de`, `es`, `fr`, `zh`, `ar`) all keep full leaf-key parity with `en`; do not ship a partial file unless review explicitly allows fallback coverage.
+2. **Frontend registration** - add the new code to `app/frontend/src/i18n/index.ts`: import the JSON, add it to `resources`, extend `supportedLngs`, and keep the `fallbackLng` resolver returning `<primary> -> en` for regional tags.
+3. **Language switcher** - extend `SUPPORTED_LANGUAGES` in `app/frontend/src/App.tsx` so the header switcher renders the new button. Add a label under `app.language.options.<code>` to every shipped locale file, not only the new one, because the switcher is visible in every active locale.
+4. **RTL locales** - if the locale is right-to-left, update `App.tsx` so it sets `document.documentElement.dir = "rtl"` for that code and `"ltr"` otherwise. Audit `app/frontend/src/**/*.css` for logical properties (`inset-inline-*`, `padding-inline-*`, `margin-inline-*`, `border-inline-start-*`, `text-align: start/end`) before shipping.
+5. **Backend translation** - copy `app/backend/app/i18n/en.json` to `app/backend/app/i18n/<code>.json`. Translate at least the `export.markdown`, `export.html`, `warnings`, and `report` subtrees, since those feed the `/api/v1/export/*` payloads and the deterministic report builder.
+6. **Backend registration** - extend the `Language` literal and `SUPPORTED_LANGUAGES` tuple in `app/backend/app/i18n/__init__.py`. The `resolve_language` helper already accepts any supported primary tag, so regional variants like `fr-CA`, `zh-TW`, or `ar-SA` fall back automatically.
+7. **Tests** - extend `app/frontend/src/i18n.test.tsx`, keep `app/frontend/src/test/a11y-locales.test.tsx` aligned with the current switcher shape, add `app/frontend/src/test/a11y-rtl.test.tsx` for RTL locales, and add backend export assertions to `app/backend/tests/test_export_api.py` covering the translated markdown header and primary-tag fallback.
 
 Verification:
 
@@ -346,7 +347,7 @@ Verification:
 cmd /c scripts\verify_all.cmd --with-e2e
 ```
 
-The backend bundle is small (one JSON per locale); the frontend gzipped bundle grows by roughly 1–3 KB per fully-translated locale.
+The backend bundle is small (one JSON per locale); the frontend bundle impact depends on whether locales are statically imported or lazy-loaded, so re-check the build output after adding a fully translated locale set.
 
 ## Release hygiene
 

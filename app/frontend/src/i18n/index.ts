@@ -6,12 +6,40 @@ import en from "./en.json";
 import ru from "./ru.json";
 import de from "./de.json";
 import es from "./es.json";
+import fr from "./fr.json";
+import zh from "./zh.json";
+import ar from "./ar.json";
+
+const SUPPORTED_LANGUAGES = ["en", "ru", "de", "es", "fr", "zh", "ar"] as const;
+type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
+
+function resolveFallbackLanguage(code?: string): [SupportedLanguage, "en"] | ["en"] {
+  if (!code) {
+    return ["en"];
+  }
+
+  const normalized = code.replace("_", "-").toLowerCase();
+  const primary = normalized.split("-", 1)[0];
+
+  if ((SUPPORTED_LANGUAGES as readonly string[]).includes(primary)) {
+    if (primary === "en") {
+      return ["en"];
+    }
+
+    return [primary as SupportedLanguage, "en"];
+  }
+
+  return ["en"];
+}
 
 const resources = {
   en: { common: en },
   ru: { common: ru },
   de: { common: de },
-  es: { common: es }
+  es: { common: es },
+  fr: { common: fr },
+  zh: { common: zh },
+  ar: { common: ar }
 } as const;
 
 void i18n
@@ -19,9 +47,9 @@ void i18n
   .use(initReactI18next)
   .init({
     resources,
-    supportedLngs: ["en", "ru", "de", "es"],
+    supportedLngs: SUPPORTED_LANGUAGES,
     nonExplicitSupportedLngs: true,
-    fallbackLng: "en",
+    fallbackLng: resolveFallbackLanguage,
     defaultNS: "common",
     ns: ["common"],
     load: "languageOnly",

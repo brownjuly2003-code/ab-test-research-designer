@@ -258,9 +258,9 @@ Generic endpoints receive JSON plus `X-AB-Signature: sha256=...`; Slack subscrip
 
 ## Languages
 
-The UI ships with four locales: **English** (default), **Russian**, **German**, and **Spanish**. Pick a language from the header switcher (the choice persists to `localStorage` under `ab-test:language`) or set `?lang=de` on the URL to override auto-detection.
+The UI ships with seven locales: **English** (default), **Russian**, **German**, **Spanish**, **French**, **Simplified Chinese**, and **Arabic**. Pick a language from the header switcher (the choice persists to `localStorage` under `ab-test:language`) or set `?lang=fr` on the URL to override auto-detection. Arabic also switches the document into `dir="rtl"` so the shell, panels, toasts, and warning callouts follow the reading direction automatically.
 
-The backend honors the `Accept-Language` header on export endpoints and localizes the markdown/HTML report headers plus warning and risk strings. Regional tags fall back to their primary language: `de-AT` → `de`, `es-MX` → `es`, `en-GB` → `en`.
+The backend honors the `Accept-Language` header on export endpoints and localizes the markdown/HTML report headers plus warning and risk strings. Regional tags fall back to their primary language: `fr-CA` -> `fr`, `de-AT` -> `de`, `es-MX` -> `es`, `zh-CN` / `zh-TW` -> `zh`, `ar-SA` / `ar-EG` -> `ar`, and unsupported locales fall back to `en`.
 
 ```bash
 curl -X POST http://127.0.0.1:8008/api/v1/export/markdown \
