@@ -80,6 +80,8 @@ def test_project_repository_delegates_to_selected_backend() -> None:
 
 
 def _require_docker() -> None:
+    if sys.platform == "win32":
+        pytest.skip("Linux containers unavailable on Windows GitHub runner")
     result = subprocess.run(
         ["docker", "info"],
         capture_output=True,

@@ -3305,6 +3305,8 @@ def _sqlite_path_from_database_url(database_url: str) -> str:
         resolved_path = unquote(parsed.path)
         if len(resolved_path) >= 4 and resolved_path[0] == "/" and resolved_path[2] == ":":
             return resolved_path[1:]
+        if resolved_path.startswith("//"):
+            return resolved_path[1:]
         return resolved_path
     return database_url.removeprefix("sqlite:///")
 
