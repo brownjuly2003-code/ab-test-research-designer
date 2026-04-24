@@ -111,11 +111,14 @@ Full inputs and outputs: [docs/case-studies/checkout-redesign.json](https://gith
 
 ## Roadmap
 
-Planned work after v1.1.0. See the [archived progress log](archive/2026-04-23-bcg-planning-docs/progress.md) for the full tiered backlog.
+Post-v1.1.0 Tier 2/3 roadmap items are all landed as of 2026-04-25. See the [archived progress log](archive/2026-04-23-bcg-planning-docs/progress.md) for the full tiered backlog.
 
-- **Portfolio polish.** Seed demo workspace on HF Space startup, regenerate screenshots against the v1.1.0 UI, add a case-study section, publish a Docker image to GHCR, add dynamic quality-gate badges.
-- **Product quality.** Finish the German and Spanish UI translation, snapshot SQLite to a private HF Dataset for persistent hosted state, add an optional OpenAI / Anthropic adapter behind a browser-session token, ✅ Published at brownjuly2003-code.github.io/ab-test-research-designer/, expand the template gallery to ten industry presets.
-- **Hardening.** Monte-Carlo and permutation overlays in the comparison flow, French / Chinese locales, manual NVDA + JAWS audit, deeper Hypothesis property coverage, bundle-size profiling, optional Postgres backend.
+**Landed:**
+- **Portfolio polish.** HF Space startup seed, v1.1.0 screenshots, case-study section, GHCR Docker publish, dynamic shields.io badges.
+- **Product quality.** Full de/es translation (887+ leaf keys), HF Dataset SQLite snapshot service, optional OpenAI/Anthropic adapter via browser-session token, mkdocs-material docs site at [brownjuly2003-code.github.io/ab-test-research-designer](https://brownjuly2003-code.github.io/ab-test-research-designer/), 10-template industry gallery.
+- **Hardening.** Monte-Carlo distribution overlay with interactive probability slider, French / Simplified-Chinese / Arabic locales (+RTL for Arabic), extended Hypothesis property coverage (numerical stability + Bayesian edges + Monte-Carlo determinism), bundle optimization (main chunk 247 → 122 KB gzip via lazy-load locales + vendor chunks), optional Postgres backend via `AB_DATABASE_URL` with CI matrix coverage, Slack App integration with OAuth install + slash commands + interactive actions.
+
+**Dropped as out-of-scope for a portfolio/demo:** manual NVDA / JAWS audit (automated axe a11y coverage sufficient here).
 
 ## Product shape
 
