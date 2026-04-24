@@ -15,6 +15,7 @@ _FINAL_BOUNDARY_ANCHORS = {
     0.05: {1: 1.96, 2: 1.977, 4: 2.024, 8: 2.072, 16: 2.114},
     0.1: {1: 1.6449, 2: 1.678, 4: 1.733, 8: 1.786, 16: 1.83},
 }
+_MAX_SEQUENTIAL_LOOKS = 100
 
 
 def _interpolate(value: float, points: list[tuple[float, float]]) -> float:
@@ -56,8 +57,8 @@ def obrien_fleming_boundaries(
     n_looks: int,
     alpha: float = 0.05,
 ) -> list[dict]:
-    if not 1 <= n_looks <= 10:
-        raise ValueError(f"n_looks must be between 1 and 10, got {n_looks}")
+    if not 1 <= n_looks <= _MAX_SEQUENTIAL_LOOKS:
+        raise ValueError(f"n_looks must be between 1 and {_MAX_SEQUENTIAL_LOOKS}, got {n_looks}")
     if not 0 < alpha < 1:
         raise ValueError("alpha must be between 0 and 1")
 
@@ -94,8 +95,8 @@ def sequential_sample_size_inflation(
     alpha: float = 0.05,
     power: float = 0.8,
 ) -> float:
-    if not 1 <= n_looks <= 10:
-        raise ValueError(f"n_looks must be between 1 and 10, got {n_looks}")
+    if not 1 <= n_looks <= _MAX_SEQUENTIAL_LOOKS:
+        raise ValueError(f"n_looks must be between 1 and {_MAX_SEQUENTIAL_LOOKS}, got {n_looks}")
     if not 0 < alpha < 1:
         raise ValueError("alpha must be between 0 and 1")
     if not 0 < power < 1:
@@ -114,4 +115,6 @@ def sequential_sample_size_inflation(
         9: 1.034,
         10: 1.035,
     }
-    return inflation[n_looks]
+    if n_looks in inflation:
+        return inflation[n_looks]
+    return round(min(1.08, inflation[10] + 0.01 * math.log(n_looks / 10, 10)), 4)

@@ -1,4 +1,4 @@
-from math import ceil, sqrt
+from math import ceil, isfinite, sqrt
 from statistics import NormalDist
 
 from app.backend.app.constants import MAX_SUPPORTED_VARIANTS
@@ -28,7 +28,7 @@ def calculate_detectable_mde_continuous(
 ) -> float:
     if n <= 0:
         raise ValueError("n must be positive")
-    if std_dev <= 0:
+    if not isfinite(std_dev) or std_dev <= 1e-12:
         raise ValueError("std_dev must be positive for continuous metrics")
     if not 0 < alpha < 1:
         raise ValueError("alpha must be between 0 and 1")
@@ -50,7 +50,7 @@ def calculate_continuous_sample_size(
 ) -> dict:
     if baseline_mean <= 0:
         raise ValueError("baseline_mean must be positive for relative MDE calculations")
-    if std_dev <= 0:
+    if not isfinite(std_dev) or std_dev <= 1e-12:
         raise ValueError("std_dev must be positive for continuous metrics")
     if mde_pct <= 0:
         raise ValueError("mde_pct must be positive")
@@ -67,9 +67,13 @@ def calculate_continuous_sample_size(
     z_alpha = NormalDist().inv_cdf(1 - adjusted_alpha / 2)
     z_power = NormalDist().inv_cdf(power)
 
-    sample_size_per_variant = ceil(
-        2 * (((z_alpha + z_power) * std_dev) / mde_absolute) ** 2
-    )
+    try:
+        sample_size_estimate = 2 * (((z_alpha + z_power) * std_dev) / mde_absolute) ** 2
+    except OverflowError as exc:
+        raise ValueError("continuous sample size is too large to be finite") from exc
+    if not isfinite(sample_size_estimate):
+        raise ValueError("continuous sample size is too large to be finite")
+    sample_size_per_variant = ceil(sample_size_estimate)
 
     return {
         "metric_type": "continuous",

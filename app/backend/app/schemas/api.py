@@ -115,7 +115,7 @@ class ConstraintsConfig(BaseModel):
     known_risks: str
     deadline_pressure: str
     long_test_possible: bool
-    n_looks: int = Field(default=1, ge=1, le=10)
+    n_looks: int = Field(default=1, ge=1, le=100)
     analysis_mode: Literal["frequentist", "bayesian"] = "frequentist"
     desired_precision: float | None = Field(default=None, gt=0)
     credibility: float = Field(default=0.95, gt=0.5, lt=1.0)
@@ -131,9 +131,9 @@ class ObservedResultsBinary(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     control_conversions: int = Field(ge=0)
-    control_users: int = Field(ge=1)
+    control_users: int = Field(ge=2)
     treatment_conversions: int = Field(ge=0)
-    treatment_users: int = Field(ge=1)
+    treatment_users: int = Field(ge=2)
     alpha: float = Field(default=0.05, ge=0.001, le=0.1)
 
     @model_validator(mode="after")
@@ -150,10 +150,10 @@ class ObservedResultsContinuous(BaseModel):
 
     control_mean: float
     control_std: float = Field(gt=0)
-    control_n: int = Field(ge=1)
+    control_n: int = Field(ge=2)
     treatment_mean: float
     treatment_std: float = Field(gt=0)
-    treatment_n: int = Field(ge=1)
+    treatment_n: int = Field(ge=2)
     alpha: float = Field(default=0.05, ge=0.001, le=0.1)
 
 
@@ -241,7 +241,7 @@ class CalculationRequest(BaseModel):
     seasonality_present: bool | None = None
     active_campaigns_present: bool | None = None
     long_test_possible: bool | None = None
-    n_looks: int = Field(default=1, ge=1, le=10)
+    n_looks: int = Field(default=1, ge=1, le=100)
     analysis_mode: Literal["frequentist", "bayesian"] = "frequentist"
     desired_precision: float | None = Field(default=None, gt=0)
     credibility: float = Field(default=0.95, gt=0.5, lt=1.0)
@@ -273,6 +273,8 @@ class CalculationRequest(BaseModel):
             raise ValueError(translate("errors.schemas.actual_counts_length"))
         if any(count < 0 for count in self.actual_counts):
             raise ValueError(translate("errors.schemas.actual_counts_non_negative"))
+        if any(count == 0 for count in self.actual_counts):
+            raise ValueError("actual_counts must contain positive counts")
         if sum(self.actual_counts) <= 0:
             raise ValueError(translate("errors.schemas.actual_counts_positive_sum"))
         return self
@@ -352,6 +354,8 @@ class SrmCheckRequest(BaseModel):
             raise ValueError(translate("errors.schemas.observed_expected_same_length"))
         if any(count < 0 for count in self.observed_counts):
             raise ValueError(translate("errors.schemas.observed_counts_non_negative"))
+        if any(count == 0 for count in self.observed_counts):
+            raise ValueError("observed_counts must contain positive counts")
         if any(fraction < 0 for fraction in self.expected_fractions):
             raise ValueError(translate("errors.schemas.expected_fractions_non_negative"))
         total_fraction = sum(self.expected_fractions)

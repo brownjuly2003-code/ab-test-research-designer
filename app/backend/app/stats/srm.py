@@ -9,6 +9,8 @@ def chi_square_srm(
         raise ValueError("observed_counts and expected_fractions must have same length")
     if len(observed_counts) < 2:
         raise ValueError("observed_counts must contain at least two variants")
+    if any(count <= 0 for count in observed_counts):
+        raise ValueError("observed_counts must contain positive counts")
 
     total = sum(observed_counts)
     if total == 0:

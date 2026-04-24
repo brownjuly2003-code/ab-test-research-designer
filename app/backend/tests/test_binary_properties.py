@@ -33,8 +33,8 @@ def binary_sample_params(draw: st.DrawFn) -> dict[str, float | int]:
 
 @st.composite
 def binary_observations(draw: st.DrawFn) -> dict[str, int | float]:
-    control_users = draw(st.integers(min_value=1, max_value=20_000))
-    treatment_users = draw(st.integers(min_value=1, max_value=20_000))
+    control_users = draw(st.integers(min_value=2, max_value=20_000))
+    treatment_users = draw(st.integers(min_value=2, max_value=20_000))
     return {
         "control_conversions": draw(st.integers(min_value=0, max_value=control_users)),
         "control_users": control_users,
