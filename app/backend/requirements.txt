@@ -5,6 +5,9 @@ httpx==0.28.1
 pytest==8.4.2
 pytest-cov==5.0.0
 hypothesis==6.152.1
+psycopg[binary]==3.2.5
+psycopg-pool==3.2.5
+testcontainers==4.5.0
 pypdf==6.9.2
 playwright==1.58.0
 matplotlib==3.10.8

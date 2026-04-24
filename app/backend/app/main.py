@@ -26,6 +26,7 @@ from app.backend.app.routes.export import create_export_router
 from app.backend.app.routes.keys import create_keys_router
 from app.backend.app.routes.projects import create_projects_router
 from app.backend.app.routes.system import create_system_router
+from app.backend.app.routes.slack import create_slack_router
 from app.backend.app.routes.templates import create_templates_router
 from app.backend.app.routes.webhooks import create_webhooks_router
 from app.backend.app.routes.workspace import create_workspace_router
@@ -42,11 +43,12 @@ def create_app() -> FastAPI:
     configure_logging(level=settings.log_level, log_format=settings.log_format)
     started_at = datetime.now(timezone.utc)
     repository = ProjectRepository(
-        settings.db_path,
+        settings.database_url,
         busy_timeout_ms=settings.sqlite_busy_timeout_ms,
         journal_mode=settings.sqlite_journal_mode,
         synchronous=settings.sqlite_synchronous,
         workspace_signing_key=settings.workspace_signing_key,
+        pool_size=settings.db_pool_size,
     )
     webhook_service = WebhookService(repository, environment=settings.environment)
     repository.set_webhook_service(webhook_service)
@@ -92,7 +94,8 @@ def create_app() -> FastAPI:
             event="startup",
             environment=settings.environment,
             version=settings.app_version,
-            db_path=settings.db_path,
+            db_path=settings.database_url if repository.backend_name == "postgres" else settings.db_path,
+            db_backend=repository.backend_name,
             sqlite_journal_mode=settings.sqlite_journal_mode,
             sqlite_synchronous=settings.sqlite_synchronous,
             log_format=settings.log_format,
@@ -104,7 +107,7 @@ def create_app() -> FastAPI:
             workspace_signing_enabled=settings.workspace_signing_key is not None,
         )
 
-        if snapshot_repo and snapshot_token:
+        if repository.supports_snapshots and snapshot_repo and snapshot_token:
             snapshot_service = SnapshotService(
                 repo_id=snapshot_repo,
                 local_db_path=Path(settings.db_path),
@@ -119,6 +122,8 @@ def create_app() -> FastAPI:
                 )
             elif settings.seed_demo_on_startup:
                 logger.info("snapshot: no snapshot available, falling back to seed")
+        elif not repository.supports_snapshots:
+            logger.info("snapshot: disabled for backend %s", repository.backend_name)
         else:
             logger.info("snapshot: disabled (env not set)")
 
@@ -150,6 +155,9 @@ def create_app() -> FastAPI:
             except Exception:
                 logger.warning("snapshot: final push failed", exc_info=True)
         webhook_service.shutdown(wait=True)
+        repository_close = getattr(repository, "close", None)
+        if callable(repository_close):
+            repository_close()
 
     app = FastAPI(
         title="AB Test Research Designer API",
@@ -171,6 +179,7 @@ def create_app() -> FastAPI:
             {"name": "audit", "description": "Audit log listing and export."},
             {"name": "keys", "description": "Admin-only API key lifecycle management."},
             {"name": "webhooks", "description": "Admin-only outbound webhook subscription management."},
+            {"name": "slack", "description": "Slack App OAuth, slash commands, and interactive actions."},
             {"name": "workspace", "description": "Workspace backup, restore, and export utilities."},
             {"name": "system", "description": "Health, readiness, and runtime diagnostics."},
         ],
@@ -254,6 +263,7 @@ def create_app() -> FastAPI:
         )
     )
     app.include_router(create_export_router(settings, repository, request_rate_limiter, require_auth))
+    app.include_router(create_slack_router(settings, repository))
     app.include_router(create_system_router(settings, repository, runtime_counters, started_at))
     register_frontend_routes(app, settings)
     return app

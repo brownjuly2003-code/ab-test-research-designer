@@ -1,0 +1,29 @@
+display_information:
+  name: AB Test Research Designer
+  description: Design and review A/B tests from Slack
+  background_color: "#0f172a"
+features:
+  bot_user:
+    display_name: AB Test Bot
+    always_online: true
+  slash_commands:
+    - command: /ab-test
+      url: https://{DEPLOY_HOST}/slack/commands
+      description: Interact with AB Test Research Designer
+      usage_hint: status|run|projects <project_id>
+oauth_config:
+  redirect_urls:
+    - https://{DEPLOY_HOST}/slack/oauth/callback
+  scopes:
+    bot:
+      - commands
+      - chat:write
+      - chat:write.public
+      - users:read
+settings:
+  interactivity:
+    is_enabled: true
+    request_url: https://{DEPLOY_HOST}/slack/interactive
+  event_subscriptions:
+    request_url: https://{DEPLOY_HOST}/slack/events
+    bot_events: []

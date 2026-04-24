@@ -81,6 +81,18 @@ Signed workspace backup mode:
 docker run --rm --name ab-test-v1-signed -e AB_WORKSPACE_SIGNING_KEY=replace-with-a-long-random-secret -p 8008:8008 ab-test-research-designer:1.0.0
 ```
 
+Slack App mode:
+
+```bash
+docker run --rm --name ab-test-v1-slack ^
+  -e AB_SLACK_CLIENT_ID=... ^
+  -e AB_SLACK_CLIENT_SECRET=... ^
+  -e AB_SLACK_SIGNING_SECRET=... ^
+  -p 8008:8008 ab-test-research-designer:1.0.0
+```
+
+Create the app from `slack/app-manifest.yml`, replace `{DEPLOY_HOST}` with the public HTTPS host, then open `/slack/install`. Rotate Slack credentials in the Slack App configuration, update runtime secrets, restart the backend, delete the affected `slack_installations` row if the bot token is being replaced, and reinstall the app.
+
 ## Hugging Face Spaces Deploy (active hosted demo)
 
 The current production demo lives on Hugging Face Spaces on the free CPU tier — no credit card required, Docker SDK, always-on.

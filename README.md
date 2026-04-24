@@ -74,7 +74,7 @@ runs analysis, captures comparison and webhook views, and exports a report:
 
 The screenshots follow the real v1.1.0 path through the product: wizard overview, review step, and the post-analysis results dashboard.
 They then switch to saved-project comparison to show the multi-project power-curve and forest-plot dashboard with seeded snapshots.
-The final image shows the admin-side webhook manager with a seeded Slack-style subscription in the sidebar tools area.
+The final image shows the admin-side webhook manager with a seeded Slack-style subscription in the sidebar tools area. The Slack App flow adds OAuth installation and `/ab-test` commands alongside the older one-way webhook path.
 
 <!-- docs-site:case-study:start -->
 ## Case study: Checkout redesign
@@ -115,7 +115,7 @@ Planned work after v1.1.0. See the [archived progress log](archive/2026-04-23-bc
 
 - **Portfolio polish.** Seed demo workspace on HF Space startup, regenerate screenshots against the v1.1.0 UI, add a case-study section, publish a Docker image to GHCR, add dynamic quality-gate badges.
 - **Product quality.** Finish the German and Spanish UI translation, snapshot SQLite to a private HF Dataset for persistent hosted state, add an optional OpenAI / Anthropic adapter behind a browser-session token, ✅ Published at brownjuly2003-code.github.io/ab-test-research-designer/, expand the template gallery to ten industry presets.
-- **Hardening.** Monte-Carlo and permutation overlays in the comparison flow, Slack App packaging, French / Chinese locales, manual NVDA + JAWS audit, deeper Hypothesis property coverage, bundle-size profiling, optional Postgres backend.
+- **Hardening.** Monte-Carlo and permutation overlays in the comparison flow, French / Chinese locales, manual NVDA + JAWS audit, deeper Hypothesis property coverage, bundle-size profiling, optional Postgres backend.
 
 ## Product shape
 
@@ -255,6 +255,8 @@ curl -X POST http://127.0.0.1:8008/api/v1/webhooks/WEBHOOK_ID/test \
 ```
 
 Generic endpoints receive JSON plus `X-AB-Signature: sha256=...`; Slack subscriptions receive an incoming-webhook payload without signature validation.
+
+For the two-way Slack App, create an app from `slack/app-manifest.yml`, set `AB_SLACK_CLIENT_ID`, `AB_SLACK_CLIENT_SECRET`, and `AB_SLACK_SIGNING_SECRET`, then open `/slack/install`. The app exposes `/ab-test projects`, `/ab-test status <project_id>`, and `/ab-test run <project_id>`.
 
 ## Languages
 

@@ -13,6 +13,8 @@ class Settings:
     environment: str
     host: str
     port: int
+    database_url: str
+    db_pool_size: int
     db_path: str
     cors_origins: tuple[str, ...]
     cors_methods: tuple[str, ...]
@@ -34,6 +36,10 @@ class Settings:
     readonly_api_token: str | None
     admin_token: str | None
     workspace_signing_key: str | None
+    slack_client_id: str | None
+    slack_client_secret: str | None
+    slack_signing_secret: str | None
+    slack_review_channel: str | None
     rate_limit_enabled: bool
     rate_limit_requests: int
     rate_limit_window_seconds: int
@@ -93,6 +99,10 @@ def _validate_settings(settings: Settings) -> Settings:
         raise ValueError("AB_HOST must not be empty")
     if not 1 <= settings.port <= 65535:
         raise ValueError("AB_PORT must be between 1 and 65535")
+    if not settings.database_url.strip():
+        raise ValueError("AB_DATABASE_URL must not be empty when configured")
+    if settings.db_pool_size < 1:
+        raise ValueError("AB_DB_POOL_SIZE must be at least 1")
     if not settings.cors_origins:
         raise ValueError("AB_CORS_ORIGINS must contain at least one origin")
     if not settings.cors_methods:
@@ -148,6 +158,7 @@ def _validate_settings(settings: Settings) -> Settings:
 def get_settings() -> Settings:
     default_db_path = Path(__file__).resolve().parents[1] / "data" / "projects.sqlite3"
     default_frontend_dist_path = Path(__file__).resolve().parents[3] / "app" / "frontend" / "dist"
+    db_path = os.getenv("AB_DB_PATH", str(default_db_path))
     cors_origins = _read_csv_env(
         "AB_CORS_ORIGINS",
         ("http://127.0.0.1:5173", "http://localhost:5173"),
@@ -158,7 +169,9 @@ def get_settings() -> Settings:
         environment=os.getenv("AB_ENV", "local"),
         host=os.getenv("AB_HOST", "127.0.0.1"),
         port=_read_int_env("AB_PORT", 8008),
-        db_path=os.getenv("AB_DB_PATH", str(default_db_path)),
+        database_url=(os.getenv("AB_DATABASE_URL") or f"sqlite:///{Path(db_path).as_posix()}").strip(),
+        db_pool_size=_read_int_env("AB_DB_POOL_SIZE", 10),
+        db_path=db_path,
         cors_origins=cors_origins,
         cors_methods=_read_csv_env("AB_CORS_METHODS", DEFAULT_CORS_METHODS),
         cors_headers=_read_csv_env("AB_CORS_HEADERS", DEFAULT_CORS_HEADERS),
@@ -179,6 +192,10 @@ def get_settings() -> Settings:
         readonly_api_token=(os.getenv("AB_READONLY_API_TOKEN") or "").strip() or None,
         admin_token=(os.getenv("AB_ADMIN_TOKEN") or "").strip() or None,
         workspace_signing_key=(os.getenv("AB_WORKSPACE_SIGNING_KEY") or "").strip() or None,
+        slack_client_id=(os.getenv("AB_SLACK_CLIENT_ID") or "").strip() or None,
+        slack_client_secret=(os.getenv("AB_SLACK_CLIENT_SECRET") or "").strip() or None,
+        slack_signing_secret=(os.getenv("AB_SLACK_SIGNING_SECRET") or "").strip() or None,
+        slack_review_channel=(os.getenv("AB_SLACK_REVIEW_CHANNEL") or "").strip() or None,
         rate_limit_enabled=_read_bool_env("AB_RATE_LIMIT_ENABLED", True),
         rate_limit_requests=_read_int_env("AB_RATE_LIMIT_REQUESTS", 240),
         rate_limit_window_seconds=_read_int_env("AB_RATE_LIMIT_WINDOW_SECONDS", 60),

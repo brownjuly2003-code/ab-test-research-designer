@@ -55,6 +55,7 @@ nav:
       - Results dashboard: features/results.md
       - Multi-project comparison: features/comparison.md
       - Webhooks: features/webhooks.md
+      - Slack: features/slack.md
       - Localization: features/localization.md
   - Reference:
       - REST API: reference/api.md

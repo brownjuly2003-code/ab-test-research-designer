@@ -32,42 +32,68 @@ def create_system_router(settings, repository, runtime_counters, start_time) -> 
     @router.get("/readyz", response_model=ReadinessResponse)
     def readyz(response: Response) -> ReadinessResponse:
         checks: list[ReadinessCheck] = []
+        backend_name = getattr(repository, "backend_name", "sqlite")
         try:
             storage_summary = repository.get_diagnostics_summary()
-            checks.append(
-                ReadinessCheck(
-                    name="sqlite_storage",
-                    ok=True,
-                    detail=f"Database path {storage_summary['db_path']}",
+            if backend_name == "postgres":
+                checks.append(
+                    ReadinessCheck(
+                        name="postgres_storage",
+                        ok=True,
+                        detail=f"Database URL {storage_summary['db_path']}",
+                    )
                 )
-            )
-            checks.append(
-                ReadinessCheck(
-                    name="sqlite_schema_version",
-                    ok=storage_summary["sqlite_user_version"] == repository.schema_version,
-                    detail=(
-                        f"user_version={storage_summary['sqlite_user_version']} expected={repository.schema_version}"
-                    ),
+                checks.append(
+                    ReadinessCheck(
+                        name="postgres_schema_version",
+                        ok=storage_summary["schema_version"] == repository.schema_version,
+                        detail=(
+                            f"schema_version={storage_summary['schema_version']} expected={repository.schema_version}"
+                        ),
+                    )
                 )
-            )
-            checks.append(
-                ReadinessCheck(
-                    name="sqlite_journal_mode",
-                    ok=storage_summary["journal_mode"] == settings.sqlite_journal_mode,
-                    detail=f"journal_mode={storage_summary['journal_mode']} expected={settings.sqlite_journal_mode}",
+                checks.append(
+                    ReadinessCheck(
+                        name="postgres_write_probe",
+                        ok=storage_summary["write_probe_ok"],
+                        detail=storage_summary["write_probe_detail"],
+                    )
                 )
-            )
-            checks.append(
-                ReadinessCheck(
-                    name="sqlite_write_probe",
-                    ok=storage_summary["write_probe_ok"],
-                    detail=storage_summary["write_probe_detail"],
+            else:
+                checks.append(
+                    ReadinessCheck(
+                        name="sqlite_storage",
+                        ok=True,
+                        detail=f"Database path {storage_summary['db_path']}",
+                    )
                 )
-            )
+                checks.append(
+                    ReadinessCheck(
+                        name="sqlite_schema_version",
+                        ok=storage_summary["sqlite_user_version"] == repository.schema_version,
+                        detail=(
+                            f"user_version={storage_summary['sqlite_user_version']} expected={repository.schema_version}"
+                        ),
+                    )
+                )
+                checks.append(
+                    ReadinessCheck(
+                        name="sqlite_journal_mode",
+                        ok=storage_summary["journal_mode"] == settings.sqlite_journal_mode,
+                        detail=f"journal_mode={storage_summary['journal_mode']} expected={settings.sqlite_journal_mode}",
+                    )
+                )
+                checks.append(
+                    ReadinessCheck(
+                        name="sqlite_write_probe",
+                        ok=storage_summary["write_probe_ok"],
+                        detail=storage_summary["write_probe_detail"],
+                    )
+                )
         except Exception as exc:  # pragma: no cover - exercised via endpoint tests
             checks.append(
                 ReadinessCheck(
-                    name="sqlite_storage",
+                    name=f"{backend_name}_storage",
                     ok=False,
                     detail=f"Storage diagnostics failed: {exc}",
                 )

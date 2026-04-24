@@ -7,7 +7,10 @@ import {
   hasAdminSessionToken,
   listApiKeysRequest,
   listAuditLogRequest,
-  setAdminSessionToken
+  requestSlackStatus,
+  setAdminSessionToken,
+  slackInstallUrl,
+  type SlackStatusResponse
 } from "../lib/api";
 import { hydrateLoadedPayload, stepLabels, type AuditLogEntry } from "../lib/experiment";
 import type { ToastType } from "../hooks/useToast";
@@ -159,6 +162,9 @@ const SidebarPanel = memo(function SidebarPanel() {
   const [adminTokenDraft, setAdminTokenDraft] = useState("");
   const [adminTokenConfigured, setAdminTokenConfigured] = useState(hasAdminSessionToken());
   const [adminTokenStatus, setAdminTokenStatus] = useState("");
+  const [slackStatus, setSlackStatus] = useState<SlackStatusResponse | null>(null);
+  const [slackStatusError, setSlackStatusError] = useState("");
+  const [slackStatusLoading, setSlackStatusLoading] = useState(false);
   const onRefreshHealth = () => void project.loadBackendHealth();
   const onRefreshDiagnostics = () => void project.loadBackendDiagnostics();
   const onApiTokenDraftChange = (value: string) => project.updateApiTokenDraft(value);
@@ -454,6 +460,21 @@ const SidebarPanel = memo(function SidebarPanel() {
     setActiveTab("system");
   }, [activeTab, adminTokenConfigured]);
 
+  useEffect(() => {
+    if (activeTab !== "apiKeys") {
+      return;
+    }
+    setSlackStatusLoading(true);
+    setSlackStatusError("");
+    void requestSlackStatus()
+      .then((status) => setSlackStatus(status))
+      .catch((error) => {
+        setSlackStatus(null);
+        setSlackStatusError(error instanceof Error ? error.message : t("sidebarPanel.slackApp.statusUnavailable"));
+      })
+      .finally(() => setSlackStatusLoading(false));
+  }, [activeTab, t]);
+
   async function onSaveAdminToken() {
     const normalizedToken = adminTokenDraft.trim();
     if (!normalizedToken) {
@@ -554,6 +575,49 @@ const SidebarPanel = memo(function SidebarPanel() {
           }
         >
           <ApiKeyManager />
+          <div className="card" data-testid="slack-app-tile">
+            <div className="section-heading">
+              <div>
+                <h3>{t("sidebarPanel.slackApp.title")}</h3>
+                <p className="muted">{t("sidebarPanel.slackApp.description")}</p>
+              </div>
+              <span className="pill">
+                {slackStatusLoading
+                  ? t("sidebarPanel.slackApp.checking")
+                  : slackStatus?.installed
+                    ? t("sidebarPanel.slackApp.installed")
+                    : t("sidebarPanel.slackApp.notInstalled")}
+              </span>
+            </div>
+            {slackStatusError ? <div className="status">{slackStatusError}</div> : null}
+            {slackStatus?.installed ? (
+              <p className="muted">
+                {t("sidebarPanel.slackApp.installedWorkspace", {
+                  workspace: slackStatus.team_name || slackStatus.team_id || t("sidebarPanel.slackApp.unknownWorkspace")
+                })}
+              </p>
+            ) : (
+              <p className="muted">
+                {slackStatus?.configured === false
+                  ? t("sidebarPanel.slackApp.notConfigured")
+                  : t("sidebarPanel.slackApp.readyToInstall")}
+              </p>
+            )}
+            <div className="actions">
+              <button
+                className="btn secondary"
+                type="button"
+                disabled={slackStatus?.configured === false}
+                onClick={() => {
+                  window.location.assign(slackInstallUrl());
+                }}
+              >
+                {slackStatus?.installed
+                  ? t("sidebarPanel.slackApp.reinstall")
+                  : t("sidebarPanel.slackApp.install")}
+              </button>
+            </div>
+          </div>
           <WebhookManager />
         </Suspense>
       ) : activeTab === "system" ? (

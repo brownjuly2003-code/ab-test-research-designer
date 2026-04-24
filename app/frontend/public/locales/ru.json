@@ -897,6 +897,20 @@
       "title": "API-ключи",
       "loading": "Загрузка менеджера API-ключей..."
     },
+    "slackApp": {
+      "title": "Slack App",
+      "description": "Установите двустороннее Slack-приложение для команд `/ab-test` и review actions.",
+      "checking": "Проверка...",
+      "installed": "Установлено",
+      "notInstalled": "Не установлено",
+      "install": "Установить Slack App",
+      "reinstall": "Переустановить Slack App",
+      "installedWorkspace": "Установлено в {{workspace}}.",
+      "unknownWorkspace": "workspace",
+      "notConfigured": "Перед установкой задайте Slack client ID, client secret и signing secret.",
+      "readyToInstall": "Готово к установке в Slack workspace.",
+      "statusUnavailable": "Статус Slack недоступен."
+    },
     "backendStatus": {
       "title": "Статус backend",
       "description": "Живое состояние FastAPI-рантайма, который обслуживает расчёты, хранилище и опциональные AI-рекомендации.",

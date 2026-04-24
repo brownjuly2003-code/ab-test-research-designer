@@ -110,3 +110,16 @@ def test_settings_reject_workspace_body_limit_smaller_than_general_limit(monkeyp
         get_settings()
 
     get_settings.cache_clear()
+
+
+def test_settings_support_database_url_and_pool_size(monkeypatch) -> None:
+    monkeypatch.setenv("AB_DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/abtest")
+    monkeypatch.setenv("AB_DB_POOL_SIZE", "12")
+    get_settings.cache_clear()
+
+    settings = get_settings()
+
+    assert settings.database_url == "postgresql://postgres:postgres@localhost:5432/abtest"
+    assert settings.db_pool_size == 12
+
+    get_settings.cache_clear()

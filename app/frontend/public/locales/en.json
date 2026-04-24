@@ -883,6 +883,20 @@
       "title": "API keys",
       "loading": "Loading API key manager..."
     },
+    "slackApp": {
+      "title": "Slack App",
+      "description": "Install the two-way Slack App for `/ab-test` commands and review actions.",
+      "checking": "Checking...",
+      "installed": "Installed",
+      "notInstalled": "Not installed",
+      "install": "Install Slack App",
+      "reinstall": "Reinstall Slack App",
+      "installedWorkspace": "Installed in {{workspace}}.",
+      "unknownWorkspace": "workspace",
+      "notConfigured": "Set Slack client ID, client secret, and signing secret before installing.",
+      "readyToInstall": "Ready to install into a Slack workspace.",
+      "statusUnavailable": "Slack status unavailable."
+    },
     "backendStatus": {
       "title": "Backend status",
       "description": "Live health for the FastAPI runtime that serves calculations, storage, and optional AI advice.",

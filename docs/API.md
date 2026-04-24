@@ -290,6 +290,10 @@ Results
 
 Sensitivity
 
+### `GET /api/v1/slack/status`
+
+Slack Status
+
 ### `POST /api/v1/srm-check`
 
 Srm Check
@@ -341,6 +345,26 @@ List Webhook Deliveries
 ### `POST /api/v1/webhooks/{subscription_id}/test`
 
 Test Webhook
+
+### `POST /slack/commands`
+
+Slack Commands
+
+### `POST /slack/events`
+
+Slack Events
+
+### `GET /slack/install`
+
+Slack Install
+
+### `POST /slack/interactive`
+
+Slack Interactive
+
+### `GET /slack/oauth/callback`
+
+Slack Oauth Callback
 
 ## Validation notes
 

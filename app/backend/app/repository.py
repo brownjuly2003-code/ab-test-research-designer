@@ -8,16 +8,31 @@ from pathlib import Path
 import secrets
 import shutil
 import sqlite3
-from typing import Any
+from typing import Any, Protocol
+from urllib.parse import unquote, urlparse
 import uuid
 
 from pydantic import ValidationError
+from psycopg.rows import dict_row
+from psycopg.types.json import Jsonb
+from psycopg_pool import ConnectionPool
 
 from app.backend.app.errors import ApiError
 from app.backend.app.schemas.api import ExperimentInput
 
 
-class ProjectRepository:
+class DatabaseBackend(Protocol):
+    backend_name: str
+    supports_snapshots: bool
+    schema_version: int
+    workspace_schema_version: int
+
+    def set_webhook_service(self, webhook_service: Any | None) -> None: ...
+
+
+class SQLiteBackend:
+    backend_name = "sqlite"
+    supports_snapshots = True
     schema_version = 7
     payload_schema_version = 1
     workspace_schema_version = 3
@@ -94,15 +109,24 @@ class ProjectRepository:
             self._create_audit_tables(connection)
             self._create_api_key_tables(connection)
             self._create_webhook_tables(connection)
+            self._create_slack_tables(connection)
             self._create_template_tables(connection)
             self._migrate_db(connection)
             connection.execute(f"PRAGMA user_version = {self.schema_version}")
 
     @staticmethod
+    def _decode_json_value(value: Any) -> Any:
+        if value is None or isinstance(value, (dict, list)):
+            return value
+        if isinstance(value, str):
+            return json.loads(value)
+        return value
+
+    @staticmethod
     def _row_to_project(row: sqlite3.Row) -> dict:
         project = dict(row)
         payload_json = project.pop("payload_json")
-        project["payload"] = json.loads(payload_json)
+        project["payload"] = SQLiteBackend._decode_json_value(payload_json)
         project["has_analysis_snapshot"] = bool(project.get("last_analysis_run_id"))
         project["is_archived"] = bool(project.get("archived_at"))
         return project
@@ -279,6 +303,27 @@ class ProjectRepository:
         )
 
     @staticmethod
+    def _create_slack_tables(connection: sqlite3.Connection) -> None:
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS slack_installations (
+                team_id TEXT PRIMARY KEY,
+                team_name TEXT,
+                bot_token TEXT NOT NULL,
+                user_token TEXT,
+                installed_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_slack_installations_updated
+            ON slack_installations (updated_at DESC)
+            """
+        )
+
+    @staticmethod
     def _create_template_tables(connection: sqlite3.Connection) -> None:
         connection.execute(
             """
@@ -374,11 +419,12 @@ class ProjectRepository:
             normalized_payload["metrics"] = normalized_metrics
             return json.dumps(normalized_payload)
 
-        ProjectRepository._create_history_tables(connection)
-        ProjectRepository._create_audit_tables(connection)
-        ProjectRepository._create_api_key_tables(connection)
-        ProjectRepository._create_webhook_tables(connection)
-        ProjectRepository._create_template_tables(connection)
+        SQLiteBackend._create_history_tables(connection)
+        SQLiteBackend._create_audit_tables(connection)
+        SQLiteBackend._create_api_key_tables(connection)
+        SQLiteBackend._create_webhook_tables(connection)
+        SQLiteBackend._create_slack_tables(connection)
+        SQLiteBackend._create_template_tables(connection)
         for table_name in ("projects", "project_revisions"):
             rows = connection.execute(
                 f"SELECT id, payload_json FROM {table_name}"
@@ -390,8 +436,8 @@ class ProjectRepository:
                         f"UPDATE {table_name} SET payload_json = ? WHERE id = ?",
                         (normalized_payload_json, row["id"]),
                     )
-        ProjectRepository._backfill_analysis_runs(connection)
-        ProjectRepository._backfill_project_revisions(connection)
+        SQLiteBackend._backfill_analysis_runs(connection)
+        SQLiteBackend._backfill_project_revisions(connection)
 
     @staticmethod
     def _flatten_payload(value: Any, *, prefix: str = "") -> dict[str, Any]:
@@ -399,7 +445,7 @@ class ProjectRepository:
             flattened: dict[str, Any] = {}
             for key in sorted(value.keys()):
                 child_prefix = f"{prefix}.{key}" if prefix else str(key)
-                flattened.update(ProjectRepository._flatten_payload(value[key], prefix=child_prefix))
+                flattened.update(SQLiteBackend._flatten_payload(value[key], prefix=child_prefix))
             return flattened
         if isinstance(value, list):
             return {prefix: value}
@@ -407,8 +453,8 @@ class ProjectRepository:
 
     @staticmethod
     def build_payload_diff(previous_payload: dict[str, Any], next_payload: dict[str, Any]) -> dict[str, list[Any]]:
-        previous = ProjectRepository._flatten_payload(previous_payload)
-        current = ProjectRepository._flatten_payload(next_payload)
+        previous = SQLiteBackend._flatten_payload(previous_payload)
+        current = SQLiteBackend._flatten_payload(next_payload)
         changed_keys = sorted(set(previous.keys()) | set(current.keys()))
         diff: dict[str, list[Any]] = {}
         for key in changed_keys:
@@ -504,7 +550,7 @@ class ProjectRepository:
 
     @classmethod
     def _analysis_row_to_record(cls, row: sqlite3.Row) -> dict:
-        analysis = json.loads(row["analysis_json"])
+        analysis = cls._decode_json_value(row["analysis_json"])
         return {
             "id": row["id"],
             "project_id": row["project_id"],
@@ -519,7 +565,7 @@ class ProjectRepository:
             "id": row["id"],
             "project_id": row["project_id"],
             "created_at": row["created_at"],
-            "analysis": json.loads(row["analysis_json"]),
+            "analysis": SQLiteBackend._decode_json_value(row["analysis_json"]),
         }
 
     @staticmethod
@@ -533,7 +579,7 @@ class ProjectRepository:
             "project_id": row["project_id"],
             "source": row["source"],
             "created_at": row["created_at"],
-            "payload": json.loads(row["payload_json"]),
+            "payload": SQLiteBackend._decode_json_value(row["payload_json"]),
         }
 
     @staticmethod
@@ -562,7 +608,7 @@ class ProjectRepository:
             "target_url": row["target_url"],
             "secret": row["secret"] if include_secret else None,
             "format": row["format"],
-            "event_filter": json.loads(event_filter_raw) if event_filter_raw else [],
+            "event_filter": SQLiteBackend._decode_json_value(event_filter_raw) if event_filter_raw else [],
             "scope": row["scope"],
             "api_key_id": row["api_key_id"],
             "created_at": row["created_at"],
@@ -599,7 +645,7 @@ class ProjectRepository:
             "key_id": row["key_id"],
             "actor": row["actor"],
             "request_id": row["request_id"],
-            "payload_diff": json.loads(payload_diff_json) if payload_diff_json else None,
+            "payload_diff": SQLiteBackend._decode_json_value(payload_diff_json) if payload_diff_json else None,
             "ip_address": row["ip_address"],
         }
 
@@ -996,6 +1042,64 @@ class ProjectRepository:
 
         return self.get_project(project_id, include_archived=True)
 
+    def upsert_slack_installation(
+        self,
+        *,
+        team_id: str,
+        team_name: str | None,
+        bot_token: str,
+        user_token: str | None = None,
+    ) -> dict:
+        timestamp = datetime.now(timezone.utc).isoformat()
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO slack_installations (
+                    team_id,
+                    team_name,
+                    bot_token,
+                    user_token,
+                    installed_at,
+                    updated_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?)
+                ON CONFLICT(team_id) DO UPDATE SET
+                    team_name = excluded.team_name,
+                    bot_token = excluded.bot_token,
+                    user_token = excluded.user_token,
+                    updated_at = excluded.updated_at
+                """,
+                (team_id, team_name, bot_token, user_token, timestamp, timestamp),
+            )
+        installation = self.get_slack_installation(team_id)
+        if installation is None:
+            raise ApiError("Slack installation not found", error_code="slack_installation_not_found", status_code=500)
+        return installation
+
+    def get_slack_installation(self, team_id: str) -> dict | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT team_id, team_name, bot_token, user_token, installed_at, updated_at
+                FROM slack_installations
+                WHERE team_id = ?
+                """,
+                (team_id,),
+            ).fetchone()
+        return dict(row) if row is not None else None
+
+    def get_latest_slack_installation(self) -> dict | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT team_id, team_name, bot_token, user_token, installed_at, updated_at
+                FROM slack_installations
+                ORDER BY updated_at DESC
+                LIMIT 1
+                """
+            ).fetchone()
+        return dict(row) if row is not None else None
+
     @staticmethod
     def _template_row_to_record(row: sqlite3.Row) -> dict[str, Any]:
         return {
@@ -1004,8 +1108,8 @@ class ProjectRepository:
             "category": row["category"],
             "description": row["description"],
             "built_in": bool(row["built_in"]),
-            "tags": json.loads(row["tags_json"]),
-            "payload": json.loads(row["payload_json"]),
+            "tags": SQLiteBackend._decode_json_value(row["tags_json"]),
+            "payload": SQLiteBackend._decode_json_value(row["payload_json"]),
             "usage_count": int(row["usage_count"]),
         }
 
@@ -2540,3 +2644,723 @@ class ProjectRepository:
             return self.get_project(project_id, include_archived=True)
 
         return self.get_project(project_id, include_archived=True)
+
+
+class _PostgresRow(dict[str, Any]):
+    def __init__(self, mapping: dict[str, Any]) -> None:
+        super().__init__(mapping)
+        self._ordered_values = tuple(mapping.values())
+
+    def __getitem__(self, key: object) -> Any:
+        if isinstance(key, int):
+            return self._ordered_values[key]
+        return super().__getitem__(key)
+
+
+class _PostgresCursorResult:
+    def __init__(self, cursor: Any) -> None:
+        self._cursor = cursor
+        self.rowcount = cursor.rowcount
+        self.lastrowid = None
+
+    @staticmethod
+    def _wrap_row(row: Any) -> Any:
+        if row is None or not isinstance(row, dict):
+            return row
+        return _PostgresRow(row)
+
+    def fetchone(self) -> Any:
+        return self._wrap_row(self._cursor.fetchone())
+
+    def fetchall(self) -> list[Any]:
+        return [self._wrap_row(row) for row in self._cursor.fetchall()]
+
+
+class _PooledPostgresConnection:
+    def __init__(self, backend: "PostgresBackend") -> None:
+        self._backend = backend
+        self._connection: Any | None = None
+
+    def __enter__(self) -> "_PooledPostgresConnection":
+        self._connection = self._backend._pool.getconn()
+        self._connection.row_factory = dict_row
+        return self
+
+    def __exit__(self, exc_type, exc, tb) -> None:
+        if self._connection is None:
+            return
+        try:
+            if exc_type is None:
+                self._connection.commit()
+            else:
+                self._connection.rollback()
+        finally:
+            self._backend._pool.putconn(self._connection)
+            self._connection = None
+
+    def execute(self, sql: str, params: Any = None) -> _PostgresCursorResult:
+        if self._connection is None:
+            raise RuntimeError("Postgres connection is not open")
+        cursor = self._connection.execute(
+            self._backend._translate_sql(sql),
+            self._backend._adapt_params(params),
+        )
+        return _PostgresCursorResult(cursor)
+
+
+class PostgresBackend(SQLiteBackend):
+    backend_name = "postgres"
+    supports_snapshots = False
+
+    def __init__(
+        self,
+        database_url: str,
+        *,
+        pool_size: int = 10,
+        workspace_signing_key: str | None = None,
+        **_: Any,
+    ) -> None:
+        self.database_url = database_url
+        self.db_path = Path(".")
+        self.pool_size = max(1, int(pool_size))
+        self.busy_timeout_ms = 0
+        self.journal_mode = "POSTGRES"
+        self.synchronous = "READ COMMITTED"
+        self.workspace_signing_key = workspace_signing_key.strip() if workspace_signing_key else None
+        self.webhook_service: Any | None = None
+        self._pool = ConnectionPool(
+            database_url,
+            min_size=1,
+            max_size=self.pool_size,
+            open=False,
+            kwargs={"autocommit": False, "row_factory": dict_row},
+        )
+        self._pool.open(wait=True)
+        self._init_db()
+
+    def close(self) -> None:
+        self._pool.close()
+
+    def _connect(self) -> _PooledPostgresConnection:
+        return _PooledPostgresConnection(self)
+
+    @staticmethod
+    def _json_extract_expression(column: str, *path: str) -> str:
+        expression = column
+        for part in path[:-1]:
+            expression = f"{expression} -> '{part}'"
+        return f"{expression} ->> '{path[-1]}'"
+
+    @staticmethod
+    def _adapt_param(value: Any) -> Any:
+        if isinstance(value, str):
+            stripped = value.strip()
+            if stripped[:1] in "{[":
+                try:
+                    return Jsonb(json.loads(value))
+                except json.JSONDecodeError:
+                    return value
+        return value
+
+    def _adapt_params(self, params: Any) -> Any:
+        if params is None:
+            return None
+        if isinstance(params, dict):
+            return {key: self._adapt_param(value) for key, value in params.items()}
+        if isinstance(params, (list, tuple)):
+            return tuple(self._adapt_param(value) for value in params)
+        return self._adapt_param(params)
+
+    @staticmethod
+    def _translate_sql(sql: str) -> str:
+        translated = sql.replace("BEGIN IMMEDIATE", "BEGIN")
+        return translated.replace("?", "%s")
+
+    def _init_db(self) -> None:
+        with self._connect() as connection:
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS projects (
+                    id TEXT PRIMARY KEY,
+                    project_name TEXT NOT NULL,
+                    payload_json JSONB NOT NULL,
+                    payload_schema_version INTEGER NOT NULL DEFAULT 1,
+                    archived_at TEXT,
+                    last_analysis_json JSONB,
+                    last_analysis_at TEXT,
+                    last_analysis_run_id TEXT,
+                    last_exported_at TEXT,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS analysis_runs (
+                    id TEXT PRIMARY KEY,
+                    project_id TEXT NOT NULL,
+                    analysis_json JSONB NOT NULL,
+                    created_at TEXT NOT NULL,
+                    FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_analysis_runs_project_created
+                ON analysis_runs (project_id, created_at DESC)
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS export_events (
+                    id TEXT PRIMARY KEY,
+                    project_id TEXT NOT NULL,
+                    analysis_run_id TEXT,
+                    format TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE,
+                    FOREIGN KEY(analysis_run_id) REFERENCES analysis_runs(id) ON DELETE SET NULL
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_export_events_project_created
+                ON export_events (project_id, created_at DESC)
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS project_revisions (
+                    id TEXT PRIMARY KEY,
+                    project_id TEXT NOT NULL,
+                    payload_json JSONB NOT NULL,
+                    source TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_project_revisions_project_created
+                ON project_revisions (project_id, created_at DESC)
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS audit_log (
+                    id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+                    ts TEXT NOT NULL,
+                    action TEXT NOT NULL,
+                    project_id TEXT,
+                    project_name TEXT,
+                    key_id TEXT,
+                    actor TEXT,
+                    request_id TEXT,
+                    payload_diff JSONB,
+                    ip_address TEXT
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_audit_log_created
+                ON audit_log (ts DESC, id DESC)
+                """
+            )
+            connection.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_audit_log_project
+                ON audit_log (project_id, ts DESC, id DESC)
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS api_keys (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    key_hash TEXT NOT NULL UNIQUE,
+                    scope TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    last_used_at TEXT,
+                    revoked_at TEXT,
+                    rate_limit_requests INTEGER,
+                    rate_limit_window_seconds INTEGER
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_api_keys_scope_active
+                ON api_keys (scope, revoked_at, created_at DESC)
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS webhook_subscriptions (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    target_url TEXT NOT NULL,
+                    secret TEXT NOT NULL,
+                    format TEXT NOT NULL,
+                    event_filter JSONB NOT NULL DEFAULT '[]'::jsonb,
+                    scope TEXT NOT NULL,
+                    api_key_id TEXT,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    last_delivered_at TEXT,
+                    last_error_at TEXT,
+                    enabled INTEGER NOT NULL DEFAULT 1,
+                    FOREIGN KEY(api_key_id) REFERENCES api_keys(id) ON DELETE SET NULL
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_webhook_subscriptions_scope_enabled
+                ON webhook_subscriptions (scope, enabled, updated_at DESC)
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS webhook_deliveries (
+                    id TEXT PRIMARY KEY,
+                    subscription_id TEXT NOT NULL,
+                    event_id BIGINT NOT NULL,
+                    status TEXT NOT NULL,
+                    attempt_count INTEGER NOT NULL DEFAULT 0,
+                    last_attempt_at TEXT,
+                    delivered_at TEXT,
+                    response_code INTEGER,
+                    response_body TEXT,
+                    error_message TEXT,
+                    FOREIGN KEY(subscription_id) REFERENCES webhook_subscriptions(id) ON DELETE CASCADE
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS slack_installations (
+                    team_id TEXT PRIMARY KEY,
+                    team_name TEXT,
+                    bot_token TEXT NOT NULL,
+                    user_token TEXT,
+                    installed_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_slack_installations_updated
+                ON slack_installations (updated_at DESC)
+                """
+            )
+            connection.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_subscription
+                ON webhook_deliveries (subscription_id, status, delivered_at DESC, id DESC)
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS project_templates (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    category TEXT NOT NULL,
+                    description TEXT NOT NULL,
+                    built_in INTEGER NOT NULL DEFAULT 0,
+                    tags_json JSONB NOT NULL,
+                    payload_json JSONB NOT NULL,
+                    usage_count INTEGER NOT NULL DEFAULT 0,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_project_templates_usage
+                ON project_templates (built_in DESC, usage_count DESC, updated_at DESC)
+                """
+            )
+            connection.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_projects_metric_type
+                ON projects (((payload_json -> 'metrics' ->> 'metric_type')))
+                """
+            )
+
+    def list_projects(self, *, include_archived: bool = False) -> list[dict]:
+        archived_filter = "" if include_archived else "WHERE projects.archived_at IS NULL"
+        hypothesis_expr = self._json_extract_expression("projects.payload_json", "hypothesis", "hypothesis_statement")
+        metric_expr = self._json_extract_expression("projects.payload_json", "metrics", "metric_type")
+        duration_expr = self._json_extract_expression(
+            "analysis_json",
+            "report",
+            "calculations",
+            "estimated_duration_days",
+        )
+        with self._connect() as connection:
+            rows = connection.execute(
+                f"""
+                SELECT
+                    projects.id,
+                    projects.project_name,
+                    {hypothesis_expr} AS hypothesis,
+                    {metric_expr} AS metric_type,
+                    (
+                        SELECT ({duration_expr})::INTEGER
+                        FROM analysis_runs
+                        WHERE analysis_runs.project_id = projects.id
+                        ORDER BY created_at DESC, id DESC
+                        LIMIT 1
+                    ) AS duration_days,
+                    projects.payload_schema_version,
+                    projects.archived_at,
+                    (
+                        SELECT COUNT(*)
+                        FROM project_revisions
+                        WHERE project_revisions.project_id = projects.id
+                    ) AS revision_count,
+                    (
+                        SELECT MAX(created_at)
+                        FROM project_revisions
+                        WHERE project_revisions.project_id = projects.id
+                    ) AS last_revision_at,
+                    projects.last_analysis_at,
+                    projects.last_analysis_run_id,
+                    projects.last_exported_at,
+                    CASE WHEN projects.last_analysis_run_id IS NOT NULL THEN 1 ELSE 0 END AS has_analysis_snapshot,
+                    CASE WHEN projects.archived_at IS NOT NULL THEN 1 ELSE 0 END AS is_archived,
+                    projects.created_at,
+                    projects.updated_at
+                FROM projects
+                {archived_filter}
+                ORDER BY projects.updated_at DESC
+                """
+            ).fetchall()
+        return [self._project_list_row_to_record(row) for row in rows]
+
+    def query_projects(
+        self,
+        *,
+        q: str | None = None,
+        status: str = "active",
+        metric_type: str = "all",
+        sort_by: str = "updated_at",
+        sort_dir: str = "desc",
+        limit: int = 50,
+        offset: int = 0,
+    ) -> dict:
+        limit = max(1, min(int(limit), 200))
+        offset = max(0, int(offset))
+        normalized_query = q.strip().lower() if isinstance(q, str) else ""
+        normalized_status = status if status in {"active", "archived", "all"} else "active"
+        normalized_metric_type = metric_type if metric_type in {"binary", "continuous", "all"} else "all"
+        normalized_sort_by = sort_by if sort_by in {"created_at", "updated_at", "name", "duration_days"} else "updated_at"
+        normalized_sort_dir = "ASC" if str(sort_dir).lower() == "asc" else "DESC"
+        metric_expr = self._json_extract_expression("projects.payload_json", "metrics", "metric_type")
+        hypothesis_expr = self._json_extract_expression("projects.payload_json", "hypothesis", "hypothesis_statement")
+        change_expr = self._json_extract_expression("projects.payload_json", "hypothesis", "change_description")
+        duration_expr = self._json_extract_expression(
+            "analysis_json",
+            "report",
+            "calculations",
+            "estimated_duration_days",
+        )
+        where_clauses: list[str] = []
+        params: list[object] = []
+
+        if normalized_status == "active":
+            where_clauses.append("projects.archived_at IS NULL")
+        elif normalized_status == "archived":
+            where_clauses.append("projects.archived_at IS NOT NULL")
+
+        if normalized_metric_type != "all":
+            where_clauses.append(f"{metric_expr} = ?")
+            params.append(normalized_metric_type)
+
+        if normalized_query:
+            like_pattern = f"%{normalized_query}%"
+            where_clauses.append(
+                f"""
+                (
+                    lower(projects.project_name) LIKE ?
+                    OR lower(COALESCE({hypothesis_expr}, '')) LIKE ?
+                    OR lower(COALESCE({change_expr}, '')) LIKE ?
+                )
+                """
+            )
+            params.extend([like_pattern, like_pattern, like_pattern])
+
+        where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
+        if normalized_sort_by == "name":
+            order_sql = f"ORDER BY lower(projects.project_name) {normalized_sort_dir}, projects.updated_at DESC"
+        elif normalized_sort_by == "duration_days":
+            order_sql = f"ORDER BY duration_days IS NULL, duration_days {normalized_sort_dir}, projects.updated_at DESC"
+        else:
+            order_column = "projects.created_at" if normalized_sort_by == "created_at" else "projects.updated_at"
+            order_sql = f"ORDER BY {order_column} {normalized_sort_dir}, projects.id DESC"
+
+        with self._connect() as connection:
+            total = connection.execute(
+                f"""
+                SELECT COUNT(*)
+                FROM projects
+                {where_sql}
+                """,
+                params,
+            ).fetchone()[0]
+            rows = connection.execute(
+                f"""
+                SELECT
+                    projects.id,
+                    projects.project_name,
+                    {hypothesis_expr} AS hypothesis,
+                    {metric_expr} AS metric_type,
+                    (
+                        SELECT ({duration_expr})::INTEGER
+                        FROM analysis_runs
+                        WHERE analysis_runs.project_id = projects.id
+                        ORDER BY created_at DESC, id DESC
+                        LIMIT 1
+                    ) AS duration_days,
+                    projects.payload_schema_version,
+                    projects.archived_at,
+                    (
+                        SELECT COUNT(*)
+                        FROM project_revisions
+                        WHERE project_revisions.project_id = projects.id
+                    ) AS revision_count,
+                    (
+                        SELECT MAX(created_at)
+                        FROM project_revisions
+                        WHERE project_revisions.project_id = projects.id
+                    ) AS last_revision_at,
+                    projects.last_analysis_at,
+                    projects.last_analysis_run_id,
+                    projects.last_exported_at,
+                    CASE WHEN projects.last_analysis_run_id IS NOT NULL THEN 1 ELSE 0 END AS has_analysis_snapshot,
+                    CASE WHEN projects.archived_at IS NOT NULL THEN 1 ELSE 0 END AS is_archived,
+                    projects.created_at,
+                    projects.updated_at
+                FROM projects
+                {where_sql}
+                {order_sql}
+                LIMIT ?
+                OFFSET ?
+                """,
+                [*params, limit, offset],
+            ).fetchall()
+
+        return {
+            "projects": [self._project_list_row_to_record(row) for row in rows],
+            "total": int(total),
+            "offset": offset,
+            "limit": limit,
+            "has_more": (offset + len(rows)) < int(total),
+        }
+
+    def list_templates(self) -> list[dict[str, Any]]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT id, name, category, description, built_in, tags_json, payload_json, usage_count
+                FROM project_templates
+                ORDER BY built_in DESC, usage_count DESC, lower(name) ASC
+                """
+            ).fetchall()
+        return [self._template_row_to_record(row) for row in rows]
+
+    def log_audit_entry(
+        self,
+        *,
+        action: str,
+        key_id: str | None = None,
+        actor: str,
+        request_id: str | None,
+        ip_address: str | None,
+        project_id: str | None = None,
+        project_name: str | None = None,
+        payload_diff: dict[str, list[Any]] | None = None,
+        ts: str | None = None,
+        dispatch_webhooks: bool = True,
+    ) -> dict[str, Any]:
+        timestamp = ts or datetime.now(timezone.utc).isoformat()
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                INSERT INTO audit_log (
+                    ts,
+                    action,
+                    project_id,
+                    project_name,
+                    key_id,
+                    actor,
+                    request_id,
+                    payload_diff,
+                    ip_address
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                RETURNING id, ts, action, project_id, project_name, key_id, actor, request_id, payload_diff, ip_address
+                """,
+                (
+                    timestamp,
+                    action,
+                    project_id,
+                    project_name,
+                    key_id,
+                    actor,
+                    request_id,
+                    json.dumps(payload_diff) if payload_diff else None,
+                    ip_address,
+                ),
+            ).fetchone()
+
+        if row is None:
+            raise ApiError("Audit event not found", error_code="audit_event_not_found", status_code=500)
+        event = self._audit_row_to_record(row)
+        if dispatch_webhooks and self.webhook_service is not None:
+            try:
+                self.webhook_service.dispatch_audit_event(event)
+            except Exception:
+                pass
+        return event
+
+    def get_diagnostics_summary(self) -> dict:
+        parsed = urlparse(self.database_url)
+        write_probe_ok, write_probe_detail = self._run_write_probe()
+
+        with self._connect() as connection:
+            db_size_bytes = connection.execute(
+                "SELECT pg_database_size(current_database()) AS db_size_bytes"
+            ).fetchone()["db_size_bytes"]
+            projects_total = connection.execute(
+                "SELECT COUNT(*) FROM projects WHERE archived_at IS NULL"
+            ).fetchone()[0]
+            archived_projects_total = connection.execute(
+                "SELECT COUNT(*) FROM projects WHERE archived_at IS NOT NULL"
+            ).fetchone()[0]
+            analysis_runs_total = connection.execute(
+                "SELECT COUNT(*) FROM analysis_runs"
+            ).fetchone()[0]
+            export_events_total = connection.execute(
+                "SELECT COUNT(*) FROM export_events"
+            ).fetchone()[0]
+            project_revisions_total = connection.execute(
+                "SELECT COUNT(*) FROM project_revisions"
+            ).fetchone()[0]
+            latest_project_updated_at_row = connection.execute(
+                "SELECT MAX(updated_at) AS updated_at FROM projects"
+            ).fetchone()
+
+        return {
+            "db_path": self.database_url,
+            "db_parent_path": parsed.netloc,
+            "db_exists": True,
+            "db_size_bytes": int(db_size_bytes),
+            "disk_free_bytes": 0,
+            "schema_version": self.schema_version,
+            "sqlite_user_version": self.schema_version,
+            "busy_timeout_ms": 0,
+            "journal_mode": "POSTGRES",
+            "synchronous": "READ COMMITTED",
+            "write_probe_ok": write_probe_ok,
+            "write_probe_detail": write_probe_detail,
+            "projects_total": int(projects_total),
+            "archived_projects_total": int(archived_projects_total),
+            "analysis_runs_total": int(analysis_runs_total),
+            "export_events_total": int(export_events_total),
+            "project_revisions_total": int(project_revisions_total),
+            "workspace_bundle_schema_version": self.workspace_schema_version,
+            "workspace_signature_enabled": self.workspace_signing_key is not None,
+            "latest_project_updated_at": (
+                latest_project_updated_at_row["updated_at"]
+                if latest_project_updated_at_row is not None
+                else None
+            ),
+        }
+
+    def _run_write_probe(self) -> tuple[bool, str]:
+        try:
+            with self._connect() as connection:
+                connection.execute("BEGIN")
+                connection.execute("ROLLBACK")
+            return True, "BEGIN succeeded"
+        except Exception as exc:
+            return False, str(exc)
+
+
+def _sqlite_path_from_database_url(database_url: str) -> str:
+    parsed = urlparse(database_url)
+    if parsed.scheme != "sqlite":
+        return database_url
+    if parsed.netloc and parsed.path:
+        return unquote(f"{parsed.netloc}{parsed.path}")
+    if parsed.path:
+        resolved_path = unquote(parsed.path)
+        if len(resolved_path) >= 4 and resolved_path[0] == "/" and resolved_path[2] == ":":
+            return resolved_path[1:]
+        return resolved_path
+    return database_url.removeprefix("sqlite:///")
+
+
+def create_backend(
+    database_url: str,
+    *,
+    busy_timeout_ms: int = 5000,
+    journal_mode: str = "WAL",
+    synchronous: str = "NORMAL",
+    workspace_signing_key: str | None = None,
+    pool_size: int = 10,
+) -> DatabaseBackend:
+    parsed = urlparse(database_url)
+    if parsed.scheme in {"postgres", "postgresql"}:
+        return PostgresBackend(
+            database_url,
+            pool_size=pool_size,
+            workspace_signing_key=workspace_signing_key,
+        )
+    return SQLiteBackend(
+        _sqlite_path_from_database_url(database_url),
+        busy_timeout_ms=busy_timeout_ms,
+        journal_mode=journal_mode,
+        synchronous=synchronous,
+        workspace_signing_key=workspace_signing_key,
+    )
+
+
+class ProjectRepository:
+    def __init__(
+        self,
+        database_url: str,
+        *,
+        busy_timeout_ms: int = 5000,
+        journal_mode: str = "WAL",
+        synchronous: str = "NORMAL",
+        workspace_signing_key: str | None = None,
+        pool_size: int = 10,
+    ) -> None:
+        self._backend = create_backend(
+            database_url,
+            busy_timeout_ms=busy_timeout_ms,
+            journal_mode=journal_mode,
+            synchronous=synchronous,
+            workspace_signing_key=workspace_signing_key,
+            pool_size=pool_size,
+        )
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._backend, name)
+
+    def set_webhook_service(self, webhook_service: Any | None) -> None:
+        self._backend.set_webhook_service(webhook_service)
+
+    def close(self) -> None:
+        backend_close = getattr(self._backend, "close", None)
+        if callable(backend_close):
+            backend_close()

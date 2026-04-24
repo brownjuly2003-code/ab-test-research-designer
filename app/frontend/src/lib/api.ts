@@ -129,6 +129,13 @@ export type WebhookTestResponse = {
   status: WebhookDeliveryStatus;
   response_code?: number | null;
 };
+export type SlackStatusResponse = {
+  configured: boolean;
+  installed: boolean;
+  team_id?: string | null;
+  team_name?: string | null;
+  installed_at?: string | null;
+};
 export type SrmCheckRequest = {
   observed_counts: number[];
   expected_fractions: number[];
@@ -725,6 +732,23 @@ export async function listWebhooksRequest(): Promise<WebhookListResponse> {
   }
 
   return data;
+}
+
+export async function requestSlackStatus(): Promise<SlackStatusResponse> {
+  const response = await fetch(apiUrl("/api/v1/slack/status"), {
+    headers: buildHeaders()
+  });
+  const data = await readJson<SlackStatusResponse & ApiErrorResponse>(response);
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(data, response, "Slack status request failed"));
+  }
+
+  return data;
+}
+
+export function slackInstallUrl(): string {
+  return apiUrl("/slack/install");
 }
 
 export async function createWebhookRequest(payload: WebhookCreateRequest): Promise<WebhookSubscriptionRecord> {

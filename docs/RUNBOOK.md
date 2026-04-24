@@ -45,6 +45,15 @@ set AB_WORKSPACE_SIGNING_KEY=replace-with-a-long-random-secret
 docker compose up --build
 ```
 
+Docker with Slack App credentials:
+
+```bash
+set AB_SLACK_CLIENT_ID=your-client-id
+set AB_SLACK_CLIENT_SECRET=your-client-secret
+set AB_SLACK_SIGNING_SECRET=your-signing-secret
+docker compose up --build
+```
+
 Security-hardening knobs:
 
 ```bash
@@ -54,6 +63,32 @@ set AB_AUTH_FAILURE_LIMIT=20
 set AB_MAX_REQUEST_BODY_BYTES=1048576
 set AB_MAX_WORKSPACE_BODY_BYTES=8388608
 docker compose up --build
+```
+
+## Postgres deployment
+
+Use Postgres when the backend must support concurrent writers, multiple app instances, or database-native replication. Leave `AB_DATABASE_URL` empty to keep the default SQLite workflow.
+
+Minimal env:
+
+```bash
+set AB_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/abtest
+set AB_DB_POOL_SIZE=10
+python -m uvicorn app.backend.app.main:app --host 127.0.0.1 --port 8008
+```
+
+Notes:
+
+- schema bootstrapping is automatic on startup via idempotent `CREATE TABLE IF NOT EXISTS`
+- SQLite-specific snapshot sync stays disabled on Postgres runtimes
+- `AB_DB_POOL_SIZE` controls the psycopg connection pool; increase it for multi-worker deploys
+- `AB_DB_PATH`, `AB_SQLITE_BUSY_TIMEOUT_MS`, `AB_SQLITE_JOURNAL_MODE`, and `AB_SQLITE_SYNCHRONOUS` still apply only to SQLite
+
+Migration guide from SQLite:
+
+```bash
+sqlite3 D:\AB_TEST\app\backend\data\projects.sqlite3 .dump > workspace.sql
+psql postgresql://postgres:postgres@localhost:5432/abtest -f workspace.sql
 ```
 
 ## Demo seeding on Hugging Face
@@ -328,6 +363,35 @@ Inspect recent failed deliveries:
 curl "http://127.0.0.1:8008/api/v1/webhooks/WEBHOOK_ID/deliveries?limit=50&status=failed" \
   -H "Authorization: Bearer YOUR_AB_ADMIN_TOKEN"
 ```
+
+## Slack App deployment
+
+Use `slack/app-manifest.yml` for Slack UI import or `slack manifest validate`. Replace `{DEPLOY_HOST}` with the HTTPS backend host before importing.
+
+Required runtime secrets:
+
+- `AB_SLACK_CLIENT_ID`
+- `AB_SLACK_CLIENT_SECRET`
+- `AB_SLACK_SIGNING_SECRET`
+
+Useful endpoints:
+
+- `GET /slack/install`
+- `GET /slack/oauth/callback`
+- `POST /slack/commands`
+- `POST /slack/interactive`
+- `POST /slack/events`
+- `GET /api/v1/slack/status`
+
+Smoke check:
+
+```bash
+curl http://127.0.0.1:8008/api/v1/slack/status
+```
+
+After installation, run `/ab-test projects` in Slack and verify the response lists saved projects. Slack requests are rejected when `X-Slack-Signature` is invalid or the timestamp is older than five minutes.
+
+Rotate secrets from the Slack App configuration, update runtime secrets, restart the backend, delete the affected `slack_installations` row when replacing bot tokens, then reinstall through `/slack/install`.
 
 ## Adding a new locale
 

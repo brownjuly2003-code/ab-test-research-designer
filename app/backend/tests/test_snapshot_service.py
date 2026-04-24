@@ -240,3 +240,52 @@ def test_startup_without_snapshot_env_skips_snapshot_logic(monkeypatch, app_env:
 
     snapshot_service_cls.assert_not_called()
     assert "snapshot: disabled (env not set)" in capsys.readouterr().err
+
+
+def test_create_app_passes_database_url_and_pool_size_to_repository(monkeypatch, app_env: Path) -> None:
+    monkeypatch.setenv("AB_DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/abtest")
+    monkeypatch.setenv("AB_DB_POOL_SIZE", "12")
+    monkeypatch.setenv("AB_SEED_DEMO_ON_STARTUP", "false")
+    get_settings.cache_clear()
+
+    repository = MagicMock()
+    repository.has_api_keys.return_value = False
+    repository.supports_snapshots = False
+
+    with patch("app.backend.app.main.ProjectRepository", return_value=repository) as repository_cls:
+        with patch("app.backend.app.main.WebhookService") as webhook_service_cls:
+            webhook_service = webhook_service_cls.return_value
+            webhook_service.shutdown.return_value = None
+
+            with TestClient(create_app()):
+                pass
+
+    repository_cls.assert_called_once()
+    assert repository_cls.call_args.args[0] == "postgresql://postgres:postgres@localhost:5432/abtest"
+    assert repository_cls.call_args.kwargs["pool_size"] == 12
+
+
+def test_startup_with_postgres_database_url_skips_snapshot_logic(monkeypatch, app_env: Path, capsys) -> None:
+    monkeypatch.setenv("AB_DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/abtest")
+    monkeypatch.setenv("AB_SEED_DEMO_ON_STARTUP", "true")
+    monkeypatch.setenv("AB_HF_SNAPSHOT_REPO", "liovina/ab-test-designer-snapshots")
+    monkeypatch.setenv("AB_HF_TOKEN", "hf_test_token")
+    get_settings.cache_clear()
+
+    repository = MagicMock()
+    repository.has_api_keys.return_value = False
+    repository.supports_snapshots = False
+    repository.backend_name = "postgres"
+
+    with patch("app.backend.app.main.ProjectRepository", return_value=repository):
+        with patch("app.backend.app.main.WebhookService") as webhook_service_cls:
+            webhook_service = webhook_service_cls.return_value
+            webhook_service.shutdown.return_value = None
+            with patch("app.backend.app.main.SnapshotService") as snapshot_service_cls:
+                with patch("app.backend.app.main.seed_demo_workspace") as seed_demo_workspace:
+                    with TestClient(create_app()):
+                        pass
+
+    snapshot_service_cls.assert_not_called()
+    seed_demo_workspace.assert_called_once()
+    assert "snapshot: disabled for backend postgres" in capsys.readouterr().err
