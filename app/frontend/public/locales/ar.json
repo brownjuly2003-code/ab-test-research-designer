@@ -1186,6 +1186,20 @@
       "adminTokenAccepted": "تم قبول رمز المشرف لإدارة المفاتيح API في جلسة المتصفح هذه.",
       "adminTokenVerificationFailed": "فشل التحقق من الرمز المميز للمشرف.",
       "adminTokenCleared": "تم مسح رمز المشرف المميز من جلسة المتصفح هذه."
+    },
+    "slackApp": {
+      "title": "تطبيق Slack",
+      "description": "ثبّت تطبيق Slack ثنائي الاتجاه لأوامر `/ab-test` وإجراءات المراجعة.",
+      "checking": "جارٍ التحقق...",
+      "installed": "مُثبَّت",
+      "notInstalled": "غير مُثبَّت",
+      "install": "تثبيت تطبيق Slack",
+      "reinstall": "إعادة تثبيت تطبيق Slack",
+      "installedWorkspace": "مُثبَّت في {{workspace}}.",
+      "unknownWorkspace": "مساحة العمل",
+      "notConfigured": "حدِّد معرّف عميل Slack وسر العميل وسر التوقيع قبل التثبيت.",
+      "readyToInstall": "جاهز للتثبيت في مساحة عمل Slack.",
+      "statusUnavailable": "حالة Slack غير متوفرة."
     }
   }
 }

@@ -137,7 +137,10 @@ def create_app() -> FastAPI:
             async def run_snapshot_loop() -> None:
                 while True:
                     await asyncio.sleep(snapshot_interval_seconds)
-                    await snapshot_service.push_snapshot()
+                    try:
+                        await snapshot_service.push_snapshot()
+                    except Exception:
+                        logger.exception("snapshot: periodic push failed")
 
             snapshot_task = asyncio.create_task(run_snapshot_loop())
         yield
@@ -167,8 +170,8 @@ def create_app() -> FastAPI:
             "It combines calculations, project storage, audit history, export flows, "
             "and optional local AI advice while preserving legacy shared-token access."
         ),
-        contact={"name": "AB Test Research Designer", "email": "support@example.invalid"},
-        license_info={"name": "UNLICENSED"},
+        contact={"name": "AB Test Research Designer"},
+        license_info={"name": "MIT", "identifier": "MIT"},
         docs_url="/docs",
         redoc_url="/redoc",
         openapi_url="/openapi.json",

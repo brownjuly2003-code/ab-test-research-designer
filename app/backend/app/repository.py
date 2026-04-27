@@ -2485,6 +2485,7 @@ class SQLiteBackend:
         imported_revision_count = 0
 
         with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
             for project in imported_projects:
                 old_project_id = project["id"]
                 connection.execute(

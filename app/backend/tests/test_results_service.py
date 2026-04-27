@@ -135,6 +135,64 @@ def test_results_endpoint_continuous_significant() -> None:
     assert payload["observed_effect"] == pytest.approx(2.5, abs=0.01)
 
 
+def test_results_endpoint_continuous_uses_student_t_for_small_samples() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/results",
+        json={
+            "metric_type": "continuous",
+            "continuous": {
+                "control_mean": 10.0,
+                "control_std": 2.0,
+                "control_n": 10,
+                "treatment_mean": 11.5,
+                "treatment_std": 2.0,
+                "treatment_n": 10,
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+
+    assert payload["test_statistic"] == pytest.approx(1.6771, abs=0.001)
+    assert payload["p_value"] == pytest.approx(0.110812, abs=1e-4)
+    assert payload["is_significant"] is False
+
+    ci_half = (payload["ci_upper"] - payload["ci_lower"]) / 2
+    assert ci_half == pytest.approx(1.879122, abs=1e-3)
+
+    assert payload["p_value"] > 0.10
+    assert ci_half > 1.80
+
+    assert payload["power_achieved"] == pytest.approx(0.339, abs=0.01)
+
+
+def test_results_endpoint_continuous_converges_to_normal_for_large_samples() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/results",
+        json={
+            "metric_type": "continuous",
+            "continuous": {
+                "control_mean": 100.0,
+                "control_std": 15.0,
+                "control_n": 50000,
+                "treatment_mean": 100.5,
+                "treatment_std": 15.0,
+                "treatment_n": 50000,
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["is_significant"] is True
+    assert payload["p_value"] < 1e-5
+
+
 def test_project_update_can_persist_saved_observed_results() -> None:
     client = TestClient(create_app())
     create_response = client.post("/api/v1/projects", json=_project_payload("Observed results"))

@@ -8,6 +8,7 @@ from app.backend.app.schemas.api import (
     ResultsResponse,
 )
 from app.backend.app.stats.binary import normal_ppf
+from app.backend.app.stats.student_t import t_cdf, t_ppf
 
 _STANDARD_NORMAL = NormalDist()
 
@@ -105,11 +106,14 @@ def _analyze_continuous(obs: ObservedResultsContinuous | None) -> ResultsRespons
     test_statistic = effect / standard_error
     degrees_of_freedom = _welch_df(obs)
     p_value = 2 * (1 - t_cdf(abs(test_statistic), degrees_of_freedom))
-    z_critical = normal_ppf(1 - obs.alpha / 2)
-    ci_lower = effect - z_critical * standard_error
-    ci_upper = effect + z_critical * standard_error
+    t_critical = t_ppf(1 - obs.alpha / 2, degrees_of_freedom)
+    ci_lower = effect - t_critical * standard_error
+    ci_upper = effect + t_critical * standard_error
     relative_effect = (effect / obs.control_mean * 100) if obs.control_mean != 0 else 0.0
     is_significant = p_value < obs.alpha
+    upper_tail = 1.0 - t_cdf(t_critical - abs(test_statistic), degrees_of_freedom)
+    lower_tail = t_cdf(-t_critical - abs(test_statistic), degrees_of_freedom)
+    power_achieved = upper_tail + lower_tail
 
     return ResultsResponse(
         metric_type="continuous",
@@ -121,7 +125,7 @@ def _analyze_continuous(obs: ObservedResultsContinuous | None) -> ResultsRespons
         p_value=round(_bounded_probability(p_value), 6),
         test_statistic=round(test_statistic, 4),
         is_significant=is_significant,
-        power_achieved=0.0,
+        power_achieved=round(_bounded_probability(power_achieved), 3),
         verdict=_verdict(is_significant, effect, obs.alpha),
         interpretation=(
             f"Treatment mean {obs.treatment_mean:.4f} vs control {obs.control_mean:.4f}. "
@@ -133,12 +137,6 @@ def _analyze_continuous(obs: ObservedResultsContinuous | None) -> ResultsRespons
 
 def standard_normal_cdf(value: float) -> float:
     return _STANDARD_NORMAL.cdf(value)
-
-
-def t_cdf(value: float, df: float) -> float:
-    if not math.isfinite(df) or df <= 0:
-        return standard_normal_cdf(value)
-    return standard_normal_cdf(value)
 
 
 def _welch_df(obs: ObservedResultsContinuous) -> float:

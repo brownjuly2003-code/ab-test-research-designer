@@ -1186,6 +1186,20 @@
       "adminTokenAccepted": "Jeton d'administrateur accepté pour la gestion des clés API dans cette session de navigateur.",
       "adminTokenVerificationFailed": "La vérification du jeton d'administrateur a échoué.",
       "adminTokenCleared": "Jeton d'administrateur effacé de cette session de navigateur."
+    },
+    "slackApp": {
+      "title": "Application Slack",
+      "description": "Installez l'application Slack bidirectionnelle pour les commandes `/ab-test` et les actions de relecture.",
+      "checking": "Vérification...",
+      "installed": "Installée",
+      "notInstalled": "Non installée",
+      "install": "Installer l'application Slack",
+      "reinstall": "Réinstaller l'application Slack",
+      "installedWorkspace": "Installée dans {{workspace}}.",
+      "unknownWorkspace": "espace de travail",
+      "notConfigured": "Définissez l'ID client, le secret client et le signing secret Slack avant l'installation.",
+      "readyToInstall": "Prête à être installée dans un espace de travail Slack.",
+      "statusUnavailable": "Statut Slack indisponible."
     }
   }
 }

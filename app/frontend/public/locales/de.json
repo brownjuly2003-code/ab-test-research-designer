@@ -1186,6 +1186,20 @@
       "adminTokenAccepted": "Admin-Token für API-Schlüsselverwaltung in dieser Browsersitzung akzeptiert.",
       "adminTokenVerificationFailed": "Die Überprüfung des Admin-Tokens ist fehlgeschlagen.",
       "adminTokenCleared": "Admin-Token aus dieser Browsersitzung gelöscht."
+    },
+    "slackApp": {
+      "title": "Slack-App",
+      "description": "Installiere die bidirektionale Slack-App für `/ab-test`-Befehle und Review-Aktionen.",
+      "checking": "Wird geprüft...",
+      "installed": "Installiert",
+      "notInstalled": "Nicht installiert",
+      "install": "Slack-App installieren",
+      "reinstall": "Slack-App neu installieren",
+      "installedWorkspace": "Installiert in {{workspace}}.",
+      "unknownWorkspace": "Workspace",
+      "notConfigured": "Lege Slack-Client-ID, Client-Secret und Signing-Secret vor der Installation fest.",
+      "readyToInstall": "Bereit zur Installation in einem Slack-Workspace.",
+      "statusUnavailable": "Slack-Status nicht verfügbar."
     }
   }
 }

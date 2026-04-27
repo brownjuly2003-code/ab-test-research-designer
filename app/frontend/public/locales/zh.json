@@ -1186,6 +1186,20 @@
       "adminTokenAccepted": "在此浏览器会话中接受用于 API 密钥管理的管理令牌。",
       "adminTokenVerificationFailed": "管理员令牌验证失败。",
       "adminTokenCleared": "从此浏览器会话中清除了管理令牌。"
+    },
+    "slackApp": {
+      "title": "Slack 应用",
+      "description": "安装双向 Slack 应用以使用 `/ab-test` 命令和复核操作。",
+      "checking": "检查中...",
+      "installed": "已安装",
+      "notInstalled": "未安装",
+      "install": "安装 Slack 应用",
+      "reinstall": "重新安装 Slack 应用",
+      "installedWorkspace": "已安装到 {{workspace}}。",
+      "unknownWorkspace": "工作区",
+      "notConfigured": "在安装前设置 Slack 客户端 ID、客户端密钥和签名密钥。",
+      "readyToInstall": "可安装到 Slack 工作区。",
+      "statusUnavailable": "Slack 状态不可用。"
     }
   }
 }

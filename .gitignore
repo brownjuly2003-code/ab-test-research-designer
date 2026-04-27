@@ -13,6 +13,7 @@ venv/
 
 # caches
 .pytest_cache/
+.pytest_basetemp/
 .mypy_cache/
 .hypothesis/
 .qa/

@@ -57,6 +57,7 @@ nav:
       - Webhooks: features/webhooks.md
       - Slack: features/slack.md
       - Localization: features/localization.md
+      - Database: features/database.md
   - Reference:
       - REST API: reference/api.md
       - Architecture: reference/architecture.md
