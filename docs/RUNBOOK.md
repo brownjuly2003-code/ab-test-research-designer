@@ -420,3 +420,10 @@ The backend bundle is small (one JSON per locale); the frontend bundle impact de
 - run workspace roundtrip verification: `python scripts/verify_workspace_backup.py --fixture`
 - run full verify pipeline
 - refresh smoke screenshots if UI changed materially
+
+## Local cleanup
+
+`python scripts/cleanup_test_artifacts.py` (use `--dry-run` first) removes
+local pytest temp dirs, `.coverage`, the cxkm sandbox, and the mkdocs `site/`
+build. Everything it touches is recreated on the next test/build run; no
+tracked content is affected.
