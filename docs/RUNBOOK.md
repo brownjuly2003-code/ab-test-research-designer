@@ -393,6 +393,17 @@ After installation, run `/ab-test projects` in Slack and verify the response lis
 
 Rotate secrets from the Slack App configuration, update runtime secrets, restart the backend, delete the affected `slack_installations` row when replacing bot tokens, then reinstall through `/slack/install`.
 
+### Slack OAuth tokens at rest
+
+`slack_installations.bot_token` and `slack_installations.user_token` are stored **plaintext** in SQLite (or Postgres if `AB_DATABASE_URL` is set). The threat model is local-first single-user use, where access to the SQLite file already implies host compromise. Specifically:
+
+- `data/projects.sqlite3` and any custom `AB_DB_PATH` should sit on a filesystem that only the application user can read.
+- Hugging Face Spaces and similar hosted demos: do **not** install Slack in production-grade workspaces from the demo. Use a sandbox Slack workspace or skip the integration.
+- For a self-hosted production deployment, restrict access to the database file at the filesystem layer (e.g. `chmod 600`, encrypted volume, AWS KMS-backed EFS), and rotate Slack tokens promptly if compromise is suspected.
+- Token rotation: re-run `/slack/install` to overwrite the row; the previous token becomes inactive in Slack as well.
+
+If you need encrypted-at-rest storage, the recommended path is to enable filesystem-level or volume-level encryption on the host rather than column-level encryption in the application — the latter requires its own KEK management and adds a recovery failure mode without changing the practical attacker model for a host with running write access.
+
 ## Adding a new locale
 
 The project ships with seven locales: `en`, `ru`, `de`, `es`, `fr`, `zh`, `ar`. Adding a new one takes a matching pair of JSON files plus registration, switcher, and verification touches.
@@ -427,3 +438,13 @@ The backend bundle is small (one JSON per locale); the frontend bundle impact de
 local pytest temp dirs, `.coverage`, the cxkm sandbox, and the mkdocs `site/`
 build. Everything it touches is recreated on the next test/build run; no
 tracked content is affected.
+
+## Screenshots
+
+Single source of truth is `docs/demo/`, populated by
+`scripts/run_local_smoke.py`. The mkdocs site keeps its own copies in
+`docs-site/assets/screenshots/` because mkdocs only serves files under
+`docs_dir`. After regenerating screenshots, run
+`python scripts/sync_doc_screenshots.py` to mirror them; CI does this
+automatically before `mkdocs gh-deploy`. Files unique to docs-site
+(currently `comparison-distribution-view.png`) are left untouched.
