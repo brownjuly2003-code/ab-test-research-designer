@@ -92,7 +92,7 @@ import {
   sections,
   type FullPayload
 } from "./lib/experiment";
-import { changeFiles, changeValue, click, findButton, findButtonByAriaLabel, flushEffects, renderIntoDocument } from "./test/dom";
+import { changeFiles, changeValue, click, findButton, findButtonByAriaLabel, flushEffects, mockBlobDownloadGlobals, renderIntoDocument } from "./test/dom";
 
 const apiSessionTokenStorageKey = "ab-test-research-designer:api-token:v1";
 const themeStorageKey = "ab-test-research-designer:theme:v1";
@@ -559,13 +559,9 @@ async function openSystemTab(view: AppView) {
 
 describe("App UI flow", () => {
   beforeEach(() => {
-    vi.stubGlobal("URL", {
-      createObjectURL: vi.fn(() => "blob:test"),
-      revokeObjectURL: vi.fn()
-    });
+    mockBlobDownloadGlobals();
     window.sessionStorage.clear();
     window.localStorage.clear();
-    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
     vi.mocked(hasAdminSessionToken).mockImplementation(
       () => window.sessionStorage.getItem("ab-test-research-designer:admin-token:v1") !== null
     );

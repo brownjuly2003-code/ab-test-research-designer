@@ -2,6 +2,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { mockBlobDownloadGlobals } from "../test/dom";
 import { downloadChartPng, downloadChartSvg } from "./ChartExport";
 
 function buildSvg(width = "320", height = "180") {
@@ -20,11 +21,7 @@ function buildSvg(width = "320", height = "180") {
 
 describe("ChartExport", () => {
   beforeEach(() => {
-    vi.stubGlobal("URL", {
-      createObjectURL: vi.fn(() => "blob:chart"),
-      revokeObjectURL: vi.fn()
-    });
-    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    mockBlobDownloadGlobals("blob:chart");
   });
 
   afterEach(() => {

@@ -1,7 +1,16 @@
 import { act, type ReactElement } from "react";
 import { createRoot } from "react-dom/client";
+import { vi } from "vitest";
 
 Reflect.set(globalThis, "IS_REACT_ACT_ENVIRONMENT", true);
+
+export function mockBlobDownloadGlobals(objectUrl = "blob:test"): void {
+  vi.stubGlobal("URL", {
+    createObjectURL: vi.fn(() => objectUrl),
+    revokeObjectURL: vi.fn()
+  });
+  vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+}
 
 type RenderResult = {
   container: HTMLDivElement;
