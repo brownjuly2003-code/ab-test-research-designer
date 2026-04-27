@@ -11,8 +11,8 @@ The backend reads its runtime settings from environment variables. The frontend 
 | `AB_ENV` | `local` | Labels the current environment such as `local`, `demo`, or `production`. |
 | `AB_HOST` | `127.0.0.1` | Backend bind host. Use `0.0.0.0` in containers. |
 | `AB_PORT` | `8008` | Backend listen port. |
-| `AB_DB_PATH` | repo-local SQLite file | Path to the SQLite workspace database. |
-| `AB_FRONTEND_DIST_PATH` | `app/frontend/dist` | Location of the built frontend when FastAPI serves static assets. |
+| `AB_DB_PATH` | absolute path to `<repo>/app/backend/data/projects.sqlite3` (computed from package location) | Override only with an **absolute** path. Bare relative paths break through `Path.as_posix()` → `sqlite:///app/...` resolving to absolute `/app/...`. |
+| `AB_FRONTEND_DIST_PATH` | absolute path to `<repo>/app/frontend/dist` (computed from package location) | Override only with an absolute path. |
 | `AB_SERVE_FRONTEND_DIST` | `true` | Enables same-origin serving of the built frontend. |
 
 ## CORS and frontend wiring
@@ -75,11 +75,10 @@ For Hugging Face Spaces, set `AB_SEED_DEMO_ON_STARTUP=true` in the Space Setting
 
 ## Minimal examples
 
-Local development:
+Local development (`AB_DB_PATH` left unset — backend uses the absolute default inside the package):
 
 ```bash
 set AB_ENV=local
-set AB_DB_PATH=D:\AB_TEST\app\backend\data\projects.sqlite3
 set AB_PORT=8008
 ```
 

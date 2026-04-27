@@ -21,10 +21,13 @@ Use Postgres when:
 
 ## Configuration
 
-SQLite remains the default when `AB_DATABASE_URL` is empty.
+SQLite remains the default when `AB_DATABASE_URL` is empty. The backend computes the database path from the package location, so `AB_DB_PATH` only needs to be set if you want the file to live somewhere else, and the override must be an **absolute** path:
 
 ```bash
-set AB_DB_PATH=D:\AB_TEST\app\backend\data\projects.sqlite3
+# Linux/macOS
+export AB_DB_PATH=/var/lib/ab-test-research-designer/projects.sqlite3
+# Windows
+set AB_DB_PATH=C:\AB_TEST\data\projects.sqlite3
 ```
 
 Switch to Postgres with:

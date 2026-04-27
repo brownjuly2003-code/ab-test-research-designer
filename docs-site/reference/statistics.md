@@ -8,6 +8,8 @@ The product combines fixed-horizon sizing, optional Bayesian precision planning,
 | --- | --- | --- |
 | Binary fixed-horizon sizing | `POST /api/v1/calculate` for binary metrics | Uses a two-sided normal approximation for difference in proportions and returns per-variant sample size, total sample, and duration. |
 | Continuous fixed-horizon sizing | `POST /api/v1/calculate` for continuous metrics | Uses a two-sample mean comparison with equal-sized variants and relative MDE over the baseline mean. |
+| Binary post-test analysis | `POST /api/v1/results` for binary observed counts | Two-proportion z-test on pooled SE; returns p-value, Wald CI on the difference, observed power, and a verdict at the supplied alpha. |
+| Continuous post-test analysis | `POST /api/v1/results` for continuous observed means/std/n | Welch's t-test with Welch–Satterthwaite degrees of freedom; p-value and confidence interval are both Student-t (not the normal approximation). Returns observed power as a two-sided expression `(1 − F_t(t_crit − \|t\|, df)) + F_t(−t_crit − \|t\|, df)`, which equals α at zero observed effect. |
 | Bonferroni correction | Multi-variant plans | Adjusts alpha across treatment-vs-control comparisons so larger variant sets do not silently understate required sample size. |
 | Bayesian precision sizing | `analysis_mode=bayesian` with `desired_precision` | Estimates per-variant sample size needed to hit a target credible-interval half-width. |
 | Group sequential boundaries | `n_looks > 1` | Adds O'Brien-Fleming style boundaries and a sample-size inflation factor for planned interim looks. |
@@ -27,3 +29,4 @@ The product combines fixed-horizon sizing, optional Bayesian precision planning,
 - Multi-variant plans apply a conservative Bonferroni adjustment rather than a looser multiple-testing correction.
 - SRM is flagged when the chi-square p-value drops below `0.001`.
 - CUPED is surfaced as an alternative planning scenario, not as a hidden override of the main result.
+- The Student-t CDF and quantile used by post-test continuous analysis are implemented in stdlib via the regularized incomplete beta (`app/backend/app/stats/student_t.py`) — there is no `scipy` runtime dependency. Accuracy vs `scipy.stats.t` is tracked in unit tests at ≤ 1e-7 for CDF and ≤ 1e-6 for the quantile.
