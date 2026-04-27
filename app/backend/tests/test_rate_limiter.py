@@ -80,6 +80,37 @@ def test_prune_keeps_active_buckets(monkeypatch) -> None:
     assert "trigger" in limiter._events
 
 
+def test_prune_respects_per_key_window_override(monkeypatch) -> None:
+    fake_time = [3000.0]
+
+    def fake_monotonic() -> float:
+        return fake_time[0]
+
+    monkeypatch.setattr("app.backend.app.http_utils.monotonic", fake_monotonic)
+
+    limiter = SlidingWindowRateLimiter(max_requests=5, window_seconds=60)
+    limiter._PRUNE_INTERVAL = 3  # type: ignore[misc]
+
+    # API key with a 600s window — its events must survive a global 60s prune.
+    limiter.allow("api-key-long", window_seconds=600)
+    fake_time[0] += 120.0  # past global window, still inside the 600s override
+
+    for _ in range(limiter._PRUNE_INTERVAL):
+        limiter.allow("trigger-prune")
+
+    assert "api-key-long" in limiter._events, (
+        "prune dropped a bucket whose per-call window was longer than the global default — "
+        "subsequent allow() with the override would silently bypass its limit"
+    )
+
+    # Push past the override window and re-trigger prune — now it must drop.
+    fake_time[0] += 600.0
+    for _ in range(limiter._PRUNE_INTERVAL):
+        limiter.allow("trigger-prune")
+
+    assert "api-key-long" not in limiter._events
+
+
 def test_overrides_apply_per_call() -> None:
     limiter = SlidingWindowRateLimiter(max_requests=10, window_seconds=60)
 

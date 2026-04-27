@@ -14,6 +14,7 @@ was added manually) are left alone.
 
 from __future__ import annotations
 
+import hashlib
 import shutil
 import sys
 from pathlib import Path
@@ -21,6 +22,14 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SOURCE = REPO_ROOT / "docs" / "demo"
 TARGET = REPO_ROOT / "docs-site" / "assets" / "screenshots"
+
+
+def _sha256(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as fh:
+        for chunk in iter(lambda: fh.read(65536), b""):
+            h.update(chunk)
+    return h.hexdigest()
 
 
 def main() -> int:
@@ -33,7 +42,7 @@ def main() -> int:
     skipped_same = 0
     for src in sorted(SOURCE.glob("*.png")):
         dst = TARGET / src.name
-        if dst.exists() and dst.stat().st_size == src.stat().st_size:
+        if dst.exists() and _sha256(dst) == _sha256(src):
             skipped_same += 1
             continue
         shutil.copy2(src, dst)
