@@ -7,12 +7,22 @@ t-distribution converges to it and the continued fraction loses precision.
 """
 
 import math
+import warnings
 from statistics import NormalDist
 
 _NORMAL = NormalDist()
 _LARGE_DF = 1e6
 _BETACF_MAX_ITER = 200
 _BETACF_EPS = 3.0e-7
+
+
+class StudentTConvergenceWarning(RuntimeWarning):
+    """Raised when the regularized incomplete beta continued fraction
+    fails to reach `_BETACF_EPS` within `_BETACF_MAX_ITER` iterations.
+
+    In practice this never fires for df >= 1 and x in [0, 1]; we surface
+    it so a future numerical regression cannot fail silently.
+    """
 
 
 def _betacf(a: float, b: float, x: float) -> float:
@@ -49,6 +59,12 @@ def _betacf(a: float, b: float, x: float) -> float:
         h *= delta
         if abs(delta - 1.0) < _BETACF_EPS:
             return h
+    warnings.warn(
+        f"_betacf did not converge in {_BETACF_MAX_ITER} iterations "
+        f"(a={a}, b={b}, x={x}); returning best estimate",
+        StudentTConvergenceWarning,
+        stacklevel=2,
+    )
     return h
 
 

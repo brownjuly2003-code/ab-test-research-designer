@@ -66,7 +66,7 @@ def test_t_cdf_handles_degenerate_df() -> None:
     ],
 )
 def test_t_ppf_matches_reference(probability: float, df: int, expected: float) -> None:
-    assert t_ppf(probability, df) == pytest.approx(expected, abs=1e-4)
+    assert t_ppf(probability, df) == pytest.approx(expected, abs=1e-6)
 
 
 def test_t_ppf_inverse_of_t_cdf() -> None:
