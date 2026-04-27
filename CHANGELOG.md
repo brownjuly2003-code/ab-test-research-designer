@@ -20,10 +20,16 @@
 - Extended Hypothesis property-test coverage for numerical stability (degenerate conversions, zero variance, ultra-strict alpha), Bayesian prior edge cases, SRM imbalance, sequential boundary monotonicity, and Monte-Carlo determinism + cap boundaries.
 - Optional Postgres backend via `AB_DATABASE_URL` with pluggable `DatabaseBackend` protocol (SQLite default, Postgres via `psycopg[binary]` when URL scheme is `postgresql://`), connection pooling through `AB_DB_POOL_SIZE`, `/healthz` and `/readyz` probes backend-aware, dedicated `verify-postgres` CI matrix job spinning `postgres:16-alpine` via testcontainers.
 - Slack App integration bundled alongside Postgres: `slack/app-manifest.yml` for manifest install, OAuth flow with CSRF state, HMAC SHA256 request signature verification with 5-minute replay guard, `/ab-test projects | status <id> | run <id>` slash commands returning Blocks-formatted responses, interactive approve/request-review buttons.
+- `scripts/cleanup_test_artifacts.py` — `--dry-run` aware sweeper for pytest temp roots, `.coverage`, the cxkm sandbox, and the local mkdocs `site/` build. Documented in `docs/RUNBOOK.md` under "Local cleanup".
+- `scripts/sync_doc_screenshots.py` — mirrors `docs/demo/*.png` (the smoke source of truth, referenced by README via `raw.githubusercontent.com`) into `docs-site/assets/screenshots/` (where mkdocs needs them to be inside `docs_dir`). Compares SHA-256 to skip unchanged pixels. Wired into `.github/workflows/docs.yml` before `mkdocs gh-deploy`. Documented in `docs/RUNBOOK.md` under "Screenshots".
+- `docs/RUNBOOK.md` Slack section now documents the token-at-rest posture: bot/user tokens are stored plaintext in SQLite/Postgres under the local-first threat model, with explicit guidance for hosted setups (filesystem permissions, sandbox workspaces, rotation via re-running `/slack/install`).
 
 ### Changed
 
 - Lazy-loaded locale JSONs via `i18next-http-backend` (moved to `app/frontend/public/locales/`); main JS chunk dropped from 247.88 KB to 122.18 KB gzip (-50%). Vendor libs split into `vendor-react` / `vendor-i18n` / `vendor-state` chunks for long-term caching.
+- Centralized the noop `ResizeObserver` jsdom stub in `app/frontend/src/test/setup.ts`; removed the per-file `vi.stubGlobal('ResizeObserver', …)` boilerplate that was duplicated across 10 chart/a11y test files.
+- Postgres CI was extended from a project-creation smoke into a contract suite covering workspace import/export, audit log, API key lifecycle, webhook subscription CRUD, Slack installation upsert, and query-filter pagination. A shared `postgres_repository` module-scoped fixture amortizes the testcontainer pull across the suite.
+- `_betacf` (the regularized-beta continued fraction backing Student-t) now emits `StudentTConvergenceWarning` if it ever exhausts its 200-iteration budget; this never fires for `df ≥ 1` and `x ∈ [0, 1]` in practice but guards future numerical regressions instead of returning a silent best-estimate.
 
 ### Fixed
 
@@ -34,7 +40,9 @@
 - **Pytest on Windows:** `pytest.ini` now sets `--basetemp=.pytest_basetemp` so the default `python -m pytest` command works without manual flags. Legacy `app/backend/tests/.tmp/` (~990 MB on long-lived checkouts) removable via new `scripts/cleanup_test_artifacts.py`.
 - **Locale parity:** ar/de/es/fr/zh receive the missing `sidebarPanel.slackApp.*` block (12 keys); locale leaf-key counts now match en for all shipped locales.
 - **OpenAPI metadata:** `license_info` is now `MIT` (was `UNLICENSED`); the placeholder contact email was removed, eliminating the `email-validator not installed` warning during contract/API-doc generation.
-- `.env.example`: portable relative paths instead of `D:\AB_TEST\…`; `AB_ADMIN_TOKEN=` added so secure self-hosted setup works from copy-paste.
+- **Cross-backend audit log:** `log_audit_entry` now uses `INSERT … RETURNING id` instead of `cursor.lastrowid`, which `_PostgresCursorResult` always returns as `None`; audit events were silently dropped from API responses when running on Postgres.
+- **Rate limiter prune correctness:** `_prune_locked` now respects the per-call `window_seconds` override stored on each bucket. Previously a bucket with an API-key-specific longer window would be evicted at the global window boundary; the next call with the override saw an empty bucket and silently bypassed its limit.
+- `.env.example`: `AB_DB_PATH` and `AB_FRONTEND_DIST_PATH` are now commented templates (the backend already derives absolute defaults from the package location). The earlier relative-path defaults broke through `Path('./...').as_posix()` → `sqlite:///app/...` resolving to absolute `/app/...`. `AB_ADMIN_TOKEN=` added so secure self-hosted setup works from copy-paste.
 - mkdocs `--strict` no longer warns: `docs-site/features/database.md` is added to the Features nav.
 - Accessibility tests (`PosteriorPlot`, `a11y-results` full-panel, `a11y-comparison-dashboard`) no longer time out: a flat recharts mock in `app/frontend/src/test/recharts-stub.tsx` removes 1000+ SVG nodes per chart from axe's scan, reducing full-panel axe duration from 15-30s to ~3s. The deleted visual `.recharts-area-area` assertion was preserved in a new `PosteriorPlot.integration.test.tsx` using a ResponsiveContainer-only clone-element mock so real recharts renders in jsdom.
 - `ProjectRepository` now handles unix-absolute SQLite URLs (`sqlite:////home/user/db.sqlite3`) without doubling the leading slash, fixing `test_diagnostics_endpoint` path assertion on Linux CI.

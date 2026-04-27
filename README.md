@@ -21,9 +21,9 @@ license: mit
 [![Lighthouse](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/brownjuly2003-code/ab-test-research-designer/main/badges/lighthouse.json)](https://github.com/brownjuly2003-code/ab-test-research-designer/actions/workflows/test.yml)
 [![Docs](https://img.shields.io/badge/docs-mkdocs--material-blue)](https://brownjuly2003-code.github.io/ab-test-research-designer/)
 
-Local-first experiment planning tool for A/B and multi-variant tests. Plan sample size and duration from the wizard, review deterministic statistical guidance (SRM, Bayesian, group-sequential, CUPED, guardrails), compare saved experiments side by side, and export decision-ready reports in four languages — all against a local SQLite workspace with no cloud required.
+Local-first experiment planning tool for A/B and multi-variant tests. Plan sample size and duration from the wizard, review deterministic statistical guidance (SRM, Bayesian, group-sequential, CUPED, guardrails), compare saved experiments side by side, and export decision-ready reports in seven languages (English, Russian, German, Spanish, French, Simplified Chinese, Arabic with RTL) — all against a local SQLite workspace with no cloud required.
 
-Built with **FastAPI + React 19 + TypeScript + Vite + SQLite**, verified end-to-end via `scripts/verify_all.cmd --with-e2e` (233 backend tests, 200+ frontend tests, Playwright E2E, Lighthouse CI, axe accessibility checks).
+Built with **FastAPI + React 19 + TypeScript + Vite + SQLite**, verified end-to-end via `scripts/verify_all.cmd --with-e2e` (350+ backend tests, 200+ frontend tests, Playwright E2E, Lighthouse CI, axe accessibility checks). Backend coverage gated at 89%+ in CI.
 
 It combines:
 
@@ -115,7 +115,7 @@ Post-v1.1.0 Tier 2/3 roadmap items are all landed as of 2026-04-25. See the [arc
 
 **Landed:**
 - **Portfolio polish.** HF Space startup seed, v1.1.0 screenshots, case-study section, GHCR Docker publish, dynamic shields.io badges.
-- **Product quality.** Full de/es translation (887+ leaf keys), HF Dataset SQLite snapshot service, optional OpenAI/Anthropic adapter via browser-session token, mkdocs-material docs site at [brownjuly2003-code.github.io/ab-test-research-designer](https://brownjuly2003-code.github.io/ab-test-research-designer/), 10-template industry gallery.
+- **Product quality.** Locale parity at 925 leaf keys across all shipped UI locales (en/ru/de/es/fr/zh/ar — including the Slack-App admin block), HF Dataset SQLite snapshot service, optional OpenAI/Anthropic adapter via browser-session token, mkdocs-material docs site at [brownjuly2003-code.github.io/ab-test-research-designer](https://brownjuly2003-code.github.io/ab-test-research-designer/), 10-template industry gallery.
 - **Hardening.** Monte-Carlo distribution overlay with interactive probability slider, French / Simplified-Chinese / Arabic locales (+RTL for Arabic), extended Hypothesis property coverage (numerical stability + Bayesian edges + Monte-Carlo determinism), bundle optimization (main chunk 247 → 122 KB gzip via lazy-load locales + vendor chunks), optional Postgres backend via `AB_DATABASE_URL` with CI matrix coverage, Slack App integration with OAuth install + slash commands + interactive actions.
 
 **Dropped as out-of-scope for a portfolio/demo:** manual NVDA / JAWS audit (automated axe a11y coverage sufficient here).
