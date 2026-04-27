@@ -1894,6 +1894,7 @@ class SQLiteBackend:
                     ip_address
                 )
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                RETURNING id
                 """,
                 (
                     timestamp,
@@ -1907,13 +1908,15 @@ class SQLiteBackend:
                     ip_address,
                 ),
             )
+            inserted = cursor.fetchone()
+            inserted_id = inserted["id"] if inserted is not None else None
             row = connection.execute(
                 """
                 SELECT id, ts, action, project_id, project_name, key_id, actor, request_id, payload_diff, ip_address
                 FROM audit_log
                 WHERE id = ?
                 """,
-                (cursor.lastrowid,),
+                (inserted_id,),
             ).fetchone()
 
         if row is None:

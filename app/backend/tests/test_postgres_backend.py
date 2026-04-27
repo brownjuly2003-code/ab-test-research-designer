@@ -185,7 +185,7 @@ def test_postgres_backend_api_key_lifecycle(postgres_repository) -> None:
     assert plaintext.startswith("abk_")
 
     listed = repo.list_api_keys()
-    assert any(k["id"] == created["id"] for k in listed["api_keys"])
+    assert any(k["id"] == created["id"] for k in listed["keys"])
 
     authenticated = repo.authenticate_api_key(plaintext)
     assert authenticated is not None and authenticated["id"] == created["id"]
@@ -196,7 +196,7 @@ def test_postgres_backend_api_key_lifecycle(postgres_repository) -> None:
 
     deleted = repo.delete_api_key(created["id"])
     assert deleted is not None
-    assert all(k["id"] != created["id"] for k in repo.list_api_keys()["api_keys"])
+    assert all(k["id"] != created["id"] for k in repo.list_api_keys()["keys"])
 
 
 def test_postgres_backend_webhook_subscription_crud(postgres_repository) -> None:
@@ -220,13 +220,6 @@ def test_postgres_backend_webhook_subscription_crud(postgres_repository) -> None
     assert repo.get_webhook_subscription(sub["id"]) is None
 
 
-@pytest.mark.xfail(
-    reason=(
-        "log_audit_entry uses cursor.lastrowid which _PostgresCursorResult sets to None. "
-        "Cross-backend fix requires INSERT ... RETURNING id."
-    ),
-    strict=False,
-)
 def test_postgres_backend_audit_log_round_trip(postgres_repository) -> None:
     repo = postgres_repository
     project = repo.create_project(_payload("Audit subject", "binary"))
@@ -251,13 +244,7 @@ def test_postgres_backend_slack_installation_upsert(postgres_repository) -> None
     repo.upsert_slack_installation(
         team_id="T-CI",
         team_name="CI Workspace",
-        bot_user_id="U-CI",
         bot_token="xoxb-ci-1",
-        bot_scopes="chat:write",
-        user_token=None,
-        user_scopes=None,
-        installer_user_id="U-INSTALL",
-        app_id="A-CI",
     )
     fetched = repo.get_slack_installation("T-CI")
     assert fetched is not None and fetched["bot_token"] == "xoxb-ci-1"
@@ -265,13 +252,7 @@ def test_postgres_backend_slack_installation_upsert(postgres_repository) -> None
     repo.upsert_slack_installation(
         team_id="T-CI",
         team_name="CI Workspace",
-        bot_user_id="U-CI",
         bot_token="xoxb-ci-2",
-        bot_scopes="chat:write",
-        user_token=None,
-        user_scopes=None,
-        installer_user_id="U-INSTALL",
-        app_id="A-CI",
     )
     refreshed = repo.get_slack_installation("T-CI")
     assert refreshed is not None and refreshed["bot_token"] == "xoxb-ci-2"
@@ -296,7 +277,8 @@ def test_postgres_backend_query_filters_and_pagination(postgres_repository) -> N
 
     paged = repo.query_projects(limit=1, offset=0)
     assert len(paged["projects"]) == 1
-    assert paged["total"] >= initial_total + 3
+    # +3 created, but binary_b is archived → +2 in default status="active" filter.
+    assert paged["total"] >= initial_total + 2
 
 
 def test_readyz_uses_postgres_checks_without_sqlite_regression(monkeypatch) -> None:
