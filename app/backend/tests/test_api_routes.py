@@ -1260,6 +1260,74 @@ def test_api_key_usage_events_are_filterable_by_key_id(monkeypatch) -> None:
     get_settings.cache_clear()
 
 
+def test_api_key_used_audit_logged_on_read_scope_post_rejection(monkeypatch) -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+    repository = ProjectRepository(str(db_path))
+    read_key = repository.create_api_key(name="Read key", scope="read")
+    admin_key = repository.create_api_key(name="Admin", scope="admin")
+
+    monkeypatch.setenv("AB_DB_PATH", str(db_path))
+    monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")
+    get_settings.cache_clear()
+
+    with TestClient(create_app()) as client:
+        forbidden = client.post(
+            "/api/v1/projects",
+            headers={"Authorization": f"Bearer {read_key['plaintext_key']}"},
+            json={},
+        )
+        audit = client.get(
+            "/api/v1/audit",
+            params={"action": "api_key_used", "key_id": read_key["id"]},
+            headers={"Authorization": f"Bearer {admin_key['plaintext_key']}"},
+        )
+
+    assert forbidden.status_code == 403
+    assert audit.status_code == 200
+    assert any(entry["key_id"] == read_key["id"] for entry in audit.json()["entries"])
+    get_settings.cache_clear()
+
+
+def test_api_key_used_audit_logged_on_rate_limit_rejection(monkeypatch) -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+    repository = ProjectRepository(str(db_path))
+    write_key = repository.create_api_key(name="Throttled", scope="write")
+    admin_key = repository.create_api_key(name="Admin", scope="admin")
+
+    monkeypatch.setenv("AB_DB_PATH", str(db_path))
+    monkeypatch.setenv("AB_RATE_LIMIT_ENABLED", "true")
+    monkeypatch.setenv("AB_RATE_LIMIT_REQUESTS", "1")
+    monkeypatch.setenv("AB_RATE_LIMIT_WINDOW_SECONDS", "60")
+    monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")
+    get_settings.cache_clear()
+
+    with TestClient(create_app()) as client:
+        first = client.get(
+            "/api/v1/diagnostics",
+            headers={"Authorization": f"Bearer {write_key['plaintext_key']}"},
+        )
+        throttled = client.get(
+            "/api/v1/diagnostics",
+            headers={"Authorization": f"Bearer {write_key['plaintext_key']}"},
+        )
+        audit = client.get(
+            "/api/v1/audit",
+            params={"action": "api_key_used", "key_id": write_key["id"]},
+            headers={"Authorization": f"Bearer {admin_key['plaintext_key']}"},
+        )
+
+    assert first.status_code == 200
+    assert throttled.status_code == 429
+    assert audit.status_code == 200
+    api_key_entries = [entry for entry in audit.json()["entries"] if entry["key_id"] == write_key["id"]]
+    assert len(api_key_entries) >= 2
+    get_settings.cache_clear()
+
+
 def test_webhook_routes_require_admin_auth(monkeypatch) -> None:
     temp_dir = Path(__file__).resolve().parent / ".tmp"
     temp_dir.mkdir(exist_ok=True)

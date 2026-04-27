@@ -52,3 +52,9 @@ archive/verify-workspace-backup/*
 .tmp-gh-artifacts/
 .coverage
 /--artifacts-dir/
+
+# cxkm review scratch
+/.tmp/
+
+# mkdocs build output (deployed via gh-pages branch)
+/site/

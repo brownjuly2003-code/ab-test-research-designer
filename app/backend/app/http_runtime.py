@@ -7,6 +7,7 @@ from fastapi import FastAPI, HTTPException, Request, Response, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from starlette.background import BackgroundTask, BackgroundTasks
 
 from app.backend.app.errors import ApiError
 from app.backend.app.http_utils import (
@@ -117,8 +118,28 @@ def register_http_runtime(
         request.state.rate_limit_bucket_key = None
         request.state.rate_limit_requests = None
         request.state.rate_limit_window_seconds = None
+        request.state.pending_api_key_audit = None
+
+        def attach_pending_api_key_audit(response: Response) -> None:
+            pending_audit = getattr(request.state, "pending_api_key_audit", None)
+            if pending_audit is None or response.status_code >= 500:
+                return
+            request.state.pending_api_key_audit = None
+            audit_task = BackgroundTask(
+                repository.log_audit_entry,
+                action="api_key_used",
+                **pending_audit,
+            )
+            existing = response.background
+            if existing is None:
+                response.background = audit_task
+            elif isinstance(existing, BackgroundTasks):
+                existing.tasks.append(audit_task)
+            else:
+                response.background = BackgroundTasks(tasks=[existing, audit_task])
 
         def finalize_response(response: Response) -> Response:
+            attach_pending_api_key_audit(response)
             return apply_standard_response_headers(
                 response,
                 request_id=request_id,
@@ -206,13 +227,12 @@ def register_http_runtime(
                     request.state.rate_limit_bucket_key = f"api_key:{api_key['id']}"
                     request.state.rate_limit_requests = api_key.get("rate_limit_requests")
                     request.state.rate_limit_window_seconds = api_key.get("rate_limit_window_seconds")
-                    repository.log_audit_entry(
-                        action="api_key_used",
-                        key_id=api_key["id"],
-                        actor=request.state.audit_actor,
-                        request_id=request_id,
-                        ip_address=get_client_identifier(request),
-                    )
+                    request.state.pending_api_key_audit = {
+                        "key_id": api_key["id"],
+                        "actor": request.state.audit_actor,
+                        "request_id": request_id,
+                        "ip_address": get_client_identifier(request),
+                    }
                 else:
                     return reject_auth_request(
                         detail="Unauthorized",
@@ -298,6 +318,7 @@ def register_http_runtime(
             )
             raise
 
+        attach_pending_api_key_audit(response)
         process_time_ms = (perf_counter() - started) * 1000
         apply_standard_response_headers(response, request_id=request_id, process_time_ms=process_time_ms)
         record_runtime_response(response.status_code, response.headers.get("X-Error-Code"))
