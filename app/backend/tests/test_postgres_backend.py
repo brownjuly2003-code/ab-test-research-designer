@@ -107,6 +107,19 @@ def _payload(name: str, metric_type: str) -> dict:
     }
 
 
+@pytest.fixture(scope="module")
+def postgres_repository():
+    if PostgresContainer is None:
+        pytest.fail("testcontainers is required for Postgres backend tests")
+    _require_docker()
+    with PostgresContainer("postgres:16-alpine") as postgres:
+        repository = ProjectRepository(_postgres_url(postgres), pool_size=4)
+        yield repository
+        close = getattr(repository, "close", None)
+        if callable(close):
+            close()
+
+
 def test_postgres_backend_round_trips_project_reads_and_queries() -> None:
     if PostgresContainer is None:
         pytest.fail("testcontainers is required for Postgres backend tests")
@@ -146,6 +159,144 @@ def test_postgres_backend_handles_concurrent_writes() -> None:
         assert len(project_ids) == 8
         assert len(set(project_ids)) == 8
         assert repository.query_projects(limit=20)["total"] == 8
+
+
+def test_postgres_backend_workspace_export_import_round_trip(postgres_repository) -> None:
+    repo = postgres_repository
+    a = repo.create_project(_payload("Workspace A", "binary"))
+    b = repo.create_project(_payload("Workspace B", "continuous"))
+
+    bundle = repo.export_workspace()
+    assert {p["project_name"] for p in bundle["projects"]} >= {"Workspace A", "Workspace B"}
+
+    repo.delete_project(a["id"])
+    repo.delete_project(b["id"])
+
+    result = repo.import_workspace(bundle)
+    assert result["imported_projects"] >= 2
+    imported_names = {p["project_name"] for p in repo.list_projects(include_archived=True)}
+    assert {"Workspace A", "Workspace B"}.issubset(imported_names)
+
+
+def test_postgres_backend_api_key_lifecycle(postgres_repository) -> None:
+    repo = postgres_repository
+    created = repo.create_api_key(name="ci-key", scope="readonly")
+    plaintext = created["plaintext_key"]
+    assert plaintext.startswith("abk_")
+
+    listed = repo.list_api_keys()
+    assert any(k["id"] == created["id"] for k in listed["api_keys"])
+
+    authenticated = repo.authenticate_api_key(plaintext)
+    assert authenticated is not None and authenticated["id"] == created["id"]
+
+    revoked = repo.revoke_api_key(created["id"])
+    assert revoked is not None and revoked["revoked_at"] is not None
+    assert repo.authenticate_api_key(plaintext) is None  # revoked keys do not authenticate
+
+    deleted = repo.delete_api_key(created["id"])
+    assert deleted is not None
+    assert all(k["id"] != created["id"] for k in repo.list_api_keys()["api_keys"])
+
+
+def test_postgres_backend_webhook_subscription_crud(postgres_repository) -> None:
+    repo = postgres_repository
+    sub = repo.create_webhook_subscription(
+        name="ci-webhook",
+        target_url="https://example.invalid/hook",
+        secret="s" * 32,
+        format="generic",
+        event_filter=["project_updated"],
+        scope="global",
+    )
+    assert sub["id"]
+
+    listed = repo.list_webhook_subscriptions(include_secret=False)
+    assert any(s["id"] == sub["id"] for s in listed["subscriptions"])
+    fetched = repo.get_webhook_subscription(sub["id"], include_secret=True)
+    assert fetched is not None and fetched["secret"] == "s" * 32
+
+    repo.delete_webhook_subscription(sub["id"])
+    assert repo.get_webhook_subscription(sub["id"]) is None
+
+
+@pytest.mark.xfail(
+    reason=(
+        "log_audit_entry uses cursor.lastrowid which _PostgresCursorResult sets to None. "
+        "Cross-backend fix requires INSERT ... RETURNING id."
+    ),
+    strict=False,
+)
+def test_postgres_backend_audit_log_round_trip(postgres_repository) -> None:
+    repo = postgres_repository
+    project = repo.create_project(_payload("Audit subject", "binary"))
+    event = repo.log_audit_entry(
+        action="project_updated",
+        actor="ci-test",
+        request_id="req-ci-1",
+        ip_address="127.0.0.1",
+        project_id=project["id"],
+        project_name=project["project_name"],
+        dispatch_webhooks=False,
+    )
+    assert event["id"]
+
+    listed = repo.list_audit_entries(project_id=project["id"])
+    actions = [entry["action"] for entry in listed["entries"]]
+    assert "project_updated" in actions
+
+
+def test_postgres_backend_slack_installation_upsert(postgres_repository) -> None:
+    repo = postgres_repository
+    repo.upsert_slack_installation(
+        team_id="T-CI",
+        team_name="CI Workspace",
+        bot_user_id="U-CI",
+        bot_token="xoxb-ci-1",
+        bot_scopes="chat:write",
+        user_token=None,
+        user_scopes=None,
+        installer_user_id="U-INSTALL",
+        app_id="A-CI",
+    )
+    fetched = repo.get_slack_installation("T-CI")
+    assert fetched is not None and fetched["bot_token"] == "xoxb-ci-1"
+
+    repo.upsert_slack_installation(
+        team_id="T-CI",
+        team_name="CI Workspace",
+        bot_user_id="U-CI",
+        bot_token="xoxb-ci-2",
+        bot_scopes="chat:write",
+        user_token=None,
+        user_scopes=None,
+        installer_user_id="U-INSTALL",
+        app_id="A-CI",
+    )
+    refreshed = repo.get_slack_installation("T-CI")
+    assert refreshed is not None and refreshed["bot_token"] == "xoxb-ci-2"
+
+
+def test_postgres_backend_query_filters_and_pagination(postgres_repository) -> None:
+    repo = postgres_repository
+    initial_total = repo.query_projects(limit=1000)["total"]
+
+    binary_a = repo.create_project(_payload("Filter binary A", "binary"))
+    binary_b = repo.create_project(_payload("Filter binary B", "binary"))
+    repo.create_project(_payload("Filter continuous", "continuous"))
+    repo.archive_project(binary_b["id"])
+
+    only_binary = repo.query_projects(metric_type="binary", status="active")
+    binary_ids = {p["id"] for p in only_binary["projects"]}
+    assert binary_a["id"] in binary_ids
+    assert binary_b["id"] not in binary_ids
+
+    archived = repo.query_projects(status="archived")
+    assert binary_b["id"] in {p["id"] for p in archived["projects"]}
+
+    paged = repo.query_projects(limit=1, offset=0)
+    assert len(paged["projects"]) == 1
+    assert paged["total"] >= initial_total + 3
 
 
 def test_readyz_uses_postgres_checks_without_sqlite_regression(monkeypatch) -> None:
