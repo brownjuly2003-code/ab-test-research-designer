@@ -314,6 +314,13 @@ curl "http://127.0.0.1:8008/api/v1/audit?key_id=KEY_ID&action=api_key_used" \
   -H "Authorization: Bearer YOUR_WRITE_TOKEN"
 ```
 
+`api_key_used` audit entries are written by a background task attached to the
+response, not inline with the request. For a single client this is invisible
+(the worker process flushes the task before sending the next response), but a
+*concurrent* observer querying the audit endpoint immediately after an
+authenticated request may briefly miss the entry. Re-query after ~1s if the
+expected entry is missing.
+
 Revoke:
 
 ```bash
