@@ -48,11 +48,14 @@ class RateLimitDecision:
 
 
 class SlidingWindowRateLimiter:
+    _PRUNE_INTERVAL = 1000
+
     def __init__(self, *, max_requests: int, window_seconds: int) -> None:
         self.max_requests = max_requests
         self.window_seconds = window_seconds
         self._events: dict[str, deque[float]] = {}
         self._lock = Lock()
+        self._calls_since_prune = 0
 
     def allow(
         self,
@@ -65,6 +68,10 @@ class SlidingWindowRateLimiter:
         resolved_window_seconds = window_seconds or self.window_seconds
         now = monotonic()
         with self._lock:
+            self._calls_since_prune += 1
+            if self._calls_since_prune >= self._PRUNE_INTERVAL:
+                self._prune_locked(now)
+                self._calls_since_prune = 0
             bucket = self._events.setdefault(key, deque())
             window_start = now - resolved_window_seconds
             while bucket and bucket[0] <= window_start:
@@ -74,6 +81,15 @@ class SlidingWindowRateLimiter:
                 return RateLimitDecision(allowed=False, retry_after_seconds=retry_after_seconds)
             bucket.append(now)
             return RateLimitDecision(allowed=True)
+
+    def _prune_locked(self, now: float) -> None:
+        cutoff = now - self.window_seconds
+        stale_keys = [
+            key for key, bucket in self._events.items()
+            if not bucket or bucket[-1] <= cutoff
+        ]
+        for key in stale_keys:
+            del self._events[key]
 
 
 def is_protected_path(path: str) -> bool:
