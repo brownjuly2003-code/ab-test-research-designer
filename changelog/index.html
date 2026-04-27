@@ -1,0 +1,1697 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="FastAPI + React A/B-testing experiment designer. Bayesian + frequentist statistics, comparison dashboard, webhooks, multi-language UI.">
+      
+      
+      
+        <link rel="canonical" href="https://brownjuly2003-code.github.io/ab-test-research-designer/changelog/">
+      
+      
+        <link rel="prev" href="../operations/release-checklist/">
+      
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.40">
+    
+    
+      
+        <title>Changelog - A/B Test Research Designer</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.8c3ca2c6.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#changelog" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="A/B Test Research Designer" class="md-header__button md-logo" aria-label="A/B Test Research Designer" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            A/B Test Research Designer
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Changelog
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/brownjuly2003-code/ab-test-research-designer" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.6.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    brownjuly2003-code/ab-test-research-designer
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../getting-started/quickstart/" class="md-tabs__link">
+          
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../features/wizard/" class="md-tabs__link">
+          
+  
+  Features
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../reference/api/" class="md-tabs__link">
+          
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../case-studies/checkout-redesign/" class="md-tabs__link">
+          
+  
+  Case Studies
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../operations/runbook/" class="md-tabs__link">
+          
+  
+  Operations
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+    
+  
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="./" class="md-tabs__link">
+        
+  
+    
+  
+  Changelog
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="A/B Test Research Designer" class="md-nav__button md-logo" aria-label="A/B Test Research Designer" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    A/B Test Research Designer
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/brownjuly2003-code/ab-test-research-designer" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.6.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    brownjuly2003-code/ab-test-research-designer
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Getting Started
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Getting Started
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/quickstart/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Quickstart
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/configuration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/deploy/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Deploy
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Features
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Features
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../features/wizard/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Wizard flow
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../features/llm-adapter/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Optional LLM adapter
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../features/results/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Results dashboard
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../features/comparison/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Multi-project comparison
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../features/webhooks/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Webhooks
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../features/slack/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Slack
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../features/localization/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Localization
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../features/database/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Database
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Reference
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Reference
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/api/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    REST API
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/architecture/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Architecture
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/statistics/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Statistics methods
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Case Studies
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Case Studies
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../case-studies/checkout-redesign/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Checkout redesign
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Operations
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Operations
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../operations/runbook/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Runbook
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../operations/release-checklist/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Release checklist
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Changelog
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Changelog
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#unreleased" class="md-nav__link">
+    <span class="md-ellipsis">
+      Unreleased
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Unreleased">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#added" class="md-nav__link">
+    <span class="md-ellipsis">
+      Added
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changed" class="md-nav__link">
+    <span class="md-ellipsis">
+      Changed
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fixed" class="md-nav__link">
+    <span class="md-ellipsis">
+      Fixed
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#110-2026-04-21" class="md-nav__link">
+    <span class="md-ellipsis">
+      [1.1.0] - 2026-04-21
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[1.1.0] - 2026-04-21">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#added_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Added
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changed_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Changed
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#100-2026-04-22" class="md-nav__link">
+    <span class="md-ellipsis">
+      [1.0.0] - 2026-04-22
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[1.0.0] - 2026-04-22">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#added_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      Added
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changed_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      Changed
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fixed_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Fixed
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2026-03-09" class="md-nav__link">
+    <span class="md-ellipsis">
+      2026-03-09
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2026-03-09">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#release-hardening" class="md-nav__link">
+    <span class="md-ellipsis">
+      Release hardening
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2026-03-08" class="md-nav__link">
+    <span class="md-ellipsis">
+      2026-03-08
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2026-03-08">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ui-modernization" class="md-nav__link">
+    <span class="md-ellipsis">
+      UI modernization
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#backend-and-contracts" class="md-nav__link">
+    <span class="md-ellipsis">
+      Backend and contracts
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#documentation-and-packaging" class="md-nav__link">
+    <span class="md-ellipsis">
+      Documentation and packaging
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#earlier-milestones" class="md-nav__link">
+    <span class="md-ellipsis">
+      Earlier milestones
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#unreleased" class="md-nav__link">
+    <span class="md-ellipsis">
+      Unreleased
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Unreleased">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#added" class="md-nav__link">
+    <span class="md-ellipsis">
+      Added
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changed" class="md-nav__link">
+    <span class="md-ellipsis">
+      Changed
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fixed" class="md-nav__link">
+    <span class="md-ellipsis">
+      Fixed
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#110-2026-04-21" class="md-nav__link">
+    <span class="md-ellipsis">
+      [1.1.0] - 2026-04-21
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[1.1.0] - 2026-04-21">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#added_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Added
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changed_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Changed
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#100-2026-04-22" class="md-nav__link">
+    <span class="md-ellipsis">
+      [1.0.0] - 2026-04-22
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="[1.0.0] - 2026-04-22">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#added_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      Added
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#changed_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      Changed
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fixed_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Fixed
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2026-03-09" class="md-nav__link">
+    <span class="md-ellipsis">
+      2026-03-09
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2026-03-09">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#release-hardening" class="md-nav__link">
+    <span class="md-ellipsis">
+      Release hardening
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2026-03-08" class="md-nav__link">
+    <span class="md-ellipsis">
+      2026-03-08
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2026-03-08">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ui-modernization" class="md-nav__link">
+    <span class="md-ellipsis">
+      UI modernization
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#backend-and-contracts" class="md-nav__link">
+    <span class="md-ellipsis">
+      Backend and contracts
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#documentation-and-packaging" class="md-nav__link">
+    <span class="md-ellipsis">
+      Documentation and packaging
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#earlier-milestones" class="md-nav__link">
+    <span class="md-ellipsis">
+      Earlier milestones
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<!-- BEGIN INCLUDE ../CHANGELOG.md -->
+<h1 id="changelog">Changelog<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
+<h2 id="unreleased">Unreleased<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
+<h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Added Checkout-redesign case study section to README with reproducible numbers from backend calculation and Bayesian interim check.</li>
+<li>Regenerated demo screenshots to match v1.1.0 UI (comparison dashboard, webhook manager).</li>
+<li>Seeded the Hugging Face Space demo workspace on startup with an idempotent backend hook so the public demo loads with pre-populated projects.</li>
+<li>Added GitHub Actions workflow <code>docker-publish.yml</code> to publish multi-arch Docker images to <code>ghcr.io/brownjuly2003-code/ab-test-research-designer</code> on every <code>v*</code> tag push.</li>
+<li>Added dynamic shields.io badges (tests count, backend coverage, Lighthouse performance) in README, refreshed by a new CI job <code>update-metrics-badges</code> that commits <code>badges/*.json</code> back to <code>main</code> after green verify + lighthouse runs.</li>
+<li>Added <code>scripts/collect_badge_metrics.py</code> plus <code>--with-coverage</code> and <code>--artifacts-dir</code> flags on <code>scripts/verify_all.{py,cmd}</code> so the same collector can run locally and in CI.</li>
+<li>Full de/es UI translation (1157 lines, 887 leaf keys per locale, terminology anchors for A/B-Test / Variante / Referenz and test A/B / variante / línea base).</li>
+<li>Hugging Face Dataset snapshot service (<code>SnapshotService</code>) pushing SQLite to a private HF Dataset with sha256 verification, atomic rename, startup restore, and opt-in through <code>AB_HF_SNAPSHOT_REPO</code> / <code>AB_HF_TOKEN</code> / <code>AB_HF_SNAPSHOT_INTERVAL_SECONDS</code>.</li>
+<li>mkdocs-material documentation site at <a href="https://brownjuly2003-code.github.io/ab-test-research-designer/">brownjuly2003-code.github.io/ab-test-research-designer</a>, sourced from <code>docs-site/</code> and deployed via <code>.github/workflows/docs.yml</code> on main push.</li>
+<li>Expanded the template library to 10 industry presets (<code>email_campaign</code>, <code>push_notification_reactivation</code>, <code>app_onboarding_drop_off</code>, <code>search_ranking_ctr</code>, <code>trial_to_paid</code> added on top of the original 5), with a <code>TemplateGallery</code> UI entry point from the sidebar.</li>
+<li>Optional OpenAI / Anthropic LLM adapter with browser-session token routing (<code>X-AB-LLM-Provider</code> + <code>X-AB-LLM-Token</code> headers, CORS-aware), token masking in logs, and a Settings panel to configure credentials client-side.</li>
+<li>Monte-Carlo distribution view in the comparison dashboard: <code>simulate_comparison</code> service (parametric Beta-Bernoulli for binary, Normal bootstrap for continuous, deterministic with <code>seed=42</code>), <code>POST /api/v1/projects/compare?include_monte_carlo=true&amp;monte_carlo_simulations=&lt;1000..50000&gt;</code> opt-in query, 50-bucket histogram + interactive probability-above-threshold slider.</li>
+<li>French / Simplified-Chinese / Arabic locales with RTL layout support for Arabic (<code>document.documentElement.dir = "rtl"</code>, ~10 CSS modules switched to <code>inset-inline-*</code> / <code>margin-inline-*</code> / <code>border-inline-*</code> logical properties), 913 frontend leaf keys and 235 backend keys per locale, 7-button language switcher with <code>aria-pressed</code>.</li>
+<li>Extended Hypothesis property-test coverage for numerical stability (degenerate conversions, zero variance, ultra-strict alpha), Bayesian prior edge cases, SRM imbalance, sequential boundary monotonicity, and Monte-Carlo determinism + cap boundaries.</li>
+<li>Optional Postgres backend via <code>AB_DATABASE_URL</code> with pluggable <code>DatabaseBackend</code> protocol (SQLite default, Postgres via <code>psycopg[binary]</code> when URL scheme is <code>postgresql://</code>), connection pooling through <code>AB_DB_POOL_SIZE</code>, <code>/healthz</code> and <code>/readyz</code> probes backend-aware, dedicated <code>verify-postgres</code> CI matrix job spinning <code>postgres:16-alpine</code> via testcontainers.</li>
+<li>Slack App integration bundled alongside Postgres: <code>slack/app-manifest.yml</code> for manifest install, OAuth flow with CSRF state, HMAC SHA256 request signature verification with 5-minute replay guard, <code>/ab-test projects | status &lt;id&gt; | run &lt;id&gt;</code> slash commands returning Blocks-formatted responses, interactive approve/request-review buttons.</li>
+<li><code>scripts/cleanup_test_artifacts.py</code> — <code>--dry-run</code> aware sweeper for pytest temp roots, <code>.coverage</code>, the cxkm sandbox, and the local mkdocs <code>site/</code> build. Documented in <code>docs/RUNBOOK.md</code> under "Local cleanup".</li>
+<li><code>scripts/sync_doc_screenshots.py</code> — mirrors <code>docs/demo/*.png</code> (the smoke source of truth, referenced by README via <code>raw.githubusercontent.com</code>) into <code>docs-site/assets/screenshots/</code> (where mkdocs needs them to be inside <code>docs_dir</code>). Compares SHA-256 to skip unchanged pixels. Wired into <code>.github/workflows/docs.yml</code> before <code>mkdocs gh-deploy</code>. Documented in <code>docs/RUNBOOK.md</code> under "Screenshots".</li>
+<li><code>docs/RUNBOOK.md</code> Slack section now documents the token-at-rest posture: bot/user tokens are stored plaintext in SQLite/Postgres under the local-first threat model, with explicit guidance for hosted setups (filesystem permissions, sandbox workspaces, rotation via re-running <code>/slack/install</code>).</li>
+</ul>
+<h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Lazy-loaded locale JSONs via <code>i18next-http-backend</code> (moved to <code>app/frontend/public/locales/</code>); main JS chunk dropped from 247.88 KB to 122.18 KB gzip (-50%). Vendor libs split into <code>vendor-react</code> / <code>vendor-i18n</code> / <code>vendor-state</code> chunks for long-term caching.</li>
+<li>Centralized the noop <code>ResizeObserver</code> jsdom stub in <code>app/frontend/src/test/setup.ts</code>; removed the per-file <code>vi.stubGlobal('ResizeObserver', …)</code> boilerplate that was duplicated across 10 chart/a11y test files.</li>
+<li>Postgres CI was extended from a project-creation smoke into a contract suite covering workspace import/export, audit log, API key lifecycle, webhook subscription CRUD, Slack installation upsert, and query-filter pagination. A shared <code>postgres_repository</code> module-scoped fixture amortizes the testcontainer pull across the suite.</li>
+<li><code>_betacf</code> (the regularized-beta continued fraction backing Student-t) now emits <code>StudentTConvergenceWarning</code> if it ever exhausts its 200-iteration budget; this never fires for <code>df ≥ 1</code> and <code>x ∈ [0, 1]</code> in practice but guards future numerical regressions instead of returning a silent best-estimate.</li>
+</ul>
+<h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Continuous post-test math:</strong> <code>analyze_results</code> for continuous metrics now uses Welch Student-t for both the p-value and the confidence interval (was returning a normal-approximation p-value with a z-critical CI regardless of <code>df</code>). New <code>app/backend/app/stats/student_t.py</code> implements <code>t_cdf</code>/<code>t_ppf</code> via stdlib regularized incomplete beta (zero scipy dep); 24 unit cases assert ≤1e-7 / ≤1e-4 vs scipy. Continuous <code>power_achieved</code> is now computed (was hardcoded <code>0.0</code>) using a two-sided expression (upper + lower tail) so it equals α at zero observed effect instead of α/2.</li>
+<li><strong>Workspace import atomicity:</strong> <code>import_workspace()</code> now opens a <code>BEGIN IMMEDIATE</code> transaction explicitly. Default Python <code>sqlite3</code> deferred-mode transactions could race across concurrent imports.</li>
+<li><strong>Snapshot loop resilience:</strong> the periodic HF snapshot push is now wrapped in <code>try/except</code> so a transient failure logs and continues instead of killing the background task silently.</li>
+<li><strong>Rate limiter memory:</strong> <code>SlidingWindowRateLimiter</code> periodically prunes buckets whose last event is outside the window. Long-uptime deployments no longer accumulate state for rotated client IPs/API keys.</li>
+<li><strong>Pytest on Windows:</strong> <code>pytest.ini</code> now sets <code>--basetemp=.pytest_basetemp</code> so the default <code>python -m pytest</code> command works without manual flags. Legacy <code>app/backend/tests/.tmp/</code> (~990 MB on long-lived checkouts) removable via new <code>scripts/cleanup_test_artifacts.py</code>.</li>
+<li><strong>Locale parity:</strong> ar/de/es/fr/zh receive the missing <code>sidebarPanel.slackApp.*</code> block (12 keys); locale leaf-key counts now match en for all shipped locales.</li>
+<li><strong>OpenAPI metadata:</strong> <code>license_info</code> is now <code>MIT</code> (was <code>UNLICENSED</code>); the placeholder contact email was removed, eliminating the <code>email-validator not installed</code> warning during contract/API-doc generation.</li>
+<li><strong>Cross-backend audit log:</strong> <code>log_audit_entry</code> now uses <code>INSERT … RETURNING id</code> instead of <code>cursor.lastrowid</code>, which <code>_PostgresCursorResult</code> always returns as <code>None</code>; audit events were silently dropped from API responses when running on Postgres.</li>
+<li><strong>Rate limiter prune correctness:</strong> <code>_prune_locked</code> now respects the per-call <code>window_seconds</code> override stored on each bucket. Previously a bucket with an API-key-specific longer window would be evicted at the global window boundary; the next call with the override saw an empty bucket and silently bypassed its limit.</li>
+<li><code>.env.example</code>: <code>AB_DB_PATH</code> and <code>AB_FRONTEND_DIST_PATH</code> are now commented templates (the backend already derives absolute defaults from the package location). The earlier relative-path defaults broke through <code>Path('./...').as_posix()</code> → <code>sqlite:///app/...</code> resolving to absolute <code>/app/...</code>. <code>AB_ADMIN_TOKEN=</code> added so secure self-hosted setup works from copy-paste.</li>
+<li>mkdocs <code>--strict</code> no longer warns: <code>docs-site/features/database.md</code> is added to the Features nav.</li>
+<li>Accessibility tests (<code>PosteriorPlot</code>, <code>a11y-results</code> full-panel, <code>a11y-comparison-dashboard</code>) no longer time out: a flat recharts mock in <code>app/frontend/src/test/recharts-stub.tsx</code> removes 1000+ SVG nodes per chart from axe's scan, reducing full-panel axe duration from 15-30s to ~3s. The deleted visual <code>.recharts-area-area</code> assertion was preserved in a new <code>PosteriorPlot.integration.test.tsx</code> using a ResponsiveContainer-only clone-element mock so real recharts renders in jsdom.</li>
+<li><code>ProjectRepository</code> now handles unix-absolute SQLite URLs (<code>sqlite:////home/user/db.sqlite3</code>) without doubling the leading slash, fixing <code>test_diagnostics_endpoint</code> path assertion on Linux CI.</li>
+<li>Postgres integration tests skip on Windows CI where Docker Linux containers are unavailable (<code>testcontainers-ryuk</code> 404 on container create).</li>
+<li>Hypothesis property tests uncovered and fixed degenerate-input guards in <code>calculations_service</code>: zero variance continuous, conversion in {0, 1}, <code>mde = 0</code>, ultra-strict alpha.</li>
+</ul>
+<h2 id="110-2026-04-21">[1.1.0] - 2026-04-21<a class="headerlink" href="#110-2026-04-21" title="Permanent link">&para;</a></h2>
+<h3 id="added_1">Added<a class="headerlink" href="#added_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li>multi-project comparison dashboard with lazy-loaded React chunk, power curves, sensitivity grid, forest-plot observed effects, and shared/unique insight panels, plus <code>POST /api/v1/projects/compare</code> and <code>POST /api/v1/export/comparison</code> (Markdown and PDF)</li>
+<li>outbound webhook subscriptions (Slack and generic JSON) with admin-guarded CRUD, delivery history, retry/dead-letter tracking, and HMAC-signed <code>X-AB-Signature</code> headers for generic consumers</li>
+<li>property-based statistical test suite (<code>hypothesis==6.152.1</code>) covering monotonicity and round-trip invariants for binary, continuous, SRM, group-sequential, and Bayesian calculators</li>
+<li>German (<code>de</code>) and Spanish (<code>es</code>) UI and report locales with <code>Accept-Language</code> regional fallback on the backend; header switcher now ships all four languages</li>
+</ul>
+<h3 id="changed_1">Changed<a class="headerlink" href="#changed_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>resolve_language</code> now accepts any registered primary language tag and returns it directly instead of an explicit <code>en</code>/<code>ru</code> ladder</li>
+<li>bumped backend <code>app_version</code> default and frontend <code>package.json</code> to <code>1.1.0</code></li>
+</ul>
+<h2 id="100-2026-04-22">[1.0.0] - 2026-04-22<a class="headerlink" href="#100-2026-04-22" title="Permanent link">&para;</a></h2>
+<h3 id="added_2">Added<a class="headerlink" href="#added_2" title="Permanent link">&para;</a></h3>
+<ul>
+<li>experiment template gallery with five YAML presets for common test scenarios (<code>319820a0</code>)</li>
+<li>shareable HTML and Markdown reports plus stored project PDF/CSV/XLSX exports for deterministic analysis output (<code>8413328e</code>)</li>
+<li>project list filters for faster workspace triage (<code>0cdfa379</code>)</li>
+<li>keyboard shortcut help for save, run, and export flows (<code>0cdfa379</code>)</li>
+<li>project audit log endpoint and persisted request trail metadata (<code>7eac8f59</code>)</li>
+<li>deterministic SRM checks, Bayesian sizing, group sequential boundaries, and CUPED-aware calculations in the shipped analysis stack (<code>8413328e</code>)</li>
+<li>multi-metric guardrail planning and report sections across backend and UI (<code>8413328e</code>)</li>
+<li>Recharts-powered visualisations, result cards, and sensitivity views in the redesigned frontend (<code>5ea60181</code>)</li>
+<li>theme toggle for the refreshed dashboard interface (<code>5ea60181</code>)</li>
+<li>expanded axe accessibility coverage across wizard, results, sidebar, and modal flows (<code>9882d079</code>)</li>
+<li>Lighthouse CI verification against the backend-served frontend with enforced thresholds (<code>7a156794</code>)</li>
+</ul>
+<h3 id="changed_2">Changed<a class="headerlink" href="#changed_2" title="Permanent link">&para;</a></h3>
+<ul>
+<li>decomposed <code>App</code> and <code>ResultsPanel</code> into smaller route- and store-backed frontend modules for the BCG release wave (<code>8413328e</code>)</li>
+<li>moved wizard, analysis, project, draft, and theme state into dedicated Zustand stores (<code>8413328e</code>)</li>
+<li>refreshed the UI icon system around Lucide components and the new visual design layer (<code>5ea60181</code>)</li>
+<li>regenerated the frontend API contract and backend API docs alongside templates, filters, audit, and report endpoints (<code>7eac8f59</code>)</li>
+<li>hardened the workspace backup and recovery flow for local verification and restore drills (<code>a1d8606c</code>)</li>
+</ul>
+<h3 id="fixed_1">Fixed<a class="headerlink" href="#fixed_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li>resolved wizard, dialog, and menu accessibility regressions surfaced by the expanded axe suite (<code>9882d079</code>)</li>
+</ul>
+<h2 id="2026-03-09">2026-03-09<a class="headerlink" href="#2026-03-09" title="Permanent link">&para;</a></h2>
+<h3 id="release-hardening">Release hardening<a class="headerlink" href="#release-hardening" title="Permanent link">&para;</a></h3>
+<ul>
+<li>removed build-time frontend token injection and switched the UI to browser-session API tokens</li>
+<li>made the frontend fail closed for write actions until backend diagnostics explicitly confirm write-capable access</li>
+<li>split soft archive from permanent delete so <code>POST /api/v1/projects/{id}/archive</code> preserves history while <code>DELETE /api/v1/projects/{id}</code> hard-deletes it</li>
+<li>added optional HMAC-signed workspace backups via <code>AB_WORKSPACE_SIGNING_KEY</code>, plus signed import/validate enforcement and runtime diagnostics for backup-signing mode</li>
+<li>extended local verify wrappers, Docker verification, and CI wiring to cover signed workspace backup flows and removed the obsolete <code>VITE_API_TOKEN</code> path from CI</li>
+<li>made <code>scripts/verify_all.ps1</code> a thin delegation wrapper to the canonical batch verify path so Windows verification no longer drifts</li>
+<li>fixed workspace export/import round-trip regressions so exported bundles now validate and reimport cleanly with matching checksums</li>
+<li>normalized repository boolean fields for project list responses and closed the broken workspace import SQL insert path</li>
+<li>regenerated frontend API contracts and API docs to match the current backend/archive schema</li>
+<li>stabilized the smoke flow around free-port backend startup, browser draft persistence checks, and refreshed demo screenshots</li>
+<li>replaced the Playwright E2E launch path with a self-contained runner that builds the frontend when needed, starts a temporary backend on a free port, and cleans it up after the run</li>
+<li>aligned local verify scripts and CI Playwright installation syntax with the hardened E2E path</li>
+<li>re-ran full local verification, including <code>python scripts/verify_all.py --with-e2e</code></li>
+</ul>
+<h2 id="2026-03-08">2026-03-08<a class="headerlink" href="#2026-03-08" title="Permanent link">&para;</a></h2>
+<h3 id="ui-modernization">UI modernization<a class="headerlink" href="#ui-modernization" title="Permanent link">&para;</a></h3>
+<ul>
+<li>redesigned the frontend into a dashboard-style interface with metric cards, accordion sections, timeline history, live backend status, progress bar, tooltips, and loading spinners</li>
+<li>added a workspace status board that summarizes saved-project coverage, snapshot depth, export reach, revision depth, and current draft sync state</li>
+<li>made the frontend auth-aware so read-only API sessions disable save, analysis, report export, workspace import, and delete actions instead of failing at runtime</li>
+<li>upgraded typography to Inter + JetBrains Mono and added dark-mode support</li>
+<li>surfaced browser draft storage issues as dismissible UI toasts</li>
+<li>added a quota-specific autosave warning for <code>QuotaExceededError</code> while keeping generic storage failure details for other browser-local errors</li>
+</ul>
+<h3 id="backend-and-contracts">Backend and contracts<a class="headerlink" href="#backend-and-contracts" title="Permanent link">&para;</a></h3>
+<ul>
+<li>added explicit <code>bonferroni_note</code> to calculation responses for multivariant designs</li>
+<li>regenerated frontend API contracts from FastAPI OpenAPI</li>
+<li>kept deterministic calculations, warnings, saved-project history, and comparison flows aligned with the new UI</li>
+<li>added backend performance regression coverage with a <code>&lt;100ms</code> p95 guard for deterministic calculations</li>
+<li>added <code>GET /api/v1/diagnostics</code> with storage/frontend/LLM runtime summary</li>
+<li>added <code>X-Request-ID</code> and <code>X-Process-Time-Ms</code> headers for lightweight request tracing</li>
+<li>expanded saved-project comparison contracts with executive summaries, warning severity, overlap sections, and comparison highlights</li>
+<li>added <code>GET /readyz</code> for runtime readiness checks with <code>503</code> on degraded dependencies</li>
+<li>added workspace export/import APIs and UI actions for project/history backup and restore</li>
+<li>added saved-project revision history across create, update, and workspace import flows</li>
+<li>added <code>GET /api/v1/projects/{project_id}/revisions</code> plus frontend restore of older payload revisions</li>
+<li>added SQLite schema version reporting plus configurable journal mode, synchronous mode, and busy-timeout diagnostics</li>
+<li>added structured backend logging with configurable plain/json output</li>
+<li>added config validation for invalid ports and broken LLM retry/backoff settings</li>
+<li>expanded CI to also verify the repo on Windows and to check generated API docs</li>
+<li>added workspace backup roundtrip verification to the local/CI verify path</li>
+<li>added optional API token auth for <code>/api/v1/*</code>, <code>/readyz</code>, and local API docs</li>
+<li>added frontend bearer-token support through <code>VITE_API_TOKEN</code> at that stage; this path was later superseded by browser-session tokens</li>
+<li>added optional read-only API token support for safe runtime requests while keeping mutations behind the write token</li>
+<li>hardened Docker packaging with build-time frontend token injection, runtime defaults, container healthchecks, and secure compose verification; the build-time token path was later removed</li>
+<li>added workspace backup integrity manifests with entity counts and SHA-256 checksum validation on import</li>
+<li>added <code>POST /api/v1/workspace/validate</code> so workspace bundles can be preflight-checked before SQLite writes begin</li>
+<li>added structured API error payloads with <code>error_code</code>, <code>status_code</code>, <code>request_id</code>, and <code>X-Error-Code</code></li>
+<li>added in-memory runtime request/error counters to diagnostics for lightweight observability</li>
+<li>extended diagnostics and readiness with SQLite write-probe, db-size, parent-path, and free-disk reporting</li>
+</ul>
+<h3 id="documentation-and-packaging">Documentation and packaging<a class="headerlink" href="#documentation-and-packaging" title="Permanent link">&para;</a></h3>
+<ul>
+<li>added architecture, API, and rules documentation</li>
+<li>aligned the Python verify entrypoint with the Windows batch verify flow, including generated API docs and optional Playwright E2E</li>
+<li>added benchmark script and Docker packaging</li>
+<li>consolidated docs and demo assets for README-driven walkthroughs</li>
+<li>added <code>docs/RUNBOOK.md</code> and <code>docs/RELEASE_CHECKLIST.md</code> for local operations and release hygiene</li>
+<li>added documented backup roundtrip drill for SQLite workspace restore verification</li>
+<li>added GitHub Actions verification and refreshed smoke/demo automation around the sample import payload</li>
+<li>added a runnable Playwright E2E command, backend launcher, CI browser step, and a few extra statistical boundary regressions</li>
+</ul>
+<h2 id="earlier-milestones">Earlier milestones<a class="headerlink" href="#earlier-milestones" title="Permanent link">&para;</a></h2>
+<ul>
+<li>local SQLite project CRUD, export, history, and comparison flows</li>
+<li>combined <code>POST /api/v1/analyze</code></li>
+<li>local smoke test coverage against the backend-served frontend</li>
+<li>OpenAPI-generated frontend contracts and one-command verification</li>
+</ul>
+<!-- END INCLUDE -->
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "..", "features": ["navigation.instant", "navigation.tabs", "navigation.top", "content.code.copy", "content.code.annotate"], "search": "../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.525ec568.min.js"></script>
+      
+    
+  </body>
+</html>

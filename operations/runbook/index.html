@@ -1,0 +1,1800 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="FastAPI + React A/B-testing experiment designer. Bayesian + frequentist statistics, comparison dashboard, webhooks, multi-language UI.">
+      
+      
+      
+        <link rel="canonical" href="https://brownjuly2003-code.github.io/ab-test-research-designer/operations/runbook/">
+      
+      
+        <link rel="prev" href="../../case-studies/checkout-redesign/">
+      
+      
+        <link rel="next" href="../release-checklist/">
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.40">
+    
+    
+      
+        <title>Runbook - A/B Test Research Designer</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.8c3ca2c6.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#runbook" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="A/B Test Research Designer" class="md-header__button md-logo" aria-label="A/B Test Research Designer" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            A/B Test Research Designer
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Runbook
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/brownjuly2003-code/ab-test-research-designer" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.6.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    brownjuly2003-code/ab-test-research-designer
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../getting-started/quickstart/" class="md-tabs__link">
+          
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../features/wizard/" class="md-tabs__link">
+          
+  
+  Features
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../reference/api/" class="md-tabs__link">
+          
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../case-studies/checkout-redesign/" class="md-tabs__link">
+          
+  
+  Case Studies
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="./" class="md-tabs__link">
+          
+  
+  Operations
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../changelog/" class="md-tabs__link">
+        
+  
+    
+  
+  Changelog
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="A/B Test Research Designer" class="md-nav__button md-logo" aria-label="A/B Test Research Designer" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    A/B Test Research Designer
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/brownjuly2003-code/ab-test-research-designer" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.6.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    brownjuly2003-code/ab-test-research-designer
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Getting Started
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Getting Started
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/quickstart/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Quickstart
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/configuration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/deploy/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Deploy
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Features
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Features
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/wizard/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Wizard flow
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/llm-adapter/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Optional LLM adapter
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/results/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Results dashboard
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/comparison/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Multi-project comparison
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/webhooks/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Webhooks
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/slack/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Slack
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/localization/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Localization
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/database/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Database
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Reference
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Reference
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/api/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    REST API
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/architecture/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Architecture
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/statistics/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Statistics methods
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Case Studies
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Case Studies
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../case-studies/checkout-redesign/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Checkout redesign
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Operations
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Operations
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Runbook
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Runbook
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#local-startup" class="md-nav__link">
+    <span class="md-ellipsis">
+      Local startup
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#postgres-deployment" class="md-nav__link">
+    <span class="md-ellipsis">
+      Postgres deployment
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#demo-seeding-on-hugging-face" class="md-nav__link">
+    <span class="md-ellipsis">
+      Demo seeding on Hugging Face
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quick-checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      Quick checks
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#full-verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      Full verification
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#workspace-backup-and-restore" class="md-nav__link">
+    <span class="md-ellipsis">
+      Workspace backup and restore
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#saved-project-recovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      Saved-project recovery
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#multi-project-comparison" class="md-nav__link">
+    <span class="md-ellipsis">
+      Multi-project comparison
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-failure-modes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Common failure modes
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rotating-api-keys" class="md-nav__link">
+    <span class="md-ellipsis">
+      Rotating API keys
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#webhook-troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      Webhook troubleshooting
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slack-app-deployment" class="md-nav__link">
+    <span class="md-ellipsis">
+      Slack App deployment
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Slack App deployment">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#slack-oauth-tokens-at-rest" class="md-nav__link">
+    <span class="md-ellipsis">
+      Slack OAuth tokens at rest
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adding-a-new-locale" class="md-nav__link">
+    <span class="md-ellipsis">
+      Adding a new locale
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#release-hygiene" class="md-nav__link">
+    <span class="md-ellipsis">
+      Release hygiene
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#local-cleanup" class="md-nav__link">
+    <span class="md-ellipsis">
+      Local cleanup
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#screenshots" class="md-nav__link">
+    <span class="md-ellipsis">
+      Screenshots
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release-checklist/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Release checklist
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../changelog/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Changelog
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#local-startup" class="md-nav__link">
+    <span class="md-ellipsis">
+      Local startup
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#postgres-deployment" class="md-nav__link">
+    <span class="md-ellipsis">
+      Postgres deployment
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#demo-seeding-on-hugging-face" class="md-nav__link">
+    <span class="md-ellipsis">
+      Demo seeding on Hugging Face
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quick-checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      Quick checks
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#full-verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      Full verification
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#workspace-backup-and-restore" class="md-nav__link">
+    <span class="md-ellipsis">
+      Workspace backup and restore
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#saved-project-recovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      Saved-project recovery
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#multi-project-comparison" class="md-nav__link">
+    <span class="md-ellipsis">
+      Multi-project comparison
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-failure-modes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Common failure modes
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rotating-api-keys" class="md-nav__link">
+    <span class="md-ellipsis">
+      Rotating API keys
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#webhook-troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      Webhook troubleshooting
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#slack-app-deployment" class="md-nav__link">
+    <span class="md-ellipsis">
+      Slack App deployment
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Slack App deployment">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#slack-oauth-tokens-at-rest" class="md-nav__link">
+    <span class="md-ellipsis">
+      Slack OAuth tokens at rest
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adding-a-new-locale" class="md-nav__link">
+    <span class="md-ellipsis">
+      Adding a new locale
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#release-hygiene" class="md-nav__link">
+    <span class="md-ellipsis">
+      Release hygiene
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#local-cleanup" class="md-nav__link">
+    <span class="md-ellipsis">
+      Local cleanup
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#screenshots" class="md-nav__link">
+    <span class="md-ellipsis">
+      Screenshots
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<!-- BEGIN INCLUDE ../../docs/RUNBOOK.md -->
+<h1 id="runbook">Runbook<a class="headerlink" href="#runbook" title="Permanent link">&para;</a></h1>
+<h2 id="local-startup">Local startup<a class="headerlink" href="#local-startup" title="Permanent link">&para;</a></h2>
+<p>Backend:</p>
+<div class="highlight"><pre><span></span><code>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>app/backend/requirements.txt
+python<span class="w"> </span>-m<span class="w"> </span>uvicorn<span class="w"> </span>app.backend.app.main:app<span class="w"> </span>--host<span class="w"> </span><span class="m">127</span>.0.0.1<span class="w"> </span>--port<span class="w"> </span><span class="m">8008</span>
+</code></pre></div>
+<p>Frontend dev:</p>
+<div class="highlight"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>app/frontend
+npm<span class="w"> </span>install
+npm<span class="w"> </span>run<span class="w"> </span>dev
+</code></pre></div>
+<p>Docker:</p>
+<div class="highlight"><pre><span></span><code>docker<span class="w"> </span>compose<span class="w"> </span>up<span class="w"> </span>--build
+</code></pre></div>
+<p>Docker with API auth:</p>
+<div class="highlight"><pre><span></span><code><span class="nb">set</span><span class="w"> </span><span class="nv">AB_API_TOKEN</span><span class="o">=</span>your-secret-token
+docker<span class="w"> </span>compose<span class="w"> </span>up<span class="w"> </span>--build
+</code></pre></div>
+<p>Docker with split write/read tokens:</p>
+<div class="highlight"><pre><span></span><code><span class="nb">set</span><span class="w"> </span><span class="nv">AB_API_TOKEN</span><span class="o">=</span>write-secret-token
+<span class="nb">set</span><span class="w"> </span><span class="nv">AB_READONLY_API_TOKEN</span><span class="o">=</span>readonly-secret-token
+docker<span class="w"> </span>compose<span class="w"> </span>up<span class="w"> </span>--build
+</code></pre></div>
+<p>Docker with signed workspace backups:</p>
+<div class="highlight"><pre><span></span><code><span class="nb">set</span><span class="w"> </span><span class="nv">AB_WORKSPACE_SIGNING_KEY</span><span class="o">=</span>replace-with-a-long-random-secret
+docker<span class="w"> </span>compose<span class="w"> </span>up<span class="w"> </span>--build
+</code></pre></div>
+<p>Docker with Slack App credentials:</p>
+<div class="highlight"><pre><span></span><code><span class="nb">set</span><span class="w"> </span><span class="nv">AB_SLACK_CLIENT_ID</span><span class="o">=</span>your-client-id
+<span class="nb">set</span><span class="w"> </span><span class="nv">AB_SLACK_CLIENT_SECRET</span><span class="o">=</span>your-client-secret
+<span class="nb">set</span><span class="w"> </span><span class="nv">AB_SLACK_SIGNING_SECRET</span><span class="o">=</span>your-signing-secret
+docker<span class="w"> </span>compose<span class="w"> </span>up<span class="w"> </span>--build
+</code></pre></div>
+<p>Security-hardening knobs:</p>
+<div class="highlight"><pre><span></span><code><span class="nb">set</span><span class="w"> </span><span class="nv">AB_RATE_LIMIT_ENABLED</span><span class="o">=</span><span class="nb">true</span>
+<span class="nb">set</span><span class="w"> </span><span class="nv">AB_RATE_LIMIT_REQUESTS</span><span class="o">=</span><span class="m">240</span>
+<span class="nb">set</span><span class="w"> </span><span class="nv">AB_AUTH_FAILURE_LIMIT</span><span class="o">=</span><span class="m">20</span>
+<span class="nb">set</span><span class="w"> </span><span class="nv">AB_MAX_REQUEST_BODY_BYTES</span><span class="o">=</span><span class="m">1048576</span>
+<span class="nb">set</span><span class="w"> </span><span class="nv">AB_MAX_WORKSPACE_BODY_BYTES</span><span class="o">=</span><span class="m">8388608</span>
+docker<span class="w"> </span>compose<span class="w"> </span>up<span class="w"> </span>--build
+</code></pre></div>
+<h2 id="postgres-deployment">Postgres deployment<a class="headerlink" href="#postgres-deployment" title="Permanent link">&para;</a></h2>
+<p>Use Postgres when the backend must support concurrent writers, multiple app instances, or database-native replication. Leave <code>AB_DATABASE_URL</code> empty to keep the default SQLite workflow.</p>
+<p>Minimal env:</p>
+<div class="highlight"><pre><span></span><code><span class="nb">set</span><span class="w"> </span><span class="nv">AB_DATABASE_URL</span><span class="o">=</span>postgresql://postgres:postgres@localhost:5432/abtest
+<span class="nb">set</span><span class="w"> </span><span class="nv">AB_DB_POOL_SIZE</span><span class="o">=</span><span class="m">10</span>
+python<span class="w"> </span>-m<span class="w"> </span>uvicorn<span class="w"> </span>app.backend.app.main:app<span class="w"> </span>--host<span class="w"> </span><span class="m">127</span>.0.0.1<span class="w"> </span>--port<span class="w"> </span><span class="m">8008</span>
+</code></pre></div>
+<p>Notes:</p>
+<ul>
+<li>schema bootstrapping is automatic on startup via idempotent <code>CREATE TABLE IF NOT EXISTS</code></li>
+<li>SQLite-specific snapshot sync stays disabled on Postgres runtimes</li>
+<li><code>AB_DB_POOL_SIZE</code> controls the psycopg connection pool; increase it for multi-worker deploys</li>
+<li><code>AB_DB_PATH</code>, <code>AB_SQLITE_BUSY_TIMEOUT_MS</code>, <code>AB_SQLITE_JOURNAL_MODE</code>, and <code>AB_SQLITE_SYNCHRONOUS</code> still apply only to SQLite</li>
+</ul>
+<p>Migration guide from SQLite:</p>
+<div class="highlight"><pre><span></span><code>sqlite3<span class="w"> </span>D:<span class="se">\A</span>B_TEST<span class="se">\a</span>pp<span class="se">\b</span>ackend<span class="se">\d</span>ata<span class="se">\p</span>rojects.sqlite3<span class="w"> </span>.dump<span class="w"> </span>&gt;<span class="w"> </span>workspace.sql
+psql<span class="w"> </span>postgresql://postgres:postgres@localhost:5432/abtest<span class="w"> </span>-f<span class="w"> </span>workspace.sql
+</code></pre></div>
+<h2 id="demo-seeding-on-hugging-face">Demo seeding on Hugging Face<a class="headerlink" href="#demo-seeding-on-hugging-face" title="Permanent link">&para;</a></h2>
+<p>When <code>AB_SEED_DEMO_ON_STARTUP=true</code>, the backend runs a one-time startup hook after SQLite initialization and seeds the workspace with three demo projects: checkout conversion, pricing sensitivity, and onboarding completion. Each seeded project gets a saved analysis snapshot, and the checkout project also gets a markdown export event so the hosted UI shows populated sidebar and history views on first load.</p>
+<p>For Hugging Face Spaces Docker deployments, keep the image default as <code>AB_SEED_DEMO_ON_STARTUP=false</code> and set <code>AB_SEED_DEMO_ON_STARTUP=true</code> in the Space Settings UI. Hugging Face Spaces currently injects runtime variables from Settings, not README frontmatter.</p>
+<p>Disable seeding by setting:</p>
+<div class="highlight"><pre><span></span><code><span class="nb">set</span><span class="w"> </span><span class="nv">AB_SEED_DEMO_ON_STARTUP</span><span class="o">=</span><span class="nb">false</span>
+</code></pre></div>
+<p>Re-seed by starting from a fresh SQLite file and restarting the container. On Hugging Face Spaces basic storage this already happens on cold restarts because <code>/app/data/projects.sqlite3</code> is ephemeral. On a persistent runtime, either delete the SQLite file before restart or delete the demo projects through <code>DELETE /api/v1/projects/{id}</code> with a write-capable token and restart the app.</p>
+<p>Quick verification after deploy:</p>
+<div class="highlight"><pre><span></span><code>curl<span class="w"> </span>https://YOUR-SPACE.hf.space/api/v1/projects
+curl<span class="w"> </span>https://YOUR-SPACE.hf.space/api/v1/projects/PROJECT_ID/history
+</code></pre></div>
+<h2 id="quick-checks">Quick checks<a class="headerlink" href="#quick-checks" title="Permanent link">&para;</a></h2>
+<ul>
+<li>health: <code>http://127.0.0.1:8008/health</code></li>
+<li>readiness: <code>http://127.0.0.1:8008/readyz</code></li>
+<li>diagnostics: <code>http://127.0.0.1:8008/api/v1/diagnostics</code></li>
+</ul>
+<p>If <code>AB_API_TOKEN</code> or <code>AB_READONLY_API_TOKEN</code> is enabled, send either:</p>
+<ul>
+<li><code>Authorization: Bearer &lt;token&gt;</code></li>
+<li><code>X-API-Key: &lt;token&gt;</code></li>
+</ul>
+<p>Read-only tokens are valid only for <code>GET</code>, <code>HEAD</code>, and <code>OPTIONS</code>. Mutating routes still require the write token.
+When the frontend is served, enter the token through the "API session token" field; it is stored only in the current browser session.
+When throttling is enabled, bursty <code>/api/v1/*</code> traffic and repeated bad tokens return <code>429</code> with <code>Retry-After</code>.</p>
+<h2 id="full-verification">Full verification<a class="headerlink" href="#full-verification" title="Permanent link">&para;</a></h2>
+<p>Primary Windows entrypoint:</p>
+<div class="highlight"><pre><span></span><code>cmd<span class="w"> </span>/c<span class="w"> </span>scripts<span class="se">\v</span>erify_all.cmd
+</code></pre></div>
+<p>With secure Docker compose verification:</p>
+<div class="highlight"><pre><span></span><code>cmd<span class="w"> </span>/c<span class="w"> </span>scripts<span class="se">\v</span>erify_all.cmd<span class="w"> </span>--with-docker
+</code></pre></div>
+<p>Non-destructive Docker verification:</p>
+<div class="highlight"><pre><span></span><code>python<span class="w"> </span>scripts/verify_docker_compose.py<span class="w"> </span>--preserve
+</code></pre></div>
+<p>Or through the main verify wrapper:</p>
+<div class="highlight"><pre><span></span><code>cmd<span class="w"> </span>/c<span class="w"> </span>scripts<span class="se">\v</span>erify_all.cmd<span class="w"> </span>--with-docker-preserve
+</code></pre></div>
+<p>Focused checks:</p>
+<div class="highlight"><pre><span></span><code>python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>app/backend/tests<span class="w"> </span>-q
+npm<span class="w"> </span>--prefix<span class="w"> </span>app/frontend<span class="w"> </span>run<span class="w"> </span>test:unit
+npm<span class="w"> </span>--prefix<span class="w"> </span>app/frontend<span class="w"> </span>run<span class="w"> </span>build
+npm<span class="w"> </span>--prefix<span class="w"> </span>app/frontend<span class="w"> </span>run<span class="w"> </span>test:e2e
+python<span class="w"> </span>scripts/run_local_smoke.py<span class="w"> </span>--skip-build
+python<span class="w"> </span>scripts/benchmark_backend.py<span class="w"> </span>--payload<span class="w"> </span>binary<span class="w"> </span>--assert-ms<span class="w"> </span><span class="m">100</span>
+python<span class="w"> </span>scripts/verify_workspace_backup.py<span class="w"> </span>--fixture
+</code></pre></div>
+<p>Signed workspace backup check:</p>
+<div class="highlight"><pre><span></span><code><span class="nb">set</span><span class="w"> </span><span class="nv">AB_WORKSPACE_SIGNING_KEY</span><span class="o">=</span>replace-with-a-long-random-secret
+python<span class="w"> </span>scripts/verify_workspace_backup.py<span class="w"> </span>--fixture
+</code></pre></div>
+<p><code>npm --prefix app/frontend run test:e2e</code> builds the frontend if needed and runs against a temporary backend-served build on a free local port.</p>
+<h2 id="workspace-backup-and-restore">Workspace backup and restore<a class="headerlink" href="#workspace-backup-and-restore" title="Permanent link">&para;</a></h2>
+<p>Export the full local workspace:</p>
+<div class="highlight"><pre><span></span><code>curl<span class="w"> </span>http://127.0.0.1:8008/api/v1/workspace/export<span class="w"> </span>&gt;<span class="w"> </span>workspace-backup.json
+</code></pre></div>
+<p>Import a backup:</p>
+<div class="highlight"><pre><span></span><code>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://127.0.0.1:8008/api/v1/workspace/import<span class="w"> </span>^
+<span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span>^
+<span class="w">  </span>-d<span class="w"> </span>@workspace-backup.json
+</code></pre></div>
+<p>The backup contains:</p>
+<ul>
+<li>saved projects</li>
+<li>analysis run history</li>
+<li>export events</li>
+<li>saved project revisions</li>
+<li>integrity counts and a SHA-256 checksum</li>
+<li>optional <code>signature_hmac_sha256</code> when <code>AB_WORKSPACE_SIGNING_KEY</code> is configured</li>
+</ul>
+<p>Round-trip verification against a live DB file:</p>
+<div class="highlight"><pre><span></span><code>python<span class="w"> </span>scripts/verify_workspace_backup.py<span class="w"> </span>--db-path<span class="w"> </span>D:<span class="se">\A</span>B_TEST<span class="se">\a</span>pp<span class="se">\b</span>ackend<span class="se">\d</span>ata<span class="se">\p</span>rojects.sqlite3
+</code></pre></div>
+<p>If the target runtime uses <code>AB_WORKSPACE_SIGNING_KEY</code>, rerun the same verification command with that env var set so signature verification is exercised, not only checksum validation.</p>
+<h2 id="saved-project-recovery">Saved-project recovery<a class="headerlink" href="#saved-project-recovery" title="Permanent link">&para;</a></h2>
+<p>Useful endpoints:</p>
+<ul>
+<li><code>GET /api/v1/projects</code></li>
+<li><code>GET /api/v1/projects/{project_id}/history</code></li>
+<li><code>GET /api/v1/projects/{project_id}/revisions</code></li>
+</ul>
+<p>Use revisions to restore an older payload into the wizard, then save to persist it as the latest version.</p>
+<h2 id="multi-project-comparison">Multi-project comparison<a class="headerlink" href="#multi-project-comparison" title="Permanent link">&para;</a></h2>
+<p>Useful endpoints:</p>
+<ul>
+<li><code>POST /api/v1/projects/compare</code></li>
+<li><code>POST /api/v1/export/comparison</code></li>
+<li>legacy pairwise: <code>GET /api/v1/projects/compare?base_id=...&amp;candidate_id=...</code> with <code>Deprecation: true</code></li>
+</ul>
+<p>Open a comparison dashboard for 3 saved projects:</p>
+<div class="highlight"><pre><span></span><code>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://127.0.0.1:8008/api/v1/projects/compare<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;project_ids&quot;:[&quot;PROJECT_ID_1&quot;,&quot;PROJECT_ID_2&quot;,&quot;PROJECT_ID_3&quot;]}&#39;</span>
+</code></pre></div>
+<p>Export the same selection to Markdown:</p>
+<div class="highlight"><pre><span></span><code>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://127.0.0.1:8008/api/v1/export/comparison<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;project_ids&quot;:[&quot;PROJECT_ID_1&quot;,&quot;PROJECT_ID_2&quot;,&quot;PROJECT_ID_3&quot;],&quot;format&quot;:&quot;markdown&quot;}&#39;</span>
+</code></pre></div>
+<p>Export the same selection to PDF:</p>
+<div class="highlight"><pre><span></span><code>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://127.0.0.1:8008/api/v1/export/comparison<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;project_ids&quot;:[&quot;PROJECT_ID_1&quot;,&quot;PROJECT_ID_2&quot;,&quot;PROJECT_ID_3&quot;],&quot;format&quot;:&quot;pdf&quot;}&#39;</span>
+</code></pre></div>
+<p>Checks:</p>
+<ul>
+<li><code>project_ids</code> must contain 2 to 5 unique saved projects</li>
+<li>every selected project must already have a saved analysis snapshot</li>
+<li>mixed <code>binary</code> and <code>continuous</code> selections are allowed, but the dashboard marks direct effect comparison as not meaningful</li>
+<li>PDF export returns base64-encoded content in the JSON payload; decode client-side before saving to disk</li>
+</ul>
+<h2 id="common-failure-modes">Common failure modes<a class="headerlink" href="#common-failure-modes" title="Permanent link">&para;</a></h2>
+<p>Readiness returns <code>503</code>:</p>
+<ul>
+<li>check SQLite path and write access</li>
+<li>check schema version and journal mode in <code>GET /readyz</code></li>
+<li>if <code>AB_SERVE_FRONTEND_DIST=true</code>, ensure <code>app/frontend/dist/index.html</code> exists</li>
+<li>inspect <code>GET /api/v1/diagnostics</code> for frontend/LLM/storage details</li>
+</ul>
+<p>Frontend loads but backend requests fail:</p>
+<ul>
+<li>confirm <code>VITE_API_BASE_URL</code></li>
+<li>if write-token auth is enabled, confirm that the browser-session token is present and accepted by diagnostics</li>
+<li>if read-only auth is enabled, verify diagnostics/docs work while mutations still reject with <code>403</code></li>
+<li>if requests start returning <code>429</code>, inspect <code>Retry-After</code> and tune <code>AB_RATE_LIMIT_*</code> or <code>AB_AUTH_FAILURE_*</code> for the target runtime</li>
+<li>verify CORS env values if frontend is on another origin</li>
+<li>use <code>request_id</code> and <code>X-Error-Code</code> from API failures to correlate UI errors with backend logs</li>
+<li>use diagnostics runtime counters and guard settings to confirm whether failures are isolated, rate-limited, or caused by request-size policy on the current process lifetime</li>
+</ul>
+<p>Workspace import fails:</p>
+<ul>
+<li>validate JSON shape against <code>docs/API.md</code></li>
+<li>if the payload is legitimately large, confirm <code>AB_MAX_WORKSPACE_BODY_BYTES</code> is high enough for the target runtime</li>
+<li>ensure referenced analysis runs and projects are consistent</li>
+<li>ensure the integrity checksum still matches and that the bundle was not edited after export</li>
+<li>if the runtime has <code>AB_WORKSPACE_SIGNING_KEY</code>, ensure the bundle still contains a valid <code>signature_hmac_sha256</code></li>
+</ul>
+<h2 id="rotating-api-keys">Rotating API keys<a class="headerlink" href="#rotating-api-keys" title="Permanent link">&para;</a></h2>
+<p>Prerequisites:</p>
+<ul>
+<li><code>AB_ADMIN_TOKEN</code> is configured on the backend runtime</li>
+<li>you can reach <code>GET /api/v1/keys</code> with <code>Authorization: Bearer &lt;AB_ADMIN_TOKEN&gt;</code></li>
+</ul>
+<p>Recommended rotation flow:</p>
+<ol>
+<li>Create a replacement key with the same scope and any required per-key rate-limit override.</li>
+<li>Update the external consumer to use the new plaintext key.</li>
+<li>Verify traffic moved by checking <code>GET /api/v1/audit?key_id=&lt;new-key-id&gt;&amp;action=api_key_used</code>.</li>
+<li>Revoke the previous key with <code>POST /api/v1/keys/{key_id}/revoke</code>.</li>
+<li>Delete the revoked key with <code>DELETE /api/v1/keys/{key_id}</code> once rollback is no longer needed.</li>
+</ol>
+<p>Create:</p>
+<div class="highlight"><pre><span></span><code>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://127.0.0.1:8008/api/v1/keys<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer YOUR_AB_ADMIN_TOKEN&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;name&quot;:&quot;Partner write key&quot;,&quot;scope&quot;:&quot;write&quot;}&#39;</span>
+</code></pre></div>
+<p>Audit verification:</p>
+<div class="highlight"><pre><span></span><code>curl<span class="w"> </span><span class="s2">&quot;http://127.0.0.1:8008/api/v1/audit?key_id=KEY_ID&amp;action=api_key_used&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer YOUR_WRITE_TOKEN&quot;</span>
+</code></pre></div>
+<p>Revoke:</p>
+<div class="highlight"><pre><span></span><code>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://127.0.0.1:8008/api/v1/keys/KEY_ID/revoke<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer YOUR_AB_ADMIN_TOKEN&quot;</span>
+</code></pre></div>
+<p>Delete:</p>
+<div class="highlight"><pre><span></span><code>curl<span class="w"> </span>-X<span class="w"> </span>DELETE<span class="w"> </span>http://127.0.0.1:8008/api/v1/keys/KEY_ID<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer YOUR_AB_ADMIN_TOKEN&quot;</span>
+</code></pre></div>
+<p>Notes:</p>
+<ul>
+<li>the plaintext key is returned only once in the create response; do not log or persist it outside the intended secret store</li>
+<li>legacy <code>AB_API_TOKEN</code> and <code>AB_READONLY_API_TOKEN</code> continue to work during migration and can be retired separately from managed API keys</li>
+</ul>
+<h2 id="webhook-troubleshooting">Webhook troubleshooting<a class="headerlink" href="#webhook-troubleshooting" title="Permanent link">&para;</a></h2>
+<p>Useful endpoints:</p>
+<ul>
+<li><code>GET /api/v1/webhooks</code></li>
+<li><code>GET /api/v1/webhooks/{webhook_id}/deliveries?limit=50</code></li>
+<li><code>POST /api/v1/webhooks/{webhook_id}/test</code></li>
+</ul>
+<p>Common checks:</p>
+<ul>
+<li>confirm the subscription uses <code>https://...</code>; plain HTTP is rejected outside <code>AB_ENV=local</code> localhost targets</li>
+<li>verify the subscription is still <code>enabled</code></li>
+<li>inspect the delivery history for <code>response_code</code>, <code>attempt_count</code>, and <code>error_message</code></li>
+<li>if a delivery is stuck in <code>retrying</code>, wait for the next in-process backoff window before retrying manually</li>
+<li>generic consumers must verify <code>X-AB-Signature</code> with the stored shared secret; Slack subscriptions do not include that header</li>
+<li>repeated terminal failures move the delivery into the DB-backed dead-letter history with <code>status=failed</code></li>
+</ul>
+<p>Create a test subscription or re-run a probe:</p>
+<div class="highlight"><pre><span></span><code>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://127.0.0.1:8008/api/v1/webhooks/WEBHOOK_ID/test<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer YOUR_AB_ADMIN_TOKEN&quot;</span>
+</code></pre></div>
+<p>Inspect recent failed deliveries:</p>
+<div class="highlight"><pre><span></span><code>curl<span class="w"> </span><span class="s2">&quot;http://127.0.0.1:8008/api/v1/webhooks/WEBHOOK_ID/deliveries?limit=50&amp;status=failed&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer YOUR_AB_ADMIN_TOKEN&quot;</span>
+</code></pre></div>
+<h2 id="slack-app-deployment">Slack App deployment<a class="headerlink" href="#slack-app-deployment" title="Permanent link">&para;</a></h2>
+<p>Use <code>slack/app-manifest.yml</code> for Slack UI import or <code>slack manifest validate</code>. Replace <code>{DEPLOY_HOST}</code> with the HTTPS backend host before importing.</p>
+<p>Required runtime secrets:</p>
+<ul>
+<li><code>AB_SLACK_CLIENT_ID</code></li>
+<li><code>AB_SLACK_CLIENT_SECRET</code></li>
+<li><code>AB_SLACK_SIGNING_SECRET</code></li>
+</ul>
+<p>Useful endpoints:</p>
+<ul>
+<li><code>GET /slack/install</code></li>
+<li><code>GET /slack/oauth/callback</code></li>
+<li><code>POST /slack/commands</code></li>
+<li><code>POST /slack/interactive</code></li>
+<li><code>POST /slack/events</code></li>
+<li><code>GET /api/v1/slack/status</code></li>
+</ul>
+<p>Smoke check:</p>
+<div class="highlight"><pre><span></span><code>curl<span class="w"> </span>http://127.0.0.1:8008/api/v1/slack/status
+</code></pre></div>
+<p>After installation, run <code>/ab-test projects</code> in Slack and verify the response lists saved projects. Slack requests are rejected when <code>X-Slack-Signature</code> is invalid or the timestamp is older than five minutes.</p>
+<p>Rotate secrets from the Slack App configuration, update runtime secrets, restart the backend, delete the affected <code>slack_installations</code> row when replacing bot tokens, then reinstall through <code>/slack/install</code>.</p>
+<h3 id="slack-oauth-tokens-at-rest">Slack OAuth tokens at rest<a class="headerlink" href="#slack-oauth-tokens-at-rest" title="Permanent link">&para;</a></h3>
+<p><code>slack_installations.bot_token</code> and <code>slack_installations.user_token</code> are stored <strong>plaintext</strong> in SQLite (or Postgres if <code>AB_DATABASE_URL</code> is set). The threat model is local-first single-user use, where access to the SQLite file already implies host compromise. Specifically:</p>
+<ul>
+<li><code>data/projects.sqlite3</code> and any custom <code>AB_DB_PATH</code> should sit on a filesystem that only the application user can read.</li>
+<li>Hugging Face Spaces and similar hosted demos: do <strong>not</strong> install Slack in production-grade workspaces from the demo. Use a sandbox Slack workspace or skip the integration.</li>
+<li>For a self-hosted production deployment, restrict access to the database file at the filesystem layer (e.g. <code>chmod 600</code>, encrypted volume, AWS KMS-backed EFS), and rotate Slack tokens promptly if compromise is suspected.</li>
+<li>Token rotation: re-run <code>/slack/install</code> to overwrite the row; the previous token becomes inactive in Slack as well.</li>
+</ul>
+<p>If you need encrypted-at-rest storage, the recommended path is to enable filesystem-level or volume-level encryption on the host rather than column-level encryption in the application — the latter requires its own KEK management and adds a recovery failure mode without changing the practical attacker model for a host with running write access.</p>
+<h2 id="adding-a-new-locale">Adding a new locale<a class="headerlink" href="#adding-a-new-locale" title="Permanent link">&para;</a></h2>
+<p>The project ships with seven locales: <code>en</code>, <code>ru</code>, <code>de</code>, <code>es</code>, <code>fr</code>, <code>zh</code>, <code>ar</code>. Adding a new one takes a matching pair of JSON files plus registration, switcher, and verification touches.</p>
+<ol>
+<li><strong>Frontend translation</strong> - copy <code>app/frontend/src/i18n/en.json</code> to <code>&lt;code&gt;.json</code> in the same directory and translate the strings. Current shipped locales (<code>de</code>, <code>es</code>, <code>fr</code>, <code>zh</code>, <code>ar</code>) all keep full leaf-key parity with <code>en</code>; do not ship a partial file unless review explicitly allows fallback coverage.</li>
+<li><strong>Frontend registration</strong> - add the new code to <code>app/frontend/src/i18n/index.ts</code>: import the JSON, add it to <code>resources</code>, extend <code>supportedLngs</code>, and keep the <code>fallbackLng</code> resolver returning <code>&lt;primary&gt; -&gt; en</code> for regional tags.</li>
+<li><strong>Language switcher</strong> - extend <code>SUPPORTED_LANGUAGES</code> in <code>app/frontend/src/App.tsx</code> so the header switcher renders the new button. Add a label under <code>app.language.options.&lt;code&gt;</code> to every shipped locale file, not only the new one, because the switcher is visible in every active locale.</li>
+<li><strong>RTL locales</strong> - if the locale is right-to-left, update <code>App.tsx</code> so it sets <code>document.documentElement.dir = "rtl"</code> for that code and <code>"ltr"</code> otherwise. Audit <code>app/frontend/src/**/*.css</code> for logical properties (<code>inset-inline-*</code>, <code>padding-inline-*</code>, <code>margin-inline-*</code>, <code>border-inline-start-*</code>, <code>text-align: start/end</code>) before shipping.</li>
+<li><strong>Backend translation</strong> - copy <code>app/backend/app/i18n/en.json</code> to <code>app/backend/app/i18n/&lt;code&gt;.json</code>. Translate at least the <code>export.markdown</code>, <code>export.html</code>, <code>warnings</code>, and <code>report</code> subtrees, since those feed the <code>/api/v1/export/*</code> payloads and the deterministic report builder.</li>
+<li><strong>Backend registration</strong> - extend the <code>Language</code> literal and <code>SUPPORTED_LANGUAGES</code> tuple in <code>app/backend/app/i18n/__init__.py</code>. The <code>resolve_language</code> helper already accepts any supported primary tag, so regional variants like <code>fr-CA</code>, <code>zh-TW</code>, or <code>ar-SA</code> fall back automatically.</li>
+<li><strong>Tests</strong> - extend <code>app/frontend/src/i18n.test.tsx</code>, keep <code>app/frontend/src/test/a11y-locales.test.tsx</code> aligned with the current switcher shape, add <code>app/frontend/src/test/a11y-rtl.test.tsx</code> for RTL locales, and add backend export assertions to <code>app/backend/tests/test_export_api.py</code> covering the translated markdown header and primary-tag fallback.</li>
+</ol>
+<p>Verification:</p>
+<div class="highlight"><pre><span></span><code>cmd<span class="w"> </span>/c<span class="w"> </span>scripts<span class="se">\v</span>erify_all.cmd<span class="w"> </span>--with-e2e
+</code></pre></div>
+<p>The backend bundle is small (one JSON per locale); the frontend bundle impact depends on whether locales are statically imported or lazy-loaded, so re-check the build output after adding a fully translated locale set.</p>
+<h2 id="release-hygiene">Release hygiene<a class="headerlink" href="#release-hygiene" title="Permanent link">&para;</a></h2>
+<ul>
+<li>regenerate API contracts: <code>python scripts/generate_frontend_api_types.py</code></li>
+<li>regenerate API docs: <code>python scripts/generate_api_docs.py</code></li>
+<li>run workspace roundtrip verification: <code>python scripts/verify_workspace_backup.py --fixture</code></li>
+<li>run full verify pipeline</li>
+<li>refresh smoke screenshots if UI changed materially</li>
+</ul>
+<h2 id="local-cleanup">Local cleanup<a class="headerlink" href="#local-cleanup" title="Permanent link">&para;</a></h2>
+<p><code>python scripts/cleanup_test_artifacts.py</code> (use <code>--dry-run</code> first) removes
+local pytest temp dirs, <code>.coverage</code>, the cxkm sandbox, and the mkdocs <code>site/</code>
+build. Everything it touches is recreated on the next test/build run; no
+tracked content is affected.</p>
+<h2 id="screenshots">Screenshots<a class="headerlink" href="#screenshots" title="Permanent link">&para;</a></h2>
+<p>Single source of truth is <code>docs/demo/</code>, populated by
+<code>scripts/run_local_smoke.py</code>. The mkdocs site keeps its own copies in
+<code>docs-site/assets/screenshots/</code> because mkdocs only serves files under
+<code>docs_dir</code>. After regenerating screenshots, run
+<code>python scripts/sync_doc_screenshots.py</code> to mirror them; CI does this
+automatically before <code>mkdocs gh-deploy</code>. Files unique to docs-site
+(currently <code>comparison-distribution-view.png</code>) are left untouched.</p>
+<!-- END INCLUDE -->
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.instant", "navigation.tabs", "navigation.top", "content.code.copy", "content.code.annotate"], "search": "../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.525ec568.min.js"></script>
+      
+    
+  </body>
+</html>
