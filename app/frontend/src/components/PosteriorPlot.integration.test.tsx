@@ -26,14 +26,6 @@ import PosteriorPlot from "./PosteriorPlot";
 
 describe("PosteriorPlot integration", () => {
   beforeEach(() => {
-    vi.stubGlobal(
-      "ResizeObserver",
-      class ResizeObserver {
-        observe() {}
-        unobserve() {}
-        disconnect() {}
-      }
-    );
   });
 
   afterEach(() => {

@@ -52,14 +52,6 @@ describe("Results accessibility", () => {
         headers: new Headers()
       }))
     );
-    vi.stubGlobal(
-      "ResizeObserver",
-      class ResizeObserver {
-        observe() {}
-        unobserve() {}
-        disconnect() {}
-      }
-    );
   });
 
   afterEach(() => {

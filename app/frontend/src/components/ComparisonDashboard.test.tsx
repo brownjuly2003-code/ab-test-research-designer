@@ -8,14 +8,6 @@ import { flushEffects, renderIntoDocument } from "../test/dom";
 
 describe("ComparisonDashboard", () => {
   beforeEach(() => {
-    vi.stubGlobal(
-      "ResizeObserver",
-      class ResizeObserver {
-        observe() {}
-        unobserve() {}
-        disconnect() {}
-      }
-    );
   });
 
   afterEach(() => {

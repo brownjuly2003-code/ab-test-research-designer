@@ -559,14 +559,6 @@ async function openSystemTab(view: AppView) {
 
 describe("App UI flow", () => {
   beforeEach(() => {
-    vi.stubGlobal(
-      "ResizeObserver",
-      class ResizeObserver {
-        observe() {}
-        unobserve() {}
-        disconnect() {}
-      }
-    );
     vi.stubGlobal("URL", {
       createObjectURL: vi.fn(() => "blob:test"),
       revokeObjectURL: vi.fn()

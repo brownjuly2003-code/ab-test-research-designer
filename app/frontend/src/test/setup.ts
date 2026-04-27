@@ -8,6 +8,17 @@ import zh from "../../public/locales/zh.json";
 
 import { vi } from "vitest";
 
+class ResizeObserverStub {
+  observe(): void {}
+  unobserve(): void {}
+  disconnect(): void {}
+}
+
+if (!("ResizeObserver" in globalThis)) {
+  (globalThis as unknown as { ResizeObserver: typeof ResizeObserver }).ResizeObserver =
+    ResizeObserverStub as unknown as typeof ResizeObserver;
+}
+
 const localePayloads: Record<string, unknown> = {
   ar,
   de,

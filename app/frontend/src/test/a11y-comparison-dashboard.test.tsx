@@ -37,14 +37,6 @@ function ComparisonDashboardHarness() {
 describe("Comparison dashboard accessibility", () => {
   beforeEach(() => {
     document.documentElement.lang = "en";
-    vi.stubGlobal(
-      "ResizeObserver",
-      class ResizeObserver {
-        observe() {}
-        unobserve() {}
-        disconnect() {}
-      }
-    );
   });
 
   afterEach(() => {

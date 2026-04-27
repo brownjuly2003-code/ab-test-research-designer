@@ -44,14 +44,6 @@ describe("Bayesian and sequential results accessibility", () => {
         headers: new Headers()
       }))
     );
-    vi.stubGlobal(
-      "ResizeObserver",
-      class ResizeObserver {
-        observe() {}
-        unobserve() {}
-        disconnect() {}
-      }
-    );
   });
 
   afterEach(() => {

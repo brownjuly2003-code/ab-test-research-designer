@@ -80,14 +80,6 @@ const monteCarloComparisonResponse = {
 
 describe("DistributionView", () => {
   beforeEach(() => {
-    vi.stubGlobal(
-      "ResizeObserver",
-      class ResizeObserver {
-        observe() {}
-        unobserve() {}
-        disconnect() {}
-      }
-    );
     vi.mocked(compareMultipleProjectsRequest).mockReset();
   });
 

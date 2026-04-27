@@ -107,14 +107,6 @@ function ComparisonDashboardHarness() {
 describe("Comparison distribution view accessibility", () => {
   beforeEach(() => {
     document.documentElement.lang = "en";
-    vi.stubGlobal(
-      "ResizeObserver",
-      class ResizeObserver {
-        observe() {}
-        unobserve() {}
-        disconnect() {}
-      }
-    );
     vi.mocked(compareMultipleProjectsRequest).mockReset();
   });
 
