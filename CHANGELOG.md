@@ -27,6 +27,15 @@
 
 ### Fixed
 
+- **Continuous post-test math:** `analyze_results` for continuous metrics now uses Welch Student-t for both the p-value and the confidence interval (was returning a normal-approximation p-value with a z-critical CI regardless of `df`). New `app/backend/app/stats/student_t.py` implements `t_cdf`/`t_ppf` via stdlib regularized incomplete beta (zero scipy dep); 24 unit cases assert ≤1e-7 / ≤1e-4 vs scipy. Continuous `power_achieved` is now computed (was hardcoded `0.0`) using a two-sided expression (upper + lower tail) so it equals α at zero observed effect instead of α/2.
+- **Workspace import atomicity:** `import_workspace()` now opens a `BEGIN IMMEDIATE` transaction explicitly. Default Python `sqlite3` deferred-mode transactions could race across concurrent imports.
+- **Snapshot loop resilience:** the periodic HF snapshot push is now wrapped in `try/except` so a transient failure logs and continues instead of killing the background task silently.
+- **Rate limiter memory:** `SlidingWindowRateLimiter` periodically prunes buckets whose last event is outside the window. Long-uptime deployments no longer accumulate state for rotated client IPs/API keys.
+- **Pytest on Windows:** `pytest.ini` now sets `--basetemp=.pytest_basetemp` so the default `python -m pytest` command works without manual flags. Legacy `app/backend/tests/.tmp/` (~990 MB on long-lived checkouts) removable via new `scripts/cleanup_test_artifacts.py`.
+- **Locale parity:** ar/de/es/fr/zh receive the missing `sidebarPanel.slackApp.*` block (12 keys); locale leaf-key counts now match en for all shipped locales.
+- **OpenAPI metadata:** `license_info` is now `MIT` (was `UNLICENSED`); the placeholder contact email was removed, eliminating the `email-validator not installed` warning during contract/API-doc generation.
+- `.env.example`: portable relative paths instead of `D:\AB_TEST\…`; `AB_ADMIN_TOKEN=` added so secure self-hosted setup works from copy-paste.
+- mkdocs `--strict` no longer warns: `docs-site/features/database.md` is added to the Features nav.
 - Accessibility tests (`PosteriorPlot`, `a11y-results` full-panel, `a11y-comparison-dashboard`) no longer time out: a flat recharts mock in `app/frontend/src/test/recharts-stub.tsx` removes 1000+ SVG nodes per chart from axe's scan, reducing full-panel axe duration from 15-30s to ~3s. The deleted visual `.recharts-area-area` assertion was preserved in a new `PosteriorPlot.integration.test.tsx` using a ResponsiveContainer-only clone-element mock so real recharts renders in jsdom.
 - `ProjectRepository` now handles unix-absolute SQLite URLs (`sqlite:////home/user/db.sqlite3`) without doubling the leading slash, fixing `test_diagnostics_endpoint` path assertion on Linux CI.
 - Postgres integration tests skip on Windows CI where Docker Linux containers are unavailable (`testcontainers-ryuk` 404 on container create).
