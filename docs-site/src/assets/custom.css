@@ -1,0 +1,85 @@
+:root {
+  --sl-font: Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --sl-font-system-mono: "JetBrains Mono", "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
+}
+
+:root[data-theme="light"] {
+  --sl-color-accent-low: #dbeafe;
+  --sl-color-accent: #2563eb;
+  --sl-color-accent-high: #1e3a8a;
+}
+
+:root[data-theme="dark"] {
+  --sl-color-accent-low: #172554;
+  --sl-color-accent: #60a5fa;
+  --sl-color-accent-high: #bfdbfe;
+}
+
+.sl-markdown-content table {
+  font-size: 0.875rem;
+}
+
+.route-table td,
+.route-table th,
+.matrix-table td,
+.matrix-table th {
+  font-size: 0.8125rem;
+}
+
+.route-table code,
+.matrix-table code {
+  font-family: var(--sl-font-system-mono);
+}
+
+.route-method {
+  display: inline-block;
+  min-width: 3.75rem;
+  padding: 0.125rem 0.4rem;
+  border-radius: 0.25rem;
+  font-weight: 700;
+  text-align: center;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+}
+
+.route-method-get {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.route-method-post {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.route-method-put,
+.route-method-patch {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.route-method-delete {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+:root[data-theme="dark"] .route-method-get {
+  background: #14532d;
+  color: #bbf7d0;
+}
+
+:root[data-theme="dark"] .route-method-post {
+  background: #1e3a8a;
+  color: #bfdbfe;
+}
+
+:root[data-theme="dark"] .route-method-put,
+:root[data-theme="dark"] .route-method-patch {
+  background: #78350f;
+  color: #fde68a;
+}
+
+:root[data-theme="dark"] .route-method-delete {
+  background: #7f1d1d;
+  color: #fecaca;
+}

@@ -1,0 +1,21 @@
+{
+  "name": "ab-test-research-designer-docs",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "predev": "node scripts/sync-docs.mjs && node scripts/gen-routes.mjs && node scripts/gen-experiments.mjs && node scripts/gen-config.mjs",
+    "prebuild": "node scripts/sync-docs.mjs && node scripts/gen-routes.mjs && node scripts/gen-experiments.mjs && node scripts/gen-config.mjs",
+    "dev": "astro dev --host 127.0.0.1 --port 8010",
+    "start": "astro dev --host 127.0.0.1 --port 8010",
+    "build": "astro build",
+    "preview": "astro preview --host 127.0.0.1 --port 8010",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "^0.39.1",
+    "astro": "^6.3.0",
+    "sharp": "^0.34.5",
+    "yaml": "^2.8.4"
+  }
+}

@@ -1,0 +1,103 @@
+---
+title: API Routes Catalog
+description: Auto-generated FastAPI route catalog for AB_TEST.
+---
+
+import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
+
+<CardGrid>
+  <Card title="Total endpoints" icon="rocket">
+    59
+  </Card>
+  <Card title="Source files" icon="document">
+    11
+  </Card>
+</CardGrid>
+
+## By File
+
+| File | Endpoints |
+| --- | ---: |
+| `app/backend/app/frontend_routes.py` | 2 |
+| `app/backend/app/routes/analysis.py` | 7 |
+| `app/backend/app/routes/audit.py` | 2 |
+| `app/backend/app/routes/system.py` | 3 |
+| `app/backend/app/routes/export.py` | 4 |
+| `app/backend/app/routes/keys.py` | 4 |
+| `app/backend/app/routes/projects.py` | 16 |
+| `app/backend/app/routes/slack.py` | 6 |
+| `app/backend/app/routes/templates.py` | 5 |
+| `app/backend/app/routes/webhooks.py` | 7 |
+| `app/backend/app/routes/workspace.py` | 3 |
+
+## All Routes
+
+<div class="route-table">
+
+| Method | Path | Source |
+| --- | --- | --- |
+| <span class="route-method route-method-get">GET</span> | `/` | `app/backend/app/frontend_routes.py` |
+| <span class="route-method route-method-get">GET</span> | `/{full_path:path}` | `app/backend/app/frontend_routes.py` |
+| <span class="route-method route-method-post">POST</span> | `/api/v1/analyze` | `app/backend/app/routes/analysis.py` |
+| <span class="route-method route-method-get">GET</span> | `/api/v1/audit` | `app/backend/app/routes/audit.py` |
+| <span class="route-method route-method-get">GET</span> | `/api/v1/audit/export` | `app/backend/app/routes/audit.py` |
+| <span class="route-method route-method-post">POST</span> | `/api/v1/calculate` | `app/backend/app/routes/analysis.py` |
+| <span class="route-method route-method-post">POST</span> | `/api/v1/design` | `app/backend/app/routes/analysis.py` |
+| <span class="route-method route-method-get">GET</span> | `/api/v1/diagnostics` | `app/backend/app/routes/system.py` |
+| <span class="route-method route-method-post">POST</span> | `/api/v1/export/comparison` | `app/backend/app/routes/export.py` |
+| <span class="route-method route-method-post">POST</span> | `/api/v1/export/html` | `app/backend/app/routes/export.py` |
+| <span class="route-method route-method-post">POST</span> | `/api/v1/export/html-standalone` | `app/backend/app/routes/export.py` |
+| <span class="route-method route-method-post">POST</span> | `/api/v1/export/markdown` | `app/backend/app/routes/export.py` |
+| <span class="route-method route-method-get">GET</span> | `/api/v1/keys` | `app/backend/app/routes/keys.py` |
+| <span class="route-method route-method-post">POST</span> | `/api/v1/keys` | `app/backend/app/routes/keys.py` |
+| <span class="route-method route-method-delete">DELETE</span> | `/api/v1/keys/{api_key_id}` | `app/backend/app/routes/keys.py` |
+| <span class="route-method route-method-post">POST</span> | `/api/v1/keys/{api_key_id}/revoke` | `app/backend/app/routes/keys.py` |
+| <span class="route-method route-method-post">POST</span> | `/api/v1/llm/advice` | `app/backend/app/routes/analysis.py` |
+| <span class="route-method route-method-get">GET</span> | `/api/v1/projects` | `app/backend/app/routes/projects.py` |
+| <span class="route-method route-method-post">POST</span> | `/api/v1/projects` | `app/backend/app/routes/projects.py` |
+| <span class="route-method route-method-delete">DELETE</span> | `/api/v1/projects/{project_id}` | `app/backend/app/routes/projects.py` |
+| <span class="route-method route-method-get">GET</span> | `/api/v1/projects/{project_id}` | `app/backend/app/routes/projects.py` |
+| <span class="route-method route-method-put">PUT</span> | `/api/v1/projects/{project_id}` | `app/backend/app/routes/projects.py` |
+| <span class="route-method route-method-post">POST</span> | `/api/v1/projects/{project_id}/analysis` | `app/backend/app/routes/projects.py` |
+| <span class="route-method route-method-post">POST</span> | `/api/v1/projects/{project_id}/archive` | `app/backend/app/routes/projects.py` |
+| <span class="route-method route-method-post">POST</span> | `/api/v1/projects/{project_id}/exports` | `app/backend/app/routes/projects.py` |
+| <span class="route-method route-method-get">GET</span> | `/api/v1/projects/{project_id}/history` | `app/backend/app/routes/projects.py` |
+| <span class="route-method route-method-get">GET</span> | `/api/v1/projects/{project_id}/report/csv` | `app/backend/app/routes/projects.py` |
+| <span class="route-method route-method-get">GET</span> | `/api/v1/projects/{project_id}/report/pdf` | `app/backend/app/routes/projects.py` |
+| <span class="route-method route-method-get">GET</span> | `/api/v1/projects/{project_id}/report/xlsx` | `app/backend/app/routes/projects.py` |
+| <span class="route-method route-method-post">POST</span> | `/api/v1/projects/{project_id}/restore` | `app/backend/app/routes/projects.py` |
+| <span class="route-method route-method-get">GET</span> | `/api/v1/projects/{project_id}/revisions` | `app/backend/app/routes/projects.py` |
+| <span class="route-method route-method-get">GET</span> | `/api/v1/projects/compare` | `app/backend/app/routes/projects.py` |
+| <span class="route-method route-method-post">POST</span> | `/api/v1/projects/compare` | `app/backend/app/routes/projects.py` |
+| <span class="route-method route-method-post">POST</span> | `/api/v1/results` | `app/backend/app/routes/analysis.py` |
+| <span class="route-method route-method-post">POST</span> | `/api/v1/sensitivity` | `app/backend/app/routes/analysis.py` |
+| <span class="route-method route-method-get">GET</span> | `/api/v1/slack/status` | `app/backend/app/routes/slack.py` |
+| <span class="route-method route-method-post">POST</span> | `/api/v1/srm-check` | `app/backend/app/routes/analysis.py` |
+| <span class="route-method route-method-get">GET</span> | `/api/v1/templates` | `app/backend/app/routes/templates.py` |
+| <span class="route-method route-method-post">POST</span> | `/api/v1/templates` | `app/backend/app/routes/templates.py` |
+| <span class="route-method route-method-delete">DELETE</span> | `/api/v1/templates/{template_id}` | `app/backend/app/routes/templates.py` |
+| <span class="route-method route-method-get">GET</span> | `/api/v1/templates/{template_id}` | `app/backend/app/routes/templates.py` |
+| <span class="route-method route-method-post">POST</span> | `/api/v1/templates/{template_id}/use` | `app/backend/app/routes/templates.py` |
+| <span class="route-method route-method-get">GET</span> | `/api/v1/webhooks` | `app/backend/app/routes/webhooks.py` |
+| <span class="route-method route-method-post">POST</span> | `/api/v1/webhooks` | `app/backend/app/routes/webhooks.py` |
+| <span class="route-method route-method-delete">DELETE</span> | `/api/v1/webhooks/{subscription_id}` | `app/backend/app/routes/webhooks.py` |
+| <span class="route-method route-method-get">GET</span> | `/api/v1/webhooks/{subscription_id}` | `app/backend/app/routes/webhooks.py` |
+| <span class="route-method route-method-patch">PATCH</span> | `/api/v1/webhooks/{subscription_id}` | `app/backend/app/routes/webhooks.py` |
+| <span class="route-method route-method-get">GET</span> | `/api/v1/webhooks/{subscription_id}/deliveries` | `app/backend/app/routes/webhooks.py` |
+| <span class="route-method route-method-post">POST</span> | `/api/v1/webhooks/{subscription_id}/test` | `app/backend/app/routes/webhooks.py` |
+| <span class="route-method route-method-get">GET</span> | `/api/v1/workspace/export` | `app/backend/app/routes/workspace.py` |
+| <span class="route-method route-method-post">POST</span> | `/api/v1/workspace/import` | `app/backend/app/routes/workspace.py` |
+| <span class="route-method route-method-post">POST</span> | `/api/v1/workspace/validate` | `app/backend/app/routes/workspace.py` |
+| <span class="route-method route-method-get">GET</span> | `/health` | `app/backend/app/routes/system.py` |
+| <span class="route-method route-method-get">GET</span> | `/readyz` | `app/backend/app/routes/system.py` |
+| <span class="route-method route-method-post">POST</span> | `/slack/commands` | `app/backend/app/routes/slack.py` |
+| <span class="route-method route-method-post">POST</span> | `/slack/events` | `app/backend/app/routes/slack.py` |
+| <span class="route-method route-method-get">GET</span> | `/slack/install` | `app/backend/app/routes/slack.py` |
+| <span class="route-method route-method-post">POST</span> | `/slack/interactive` | `app/backend/app/routes/slack.py` |
+| <span class="route-method route-method-get">GET</span> | `/slack/oauth/callback` | `app/backend/app/routes/slack.py` |
+
+</div>
+
+<Aside type="tip" title="Source">
+  Generated from <code>app/backend/app/main.py</code>, <code>app/backend/app/frontend_routes.py</code>, and <code>{"app/backend/app/routes/*.py"}</code> using regex on route decorators. The build does not import the FastAPI app.
+</Aside>

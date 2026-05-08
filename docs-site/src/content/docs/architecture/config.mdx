@@ -1,0 +1,87 @@
+---
+title: Configuration Matrix
+description: Auto-generated runtime configuration and integration matrix.
+---
+
+import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
+
+<CardGrid>
+  <Card title="Environment variables" icon="document">
+    39
+  </Card>
+  <Card title="Slack manifest" icon="puzzle">
+    present
+  </Card>
+  <Card title="Email manifest" icon="random">
+    none detected
+  </Card>
+</CardGrid>
+
+## Backend Environment
+
+<div class="matrix-table">
+
+| Variable | Group | Default or source |
+| --- | --- | --- |
+| `AB_ADMIN_TOKEN` | Auth | `None` |
+| `AB_API_TOKEN` | Auth | `None` |
+| `AB_APP_NAME` | Application | `AB Test Research Designer API` |
+| `AB_APP_VERSION` | Application | `1.1.0` |
+| `AB_AUTH_FAILURE_LIMIT` | Runtime guard | `20` |
+| `AB_AUTH_FAILURE_WINDOW_SECONDS` | Runtime guard | `60` |
+| `AB_CORS_HEADERS` | HTTP | `DEFAULT_CORS_HEADERS` |
+| `AB_CORS_METHODS` | HTTP | `DEFAULT_CORS_METHODS` |
+| `AB_CORS_ORIGINS` | HTTP | `("http://127.0.0.1:5173", "http://localhost:5173` |
+| `AB_DATABASE_URL` | Data store | `None` |
+| `AB_DB_PATH` | Data store | `str(default_db_path` |
+| `AB_DB_POOL_SIZE` | Data store | `10` |
+| `AB_ENV` | Application | `local` |
+| `AB_FRONTEND_DIST_PATH` | Application | `str(default_frontend_dist_path` |
+| `AB_HOST` | HTTP | `127.0.0.1` |
+| `AB_LLM_BACKOFF_MULTIPLIER` | LLM | `2.0` |
+| `AB_LLM_BASE_URL` | LLM | `http://localhost:8001` |
+| `AB_LLM_INITIAL_BACKOFF_SECONDS` | LLM | `0.1` |
+| `AB_LLM_MAX_ATTEMPTS` | LLM | `3` |
+| `AB_LLM_TIMEOUT_SECONDS` | LLM | `60.0` |
+| `AB_LOG_FORMAT` | Application | `plain` |
+| `AB_LOG_LEVEL` | Application | `INFO` |
+| `AB_MAX_REQUEST_BODY_BYTES` | Runtime guard | `1_048_576` |
+| `AB_MAX_WORKSPACE_BODY_BYTES` | Runtime guard | `8_388_608` |
+| `AB_PORT` | HTTP | `8008` |
+| `AB_RATE_LIMIT_ENABLED` | Runtime guard | `True` |
+| `AB_RATE_LIMIT_REQUESTS` | Runtime guard | `240` |
+| `AB_RATE_LIMIT_WINDOW_SECONDS` | Runtime guard | `60` |
+| `AB_READONLY_API_TOKEN` | Auth | `None` |
+| `AB_SEED_DEMO_ON_STARTUP` | Snapshot and seed | `False` |
+| `AB_SERVE_FRONTEND_DIST` | Application | `true` |
+| `AB_SLACK_CLIENT_ID` | Slack | `None` |
+| `AB_SLACK_CLIENT_SECRET` | Slack | `None` |
+| `AB_SLACK_REVIEW_CHANNEL` | Slack | `None` |
+| `AB_SLACK_SIGNING_SECRET` | Slack | `None` |
+| `AB_SQLITE_BUSY_TIMEOUT_MS` | Data store | `5000` |
+| `AB_SQLITE_JOURNAL_MODE` | Data store | `WAL` |
+| `AB_SQLITE_SYNCHRONOUS` | Data store | `NORMAL` |
+| `AB_WORKSPACE_SIGNING_KEY` | Auth | `None` |
+
+</div>
+
+## Integrations
+
+<div class="matrix-table">
+
+| Item | Value | Source |
+| --- | --- | --- |
+| App name | `AB Test Research Designer` | `slack/app-manifest.yml` |
+| Slash command | `/ab-test` | `https://{DEPLOY_HOST}/slack/commands` |
+| Install endpoint | `/slack/install` | Backend route |
+| Interactivity | Slack actions | `https://{DEPLOY_HOST}/slack/interactive` |
+| Events | Slack Events API | `https://{DEPLOY_HOST}/slack/events` |
+| Bot scopes | `commands`, `chat:write`, `chat:write.public`, `users:read` | OAuth manifest |
+| Outbound webhooks | HTTPS subscriptions | `app/backend/app/routes/webhooks.py` |
+| Email | Not configured | No email manifest was found in this repository |
+
+</div>
+
+<Aside type="tip" title="Source">
+  Generated from <code>app/backend/app/config.py</code> and <code>slack/app-manifest.yml</code>. The build reads text files only and does not import the backend.
+</Aside>

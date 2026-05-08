@@ -1,0 +1,46 @@
+---
+title: AB Test Research Designer
+description: Codebase map for the experiment runner, statistical tests, notifier, and dashboard.
+template: splash
+hero:
+  tagline: Experiment runner, statistical tests, notifier, and dashboard for local-first A/B-test design.
+  actions:
+    - text: Architecture
+      link: /ab-test-research-designer/architecture/
+      icon: right-arrow
+    - text: API routes
+      link: /ab-test-research-designer/architecture/routes/
+      icon: document
+---
+
+import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+## At a Glance
+
+<CardGrid>
+  <Card title="Experiment runner" icon="rocket">
+    FastAPI routes coordinate calculation, design, analysis, projects, exports, templates, webhooks, workspace backup, and Slack actions.
+  </Card>
+  <Card title="Statistical tests" icon="puzzle">
+    Binary and continuous sample-size engines are paired with SRM checks, observed-result analysis, sequential boundaries, Bayesian sizing, and Student-t utilities.
+  </Card>
+  <Card title="Notifier surface" icon="document">
+    Webhook subscriptions and a Slack App expose project status, run triggers, OAuth install, slash commands, and interactive actions.
+  </Card>
+  <Card title="Dashboard shell" icon="random">
+    The Vite frontend renders the wizard, comparison dashboard, results panels, API-key manager, template gallery, and localized UI.
+  </Card>
+</CardGrid>
+
+## Auto-Generated
+
+<CardGrid>
+  <LinkCard title="API routes catalog" href="/ab-test-research-designer/architecture/routes/" description="Generated from FastAPI route decorators without importing the app." />
+  <LinkCard title="Experiment catalog" href="/ab-test-research-designer/architecture/experiments/" description="Generated from built-in YAML templates and stats modules." />
+  <LinkCard title="Configuration matrix" href="/ab-test-research-designer/architecture/config/" description="Generated from backend env configuration and the Slack manifest." />
+  <LinkCard title="Synced project docs" href="/ab-test-research-designer/guides/overview/" description="Copied from ../docs plus selected root markdown with Starlight frontmatter." />
+</CardGrid>
+
+## Status Snapshot
+
+The latest internal state page included in this build is the [HF sync post-Monte-Carlo report](/ab-test-research-designer/guides/plans/2026-04-23-hf-sync-post-mc-report/). Use it with [HISTORY](/ab-test-research-designer/guides/history/) and [CHANGELOG](/ab-test-research-designer/guides/changelog/) to understand the current v1.1.0 release line.
