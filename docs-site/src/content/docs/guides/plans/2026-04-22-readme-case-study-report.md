@@ -36,7 +36,7 @@ Variant A is still ambiguous; variant B is the only treatment with a decisive ea
 **Decision.**
 Stop spending exposure on variant A, keep variant B against control until the planned read is complete, and ship B only if payment error rate and refund value stay in range. The value here is that sizing, multivariant correction, design risks, and the Bayesian interim view all come from the same backend run.
 
-Full inputs and outputs: [docs/case-studies/checkout-redesign.json](docs/case-studies/checkout-redesign.json). Rerun with `python scripts/generate_case_study_numbers.py`.
+Full inputs and outputs: [docs/case-studies/checkout-redesign.json](https://github.com/brownjuly2003-code/ab-test-research-designer/blob/main/docs/case-studies/checkout-redesign.json). Rerun with `python scripts/generate_case_study_numbers.py`.
 ```
 
 ## Files changed or created

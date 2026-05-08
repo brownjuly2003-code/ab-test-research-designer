@@ -12,16 +12,16 @@ title: "BCG Phase 1 — CX Tasks Index"
 
 | # | Task | Depends on | Effort | Key verify |
 |---|------|------------|--------|------------|
-| T1 | [Audit hook tests](bcg-p1-01-audit-hook-tests.md) | — | 1.5h | все hook-тесты зелёные, пробелы BCG 1.1 закрыты |
-| T2 | [Zustand + theme/wizard stores](bcg-p1-02-zustand-theme-wizard.md) | T1 | 2h | theme и wizard навигация на stores |
-| T3 | [analysisStore + draftStore](bcg-p1-03-analysis-draft-stores.md) | T2 | 3h | старые hook-файлы удалены |
-| T4 | [projectStore](bcg-p1-04-project-store.md) | T3 | 4h | полный API projectManager на store |
-| T5 | [App.tsx refactor](bcg-p1-05-app-refactor.md) | T4 | 3h | App.tsx < 120 стр, prop drilling убран |
-| T6 | [ResultsPanel декомпозиция](bcg-p1-06-results-decompose.md) | T5 | 4h | 11 секций, ResultsPanel < 150 стр |
-| T7 | [Error Boundaries](bcg-p1-07-error-boundaries.md) | T6 | 1.5h | ErrorBoundary + ChartErrorBoundary |
-| T8 | [CSS унификация](bcg-p1-08-css-unify.md) | T7 | 2h | layout/components/utilities + CSS Modules |
-| T9 | [Type safety pass](bcg-p1-09-type-safety.md) | T8 | 1.5h | enum вместо string-matching, нет `as` |
-| T10 | [Финальная верификация](bcg-p1-10-verify-phase-1.md) | T9 | 1h | verify_all.cmd + отчёт |
+| T1 | [Audit hook tests](/ab-test-research-designer/guides/plans/codex-tasks/bcg-p1-01-audit-hook-tests/) | — | 1.5h | все hook-тесты зелёные, пробелы BCG 1.1 закрыты |
+| T2 | [Zustand + theme/wizard stores](/ab-test-research-designer/guides/plans/codex-tasks/bcg-p1-02-zustand-theme-wizard/) | T1 | 2h | theme и wizard навигация на stores |
+| T3 | [analysisStore + draftStore](/ab-test-research-designer/guides/plans/codex-tasks/bcg-p1-03-analysis-draft-stores/) | T2 | 3h | старые hook-файлы удалены |
+| T4 | [projectStore](/ab-test-research-designer/guides/plans/codex-tasks/bcg-p1-04-project-store/) | T3 | 4h | полный API projectManager на store |
+| T5 | [App.tsx refactor](/ab-test-research-designer/guides/plans/codex-tasks/bcg-p1-05-app-refactor/) | T4 | 3h | App.tsx < 120 стр, prop drilling убран |
+| T6 | [ResultsPanel декомпозиция](/ab-test-research-designer/guides/plans/codex-tasks/bcg-p1-06-results-decompose/) | T5 | 4h | 11 секций, ResultsPanel < 150 стр |
+| T7 | [Error Boundaries](/ab-test-research-designer/guides/plans/codex-tasks/bcg-p1-07-error-boundaries/) | T6 | 1.5h | ErrorBoundary + ChartErrorBoundary |
+| T8 | [CSS унификация](/ab-test-research-designer/guides/plans/codex-tasks/bcg-p1-08-css-unify/) | T7 | 2h | layout/components/utilities + CSS Modules |
+| T9 | [Type safety pass](/ab-test-research-designer/guides/plans/codex-tasks/bcg-p1-09-type-safety/) | T8 | 1.5h | enum вместо string-matching, нет `as` |
+| T10 | [Финальная верификация](/ab-test-research-designer/guides/plans/codex-tasks/bcg-p1-10-verify-phase-1/) | T9 | 1h | verify_all.cmd + отчёт |
 
 **Total effort:** ~23.5h (≈3 рабочих дня чистого времени)
 

@@ -9,6 +9,7 @@
     "dev": "astro dev --host 127.0.0.1 --port 8010",
     "start": "astro dev --host 127.0.0.1 --port 8010",
     "build": "astro build",
+    "test": "node --test scripts/*.test.mjs",
     "preview": "astro preview --host 127.0.0.1 --port 8010",
     "astro": "astro"
   },
