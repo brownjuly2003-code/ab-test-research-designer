@@ -8,6 +8,7 @@ from app.backend.app.stats.bayesian import (
 )
 from app.backend.app.stats.continuous import (
     calculate_continuous_sample_size,
+    calculate_cuped_theta,
     calculate_cuped_variance_reduction,
 )
 from app.backend.app.stats.duration import estimate_experiment_duration_days
@@ -105,6 +106,7 @@ def calculate_experiment_metrics(payload: dict) -> dict:
         "cuped_sample_size_per_variant": None,
         "cuped_variance_reduction_pct": None,
         "cuped_duration_days": None,
+        "cuped_theta": None,
     }
 
     if (
@@ -135,6 +137,14 @@ def calculate_experiment_metrics(payload: dict) -> dict:
         result["cuped_sample_size_per_variant"] = cuped_summary["sample_size_per_variant"]
         result["cuped_variance_reduction_pct"] = round(variance_reduction * 100, 1)
         result["cuped_duration_days"] = float(cuped_duration["estimated_duration_days"])
+        result["cuped_theta"] = round(
+            calculate_cuped_theta(
+                outcome_std=payload["std_dev"],
+                pre_experiment_std=payload["cuped_pre_experiment_std"],
+                correlation=payload["cuped_correlation"],
+            ),
+            4,
+        )
 
     if payload.get("analysis_mode") == "bayesian" and payload.get("desired_precision") is not None:
         if metric_type == "binary":

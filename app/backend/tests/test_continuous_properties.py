@@ -4,6 +4,7 @@ import sys
 
 from hypothesis import assume, given, settings
 from hypothesis import strategies as st
+import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
@@ -11,6 +12,7 @@ from app.backend.app.schemas.api import ObservedResultsContinuous, ResultsReques
 from app.backend.app.services.results_service import analyze_results
 from app.backend.app.stats.continuous import (
     calculate_continuous_sample_size,
+    calculate_cuped_theta,
     calculate_cuped_variance_reduction,
     calculate_detectable_mde_continuous,
 )
@@ -277,3 +279,27 @@ def test_cuped_variance_reduction_stays_bounded_and_grows_with_correlation_magni
     assert 0.0 <= higher_std <= outcome_std
     assert lower_variance_reduction <= higher_variance_reduction
     assert lower_std >= higher_std
+
+
+@settings(max_examples=50, deadline=5000)
+@given(
+    outcome_std=st.floats(min_value=0.1, max_value=500.0, **FINITE_FLOATS),
+    pre_experiment_std=st.floats(min_value=0.1, max_value=500.0, **FINITE_FLOATS),
+    # subnormal correlations underflow theta to +-0.0 and break the sign checks
+    correlation=st.floats(min_value=-0.99, max_value=0.99, allow_subnormal=False, **FINITE_FLOATS),
+)
+def test_cuped_theta_matches_definition_and_sign(
+    outcome_std: float,
+    pre_experiment_std: float,
+    correlation: float,
+) -> None:
+    theta = calculate_cuped_theta(outcome_std, pre_experiment_std, correlation)
+
+    assert math.isfinite(theta)
+    assert theta == pytest.approx(correlation * outcome_std / pre_experiment_std)
+    if correlation > 0:
+        assert theta > 0
+    elif correlation < 0:
+        assert theta < 0
+    else:
+        assert theta == 0.0

@@ -48,7 +48,7 @@ def _build_state_from_nonce(settings, nonce: str) -> str:
     return f"{nonce}.{base64.urlsafe_b64encode(signature).decode('ascii').rstrip('=')}"
 
 
-async def _read_signed_form(request: Request, settings) -> dict[str, str]:
+async def _read_signed_body(request: Request, settings) -> bytes:
     body = await request.body()
     if not verify_slack_signature(
         signing_secret=settings.slack_signing_secret or "",
@@ -57,6 +57,11 @@ async def _read_signed_form(request: Request, settings) -> dict[str, str]:
         signature=request.headers.get("X-Slack-Signature"),
     ):
         raise HTTPException(status_code=401, detail="Invalid Slack signature")
+    return body
+
+
+async def _read_signed_form(request: Request, settings) -> dict[str, str]:
+    body = await _read_signed_body(request, settings)
     parsed = parse_qs(body.decode("utf-8"), keep_blank_values=True)
     return {key: values[-1] if values else "" for key, values in parsed.items()}
 
@@ -99,15 +104,20 @@ def create_slack_router(settings, repository) -> APIRouter:
             return _not_configured_response()
         if not code or not _verify_state(settings, state):
             raise HTTPException(status_code=400, detail="Invalid Slack OAuth callback")
-        client = getattr(request.app.state, "slack_http_client", None) or httpx.Client(timeout=10.0)
-        response = client.post(
-            "https://slack.com/api/oauth.v2.access",
-            data={
-                "client_id": settings.slack_client_id,
-                "client_secret": settings.slack_client_secret,
-                "code": code,
-            },
-        )
+        shared_client = getattr(request.app.state, "slack_http_client", None)
+        client = shared_client or httpx.Client(timeout=10.0)
+        try:
+            response = client.post(
+                "https://slack.com/api/oauth.v2.access",
+                data={
+                    "client_id": settings.slack_client_id,
+                    "client_secret": settings.slack_client_secret,
+                    "code": code,
+                },
+            )
+        finally:
+            if shared_client is None:
+                client.close()
         data = response.json()
         if not data.get("ok"):
             raise ApiError(str(data.get("error") or "Slack OAuth failed"), error_code="slack_oauth_failed", status_code=502)
@@ -164,7 +174,8 @@ def create_slack_router(settings, repository) -> APIRouter:
     async def slack_events(request: Request):
         if not _slack_configured(settings):
             return _not_configured_response()
-        body = await request.json()
+        raw_body = await _read_signed_body(request, settings)
+        body = json.loads(raw_body or b"{}")
         if body.get("type") == "url_verification":
             return {"challenge": body.get("challenge")}
         return {"ok": True}

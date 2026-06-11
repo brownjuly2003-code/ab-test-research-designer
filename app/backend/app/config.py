@@ -176,7 +176,7 @@ def get_settings() -> Settings:
         cors_methods=_read_csv_env("AB_CORS_METHODS", DEFAULT_CORS_METHODS),
         cors_headers=_read_csv_env("AB_CORS_HEADERS", DEFAULT_CORS_HEADERS),
         frontend_dist_path=os.getenv("AB_FRONTEND_DIST_PATH", str(default_frontend_dist_path)),
-        serve_frontend_dist=os.getenv("AB_SERVE_FRONTEND_DIST", "true").lower() not in {"0", "false", "no"},
+        serve_frontend_dist=_read_bool_env("AB_SERVE_FRONTEND_DIST", True),
         llm_base_url=os.getenv("AB_LLM_BASE_URL", "http://localhost:8001"),
         llm_timeout_seconds=_read_float_env("AB_LLM_TIMEOUT_SECONDS", 60.0),
         llm_max_attempts=_read_int_env("AB_LLM_MAX_ATTEMPTS", 3),

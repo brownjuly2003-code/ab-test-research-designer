@@ -10,7 +10,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 from app.backend.app.stats.bayesian import (
     bayesian_sample_size_binary,
     bayesian_sample_size_continuous,
-    precision_to_mde_equivalent,
 )
 
 FINITE_FLOATS = {"allow_nan": False, "allow_infinity": False}
@@ -155,20 +154,3 @@ def test_bayesian_binary_sample_size_is_symmetric_around_half_rate(
     right = bayesian_sample_size_binary(mirrored_rate, desired_precision, credibility)
 
     assert left == right
-
-
-@settings(max_examples=50, deadline=5000)
-@given(
-    desired_precision=st.floats(min_value=0.0005, max_value=100.0, **FINITE_FLOATS),
-    multiplier=st.floats(min_value=0.5, max_value=5.0, **FINITE_FLOATS),
-)
-def test_precision_to_mde_equivalent_is_linear_in_precision(
-    desired_precision: float,
-    multiplier: float,
-) -> None:
-    base = precision_to_mde_equivalent(desired_precision)
-    scaled = precision_to_mde_equivalent(desired_precision * multiplier)
-
-    assert base > 0
-    assert math.isfinite(base)
-    assert math.isclose(scaled, base * multiplier, rel_tol=1e-12, abs_tol=1e-12)

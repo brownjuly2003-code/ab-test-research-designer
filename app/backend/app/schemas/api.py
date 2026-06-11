@@ -274,7 +274,7 @@ class CalculationRequest(BaseModel):
         if any(count < 0 for count in self.actual_counts):
             raise ValueError(translate("errors.schemas.actual_counts_non_negative"))
         if any(count == 0 for count in self.actual_counts):
-            raise ValueError("actual_counts must contain positive counts")
+            raise ValueError(translate("errors.schemas.actual_counts_positive"))
         if sum(self.actual_counts) <= 0:
             raise ValueError(translate("errors.schemas.actual_counts_positive_sum"))
         return self
@@ -355,7 +355,7 @@ class SrmCheckRequest(BaseModel):
         if any(count < 0 for count in self.observed_counts):
             raise ValueError(translate("errors.schemas.observed_counts_non_negative"))
         if any(count == 0 for count in self.observed_counts):
-            raise ValueError("observed_counts must contain positive counts")
+            raise ValueError(translate("errors.schemas.observed_counts_positive"))
         if any(fraction < 0 for fraction in self.expected_fractions):
             raise ValueError(translate("errors.schemas.expected_fractions_non_negative"))
         total_fraction = sum(self.expected_fractions)
@@ -414,6 +414,7 @@ class CalculationResponse(BaseModel):
     cuped_sample_size_per_variant: int | None = None
     cuped_variance_reduction_pct: float | None = None
     cuped_duration_days: float | None = None
+    cuped_theta: float | None = None
 
 
 class AdvicePayload(BaseModel):

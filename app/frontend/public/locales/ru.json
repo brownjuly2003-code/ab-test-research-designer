@@ -559,7 +559,8 @@
         "with": "С CUPED",
         "sampleSizeSavings": "-{{pct}}% размера выборки",
         "durationChange": "Оценка длительности меняется с {{from}} до {{to}} дней.",
-        "adjustedStdDev": "Скорректированный std dev: {{value}}."
+        "adjustedStdDev": "Скорректированный std dev: {{value}}.",
+        "theta": "Коэффициент CUPED theta = {{value}} (применяется как Y' = Y - theta*(X - mean(X)))."
       },
       "sensitivityTable": {
         "title": "Таблица чувствительности",
@@ -1237,5 +1238,23 @@
       "adminTokenVerificationFailed": "Не удалось проверить админ-токен.",
       "adminTokenCleared": "Админ-токен удалён из этой сессии браузера."
     }
+  },
+  "livePreview": {
+    "label": "Живая оценка",
+    "updating": "Обновление",
+    "error": "Предпросмотр недоступен",
+    "sampleSizeTitle": "Размер выборки на вариант",
+    "usersPerVariant": "пользователей / вариант",
+    "durationTitle": "Оценка длительности",
+    "durationMeta": "по текущему трафику",
+    "cupedTitle": "Размер выборки с CUPED",
+    "varianceReductionBadge": "снижение дисперсии на {{pct}}%",
+    "bonferroniBadge": "Применена поправка Бонферрони",
+    "emptyHint": "Заполните трафик и метрики, чтобы увидеть живую оценку.",
+    "underOneDay": "< 1 дня",
+    "days_one": "{{count}} день",
+    "days_few": "{{count}} дня",
+    "days_many": "{{count}} дней",
+    "days_other": "{{count}} дня"
   }
 }

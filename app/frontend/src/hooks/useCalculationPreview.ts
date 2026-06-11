@@ -53,7 +53,8 @@ export function useCalculationPreview(draft: FullPayload, enabled: boolean): Pre
       setState({
         result: null,
         isLoading: false,
-        error: "Preview unavailable"
+        // i18n key; LivePreviewPanel translates it at render time
+        error: "livePreview.error"
       });
     }
   }, [draft]);

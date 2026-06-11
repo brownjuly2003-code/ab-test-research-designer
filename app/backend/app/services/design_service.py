@@ -11,7 +11,13 @@ def _variant_names(variants_count: int) -> list[str]:
     return names
 
 
-def build_guardrail_section(guardrail_metrics: list[dict], primary_n: int) -> list[dict]:
+def build_guardrail_section(
+    guardrail_metrics: list[dict],
+    primary_n: int,
+    *,
+    alpha: float = 0.05,
+    power: float = 0.8,
+) -> list[dict]:
     results = []
 
     for guardrail in guardrail_metrics:
@@ -19,8 +25,8 @@ def build_guardrail_section(guardrail_metrics: list[dict], primary_n: int) -> li
             detectable_mde = calculate_detectable_mde_binary(
                 n=primary_n,
                 baseline_rate=guardrail["baseline_rate"] / 100,
-                alpha=0.05,
-                power=0.8,
+                alpha=alpha,
+                power=power,
             )
             results.append(
                 {
@@ -42,8 +48,8 @@ def build_guardrail_section(guardrail_metrics: list[dict], primary_n: int) -> li
         detectable_mde = calculate_detectable_mde_continuous(
             n=primary_n,
             std_dev=guardrail["std_dev"],
-            alpha=0.05,
-            power=0.8,
+            alpha=alpha,
+            power=power,
         )
         results.append(
             {
@@ -90,8 +96,10 @@ def build_experiment_report(payload: dict, calculation_result: dict, llm_advice:
     guardrail_metrics = metrics.get("guardrail_metrics") or []
     guardrail_metric_names = [guardrail["name"] for guardrail in guardrail_metrics]
     guardrail_report = build_guardrail_section(
-        guardrail_metric_names and guardrail_metrics or [],
+        guardrail_metrics,
         calculation_result["results"]["sample_size_per_variant"],
+        alpha=metrics["alpha"],
+        power=metrics["power"],
     )
 
     report = ExperimentReport(
@@ -157,7 +165,7 @@ def build_experiment_report(payload: dict, calculation_result: dict, llm_advice:
             "before_launch": [
                 translate("report.recommendations.before_launch_default"),
                 *llm_improvements,
-            ] or [translate("report.recommendations.before_launch_default")],
+            ],
             "during_test": [
                 translate("report.recommendations.during_test_monitor"),
                 translate("report.recommendations.during_test_avoid_early_stop"),

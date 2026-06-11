@@ -146,6 +146,7 @@ export type CalculationResponse = {
   cuped_sample_size_per_variant?: number | null;
   cuped_variance_reduction_pct?: number | null;
   cuped_duration_days?: number | null;
+  cuped_theta?: number | null;
 };
 
 export type CalculationResultsResponse = {

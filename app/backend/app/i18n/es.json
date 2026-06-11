@@ -250,6 +250,7 @@
       "continuous_rejects_binary_data": "continuous metric_type does not accept binary data",
       "actual_counts_length": "actual_counts length must match variants_count",
       "actual_counts_non_negative": "actual_counts must be non-negative",
+      "actual_counts_positive": "actual_counts debe contener valores positivos",
       "actual_counts_positive_sum": "actual_counts must sum to a positive total",
       "baseline_rate_range": "baseline_rate must be between 0 and 100 for binary metrics",
       "baseline_mean_positive": "baseline_mean must be positive for continuous metrics",
@@ -258,6 +259,7 @@
       "traffic_split_variants": "traffic_split length must match variants",
       "observed_expected_same_length": "observed_counts and expected_fractions must have same length",
       "observed_counts_non_negative": "observed_counts must be non-negative",
+      "observed_counts_positive": "observed_counts debe contener valores positivos",
       "expected_fractions_non_negative": "expected_fractions must be non-negative",
       "expected_fractions_sum": "expected_fractions must sum to 1.0, got {{total}}"
     },

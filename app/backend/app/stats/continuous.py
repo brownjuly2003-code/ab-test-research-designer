@@ -20,6 +20,28 @@ def calculate_cuped_variance_reduction(
     return cuped_std, variance_reduction
 
 
+def calculate_cuped_theta(
+    outcome_std: float,
+    pre_experiment_std: float,
+    correlation: float,
+) -> float:
+    """Optimal CUPED adjustment coefficient theta = cov(Y, X) / var(X).
+
+    With correlation rho and standard deviations of the outcome and the
+    pre-experiment covariate, theta = rho * sigma_outcome / sigma_pre.
+    This is the coefficient practitioners need to actually apply
+    Y_cuped = Y - theta * (X - mean(X)) to their data.
+    """
+    if abs(correlation) >= 1.0:
+        raise ValueError(f"Correlation must be in (-1, 1), got {correlation}")
+    if not isfinite(pre_experiment_std) or pre_experiment_std <= 1e-12:
+        raise ValueError("pre_experiment_std must be positive for CUPED theta")
+    if not isfinite(outcome_std) or outcome_std <= 1e-12:
+        raise ValueError("outcome_std must be positive for CUPED theta")
+
+    return correlation * outcome_std / pre_experiment_std
+
+
 def calculate_detectable_mde_continuous(
     n: int,
     std_dev: float,

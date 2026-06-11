@@ -559,7 +559,8 @@
         "with": "Con CUPED",
         "sampleSizeSavings": "-{{pct}}% tama?o de muestra",
         "durationChange": "La duración estimada cambia de {{from}} a {{to}} días.",
-        "adjustedStdDev": "Desviaci?n est?ndar ajustada: {{value}}."
+        "adjustedStdDev": "Desviaci?n est?ndar ajustada: {{value}}.",
+        "theta": "Coeficiente CUPED theta = {{value}} (se aplica como Y' = Y - theta*(X - mean(X)))."
       },
       "sensitivityTable": {
         "title": "Tabla de sensibilidad",
@@ -1201,5 +1202,21 @@
       "readyToInstall": "Lista para instalar en un espacio de trabajo de Slack.",
       "statusUnavailable": "Estado de Slack no disponible."
     }
+  },
+  "livePreview": {
+    "label": "Estimación en vivo",
+    "updating": "Actualizando",
+    "error": "Vista previa no disponible",
+    "sampleSizeTitle": "Tamaño de muestra por variante",
+    "usersPerVariant": "usuarios / variante",
+    "durationTitle": "Duración estimada",
+    "durationMeta": "según el tráfico actual",
+    "cupedTitle": "Tamaño de muestra con CUPED",
+    "varianceReductionBadge": "{{pct}} % de reducción de varianza",
+    "bonferroniBadge": "Bonferroni aplicado",
+    "emptyHint": "Ajusta el tráfico o las métricas para ver una estimación en vivo.",
+    "underOneDay": "< 1 día",
+    "days_one": "{{count}} día",
+    "days_other": "{{count}} días"
   }
 }

@@ -559,7 +559,8 @@
         "with": "With CUPED",
         "sampleSizeSavings": "-{{pct}}% sample size",
         "durationChange": "Estimated duration changes from {{from}} to {{to}} days.",
-        "adjustedStdDev": "Adjusted std dev: {{value}}."
+        "adjustedStdDev": "Adjusted std dev: {{value}}.",
+        "theta": "CUPED coefficient theta = {{value}} (apply as Y' = Y - theta*(X - mean(X)))."
       },
       "sensitivityTable": {
         "title": "Sensitivity table",
@@ -1201,5 +1202,21 @@
       "adminTokenVerificationFailed": "Admin token verification failed.",
       "adminTokenCleared": "Admin token cleared from this browser session."
     }
+  },
+  "livePreview": {
+    "label": "Live estimate",
+    "updating": "Updating",
+    "error": "Preview unavailable",
+    "sampleSizeTitle": "Sample size per variant",
+    "usersPerVariant": "users / variant",
+    "durationTitle": "Estimated duration",
+    "durationMeta": "based on current traffic",
+    "cupedTitle": "CUPED sample size",
+    "varianceReductionBadge": "{{pct}}% variance reduction",
+    "bonferroniBadge": "Bonferroni applied",
+    "emptyHint": "Adjust traffic or metric inputs to see a live estimate.",
+    "underOneDay": "< 1 day",
+    "days_one": "{{count}} day",
+    "days_other": "{{count}} days"
   }
 }
