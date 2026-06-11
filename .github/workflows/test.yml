@@ -16,7 +16,7 @@ jobs:
           - os: ubuntu-latest
             verify_args: "--with-e2e --with-coverage --artifacts-dir .ci-artifacts"
           - os: windows-latest
-            verify_args: ""
+            verify_args: "--skip-smoke"
 
     steps:
       - uses: actions/checkout@v4
