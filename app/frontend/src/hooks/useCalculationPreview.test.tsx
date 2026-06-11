@@ -194,7 +194,8 @@ describe("useCalculationPreview", () => {
       await flushEffects();
 
       expect(requestCalculation).toHaveBeenCalledTimes(1);
-      expect(view.container.querySelector('[data-testid="error"]')?.textContent).toBe("Preview unavailable");
+      // the hook exposes an i18n key; LivePreviewPanel translates it at render time
+      expect(view.container.querySelector('[data-testid="error"]')?.textContent).toBe("livePreview.error");
     } finally {
       await view.unmount();
     }

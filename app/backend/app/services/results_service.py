@@ -60,7 +60,9 @@ def _analyze_binary(obs: ObservedResultsBinary | None) -> ResultsResponse:
     ci_upper = effect + z_critical * ci_standard_error
     relative_effect = (effect / p1 * 100) if p1 > 0 else 0.0
     is_significant = p_value < obs.alpha
-    power_achieved = standard_normal_cdf(abs(test_statistic) - z_critical)
+    power_achieved = standard_normal_cdf(
+        abs(test_statistic) - z_critical
+    ) + standard_normal_cdf(-z_critical - abs(test_statistic))
 
     return ResultsResponse(
         metric_type="binary",
@@ -82,6 +84,7 @@ def _analyze_binary(obs: ObservedResultsBinary | None) -> ResultsResponse:
             effect=effect,
             ci_lower=ci_lower,
             ci_upper=ci_upper,
+            ci_level=1 - obs.alpha,
             p_value=p_value,
             is_significant=is_significant,
         ),
@@ -169,13 +172,15 @@ def _interpretation_binary(
     effect: float,
     ci_lower: float,
     ci_upper: float,
+    ci_level: float,
     p_value: float,
     is_significant: bool,
 ) -> str:
     significance_text = "statistically significant" if is_significant else "not statistically significant"
     return (
         f"Treatment conversion {p2 * 100:.4f}% vs control {p1 * 100:.4f}%. "
-        f"Absolute effect {effect * 100:+.4f} pp with 95.0% CI [{ci_lower * 100:.4f}, {ci_upper * 100:.4f}] pp. "
+        f"Absolute effect {effect * 100:+.4f} pp with {ci_level * 100:.1f}% CI "
+        f"[{ci_lower * 100:.4f}, {ci_upper * 100:.4f}] pp. "
         f"Two-sided p-value {p_value:.6f}; result is {significance_text}."
     )
 

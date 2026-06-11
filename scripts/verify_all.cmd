@@ -101,16 +101,16 @@ if errorlevel 1 exit /b %errorlevel%
 cd /d "%ROOT_DIR%app\frontend"
 
 echo [verify] frontend typecheck
-npm.cmd exec tsc -- --noEmit -p .
+call npm.cmd exec tsc -- --noEmit -p .
 if errorlevel 1 exit /b %errorlevel%
 
 echo [verify] frontend unit tests
-npm.cmd run test:unit
+call npm.cmd run test:unit
 if errorlevel 1 exit /b %errorlevel%
 
 if "%SKIP_BUILD%"=="0" (
   echo [verify] frontend build
-  npm.cmd run build
+  call npm.cmd run build
   if errorlevel 1 exit /b %errorlevel%
 )
 
@@ -141,7 +141,7 @@ if "%WITH_DOCKER%"=="1" (
 )
 
 if "%WITH_DOCKER_PRESERVE%"=="1" (
-  echo [verify] docker compose secure flow (preserve)
+  echo [verify] docker compose secure flow ^(preserve^)
   python "%ROOT_DIR%scripts\verify_docker_compose.py" --preserve
   if errorlevel 1 exit /b %errorlevel%
 )

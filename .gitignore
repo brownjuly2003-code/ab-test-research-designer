@@ -58,3 +58,7 @@ archive/verify-workspace-backup/*
 
 # mkdocs build output (deployed via gh-pages branch)
 /site/
+
+# research artifacts (Kimi/Codex traces, large)
+research/*.log
+

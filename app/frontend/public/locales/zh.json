@@ -559,7 +559,8 @@
         "with": "配CUPED",
         "sampleSizeSavings": "-{{pct}}%样本量",
         "durationChange": "预计持续时间从 {{from}} 天更改为 {{to}} 天。",
-        "adjustedStdDev": "调整后的标准差：{{value}}。"
+        "adjustedStdDev": "调整后的标准差：{{value}}。",
+        "theta": "CUPED 系数 theta = {{value}}（按 Y' = Y - theta*(X - mean(X)) 应用）。"
       },
       "sensitivityTable": {
         "title": "灵敏度表",
@@ -1201,5 +1202,21 @@
       "readyToInstall": "可安装到 Slack 工作区。",
       "statusUnavailable": "Slack 状态不可用。"
     }
+  },
+  "livePreview": {
+    "label": "实时估算",
+    "updating": "更新中",
+    "error": "预览不可用",
+    "sampleSizeTitle": "每个变体的样本量",
+    "usersPerVariant": "用户 / 变体",
+    "durationTitle": "预计时长",
+    "durationMeta": "基于当前流量",
+    "cupedTitle": "CUPED 样本量",
+    "varianceReductionBadge": "方差降低 {{pct}}%",
+    "bonferroniBadge": "已应用 Bonferroni 校正",
+    "emptyHint": "调整流量或指标输入即可查看实时估算。",
+    "underOneDay": "< 1 天",
+    "days_one": "{{count}} 天",
+    "days_other": "{{count}} 天"
   }
 }

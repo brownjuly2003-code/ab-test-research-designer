@@ -21,6 +21,12 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["src/**/*.test.{ts,tsx}"],
-    setupFiles: ["src/test/setup.ts"]
+    setupFiles: ["src/test/setup.ts"],
+    // axe-driven a11y tests are CPU-bound: ~2-3s in isolation but 5-30s+ when one
+    // jsdom worker per core competes for CPU. The vitest defaults (5s timeout,
+    // worker per core) made full local runs flaky; a higher ceiling plus a worker
+    // cap keeps the gate deterministic without slowing low-core CI runners.
+    testTimeout: 30000,
+    maxWorkers: 8
   }
 });

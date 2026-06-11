@@ -37,13 +37,16 @@ FastAPI API layer
 
 ## Frontend
 
-- `app/frontend/src/App.tsx` coordinates the shell, draft import/export, save/load/archive/restore flows, and result export.
-- `components/` holds the wizard, sidebar, results dashboard, and UI primitives such as accordion, metric cards, tooltips, spinner, and status dot.
-- `hooks/` isolates stateful logic:
-  - `useAnalysis` for validation, loading, and current result state
-  - `useDraftPersistence` for browser draft restore/autosave and storage warnings
-  - `useProjectManager` for backend health, SQLite project CRUD, history, and comparison
-- `lib/experiment.ts` is the typed form model layer, including field config, review rendering, and payload normalization.
+- `app/frontend/src/App.tsx` renders the shell (language/theme switchers, wizard + sidebar grid) and delegates state to the stores below.
+- `components/` holds the wizard, sidebar, results dashboard, comparison views, and UI primitives such as accordion, metric cards, tooltips, spinner, and status dot.
+- `stores/` (zustand) isolates stateful logic:
+  - `analysisStore` for validation, loading, and current result state
+  - `draftStore` for browser draft restore/autosave and storage warnings
+  - `projectStore` for backend health, SQLite project CRUD, history, and comparison
+  - `wizardStore` for step navigation and onboarding state
+  - `themeStore` for light/dark/system theme persistence
+- `hooks/` keeps the remaining view-local logic: `useCalculationPreview` (debounced live estimate) and `useToast`.
+- `lib/experiment.ts` re-exports the typed form model layer, split into `lib/types.ts`, `lib/validation.ts`, `lib/payload.ts`, and `lib/field-config.ts`.
 - `lib/api.ts` is the network layer. Its contracts are generated from FastAPI OpenAPI into `lib/generated/api-contract.ts`.
 - frontend accessibility is gated inside the unit suite with `src/test/a11y-wizard.test.tsx`, `src/test/a11y-results.test.tsx`, and `src/test/a11y-sidebar.test.tsx`
 - those tests target WCAG 2.1 AA and fail the frontend gate when wizard, results, sidebar, or modal states regress to critical/serious axe violations

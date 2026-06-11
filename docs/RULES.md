@@ -58,6 +58,18 @@ The warning layer sits on top of deterministic calculations. It does not replace
 - Trigger: estimated duration is long while the payload says a long test is not possible
 - Meaning: the plan is operationally inconsistent
 
+### `INTERIM_LOOKS_INCREASE_SAMPLE`
+
+- Severity: `medium`
+- Trigger: more than one planned interim look (`n_looks > 1`) with a sequential inflation factor above 1.0
+- Meaning: group-sequential monitoring inflates the required sample size; the warning reports the percentage increase
+
+### `SRM_DETECTED`
+
+- Severity: `high`
+- Trigger: `actual_counts` are provided and the chi-square test against the planned `traffic_split` rejects at p < 0.001
+- Meaning: observed assignment counts deviate from the planned split (sample ratio mismatch); randomization or tracking is likely broken
+
 ## Rule sources
 
 - catalog metadata: `app/backend/app/rules/catalog.py`

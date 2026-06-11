@@ -4,7 +4,8 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
 from app.backend.app.services.calculations_service import calculate_experiment_metrics
-from app.backend.app.services.design_service import build_experiment_report
+from app.backend.app.services.design_service import build_experiment_report, build_guardrail_section
+from app.backend.app.stats.binary import calculate_detectable_mde_binary
 
 
 def test_design_service_builds_report_without_llm() -> None:
@@ -100,3 +101,18 @@ def test_design_service_builds_report_without_llm() -> None:
     assert "statistical" in report["risks"]
     assert len(report["recommendations"]["before_launch"]) >= 1
     assert len(report["open_questions"]) >= 1
+
+
+def test_guardrail_section_uses_experiment_alpha_and_power() -> None:
+    guardrails = [{"name": "Payment error rate", "metric_type": "binary", "baseline_rate": 2.4}]
+    primary_n = 45000
+
+    default_section = build_guardrail_section(guardrails, primary_n)
+    strict_section = build_guardrail_section(guardrails, primary_n, alpha=0.01, power=0.9)
+
+    expected_strict = calculate_detectable_mde_binary(
+        n=primary_n, baseline_rate=0.024, alpha=0.01, power=0.9
+    )
+    assert strict_section[0]["detectable_mde_pp"] == round(expected_strict * 100, 3)
+    # stricter alpha and higher power need a larger detectable effect at the same N
+    assert strict_section[0]["detectable_mde_pp"] > default_section[0]["detectable_mde_pp"]

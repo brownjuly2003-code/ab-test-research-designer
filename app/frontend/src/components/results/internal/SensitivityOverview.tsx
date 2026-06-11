@@ -165,6 +165,7 @@ export default function SensitivityOverview({
           <p className="muted">
             {displayedAnalysis.calculations.cuped_duration_days !== null ? t("results.sensitivityOverview.cuped.durationChange", { from: displayedAnalysis.calculations.results.estimated_duration_days, to: displayedAnalysis.calculations.cuped_duration_days }) : ""}
             {displayedAnalysis.calculations.cuped_std !== null ? ` ${t("results.sensitivityOverview.cuped.adjustedStdDev", { value: displayedAnalysis.calculations.cuped_std })}` : ""}
+            {displayedAnalysis.calculations.cuped_theta !== null && displayedAnalysis.calculations.cuped_theta !== undefined ? ` ${t("results.sensitivityOverview.cuped.theta", { value: displayedAnalysis.calculations.cuped_theta })}` : ""}
           </p>
         </div>
       ) : null}

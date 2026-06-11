@@ -35,12 +35,3 @@ def bayesian_sample_size_continuous(
     z_value = normal_ppf(1 - (1 - credibility) / 2)
     sample_size = 2 * std_dev**2 * (z_value / desired_precision) ** 2
     return math.ceil(sample_size)
-
-
-def precision_to_mde_equivalent(
-    desired_precision: float,
-    baseline_rate: float | None = None,
-    std_dev: float | None = None,
-    metric_type: str = "binary",
-) -> float:
-    return desired_precision * 2

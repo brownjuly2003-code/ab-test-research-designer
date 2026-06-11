@@ -80,6 +80,8 @@ def test_continuous_calculation_returns_cuped_comparison_when_covariates_are_pro
     )
     assert result["cuped_duration_days"] is not None
     assert result["cuped_duration_days"] <= result["results"]["estimated_duration_days"]
+    # theta = rho * sigma_outcome / sigma_pre = 0.5 * 12 / 12
+    assert result["cuped_theta"] == pytest.approx(0.5)
 
 
 def test_continuous_calculation_keeps_naive_sample_size_for_zero_correlation() -> None:

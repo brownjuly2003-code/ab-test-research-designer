@@ -89,6 +89,30 @@ def test_results_endpoint_binary_significant() -> None:
     assert payload["observed_effect"] == pytest.approx(0.5, abs=0.01)
 
 
+def test_results_endpoint_binary_interpretation_reflects_custom_alpha() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/results",
+        json={
+            "metric_type": "binary",
+            "binary": {
+                "control_conversions": 1750,
+                "control_users": 50000,
+                "treatment_conversions": 2000,
+                "treatment_users": 50000,
+                "alpha": 0.01,
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["ci_level"] == pytest.approx(0.99)
+    assert "99.0% CI" in payload["interpretation"]
+    assert "95.0% CI" not in payload["interpretation"]
+
+
 def test_results_endpoint_binary_not_significant_and_ci_crosses_zero() -> None:
     client = TestClient(create_app())
 

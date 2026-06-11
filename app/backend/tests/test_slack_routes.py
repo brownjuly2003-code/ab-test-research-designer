@@ -32,6 +32,12 @@ def _signed_headers(body: bytes, *, timestamp: str | None = None) -> dict[str, s
     }
 
 
+def _signed_json_headers(body: bytes, *, timestamp: str | None = None) -> dict[str, str]:
+    headers = _signed_headers(body, timestamp=timestamp)
+    headers["Content-Type"] = "application/json"
+    return headers
+
+
 def test_slack_routes_return_503_when_not_configured(monkeypatch) -> None:
     temp_dir = Path(__file__).resolve().parent / ".tmp"
     temp_dir.mkdir(exist_ok=True)
@@ -113,6 +119,38 @@ def test_slack_command_rejects_bad_signature(monkeypatch) -> None:
         response = client.post("/slack/commands", content=body, headers=headers)
 
     assert response.status_code == 401
+    get_settings.cache_clear()
+
+
+def test_slack_events_rejects_bad_signature(monkeypatch) -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    _configure_slack(monkeypatch, temp_dir / f"{uuid.uuid4()}.sqlite3")
+
+    body = b'{"type":"url_verification","challenge":"abc"}'
+    headers = _signed_json_headers(body)
+    headers["X-Slack-Signature"] = "v0=bad"
+
+    with TestClient(create_app()) as client:
+        response = client.post("/slack/events", content=body, headers=headers)
+
+    assert response.status_code == 401
+    get_settings.cache_clear()
+
+
+def test_slack_events_answers_signed_url_verification(monkeypatch) -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    _configure_slack(monkeypatch, temp_dir / f"{uuid.uuid4()}.sqlite3")
+
+    body = b'{"type":"url_verification","challenge":"abc"}'
+    headers = _signed_json_headers(body)
+
+    with TestClient(create_app()) as client:
+        response = client.post("/slack/events", content=body, headers=headers)
+
+    assert response.status_code == 200
+    assert response.json()["challenge"] == "abc"
     get_settings.cache_clear()
 
 

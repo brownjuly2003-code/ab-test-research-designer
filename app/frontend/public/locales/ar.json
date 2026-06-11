@@ -559,7 +559,8 @@
         "with": "مع CUPED",
         "sampleSizeSavings": "-{{pct}}% حجم العينة",
         "durationChange": "تتغير المدة المقدرة من {{from}} إلى {{to}} من الأيام.",
-        "adjustedStdDev": "التطوير القياسي المعدل: {{value}}."
+        "adjustedStdDev": "التطوير القياسي المعدل: {{value}}.",
+        "theta": "معامل CUPED‏ theta = {{value}} (يُطبَّق كالتالي: Y' = Y - theta*(X - mean(X)))."
       },
       "sensitivityTable": {
         "title": "جدول الحساسية",
@@ -1201,5 +1202,21 @@
       "readyToInstall": "جاهز للتثبيت في مساحة عمل Slack.",
       "statusUnavailable": "حالة Slack غير متوفرة."
     }
+  },
+  "livePreview": {
+    "label": "تقدير مباشر",
+    "updating": "جارٍ التحديث",
+    "error": "المعاينة غير متاحة",
+    "sampleSizeTitle": "حجم العينة لكل متغير",
+    "usersPerVariant": "مستخدم / متغير",
+    "durationTitle": "المدة المقدرة",
+    "durationMeta": "استنادًا إلى حركة المرور الحالية",
+    "cupedTitle": "حجم العينة مع CUPED",
+    "varianceReductionBadge": "خفض التباين {{pct}}٪",
+    "bonferroniBadge": "تم تطبيق تصحيح بونفيروني",
+    "emptyHint": "عدّل مدخلات حركة المرور أو المقاييس لرؤية تقدير مباشر.",
+    "underOneDay": "أقل من يوم",
+    "days_one": "{{count}} يوم",
+    "days_other": "{{count}} أيام"
   }
 }
