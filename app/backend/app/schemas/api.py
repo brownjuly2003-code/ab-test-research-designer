@@ -119,6 +119,8 @@ class ConstraintsConfig(BaseModel):
     analysis_mode: Literal["frequentist", "bayesian"] = "frequentist"
     desired_precision: float | None = Field(default=None, gt=0)
     credibility: float = Field(default=0.95, gt=0.5, lt=1.0)
+    holdout_fraction: float | None = Field(default=None, ge=0, lt=1)
+    mutually_exclusive_experiments: int | None = Field(default=None, ge=1, le=100)
 
     @model_validator(mode="after")
     def validate_analysis_mode(self) -> "ConstraintsConfig":

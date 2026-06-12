@@ -202,6 +202,8 @@ export type ConstraintsConfig = {
   analysis_mode?: "frequentist" | "bayesian";
   desired_precision?: number | null;
   credibility?: number;
+  holdout_fraction?: number | null;
+  mutually_exclusive_experiments?: number | null;
 };
 
 export type DiagnosticsAuthSummary = {

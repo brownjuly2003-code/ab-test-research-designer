@@ -51,6 +51,8 @@ def _build_calculation_payload(payload: ExperimentInput) -> CalculationRequest:
         analysis_mode=payload.constraints.analysis_mode,
         desired_precision=payload.constraints.desired_precision,
         credibility=payload.constraints.credibility,
+        holdout_fraction=payload.constraints.holdout_fraction,
+        mutually_exclusive_experiments=payload.constraints.mutually_exclusive_experiments,
     )
 
 
