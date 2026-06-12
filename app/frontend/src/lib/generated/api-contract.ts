@@ -107,6 +107,31 @@ export type AuditLogResponse = {
   total?: number;
 };
 
+export type BanditRegretPoint = {
+  step: number;
+  bandit_cumulative_regret: number;
+  uniform_cumulative_regret: number;
+};
+
+export type BanditSimulationRequest = {
+  arm_rates: number[];
+  horizon: number;
+  num_simulations?: number;
+  seed?: number | null;
+};
+
+export type BanditSimulationResponse = {
+  arm_allocation: number[];
+  best_arm_index: number;
+  best_arm_allocation: number;
+  probability_best_arm: number;
+  final_bandit_regret: number;
+  final_uniform_regret: number;
+  regret_curve: BanditRegretPoint[];
+  num_simulations: number;
+  horizon: number;
+};
+
 export type CalculationRequest = {
   metric_type: "binary" | "continuous";
   baseline_value: number;

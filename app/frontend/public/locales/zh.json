@@ -642,7 +642,8 @@
         "metricsPlan": "指标计划",
         "riskAssessment": "风险评估",
         "aiRecommendations": "人工智能建议",
-        "srmCheck": "SRM 检查"
+        "srmCheck": "SRM 检查",
+        "bandit": "老虎机 vs 固定"
       },
       "badges": {
         "loaded": "已加载",
@@ -670,6 +671,25 @@
       "itemsCount_other": "{{count}} 项目",
       "credibilityInterval": "{{percent}}%区间",
       "noAnalysisYet": "还没有分析。完成向导并首先运行确定性后端流程。"
+    },
+    "bandit": {
+      "title": "老虎机 vs 固定分流",
+      "description": "模拟 Thompson 采样老虎机如何随时间将流量转向最佳变体，以及相比均匀分流节省的 regret。仅用于规划，不进行实时分配。",
+      "binaryOnly": "老虎机模拟仅适用于二元（转化）指标。",
+      "rateLabel": "{{variant}} 转化率 (%)",
+      "ratePlaceholder": "假设转化率",
+      "horizonLabel": "规划周期（访客数）",
+      "simulateButton": "模拟老虎机",
+      "simulating": "模拟中...",
+      "convergesOn": "老虎机将流量集中到 {{variant}}",
+      "probabilityBest": "在 {{percent}} 的情况下选中最佳变体",
+      "regretReduction": "相比均匀分流，regret 减少 {{percent}}",
+      "allocationTitle": "预期流量分配",
+      "regretTitle": "累积 regret：老虎机 vs 均匀分流",
+      "banditLabel": "Thompson 老虎机",
+      "uniformLabel": "均匀分流",
+      "chartAria": "{{steps}} 步内的累积 regret，Thompson 采样对比均匀分流",
+      "serviceUnavailable": "老虎机模拟不可用。"
     }
   },
   "errors": {

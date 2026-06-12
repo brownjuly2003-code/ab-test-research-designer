@@ -642,7 +642,8 @@
         "metricsPlan": "Metrics plan",
         "riskAssessment": "Risk assessment",
         "aiRecommendations": "AI recommendations",
-        "srmCheck": "SRM check"
+        "srmCheck": "SRM check",
+        "bandit": "Bandit vs fixed"
       },
       "badges": {
         "loaded": "Loaded",
@@ -670,6 +671,25 @@
       "itemsCount_other": "{{count}} items",
       "credibilityInterval": "{{percent}}% interval",
       "noAnalysisYet": "No analysis yet. Complete the wizard and run the deterministic backend flow first."
+    },
+    "bandit": {
+      "title": "Bandit vs fixed split",
+      "description": "Simulate how a Thompson-sampling bandit would shift traffic toward the best variant over time, and how much regret it saves versus an even split. Planning only — no live allocation.",
+      "binaryOnly": "Bandit simulation is available for binary (conversion) metrics only.",
+      "rateLabel": "{{variant}} conversion (%)",
+      "ratePlaceholder": "Assumed rate",
+      "horizonLabel": "Planning horizon (visitors)",
+      "simulateButton": "Simulate bandit",
+      "simulating": "Simulating...",
+      "convergesOn": "Bandit concentrates traffic on {{variant}}",
+      "probabilityBest": "Picks the best variant {{percent}} of the time",
+      "regretReduction": "Regret reduced by {{percent}} vs an even split",
+      "allocationTitle": "Expected traffic allocation",
+      "regretTitle": "Cumulative regret: bandit vs even split",
+      "banditLabel": "Thompson bandit",
+      "uniformLabel": "Even split",
+      "chartAria": "Cumulative regret over {{steps}} steps, Thompson sampling versus an even split",
+      "serviceUnavailable": "Bandit simulation unavailable."
     }
   },
   "errors": {

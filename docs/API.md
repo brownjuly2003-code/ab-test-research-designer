@@ -294,6 +294,10 @@ Results
 
 Sensitivity
 
+### `POST /api/v1/simulate/bandit`
+
+Simulate Bandit
+
 ### `GET /api/v1/slack/status`
 
 Slack Status

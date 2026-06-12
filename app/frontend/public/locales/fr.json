@@ -642,7 +642,8 @@
         "metricsPlan": "Plan de métriques",
         "riskAssessment": "L'évaluation des risques",
         "aiRecommendations": "Recommandations IA",
-        "srmCheck": "Contrôle SRM"
+        "srmCheck": "Contrôle SRM",
+        "bandit": "Bandit vs fixe"
       },
       "badges": {
         "loaded": "Chargé",
@@ -670,6 +671,25 @@
       "itemsCount_other": "Articles {{count}}",
       "credibilityInterval": "Intervalle {{percent}}%",
       "noAnalysisYet": "Aucune analyse pour l'instant. Terminez l’assistant et exécutez d’abord le flux backend déterministe."
+    },
+    "bandit": {
+      "title": "Bandit vs répartition fixe",
+      "description": "Simule comment un bandit à échantillonnage de Thompson déplacerait le trafic vers la meilleure variante au fil du temps et le regret économisé par rapport à une répartition uniforme. Planification uniquement, sans allocation en direct.",
+      "binaryOnly": "La simulation de bandit n'est disponible que pour les métriques binaires (de conversion).",
+      "rateLabel": "{{variant}} — conversion (%)",
+      "ratePlaceholder": "Taux supposé",
+      "horizonLabel": "Horizon de planification (visiteurs)",
+      "simulateButton": "Simuler le bandit",
+      "simulating": "Simulation...",
+      "convergesOn": "Le bandit concentre le trafic sur {{variant}}",
+      "probabilityBest": "Choisit la meilleure variante {{percent}} du temps",
+      "regretReduction": "Regret réduit de {{percent}} par rapport à une répartition uniforme",
+      "allocationTitle": "Allocation de trafic attendue",
+      "regretTitle": "Regret cumulé : bandit vs répartition uniforme",
+      "banditLabel": "Bandit de Thompson",
+      "uniformLabel": "Répartition uniforme",
+      "chartAria": "Regret cumulé sur {{steps}} étapes, échantillonnage de Thompson contre une répartition uniforme",
+      "serviceUnavailable": "Simulation de bandit indisponible."
     }
   },
   "errors": {

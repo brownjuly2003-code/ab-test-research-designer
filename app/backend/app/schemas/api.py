@@ -381,6 +381,39 @@ class SrmCheckResponse(BaseModel):
     expected_counts: list[float]
 
 
+class BanditSimulationRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    arm_rates: list[float] = Field(min_length=2, max_length=MAX_SUPPORTED_VARIANTS)
+    horizon: int = Field(ge=10, le=5000)
+    num_simulations: int = Field(default=400, ge=1, le=2000)
+    seed: int | None = 42
+
+    @model_validator(mode="after")
+    def validate_arm_rates(self) -> "BanditSimulationRequest":
+        if any(not 0 <= rate <= 1 for rate in self.arm_rates):
+            raise ValueError(translate("errors.schemas.bandit_arm_rates_range"))
+        return self
+
+
+class BanditRegretPoint(BaseModel):
+    step: int
+    bandit_cumulative_regret: float
+    uniform_cumulative_regret: float
+
+
+class BanditSimulationResponse(BaseModel):
+    arm_allocation: list[float]
+    best_arm_index: int
+    best_arm_allocation: float
+    probability_best_arm: float
+    final_bandit_regret: float
+    final_uniform_regret: float
+    regret_curve: list[BanditRegretPoint]
+    num_simulations: int
+    horizon: int
+
+
 class WarningResponse(BaseModel):
     code: str
     severity: str

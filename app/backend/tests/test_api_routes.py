@@ -604,6 +604,36 @@ def test_sensitivity_binary() -> None:
     assert all("sample_size_per_variant" in cell for cell in data["cells"])
 
 
+def test_simulate_bandit_endpoint_returns_allocation_and_regret_curve() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/simulate/bandit",
+        json={"arm_rates": [0.05, 0.12], "horizon": 400, "num_simulations": 200, "seed": 7},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["arm_allocation"]) == 2
+    assert data["best_arm_index"] == 1
+    assert data["horizon"] == 400
+    assert data["regret_curve"][-1]["step"] == 400
+    # Thompson sampling converges on the better arm and beats a uniform split.
+    assert data["best_arm_allocation"] > 0.5
+    assert data["final_bandit_regret"] < data["final_uniform_regret"]
+
+
+def test_simulate_bandit_rejects_out_of_range_rates() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/simulate/bandit",
+        json={"arm_rates": [0.5, 1.5], "horizon": 100},
+    )
+
+    assert response.status_code == 422
+
+
 def test_design_endpoint_builds_report_without_llm() -> None:
     client = TestClient(create_app())
 

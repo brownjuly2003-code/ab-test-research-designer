@@ -7,6 +7,8 @@ from app.backend.app.llm.anthropic_adapter import AnthropicAdapter
 from app.backend.app.llm.openai_adapter import OpenAIAdapter
 from app.backend.app.schemas.api import (
     AnalysisResponse,
+    BanditSimulationRequest,
+    BanditSimulationResponse,
     CalculationRequest,
     CalculationResponse,
     ExperimentInput,
@@ -25,6 +27,7 @@ from app.backend.app.schemas.api import (
 )
 from app.backend.app.services.calculations_service import calculate_experiment_metrics
 from app.backend.app.services.design_service import build_experiment_report
+from app.backend.app.services.monte_carlo_service import simulate_thompson_sampling
 from app.backend.app.services.results_service import analyze_results
 from app.backend.app.stats.binary import calculate_binary_sample_size
 from app.backend.app.stats.continuous import calculate_continuous_sample_size
@@ -198,6 +201,20 @@ def create_analysis_router(settings, repository, rate_limiter, require_auth, req
     )
     def results(payload: ResultsRequest) -> ResultsResponse:
         return analyze_results(payload)
+
+    @router.post(
+        "/api/v1/simulate/bandit",
+        response_model=BanditSimulationResponse,
+        dependencies=[Depends(require_write_auth)],
+    )
+    def simulate_bandit(payload: BanditSimulationRequest) -> BanditSimulationResponse:
+        result = simulate_thompson_sampling(
+            arm_rates=payload.arm_rates,
+            horizon=payload.horizon,
+            num_simulations=payload.num_simulations,
+            seed=payload.seed,
+        )
+        return BanditSimulationResponse.model_validate(result)
 
     @router.post(
         "/api/v1/design",

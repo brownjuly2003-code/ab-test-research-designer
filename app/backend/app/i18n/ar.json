@@ -260,7 +260,8 @@
       "observed_counts_non_negative": "يجب أن تكون أعداد الملاحظة غير سالبة",
       "observed_counts_positive_sum": "يجب أن يصل مجموع الأعداد المرصودة إلى إجمالي موجب",
       "expected_fractions_non_negative": "يجب أن تكون الكسور المتوقعة غير سالبة",
-      "expected_fractions_sum": "يجب أن يكون مجموع الكسور المتوقعة 1.0، وحصلت على {{total}}"
+      "expected_fractions_sum": "يجب أن يكون مجموع الكسور المتوقعة 1.0، وحصلت على {{total}}",
+      "bandit_arm_rates_range": "يجب أن تكون معدلات تحويل كل تباين بين 0 و1."
     },
     "srm_detected": "تم اكتشاف SRM - تحقق من التوزيع العشوائي أو تنفيذ التتبع",
     "srm_not_detected": "لم يتم اكتشاف SRM"

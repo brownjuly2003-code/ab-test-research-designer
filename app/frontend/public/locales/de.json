@@ -642,7 +642,8 @@
         "metricsPlan": "Metrikplan",
         "riskAssessment": "Risikobewertung",
         "aiRecommendations": "KI-Empfehlungen",
-        "srmCheck": "SRM-Pr?fung"
+        "srmCheck": "SRM-Pr?fung",
+        "bandit": "Bandit vs. fest"
       },
       "badges": {
         "loaded": "Geladen",
@@ -670,6 +671,25 @@
       "itemsCount_other": "{{count}} Artikel",
       "credibilityInterval": "{{percent}}% Intervall",
       "noAnalysisYet": "Noch keine Analyse. Schließen Sie den Assistenten ab und führen Sie zuerst den deterministischen Backend-Flow aus."
+    },
+    "bandit": {
+      "title": "Bandit vs. feste Aufteilung",
+      "description": "Simuliert, wie ein Thompson-Sampling-Bandit den Traffic im Zeitverlauf zur besten Variante verschieben würde und wie viel Regret er gegenüber einer gleichmäßigen Aufteilung spart. Nur Planung – keine Live-Zuweisung.",
+      "binaryOnly": "Die Bandit-Simulation ist nur für binäre (Conversion-)Metriken verfügbar.",
+      "rateLabel": "{{variant}} – Conversion (%)",
+      "ratePlaceholder": "Angenommene Rate",
+      "horizonLabel": "Planungshorizont (Besucher)",
+      "simulateButton": "Bandit simulieren",
+      "simulating": "Simuliere...",
+      "convergesOn": "Bandit konzentriert den Traffic auf {{variant}}",
+      "probabilityBest": "Wählt in {{percent}} der Fälle die beste Variante",
+      "regretReduction": "Regret um {{percent}} gegenüber gleichmäßiger Aufteilung reduziert",
+      "allocationTitle": "Erwartete Traffic-Verteilung",
+      "regretTitle": "Kumulierter Regret: Bandit vs. gleichmäßige Aufteilung",
+      "banditLabel": "Thompson-Bandit",
+      "uniformLabel": "Gleichmäßige Aufteilung",
+      "chartAria": "Kumulierter Regret über {{steps}} Schritte, Thompson-Sampling gegenüber gleichmäßiger Aufteilung",
+      "serviceUnavailable": "Bandit-Simulation nicht verfügbar."
     }
   },
   "errors": {

@@ -260,7 +260,8 @@
       "observed_counts_non_negative": "observed_counts must be non-negative",
       "observed_counts_positive_sum": "observed_counts must sum to a positive total",
       "expected_fractions_non_negative": "expected_fractions must be non-negative",
-      "expected_fractions_sum": "expected_fractions must sum to 1.0, got {{total}}"
+      "expected_fractions_sum": "expected_fractions must sum to 1.0, got {{total}}",
+      "bandit_arm_rates_range": "Las tasas de conversión de cada variante deben estar entre 0 y 1."
     },
     "srm_detected": "SRM detectado — verifique su aleatorización o implementación de seguimiento",
     "srm_not_detected": "No se detectó SRM"
