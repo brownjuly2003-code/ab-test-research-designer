@@ -273,8 +273,8 @@ class CalculationRequest(BaseModel):
             raise ValueError(translate("errors.schemas.actual_counts_length"))
         if any(count < 0 for count in self.actual_counts):
             raise ValueError(translate("errors.schemas.actual_counts_non_negative"))
-        if any(count == 0 for count in self.actual_counts):
-            raise ValueError(translate("errors.schemas.actual_counts_positive"))
+        # A zero in one variant is an extreme SRM, not invalid input — let the
+        # SRM rule flag it. Only an all-zero vector (no data) is rejected here.
         if sum(self.actual_counts) <= 0:
             raise ValueError(translate("errors.schemas.actual_counts_positive_sum"))
         return self
@@ -354,8 +354,10 @@ class SrmCheckRequest(BaseModel):
             raise ValueError(translate("errors.schemas.observed_expected_same_length"))
         if any(count < 0 for count in self.observed_counts):
             raise ValueError(translate("errors.schemas.observed_counts_non_negative"))
-        if any(count == 0 for count in self.observed_counts):
-            raise ValueError(translate("errors.schemas.observed_counts_positive"))
+        # A zero in one variant is an extreme SRM, not invalid input — chi_square_srm
+        # handles it. Only an all-zero vector (no data) is rejected here.
+        if sum(self.observed_counts) <= 0:
+            raise ValueError(translate("errors.schemas.observed_counts_positive_sum"))
         if any(fraction < 0 for fraction in self.expected_fractions):
             raise ValueError(translate("errors.schemas.expected_fractions_non_negative"))
         total_fraction = sum(self.expected_fractions)

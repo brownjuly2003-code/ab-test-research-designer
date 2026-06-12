@@ -44,9 +44,12 @@ def test_regression_continuous_extreme_std_does_not_overflow() -> None:
         )
 
 
-def test_regression_srm_zero_observed_group_is_validation_error() -> None:
-    with pytest.raises(ValueError, match="positive counts"):
-        chi_square_srm(observed_counts=[0, 100], expected_fractions=[0.5, 0.5])
+def test_regression_srm_zero_observed_group_is_extreme_srm() -> None:
+    # N-06: a zero variant is detected as SRM, no longer rejected as invalid input.
+    _, p_value, is_srm = chi_square_srm(observed_counts=[0, 100], expected_fractions=[0.5, 0.5])
+
+    assert is_srm is True
+    assert p_value < 0.001
 
 
 def test_regression_sequential_hundred_looks_are_supported() -> None:

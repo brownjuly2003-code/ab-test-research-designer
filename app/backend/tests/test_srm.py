@@ -84,6 +84,61 @@ def test_srm_detected_skewed() -> None:
     assert data["p_value"] < 0.001
 
 
+def test_srm_check_accepts_zero_variant_as_extreme_srm() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/srm-check",
+        json={
+            "observed_counts": [0, 10000],
+            "expected_fractions": [0.5, 0.5],
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["is_srm"] is True
+    assert data["p_value"] < 0.001
+
+
+def test_srm_check_rejects_all_zero_counts() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/srm-check",
+        json={
+            "observed_counts": [0, 0],
+            "expected_fractions": [0.5, 0.5],
+        },
+    )
+
+    assert response.status_code == 422
+
+
+def test_calculate_endpoint_flags_srm_when_a_variant_has_zero_traffic() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/calculate",
+        json={
+            "metric_type": "binary",
+            "baseline_value": 0.042,
+            "mde_pct": 5,
+            "alpha": 0.05,
+            "power": 0.8,
+            "expected_daily_traffic": 12000,
+            "audience_share_in_test": 0.6,
+            "traffic_split": [50, 50],
+            "variants_count": 2,
+            "actual_counts": [0, 10000],
+        },
+    )
+
+    assert response.status_code == 200
+    codes = {warning["code"] for warning in response.json()["warnings"]}
+    assert "SRM_DETECTED" in codes
+
+
 def test_srm_three_variants() -> None:
     client = TestClient(create_app())
 

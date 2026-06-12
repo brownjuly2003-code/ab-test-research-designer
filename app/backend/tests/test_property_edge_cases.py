@@ -238,12 +238,31 @@ def test_property_srm_extreme_imbalance_collapses_p_value(multiplier: int) -> No
 
 
 @settings(max_examples=20, deadline=5000)
-@given(total=st.integers(min_value=1, max_value=100_000), zero_first=st.booleans())
-def test_property_srm_zero_observed_group_is_rejected(total: int, zero_first: bool) -> None:
+@given(total=st.integers(min_value=50, max_value=100_000), zero_first=st.booleans())
+def test_property_srm_zero_observed_group_is_extreme_srm(total: int, zero_first: bool) -> None:
+    # A zero in one variant is an extreme sample-ratio mismatch, not invalid input:
+    # it must be flagged as SRM rather than rejected (see N-06). For a 50/50 split the
+    # chi-square statistic equals the total observed count, so any total above the
+    # df=1 p<0.001 critical value (~10.83) is detected as SRM.
     observed_counts = [0, total] if zero_first else [total, 0]
 
-    with pytest.raises(ValueError, match="positive counts"):
-        chi_square_srm(observed_counts=observed_counts, expected_fractions=[0.5, 0.5])
+    chi_square, p_value, is_srm = chi_square_srm(
+        observed_counts=observed_counts, expected_fractions=[0.5, 0.5]
+    )
+
+    assert chi_square > 0
+    assert p_value < 0.001
+    assert is_srm is True
+
+
+def test_srm_all_zero_observed_is_rejected() -> None:
+    with pytest.raises(ValueError, match="Total observed count must be > 0"):
+        chi_square_srm(observed_counts=[0, 0], expected_fractions=[0.5, 0.5])
+
+
+def test_srm_negative_observed_is_rejected() -> None:
+    with pytest.raises(ValueError, match="negative"):
+        chi_square_srm(observed_counts=[-1, 100], expected_fractions=[0.5, 0.5])
 
 
 @settings(max_examples=20, deadline=5000)

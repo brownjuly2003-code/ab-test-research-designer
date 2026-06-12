@@ -250,7 +250,6 @@
       "continuous_rejects_binary_data": "نوع القياس المستمر لا يقبل البيانات الثنائية",
       "actual_counts_length": "يجب أن يتطابق طول عدد الأعداد الفعلية مع المتغيرات_العددية",
       "actual_counts_non_negative": "يجب أن تكون الأعداد الفعلية غير سالبة",
-      "actual_counts_positive": "يجب أن تحتوي actual_counts على قيم موجبة",
       "actual_counts_positive_sum": "يجب أن يصل مجموع عدد الأعداد الفعلية إلى إجمالي موجب",
       "baseline_rate_range": "يجب أن تتراوح قيمة baseline_rate بين 0 و100 للمقاييس الثنائية",
       "baseline_mean_positive": "يجب أن يكون baseline_mean موجبًا للمقاييس المستمرة",
@@ -259,7 +258,7 @@
       "traffic_split_variants": "يجب أن يتطابق طول Traffic_split مع المتغيرات",
       "observed_expected_same_length": "يجب أن يكون للأعداد_المرصودة والكسور_المتوقعة نفس الطول",
       "observed_counts_non_negative": "يجب أن تكون أعداد الملاحظة غير سالبة",
-      "observed_counts_positive": "يجب أن تحتوي observed_counts على قيم موجبة",
+      "observed_counts_positive_sum": "يجب أن يصل مجموع الأعداد المرصودة إلى إجمالي موجب",
       "expected_fractions_non_negative": "يجب أن تكون الكسور المتوقعة غير سالبة",
       "expected_fractions_sum": "يجب أن يكون مجموع الكسور المتوقعة 1.0، وحصلت على {{total}}"
     },
