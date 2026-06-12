@@ -414,6 +414,36 @@ class BanditSimulationResponse(BaseModel):
     horizon: int
 
 
+class AssignmentPreviewRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    seed: str = Field(min_length=1, max_length=200)
+    num_variations: int = Field(ge=2, le=MAX_SUPPORTED_VARIANTS)
+    coverage: float = Field(default=1.0, ge=0.0, le=1.0)
+    weights: list[float] | None = None
+    sample_size: int = Field(default=1000, ge=1, le=100000)
+    user_id_prefix: str = Field(default="user-", max_length=80)
+    hash_version: Literal[1, 2] = 2
+
+
+class AssignmentDistributionBucket(BaseModel):
+    variation_index: int
+    count: int
+    fraction: float
+
+
+class AssignmentPreviewSample(BaseModel):
+    user_id: str
+    variation_index: int
+
+
+class AssignmentPreviewResponse(BaseModel):
+    sample_size: int
+    in_experiment_fraction: float
+    distribution: list[AssignmentDistributionBucket]
+    sample_assignments: list[AssignmentPreviewSample]
+
+
 class WarningResponse(BaseModel):
     code: str
     severity: str
