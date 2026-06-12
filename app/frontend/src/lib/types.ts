@@ -73,6 +73,8 @@ export type ConstraintsPayloadSection = ApiExperimentInputInput["constraints"] &
   analysis_mode?: AnalysisMode;
   desired_precision?: number | null;
   credibility?: number | null;
+  holdout_fraction?: number | null;
+  mutually_exclusive_experiments?: number | null;
 };
 export type ExperimentInputPayload = Omit<ApiExperimentInputInput, "additional_context" | "constraints"> & {
   constraints: ConstraintsPayloadSection;

@@ -128,6 +128,8 @@ export type CalculationRequest = {
   analysis_mode?: "frequentist" | "bayesian";
   desired_precision?: number | null;
   credibility?: number;
+  holdout_fraction?: number | null;
+  mutually_exclusive_experiments?: number | null;
 };
 
 export type CalculationResponse = {
@@ -154,6 +156,9 @@ export type CalculationResultsResponse = {
   total_sample_size: number;
   effective_daily_traffic: number;
   estimated_duration_days: number;
+  holdout_fraction?: number | null;
+  mutually_exclusive_experiments?: number | null;
+  allocated_daily_traffic?: number | null;
 };
 
 export type CalculationSummaryResponse = {

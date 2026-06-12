@@ -34,7 +34,11 @@ export const FIELD_TOOLTIPS: Record<string, string> = {
   credibility:
     "Credibility level for the Bayesian interval. 0.95 corresponds to a 95% credible interval.",
   std_dev:
-    "Standard deviation of the continuous metric. Required only for continuous metrics; example: 12.5 for average order value."
+    "Standard deviation of the continuous metric. Required only for continuous metrics; example: 12.5 for average order value.",
+  holdout_fraction:
+    "Global holdout: share of traffic kept out of every experiment as a clean control. Leave empty for none, or use 0.1 for a 10% holdout. Reduces the traffic this test receives, so the duration grows; sample size is unchanged.",
+  mutually_exclusive_experiments:
+    "Number of mutually-exclusive experiments sharing the same traffic. Leave empty for 1. With N, this test gets 1/N of the traffic, extending the duration accordingly."
 };
 
 export const WIZARD_STEPS: WizardStep[] = [
@@ -199,6 +203,20 @@ export const sections: SectionConfig[] = [
         kind: "number",
         visibleWhen: (state) => state.constraints.analysis_mode === "bayesian",
         helpText: FIELD_TOOLTIPS.credibility
+      },
+      {
+        label: "Holdout fraction",
+        key: "holdout_fraction",
+        kind: "number",
+        emptyValue: null,
+        helpText: FIELD_TOOLTIPS.holdout_fraction
+      },
+      {
+        label: "Mutually exclusive experiments",
+        key: "mutually_exclusive_experiments",
+        kind: "number",
+        emptyValue: null,
+        helpText: FIELD_TOOLTIPS.mutually_exclusive_experiments
       },
       {
         label: "Interference risk",

@@ -162,7 +162,9 @@
         "legal_or_ethics_constraints": "Contraintes juridiques/éthiques",
         "known_risks": "Risques connus",
         "deadline_pressure": "Pression des délais",
-        "long_test_possible": "Test long possible"
+        "long_test_possible": "Test long possible",
+        "holdout_fraction": "Fraction de holdout",
+        "mutually_exclusive_experiments": "Expériences mutuellement exclusives"
       },
       "additional_context": {
         "llm_context": "Contexte de l'IA"
@@ -182,7 +184,9 @@
       "desired_precision": "Ciblez la moitié de la largeur de l’intervalle de crédibilité. Pour les mesures binaires, utilisez des points de pourcentage ; pour les mesures continues, utilisez des unités brutes.",
       "credibility": "Niveau de crédibilité de l'intervalle bayésien. 0,95 correspond à un intervalle de crédibilité de 95 %.",
       "std_dev": "Écart type de la métrique continue. Obligatoire uniquement pour les métriques continues ; exemple : 12,5 pour la valeur moyenne de la commande.",
-      "interference_risk": "Risque que les utilisateurs ou les unités puissent s’influencer mutuellement à travers les variantes et rompre l’isolement."
+      "interference_risk": "Risque que les utilisateurs ou les unités puissent s’influencer mutuellement à travers les variantes et rompre l’isolement.",
+      "holdout_fraction": "Holdout global : part du trafic exclue de toutes les expériences comme contrôle propre. Laissez vide s'il n'y en a pas, ou saisissez 0,1 pour un holdout de 10 %. Réduit le trafic reçu par ce test, ce qui allonge la durée tandis que la taille d'échantillon reste inchangée.",
+      "mutually_exclusive_experiments": "Nombre d'expériences mutuellement exclusives partageant le même trafic. Laissez vide pour 1. Avec N, ce test reçoit 1/N du trafic, ce qui allonge la durée en conséquence."
     },
     "options": {
       "setup": {
@@ -287,7 +291,9 @@
       "guardrailBinaryBaselineRange": "Les garde-corps binaires nécessitent un % de base compris entre 0 et 100.",
       "guardrailContinuousFields": "Les garde-corps continus nécessitent une moyenne de base et une évolution standard positive.",
       "guardrailMetricType": "Le type de métrique de garde-corps doit être binaire ou continu.",
-      "metricType": "Le type de métrique doit être binaire ou continu."
+      "metricType": "Le type de métrique doit être binaire ou continu.",
+      "holdoutFractionRange": "La fraction de holdout doit être comprise entre 0 et 1.",
+      "mutuallyExclusiveMin": "Les expériences mutuellement exclusives doivent être un entier d'au moins 1."
     }
   },
   "empty_state": {
@@ -1217,6 +1223,8 @@
     "emptyHint": "Ajustez le trafic ou les métriques pour voir une estimation en direct.",
     "underOneDay": "< 1 jour",
     "days_one": "{{count}} jour",
-    "days_other": "{{count}} jours"
+    "days_other": "{{count}} jours",
+    "allocatedTrafficTitle": "Trafic quotidien alloué",
+    "allocatedTrafficUnit": "utilisateurs / jour après holdout"
   }
 }

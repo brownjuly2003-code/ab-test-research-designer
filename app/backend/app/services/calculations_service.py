@@ -68,11 +68,19 @@ def calculate_experiment_metrics(payload: dict) -> dict:
     else:
         raise ValueError(f"Unsupported metric_type: {metric_type}")
 
+    holdout_fraction = payload.get("holdout_fraction")
+    mutually_exclusive_experiments = payload.get("mutually_exclusive_experiments")
+    holdout = float(holdout_fraction) if holdout_fraction is not None else 0.0
+    me_count = int(mutually_exclusive_experiments) if mutually_exclusive_experiments is not None else 1
+    traffic_allocation_fraction = (1.0 - holdout) / me_count
+    has_traffic_allocation = holdout_fraction is not None or mutually_exclusive_experiments is not None
+
     duration = estimate_experiment_duration_days(
         sample_size_per_variant=calculation_summary["sample_size_per_variant"],
         expected_daily_traffic=payload["expected_daily_traffic"],
         audience_share_in_test=payload["audience_share_in_test"],
         traffic_split=traffic_split,
+        traffic_allocation_fraction=traffic_allocation_fraction,
     )
 
     result = {
@@ -89,6 +97,11 @@ def calculate_experiment_metrics(payload: dict) -> dict:
             "total_sample_size": calculation_summary["total_sample_size"],
             "effective_daily_traffic": duration["effective_daily_traffic"],
             "estimated_duration_days": duration["estimated_duration_days"],
+            "holdout_fraction": holdout_fraction,
+            "mutually_exclusive_experiments": mutually_exclusive_experiments,
+            "allocated_daily_traffic": (
+                duration["allocated_daily_traffic"] if has_traffic_allocation else None
+            ),
         },
         "assumptions": calculation_summary["assumptions"],
         "warnings": [],
@@ -132,6 +145,7 @@ def calculate_experiment_metrics(payload: dict) -> dict:
             expected_daily_traffic=payload["expected_daily_traffic"],
             audience_share_in_test=payload["audience_share_in_test"],
             traffic_split=traffic_split,
+            traffic_allocation_fraction=traffic_allocation_fraction,
         )
         result["cuped_std"] = round(cuped_std, 4)
         result["cuped_sample_size_per_variant"] = cuped_summary["sample_size_per_variant"]
@@ -188,7 +202,10 @@ def calculate_experiment_metrics(payload: dict) -> dict:
     result["warnings"] = evaluate_warnings(
         payload=payload,
         results={
-            "effective_daily_traffic": duration["effective_daily_traffic"],
+            # The low-traffic rules must see the traffic this experiment actually
+            # receives after holdout / mutual exclusion (equals effective when neither
+            # is set, so the no-allocation path is unchanged).
+            "effective_daily_traffic": duration["allocated_daily_traffic"],
             "estimated_duration_days": duration["estimated_duration_days"],
             "sequential_inflation_factor": result["sequential_inflation_factor"],
         },

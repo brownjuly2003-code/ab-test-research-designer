@@ -55,6 +55,13 @@ export default function LivePreviewPanel({ result, isLoading, error }: LivePrevi
                 <span className="preview-unit">{t("livePreview.usersPerVariant")}</span>
               </div>
             ) : null}
+            {result.results.allocated_daily_traffic !== null && result.results.allocated_daily_traffic !== undefined ? (
+              <div className="live-preview-card">
+                <span className="preview-title">{t("livePreview.allocatedTrafficTitle")}</span>
+                <span className="preview-value">{Math.round(result.results.allocated_daily_traffic).toLocaleString()}</span>
+                <span className="preview-unit">{t("livePreview.allocatedTrafficUnit")}</span>
+              </div>
+            ) : null}
           </div>
           {hasCupedEstimate && result.cuped_variance_reduction_pct !== null && result.cuped_variance_reduction_pct !== undefined ? (
             <span className="preview-badge">{t("livePreview.varianceReductionBadge", { pct: result.cuped_variance_reduction_pct })}</span>

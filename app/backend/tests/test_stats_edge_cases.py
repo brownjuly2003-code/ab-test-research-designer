@@ -126,3 +126,55 @@ def test_duration_rejects_non_positive_traffic_weights() -> None:
             audience_share_in_test=0.5,
             traffic_split=[100, 0],
         )
+
+
+def test_duration_default_allocation_fraction_is_unchanged() -> None:
+    base = estimate_experiment_duration_days(
+        sample_size_per_variant=1000,
+        expected_daily_traffic=5000,
+        audience_share_in_test=0.5,
+        traffic_split=[50, 50],
+    )
+    explicit_full = estimate_experiment_duration_days(
+        sample_size_per_variant=1000,
+        expected_daily_traffic=5000,
+        audience_share_in_test=0.5,
+        traffic_split=[50, 50],
+        traffic_allocation_fraction=1.0,
+    )
+
+    assert base == explicit_full
+    assert base["allocated_daily_traffic"] == base["effective_daily_traffic"]
+
+
+def test_duration_allocation_fraction_extends_duration() -> None:
+    full = estimate_experiment_duration_days(
+        sample_size_per_variant=1000,
+        expected_daily_traffic=5000,
+        audience_share_in_test=0.5,
+        traffic_split=[50, 50],
+        traffic_allocation_fraction=1.0,
+    )
+    half = estimate_experiment_duration_days(
+        sample_size_per_variant=1000,
+        expected_daily_traffic=5000,
+        audience_share_in_test=0.5,
+        traffic_split=[50, 50],
+        traffic_allocation_fraction=0.5,
+    )
+
+    assert half["allocated_daily_traffic"] == full["allocated_daily_traffic"] / 2
+    assert half["effective_daily_traffic"] == full["effective_daily_traffic"]
+    assert half["estimated_duration_days"] >= full["estimated_duration_days"] * 2 - 1
+
+
+@pytest.mark.parametrize("fraction", [0, -0.1, 1.2])
+def test_duration_rejects_invalid_allocation_fraction(fraction: float) -> None:
+    with pytest.raises(ValueError, match="traffic_allocation_fraction must be between"):
+        estimate_experiment_duration_days(
+            sample_size_per_variant=1000,
+            expected_daily_traffic=5000,
+            audience_share_in_test=0.5,
+            traffic_split=[50, 50],
+            traffic_allocation_fraction=fraction,
+        )
