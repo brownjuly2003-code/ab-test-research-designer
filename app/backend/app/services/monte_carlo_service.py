@@ -8,6 +8,7 @@ import numpy as np
 PERCENTILE_LEVELS = (5, 25, 50, 75, 95)
 THRESHOLD_LEVELS = tuple(round(value / 100, 2) for value in range(1, 11))
 EPSILON = 1e-12
+BANDIT_CURVE_POINTS = 40
 
 
 def _as_probability(value: Any, field_name: str) -> float:
@@ -235,3 +236,94 @@ def simulate_comparison(
             )
 
     return simulation_results
+
+
+def _bandit_checkpoints(steps: int) -> list[int]:
+    """Evenly spaced, strictly increasing step indices for the regret curve.
+
+    Always includes the final step so the curve reaches the full horizon. For
+    short horizons every step is returned.
+    """
+    if steps <= BANDIT_CURVE_POINTS:
+        return list(range(1, steps + 1))
+    raw = np.linspace(1, steps, BANDIT_CURVE_POINTS)
+    points = sorted({int(round(value)) for value in raw})
+    if points[-1] != steps:
+        points.append(steps)
+    return points
+
+
+def simulate_thompson_sampling(
+    arm_rates: list[float],
+    horizon: int,
+    num_simulations: int = 400,
+    seed: int | None = 42,
+) -> dict[str, Any]:
+    """Planning simulation: how a Beta-Bernoulli Thompson-sampling bandit would
+    allocate traffic across variants over ``horizon`` pulls, vs a uniform split.
+
+    Returns expected per-arm allocation, the probability the bandit converges on
+    the truly-best arm, and a cumulative-regret curve (bandit vs uniform). The
+    RNG is seeded from the payload so property/regression tests stay deterministic.
+    """
+    rates = [_as_probability(rate, "arm_rate") for rate in arm_rates]
+    if len(rates) < 2:
+        raise ValueError("at least two arms are required")
+    steps = _as_positive_int(horizon, "horizon")
+    simulations = _as_positive_int(num_simulations, "num_simulations")
+
+    rates_array = np.asarray(rates, dtype=float)
+    num_arms = int(rates_array.size)
+    optimal_rate = float(rates_array.max())
+    best_arm_index = int(rates_array.argmax())
+    # Expected regret per pull if traffic were split uniformly at random.
+    uniform_step_regret = optimal_rate - float(rates_array.mean())
+    # Instantaneous regret incurred whenever a given arm is pulled (>= 0).
+    arm_regret = optimal_rate - rates_array
+
+    rng = np.random.default_rng(seed)
+    alpha = np.ones((simulations, num_arms))
+    beta = np.ones((simulations, num_arms))
+    pull_counts = np.zeros((simulations, num_arms))
+    cumulative_regret = np.zeros(simulations)
+    sim_indices = np.arange(simulations)
+
+    checkpoints = _bandit_checkpoints(steps)
+    checkpoint_set = set(checkpoints)
+    bandit_regret_at_checkpoint: dict[int, float] = {}
+
+    for step in range(1, steps + 1):
+        samples = rng.beta(alpha, beta)
+        chosen = samples.argmax(axis=1)
+        chosen_rates = rates_array[chosen]
+        rewards = (rng.random(simulations) < chosen_rates).astype(float)
+        alpha[sim_indices, chosen] += rewards
+        beta[sim_indices, chosen] += 1.0 - rewards
+        pull_counts[sim_indices, chosen] += 1.0
+        cumulative_regret += arm_regret[chosen]
+        if step in checkpoint_set:
+            bandit_regret_at_checkpoint[step] = float(cumulative_regret.mean())
+
+    mean_allocation = (pull_counts / steps).mean(axis=0)
+    probability_best_arm = float(np.mean(pull_counts.argmax(axis=1) == best_arm_index))
+
+    regret_curve = [
+        {
+            "step": step,
+            "bandit_cumulative_regret": bandit_regret_at_checkpoint[step],
+            "uniform_cumulative_regret": uniform_step_regret * step,
+        }
+        for step in checkpoints
+    ]
+
+    return {
+        "arm_allocation": mean_allocation.astype(float).tolist(),
+        "best_arm_index": best_arm_index,
+        "best_arm_allocation": float(mean_allocation[best_arm_index]),
+        "probability_best_arm": probability_best_arm,
+        "final_bandit_regret": float(cumulative_regret.mean()),
+        "final_uniform_regret": float(uniform_step_regret * steps),
+        "regret_curve": regret_curve,
+        "num_simulations": simulations,
+        "horizon": steps,
+    }

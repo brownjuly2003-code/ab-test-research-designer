@@ -10,6 +10,7 @@ import Accordion from "./Accordion";
 import ResultsSkeleton from "./ResultsSkeleton";
 import styles from "./ResultsPanel.module.css";
 import AiAdviceSection from "./results/AiAdviceSection";
+import BanditSection from "./results/BanditSection";
 import BayesianSection from "./results/BayesianSection";
 import ComparisonSection from "./results/ComparisonSection";
 import ExperimentDesignSection from "./results/ExperimentDesignSection";
@@ -152,6 +153,7 @@ export default function ResultsPanel(_props: ResultsPanelProps) {
         <Accordion title={t("results.panel.accordion.riskAssessment")} badge={t("results.panel.itemsCount", { count: (displayedAnalysis.report.risks?.statistical?.length ?? 0) + (displayedAnalysis.report.risks?.product?.length ?? 0) + (displayedAnalysis.report.risks?.technical?.length ?? 0) + (displayedAnalysis.report.risks?.operational?.length ?? 0) })}><RisksSection /></Accordion>
         <Accordion title={t("results.panel.accordion.aiRecommendations")} badge={displayedAnalysis.advice.available ? t("results.panel.badges.available") : t("results.panel.badges.offline")}><AiAdviceSection /></Accordion>
         <Accordion title={t("results.panel.accordion.srmCheck")} badge={t("results.panel.badges.manual")}><SrmCheckSection /></Accordion>
+        <Accordion title={t("results.panel.accordion.bandit")} badge={t("results.panel.badges.planning")}><BanditSection /></Accordion>
       </div> : null}
       {!displayedAnalysis?.report && !analysis.isAnalyzing && !project.projectComparison && !project.projectMultiComparison ? <div className="status">{t("results.panel.noAnalysisYet")}</div> : null}
       {analysis.statusMessage ? <div className="status">{analysis.statusMessage}</div> : null}

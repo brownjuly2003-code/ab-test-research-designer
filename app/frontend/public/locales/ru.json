@@ -642,7 +642,8 @@
         "metricsPlan": "План метрик",
         "riskAssessment": "Оценка рисков",
         "aiRecommendations": "AI-рекомендации",
-        "srmCheck": "Проверка SRM"
+        "srmCheck": "Проверка SRM",
+        "bandit": "Бандит vs фиксированный"
       },
       "badges": {
         "loaded": "Загружено",
@@ -682,6 +683,25 @@
       "itemsCount_other": "{{count}} пункта",
       "credibilityInterval": "{{percent}}% интервал",
       "noAnalysisYet": "Анализа ещё нет. Завершите wizard и сначала запустите детерминированный backend-поток."
+    },
+    "bandit": {
+      "title": "Бандит vs фиксированный сплит",
+      "description": "Симуляция: как Thompson-бандит перераспределял бы трафик в пользу лучшего варианта во времени и сколько regret экономит против равного сплита. Только планирование, без реальной аллокации.",
+      "binaryOnly": "Симуляция бандита доступна только для бинарных метрик (конверсии).",
+      "rateLabel": "{{variant}} — конверсия (%)",
+      "ratePlaceholder": "Ожидаемая ставка",
+      "horizonLabel": "Горизонт планирования (посетители)",
+      "simulateButton": "Симулировать бандит",
+      "simulating": "Симуляция...",
+      "convergesOn": "Бандит концентрирует трафик на варианте «{{variant}}»",
+      "probabilityBest": "Выбирает лучший вариант в {{percent}} случаев",
+      "regretReduction": "Regret снижен на {{percent}} против равного сплита",
+      "allocationTitle": "Ожидаемое распределение трафика",
+      "regretTitle": "Накопленный regret: бандит vs равный сплит",
+      "banditLabel": "Thompson-бандит",
+      "uniformLabel": "Равный сплит",
+      "chartAria": "Накопленный regret за {{steps}} шагов: Thompson sampling против равного сплита",
+      "serviceUnavailable": "Симуляция бандита недоступна."
     }
   },
   "errors": {

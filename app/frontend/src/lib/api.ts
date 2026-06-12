@@ -25,6 +25,9 @@ import {
   type TemplateRecord
 } from "./experiment";
 import type {
+  BanditRegretPoint,
+  BanditSimulationRequest,
+  BanditSimulationResponse,
   ProjectArchiveResponse as GeneratedProjectArchiveResponse,
   ExportResponse,
   HypothesisCandidate,
@@ -37,6 +40,7 @@ import type {
 } from "./generated/api-contract";
 
 export type { HypothesisCandidate, HypothesisIdeationRequest, HypothesisIdeationResponse };
+export type { BanditRegretPoint, BanditSimulationRequest, BanditSimulationResponse };
 
 const apiSessionTokenStorageKey = "ab-test-research-designer:api-token:v1";
 const adminSessionTokenStorageKey = "ab-test-research-designer:admin-token:v1";

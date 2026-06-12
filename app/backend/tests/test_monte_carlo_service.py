@@ -2,6 +2,7 @@ from pathlib import Path
 import sys
 from time import perf_counter
 
+import pytest
 from fastapi.testclient import TestClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
@@ -9,6 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 from app.backend.app.main import create_app
 from app.backend.app.services.monte_carlo_service import (
     simulate_comparison,
+    simulate_thompson_sampling,
     simulate_uplift_distribution,
 )
 from app.backend.tests.test_api_routes import _create_saved_project
@@ -167,3 +169,55 @@ def test_compare_projects_includes_monte_carlo_when_requested() -> None:
         len(project_result["simulated_uplifts"]) == 10000
         for project_result in payload["monte_carlo_distribution"].values()
     )
+
+
+def test_thompson_sampling_is_deterministic_with_seed() -> None:
+    first = simulate_thompson_sampling([0.05, 0.12], horizon=300, num_simulations=150, seed=11)
+    second = simulate_thompson_sampling([0.05, 0.12], horizon=300, num_simulations=150, seed=11)
+
+    assert first == second
+
+
+def test_thompson_sampling_is_stochastic_without_seed() -> None:
+    first = simulate_thompson_sampling([0.05, 0.12], horizon=300, num_simulations=150, seed=None)
+    second = simulate_thompson_sampling([0.05, 0.12], horizon=300, num_simulations=150, seed=None)
+
+    assert first["arm_allocation"] != second["arm_allocation"]
+
+
+def test_thompson_sampling_concentrates_on_dominant_arm_as_horizon_grows() -> None:
+    short = simulate_thompson_sampling([0.05, 0.30], horizon=200, num_simulations=200, seed=3)
+    long = simulate_thompson_sampling([0.05, 0.30], horizon=2000, num_simulations=200, seed=3)
+
+    assert short["best_arm_index"] == 1
+    assert long["best_arm_index"] == 1
+    # Allocation to the dominant arm increases with the horizon and approaches 1.
+    assert long["best_arm_allocation"] > short["best_arm_allocation"]
+    assert long["best_arm_allocation"] > 0.85
+    assert long["probability_best_arm"] > 0.9
+
+
+def test_thompson_sampling_regret_is_monotonic_and_beats_uniform() -> None:
+    result = simulate_thompson_sampling([0.05, 0.10, 0.20], horizon=1000, num_simulations=200, seed=5)
+
+    curve = result["regret_curve"]
+    steps = [point["step"] for point in curve]
+    bandit = [point["bandit_cumulative_regret"] for point in curve]
+    uniform = [point["uniform_cumulative_regret"] for point in curve]
+
+    assert steps == sorted(steps)
+    assert curve[-1]["step"] == 1000
+    # Cumulative regret never decreases.
+    assert all(later >= earlier for earlier, later in zip(bandit, bandit[1:]))
+    assert all(later >= earlier for earlier, later in zip(uniform, uniform[1:]))
+    # Thompson sampling accrues less regret than a uniform random split.
+    assert result["final_bandit_regret"] < result["final_uniform_regret"]
+    assert sum(result["arm_allocation"]) == pytest.approx(1.0)
+
+
+def test_thompson_sampling_handles_equal_arms_without_regret() -> None:
+    result = simulate_thompson_sampling([0.2, 0.2], horizon=200, num_simulations=100, seed=9)
+
+    assert result["final_bandit_regret"] == pytest.approx(0.0)
+    assert result["final_uniform_regret"] == pytest.approx(0.0)
+    assert sum(result["arm_allocation"]) == pytest.approx(1.0)

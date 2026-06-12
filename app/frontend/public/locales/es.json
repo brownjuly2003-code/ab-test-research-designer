@@ -642,7 +642,8 @@
         "metricsPlan": "Plan de métricas",
         "riskAssessment": "Evaluación de riesgos",
         "aiRecommendations": "Recomendaciones de IA",
-        "srmCheck": "Verificaci?n de SRM"
+        "srmCheck": "Verificaci?n de SRM",
+        "bandit": "Bandit vs. fijo"
       },
       "badges": {
         "loaded": "Cargado",
@@ -670,6 +671,25 @@
       "itemsCount_other": "{{count}} elementos",
       "credibilityInterval": "{{percent}}% intervalo",
       "noAnalysisYet": "Aún no hay análisis. Complete el asistente y ejecute primero el flujo de fondo determinista."
+    },
+    "bandit": {
+      "title": "Bandit vs. reparto fijo",
+      "description": "Simula cómo un bandit de muestreo de Thompson desplazaría el tráfico hacia la mejor variante con el tiempo y cuánto regret ahorra frente a un reparto uniforme. Solo planificación, sin asignación en vivo.",
+      "binaryOnly": "La simulación de bandit solo está disponible para métricas binarias (de conversión).",
+      "rateLabel": "{{variant}} — conversión (%)",
+      "ratePlaceholder": "Tasa estimada",
+      "horizonLabel": "Horizonte de planificación (visitantes)",
+      "simulateButton": "Simular bandit",
+      "simulating": "Simulando...",
+      "convergesOn": "El bandit concentra el tráfico en {{variant}}",
+      "probabilityBest": "Elige la mejor variante el {{percent}} de las veces",
+      "regretReduction": "Regret reducido un {{percent}} frente a un reparto uniforme",
+      "allocationTitle": "Asignación de tráfico esperada",
+      "regretTitle": "Regret acumulado: bandit vs. reparto uniforme",
+      "banditLabel": "Bandit de Thompson",
+      "uniformLabel": "Reparto uniforme",
+      "chartAria": "Regret acumulado durante {{steps}} pasos, muestreo de Thompson frente a un reparto uniforme",
+      "serviceUnavailable": "Simulación de bandit no disponible."
     }
   },
   "errors": {
