@@ -250,7 +250,6 @@
       "continuous_rejects_binary_data": "metric_type=continuous не принимает binary-данные",
       "actual_counts_length": "длина actual_counts должна совпадать с variants_count",
       "actual_counts_non_negative": "actual_counts должны быть неотрицательными",
-      "actual_counts_positive": "actual_counts должны содержать положительные значения",
       "actual_counts_positive_sum": "сумма actual_counts должна быть положительной",
       "baseline_rate_range": "для бинарных метрик baseline_rate должен быть между 0 и 100",
       "baseline_mean_positive": "для непрерывных метрик baseline_mean должен быть положительным",
@@ -259,7 +258,7 @@
       "traffic_split_variants": "длина traffic_split должна совпадать с числом вариантов",
       "observed_expected_same_length": "observed_counts и expected_fractions должны быть одинаковой длины",
       "observed_counts_non_negative": "observed_counts должны быть неотрицательными",
-      "observed_counts_positive": "observed_counts должны содержать положительные значения",
+      "observed_counts_positive_sum": "сумма observed_counts должна быть положительной",
       "expected_fractions_non_negative": "expected_fractions должны быть неотрицательными",
       "expected_fractions_sum": "expected_fractions должны суммироваться к 1.0, сейчас {{total}}"
     },
