@@ -2,6 +2,7 @@ from pathlib import Path
 import sys
 import uuid
 
+import pytest
 from fastapi.testclient import TestClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
@@ -610,6 +611,52 @@ def test_design_endpoint_builds_report_without_llm() -> None:
 
     assert response.status_code == 200
     assert response.json()["metrics_plan"]["primary"] == ["purchase_conversion"]
+
+
+def test_design_endpoint_accepts_holdout_and_mutual_exclusion_constraints() -> None:
+    client = TestClient(create_app())
+    payload = _full_payload()
+    payload["constraints"]["holdout_fraction"] = 0.25
+    payload["constraints"]["mutually_exclusive_experiments"] = 2
+
+    response = client.post("/api/v1/design", json=payload)
+
+    assert response.status_code == 200
+
+
+def test_analyze_endpoint_honors_holdout_in_constraints(monkeypatch) -> None:
+    monkeypatch.setattr(
+        LocalOrchestratorAdapter,
+        "request_advice",
+        lambda self, payload: {
+            "available": False,
+            "provider": "local_orchestrator",
+            "model": "Claude Sonnet 4.6",
+            "advice": None,
+            "raw_text": None,
+            "error": "skipped for test",
+            "error_code": "test",
+        },
+    )
+    client = TestClient(create_app())
+    held_payload = _full_payload()
+    held_payload["constraints"]["holdout_fraction"] = 0.5
+    held_payload["constraints"]["mutually_exclusive_experiments"] = 2
+
+    base = client.post("/api/v1/analyze", json=_full_payload())
+    held = client.post("/api/v1/analyze", json=held_payload)
+
+    assert base.status_code == 200
+    assert held.status_code == 200
+    base_results = base.json()["calculations"]["results"]
+    held_results = held.json()["calculations"]["results"]
+    assert base_results["holdout_fraction"] is None
+    assert held_results["holdout_fraction"] == 0.5
+    assert held_results["mutually_exclusive_experiments"] == 2
+    assert held_results["allocated_daily_traffic"] == pytest.approx(
+        base_results["effective_daily_traffic"] * 0.5 / 2
+    )
+    assert held_results["estimated_duration_days"] > base_results["estimated_duration_days"]
 
 
 def test_analyze_endpoint_returns_combined_payload(monkeypatch) -> None:

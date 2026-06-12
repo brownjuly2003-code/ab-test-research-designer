@@ -162,7 +162,9 @@
         "legal_or_ethics_constraints": "法律/道德约束",
         "known_risks": "已知风险",
         "deadline_pressure": "截止日期的压力",
-        "long_test_possible": "可进行长时间测试"
+        "long_test_possible": "可进行长时间测试",
+        "holdout_fraction": "保留组比例",
+        "mutually_exclusive_experiments": "互斥实验数量"
       },
       "additional_context": {
         "llm_context": "人工智能背景"
@@ -182,7 +184,9 @@
       "desired_precision": "可信区间的目标半宽。对于二进制指标，使用百分点；对于连续指标，请使用原始单位。",
       "credibility": "贝叶斯区间的可信度级别。 0.95 对应于 95% 的可信区间。",
       "std_dev": "连续指标的标准差。仅对于连续指标需要；例如：平均订单价值为 12.5。",
-      "interference_risk": "用户或单位可能会跨变体相互影响并打破隔离的风险。"
+      "interference_risk": "用户或单位可能会跨变体相互影响并打破隔离的风险。",
+      "holdout_fraction": "全局保留组：作为干净对照、不进入任何实验的流量占比。没有则留空，或输入 0.1 表示 10% 的保留组。它会减少本实验获得的流量，因此持续时间变长，而样本量不变。",
+      "mutually_exclusive_experiments": "共享同一流量的互斥实验数量。为 1 时留空。为 N 时，本实验获得 1/N 的流量，持续时间相应延长。"
     },
     "options": {
       "setup": {
@@ -287,7 +291,9 @@
       "guardrailBinaryBaselineRange": "二进制护栏需要 0 到 100 之间的基线百分比。",
       "guardrailContinuousFields": "连续护栏需要基线均值和正标准差。",
       "guardrailMetricType": "护栏度量类型必须是二进制或连续。",
-      "metricType": "度量类型必须是二进制或连续。"
+      "metricType": "度量类型必须是二进制或连续。",
+      "holdoutFractionRange": "保留组比例必须介于 0 和 1 之间。",
+      "mutuallyExclusiveMin": "互斥实验数量必须是不小于 1 的整数。"
     }
   },
   "empty_state": {
@@ -1217,6 +1223,8 @@
     "emptyHint": "调整流量或指标输入即可查看实时估算。",
     "underOneDay": "< 1 天",
     "days_one": "{{count}} 天",
-    "days_other": "{{count}} 天"
+    "days_other": "{{count}} 天",
+    "allocatedTrafficTitle": "分配的每日流量",
+    "allocatedTrafficUnit": "扣除保留组后 用户/天"
   }
 }

@@ -21,9 +21,30 @@ from app.backend.app.stats.sequential import (
     obrien_fleming_boundaries,
     sequential_sample_size_inflation,
 )
+from app.backend.app.stats.duration import estimate_experiment_duration_days
 from app.backend.app.stats.srm import chi_square_srm
 
 FINITE_FLOATS = {"allow_nan": False, "allow_infinity": False}
+
+
+@settings(max_examples=50, deadline=5000)
+@given(
+    holdout=st.floats(min_value=0.0, max_value=0.9, **FINITE_FLOATS),
+    extra=st.floats(min_value=0.0, max_value=0.09, **FINITE_FLOATS),
+)
+def test_property_holdout_monotonically_extends_duration(holdout: float, extra: float) -> None:
+    # Reducing the allocated traffic (larger holdout) can only lengthen, never shorten,
+    # the experiment — sample size is unchanged (N-06 sibling feature: holdout/ME).
+    def duration_for(allocation: float) -> int:
+        return estimate_experiment_duration_days(
+            sample_size_per_variant=5000,
+            expected_daily_traffic=10000,
+            audience_share_in_test=0.8,
+            traffic_split=[50, 50],
+            traffic_allocation_fraction=1.0 - allocation,
+        )["estimated_duration_days"]
+
+    assert duration_for(holdout + extra) >= duration_for(holdout)
 
 
 @st.composite

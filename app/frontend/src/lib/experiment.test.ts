@@ -66,6 +66,39 @@ describe("experiment helpers", () => {
     expect(payload.long_test_possible).toBe(true);
   });
 
+  it("defaults holdout and mutual-exclusion to null in the calculation payload", () => {
+    const payload = buildCalculationPayload(cloneInitialState());
+
+    expect(payload.holdout_fraction).toBeNull();
+    expect(payload.mutually_exclusive_experiments).toBeNull();
+  });
+
+  it("forwards holdout fraction and mutually exclusive experiments when set", () => {
+    const state = cloneInitialState();
+    state.constraints.holdout_fraction = 0.1;
+    state.constraints.mutually_exclusive_experiments = 3;
+
+    const payload = buildCalculationPayload(state);
+
+    expect(payload.holdout_fraction).toBe(0.1);
+    expect(payload.mutually_exclusive_experiments).toBe(3);
+  });
+
+  it("accepts an empty holdout / mutual-exclusion as valid", () => {
+    expect(validateForm(cloneInitialState())).not.toContain("Holdout fraction must be between 0 and 1.");
+  });
+
+  it("flags an out-of-range holdout fraction and a sub-1 experiment count", () => {
+    const state = cloneInitialState();
+    state.constraints.holdout_fraction = 1;
+    state.constraints.mutually_exclusive_experiments = 0;
+
+    const issues = validateForm(state);
+
+    expect(issues).toContain("Holdout fraction must be between 0 and 1.");
+    expect(issues).toContain("Mutually exclusive experiments must be an integer of at least 1.");
+  });
+
   it("includes CUPED fields in API and calculation payloads only when the UI toggle is enabled", () => {
     const state = cloneInitialState();
     state.metrics.metric_type = "continuous";

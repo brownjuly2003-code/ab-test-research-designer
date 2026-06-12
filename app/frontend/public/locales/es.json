@@ -162,7 +162,9 @@
         "legal_or_ethics_constraints": "Restricciones legales/éticas",
         "known_risks": "Riesgos conocidos",
         "deadline_pressure": "Presión de fecha límite",
-        "long_test_possible": "Prueba prolongada posible"
+        "long_test_possible": "Prueba prolongada posible",
+        "holdout_fraction": "Fracción de holdout",
+        "mutually_exclusive_experiments": "Experimentos mutuamente excluyentes"
       },
       "additional_context": {
         "llm_context": "Contexto de IA"
@@ -182,7 +184,9 @@
       "desired_precision": "Semiamplitud objetivo del intervalo de credibilidad. Para m?tricas binarias utilice puntos porcentuales; para m?tricas continuas, unidades brutas.",
       "credibility": "Nivel de credibilidad para el intervalo bayesiano. 0,95 corresponde a un intervalo de credibilidad del 95 %.",
       "std_dev": "Desviación estándar de la métrica continua. Requerido solo para métricas continuas; Ejemplo: 12,5 para el valor medio del pedido.",
-      "interference_risk": "Riesgo de que los usuarios o unidades puedan influirse entre sí a través de variantes y romper el aislamiento."
+      "interference_risk": "Riesgo de que los usuarios o unidades puedan influirse entre sí a través de variantes y romper el aislamiento.",
+      "holdout_fraction": "Holdout global: proporción del tráfico que se mantiene fuera de todos los experimentos como control limpio. Déjelo vacío si no hay, o introduzca 0.1 para un holdout del 10 %. Reduce el tráfico que recibe esta prueba, por lo que la duración aumenta mientras el tamaño de muestra no cambia.",
+      "mutually_exclusive_experiments": "Número de experimentos mutuamente excluyentes que comparten el mismo tráfico. Déjelo vacío para 1. Con N, esta prueba recibe 1/N del tráfico, extendiendo la duración en consecuencia."
     },
     "options": {
       "setup": {
@@ -287,7 +291,9 @@
       "guardrailBinaryBaselineRange": "Las m?tricas guardrail binarias requieren un % de l?nea base entre 0 y 100.",
       "guardrailContinuousFields": "Las m?tricas guardrail continuas requieren una media de l?nea base y una desviaci?n est?ndar positiva.",
       "guardrailMetricType": "El tipo de m?trica guardrail debe ser binario o continuo.",
-      "metricType": "El tipo de métrica debe ser binario o continuo."
+      "metricType": "El tipo de métrica debe ser binario o continuo.",
+      "holdoutFractionRange": "La fracción de holdout debe estar entre 0 y 1.",
+      "mutuallyExclusiveMin": "Los experimentos mutuamente excluyentes deben ser un entero de al menos 1."
     }
   },
   "empty_state": {
@@ -1217,6 +1223,8 @@
     "emptyHint": "Ajusta el tráfico o las métricas para ver una estimación en vivo.",
     "underOneDay": "< 1 día",
     "days_one": "{{count}} día",
-    "days_other": "{{count}} días"
+    "days_other": "{{count}} días",
+    "allocatedTrafficTitle": "Tráfico diario asignado",
+    "allocatedTrafficUnit": "usuarios / día tras el holdout"
   }
 }

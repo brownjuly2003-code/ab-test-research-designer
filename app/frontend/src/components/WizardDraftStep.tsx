@@ -38,6 +38,8 @@ const validationIssueKeys: Record<string, string> = {
   "CUPED correlation must be between -1 and 1.": "wizardDraft.validation.cupedCorrelationRange",
   "Desired precision must be greater than 0 in Bayesian mode.": "wizardDraft.validation.desiredPrecisionPositive",
   "Credibility must be between 0.5 and 1.": "wizardDraft.validation.credibilityRange",
+  "Holdout fraction must be between 0 and 1.": "wizardDraft.validation.holdoutFractionRange",
+  "Mutually exclusive experiments must be an integer of at least 1.": "wizardDraft.validation.mutuallyExclusiveMin",
   "Guardrail metrics cannot exceed 3 items.": "wizardDraft.validation.guardrailsMax",
   "Guardrail metric names are required.": "wizardDraft.validation.guardrailNameRequired",
   "Binary guardrails require a baseline % between 0 and 100.": "wizardDraft.validation.guardrailBinaryBaselineRange",

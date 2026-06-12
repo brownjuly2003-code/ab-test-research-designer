@@ -162,7 +162,9 @@
         "legal_or_ethics_constraints": "Legal / ethics constraints",
         "known_risks": "Known risks",
         "deadline_pressure": "Deadline pressure",
-        "long_test_possible": "Long test possible"
+        "long_test_possible": "Long test possible",
+        "holdout_fraction": "Holdout fraction",
+        "mutually_exclusive_experiments": "Mutually exclusive experiments"
       },
       "additional_context": {
         "llm_context": "AI context"
@@ -182,7 +184,9 @@
       "desired_precision": "Target half-width of the credible interval. For binary metrics use percentage points; for continuous metrics use raw units.",
       "credibility": "Credibility level for the Bayesian interval. 0.95 corresponds to a 95% credible interval.",
       "std_dev": "Standard deviation of the continuous metric. Required only for continuous metrics; example: 12.5 for average order value.",
-      "interference_risk": "Risk that users or units can influence one another across variants and break isolation."
+      "interference_risk": "Risk that users or units can influence one another across variants and break isolation.",
+      "holdout_fraction": "Global holdout: the share of traffic kept out of every experiment as a clean control. Leave empty for none, or enter 0.1 for a 10% holdout. It reduces the traffic this test receives, so the duration grows while the sample size stays the same.",
+      "mutually_exclusive_experiments": "Number of mutually-exclusive experiments sharing the same traffic. Leave empty for 1. With N, this test receives 1/N of the traffic, extending the duration accordingly."
     },
     "options": {
       "setup": {
@@ -287,7 +291,9 @@
       "guardrailBinaryBaselineRange": "Binary guardrails require a baseline % between 0 and 100.",
       "guardrailContinuousFields": "Continuous guardrails require baseline mean and positive std dev.",
       "guardrailMetricType": "Guardrail metric type must be either binary or continuous.",
-      "metricType": "Metric type must be either binary or continuous."
+      "metricType": "Metric type must be either binary or continuous.",
+      "holdoutFractionRange": "Holdout fraction must be between 0 and 1.",
+      "mutuallyExclusiveMin": "Mutually exclusive experiments must be an integer of at least 1."
     }
   },
   "empty_state": {
@@ -1217,6 +1223,8 @@
     "emptyHint": "Adjust traffic or metric inputs to see a live estimate.",
     "underOneDay": "< 1 day",
     "days_one": "{{count}} day",
-    "days_other": "{{count}} days"
+    "days_other": "{{count}} days",
+    "allocatedTrafficTitle": "Allocated daily traffic",
+    "allocatedTrafficUnit": "users / day after holdout"
   }
 }

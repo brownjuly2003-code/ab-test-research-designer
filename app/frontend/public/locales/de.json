@@ -162,7 +162,9 @@
         "legal_or_ethics_constraints": "Rechtliche/ethische Einschränkungen",
         "known_risks": "Bekannte Risiken",
         "deadline_pressure": "Termindruck",
-        "long_test_possible": "Langzeittest möglich"
+        "long_test_possible": "Langzeittest möglich",
+        "holdout_fraction": "Holdout-Anteil",
+        "mutually_exclusive_experiments": "Sich gegenseitig ausschließende Experimente"
       },
       "additional_context": {
         "llm_context": "KI-Kontext"
@@ -182,7 +184,9 @@
       "desired_precision": "Ziel-Halbbreite des Kredibilit?tsintervalls. F?r bin?re Metriken verwenden Sie Prozentpunkte; f?r kontinuierliche Metriken Roheinheiten.",
       "credibility": "Kredibilit?tsniveau f?r das bayesianische Intervall. 0,95 entspricht einem 95-%-Kredibilit?tsintervall.",
       "std_dev": "Standardabweichung der kontinuierlichen Metrik. Nur für kontinuierliche Metriken erforderlich; Beispiel: 12,5 für den durchschnittlichen Bestellwert.",
-      "interference_risk": "Risiko, dass Benutzer oder Einheiten sich variantenübergreifend gegenseitig beeinflussen und die Isolation durchbrechen können."
+      "interference_risk": "Risiko, dass Benutzer oder Einheiten sich variantenübergreifend gegenseitig beeinflussen und die Isolation durchbrechen können.",
+      "holdout_fraction": "Globaler Holdout: Anteil des Traffics, der als saubere Kontrolle aus allen Experimenten herausgehalten wird. Leer lassen für keinen, oder 0,1 für einen Holdout von 10 % eingeben. Reduziert den Traffic für diesen Test, sodass die Dauer steigt, während die Stichprobengröße gleich bleibt.",
+      "mutually_exclusive_experiments": "Anzahl sich gegenseitig ausschließender Experimente, die sich denselben Traffic teilen. Leer lassen für 1. Bei N erhält dieser Test 1/N des Traffics, was die Dauer entsprechend verlängert."
     },
     "options": {
       "setup": {
@@ -287,7 +291,9 @@
       "guardrailBinaryBaselineRange": "Binäre Guardrails erfordern einen Basisprozentsatz zwischen 0 und 100.",
       "guardrailContinuousFields": "Kontinuierliche Guardrails erfordern einen Basismittelwert und eine positive Standardabweichung.",
       "guardrailMetricType": "Der Typ der Guardrail-Metrik muss entweder binär oder kontinuierlich sein.",
-      "metricType": "Der Metriktyp muss entweder binär oder kontinuierlich sein."
+      "metricType": "Der Metriktyp muss entweder binär oder kontinuierlich sein.",
+      "holdoutFractionRange": "Der Holdout-Anteil muss zwischen 0 und 1 liegen.",
+      "mutuallyExclusiveMin": "Sich gegenseitig ausschließende Experimente müssen eine ganze Zahl von mindestens 1 sein."
     }
   },
   "empty_state": {
@@ -1217,6 +1223,8 @@
     "emptyHint": "Traffic- oder Metrik-Eingaben anpassen, um eine Live-Schätzung zu sehen.",
     "underOneDay": "< 1 Tag",
     "days_one": "{{count}} Tag",
-    "days_other": "{{count}} Tage"
+    "days_other": "{{count}} Tage",
+    "allocatedTrafficTitle": "Zugewiesener Tagestraffic",
+    "allocatedTrafficUnit": "Nutzer / Tag nach Holdout"
   }
 }

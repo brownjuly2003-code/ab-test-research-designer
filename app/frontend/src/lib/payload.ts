@@ -93,7 +93,9 @@ export const initialState: FullPayload = {
     n_looks: 1,
     analysis_mode: "frequentist",
     desired_precision: null,
-    credibility: 0.95
+    credibility: 0.95,
+    holdout_fraction: null,
+    mutually_exclusive_experiments: null
   },
   additional_context: {
     llm_context: "Previous tests showed mixed results. Team worries about event quality and segmentation."
@@ -250,7 +252,9 @@ export function buildCalculationPayload(state: FullPayload): CalculateRequest {
     n_looks: payload.constraints.n_looks ?? 1,
     analysis_mode: payload.constraints.analysis_mode ?? "frequentist",
     desired_precision: payload.constraints.desired_precision ?? null,
-    credibility: payload.constraints.credibility ?? 0.95
+    credibility: payload.constraints.credibility ?? 0.95,
+    holdout_fraction: payload.constraints.holdout_fraction ?? null,
+    mutually_exclusive_experiments: payload.constraints.mutually_exclusive_experiments ?? null
   };
 }
 

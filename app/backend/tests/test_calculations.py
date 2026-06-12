@@ -32,6 +32,71 @@ def test_binary_calculation_returns_required_fields() -> None:
     assert result["results"]["estimated_duration_days"] > 0
 
 
+def _binary_holdout_payload(**overrides: object) -> dict:
+    payload = {
+        "metric_type": "binary",
+        "baseline_value": 0.042,
+        "mde_pct": 5,
+        "alpha": 0.05,
+        "power": 0.8,
+        "expected_daily_traffic": 12000,
+        "audience_share_in_test": 0.6,
+        "traffic_split": [50, 50],
+        "variants_count": 2,
+    }
+    payload.update(overrides)
+    return payload
+
+
+def test_holdout_and_me_default_to_no_allocation() -> None:
+    result = calculate_experiment_metrics(_binary_holdout_payload())
+
+    assert result["results"]["holdout_fraction"] is None
+    assert result["results"]["mutually_exclusive_experiments"] is None
+    assert result["results"]["allocated_daily_traffic"] is None
+
+
+def test_holdout_fraction_extends_duration_without_changing_sample_size() -> None:
+    base = calculate_experiment_metrics(_binary_holdout_payload())
+    held = calculate_experiment_metrics(_binary_holdout_payload(holdout_fraction=0.5))
+
+    assert held["results"]["sample_size_per_variant"] == base["results"]["sample_size_per_variant"]
+    assert held["results"]["effective_daily_traffic"] == base["results"]["effective_daily_traffic"]
+    assert held["results"]["allocated_daily_traffic"] == pytest.approx(
+        base["results"]["effective_daily_traffic"] * 0.5
+    )
+    assert held["results"]["estimated_duration_days"] >= base["results"]["estimated_duration_days"] * 2 - 1
+
+
+def test_mutual_exclusion_splits_traffic_across_experiments() -> None:
+    base = calculate_experiment_metrics(_binary_holdout_payload())
+    shared = calculate_experiment_metrics(_binary_holdout_payload(mutually_exclusive_experiments=3))
+
+    assert shared["results"]["allocated_daily_traffic"] == pytest.approx(
+        base["results"]["effective_daily_traffic"] / 3
+    )
+    assert shared["results"]["estimated_duration_days"] >= base["results"]["estimated_duration_days"] * 3 - 2
+
+
+def test_holdout_and_me_compose() -> None:
+    base = calculate_experiment_metrics(_binary_holdout_payload())
+    combined = calculate_experiment_metrics(
+        _binary_holdout_payload(holdout_fraction=0.2, mutually_exclusive_experiments=2)
+    )
+
+    assert combined["results"]["allocated_daily_traffic"] == pytest.approx(
+        base["results"]["effective_daily_traffic"] * 0.8 / 2
+    )
+
+
+def test_holdout_reducing_traffic_below_threshold_flags_low_traffic() -> None:
+    # 12000 * 0.6 = 7200 effective; a 0.95 holdout leaves 360/day -> LOW_TRAFFIC.
+    result = calculate_experiment_metrics(_binary_holdout_payload(holdout_fraction=0.95))
+    codes = {warning["code"] for warning in result["warnings"]}
+
+    assert "LOW_TRAFFIC" in codes
+
+
 def test_continuous_calculation_requires_std_dev_and_returns_duration() -> None:
     result = calculate_experiment_metrics(
         {

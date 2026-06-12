@@ -33,6 +33,8 @@ const fieldIssueLookup: Record<string, string[]> = {
   "metrics.cuped_correlation": ["CUPED correlation must be between -1 and 1."],
   "constraints.desired_precision": ["Desired precision must be greater than 0 in Bayesian mode."],
   "constraints.credibility": ["Credibility must be between 0.5 and 1."],
+  "constraints.holdout_fraction": ["Holdout fraction must be between 0 and 1."],
+  "constraints.mutually_exclusive_experiments": ["Mutually exclusive experiments must be an integer of at least 1."],
   "metrics.guardrail_metrics": [
     "Guardrail metrics cannot exceed 3 items.",
     "Guardrail metric names are required.",
@@ -90,6 +92,16 @@ export function validateForm(state: FullPayload): string[] {
       ? null
       : Number(desiredPrecisionRaw);
   const credibility = readNumber(state.constraints, "credibility");
+  const holdoutFractionRaw = state.constraints.holdout_fraction;
+  const holdoutFraction =
+    holdoutFractionRaw === null || holdoutFractionRaw === undefined || (holdoutFractionRaw as unknown) === ""
+      ? null
+      : Number(holdoutFractionRaw);
+  const mutuallyExclusiveRaw = state.constraints.mutually_exclusive_experiments;
+  const mutuallyExclusive =
+    mutuallyExclusiveRaw === null || mutuallyExclusiveRaw === undefined || (mutuallyExclusiveRaw as unknown) === ""
+      ? null
+      : Number(mutuallyExclusiveRaw);
   const stdDevRaw = state.metrics.std_dev;
   const stdDev =
     stdDevRaw === "" || stdDevRaw === null || stdDevRaw === undefined ? null : Number(stdDevRaw);
@@ -135,6 +147,12 @@ export function validateForm(state: FullPayload): string[] {
   }
   if (!(mdePct > 0)) {
     issues.push("MDE % must be greater than 0.");
+  }
+  if (holdoutFraction !== null && !(holdoutFraction >= 0 && holdoutFraction < 1)) {
+    issues.push("Holdout fraction must be between 0 and 1.");
+  }
+  if (mutuallyExclusive !== null && !(Number.isInteger(mutuallyExclusive) && mutuallyExclusive >= 1)) {
+    issues.push("Mutually exclusive experiments must be an integer of at least 1.");
   }
   if (analysisMode === "bayesian") {
     if (!(desiredPrecision !== null && desiredPrecision > 0)) {
