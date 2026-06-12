@@ -7,6 +7,8 @@ from app.backend.app.llm.anthropic_adapter import AnthropicAdapter
 from app.backend.app.llm.openai_adapter import OpenAIAdapter
 from app.backend.app.schemas.api import (
     AnalysisResponse,
+    AssignmentPreviewRequest,
+    AssignmentPreviewResponse,
     BanditSimulationRequest,
     BanditSimulationResponse,
     CalculationRequest,
@@ -25,6 +27,7 @@ from app.backend.app.schemas.api import (
     SrmCheckRequest,
     SrmCheckResponse,
 )
+from app.backend.app.execution.bucketer import preview_assignment_distribution
 from app.backend.app.services.calculations_service import calculate_experiment_metrics
 from app.backend.app.services.design_service import build_experiment_report
 from app.backend.app.services.monte_carlo_service import simulate_thompson_sampling
@@ -215,6 +218,23 @@ def create_analysis_router(settings, repository, rate_limiter, require_auth, req
             seed=payload.seed,
         )
         return BanditSimulationResponse.model_validate(result)
+
+    @router.post(
+        "/api/v1/assignment/preview",
+        response_model=AssignmentPreviewResponse,
+        dependencies=[Depends(require_write_auth)],
+    )
+    def assignment_preview(payload: AssignmentPreviewRequest) -> AssignmentPreviewResponse:
+        result = preview_assignment_distribution(
+            seed=payload.seed,
+            num_variations=payload.num_variations,
+            coverage=payload.coverage,
+            weights=payload.weights,
+            sample_size=payload.sample_size,
+            user_id_prefix=payload.user_id_prefix,
+            hash_version=payload.hash_version,
+        )
+        return AssignmentPreviewResponse.model_validate(result)
 
     @router.post(
         "/api/v1/design",

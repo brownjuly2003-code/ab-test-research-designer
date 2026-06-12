@@ -258,6 +258,10 @@ curl -X POST http://127.0.0.1:8008/api/v1/export/markdown ^
 
 ## Other
 
+### `POST /api/v1/assignment/preview`
+
+Assignment Preview
+
 ### `POST /api/v1/export/comparison`
 
 Export Comparison

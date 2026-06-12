@@ -634,6 +634,34 @@ def test_simulate_bandit_rejects_out_of_range_rates() -> None:
     assert response.status_code == 422
 
 
+def test_assignment_preview_returns_balanced_distribution() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/assignment/preview",
+        json={"seed": "exp-1", "num_variations": 2, "sample_size": 2000},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["sample_size"] == 2000
+    assert data["in_experiment_fraction"] == 1.0
+    assert sum(bucket["count"] for bucket in data["distribution"]) == 2000
+    assert all(0.45 <= bucket["fraction"] <= 0.55 for bucket in data["distribution"])
+    assert len(data["sample_assignments"]) == 25
+
+
+def test_assignment_preview_rejects_single_variation() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/assignment/preview",
+        json={"seed": "exp-1", "num_variations": 1, "sample_size": 100},
+    )
+
+    assert response.status_code == 422
+
+
 def test_design_endpoint_builds_report_without_llm() -> None:
     client = TestClient(create_app())
 

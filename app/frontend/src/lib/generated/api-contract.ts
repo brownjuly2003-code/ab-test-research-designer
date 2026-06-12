@@ -89,6 +89,34 @@ export type ApiKeyRecord = {
   rate_limit_window_seconds?: number | null;
 };
 
+export type AssignmentDistributionBucket = {
+  variation_index: number;
+  count: number;
+  fraction: number;
+};
+
+export type AssignmentPreviewRequest = {
+  seed: string;
+  num_variations: number;
+  coverage?: number;
+  weights?: number[] | null;
+  sample_size?: number;
+  user_id_prefix?: string;
+  hash_version?: 1 | 2;
+};
+
+export type AssignmentPreviewResponse = {
+  sample_size: number;
+  in_experiment_fraction: number;
+  distribution: AssignmentDistributionBucket[];
+  sample_assignments: AssignmentPreviewSample[];
+};
+
+export type AssignmentPreviewSample = {
+  user_id: string;
+  variation_index: number;
+};
+
 export type AuditLogEntry = {
   id: number;
   ts: string;
