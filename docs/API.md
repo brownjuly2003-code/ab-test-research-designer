@@ -266,6 +266,10 @@ Export Comparison
 
 Export Html Standalone
 
+### `POST /api/v1/hypotheses/generate`
+
+Generate Hypotheses
+
 ### `POST /api/v1/projects/{project_id}/archive`
 
 Archive Project

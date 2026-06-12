@@ -2,9 +2,11 @@ import asyncio
 
 import httpx
 
+from collections.abc import Callable
+
 from app.backend.app.llm.adapter import LLMAuthError, LLMTransientError, LocalOrchestratorAdapter
-from app.backend.app.llm.parser import LlmAdviceParseError, parse_llm_advice
-from app.backend.app.llm.prompt_builder import build_llm_advice_prompt
+from app.backend.app.llm.parser import LlmAdviceParseError, parse_llm_advice, parse_llm_hypotheses
+from app.backend.app.llm.prompt_builder import build_hypothesis_ideation_prompt, build_llm_advice_prompt
 
 
 class OpenAIAdapter(LocalOrchestratorAdapter):
@@ -28,7 +30,14 @@ class OpenAIAdapter(LocalOrchestratorAdapter):
             return "\n".join(fragments).strip()
         return ""
 
-    async def suggest(self, prompt: str, *, token: str) -> dict:
+    async def suggest(
+        self,
+        prompt: str,
+        *,
+        token: str,
+        parse_fn: Callable[[str], object] = parse_llm_advice,
+        result_key: str = "advice",
+    ) -> dict:
         try:
             async with httpx.AsyncClient(timeout=self.timeout_seconds, transport=self.transport) as client:
                 response = await client.post(
@@ -64,7 +73,7 @@ class OpenAIAdapter(LocalOrchestratorAdapter):
             raise LLMTransientError("OpenAI returned an empty response. Try again or switch to local suggestions.")
 
         try:
-            parsed = parse_llm_advice(raw_text)
+            parsed = parse_fn(raw_text)
         except LlmAdviceParseError as exc:
             raise LLMTransientError(
                 f"OpenAI returned an invalid structured response ({exc.code}). Try again or switch to local suggestions."
@@ -76,22 +85,18 @@ class OpenAIAdapter(LocalOrchestratorAdapter):
             "available": True,
             "provider": "openai",
             "model": self.model,
-            "advice": parsed,
+            result_key: parsed,
             "raw_text": raw_text,
             "error": None,
             "error_code": None,
         }
 
-    def request_advice(self, payload: dict, *, token: str = "") -> dict:
-        if not token:
-            raise LLMAuthError("OpenAI token is required.")
-
-        prompt = build_llm_advice_prompt(payload)
+    def _run_with_retry(self, prompt: str, *, token: str, parse_fn: Callable[[str], object], result_key: str) -> dict:
         last_error: LLMTransientError | None = None
 
         for attempt in range(1, self.max_attempts + 1):
             try:
-                return asyncio.run(self.suggest(prompt, token=token))
+                return asyncio.run(self.suggest(prompt, token=token, parse_fn=parse_fn, result_key=result_key))
             except LLMAuthError:
                 raise
             except LLMTransientError as exc:
@@ -103,3 +108,17 @@ class OpenAIAdapter(LocalOrchestratorAdapter):
         if last_error is not None:
             raise last_error
         raise LLMTransientError("OpenAI request failed. Try again or switch to local suggestions.")
+
+    def request_advice(self, payload: dict, *, token: str = "") -> dict:
+        if not token:
+            raise LLMAuthError("OpenAI token is required.")
+        return self._run_with_retry(
+            build_llm_advice_prompt(payload), token=token, parse_fn=parse_llm_advice, result_key="advice"
+        )
+
+    def request_hypotheses(self, payload: dict, *, token: str = "") -> dict:
+        if not token:
+            raise LLMAuthError("OpenAI token is required.")
+        return self._run_with_retry(
+            build_hypothesis_ideation_prompt(payload), token=token, parse_fn=parse_llm_hypotheses, result_key="hypotheses"
+        )

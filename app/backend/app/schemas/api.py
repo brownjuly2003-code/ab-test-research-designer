@@ -458,6 +458,34 @@ class LlmAdviceResponse(BaseModel):
     error_code: str | None = None
 
 
+class HypothesisIdeationRequest(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    project_context: dict[str, Any]
+    business_problem: str | None = None
+    setup: dict[str, Any] | None = None
+    metrics: dict[str, Any] | None = None
+    constraints: dict[str, Any] | None = None
+    count: int = Field(default=3, ge=1, le=5)
+
+
+class HypothesisCandidate(BaseModel):
+    change: str
+    rationale: str
+    primary_metric: str
+    expected_direction: Literal["increase", "decrease"]
+
+
+class HypothesisIdeationResponse(BaseModel):
+    available: bool
+    provider: str
+    model: str
+    hypotheses: list[HypothesisCandidate]
+    raw_text: str | None
+    error: str | None
+    error_code: str | None = None
+
+
 class AnalysisResponse(BaseModel):
     calculations: CalculationResponse
     report: ExperimentReport

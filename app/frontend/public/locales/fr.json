@@ -1226,5 +1226,19 @@
     "days_other": "{{count}} jours",
     "allocatedTrafficTitle": "Trafic quotidien alloué",
     "allocatedTrafficUnit": "utilisateurs / jour après holdout"
+  },
+  "hypothesisIdeation": {
+    "title": "Idées d'hypothèses par IA",
+    "description": "Générez des hypothèses testables à partir du contexte du projet, de la valeur de référence et du trafic.",
+    "generate": "Générer des hypothèses",
+    "generating": "Génération…",
+    "apply": "Appliquer au formulaire",
+    "error": "Impossible de générer des hypothèses.",
+    "unavailable": "Les hypothèses par IA sont indisponibles pour le moment. Remplissez l'hypothèse manuellement ou réessayez.",
+    "metricLine": "Métrique principale : {{metric}} (devrait {{direction}})",
+    "direction": {
+      "increase": "augmenter",
+      "decrease": "diminuer"
+    }
   }
 }

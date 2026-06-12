@@ -1226,5 +1226,19 @@
     "days_other": "{{count}} days",
     "allocatedTrafficTitle": "Allocated daily traffic",
     "allocatedTrafficUnit": "users / day after holdout"
+  },
+  "hypothesisIdeation": {
+    "title": "AI hypothesis ideas",
+    "description": "Generate testable hypotheses from your project context, baseline, and traffic.",
+    "generate": "Generate hypotheses",
+    "generating": "Generating…",
+    "apply": "Apply to form",
+    "error": "Could not generate hypotheses.",
+    "unavailable": "AI hypotheses are unavailable right now. Fill the hypothesis manually or try again.",
+    "metricLine": "Primary metric: {{metric}} (expected to {{direction}})",
+    "direction": {
+      "increase": "increase",
+      "decrease": "decrease"
+    }
   }
 }

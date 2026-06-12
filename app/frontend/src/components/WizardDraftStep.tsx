@@ -13,6 +13,7 @@ import {
   type SectionConfig
 } from "../lib/experiment";
 import { useCalculationPreview } from "../hooks/useCalculationPreview";
+import HypothesisIdeationPanel from "./HypothesisIdeationPanel";
 import LivePreviewPanel from "./LivePreviewPanel";
 import SliderInput from "./SliderInput";
 import Spinner from "./Spinner";
@@ -246,6 +247,21 @@ export default function WizardDraftStep({
         </div>
       ) : null}
       <div className={styles.fields}>
+        {current.section === "hypothesis" ? (
+          <HypothesisIdeationPanel
+            form={form}
+            disabled={!canMutateBackend}
+            onApply={(candidate) => {
+              handleFieldChange("hypothesis", "change_description", candidate.change, "hypothesis-change_description");
+              if (candidate.rationale) {
+                handleFieldChange("hypothesis", "hypothesis_statement", candidate.rationale, "hypothesis-hypothesis_statement");
+              }
+              if (candidate.primary_metric) {
+                handleFieldChange("metrics", "primary_metric_name", candidate.primary_metric, "metrics-primary_metric_name");
+              }
+            }}
+          />
+        ) : null}
         {current.section === "constraints" ? (
           <div className={["field", styles.full, styles["guardrail-section"]].join(" ")}>
             <div className={styles["guardrail-header"]}>

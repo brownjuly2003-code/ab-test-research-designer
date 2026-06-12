@@ -5,7 +5,84 @@ import httpx
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
+import pytest
+
 from app.backend.app.llm.adapter import LocalOrchestratorAdapter
+from app.backend.app.llm.parser import LlmAdviceParseError, parse_llm_hypotheses
+
+
+def _hypotheses_transport(payload_text: str) -> httpx.MockTransport:
+    response_payload = {
+        "status": "completed",
+        "model_responses": [{"model": "Claude Sonnet 4.6", "text": payload_text}],
+    }
+    return httpx.MockTransport(lambda request: httpx.Response(200, json=response_payload))
+
+
+def test_llm_adapter_parses_hypotheses() -> None:
+    text = """{
+        "hypotheses": [
+            {"change": "One-page checkout", "rationale": "Fewer steps reduce drop-off",
+             "primary_metric": "purchase_conversion", "expected_direction": "increase"},
+            {"change": "Show shipping cost earlier", "rationale": "Reduces late surprises",
+             "primary_metric": "checkout_completion", "expected_direction": "INCREASE"}
+        ]
+    }"""
+    adapter = LocalOrchestratorAdapter(transport=_hypotheses_transport(text))
+
+    result = adapter.request_hypotheses({"project_context": {"project_name": "Checkout"}, "count": 2})
+
+    assert result["available"] is True
+    assert result["error_code"] is None
+    assert len(result["hypotheses"]) == 2
+    assert result["hypotheses"][0]["change"] == "One-page checkout"
+    assert result["hypotheses"][1]["expected_direction"] == "increase"  # normalized
+
+
+def test_llm_adapter_hypotheses_fallback_is_empty_list_on_timeout() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectTimeout("timed out")
+
+    adapter = LocalOrchestratorAdapter(
+        transport=httpx.MockTransport(handler), max_attempts=1, sleep_func=lambda _: None
+    )
+
+    result = adapter.request_hypotheses({"project_context": {"project_name": "Checkout"}})
+
+    assert result["available"] is False
+    assert result["hypotheses"] == []
+    assert result["error_code"] == "timeout"
+
+
+def test_llm_adapter_hypotheses_invalid_when_array_missing() -> None:
+    adapter = LocalOrchestratorAdapter(transport=_hypotheses_transport('{"not_hypotheses": []}'))
+
+    result = adapter.request_hypotheses({"project_context": {"project_name": "Checkout"}})
+
+    assert result["available"] is False
+    assert result["hypotheses"] == []
+    assert result["error_code"] == "missing_hypotheses"
+
+
+def test_parse_llm_hypotheses_skips_invalid_items_and_normalizes_direction() -> None:
+    parsed = parse_llm_hypotheses(
+        '{"hypotheses": ['
+        '"not-an-object",'
+        '{"change": "", "primary_metric": "x"},'
+        '{"change": "Add trust badges", "rationale": "Reassures buyers",'
+        ' "primary_metric": "conversion", "expected_direction": "sideways"}'
+        ']}'
+    )
+
+    assert len(parsed) == 1
+    assert parsed[0]["change"] == "Add trust badges"
+    assert parsed[0]["expected_direction"] == "increase"  # unknown direction -> increase
+
+
+def test_parse_llm_hypotheses_rejects_empty_result() -> None:
+    with pytest.raises(LlmAdviceParseError) as exc:
+        parse_llm_hypotheses('{"hypotheses": [{"change": ""}]}')
+    assert exc.value.code == "empty_hypotheses"
 
 
 def test_llm_adapter_parses_structured_response() -> None:

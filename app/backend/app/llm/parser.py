@@ -46,6 +46,48 @@ def _normalize_text_list(value: object) -> list[str]:
     return deduplicated
 
 
+def parse_llm_hypotheses(raw_text: str) -> list[dict]:
+    json_candidate = _extract_json_object(raw_text)
+    if not json_candidate:
+        raise LlmAdviceParseError("LLM response did not contain a JSON object", code="missing_json_object")
+
+    try:
+        parsed = json.loads(json_candidate)
+    except json.JSONDecodeError as exc:
+        raise LlmAdviceParseError("LLM response contained invalid JSON", code="invalid_json") from exc
+
+    if not isinstance(parsed, dict):
+        raise LlmAdviceParseError("LLM response JSON must be an object", code="json_not_object")
+
+    raw_items = parsed.get("hypotheses")
+    if not isinstance(raw_items, list):
+        raise LlmAdviceParseError("LLM response must contain a 'hypotheses' array", code="missing_hypotheses")
+
+    normalized: list[dict] = []
+    for item in raw_items:
+        if not isinstance(item, dict):
+            continue
+        change = str(item.get("change", "")).strip()
+        if not change:
+            continue
+        direction = str(item.get("expected_direction", "")).strip().lower()
+        if direction not in {"increase", "decrease"}:
+            direction = "increase"
+        normalized.append(
+            {
+                "change": change,
+                "rationale": str(item.get("rationale", "")).strip(),
+                "primary_metric": str(item.get("primary_metric", "")).strip(),
+                "expected_direction": direction,
+            }
+        )
+
+    if not normalized:
+        raise LlmAdviceParseError("LLM response contained no usable hypotheses", code="empty_hypotheses")
+
+    return normalized
+
+
 def parse_llm_advice(raw_text: str) -> dict:
     json_candidate = _extract_json_object(raw_text)
     if not json_candidate:
