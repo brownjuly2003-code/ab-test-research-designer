@@ -3,8 +3,8 @@ import time
 
 import httpx
 
-from app.backend.app.llm.parser import LlmAdviceParseError, parse_llm_advice
-from app.backend.app.llm.prompt_builder import build_llm_advice_prompt
+from app.backend.app.llm.parser import LlmAdviceParseError, parse_llm_advice, parse_llm_hypotheses
+from app.backend.app.llm.prompt_builder import build_hypothesis_ideation_prompt, build_llm_advice_prompt
 
 
 class LLMAuthError(Exception):
@@ -42,12 +42,20 @@ class LocalOrchestratorAdapter:
         self.backoff_multiplier = backoff_multiplier
         self.sleep_func = sleep_func or time.sleep
 
-    def _fallback(self, error: str, *, raw_text: str | None = None, error_code: str | None = None) -> dict:
+    def _fallback(
+        self,
+        error: str,
+        *,
+        raw_text: str | None = None,
+        error_code: str | None = None,
+        result_key: str = "advice",
+        empty: object = None,
+    ) -> dict:
         return {
             "available": False,
             "provider": "local_orchestrator",
             "model": self.model,
-            "advice": None,
+            result_key: empty,
             "raw_text": raw_text,
             "error": error,
             "error_code": error_code,
@@ -109,8 +117,14 @@ class LocalOrchestratorAdapter:
             raise last_error
         raise RuntimeError("Failed to complete orchestrator request")
 
-    def request_advice(self, payload: dict) -> dict:
-        prompt = build_llm_advice_prompt(payload)
+    def _request_structured(
+        self,
+        prompt: str,
+        parse_fn: Callable[[str], object],
+        *,
+        result_key: str,
+        empty: object,
+    ) -> dict:
         request_payload = {
             "query": prompt,
             "pattern": self.pattern,
@@ -118,34 +132,47 @@ class LocalOrchestratorAdapter:
             "reasoning": self.reasoning,
         }
 
+        def fallback(error: str, **kwargs) -> dict:
+            return self._fallback(error, result_key=result_key, empty=empty, **kwargs)
+
         try:
             with httpx.Client(timeout=self.timeout_seconds, transport=self.transport) as client:
                 data = self._send_request(client, request_payload)
         except httpx.TimeoutException as exc:
-            return self._fallback(str(exc), error_code="timeout")
+            return fallback(str(exc), error_code="timeout")
         except httpx.HTTPStatusError as exc:
-            return self._fallback(str(exc), error_code="http_error")
+            return fallback(str(exc), error_code="http_error")
         except httpx.RequestError as exc:
-            return self._fallback(str(exc), error_code="request_error")
+            return fallback(str(exc), error_code="request_error")
 
         raw_text = self._extract_raw_text(data)
 
         if not raw_text:
-            return self._fallback("No usable text returned by orchestrator", error_code="empty_response")
+            return fallback("No usable text returned by orchestrator", error_code="empty_response")
 
         try:
-            parsed = parse_llm_advice(raw_text)
+            parsed = parse_fn(raw_text)
         except LlmAdviceParseError as exc:
-            return self._fallback(str(exc), raw_text=raw_text, error_code=exc.code)
+            return fallback(str(exc), raw_text=raw_text, error_code=exc.code)
         except (ValueError, KeyError, TypeError):
-            return self._fallback("Failed to parse structured AI advice", raw_text=raw_text, error_code="parse_error")
+            return fallback("Failed to parse structured AI output", raw_text=raw_text, error_code="parse_error")
 
         return {
             "available": True,
             "provider": "local_orchestrator",
             "model": self.model,
-            "advice": parsed,
+            result_key: parsed,
             "raw_text": raw_text,
             "error": None,
             "error_code": None,
         }
+
+    def request_advice(self, payload: dict) -> dict:
+        return self._request_structured(
+            build_llm_advice_prompt(payload), parse_llm_advice, result_key="advice", empty=None
+        )
+
+    def request_hypotheses(self, payload: dict) -> dict:
+        return self._request_structured(
+            build_hypothesis_ideation_prompt(payload), parse_llm_hypotheses, result_key="hypotheses", empty=[]
+        )

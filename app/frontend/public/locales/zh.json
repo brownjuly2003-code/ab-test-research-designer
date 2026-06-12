@@ -1226,5 +1226,19 @@
     "days_other": "{{count}} 天",
     "allocatedTrafficTitle": "分配的每日流量",
     "allocatedTrafficUnit": "扣除保留组后 用户/天"
+  },
+  "hypothesisIdeation": {
+    "title": "AI 假设建议",
+    "description": "根据项目背景、基线和流量生成可检验的假设。",
+    "generate": "生成假设",
+    "generating": "生成中…",
+    "apply": "应用到表单",
+    "error": "无法生成假设。",
+    "unavailable": "AI 假设暂时不可用。请手动填写假设或稍后重试。",
+    "metricLine": "主要指标：{{metric}}（预计{{direction}}）",
+    "direction": {
+      "increase": "上升",
+      "decrease": "下降"
+    }
   }
 }

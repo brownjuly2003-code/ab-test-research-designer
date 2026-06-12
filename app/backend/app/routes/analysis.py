@@ -11,6 +11,8 @@ from app.backend.app.schemas.api import (
     CalculationResponse,
     ExperimentInput,
     ExperimentReport,
+    HypothesisIdeationRequest,
+    HypothesisIdeationResponse,
     LlmAdviceRequest,
     LlmAdviceResponse,
     ResultsRequest,
@@ -256,5 +258,30 @@ def create_analysis_router(settings, repository, rate_limiter, require_auth, req
         except LLMTransientError as exc:
             raise ApiError(str(exc), error_code="llm_transient", status_code=503) from exc
         return LlmAdviceResponse.model_validate(result)
+
+    @router.post(
+        "/api/v1/hypotheses/generate",
+        response_model=HypothesisIdeationResponse,
+        dependencies=[Depends(require_write_auth)],
+    )
+    def generate_hypotheses(request: Request, payload: HypothesisIdeationRequest) -> HypothesisIdeationResponse:
+        adapter, token = pick_adapter(
+            request,
+            local_adapter=local_adapter,
+            openai_adapter=openai_adapter,
+            anthropic_adapter=anthropic_adapter,
+        )
+        ideation_payload = payload.model_dump(exclude_none=True)
+        try:
+            result = (
+                adapter.request_hypotheses(ideation_payload, token=token)
+                if token
+                else adapter.request_hypotheses(ideation_payload)
+            )
+        except LLMAuthError as exc:
+            raise ApiError(str(exc), error_code="llm_auth", status_code=exc.status_code) from exc
+        except LLMTransientError as exc:
+            raise ApiError(str(exc), error_code="llm_transient", status_code=503) from exc
+        return HypothesisIdeationResponse.model_validate(result)
 
     return router

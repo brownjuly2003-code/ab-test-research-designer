@@ -27,11 +27,16 @@ import {
 import type {
   ProjectArchiveResponse as GeneratedProjectArchiveResponse,
   ExportResponse,
+  HypothesisCandidate,
+  HypothesisIdeationRequest,
+  HypothesisIdeationResponse,
   ProjectDeleteResponse as GeneratedProjectDeleteResponse,
   ProjectListResponse as GeneratedProjectListResponse,
   SensitivityRequest,
   SensitivityResponse
 } from "./generated/api-contract";
+
+export type { HypothesisCandidate, HypothesisIdeationRequest, HypothesisIdeationResponse };
 
 const apiSessionTokenStorageKey = "ab-test-research-designer:api-token:v1";
 const adminSessionTokenStorageKey = "ab-test-research-designer:admin-token:v1";
@@ -355,7 +360,11 @@ function buildAdminHeaders(additionalHeaders: Record<string, string> = {}): Reco
 }
 
 function buildLlmHeaders(path: string): Record<string, string> {
-  if (path !== "/api/v1/analyze" && !path.startsWith("/api/v1/llm/")) {
+  if (
+    path !== "/api/v1/analyze" &&
+    path !== "/api/v1/hypotheses/generate" &&
+    !path.startsWith("/api/v1/llm/")
+  ) {
     return {};
   }
 
@@ -498,6 +507,28 @@ export async function requestCalculation(
 
   if (!response.ok) {
     throw new Error(getErrorMessage(data, response, "Calculation request failed"));
+  }
+
+  return data;
+}
+
+export async function requestHypotheses(
+  payload: HypothesisIdeationRequest,
+  options: RequestOptions = {}
+): Promise<HypothesisIdeationResponse> {
+  const response = await fetch(apiUrl("/api/v1/hypotheses/generate"), {
+    method: "POST",
+    headers: buildHeaders({
+      "Content-Type": "application/json",
+      ...buildLlmHeaders("/api/v1/hypotheses/generate")
+    }),
+    body: JSON.stringify(payload),
+    signal: options.signal
+  });
+  const data = await readJson<HypothesisIdeationResponse & ApiErrorResponse>(response);
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(data, response, "Hypothesis generation failed"));
   }
 
   return data;

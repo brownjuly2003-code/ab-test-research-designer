@@ -1226,5 +1226,19 @@
     "days_other": "{{count}} Tage",
     "allocatedTrafficTitle": "Zugewiesener Tagestraffic",
     "allocatedTrafficUnit": "Nutzer / Tag nach Holdout"
+  },
+  "hypothesisIdeation": {
+    "title": "KI-Hypothesenideen",
+    "description": "Generieren Sie testbare Hypothesen aus Projektkontext, Basiswert und Traffic.",
+    "generate": "Hypothesen generieren",
+    "generating": "Wird generiert…",
+    "apply": "Ins Formular übernehmen",
+    "error": "Hypothesen konnten nicht generiert werden.",
+    "unavailable": "KI-Hypothesen sind derzeit nicht verfügbar. Füllen Sie die Hypothese manuell aus oder versuchen Sie es erneut.",
+    "metricLine": "Primäre Metrik: {{metric}} (erwartet: {{direction}})",
+    "direction": {
+      "increase": "Anstieg",
+      "decrease": "Rückgang"
+    }
   }
 }

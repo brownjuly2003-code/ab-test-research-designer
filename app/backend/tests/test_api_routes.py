@@ -763,6 +763,56 @@ def test_llm_advice_endpoint_returns_graceful_fallback_when_orchestrator_unavail
     assert response.json()["error_code"] is not None
 
 
+def test_generate_hypotheses_endpoint_returns_candidates(monkeypatch) -> None:
+    monkeypatch.setattr(
+        LocalOrchestratorAdapter,
+        "request_hypotheses",
+        lambda self, payload: {
+            "available": True,
+            "provider": "local_orchestrator",
+            "model": "Claude Sonnet 4.6",
+            "hypotheses": [
+                {
+                    "change": "One-page checkout",
+                    "rationale": "Fewer steps reduce drop-off",
+                    "primary_metric": "purchase_conversion",
+                    "expected_direction": "increase",
+                }
+            ],
+            "raw_text": "{}",
+            "error": None,
+            "error_code": None,
+        },
+    )
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/hypotheses/generate",
+        json={"project_context": {"domain": "e-commerce"}, "count": 1},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["available"] is True
+    assert body["hypotheses"][0]["change"] == "One-page checkout"
+    assert body["hypotheses"][0]["expected_direction"] == "increase"
+
+
+def test_generate_hypotheses_endpoint_passes_through_fallback() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/hypotheses/generate",
+        json={"project_context": {"domain": "e-commerce"}},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["available"] is False
+    assert body["hypotheses"] == []
+    assert body["error_code"] is not None
+
+
 def test_calculate_endpoint_rejects_mismatched_variant_configuration() -> None:
     client = TestClient(create_app())
 

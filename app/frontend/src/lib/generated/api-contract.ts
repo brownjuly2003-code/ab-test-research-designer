@@ -408,6 +408,13 @@ export type HealthResponse = {
   environment: string;
 };
 
+export type HypothesisCandidate = {
+  change: string;
+  rationale: string;
+  primary_metric: string;
+  expected_direction: "increase" | "decrease";
+};
+
 export type HypothesisContext = {
   change_description: string;
   target_audience: string;
@@ -415,6 +422,26 @@ export type HypothesisContext = {
   hypothesis_statement: string;
   what_to_validate: string;
   desired_result: string;
+};
+
+export type HypothesisIdeationRequest = {
+  project_context: { [key: string]: unknown; };
+  business_problem?: string | null;
+  setup?: { [key: string]: unknown; } | null;
+  metrics?: { [key: string]: unknown; } | null;
+  constraints?: { [key: string]: unknown; } | null;
+  count?: number;
+  [key: string]: unknown;
+};
+
+export type HypothesisIdeationResponse = {
+  available: boolean;
+  provider: string;
+  model: string;
+  hypotheses: HypothesisCandidate[];
+  raw_text: string | null;
+  error: string | null;
+  error_code?: string | null;
 };
 
 export type LlmAdviceRequest = {
