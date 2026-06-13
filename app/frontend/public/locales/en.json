@@ -729,7 +729,6 @@
       "notSignificant": "Not significant",
       "effectLine": "Effect {{effect}} · CI [{{lower}}, {{upper}}] · p {{p}}",
       "bayesianLine": "P(treatment beats control) = {{prob}}",
-      "bayesianBinaryOnly": "Bayesian probability is available for binary metrics only.",
       "sequentialCrossed": "Crosses the sequential boundary — safe to stop early.",
       "sequentialNotCrossed": "Below the sequential boundary — keep collecting data.",
       "sequentialTitle": "Sequential monitoring",

@@ -30,7 +30,10 @@ from app.backend.app.schemas.api import (
     ResultsRequest,
 )
 from app.backend.app.services.calculations_service import calculate_experiment_metrics
-from app.backend.app.services.monte_carlo_service import simulate_uplift_distribution
+from app.backend.app.services.monte_carlo_service import (
+    simulate_continuous_uplift_distribution,
+    simulate_uplift_distribution,
+)
 from app.backend.app.services.results_service import analyze_results
 from app.backend.app.stats.srm import chi_square_srm
 
@@ -278,9 +281,19 @@ def _continuous_comparison(
             alpha=alpha,
         ),
     )
+    simulation = simulate_continuous_uplift_distribution(
+        control_mean=control_mean,
+        control_std=control_std,
+        control_n=control["exposed_users"],
+        treatment_mean=treatment_mean,
+        treatment_std=treatment_std,
+        treatment_n=treatment["exposed_users"],
+        num_simulations=_BAYESIAN_SIMULATIONS,
+        seed=_BAYESIAN_SEED,
+    )
     base["status"] = "ok"
     base["analysis"] = analyze_results(request).model_dump()
-    base["note"] = "Bayesian P(B>A) is binary-only in the MVP; use the frequentist test above."
+    base["probability_treatment_beats_control"] = round(simulation["probability_uplift_positive"], 6)
     return base
 
 

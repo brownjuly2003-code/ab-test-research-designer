@@ -88,9 +88,7 @@ function ComparisonCard({
                 prob: formatPercent(comparison.probability_treatment_beats_control)
               })}
             </span>
-          ) : (
-            <span className="muted">{t("results.liveStats.bayesianBinaryOnly")}</span>
-          )}
+          ) : null}
           {comparison.sequential_significant != null ? (
             <span className="muted">
               {comparison.sequential_significant
