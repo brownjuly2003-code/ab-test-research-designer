@@ -644,7 +644,8 @@
         "aiRecommendations": "KI-Empfehlungen",
         "srmCheck": "SRM-Pr?fung",
         "bandit": "Bandit vs. fest",
-        "assignment": "Nutzerzuweisung"
+        "assignment": "Nutzerzuweisung",
+        "liveStats": "Live-Experiment"
       },
       "badges": {
         "loaded": "Geladen",
@@ -706,6 +707,34 @@
       "bucketLine": "{{user}} · Bucket {{bucket}}",
       "growthbookNote": "Kompatibel mit GrowthBook-SDKs – verwenden Sie clientseitig denselben Key, Seed und dieselbe Hash-Version.",
       "serviceUnavailable": "Zuweisung nicht verfügbar."
+    },
+    "liveStats": {
+      "title": "Live-Experimentergebnisse",
+      "description": "Berechnet Live-Statistiken auf Abruf über die deduplizierten Expositionen und Conversions dieses gespeicherten Experiments neu.",
+      "refresh": "Live-Statistik aktualisieren",
+      "refreshing": "Wird aktualisiert...",
+      "saveFirst": "Speichern Sie dieses Experiment zuerst, um die Live-Ergebnisse zu sehen.",
+      "serviceUnavailable": "Live-Statistik nicht verfügbar.",
+      "noData": "Noch keine Expositionen erfasst. Senden Sie Expositions- und Conversion-Ereignisse an dieses Experiment, um Live-Ergebnisse zu sehen.",
+      "totals": "{{exposures}} Expositionen · {{conversions}} Conversions für {{metric}}",
+      "srmTitle": "Stichprobenverhältnis-Prüfung",
+      "srmOk": "Ausgewogen",
+      "srmDetected": "Abweichung",
+      "srmInsufficient": "Nicht genügend Daten",
+      "comparisonTitle": "{{treatment}} vs. {{control}}",
+      "comparisonPending": "Noch nicht genügend Daten für einen Test.",
+      "armExposures": "{{exposed}} exponiert · {{converted}} konvertiert",
+      "armMean": "Mittelwert {{mean}} ± {{std}}",
+      "significant": "Signifikant",
+      "notSignificant": "Nicht signifikant",
+      "effectLine": "Effekt {{effect}} · KI [{{lower}}, {{upper}}] · p {{p}}",
+      "bayesianLine": "P(Treatment schlägt Kontrolle) = {{prob}}",
+      "bayesianBinaryOnly": "Die Bayes-Wahrscheinlichkeit ist nur für binäre Metriken verfügbar.",
+      "sequentialCrossed": "Überschreitet die sequenzielle Grenze — vorzeitiges Stoppen ist sicher.",
+      "sequentialNotCrossed": "Unter der sequenziellen Grenze — weiter Daten sammeln.",
+      "sequentialTitle": "Sequenzielle Überwachung",
+      "sequentialActive": "Information {{fraction}} des Plans · Grenze z {{boundary}} · geplant {{planned}}/Variante",
+      "cupedTitle": "CUPED"
     }
   },
   "errors": {

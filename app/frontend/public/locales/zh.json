@@ -644,7 +644,8 @@
         "aiRecommendations": "人工智能建议",
         "srmCheck": "SRM 检查",
         "bandit": "老虎机 vs 固定",
-        "assignment": "用户分配"
+        "assignment": "用户分配",
+        "liveStats": "实时实验"
       },
       "badges": {
         "loaded": "已加载",
@@ -706,6 +707,34 @@
       "bucketLine": "{{user}} · 分桶 {{bucket}}",
       "growthbookNote": "兼容 GrowthBook SDK——在客户端复用相同的 key、seed 和哈希版本。",
       "serviceUnavailable": "分配不可用。"
+    },
+    "liveStats": {
+      "title": "实时实验结果",
+      "description": "按需基于此已保存实验收集的去重曝光和转化重新计算实时统计数据。",
+      "refresh": "刷新实时统计",
+      "refreshing": "刷新中...",
+      "saveFirst": "请先保存此实验以查看其实时结果。",
+      "serviceUnavailable": "实时统计不可用。",
+      "noData": "尚未记录曝光。请向此实验发送曝光和转化事件以查看实时结果。",
+      "totals": "{{exposures}} 次曝光 · {{conversions}} 次转化（{{metric}}）",
+      "srmTitle": "样本比例检查",
+      "srmOk": "均衡",
+      "srmDetected": "失衡",
+      "srmInsufficient": "数据不足",
+      "comparisonTitle": "{{treatment}} 对比 {{control}}",
+      "comparisonPending": "数据尚不足以进行检验。",
+      "armExposures": "{{exposed}} 次曝光 · {{converted}} 次转化",
+      "armMean": "均值 {{mean}} ± {{std}}",
+      "significant": "显著",
+      "notSignificant": "不显著",
+      "effectLine": "效应 {{effect}} · 置信区间 [{{lower}}, {{upper}}] · p {{p}}",
+      "bayesianLine": "P(实验组优于对照组) = {{prob}}",
+      "bayesianBinaryOnly": "贝叶斯概率仅适用于二元指标。",
+      "sequentialCrossed": "越过序贯边界——可安全提前停止。",
+      "sequentialNotCrossed": "低于序贯边界——继续收集数据。",
+      "sequentialTitle": "序贯监测",
+      "sequentialActive": "信息量为计划的 {{fraction}} · 边界 z {{boundary}} · 计划 {{planned}}/变体",
+      "cupedTitle": "CUPED"
     }
   },
   "errors": {

@@ -644,7 +644,8 @@
         "aiRecommendations": "توصيات الذكاء الاصطناعي",
         "srmCheck": "فحص SRM",
         "bandit": "الباندِت مقابل الثابت",
-        "assignment": "تعيين المستخدم"
+        "assignment": "تعيين المستخدم",
+        "liveStats": "تجربة مباشرة"
       },
       "badges": {
         "loaded": "محملة",
@@ -706,6 +707,34 @@
       "bucketLine": "{{user}} · المجموعة {{bucket}}",
       "growthbookNote": "متوافق مع حزم GrowthBook SDK — أعد استخدام نفس key وseed وإصدار التجزئة على العميل.",
       "serviceUnavailable": "التعيين غير متاح."
+    },
+    "liveStats": {
+      "title": "نتائج التجربة المباشرة",
+      "description": "إعادة حساب الإحصاءات المباشرة عند الطلب على التعرضات والتحويلات المُزالة تكرارها لهذه التجربة المحفوظة.",
+      "refresh": "تحديث الإحصاءات المباشرة",
+      "refreshing": "جارٍ التحديث...",
+      "saveFirst": "احفظ هذه التجربة أولاً لعرض نتائجها المباشرة.",
+      "serviceUnavailable": "الإحصاءات المباشرة غير متاحة.",
+      "noData": "لم يتم تسجيل أي تعرضات بعد. أرسل أحداث التعرض والتحويل إلى هذه التجربة لعرض النتائج المباشرة.",
+      "totals": "{{exposures}} تعرض · {{conversions}} تحويل على {{metric}}",
+      "srmTitle": "فحص نسبة العينة",
+      "srmOk": "متوازن",
+      "srmDetected": "عدم تطابق",
+      "srmInsufficient": "بيانات غير كافية",
+      "comparisonTitle": "{{treatment}} مقابل {{control}}",
+      "comparisonPending": "لا توجد بيانات كافية لإجراء اختبار بعد.",
+      "armExposures": "{{exposed}} تعرض · {{converted}} تحويل",
+      "armMean": "المتوسط {{mean}} ± {{std}}",
+      "significant": "ذو دلالة",
+      "notSignificant": "بلا دلالة",
+      "effectLine": "التأثير {{effect}} · فترة الثقة [{{lower}}, {{upper}}] · p {{p}}",
+      "bayesianLine": "P(المعالجة تتفوق على الضابطة) = {{prob}}",
+      "bayesianBinaryOnly": "الاحتمال البايزي متاح للمقاييس الثنائية فقط.",
+      "sequentialCrossed": "يتجاوز الحد التتابعي — يمكن التوقف مبكرًا بأمان.",
+      "sequentialNotCrossed": "أقل من الحد التتابعي — واصل جمع البيانات.",
+      "sequentialTitle": "المراقبة التتابعية",
+      "sequentialActive": "المعلومات {{fraction}} من الخطة · الحد z {{boundary}} · المخطط {{planned}}/متغير",
+      "cupedTitle": "CUPED"
     }
   },
   "errors": {

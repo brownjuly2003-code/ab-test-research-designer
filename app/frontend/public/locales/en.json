@@ -644,7 +644,8 @@
         "aiRecommendations": "AI recommendations",
         "srmCheck": "SRM check",
         "bandit": "Bandit vs fixed",
-        "assignment": "User assignment"
+        "assignment": "User assignment",
+        "liveStats": "Live experiment"
       },
       "badges": {
         "loaded": "Loaded",
@@ -706,6 +707,34 @@
       "bucketLine": "{{user}} · bucket {{bucket}}",
       "growthbookNote": "Compatible with GrowthBook SDKs — reuse the same key, seed and hash version client-side.",
       "serviceUnavailable": "Assignment unavailable."
+    },
+    "liveStats": {
+      "title": "Live experiment results",
+      "description": "Recompute live statistics on demand over the deduplicated exposures and conversions collected for this saved experiment.",
+      "refresh": "Refresh live stats",
+      "refreshing": "Refreshing...",
+      "saveFirst": "Save this experiment first to read its live results.",
+      "serviceUnavailable": "Live stats unavailable.",
+      "noData": "No exposures recorded yet. Send exposure and conversion events to this experiment to see live results.",
+      "totals": "{{exposures}} exposures · {{conversions}} conversions on {{metric}}",
+      "srmTitle": "Sample-ratio check",
+      "srmOk": "Balanced",
+      "srmDetected": "Mismatch",
+      "srmInsufficient": "Not enough data",
+      "comparisonTitle": "{{treatment}} vs {{control}}",
+      "comparisonPending": "Not enough data for a test yet.",
+      "armExposures": "{{exposed}} exposed · {{converted}} converted",
+      "armMean": "mean {{mean}} ± {{std}}",
+      "significant": "Significant",
+      "notSignificant": "Not significant",
+      "effectLine": "Effect {{effect}} · CI [{{lower}}, {{upper}}] · p {{p}}",
+      "bayesianLine": "P(treatment beats control) = {{prob}}",
+      "bayesianBinaryOnly": "Bayesian probability is available for binary metrics only.",
+      "sequentialCrossed": "Crosses the sequential boundary — safe to stop early.",
+      "sequentialNotCrossed": "Below the sequential boundary — keep collecting data.",
+      "sequentialTitle": "Sequential monitoring",
+      "sequentialActive": "Information {{fraction}} of plan · boundary z {{boundary}} · planned {{planned}}/variant",
+      "cupedTitle": "CUPED"
     }
   },
   "errors": {
