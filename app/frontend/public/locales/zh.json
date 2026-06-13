@@ -643,7 +643,8 @@
         "riskAssessment": "风险评估",
         "aiRecommendations": "人工智能建议",
         "srmCheck": "SRM 检查",
-        "bandit": "老虎机 vs 固定"
+        "bandit": "老虎机 vs 固定",
+        "assignment": "用户分配"
       },
       "badges": {
         "loaded": "已加载",
@@ -655,7 +656,8 @@
         "postTest": "后测",
         "available": "可用的",
         "offline": "离线",
-        "manual": "手动的"
+        "manual": "手动的",
+        "execution": "执行"
       },
       "variantsCount_one": "{{count}} 变体",
       "variantsCount_other": "{{count}} 变体",
@@ -690,6 +692,20 @@
       "uniformLabel": "均匀分流",
       "chartAria": "{{steps}} 步内的累积 regret，Thompson 采样对比均匀分流",
       "serviceUnavailable": "老虎机模拟不可用。"
+    },
+    "assignment": {
+      "title": "分配用户",
+      "description": "使用与客户端 SDK 相同的 GrowthBook 兼容哈希，为该已保存实验确定性地将用户分配到某个变体。同一用户始终落入同一变体。",
+      "userIdLabel": "用户/单元 ID",
+      "userIdPlaceholder": "例如 user-12345",
+      "assignButton": "分配",
+      "assigning": "分配中...",
+      "saveFirst": "请先保存该实验，才能将用户分配到变体。",
+      "assignedTo": "已分配到 {{variant}}",
+      "holdout": "已排除——该用户不在实验中（holdout / 灰度尾部）。",
+      "bucketLine": "{{user}} · 分桶 {{bucket}}",
+      "growthbookNote": "兼容 GrowthBook SDK——在客户端复用相同的 key、seed 和哈希版本。",
+      "serviceUnavailable": "分配不可用。"
     }
   },
   "errors": {

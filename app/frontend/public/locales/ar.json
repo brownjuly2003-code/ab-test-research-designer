@@ -643,7 +643,8 @@
         "riskAssessment": "تقييم المخاطر",
         "aiRecommendations": "توصيات الذكاء الاصطناعي",
         "srmCheck": "فحص SRM",
-        "bandit": "الباندِت مقابل الثابت"
+        "bandit": "الباندِت مقابل الثابت",
+        "assignment": "تعيين المستخدم"
       },
       "badges": {
         "loaded": "محملة",
@@ -655,7 +656,8 @@
         "postTest": "ما بعد الاختبار",
         "available": "متاح",
         "offline": "غير متصل",
-        "manual": "يدوي"
+        "manual": "يدوي",
+        "execution": "التنفيذ"
       },
       "variantsCount_one": "البديل {{count}}",
       "variantsCount_other": "المتغيرات {{count}}",
@@ -690,6 +692,20 @@
       "uniformLabel": "تقسيم متساوٍ",
       "chartAria": "الندم التراكمي عبر {{steps}} خطوة، عيّنات تومسون مقابل تقسيم متساوٍ",
       "serviceUnavailable": "محاكاة الباندِت غير متاحة."
+    },
+    "assignment": {
+      "title": "تعيين مستخدم",
+      "description": "يعيّن المستخدم بشكل حتمي إلى تباين في هذه التجربة المحفوظة باستخدام نفس التجزئة المتوافقة مع GrowthBook المستخدمة في SDK العميل. يقع المستخدم نفسه دائمًا في التباين نفسه.",
+      "userIdLabel": "معرّف المستخدم / الوحدة",
+      "userIdPlaceholder": "مثال: user-12345",
+      "assignButton": "تعيين",
+      "assigning": "جارٍ التعيين...",
+      "saveFirst": "احفظ هذه التجربة أولاً لتعيين المستخدمين إلى التباينات.",
+      "assignedTo": "تم التعيين إلى {{variant}}",
+      "holdout": "مستبعَد — هذا المستخدم ليس في التجربة (الحجب / ذيل التدرّج).",
+      "bucketLine": "{{user}} · المجموعة {{bucket}}",
+      "growthbookNote": "متوافق مع حزم GrowthBook SDK — أعد استخدام نفس key وseed وإصدار التجزئة على العميل.",
+      "serviceUnavailable": "التعيين غير متاح."
     }
   },
   "errors": {

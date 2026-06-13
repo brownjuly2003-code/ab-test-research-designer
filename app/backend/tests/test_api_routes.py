@@ -662,6 +662,54 @@ def test_assignment_preview_rejects_single_variation() -> None:
     assert response.status_code == 422
 
 
+def test_experiment_assign_returns_growthbook_compatible_result() -> None:
+    client = TestClient(create_app())
+    project = _create_saved_project(client, "Assign me")
+
+    response = client.post(
+        f"/api/v1/experiments/{project['id']}/assign",
+        json={"user_id": "user-99"},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["experiment_id"] == project["id"]
+    assert data["seed"] == project["id"]
+    assert data["num_variations"] == 2
+    assert data["weights"] == [0.5, 0.5]
+    assert data["coverage"] == 1.0
+    assert data["variation_index"] in (0, 1)
+    assert data["in_experiment"] is True
+    gb = data["growthbook"]
+    assert gb["key"] == project["id"]
+    assert gb["hashAttribute"] == "id"
+    assert gb["hashValue"] == "user-99"
+    assert gb["variationId"] == data["variation_index"]
+
+
+def test_experiment_assign_is_deterministic() -> None:
+    client = TestClient(create_app())
+    project = _create_saved_project(client, "Sticky assign")
+
+    first = client.post(f"/api/v1/experiments/{project['id']}/assign", json={"user_id": "stable"})
+    second = client.post(f"/api/v1/experiments/{project['id']}/assign", json={"user_id": "stable"})
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert first.json() == second.json()
+
+
+def test_experiment_assign_returns_404_for_unknown_experiment() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/experiments/does-not-exist/assign",
+        json={"user_id": "user-1"},
+    )
+
+    assert response.status_code == 404
+
+
 def test_design_endpoint_builds_report_without_llm() -> None:
     client = TestClient(create_app())
 

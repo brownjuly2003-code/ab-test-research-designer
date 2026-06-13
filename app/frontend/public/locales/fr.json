@@ -643,7 +643,8 @@
         "riskAssessment": "L'évaluation des risques",
         "aiRecommendations": "Recommandations IA",
         "srmCheck": "Contrôle SRM",
-        "bandit": "Bandit vs fixe"
+        "bandit": "Bandit vs fixe",
+        "assignment": "Affectation d'utilisateur"
       },
       "badges": {
         "loaded": "Chargé",
@@ -655,7 +656,8 @@
         "postTest": "Post-test",
         "available": "Disponible",
         "offline": "Hors ligne",
-        "manual": "Manuel"
+        "manual": "Manuel",
+        "execution": "Exécution"
       },
       "variantsCount_one": "Variante {{count}}",
       "variantsCount_other": "Variantes de {{count}}",
@@ -690,6 +692,20 @@
       "uniformLabel": "Répartition uniforme",
       "chartAria": "Regret cumulé sur {{steps}} étapes, échantillonnage de Thompson contre une répartition uniforme",
       "serviceUnavailable": "Simulation de bandit indisponible."
+    },
+    "assignment": {
+      "title": "Affecter un utilisateur",
+      "description": "Affecte de manière déterministe un utilisateur à une variation de cette expérience enregistrée, avec le même hachage compatible GrowthBook que votre SDK client. Le même utilisateur tombe toujours dans la même variation.",
+      "userIdLabel": "ID utilisateur / unité",
+      "userIdPlaceholder": "ex. user-12345",
+      "assignButton": "Affecter",
+      "assigning": "Affectation...",
+      "saveFirst": "Enregistrez d'abord cette expérience pour affecter des utilisateurs aux variations.",
+      "assignedTo": "Affecté à {{variant}}",
+      "holdout": "Exclu — cet utilisateur n'est pas dans l'expérience (holdout / queue de ramp-up).",
+      "bucketLine": "{{user}} · bucket {{bucket}}",
+      "growthbookNote": "Compatible avec les SDK GrowthBook — réutilisez le même key, seed et version de hachage côté client.",
+      "serviceUnavailable": "Affectation indisponible."
     }
   },
   "errors": {

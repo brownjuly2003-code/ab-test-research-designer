@@ -262,6 +262,10 @@ curl -X POST http://127.0.0.1:8008/api/v1/export/markdown ^
 
 Assignment Preview
 
+### `POST /api/v1/experiments/{experiment_id}/assign`
+
+Assign Experiment
+
 ### `POST /api/v1/export/comparison`
 
 Export Comparison

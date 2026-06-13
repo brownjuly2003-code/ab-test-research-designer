@@ -444,6 +444,45 @@ class AssignmentPreviewResponse(BaseModel):
     sample_assignments: list[AssignmentPreviewSample]
 
 
+class ExperimentAssignmentRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    user_id: str = Field(min_length=1, max_length=200)
+    # Reserved for attribute-based targeting/eligibility (a future phase); accepted for
+    # forward compatibility but not evaluated in the MVP — only user_id drives assignment.
+    attributes: dict[str, Any] | None = None
+    hash_version: Literal[1, 2] = 2
+
+
+class GrowthBookAssignmentResult(BaseModel):
+    """GrowthBook-compatible ``Result`` block (camelCase keys, by_alias on output) so an
+    off-the-shelf MIT GrowthBook SDK can consume the assignment directly."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    key: str
+    variation_id: int = Field(alias="variationId")
+    in_experiment: bool = Field(alias="inExperiment")
+    hash_used: bool = Field(alias="hashUsed")
+    hash_attribute: str = Field(alias="hashAttribute")
+    hash_value: str = Field(alias="hashValue")
+    bucket: float | None = None
+
+
+class ExperimentAssignmentResponse(BaseModel):
+    experiment_id: str
+    user_id: str
+    seed: str
+    variation_index: int
+    in_experiment: bool
+    hash: float | None = None
+    num_variations: int
+    coverage: float
+    weights: list[float]
+    hash_version: int
+    growthbook: GrowthBookAssignmentResult
+
+
 class WarningResponse(BaseModel):
     code: str
     severity: str

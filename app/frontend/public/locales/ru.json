@@ -643,7 +643,8 @@
         "riskAssessment": "Оценка рисков",
         "aiRecommendations": "AI-рекомендации",
         "srmCheck": "Проверка SRM",
-        "bandit": "Бандит vs фиксированный"
+        "bandit": "Бандит vs фиксированный",
+        "assignment": "Назначение пользователя"
       },
       "badges": {
         "loaded": "Загружено",
@@ -655,7 +656,8 @@
         "postTest": "После теста",
         "available": "Доступно",
         "offline": "Оффлайн",
-        "manual": "Вручную"
+        "manual": "Вручную",
+        "execution": "Исполнение"
       },
       "variantsCount_one": "{{count}} вариант",
       "variantsCount_few": "{{count}} варианта",
@@ -702,6 +704,20 @@
       "uniformLabel": "Равный сплит",
       "chartAria": "Накопленный regret за {{steps}} шагов: Thompson sampling против равного сплита",
       "serviceUnavailable": "Симуляция бандита недоступна."
+    },
+    "assignment": {
+      "title": "Назначить пользователя",
+      "description": "Детерминированно назначает пользователя в вариацию сохранённого эксперимента тем же GrowthBook-совместимым хешем, что и клиентский SDK. Один и тот же пользователь всегда попадает в одну вариацию.",
+      "userIdLabel": "ID пользователя / юнита",
+      "userIdPlaceholder": "напр. user-12345",
+      "assignButton": "Назначить",
+      "assigning": "Назначаем...",
+      "saveFirst": "Сначала сохраните эксперимент, чтобы назначать пользователей в вариации.",
+      "assignedTo": "Назначен в {{variant}}",
+      "holdout": "Вне теста — пользователь в холдауте (хвост holdout / ramp-up).",
+      "bucketLine": "{{user}} · бакет {{bucket}}",
+      "growthbookNote": "Совместимо с GrowthBook SDK — на клиенте используйте тот же key, seed и версию хеша.",
+      "serviceUnavailable": "Назначение недоступно."
     }
   },
   "errors": {
