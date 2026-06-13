@@ -706,7 +706,8 @@
       "holdout": "Held out — this user is not in the experiment (holdout / ramp-up tail).",
       "bucketLine": "{{user}} · bucket {{bucket}}",
       "growthbookNote": "Compatible with GrowthBook SDKs — reuse the same key, seed and hash version client-side.",
-      "serviceUnavailable": "Assignment unavailable."
+      "serviceUnavailable": "Assignment unavailable.",
+      "stickyNote": "Sticky: this user already has a recorded exposure, so they keep this variation even if the traffic split changed."
     },
     "liveStats": {
       "title": "Live experiment results",

@@ -75,6 +75,26 @@ describe("AssignmentSection", () => {
     }
   });
 
+  it("shows the sticky note when the assignment came from a recorded exposure", async () => {
+    const stickyResponse = { ...assignResponse, sticky: true };
+    const fetchMock = vi.fn(async (..._args: unknown[]) => ({ ok: true, json: async () => stickyResponse }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const view = await renderIntoDocument(<AssignmentSection />);
+    try {
+      await flushEffects();
+      const input = view.container.querySelector("#assignment-user-id") as HTMLInputElement;
+      await changeValue(input, "user-99");
+      await click(findButton(view.container, "Assign"));
+      await flushEffects();
+      await flushEffects();
+
+      expect(view.container.textContent).toContain("Sticky:");
+    } finally {
+      await view.unmount();
+    }
+  });
+
   it("shows the save-first hint when no experiment is saved", async () => {
     useAnalysisStore.setState({ ...useAnalysisStore.getState(), resultsProjectId: null });
     useProjectStore.setState({

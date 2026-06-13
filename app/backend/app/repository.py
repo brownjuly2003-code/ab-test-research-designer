@@ -2761,6 +2761,26 @@ class SQLiteBackend:
         received = len(items)
         return {"received": received, "recorded": recorded, "deduplicated": received - recorded}
 
+    def get_user_exposure(self, experiment_id: str, user_id: str) -> dict | None:
+        """The recorded (first-exposure-wins) exposure for one user, or ``None``.
+
+        This is the sticky-bucket store: once a user has been exposed, the assignment
+        endpoint reuses the stored ``variation_index`` so the user keeps their variation
+        even if the experiment's weights or coverage change mid-flight.
+        """
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT variation_index, created_at
+                FROM exposures
+                WHERE experiment_id = ? AND user_id = ?
+                """,
+                (experiment_id, user_id),
+            ).fetchone()
+        if row is None:
+            return None
+        return {"variation_index": int(row["variation_index"]), "created_at": row["created_at"]}
+
     def get_ingestion_summary(self, experiment_id: str) -> dict | None:
         """Per-variation exposure counts and per-metric conversion counts for an
         experiment. Returns ``None`` if the experiment does not exist. This is the raw
