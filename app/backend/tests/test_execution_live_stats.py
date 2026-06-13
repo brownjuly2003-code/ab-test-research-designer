@@ -207,7 +207,7 @@ def test_live_stats_comparison_insufficient_data_when_arm_too_small() -> None:
     assert comparison["analysis"] is None
 
 
-def test_live_stats_continuous_comparison_has_frequentist_but_no_bayesian() -> None:
+def test_live_stats_continuous_comparison_has_frequentist_and_bayesian() -> None:
     # control values mean 25 (sq_sum 3000 over n=4), treatment mean 45 (sq_sum 8600 over n=4)
     result = build_live_stats(
         "e",
@@ -221,7 +221,9 @@ def test_live_stats_continuous_comparison_has_frequentist_but_no_bayesian() -> N
     assert comparison["status"] == "ok"
     assert comparison["control"]["mean"] == 25.0
     assert comparison["analysis"]["observed_effect"] == 20.0
-    assert comparison["probability_treatment_beats_control"] is None  # binary-only in the MVP
+    prob = comparison["probability_treatment_beats_control"]
+    assert 0.0 <= prob <= 1.0
+    assert prob > 0.5  # treatment mean 45 > control mean 25
 
 
 def test_live_stats_multi_arm_compares_each_treatment_to_control() -> None:

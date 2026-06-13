@@ -729,7 +729,6 @@
       "notSignificant": "بلا دلالة",
       "effectLine": "التأثير {{effect}} · فترة الثقة [{{lower}}, {{upper}}] · p {{p}}",
       "bayesianLine": "P(المعالجة تتفوق على الضابطة) = {{prob}}",
-      "bayesianBinaryOnly": "الاحتمال البايزي متاح للمقاييس الثنائية فقط.",
       "sequentialCrossed": "يتجاوز الحد التتابعي — يمكن التوقف مبكرًا بأمان.",
       "sequentialNotCrossed": "أقل من الحد التتابعي — واصل جمع البيانات.",
       "sequentialTitle": "المراقبة التتابعية",

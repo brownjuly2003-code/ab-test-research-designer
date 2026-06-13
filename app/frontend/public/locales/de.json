@@ -729,7 +729,6 @@
       "notSignificant": "Nicht signifikant",
       "effectLine": "Effekt {{effect}} · KI [{{lower}}, {{upper}}] · p {{p}}",
       "bayesianLine": "P(Treatment schlägt Kontrolle) = {{prob}}",
-      "bayesianBinaryOnly": "Die Bayes-Wahrscheinlichkeit ist nur für binäre Metriken verfügbar.",
       "sequentialCrossed": "Überschreitet die sequenzielle Grenze — vorzeitiges Stoppen ist sicher.",
       "sequentialNotCrossed": "Unter der sequenziellen Grenze — weiter Daten sammeln.",
       "sequentialTitle": "Sequenzielle Überwachung",

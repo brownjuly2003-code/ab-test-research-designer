@@ -87,7 +87,7 @@ def simulate_uplift_distribution(
     return _summarize_simulated_uplifts(uplift_draws, num_simulations=simulations)
 
 
-def _simulate_continuous_uplift_distribution(
+def simulate_continuous_uplift_distribution(
     *,
     control_mean: float,
     control_std: float,
@@ -224,7 +224,7 @@ def simulate_comparison(
             if not isinstance(continuous_request, dict):
                 continue
 
-            simulation_results[project_id] = _simulate_continuous_uplift_distribution(
+            simulation_results[project_id] = simulate_continuous_uplift_distribution(
                 control_mean=float(continuous_request.get("control_mean")),
                 control_std=float(continuous_request.get("control_std")),
                 control_n=_as_positive_int(continuous_request.get("control_n"), "control_n"),

@@ -729,7 +729,6 @@
       "notSignificant": "不显著",
       "effectLine": "效应 {{effect}} · 置信区间 [{{lower}}, {{upper}}] · p {{p}}",
       "bayesianLine": "P(实验组优于对照组) = {{prob}}",
-      "bayesianBinaryOnly": "贝叶斯概率仅适用于二元指标。",
       "sequentialCrossed": "越过序贯边界——可安全提前停止。",
       "sequentialNotCrossed": "低于序贯边界——继续收集数据。",
       "sequentialTitle": "序贯监测",

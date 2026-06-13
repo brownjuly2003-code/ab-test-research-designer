@@ -729,7 +729,6 @@
       "notSignificant": "No significativo",
       "effectLine": "Efecto {{effect}} · IC [{{lower}}, {{upper}}] · p {{p}}",
       "bayesianLine": "P(tratamiento supera al control) = {{prob}}",
-      "bayesianBinaryOnly": "La probabilidad bayesiana solo está disponible para métricas binarias.",
       "sequentialCrossed": "Cruza el límite secuencial — es seguro detenerse antes.",
       "sequentialNotCrossed": "Por debajo del límite secuencial — sigue recopilando datos.",
       "sequentialTitle": "Monitoreo secuencial",

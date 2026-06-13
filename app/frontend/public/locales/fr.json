@@ -729,7 +729,6 @@
       "notSignificant": "Non significatif",
       "effectLine": "Effet {{effect}} · IC [{{lower}}, {{upper}}] · p {{p}}",
       "bayesianLine": "P(traitement bat le contrôle) = {{prob}}",
-      "bayesianBinaryOnly": "La probabilité bayésienne n'est disponible que pour les métriques binaires.",
       "sequentialCrossed": "Franchit la limite séquentielle — arrêt anticipé possible.",
       "sequentialNotCrossed": "Sous la limite séquentielle — continuez à collecter des données.",
       "sequentialTitle": "Surveillance séquentielle",
