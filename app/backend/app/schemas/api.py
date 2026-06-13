@@ -542,6 +542,71 @@ class IngestionSummaryResponse(BaseModel):
     conversion_counts: list[ConversionCountBucket]
 
 
+# --- Phase D: live experiment statistics over ingested exposures/conversions ----------
+
+
+class LiveSrmBlock(BaseModel):
+    # status: "ok" (balanced) | "srm_detected" | "insufficient_data" (no/one arm with data)
+    status: str
+    chi_square: float | None = None
+    p_value: float | None = None
+    is_srm: bool = False
+    observed_counts: list[int] = Field(default_factory=list)
+    expected_counts: list[float] = Field(default_factory=list)
+    verdict: str
+
+
+class LiveArmStat(BaseModel):
+    variation_index: int
+    exposed_users: int
+    converted_users: int
+    conversion_rate: float | None = None  # binary metrics
+    mean: float | None = None  # continuous metrics
+    std: float | None = None  # continuous metrics
+
+
+class LiveComparison(BaseModel):
+    # status: "ok" | "insufficient_data" (an arm has <2 exposed users or a degenerate stat)
+    treatment_index: int
+    status: str
+    control: LiveArmStat
+    treatment: LiveArmStat
+    analysis: ResultsResponse | None = None  # reuses the frequentist /results response shape
+    probability_treatment_beats_control: float | None = None  # Bayesian P(B>A), binary only
+    sequential_significant: bool | None = None  # |z| crosses the current O'Brien-Fleming boundary
+    note: str | None = None
+
+
+class LiveSequentialBlock(BaseModel):
+    # status: "fixed_horizon" (n_looks==1) | "active" | "insufficient_data"
+    status: str
+    n_looks: int
+    planned_sample_size_per_variant: int | None = None
+    total_exposed: int = 0
+    information_fraction: float | None = None
+    current_boundary_z: float | None = None
+    note: str
+
+
+class LiveCupedBlock(BaseModel):
+    # status: always "unavailable" in the MVP — no pre-period covariate ingestion exists.
+    status: str
+    note: str
+
+
+class LiveStatsResponse(BaseModel):
+    experiment_id: str
+    metric_type: str
+    primary_metric_name: str
+    exposures_total: int
+    conversions_total: int
+    disclaimer: str
+    srm: LiveSrmBlock
+    comparisons: list[LiveComparison]
+    sequential: LiveSequentialBlock
+    cuped: LiveCupedBlock
+
+
 class WarningResponse(BaseModel):
     code: str
     severity: str

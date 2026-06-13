@@ -572,6 +572,64 @@ export type IngestionSummaryResponse = {
   conversion_counts: ConversionCountBucket[];
 };
 
+export type LiveArmStat = {
+  variation_index: number;
+  exposed_users: number;
+  converted_users: number;
+  conversion_rate?: number | null;
+  mean?: number | null;
+  std?: number | null;
+};
+
+export type LiveComparison = {
+  treatment_index: number;
+  status: string;
+  control: LiveArmStat;
+  treatment: LiveArmStat;
+  analysis?: ResultsResponse | null;
+  probability_treatment_beats_control?: number | null;
+  sequential_significant?: boolean | null;
+  note?: string | null;
+};
+
+export type LiveCupedBlock = {
+  status: string;
+  note: string;
+};
+
+export type LiveSequentialBlock = {
+  status: string;
+  n_looks: number;
+  planned_sample_size_per_variant?: number | null;
+  total_exposed?: number;
+  information_fraction?: number | null;
+  current_boundary_z?: number | null;
+  note: string;
+};
+
+export type LiveSrmBlock = {
+  status: string;
+  chi_square?: number | null;
+  p_value?: number | null;
+  is_srm?: boolean;
+  observed_counts?: number[];
+  expected_counts?: number[];
+  verdict: string;
+};
+
+export type LiveStatsResponse = {
+  experiment_id: string;
+  metric_type: string;
+  primary_metric_name: string;
+  exposures_total: number;
+  conversions_total: number;
+  disclaimer: string;
+  srm: LiveSrmBlock;
+  comparisons: LiveComparison[];
+  sequential: LiveSequentialBlock;
+  cuped: LiveCupedBlock;
+};
+
 export type LlmAdviceRequest = {
   project_context: { [key: string]: unknown; };
   hypothesis?: { [key: string]: unknown; } | null;

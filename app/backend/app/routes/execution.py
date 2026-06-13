@@ -5,7 +5,9 @@ from app.backend.app.schemas.api import (
     ExposureIngestRequest,
     IngestionSummaryResponse,
     IngestResultResponse,
+    LiveStatsResponse,
 )
+from app.backend.app.services.live_stats_service import build_live_stats
 
 
 def create_execution_router(settings, repository, rate_limiter, require_auth, require_write_auth) -> APIRouter:
@@ -50,5 +52,24 @@ def create_execution_router(settings, repository, rate_limiter, require_auth, re
         if summary is None:
             raise HTTPException(status_code=404, detail="Experiment not found")
         return IngestionSummaryResponse.model_validate(summary)
+
+    @router.get(
+        "/api/v1/experiments/{experiment_id}/live-stats",
+        response_model=LiveStatsResponse,
+        dependencies=[Depends(require_auth)],
+    )
+    def get_live_stats(experiment_id: str) -> LiveStatsResponse:
+        """Phase D — live SRM / frequentist / Bayesian / sequential read over the current
+        deduplicated exposures and conversions. Recomputed on demand (the dashboard polls);
+        there is no separate scheduler process in the local-first MVP."""
+        project = repository.get_project(experiment_id, include_archived=True)
+        if project is None:
+            raise HTTPException(status_code=404, detail="Experiment not found")
+        metric_name = project["payload"].get("metrics", {}).get("primary_metric_name", "")
+        aggregates = repository.get_experiment_analysis_aggregates(experiment_id, metric_name)
+        if aggregates is None:
+            raise HTTPException(status_code=404, detail="Experiment not found")
+        result = build_live_stats(experiment_id, project["payload"], aggregates)
+        return LiveStatsResponse.model_validate(result)
 
     return router
