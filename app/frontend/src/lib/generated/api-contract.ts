@@ -259,6 +259,23 @@ export type ConstraintsConfig = {
   mutually_exclusive_experiments?: number | null;
 };
 
+export type ConversionCountBucket = {
+  metric: string;
+  count: number;
+  value_sum: number;
+};
+
+export type ConversionEvent = {
+  user_id: string;
+  metric: string;
+  value?: number;
+  idempotency_key?: string | null;
+};
+
+export type ConversionIngestRequest = {
+  conversions: ConversionEvent[];
+};
+
 export type DiagnosticsAuthSummary = {
   enabled: boolean;
   mode: string;
@@ -453,6 +470,20 @@ export type ExportResponse = {
   content: string;
 };
 
+export type ExposureCountBucket = {
+  variation_index: number;
+  count: number;
+};
+
+export type ExposureEvent = {
+  user_id: string;
+  variation_index: number;
+};
+
+export type ExposureIngestRequest = {
+  exposures: ExposureEvent[];
+};
+
 export type GrowthBookAssignmentResult = {
   key: string;
   variationId: number;
@@ -525,6 +556,20 @@ export type HypothesisIdeationResponse = {
   raw_text: string | null;
   error: string | null;
   error_code?: string | null;
+};
+
+export type IngestResultResponse = {
+  received: number;
+  recorded: number;
+  deduplicated: number;
+};
+
+export type IngestionSummaryResponse = {
+  experiment_id: string;
+  exposures_total: number;
+  exposure_counts: ExposureCountBucket[];
+  conversions_total: number;
+  conversion_counts: ConversionCountBucket[];
 };
 
 export type LlmAdviceRequest = {

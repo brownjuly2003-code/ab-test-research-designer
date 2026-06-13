@@ -22,6 +22,7 @@ from app.backend.app.logging_utils import configure_logging, log_event
 from app.backend.app.repository import ProjectRepository
 from app.backend.app.routes.audit import create_audit_router
 from app.backend.app.routes import analysis as analysis_routes
+from app.backend.app.routes.execution import create_execution_router
 from app.backend.app.routes.export import create_export_router
 from app.backend.app.routes.keys import create_keys_router
 from app.backend.app.routes.projects import create_projects_router
@@ -240,6 +241,15 @@ def create_app() -> FastAPI:
     app.include_router(create_webhooks_router(settings, repository, require_admin_auth))
     app.include_router(
         create_projects_router(
+            settings,
+            repository,
+            request_rate_limiter,
+            require_auth,
+            require_write_auth,
+        )
+    )
+    app.include_router(
+        create_execution_router(
             settings,
             repository,
             request_rate_limiter,
