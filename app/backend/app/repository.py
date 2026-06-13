@@ -2804,6 +2804,75 @@ class SQLiteBackend:
             "conversion_counts": conversion_counts,
         }
 
+    def get_experiment_analysis_aggregates(
+        self, experiment_id: str, metric_name: str
+    ) -> dict | None:
+        """Per-variation analysis-ready rollup for one metric — the input Phase D's live
+        SRM / frequentist / Bayesian reads build on.
+
+        Returns ``None`` if the experiment does not exist. A single CTE rolls events up to
+        one row per (variation, user) first, then aggregates per variation, so a user with
+        several conversion events still counts once for the binary rate and contributes the
+        *sum* of their values to the continuous rollup. The holdout tail
+        (``variation_index = -1``) is excluded — it is not part of the experiment arms.
+
+        Per variation:
+        - ``exposed_users``   — distinct exposed users (dedup is already enforced by the
+          ``UNIQUE(experiment_id, user_id)`` exposure constraint).
+        - ``converted_users`` — users with at least one conversion on ``metric_name``
+          (binary conversion rate numerator).
+        - ``value_sum`` / ``value_sq_sum`` — sum and sum-of-squares of per-user value totals
+          across *all* exposed users (non-converters contribute 0), so a continuous mean is
+          ``value_sum / exposed_users`` and the sample variance is
+          ``(value_sq_sum - exposed_users * mean**2) / (exposed_users - 1)``.
+        """
+        with self._connect() as connection:
+            if not self._project_exists(connection, experiment_id):
+                return None
+            rows = connection.execute(
+                """
+                WITH user_values AS (
+                    SELECT
+                        e.variation_index AS variation_index,
+                        e.user_id AS user_id,
+                        COALESCE(SUM(c.value), 0) AS user_value,
+                        MAX(CASE WHEN c.id IS NOT NULL THEN 1 ELSE 0 END) AS converted
+                    FROM exposures e
+                    LEFT JOIN conversions c
+                        ON c.experiment_id = e.experiment_id
+                        AND c.user_id = e.user_id
+                        AND c.metric = ?
+                    WHERE e.experiment_id = ? AND e.variation_index >= 0
+                    GROUP BY e.variation_index, e.user_id
+                )
+                SELECT
+                    variation_index,
+                    COUNT(*) AS exposed_users,
+                    SUM(converted) AS converted_users,
+                    SUM(user_value) AS value_sum,
+                    SUM(user_value * user_value) AS value_sq_sum
+                FROM user_values
+                GROUP BY variation_index
+                ORDER BY variation_index
+                """,
+                (metric_name, experiment_id),
+            ).fetchall()
+        variations = [
+            {
+                "variation_index": int(row["variation_index"]),
+                "exposed_users": int(row["exposed_users"]),
+                "converted_users": int(row["converted_users"] or 0),
+                "value_sum": float(row["value_sum"] or 0.0),
+                "value_sq_sum": float(row["value_sq_sum"] or 0.0),
+            }
+            for row in rows
+        ]
+        return {
+            "experiment_id": experiment_id,
+            "metric_name": metric_name,
+            "variations": variations,
+        }
+
 
 class _PostgresRow(dict[str, Any]):
     def __init__(self, mapping: dict[str, Any]) -> None:

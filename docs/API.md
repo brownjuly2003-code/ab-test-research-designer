@@ -278,6 +278,14 @@ Ingest Exposures
 
 Get Ingestion Summary
 
+### `GET /api/v1/experiments/{experiment_id}/live-stats`
+
+Get Live Stats
+
+Phase D — live SRM / frequentist / Bayesian / sequential read over the current
+deduplicated exposures and conversions. Recomputed on demand (the dashboard polls);
+there is no separate scheduler process in the local-first MVP.
+
 ### `POST /api/v1/export/comparison`
 
 Export Comparison
