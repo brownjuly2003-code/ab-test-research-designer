@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.backend.app.errors import ApiError
 from app.backend.app.i18n import translate
@@ -13,6 +13,8 @@ from app.backend.app.schemas.api import (
     BanditSimulationResponse,
     CalculationRequest,
     CalculationResponse,
+    ExperimentAssignmentRequest,
+    ExperimentAssignmentResponse,
     ExperimentInput,
     ExperimentReport,
     HypothesisIdeationRequest,
@@ -28,6 +30,7 @@ from app.backend.app.schemas.api import (
     SrmCheckResponse,
 )
 from app.backend.app.execution.bucketer import preview_assignment_distribution
+from app.backend.app.execution.experiment_assignment import build_experiment_assignment
 from app.backend.app.services.calculations_service import calculate_experiment_metrics
 from app.backend.app.services.design_service import build_experiment_report
 from app.backend.app.services.monte_carlo_service import simulate_thompson_sampling
@@ -235,6 +238,23 @@ def create_analysis_router(settings, repository, rate_limiter, require_auth, req
             hash_version=payload.hash_version,
         )
         return AssignmentPreviewResponse.model_validate(result)
+
+    @router.post(
+        "/api/v1/experiments/{experiment_id}/assign",
+        response_model=ExperimentAssignmentResponse,
+        dependencies=[Depends(require_write_auth)],
+    )
+    def assign_experiment(experiment_id: str, payload: ExperimentAssignmentRequest) -> ExperimentAssignmentResponse:
+        project = repository.get_project(experiment_id, include_archived=True)
+        if project is None:
+            raise HTTPException(status_code=404, detail="Experiment not found")
+        result = build_experiment_assignment(
+            experiment_id=experiment_id,
+            payload=project["payload"],
+            user_id=payload.user_id,
+            hash_version=payload.hash_version,
+        )
+        return ExperimentAssignmentResponse.model_validate(result)
 
     @router.post(
         "/api/v1/design",

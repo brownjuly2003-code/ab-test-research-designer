@@ -643,7 +643,8 @@
         "riskAssessment": "Risikobewertung",
         "aiRecommendations": "KI-Empfehlungen",
         "srmCheck": "SRM-Pr?fung",
-        "bandit": "Bandit vs. fest"
+        "bandit": "Bandit vs. fest",
+        "assignment": "Nutzerzuweisung"
       },
       "badges": {
         "loaded": "Geladen",
@@ -655,7 +656,8 @@
         "postTest": "Nachtest",
         "available": "Verfügbar",
         "offline": "Offline",
-        "manual": "Handbuch"
+        "manual": "Handbuch",
+        "execution": "Ausführung"
       },
       "variantsCount_one": "Variante {{count}}",
       "variantsCount_other": "{{count}} Varianten",
@@ -690,6 +692,20 @@
       "uniformLabel": "Gleichmäßige Aufteilung",
       "chartAria": "Kumulierter Regret über {{steps}} Schritte, Thompson-Sampling gegenüber gleichmäßiger Aufteilung",
       "serviceUnavailable": "Bandit-Simulation nicht verfügbar."
+    },
+    "assignment": {
+      "title": "Nutzer zuweisen",
+      "description": "Weist einen Nutzer deterministisch einer Variante dieses gespeicherten Experiments zu – mit demselben GrowthBook-kompatiblen Hashing wie Ihr Client-SDK. Derselbe Nutzer landet immer in derselben Variante.",
+      "userIdLabel": "Nutzer-/Einheiten-ID",
+      "userIdPlaceholder": "z. B. user-12345",
+      "assignButton": "Zuweisen",
+      "assigning": "Wird zugewiesen...",
+      "saveFirst": "Speichern Sie das Experiment zuerst, um Nutzer Varianten zuzuweisen.",
+      "assignedTo": "Zugewiesen zu {{variant}}",
+      "holdout": "Ausgeschlossen – dieser Nutzer ist nicht im Experiment (Holdout-/Ramp-up-Bereich).",
+      "bucketLine": "{{user}} · Bucket {{bucket}}",
+      "growthbookNote": "Kompatibel mit GrowthBook-SDKs – verwenden Sie clientseitig denselben Key, Seed und dieselbe Hash-Version.",
+      "serviceUnavailable": "Zuweisung nicht verfügbar."
     }
   },
   "errors": {

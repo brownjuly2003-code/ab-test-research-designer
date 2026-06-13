@@ -29,6 +29,8 @@ import type {
   BanditSimulationRequest,
   BanditSimulationResponse,
   ProjectArchiveResponse as GeneratedProjectArchiveResponse,
+  ExperimentAssignmentRequest,
+  ExperimentAssignmentResponse,
   ExportResponse,
   HypothesisCandidate,
   HypothesisIdeationRequest,
@@ -41,6 +43,7 @@ import type {
 
 export type { HypothesisCandidate, HypothesisIdeationRequest, HypothesisIdeationResponse };
 export type { BanditRegretPoint, BanditSimulationRequest, BanditSimulationResponse };
+export type { ExperimentAssignmentRequest, ExperimentAssignmentResponse };
 
 const apiSessionTokenStorageKey = "ab-test-research-designer:api-token:v1";
 const adminSessionTokenStorageKey = "ab-test-research-designer:admin-token:v1";

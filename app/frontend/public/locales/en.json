@@ -643,7 +643,8 @@
         "riskAssessment": "Risk assessment",
         "aiRecommendations": "AI recommendations",
         "srmCheck": "SRM check",
-        "bandit": "Bandit vs fixed"
+        "bandit": "Bandit vs fixed",
+        "assignment": "User assignment"
       },
       "badges": {
         "loaded": "Loaded",
@@ -655,7 +656,8 @@
         "postTest": "Post-test",
         "available": "Available",
         "offline": "Offline",
-        "manual": "Manual"
+        "manual": "Manual",
+        "execution": "Execution"
       },
       "variantsCount_one": "{{count}} variant",
       "variantsCount_other": "{{count}} variants",
@@ -690,6 +692,20 @@
       "uniformLabel": "Even split",
       "chartAria": "Cumulative regret over {{steps}} steps, Thompson sampling versus an even split",
       "serviceUnavailable": "Bandit simulation unavailable."
+    },
+    "assignment": {
+      "title": "Assign a user",
+      "description": "Deterministically assign a user to a variation for this saved experiment, using the same GrowthBook-compatible hashing as your client SDK. The same user always lands in the same variation.",
+      "userIdLabel": "User / unit id",
+      "userIdPlaceholder": "e.g. user-12345",
+      "assignButton": "Assign",
+      "assigning": "Assigning...",
+      "saveFirst": "Save this experiment first to assign users to variations.",
+      "assignedTo": "Assigned to {{variant}}",
+      "holdout": "Held out — this user is not in the experiment (holdout / ramp-up tail).",
+      "bucketLine": "{{user}} · bucket {{bucket}}",
+      "growthbookNote": "Compatible with GrowthBook SDKs — reuse the same key, seed and hash version client-side.",
+      "serviceUnavailable": "Assignment unavailable."
     }
   },
   "errors": {

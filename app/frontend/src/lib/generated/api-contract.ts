@@ -359,6 +359,26 @@ export type DiagnosticsStorageSummary = {
   latest_project_updated_at?: string | null;
 };
 
+export type ExperimentAssignmentRequest = {
+  user_id: string;
+  attributes?: { [key: string]: unknown; } | null;
+  hash_version?: 1 | 2;
+};
+
+export type ExperimentAssignmentResponse = {
+  experiment_id: string;
+  user_id: string;
+  seed: string;
+  variation_index: number;
+  in_experiment: boolean;
+  hash?: number | null;
+  num_variations: number;
+  coverage: number;
+  weights: number[];
+  hash_version: number;
+  growthbook: GrowthBookAssignmentResult;
+};
+
 export type ExperimentDesignSection = {
   variants: VariantDefinition[];
   randomization_unit: string;
@@ -431,6 +451,16 @@ export type ExportEventRecord = {
 
 export type ExportResponse = {
   content: string;
+};
+
+export type GrowthBookAssignmentResult = {
+  key: string;
+  variationId: number;
+  inExperiment: boolean;
+  hashUsed: boolean;
+  hashAttribute: string;
+  hashValue: string;
+  bucket?: number | null;
 };
 
 export type GuardrailMetricInput = {

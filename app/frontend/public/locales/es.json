@@ -643,7 +643,8 @@
         "riskAssessment": "Evaluación de riesgos",
         "aiRecommendations": "Recomendaciones de IA",
         "srmCheck": "Verificaci?n de SRM",
-        "bandit": "Bandit vs. fijo"
+        "bandit": "Bandit vs. fijo",
+        "assignment": "Asignación de usuario"
       },
       "badges": {
         "loaded": "Cargado",
@@ -655,7 +656,8 @@
         "postTest": "Post-prueba",
         "available": "Disponible",
         "offline": "Desconectado",
-        "manual": "Manual"
+        "manual": "Manual",
+        "execution": "Ejecución"
       },
       "variantsCount_one": "{{count}} variante",
       "variantsCount_other": "{{count}} variantes",
@@ -690,6 +692,20 @@
       "uniformLabel": "Reparto uniforme",
       "chartAria": "Regret acumulado durante {{steps}} pasos, muestreo de Thompson frente a un reparto uniforme",
       "serviceUnavailable": "Simulación de bandit no disponible."
+    },
+    "assignment": {
+      "title": "Asignar un usuario",
+      "description": "Asigna de forma determinista un usuario a una variación de este experimento guardado, con el mismo hashing compatible con GrowthBook que tu SDK cliente. El mismo usuario siempre cae en la misma variación.",
+      "userIdLabel": "ID de usuario / unidad",
+      "userIdPlaceholder": "p. ej. user-12345",
+      "assignButton": "Asignar",
+      "assigning": "Asignando...",
+      "saveFirst": "Guarda este experimento primero para asignar usuarios a las variaciones.",
+      "assignedTo": "Asignado a {{variant}}",
+      "holdout": "Excluido: este usuario no está en el experimento (holdout / cola de ramp-up).",
+      "bucketLine": "{{user}} · bucket {{bucket}}",
+      "growthbookNote": "Compatible con los SDK de GrowthBook: reutiliza el mismo key, seed y versión de hash en el cliente.",
+      "serviceUnavailable": "Asignación no disponible."
     }
   },
   "errors": {
