@@ -2,13 +2,13 @@
   "tests": {
     "schemaVersion": 1,
     "label": "tests",
-    "message": "466 passed",
+    "message": "481 passed",
     "color": "green"
   },
   "coverage": {
     "schemaVersion": 1,
     "label": "coverage",
-    "message": "89%",
+    "message": "90%",
     "color": "green"
   },
   "lighthouse": {
