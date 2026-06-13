@@ -266,6 +266,18 @@ Assignment Preview
 
 Assign Experiment
 
+### `POST /api/v1/experiments/{experiment_id}/conversions`
+
+Ingest Conversions
+
+### `POST /api/v1/experiments/{experiment_id}/exposures`
+
+Ingest Exposures
+
+### `GET /api/v1/experiments/{experiment_id}/ingestion`
+
+Get Ingestion Summary
+
 ### `POST /api/v1/export/comparison`
 
 Export Comparison

@@ -33,7 +33,7 @@ class DatabaseBackend(Protocol):
 class SQLiteBackend:
     backend_name = "sqlite"
     supports_snapshots = True
-    schema_version = 7
+    schema_version = 8
     payload_schema_version = 1
     workspace_schema_version = 3
     project_select_columns = """
@@ -111,6 +111,7 @@ class SQLiteBackend:
             self._create_webhook_tables(connection)
             self._create_slack_tables(connection)
             self._create_template_tables(connection)
+            self._create_execution_tables(connection)
             self._migrate_db(connection)
             connection.execute(f"PRAGMA user_version = {self.schema_version}")
 
@@ -345,6 +346,53 @@ class SQLiteBackend:
             """
             CREATE INDEX IF NOT EXISTS idx_project_templates_updated
             ON project_templates (built_in DESC, updated_at DESC, id ASC)
+            """
+        )
+
+    @staticmethod
+    def _create_execution_tables(connection: sqlite3.Connection) -> None:
+        # Execution layer (Phase C): raw exposure/conversion ingestion. The UNIQUE
+        # constraints are the dedup primitives — exactly one exposure per (experiment,
+        # user) gives first-exposure-wins (duplicate exposures directly produce a false
+        # SRM otherwise), and an optional idempotency_key dedups conversion retries.
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS exposures (
+                id TEXT PRIMARY KEY,
+                experiment_id TEXT NOT NULL,
+                user_id TEXT NOT NULL,
+                variation_index INTEGER NOT NULL,
+                created_at TEXT NOT NULL,
+                UNIQUE(experiment_id, user_id),
+                FOREIGN KEY(experiment_id) REFERENCES projects(id) ON DELETE CASCADE
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_exposures_experiment_variation
+            ON exposures (experiment_id, variation_index)
+            """
+        )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS conversions (
+                id TEXT PRIMARY KEY,
+                experiment_id TEXT NOT NULL,
+                user_id TEXT NOT NULL,
+                metric TEXT NOT NULL,
+                value REAL NOT NULL DEFAULT 1,
+                idempotency_key TEXT,
+                created_at TEXT NOT NULL,
+                UNIQUE(experiment_id, idempotency_key),
+                FOREIGN KEY(experiment_id) REFERENCES projects(id) ON DELETE CASCADE
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_conversions_experiment_metric
+            ON conversions (experiment_id, metric)
             """
         )
 
@@ -2649,6 +2697,113 @@ class SQLiteBackend:
 
         return self.get_project(project_id, include_archived=True)
 
+    # --- Execution layer (Phase C): exposure / conversion ingestion -----------------
+
+    def record_exposures(self, experiment_id: str, items: list[dict]) -> dict:
+        """Record exposure events with first-exposure-wins dedup.
+
+        Exactly one exposure survives per (experiment, user) thanks to the UNIQUE
+        constraint + ``ON CONFLICT DO NOTHING``; a later (or duplicate) exposure for the
+        same user is dropped, so the variation a user first saw stays sticky. Duplicate
+        exposures would otherwise inflate one arm's count and manufacture a false SRM.
+        """
+        timestamp = datetime.now(timezone.utc).isoformat()
+        recorded = 0
+        with self._connect() as connection:
+            self._ensure_project_active(connection, experiment_id)
+            for item in items:
+                cursor = connection.execute(
+                    """
+                    INSERT INTO exposures (id, experiment_id, user_id, variation_index, created_at)
+                    VALUES (?, ?, ?, ?, ?)
+                    ON CONFLICT(experiment_id, user_id) DO NOTHING
+                    """,
+                    (
+                        str(uuid.uuid4()),
+                        experiment_id,
+                        item["user_id"],
+                        int(item["variation_index"]),
+                        timestamp,
+                    ),
+                )
+                if cursor.rowcount == 1:
+                    recorded += 1
+        received = len(items)
+        return {"received": received, "recorded": recorded, "deduplicated": received - recorded}
+
+    def record_conversions(self, experiment_id: str, items: list[dict]) -> dict:
+        """Record conversion events. When an ``idempotency_key`` is supplied, retries with
+        the same key are deduped per experiment; events without a key are always recorded
+        (NULLs are distinct in the UNIQUE index on both SQLite and Postgres)."""
+        timestamp = datetime.now(timezone.utc).isoformat()
+        recorded = 0
+        with self._connect() as connection:
+            self._ensure_project_active(connection, experiment_id)
+            for item in items:
+                cursor = connection.execute(
+                    """
+                    INSERT INTO conversions (id, experiment_id, user_id, metric, value, idempotency_key, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(experiment_id, idempotency_key) DO NOTHING
+                    """,
+                    (
+                        str(uuid.uuid4()),
+                        experiment_id,
+                        item["user_id"],
+                        item["metric"],
+                        float(item.get("value", 1.0)),
+                        item.get("idempotency_key"),
+                        timestamp,
+                    ),
+                )
+                if cursor.rowcount == 1:
+                    recorded += 1
+        received = len(items)
+        return {"received": received, "recorded": recorded, "deduplicated": received - recorded}
+
+    def get_ingestion_summary(self, experiment_id: str) -> dict | None:
+        """Per-variation exposure counts and per-metric conversion counts for an
+        experiment. Returns ``None`` if the experiment does not exist. This is the raw
+        aggregate Phase D's live SRM / sequential / Bayesian reads will build on."""
+        with self._connect() as connection:
+            if not self._project_exists(connection, experiment_id):
+                return None
+            exposure_rows = connection.execute(
+                """
+                SELECT variation_index, COUNT(*) AS count
+                FROM exposures
+                WHERE experiment_id = ?
+                GROUP BY variation_index
+                ORDER BY variation_index
+                """,
+                (experiment_id,),
+            ).fetchall()
+            conversion_rows = connection.execute(
+                """
+                SELECT metric, COUNT(*) AS count, COALESCE(SUM(value), 0) AS value_sum
+                FROM conversions
+                WHERE experiment_id = ?
+                GROUP BY metric
+                ORDER BY metric
+                """,
+                (experiment_id,),
+            ).fetchall()
+        exposure_counts = [
+            {"variation_index": int(row["variation_index"]), "count": int(row["count"])}
+            for row in exposure_rows
+        ]
+        conversion_counts = [
+            {"metric": row["metric"], "count": int(row["count"]), "value_sum": float(row["value_sum"])}
+            for row in conversion_rows
+        ]
+        return {
+            "experiment_id": experiment_id,
+            "exposures_total": sum(item["count"] for item in exposure_counts),
+            "exposure_counts": exposure_counts,
+            "conversions_total": sum(item["count"] for item in conversion_counts),
+            "conversion_counts": conversion_counts,
+        }
+
 
 class _PostgresRow(dict[str, Any]):
     def __init__(self, mapping: dict[str, Any]) -> None:
@@ -2995,6 +3150,46 @@ class PostgresBackend(SQLiteBackend):
                 """
                 CREATE INDEX IF NOT EXISTS idx_projects_metric_type
                 ON projects (((payload_json -> 'metrics' ->> 'metric_type')))
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS exposures (
+                    id TEXT PRIMARY KEY,
+                    experiment_id TEXT NOT NULL,
+                    user_id TEXT NOT NULL,
+                    variation_index INTEGER NOT NULL,
+                    created_at TEXT NOT NULL,
+                    UNIQUE(experiment_id, user_id),
+                    FOREIGN KEY(experiment_id) REFERENCES projects(id) ON DELETE CASCADE
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_exposures_experiment_variation
+                ON exposures (experiment_id, variation_index)
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS conversions (
+                    id TEXT PRIMARY KEY,
+                    experiment_id TEXT NOT NULL,
+                    user_id TEXT NOT NULL,
+                    metric TEXT NOT NULL,
+                    value REAL NOT NULL DEFAULT 1,
+                    idempotency_key TEXT,
+                    created_at TEXT NOT NULL,
+                    UNIQUE(experiment_id, idempotency_key),
+                    FOREIGN KEY(experiment_id) REFERENCES projects(id) ON DELETE CASCADE
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_conversions_experiment_metric
+                ON conversions (experiment_id, metric)
                 """
             )
 

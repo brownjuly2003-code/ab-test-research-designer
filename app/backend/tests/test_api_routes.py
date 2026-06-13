@@ -710,6 +710,74 @@ def test_experiment_assign_returns_404_for_unknown_experiment() -> None:
     assert response.status_code == 404
 
 
+def test_ingest_exposures_dedups_and_summary_reports_counts() -> None:
+    client = TestClient(create_app())
+    project = _create_saved_project(client, "Ingest exposures")
+
+    exposures = client.post(
+        f"/api/v1/experiments/{project['id']}/exposures",
+        json={
+            "exposures": [
+                {"user_id": "u1", "variation_index": 0},
+                {"user_id": "u2", "variation_index": 1},
+                {"user_id": "u1", "variation_index": 0},
+            ]
+        },
+    )
+    assert exposures.status_code == 200
+    assert exposures.json() == {"received": 3, "recorded": 2, "deduplicated": 1}
+
+    conversions = client.post(
+        f"/api/v1/experiments/{project['id']}/conversions",
+        json={
+            "conversions": [
+                {"user_id": "u1", "metric": "purchase", "value": 1.0, "idempotency_key": "k1"},
+                {"user_id": "u1", "metric": "purchase", "value": 1.0, "idempotency_key": "k1"},
+            ]
+        },
+    )
+    assert conversions.status_code == 200
+    assert conversions.json() == {"received": 2, "recorded": 1, "deduplicated": 1}
+
+    summary = client.get(f"/api/v1/experiments/{project['id']}/ingestion")
+    assert summary.status_code == 200
+    data = summary.json()
+    assert data["exposures_total"] == 2
+    assert data["conversions_total"] == 1
+    assert {bucket["variation_index"]: bucket["count"] for bucket in data["exposure_counts"]} == {0: 1, 1: 1}
+
+
+def test_ingest_exposures_returns_404_for_unknown_experiment() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/experiments/missing/exposures",
+        json={"exposures": [{"user_id": "u1", "variation_index": 0}]},
+    )
+
+    assert response.status_code == 404
+
+
+def test_ingestion_summary_returns_404_for_unknown_experiment() -> None:
+    client = TestClient(create_app())
+
+    response = client.get("/api/v1/experiments/missing/ingestion")
+
+    assert response.status_code == 404
+
+
+def test_ingest_exposures_rejects_empty_batch() -> None:
+    client = TestClient(create_app())
+    project = _create_saved_project(client, "Empty exposures batch")
+
+    response = client.post(
+        f"/api/v1/experiments/{project['id']}/exposures",
+        json={"exposures": []},
+    )
+
+    assert response.status_code == 422
+
+
 def test_design_endpoint_builds_report_without_llm() -> None:
     client = TestClient(create_app())
 
@@ -1049,8 +1117,8 @@ def test_diagnostics_endpoint_returns_runtime_summary(monkeypatch) -> None:
     assert payload["storage"]["db_parent_path"] == str(db_path.parent)
     assert payload["storage"]["db_size_bytes"] >= 0
     assert payload["storage"]["disk_free_bytes"] > 0
-    assert payload["storage"]["schema_version"] == 7
-    assert payload["storage"]["sqlite_user_version"] == 7
+    assert payload["storage"]["schema_version"] == 8
+    assert payload["storage"]["sqlite_user_version"] == 8
     assert payload["storage"]["journal_mode"] == "WAL"
     assert payload["storage"]["synchronous"] == "NORMAL"
     assert payload["storage"]["write_probe_ok"] is True

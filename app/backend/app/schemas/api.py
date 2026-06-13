@@ -483,6 +483,65 @@ class ExperimentAssignmentResponse(BaseModel):
     growthbook: GrowthBookAssignmentResult
 
 
+MAX_INGEST_BATCH = 1000
+
+
+class ExposureEvent(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    user_id: str = Field(min_length=1, max_length=200)
+    # Only real exposures are recorded — a -1 ("not in experiment") assignment is never an
+    # exposure, so the floor is 0.
+    variation_index: int = Field(ge=0, le=MAX_SUPPORTED_VARIANTS - 1)
+
+
+class ExposureIngestRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    exposures: list[ExposureEvent] = Field(min_length=1, max_length=MAX_INGEST_BATCH)
+
+
+class ConversionEvent(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    user_id: str = Field(min_length=1, max_length=200)
+    metric: str = Field(min_length=1, max_length=100)
+    value: float = 1.0
+    # When supplied, retries with the same key are deduped per experiment (idempotent ingest).
+    idempotency_key: str | None = Field(default=None, min_length=1, max_length=200)
+
+
+class ConversionIngestRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    conversions: list[ConversionEvent] = Field(min_length=1, max_length=MAX_INGEST_BATCH)
+
+
+class IngestResultResponse(BaseModel):
+    received: int
+    recorded: int
+    deduplicated: int
+
+
+class ExposureCountBucket(BaseModel):
+    variation_index: int
+    count: int
+
+
+class ConversionCountBucket(BaseModel):
+    metric: str
+    count: int
+    value_sum: float
+
+
+class IngestionSummaryResponse(BaseModel):
+    experiment_id: str
+    exposures_total: int
+    exposure_counts: list[ExposureCountBucket]
+    conversions_total: int
+    conversion_counts: list[ConversionCountBucket]
+
+
 class WarningResponse(BaseModel):
     code: str
     severity: str
