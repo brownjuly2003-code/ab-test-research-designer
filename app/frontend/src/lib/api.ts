@@ -35,6 +35,12 @@ import type {
   HypothesisCandidate,
   HypothesisIdeationRequest,
   HypothesisIdeationResponse,
+  LiveArmStat,
+  LiveComparison,
+  LiveCupedBlock,
+  LiveSequentialBlock,
+  LiveSrmBlock,
+  LiveStatsResponse,
   ProjectDeleteResponse as GeneratedProjectDeleteResponse,
   ProjectListResponse as GeneratedProjectListResponse,
   SensitivityRequest,
@@ -44,6 +50,14 @@ import type {
 export type { HypothesisCandidate, HypothesisIdeationRequest, HypothesisIdeationResponse };
 export type { BanditRegretPoint, BanditSimulationRequest, BanditSimulationResponse };
 export type { ExperimentAssignmentRequest, ExperimentAssignmentResponse };
+export type {
+  LiveArmStat,
+  LiveComparison,
+  LiveCupedBlock,
+  LiveSequentialBlock,
+  LiveSrmBlock,
+  LiveStatsResponse
+};
 
 const apiSessionTokenStorageKey = "ab-test-research-designer:api-token:v1";
 const adminSessionTokenStorageKey = "ab-test-research-designer:admin-token:v1";

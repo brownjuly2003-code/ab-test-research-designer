@@ -644,7 +644,8 @@
         "aiRecommendations": "Recomendaciones de IA",
         "srmCheck": "Verificaci?n de SRM",
         "bandit": "Bandit vs. fijo",
-        "assignment": "Asignación de usuario"
+        "assignment": "Asignación de usuario",
+        "liveStats": "Experimento en vivo"
       },
       "badges": {
         "loaded": "Cargado",
@@ -706,6 +707,34 @@
       "bucketLine": "{{user}} · bucket {{bucket}}",
       "growthbookNote": "Compatible con los SDK de GrowthBook: reutiliza el mismo key, seed y versión de hash en el cliente.",
       "serviceUnavailable": "Asignación no disponible."
+    },
+    "liveStats": {
+      "title": "Resultados del experimento en vivo",
+      "description": "Recalcula estadísticas en vivo bajo demanda sobre las exposiciones y conversiones deduplicadas de este experimento guardado.",
+      "refresh": "Actualizar estadísticas en vivo",
+      "refreshing": "Actualizando...",
+      "saveFirst": "Guarda este experimento primero para ver sus resultados en vivo.",
+      "serviceUnavailable": "Estadísticas en vivo no disponibles.",
+      "noData": "Aún no se registraron exposiciones. Envía eventos de exposición y conversión a este experimento para ver resultados en vivo.",
+      "totals": "{{exposures}} exposiciones · {{conversions}} conversiones en {{metric}}",
+      "srmTitle": "Verificación de proporción de muestra",
+      "srmOk": "Equilibrado",
+      "srmDetected": "Desajuste",
+      "srmInsufficient": "Datos insuficientes",
+      "comparisonTitle": "{{treatment}} vs {{control}}",
+      "comparisonPending": "Aún no hay datos suficientes para una prueba.",
+      "armExposures": "{{exposed}} expuestos · {{converted}} convertidos",
+      "armMean": "media {{mean}} ± {{std}}",
+      "significant": "Significativo",
+      "notSignificant": "No significativo",
+      "effectLine": "Efecto {{effect}} · IC [{{lower}}, {{upper}}] · p {{p}}",
+      "bayesianLine": "P(tratamiento supera al control) = {{prob}}",
+      "bayesianBinaryOnly": "La probabilidad bayesiana solo está disponible para métricas binarias.",
+      "sequentialCrossed": "Cruza el límite secuencial — es seguro detenerse antes.",
+      "sequentialNotCrossed": "Por debajo del límite secuencial — sigue recopilando datos.",
+      "sequentialTitle": "Monitoreo secuencial",
+      "sequentialActive": "Información {{fraction}} del plan · límite z {{boundary}} · planificado {{planned}}/variante",
+      "cupedTitle": "CUPED"
     }
   },
   "errors": {

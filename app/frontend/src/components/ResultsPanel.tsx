@@ -15,6 +15,7 @@ import BanditSection from "./results/BanditSection";
 import BayesianSection from "./results/BayesianSection";
 import ComparisonSection from "./results/ComparisonSection";
 import ExperimentDesignSection from "./results/ExperimentDesignSection";
+import LiveStatsSection from "./results/LiveStatsSection";
 import MetricsPlanSection from "./results/MetricsPlanSection";
 import ObservedResultsSection from "./results/ObservedResultsSection";
 import PowerCurveSection from "./results/PowerCurveSection";
@@ -156,6 +157,7 @@ export default function ResultsPanel(_props: ResultsPanelProps) {
         <Accordion title={t("results.panel.accordion.srmCheck")} badge={t("results.panel.badges.manual")}><SrmCheckSection /></Accordion>
         <Accordion title={t("results.panel.accordion.bandit")} badge={t("results.panel.badges.planning")}><BanditSection /></Accordion>
         <Accordion title={t("results.panel.accordion.assignment")} badge={t("results.panel.badges.execution")}><AssignmentSection /></Accordion>
+        <Accordion title={t("results.panel.accordion.liveStats")} badge={t("results.panel.badges.execution")}><LiveStatsSection /></Accordion>
       </div> : null}
       {!displayedAnalysis?.report && !analysis.isAnalyzing && !project.projectComparison && !project.projectMultiComparison ? <div className="status">{t("results.panel.noAnalysisYet")}</div> : null}
       {analysis.statusMessage ? <div className="status">{analysis.statusMessage}</div> : null}

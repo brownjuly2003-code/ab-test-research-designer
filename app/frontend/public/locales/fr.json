@@ -644,7 +644,8 @@
         "aiRecommendations": "Recommandations IA",
         "srmCheck": "Contrôle SRM",
         "bandit": "Bandit vs fixe",
-        "assignment": "Affectation d'utilisateur"
+        "assignment": "Affectation d'utilisateur",
+        "liveStats": "Expérience en direct"
       },
       "badges": {
         "loaded": "Chargé",
@@ -706,6 +707,34 @@
       "bucketLine": "{{user}} · bucket {{bucket}}",
       "growthbookNote": "Compatible avec les SDK GrowthBook — réutilisez le même key, seed et version de hachage côté client.",
       "serviceUnavailable": "Affectation indisponible."
+    },
+    "liveStats": {
+      "title": "Résultats de l'expérience en direct",
+      "description": "Recalcule les statistiques en direct à la demande sur les expositions et conversions dédupliquées de cette expérience enregistrée.",
+      "refresh": "Actualiser les stats en direct",
+      "refreshing": "Actualisation...",
+      "saveFirst": "Enregistrez d'abord cette expérience pour voir ses résultats en direct.",
+      "serviceUnavailable": "Statistiques en direct indisponibles.",
+      "noData": "Aucune exposition enregistrée pour l'instant. Envoyez des événements d'exposition et de conversion à cette expérience pour voir les résultats en direct.",
+      "totals": "{{exposures}} expositions · {{conversions}} conversions sur {{metric}}",
+      "srmTitle": "Vérification du ratio d'échantillon",
+      "srmOk": "Équilibré",
+      "srmDetected": "Écart",
+      "srmInsufficient": "Données insuffisantes",
+      "comparisonTitle": "{{treatment}} vs {{control}}",
+      "comparisonPending": "Pas encore assez de données pour un test.",
+      "armExposures": "{{exposed}} exposés · {{converted}} convertis",
+      "armMean": "moyenne {{mean}} ± {{std}}",
+      "significant": "Significatif",
+      "notSignificant": "Non significatif",
+      "effectLine": "Effet {{effect}} · IC [{{lower}}, {{upper}}] · p {{p}}",
+      "bayesianLine": "P(traitement bat le contrôle) = {{prob}}",
+      "bayesianBinaryOnly": "La probabilité bayésienne n'est disponible que pour les métriques binaires.",
+      "sequentialCrossed": "Franchit la limite séquentielle — arrêt anticipé possible.",
+      "sequentialNotCrossed": "Sous la limite séquentielle — continuez à collecter des données.",
+      "sequentialTitle": "Surveillance séquentielle",
+      "sequentialActive": "Information {{fraction}} du plan · limite z {{boundary}} · prévu {{planned}}/variante",
+      "cupedTitle": "CUPED"
     }
   },
   "errors": {

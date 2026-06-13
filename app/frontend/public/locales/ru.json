@@ -644,7 +644,8 @@
         "aiRecommendations": "AI-рекомендации",
         "srmCheck": "Проверка SRM",
         "bandit": "Бандит vs фиксированный",
-        "assignment": "Назначение пользователя"
+        "assignment": "Назначение пользователя",
+        "liveStats": "Live-эксперимент"
       },
       "badges": {
         "loaded": "Загружено",
@@ -718,6 +719,34 @@
       "bucketLine": "{{user}} · бакет {{bucket}}",
       "growthbookNote": "Совместимо с GrowthBook SDK — на клиенте используйте тот же key, seed и версию хеша.",
       "serviceUnavailable": "Назначение недоступно."
+    },
+    "liveStats": {
+      "title": "Результаты live-эксперимента",
+      "description": "Пересчёт live-статистики по запросу над дедуплицированными показами и конверсиями этого сохранённого эксперимента.",
+      "refresh": "Обновить live-статистику",
+      "refreshing": "Обновление...",
+      "saveFirst": "Сначала сохраните эксперимент, чтобы увидеть его live-результаты.",
+      "serviceUnavailable": "Live-статистика недоступна.",
+      "noData": "Показы ещё не записаны. Отправьте события показов и конверсий в этот эксперимент, чтобы увидеть live-результаты.",
+      "totals": "{{exposures}} показов · {{conversions}} конверсий по {{metric}}",
+      "srmTitle": "Проверка соотношения выборок",
+      "srmOk": "Сбалансировано",
+      "srmDetected": "Перекос",
+      "srmInsufficient": "Недостаточно данных",
+      "comparisonTitle": "{{treatment}} против {{control}}",
+      "comparisonPending": "Пока недостаточно данных для теста.",
+      "armExposures": "{{exposed}} показано · {{converted}} конверсий",
+      "armMean": "среднее {{mean}} ± {{std}}",
+      "significant": "Значимо",
+      "notSignificant": "Незначимо",
+      "effectLine": "Эффект {{effect}} · ДИ [{{lower}}, {{upper}}] · p {{p}}",
+      "bayesianLine": "P(тест лучше контроля) = {{prob}}",
+      "bayesianBinaryOnly": "Байесовская вероятность доступна только для бинарных метрик.",
+      "sequentialCrossed": "Пересекает последовательную границу — можно остановиться раньше.",
+      "sequentialNotCrossed": "Ниже последовательной границы — продолжайте сбор данных.",
+      "sequentialTitle": "Последовательный мониторинг",
+      "sequentialActive": "Информация {{fraction}} от плана · граница z {{boundary}} · план {{planned}}/вариант",
+      "cupedTitle": "CUPED"
     }
   },
   "errors": {
