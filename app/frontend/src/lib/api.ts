@@ -37,7 +37,9 @@ import type {
   HypothesisIdeationResponse,
   LiveArmStat,
   LiveComparison,
+  LiveCupedArmStat,
   LiveCupedBlock,
+  LiveCupedComparison,
   LiveSequentialBlock,
   LiveSrmBlock,
   LiveStatsResponse,
@@ -53,7 +55,9 @@ export type { ExperimentAssignmentRequest, ExperimentAssignmentResponse };
 export type {
   LiveArmStat,
   LiveComparison,
+  LiveCupedArmStat,
   LiveCupedBlock,
+  LiveCupedComparison,
   LiveSequentialBlock,
   LiveSrmBlock,
   LiveStatsResponse

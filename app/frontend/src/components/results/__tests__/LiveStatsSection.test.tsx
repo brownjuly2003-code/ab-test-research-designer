@@ -66,6 +66,57 @@ const liveStatsResponse = {
   }
 };
 
+const cupedAvailableResponse = {
+  ...liveStatsResponse,
+  metric_type: "continuous",
+  primary_metric_name: "aov",
+  cuped: {
+    status: "available",
+    note: "CUPED-adjusted estimates over users with a pre-period covariate.",
+    theta: 8.5,
+    variance_reduction_pct: 81.43,
+    covariate_users_total: 12,
+    exposed_users_total: 12,
+    comparisons: [
+      {
+        treatment_index: 1,
+        status: "ok",
+        control: {
+          variation_index: 0,
+          covariate_users: 6,
+          unadjusted_mean: 25.0,
+          adjusted_mean: 25.0,
+          adjusted_std: 3.9
+        },
+        treatment: {
+          variation_index: 1,
+          covariate_users: 6,
+          unadjusted_mean: 32.5,
+          adjusted_mean: 32.5,
+          adjusted_std: 1.44
+        },
+        analysis: {
+          metric_type: "continuous",
+          observed_effect: 7.5,
+          observed_effect_relative: 30.0,
+          control_rate: 25.0,
+          treatment_rate: 32.5,
+          ci_lower: 4.0,
+          ci_upper: 11.0,
+          ci_level: 0.95,
+          p_value: 0.002,
+          test_statistic: 4.1,
+          is_significant: true,
+          power_achieved: 0.95,
+          verdict: "Significant adjusted uplift",
+          interpretation: "Treatment beats control after CUPED."
+        },
+        note: null
+      }
+    ]
+  }
+};
+
 describe("LiveStatsSection", () => {
   beforeEach(() => {
     resetResultsStores();
@@ -109,6 +160,27 @@ describe("LiveStatsSection", () => {
       expect(text).toContain("Significant");
       expect(text).toContain("P(treatment beats control)");
       expect(text).toContain("CUPED");
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("renders the CUPED variance-reduction block when a covariate is available", async () => {
+    const fetchMock = vi.fn(async (..._args: unknown[]) => ({ ok: true, json: async () => cupedAvailableResponse }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const view = await renderIntoDocument(<LiveStatsSection />);
+    try {
+      await flushEffects();
+      await click(findButton(view.container, "Refresh live stats"));
+      await flushEffects();
+      await flushEffects();
+
+      const text = view.container.textContent ?? "";
+      expect(text).toContain("variance reduction"); // cupedReduction line
+      expect(text).toContain("pre-period covariate"); // cupedCoverage line
+      expect(text).toContain("adjusted mean"); // cupedArmLine
+      expect(text).toContain("Adjusted effect"); // cupedAdjustedEffect line
     } finally {
       await view.unmount();
     }

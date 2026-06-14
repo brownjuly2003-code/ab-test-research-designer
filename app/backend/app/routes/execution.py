@@ -6,6 +6,7 @@ from app.backend.app.schemas.api import (
     IngestionSummaryResponse,
     IngestResultResponse,
     LiveStatsResponse,
+    PrePeriodIngestRequest,
 )
 from app.backend.app.services.live_stats_service import build_live_stats
 
@@ -42,6 +43,22 @@ def create_execution_router(settings, repository, rate_limiter, require_auth, re
         )
         return IngestResultResponse.model_validate(result)
 
+    @router.post(
+        "/api/v1/experiments/{experiment_id}/pre-period",
+        response_model=IngestResultResponse,
+        dependencies=[Depends(require_write_auth)],
+    )
+    def ingest_pre_period_values(
+        experiment_id: str, payload: PrePeriodIngestRequest
+    ) -> IngestResultResponse:
+        """Ingest per-user pre-experiment covariate values for CUPED (E5). First-write-wins
+        per user; the covariate enables variance reduction on the continuous live-stats."""
+        result = repository.record_pre_period_values(
+            experiment_id,
+            [event.model_dump() for event in payload.pre_period_values],
+        )
+        return IngestResultResponse.model_validate(result)
+
     @router.get(
         "/api/v1/experiments/{experiment_id}/ingestion",
         response_model=IngestionSummaryResponse,
@@ -69,7 +86,10 @@ def create_execution_router(settings, repository, rate_limiter, require_auth, re
         aggregates = repository.get_experiment_analysis_aggregates(experiment_id, metric_name)
         if aggregates is None:
             raise HTTPException(status_code=404, detail="Experiment not found")
-        result = build_live_stats(experiment_id, project["payload"], aggregates)
+        cuped_aggregates = repository.get_cuped_aggregates(experiment_id, metric_name)
+        result = build_live_stats(
+            experiment_id, project["payload"], aggregates, cuped_aggregates
+        )
         return LiveStatsResponse.model_validate(result)
 
     return router

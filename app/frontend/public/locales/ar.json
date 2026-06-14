@@ -739,7 +739,12 @@
       "sequentialNotCrossed": "أقل من الحد التتابعي — واصل جمع البيانات.",
       "sequentialTitle": "المراقبة التتابعية",
       "sequentialActive": "المعلومات {{fraction}} من الخطة · الحد z {{boundary}} · المخطط {{planned}}/متغير",
-      "cupedTitle": "CUPED"
+      "cupedTitle": "CUPED",
+      "cupedReduction": "θ {{theta}} · تقليل التباين {{reduction}}%",
+      "cupedCoverage": "{{covariate}} من أصل {{exposed}} مستخدمًا معرّضًا لديهم متغير مساعد لما قبل التجربة",
+      "cupedArmLine": "المتوسط المعدّل {{adjusted}} (الخام {{raw}})",
+      "cupedAdjustedEffect": "الأثر المعدّل {{effect}} · فاصل الثقة [{{lower}}, {{upper}}] · p {{p}}",
+      "cupedComparisonPending": "لا توجد بيانات متغير مساعد كافية لإجراء اختبار CUPED بعد."
     }
   },
   "errors": {

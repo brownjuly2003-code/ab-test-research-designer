@@ -739,7 +739,12 @@
       "sequentialNotCrossed": "Por debajo del límite secuencial — sigue recopilando datos.",
       "sequentialTitle": "Monitoreo secuencial",
       "sequentialActive": "Información {{fraction}} del plan · límite z {{boundary}} · planificado {{planned}}/variante",
-      "cupedTitle": "CUPED"
+      "cupedTitle": "CUPED",
+      "cupedReduction": "θ {{theta}} · reducción de varianza {{reduction}}%",
+      "cupedCoverage": "{{covariate}} de {{exposed}} usuarios expuestos tienen covariable de preperíodo",
+      "cupedArmLine": "media ajustada {{adjusted}} (bruta {{raw}})",
+      "cupedAdjustedEffect": "Efecto ajustado {{effect}} · IC [{{lower}}, {{upper}}] · p {{p}}",
+      "cupedComparisonPending": "Aún no hay suficientes datos de covariable para una prueba CUPED."
     }
   },
   "errors": {

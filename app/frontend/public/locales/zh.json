@@ -739,7 +739,12 @@
       "sequentialNotCrossed": "低于序贯边界——继续收集数据。",
       "sequentialTitle": "序贯监测",
       "sequentialActive": "信息量为计划的 {{fraction}} · 边界 z {{boundary}} · 计划 {{planned}}/变体",
-      "cupedTitle": "CUPED"
+      "cupedTitle": "CUPED",
+      "cupedReduction": "θ {{theta}} · 方差缩减 {{reduction}}%",
+      "cupedCoverage": "{{exposed}} 名曝光用户中有 {{covariate}} 名具有实验前协变量",
+      "cupedArmLine": "调整后均值 {{adjusted}}（原始 {{raw}}）",
+      "cupedAdjustedEffect": "调整后效应 {{effect}} · 置信区间 [{{lower}}, {{upper}}] · p {{p}}",
+      "cupedComparisonPending": "协变量数据尚不足以进行 CUPED 检验。"
     }
   },
   "errors": {

@@ -739,7 +739,12 @@
       "sequentialNotCrossed": "Below the sequential boundary — keep collecting data.",
       "sequentialTitle": "Sequential monitoring",
       "sequentialActive": "Information {{fraction}} of plan · boundary z {{boundary}} · planned {{planned}}/variant",
-      "cupedTitle": "CUPED"
+      "cupedTitle": "CUPED",
+      "cupedReduction": "θ {{theta}} · variance reduction {{reduction}}%",
+      "cupedCoverage": "{{covariate}} of {{exposed}} exposed users have a pre-period covariate",
+      "cupedArmLine": "adjusted mean {{adjusted}} (raw {{raw}})",
+      "cupedAdjustedEffect": "Adjusted effect {{effect}} · CI [{{lower}}, {{upper}}] · p {{p}}",
+      "cupedComparisonPending": "Not enough covariate data for a CUPED test yet."
     }
   },
   "errors": {

@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
 
 import { t } from "../../i18n";
-import type { LiveArmStat, LiveComparison, LiveStatsResponse } from "../../lib/api";
+import type {
+  LiveArmStat,
+  LiveComparison,
+  LiveCupedBlock,
+  LiveCupedComparison,
+  LiveStatsResponse
+} from "../../lib/api";
 import { apiUrl } from "../../lib/experiment";
 import { useAnalysisStore } from "../../stores/analysisStore";
 import { useProjectStore } from "../../stores/projectStore";
@@ -97,6 +103,89 @@ function ComparisonCard({
             </span>
           ) : null}
         </>
+      )}
+    </div>
+  );
+}
+
+function CupedComparisonCard({
+  comparison,
+  variantNames
+}: {
+  comparison: LiveCupedComparison;
+  variantNames: string[];
+}) {
+  const controlName =
+    variantNames[comparison.control.variation_index] ?? `#${comparison.control.variation_index + 1}`;
+  const treatmentName = variantNames[comparison.treatment_index] ?? `#${comparison.treatment_index + 1}`;
+
+  return (
+    <div style={{ display: "grid", gap: "4px", marginTop: "6px" }}>
+      <span className="muted">
+        {controlName}:{" "}
+        {t("results.liveStats.cupedArmLine", {
+          adjusted: formatNumber(comparison.control.adjusted_mean),
+          raw: formatNumber(comparison.control.unadjusted_mean)
+        })}
+      </span>
+      <span className="muted">
+        {treatmentName}:{" "}
+        {t("results.liveStats.cupedArmLine", {
+          adjusted: formatNumber(comparison.treatment.adjusted_mean),
+          raw: formatNumber(comparison.treatment.unadjusted_mean)
+        })}
+      </span>
+      {comparison.status === "insufficient_data" || !comparison.analysis ? (
+        <span className="muted">{comparison.note ?? t("results.liveStats.cupedComparisonPending")}</span>
+      ) : (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "center" }}>
+          <span className={`pill ${comparison.analysis.is_significant ? "accent" : ""}`}>
+            {comparison.analysis.is_significant
+              ? t("results.liveStats.significant")
+              : t("results.liveStats.notSignificant")}
+          </span>
+          <span className="muted">
+            {t("results.liveStats.cupedAdjustedEffect", {
+              effect: formatNumber(comparison.analysis.observed_effect, 4),
+              lower: formatNumber(comparison.analysis.ci_lower, 4),
+              upper: formatNumber(comparison.analysis.ci_upper, 4),
+              p: formatNumber(comparison.analysis.p_value, 4)
+            })}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CupedBlock({ cuped, variantNames }: { cuped: LiveCupedBlock; variantNames: string[] }) {
+  return (
+    <div className="callout" style={{ display: "grid", gap: "6px" }}>
+      <strong>{t("results.liveStats.cupedTitle")}</strong>
+      {cuped.status === "available" ? (
+        <>
+          <span className="muted">
+            {t("results.liveStats.cupedReduction", {
+              theta: formatNumber(cuped.theta, 4),
+              reduction: formatNumber(cuped.variance_reduction_pct)
+            })}
+          </span>
+          <span className="muted">
+            {t("results.liveStats.cupedCoverage", {
+              covariate: cuped.covariate_users_total ?? 0,
+              exposed: cuped.exposed_users_total ?? 0
+            })}
+          </span>
+          {(cuped.comparisons ?? []).map((comparison) => (
+            <CupedComparisonCard
+              key={comparison.treatment_index}
+              comparison={comparison}
+              variantNames={variantNames}
+            />
+          ))}
+        </>
+      ) : (
+        <span className="muted">{cuped.note}</span>
       )}
     </div>
   );
@@ -230,10 +319,7 @@ export default function LiveStatsSection() {
                 )}
               </div>
 
-              <div className="callout" style={{ display: "grid", gap: "6px" }}>
-                <strong>{t("results.liveStats.cupedTitle")}</strong>
-                <span className="muted">{stats.cuped.note}</span>
-              </div>
+              <CupedBlock cuped={stats.cuped} variantNames={variantNames} />
             </>
           )}
 

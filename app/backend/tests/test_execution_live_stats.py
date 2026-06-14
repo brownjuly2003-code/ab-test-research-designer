@@ -2,7 +2,8 @@
 
 Covers the per-variation analysis-aggregate repository query (CTE join + dedup + holdout
 exclusion), the live-stats service (SRM guardrail, frequentist + Bayesian comparison,
-sequential boundary, CUPED unavailability), and the read endpoint.
+sequential boundary, CUPED variance reduction over an ingested pre-period covariate), and
+the read endpoints (live-stats + pre-period ingestion).
 """
 
 from pathlib import Path
@@ -96,6 +97,26 @@ def _arm(index: int, exposed: int, converted: int, value_sum: float = 0.0, value
 
 def _aggregates(*arms: dict) -> dict:
     return {"experiment_id": "e", "metric_name": "purchase", "variations": list(arms)}
+
+
+def _cuped_arm(
+    index: int, xs: list[float], ys: list[float]
+) -> dict:
+    """A CUPED per-variation sufficient-statistics row from paired (X, Y) values."""
+    assert len(xs) == len(ys)
+    return {
+        "variation_index": index,
+        "n": len(xs),
+        "sum_x": sum(xs),
+        "sum_x2": sum(x * x for x in xs),
+        "sum_y": sum(ys),
+        "sum_y2": sum(y * y for y in ys),
+        "sum_xy": sum(x * y for x, y in zip(xs, ys)),
+    }
+
+
+def _cuped_aggregates(*arms: dict) -> dict:
+    return {"experiment_id": "e", "metric_name": "aov", "variations": list(arms)}
 
 
 # --- repository: analysis aggregates --------------------------------------------------
@@ -262,11 +283,28 @@ def test_live_stats_sequential_active_with_boundary_when_multiple_looks() -> Non
     assert result["comparisons"][0]["sequential_significant"] is False
 
 
-def test_live_stats_cuped_is_unavailable() -> None:
+def test_live_stats_cuped_not_applicable_for_binary_metric() -> None:
+    # Live CUPED routes through the continuous t-test, so it does not apply to binary metrics.
     result = build_live_stats(
         "e", _binary_design(), _aggregates(_arm(0, 100, 10), _arm(1, 100, 12))
     )
+    assert result["cuped"]["status"] == "not_applicable"
+    assert result["cuped"]["comparisons"] == []
+
+
+def test_live_stats_cuped_unavailable_for_continuous_without_covariate() -> None:
+    # Continuous metric but no pre-period covariate ingested -> CUPED stays unavailable.
+    result = build_live_stats(
+        "e",
+        _continuous_design(),
+        _aggregates(
+            _arm(0, 4, 4, value_sum=100.0, value_sq_sum=3000.0),
+            _arm(1, 4, 4, value_sum=180.0, value_sq_sum=8600.0),
+        ),
+    )
     assert result["cuped"]["status"] == "unavailable"
+    assert result["cuped"]["covariate_users_total"] == 0
+    assert result["cuped"]["exposed_users_total"] == 8
 
 
 # --- route ----------------------------------------------------------------------------
@@ -363,5 +401,264 @@ def test_live_stats_route_reports_srm_and_comparison() -> None:
     assert len(data["comparisons"]) == 1
     assert data["comparisons"][0]["control"]["conversion_rate"] == 0.1
     assert data["comparisons"][0]["treatment"]["conversion_rate"] == 0.2
-    assert data["cuped"]["status"] == "unavailable"
+    assert data["cuped"]["status"] == "not_applicable"  # binary metric
     assert "MVP" in data["disclaimer"]
+
+
+# --- CUPED on live data (E5) ----------------------------------------------------------
+
+
+def test_cuped_constant_covariate_gives_zero_theta_and_matches_unadjusted() -> None:
+    # A constant covariate has var(X) = 0 -> theta = 0 -> CUPED collapses to the unadjusted
+    # estimate: adjusted means equal raw means and the variance reduction is exactly zero.
+    result = build_live_stats(
+        "e",
+        _continuous_design(),
+        _aggregates(
+            _arm(0, 4, 4, value_sum=100.0, value_sq_sum=2600.0),
+            _arm(1, 4, 4, value_sum=180.0, value_sq_sum=8200.0),
+        ),
+        _cuped_aggregates(
+            _cuped_arm(0, xs=[5, 5, 5, 5], ys=[20, 30, 20, 30]),
+            _cuped_arm(1, xs=[5, 5, 5, 5], ys=[40, 50, 40, 50]),
+        ),
+    )
+    cuped = result["cuped"]
+    assert cuped["status"] == "available"
+    assert cuped["theta"] == 0.0
+    assert cuped["variance_reduction_pct"] == 0.0
+    comparison = cuped["comparisons"][0]
+    assert comparison["status"] == "ok"
+    assert comparison["control"]["adjusted_mean"] == comparison["control"]["unadjusted_mean"] == 25.0
+    assert comparison["treatment"]["adjusted_mean"] == comparison["treatment"]["unadjusted_mean"] == 45.0
+    assert comparison["analysis"]["observed_effect"] == 20.0
+
+
+def test_cuped_correlated_covariate_reduces_variance_and_preserves_effect() -> None:
+    # X and Y are positively correlated, with equal X means across arms -> the treatment effect
+    # is preserved while the residual variance (and thus the t-test denominator) shrinks.
+    result = build_live_stats(
+        "e",
+        _continuous_design(),
+        _aggregates(
+            _arm(0, 4, 4, value_sum=100.0, value_sq_sum=2950.0),
+            _arm(1, 4, 4, value_sum=130.0, value_sq_sum=4550.0),
+        ),
+        _cuped_aggregates(
+            _cuped_arm(0, xs=[1, 2, 3, 4], ys=[10, 25, 25, 40]),
+            _cuped_arm(1, xs=[1, 2, 3, 4], ys=[20, 30, 35, 45]),
+        ),
+    )
+    cuped = result["cuped"]
+    assert cuped["status"] == "available"
+    assert cuped["theta"] == 8.5  # cov(X,Y)/var(X) pooled = (85/7)/(10/7)
+    assert cuped["variance_reduction_pct"] > 50.0  # strong correlation -> large reduction
+    assert cuped["covariate_users_total"] == 8
+    comparison = cuped["comparisons"][0]
+    assert comparison["status"] == "ok"
+    # X means are equal across arms, so the adjusted effect equals the raw mean difference (7.5).
+    assert comparison["analysis"]["observed_effect"] == 7.5
+    assert comparison["control"]["adjusted_std"] is not None
+    assert comparison["treatment"]["adjusted_std"] is not None
+
+
+def test_cuped_insufficient_when_arm_has_under_two_covariate_users() -> None:
+    result = build_live_stats(
+        "e",
+        _continuous_design(),
+        _aggregates(
+            _arm(0, 4, 4, value_sum=100.0, value_sq_sum=2950.0),
+            _arm(1, 4, 4, value_sum=130.0, value_sq_sum=4550.0),
+        ),
+        _cuped_aggregates(
+            _cuped_arm(0, xs=[1, 2, 3, 4], ys=[10, 25, 25, 40]),
+            _cuped_arm(1, xs=[1], ys=[20]),  # only one covariate user in the treatment arm
+        ),
+    )
+    assert result["cuped"]["status"] == "available"
+    assert result["cuped"]["comparisons"][0]["status"] == "insufficient_data"
+
+
+def test_cuped_aggregates_restrict_to_covariate_users_and_exclude_holdout() -> None:
+    repo = _repo()
+    exp = _project(repo)
+    repo.record_exposures(
+        exp,
+        [
+            {"user_id": "u1", "variation_index": 0},
+            {"user_id": "u2", "variation_index": 0},
+            {"user_id": "u3", "variation_index": 0},  # no covariate -> excluded from CUPED
+            {"user_id": "u4", "variation_index": 1},
+            {"user_id": "u5", "variation_index": 1},
+            {"user_id": "uH", "variation_index": -1},  # holdout -> excluded
+        ],
+    )
+    repo.record_pre_period_values(
+        exp,
+        [
+            {"user_id": "u1", "value": 10.0},
+            {"user_id": "u2", "value": 20.0},
+            {"user_id": "u4", "value": 40.0},
+            {"user_id": "u5", "value": 50.0},
+            {"user_id": "uH", "value": 99.0},  # holdout covariate present but arm excluded
+            {"user_id": "u9", "value": 7.0},  # never exposed -> excluded
+        ],
+    )
+    repo.record_conversions(
+        exp,
+        [
+            {"user_id": "u1", "metric": "aov", "value": 1.0},
+            {"user_id": "u1", "metric": "aov", "value": 1.0},  # u1 Y sums to 2.0
+            {"user_id": "u2", "metric": "aov", "value": 3.0},
+            {"user_id": "u4", "metric": "aov", "value": 5.0},
+            # u5 has no conversion -> Y = 0
+        ],
+    )
+
+    aggregates = repo.get_cuped_aggregates(exp, "aov")
+    assert aggregates is not None
+    by_index = {arm["variation_index"]: arm for arm in aggregates["variations"]}
+
+    assert by_index[0]["n"] == 2  # u1, u2 (u3 has no covariate)
+    assert by_index[0]["sum_x"] == 30.0
+    assert by_index[0]["sum_x2"] == 500.0  # 10^2 + 20^2
+    assert by_index[0]["sum_y"] == 5.0  # u1: 2.0 + u2: 3.0
+    assert by_index[0]["sum_y2"] == 13.0  # 2^2 + 3^2
+    assert by_index[0]["sum_xy"] == 80.0  # 10*2 + 20*3
+
+    assert by_index[1]["n"] == 2  # u4, u5
+    assert by_index[1]["sum_y"] == 5.0  # u4: 5.0 + u5: 0
+    assert by_index[1]["sum_xy"] == 200.0  # 40*5 + 50*0
+    assert -1 not in by_index  # holdout never appears
+
+
+def test_cuped_aggregates_none_for_unknown_experiment() -> None:
+    repo = _repo()
+    assert repo.get_cuped_aggregates("missing", "aov") is None
+
+
+def test_record_pre_period_values_dedups_per_user() -> None:
+    repo = _repo()
+    exp = _project(repo)
+    first = repo.record_pre_period_values(
+        exp, [{"user_id": "u1", "value": 5.0}, {"user_id": "u2", "value": 6.0}]
+    )
+    assert first == {"received": 2, "recorded": 2, "deduplicated": 0}
+    # First-write-wins: a later value for u1 is dropped.
+    second = repo.record_pre_period_values(exp, [{"user_id": "u1", "value": 99.0}])
+    assert second == {"received": 1, "recorded": 0, "deduplicated": 1}
+
+
+def _create_continuous_project(client: TestClient) -> str:
+    payload = {
+        "project": {
+            "project_name": "Live CUPED exp",
+            "domain": "e-commerce",
+            "product_type": "web app",
+            "platform": "web",
+            "market": "US",
+            "project_description": "Testing live CUPED.",
+        },
+        "hypothesis": {
+            "change_description": "bigger basket",
+            "target_audience": "all users",
+            "business_problem": "low AOV",
+            "hypothesis_statement": "recommendations lift AOV",
+            "what_to_validate": "AOV",
+            "desired_result": "uplift",
+        },
+        "setup": {
+            "experiment_type": "ab",
+            "randomization_unit": "user",
+            "traffic_split": [50, 50],
+            "expected_daily_traffic": 12000,
+            "audience_share_in_test": 0.6,
+            "variants_count": 2,
+            "inclusion_criteria": "all",
+            "exclusion_criteria": "staff",
+        },
+        "metrics": {
+            "primary_metric_name": "aov",
+            "metric_type": "continuous",
+            "baseline_value": 45.0,
+            "mde_pct": 5,
+            "alpha": 0.05,
+            "power": 0.8,
+            "std_dev": 12.0,
+        },
+        "constraints": {
+            "seasonality_present": False,
+            "active_campaigns_present": False,
+            "returning_users_present": True,
+            "interference_risk": "low",
+            "technical_constraints": "none",
+            "legal_or_ethics_constraints": "none",
+            "known_risks": "none",
+            "deadline_pressure": "low",
+            "long_test_possible": True,
+        },
+        "additional_context": {"llm_context": ""},
+    }
+    created = client.post("/api/v1/projects", json=payload)
+    assert created.status_code == 200, created.text
+    return created.json()["id"]
+
+
+def test_live_stats_route_reports_available_cuped_after_pre_period_ingest() -> None:
+    client = TestClient(create_app())
+    project_id = _create_continuous_project(client)
+
+    control = [f"c{i}" for i in range(6)]
+    treatment = [f"t{i}" for i in range(6)]
+    exposures = [{"user_id": u, "variation_index": 0} for u in control]
+    exposures += [{"user_id": u, "variation_index": 1} for u in treatment]
+    assert (
+        client.post(
+            f"/api/v1/experiments/{project_id}/exposures", json={"exposures": exposures}
+        ).status_code
+        == 200
+    )
+
+    control_x = [10, 12, 14, 16, 18, 20]
+    treatment_x = [11, 13, 15, 17, 19, 21]
+    pre_period = [{"user_id": u, "value": x} for u, x in zip(control, control_x)]
+    pre_period += [{"user_id": u, "value": x} for u, x in zip(treatment, treatment_x)]
+    pre_resp = client.post(
+        f"/api/v1/experiments/{project_id}/pre-period", json={"pre_period_values": pre_period}
+    )
+    assert pre_resp.status_code == 200, pre_resp.text
+    assert pre_resp.json() == {"received": 12, "recorded": 12, "deduplicated": 0}
+    # A retry for an already-recorded user is deduped (first-write-wins).
+    retry = client.post(
+        f"/api/v1/experiments/{project_id}/pre-period",
+        json={"pre_period_values": [{"user_id": "c0", "value": 999.0}]},
+    )
+    assert retry.json() == {"received": 1, "recorded": 0, "deduplicated": 1}
+
+    control_y = [40, 45, 55, 60, 50, 48]
+    treatment_y = [50, 55, 60, 70, 65, 58]
+    conversions = [
+        {"user_id": u, "metric": "aov", "value": float(y)} for u, y in zip(control, control_y)
+    ]
+    conversions += [
+        {"user_id": u, "metric": "aov", "value": float(y)} for u, y in zip(treatment, treatment_y)
+    ]
+    assert (
+        client.post(
+            f"/api/v1/experiments/{project_id}/conversions", json={"conversions": conversions}
+        ).status_code
+        == 200
+    )
+
+    response = client.get(f"/api/v1/experiments/{project_id}/live-stats")
+    assert response.status_code == 200, response.text
+    data = response.json()
+    assert data["metric_type"] == "continuous"
+    cuped = data["cuped"]
+    assert cuped["status"] == "available"
+    assert cuped["theta"] is not None
+    assert cuped["covariate_users_total"] == 12
+    assert cuped["exposed_users_total"] == 12
+    assert len(cuped["comparisons"]) == 1
+    assert cuped["comparisons"][0]["status"] == "ok"
+    assert cuped["comparisons"][0]["analysis"] is not None

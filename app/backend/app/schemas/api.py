@@ -564,6 +564,20 @@ class ConversionIngestRequest(BaseModel):
     conversions: list[ConversionEvent] = Field(min_length=1, max_length=MAX_INGEST_BATCH)
 
 
+class PrePeriodEvent(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    user_id: str = Field(min_length=1, max_length=200)
+    # Pre-experiment covariate X for CUPED (e.g. the user's pre-period spend / activity).
+    value: float
+
+
+class PrePeriodIngestRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    pre_period_values: list[PrePeriodEvent] = Field(min_length=1, max_length=MAX_INGEST_BATCH)
+
+
 class IngestResultResponse(BaseModel):
     received: int
     recorded: int
@@ -635,10 +649,36 @@ class LiveSequentialBlock(BaseModel):
     note: str
 
 
+class LiveCupedArmStat(BaseModel):
+    variation_index: int
+    # Exposed users that also have a pre-period covariate (the CUPED-eligible subset).
+    covariate_users: int
+    unadjusted_mean: float | None = None  # mean(Y) over the covered subset
+    adjusted_mean: float | None = None  # mean(Y_adj) = mean(Y) - theta*(mean(X) - global mean(X))
+    adjusted_std: float | None = None
+
+
+class LiveCupedComparison(BaseModel):
+    # status: "ok" | "insufficient_data" (an arm has <2 covariate users or degenerate variance)
+    treatment_index: int
+    status: str
+    control: LiveCupedArmStat
+    treatment: LiveCupedArmStat
+    analysis: ResultsResponse | None = None  # CUPED-adjusted continuous t-test (reuses /results)
+    note: str | None = None
+
+
 class LiveCupedBlock(BaseModel):
-    # status: always "unavailable" in the MVP — no pre-period covariate ingestion exists.
+    # status: "available" (pre-period covariate ingested + continuous metric) |
+    #         "unavailable" (no covariate ingested) |
+    #         "not_applicable" (binary metric — live CUPED routes through the continuous estimator)
     status: str
     note: str
+    theta: float | None = None  # pooled cov(X, Y) / var(X)
+    variance_reduction_pct: float | None = None  # pooled (1 - var_adjusted / var_unadjusted) * 100
+    covariate_users_total: int | None = None
+    exposed_users_total: int | None = None
+    comparisons: list["LiveCupedComparison"] = Field(default_factory=list)
 
 
 class LiveStatsResponse(BaseModel):

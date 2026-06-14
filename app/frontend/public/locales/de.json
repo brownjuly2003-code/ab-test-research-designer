@@ -739,7 +739,12 @@
       "sequentialNotCrossed": "Unter der sequenziellen Grenze — weiter Daten sammeln.",
       "sequentialTitle": "Sequenzielle Überwachung",
       "sequentialActive": "Information {{fraction}} des Plans · Grenze z {{boundary}} · geplant {{planned}}/Variante",
-      "cupedTitle": "CUPED"
+      "cupedTitle": "CUPED",
+      "cupedReduction": "θ {{theta}} · Varianzreduktion {{reduction}}%",
+      "cupedCoverage": "{{covariate}} von {{exposed}} exponierten Nutzern haben eine Vorperioden-Kovariate",
+      "cupedArmLine": "angepasster Mittelwert {{adjusted}} (roh {{raw}})",
+      "cupedAdjustedEffect": "Angepasster Effekt {{effect}} · KI [{{lower}}, {{upper}}] · p {{p}}",
+      "cupedComparisonPending": "Noch nicht genügend Kovariaten-Daten für einen CUPED-Test."
     }
   },
   "errors": {

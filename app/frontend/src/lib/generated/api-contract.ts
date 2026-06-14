@@ -597,9 +597,31 @@ export type LiveComparison = {
   note?: string | null;
 };
 
+export type LiveCupedArmStat = {
+  variation_index: number;
+  covariate_users: number;
+  unadjusted_mean?: number | null;
+  adjusted_mean?: number | null;
+  adjusted_std?: number | null;
+};
+
 export type LiveCupedBlock = {
   status: string;
   note: string;
+  theta?: number | null;
+  variance_reduction_pct?: number | null;
+  covariate_users_total?: number | null;
+  exposed_users_total?: number | null;
+  comparisons?: LiveCupedComparison[];
+};
+
+export type LiveCupedComparison = {
+  treatment_index: number;
+  status: string;
+  control: LiveCupedArmStat;
+  treatment: LiveCupedArmStat;
+  analysis?: ResultsResponse | null;
+  note?: string | null;
 };
 
 export type LiveSequentialBlock = {
@@ -726,6 +748,15 @@ export type ObservedResultsContinuous = {
   treatment_std: number;
   treatment_n: number;
   alpha?: number;
+};
+
+export type PrePeriodEvent = {
+  user_id: string;
+  value: number;
+};
+
+export type PrePeriodIngestRequest = {
+  pre_period_values: PrePeriodEvent[];
 };
 
 export type ProjectArchiveResponse = {
