@@ -23,7 +23,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.backend.app.execution.bucketer import assign_variation, get_equal_weights
+from app.backend.app.execution.bucketer import assign_variation, get_equal_weights, in_namespace
 
 # GrowthBook's default hash attribute. We always hash the caller-supplied unit id, so the
 # stored ``randomization_unit`` (free text like "user"/"session") is informational only.
@@ -71,6 +71,10 @@ def build_experiment_assignment(
     previously recorded exposure for this user), that stored variation is honoured instead
     of the fresh hash, so a user keeps their variation even if weights/coverage have since
     changed. The hash is still computed for transparency in the response.
+
+    Mutual exclusion: when ``setup.namespace`` is set and the user falls outside this
+    experiment's namespace slot, they are not in the experiment (``namespace_excluded``).
+    A sticky (already-exposed) user is exempt — once in, they stay in.
     """
     setup = payload.get("setup", {})
     constraints = payload.get("constraints", {})
@@ -89,11 +93,21 @@ def build_experiment_assignment(
     )
     bucket = assignment["hash"]
 
+    namespace = setup.get("namespace")
+    namespace_excluded = False
     if sticky_variation_index is not None:
         # A recorded exposure means the user was in the experiment at this variation.
         variation_index = int(sticky_variation_index)
         in_experiment = True
         sticky = True
+    elif namespace and not in_namespace(
+        user_id, str(namespace["id"]), float(namespace["range_start"]), float(namespace["range_end"])
+    ):
+        # Outside this experiment's namespace slot -> mutually excluded.
+        variation_index = -1
+        in_experiment = False
+        sticky = False
+        namespace_excluded = True
     else:
         variation_index = int(assignment["variation_index"])
         in_experiment = bool(assignment["in_experiment"])
@@ -111,6 +125,7 @@ def build_experiment_assignment(
         "weights": weights,
         "hash_version": hash_version,
         "sticky": sticky,
+        "namespace_excluded": namespace_excluded,
         "growthbook": {
             "key": experiment_id,
             "variationId": variation_index if in_experiment else 0,

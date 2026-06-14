@@ -11,6 +11,7 @@ from app.backend.app.execution.bucketer import (
     fnv32a,
     get_bucket_ranges,
     hash_to_unit,
+    in_namespace,
     preview_assignment_distribution,
 )
 
@@ -156,3 +157,22 @@ def test_preview_distribution_reports_unassigned_tail_under_partial_coverage() -
     variation_indices = {bucket["variation_index"] for bucket in result["distribution"]}
     assert -1 in variation_indices  # the unassigned tail is surfaced explicitly
     assert 0.45 <= result["in_experiment_fraction"] <= 0.55
+
+
+def test_in_namespace_is_deterministic() -> None:
+    first = in_namespace("user-1", "checkout", 0.0, 0.5)
+    second = in_namespace("user-1", "checkout", 0.0, 0.5)
+    assert first == second
+
+
+def test_in_namespace_membership_fraction_matches_range_width() -> None:
+    inside = sum(1 for index in range(5000) if in_namespace(f"u-{index}", "ns", 0.0, 0.3))
+    assert 0.27 <= inside / 5000 <= 0.33  # ~30% of users fall in a [0, 0.3) slot
+
+
+def test_in_namespace_disjoint_slots_never_share_a_user() -> None:
+    for index in range(5000):
+        user = f"u-{index}"
+        in_first = in_namespace(user, "layer", 0.0, 0.5)
+        in_second = in_namespace(user, "layer", 0.5, 1.0)
+        assert not (in_first and in_second)  # disjoint ranges are mutually exclusive

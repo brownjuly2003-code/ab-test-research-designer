@@ -707,7 +707,8 @@
       "bucketLine": "{{user}} · bucket {{bucket}}",
       "growthbookNote": "Compatible con los SDK de GrowthBook: reutiliza el mismo key, seed y versión de hash en el cliente.",
       "serviceUnavailable": "Asignación no disponible.",
-      "stickyNote": "Sticky: este usuario ya tiene una exposición registrada, por lo que conserva esta variación aunque cambie la división del tráfico."
+      "stickyNote": "Sticky: este usuario ya tiene una exposición registrada, por lo que conserva esta variación aunque cambie la división del tráfico.",
+      "namespaceExcluded": "Mutuamente excluido: este usuario queda fuera del slot de namespace de este experimento (no es un holdout)."
     },
     "liveStats": {
       "title": "Resultados del experimento en vivo",

@@ -44,6 +44,24 @@ def hash_to_unit(seed: str, value: str, hash_version: int = 2) -> float | None:
     return None
 
 
+def in_namespace(
+    user_id: str,
+    namespace_id: str,
+    range_start: float,
+    range_end: float,
+) -> bool:
+    """Whether ``user_id`` falls inside this experiment's slot of a shared namespace.
+
+    Byte-for-byte port of GrowthBook ``inNamespace``: hash ``user_id + "__" + namespace_id``
+    to ``[0, 1)`` (version-1 style ``% 1000 / 1000``) and test ``range_start <= n < range_end``.
+    Two experiments that share a ``namespace_id`` but reserve non-overlapping ``[start, end)``
+    slots can never assign the same user — the basis for mutual exclusion. The hash is
+    independent of the experiment seed, so namespace membership and variation are uncorrelated.
+    """
+    unit_interval = (fnv32a(f"{user_id}__{namespace_id}") % 1000) / 1000
+    return range_start <= unit_interval < range_end
+
+
 def get_equal_weights(num_variations: int) -> list[float]:
     if num_variations < 1:
         return []

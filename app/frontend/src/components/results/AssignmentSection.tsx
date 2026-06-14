@@ -118,6 +118,8 @@ export default function AssignmentSection() {
           <div style={{ display: "grid", gap: "6px" }}>
             {result.in_experiment ? (
               <strong>{t("results.assignment.assignedTo", { variant: assignedVariantName })}</strong>
+            ) : result.namespace_excluded ? (
+              <strong>{t("results.assignment.namespaceExcluded")}</strong>
             ) : (
               <strong>{t("results.assignment.holdout")}</strong>
             )}

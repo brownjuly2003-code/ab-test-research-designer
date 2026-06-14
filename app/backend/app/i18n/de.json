@@ -261,7 +261,8 @@
       "observed_counts_positive_sum": "observed_counts must sum to a positive total",
       "expected_fractions_non_negative": "expected_fractions must be non-negative",
       "expected_fractions_sum": "expected_fractions must sum to 1.0, got {{total}}",
-      "bandit_arm_rates_range": "Die Konversionsraten der Varianten müssen jeweils zwischen 0 und 1 liegen."
+      "bandit_arm_rates_range": "Die Konversionsraten der Varianten müssen jeweils zwischen 0 und 1 liegen.",
+      "namespace_range_order": "namespace range_start muss kleiner als range_end sein"
     },
     "srm_detected": "SRM erkannt — prüfen Sie Ihre Randomisierung oder Tracking-Implementierung",
     "srm_not_detected": "Keine SRM erkannt"

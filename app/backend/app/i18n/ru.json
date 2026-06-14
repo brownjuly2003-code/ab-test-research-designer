@@ -261,7 +261,8 @@
       "observed_counts_positive_sum": "сумма observed_counts должна быть положительной",
       "expected_fractions_non_negative": "expected_fractions должны быть неотрицательными",
       "expected_fractions_sum": "expected_fractions должны суммироваться к 1.0, сейчас {{total}}",
-      "bandit_arm_rates_range": "Конверсии вариантов должны быть в диапазоне от 0 до 1."
+      "bandit_arm_rates_range": "Конверсии вариантов должны быть в диапазоне от 0 до 1.",
+      "namespace_range_order": "range_start неймспейса должен быть меньше range_end"
     },
     "srm_detected": "Обнаружен SRM — проверьте рандомизацию и реализацию трекинга",
     "srm_not_detected": "SRM не обнаружен"

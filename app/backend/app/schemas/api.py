@@ -36,6 +36,23 @@ class HypothesisContext(BaseModel):
     desired_result: str
 
 
+class NamespaceConfig(BaseModel):
+    """Mutual-exclusion namespace: experiments sharing an ``id`` but reserving
+    non-overlapping ``[range_start, range_end)`` slots never assign the same user."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: str = Field(min_length=1, max_length=200)
+    range_start: float = Field(ge=0.0, le=1.0)
+    range_end: float = Field(ge=0.0, le=1.0)
+
+    @model_validator(mode="after")
+    def validate_range(self) -> "NamespaceConfig":
+        if self.range_start >= self.range_end:
+            raise ValueError(translate("errors.schemas.namespace_range_order"))
+        return self
+
+
 class ExperimentSetup(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -47,6 +64,8 @@ class ExperimentSetup(BaseModel):
     variants_count: int = Field(ge=2, le=MAX_SUPPORTED_VARIANTS)
     inclusion_criteria: str
     exclusion_criteria: str
+    # Optional mutual-exclusion namespace (execution layer); planning flow ignores it.
+    namespace: NamespaceConfig | None = None
 
     @model_validator(mode="after")
     def validate_variants(self) -> "ExperimentSetup":
@@ -483,6 +502,9 @@ class ExperimentAssignmentResponse(BaseModel):
     # True when the variation came from a previously recorded exposure (sticky bucketing)
     # rather than a fresh hash — so a user keeps their variation even if weights/coverage change.
     sticky: bool = False
+    # True when the user is excluded because they fall outside this experiment's
+    # mutual-exclusion namespace slot (distinct from a holdout/coverage tail).
+    namespace_excluded: bool = False
     growthbook: GrowthBookAssignmentResult
 
 
