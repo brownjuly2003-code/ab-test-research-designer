@@ -8,12 +8,15 @@
 Довести execution-слой до максимума ценности **без захода в осознанные не-цели §5.3** (identity resolution, bot-фильтрация, late/out-of-order события, columnar-warehouse streaming at scale, exactly-once на высоком throughput, streaming config refresh). Каждое расширение — отдельная ветка/PR, зелёный `verify_all.py --skip-smoke` + все CI (вкл. verify-postgres + ubuntu e2e), как в Phase A–D.
 
 ## Статус (2026-06-14)
-**E1–E4 ВЛИТЫ в main.** Остаётся только **E5 (CUPED на live)** — отложен как отдельная сессия: новая статистическая математика (главный риск плана), требует Codex-ревью (§7) и здоровой машины (в конце марафон-сессии Windows-box ушёл в thrashing — tsc/tasklist зависали). Не шипить вслепую.
+**E1–E5 ВЛИТЫ в main — расширения завершены полностью.** Вместе с execution-MVP (Phases A→D)
+это замыкает весь execution-слой; backlog исчерпан.
 - ✅ **E1** — PR #11 merge `873f5723` (коммит `42fcc869`).
 - ✅ **E2** — PR #12 merge `0fe053fe` (коммит `edbbdbf4`).
 - ✅ **E3** — PR #13 merge `1431d2b0` (коммит `7398a970`).
 - ✅ **E4** — PR #14 merge `6d230fda` (коммит `71343ffe`).
-- ⬜ **E5** — НЕ начато (см. ниже; вся математика и дизайн ingestion готовы к кодингу).
+- ✅ **E5** — PR #16 merge `e44a3c9b` (коммиты `2057e986` + `83e16859`). Новая статистическая
+  математика прошла §7-ревью (subagent `code-reviewer` вместо недоступного Codex): вердикт
+  «математика корректна, блокеров нет». Все CI зелёные, включая verify-postgres.
 
 ## Очередь (по ценности/риску)
 
@@ -29,8 +32,19 @@ Bucketer-инкремент (план Phase A упоминал): второй х
 ### ✅ E4 — Targeting / attributes evaluation — MEDIUM-HIGH — PR #14 (ВЛИТА)
 Phase B принимает `attributes`, но НЕ оценивает. Добавить targeting-правила в дизайн (минимум: список `{attribute, operator, value}` AND-условия) → eval в assignment: не прошёл таргетинг → not-in-experiment (variationId 0, inExperiment false). Schema-расширение (`setup.targeting_rules` опц.), `execution/targeting.py` (eval), тесты на in/out + GrowthBook-семантику. Держать простым (equals/in/gt/lt), без сложного rule-engine.
 
-### ⬜ E5 — CUPED на live-данных — HIGH (риск: новая математика) — PR #15 — НЕ начато
-**Главный риск из плана.** Нужен per-user pre-period covariate. (1) ingestion pre-period значений (новый эндпоинт/таблица `pre_period_values(experiment_id,user_id,value)`), (2) CUPED-adjusted estimator в анализе: `Y_adj = Y - θ(X - mean(X))`, `θ = cov(X,Y)/var(X)`; считать adjusted mean/var per arm → существующий `analyze_results` (continuous). Это НОВАЯ математика → перед мержем прогнать тесты на свойства (θ=0 при нулевой корреляции даёт исходный результат; снижение дисперсии при корреляции) + рассмотреть Codex second-opinion (§7). CUPED-блок live-stats: `unavailable`→`available` когда pre-period есть.
+### ✅ E5 — CUPED на live-данных — HIGH (риск: новая математика) — PR #16 (ВЛИТА)
+**Главный риск из плана — реализовано.** (1) ingestion pre-period covariate: таблица
+`pre_period_values(experiment_id,user_id,value)` на обоих бэкендах (schema_version 8→9,
+first-write-wins) + `POST /api/v1/experiments/{id}/pre-period`. (2) CUPED-adjusted estimator:
+`repository.get_cuped_aggregates` отдаёт per-variation достаточные статистики
+(`n,sum_x,sum_x2,sum_y,sum_y2,sum_xy`) по covered-subset; `live_stats_service._build_cuped_block`
+считает pooled `θ = cov(X,Y)/var(X)`, adjusted mean=`Ȳ−θ(X̄−globalX̄)` и
+adjusted var=`varY−2θ·cov+θ²·varX` в closed-form → существующий `analyze_results` (continuous,
+новой тест-статистики не вводилось). Блок live-stats: `unavailable`→`available` когда есть
+ковариата; `not_applicable` для binary. Property-тесты (θ=0 при константном ковариате →
+совпадает с unadjusted, var_reduction=0; коррелированный → снижение дисперсии + эффект сохранён)
++ repo CTE/ingestion + PG round-trip + frontend-рендер. §7-ревью пройдено субагентом
+`code-reviewer`: математика корректна. Кавеат «оценка по подвыборке с ковариатой» отражён в note.
 
 ## Не-цели (подтверждаем §5.3)
 identity resolution · bot-фильтрация · late/out-of-order/timezone · streaming at scale · exactly-once high-throughput · streaming config refresh.
