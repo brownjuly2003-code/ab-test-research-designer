@@ -752,6 +752,30 @@ def test_experiment_assign_respects_mutual_exclusion_namespace() -> None:
     assert excluded > 0  # some users fall outside the [0, 0.5) namespace slot
 
 
+def test_experiment_assign_evaluates_targeting_rules() -> None:
+    client = TestClient(create_app())
+    payload = _full_payload()
+    payload["project"]["project_name"] = "Targeted exp"
+    payload["setup"]["targeting_rules"] = [{"attribute": "country", "operator": "equals", "value": "US"}]
+    created = client.post("/api/v1/projects", json=payload)
+    assert created.status_code == 200, created.text
+    project_id = created.json()["id"]
+
+    matched = client.post(
+        f"/api/v1/experiments/{project_id}/assign",
+        json={"user_id": "u-1", "attributes": {"country": "US"}},
+    ).json()
+    assert matched["in_experiment"] is True
+    assert matched["targeting_excluded"] is False
+
+    unmatched = client.post(
+        f"/api/v1/experiments/{project_id}/assign",
+        json={"user_id": "u-1", "attributes": {"country": "CA"}},
+    ).json()
+    assert unmatched["in_experiment"] is False
+    assert unmatched["targeting_excluded"] is True
+
+
 def test_experiment_assign_returns_404_for_unknown_experiment() -> None:
     client = TestClient(create_app())
 

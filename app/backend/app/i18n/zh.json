@@ -262,7 +262,9 @@
       "expected_fractions_non_negative": "Expected_fractions 必须为非负数",
       "expected_fractions_sum": "Expected_fractions 总和必须为 1.0，得到 {{total}}",
       "bandit_arm_rates_range": "各变体的转化率必须介于 0 和 1 之间。",
-      "namespace_range_order": "命名空间的 range_start 必须小于 range_end"
+      "namespace_range_order": "命名空间的 range_start 必须小于 range_end",
+      "targeting_in_requires_list": "定向运算符 'in' 需要列表值",
+      "targeting_numeric_requires_number": "数值定向运算符需要数值"
     },
     "srm_detected": "检测到 SRM - 检查您的随机化或跟踪实施",
     "srm_not_detected": "未检测到 SRM"

@@ -395,6 +395,7 @@ export type ExperimentAssignmentResponse = {
   hash_version: number;
   sticky?: boolean;
   namespace_excluded?: boolean;
+  targeting_excluded?: boolean;
   growthbook: GrowthBookAssignmentResult;
 };
 
@@ -459,6 +460,7 @@ export type ExperimentSetup = {
   inclusion_criteria: string;
   exclusion_criteria: string;
   namespace?: NamespaceConfig | null;
+  targeting_rules?: TargetingRule[];
 };
 
 export type ExportEventRecord = {
@@ -987,6 +989,12 @@ export type StandaloneExportRequest = {
   ai_advice?: { [key: string]: unknown; } | null;
   sensitivity?: { [key: string]: unknown; } | null;
   results?: { [key: string]: unknown; } | null;
+};
+
+export type TargetingRule = {
+  attribute: string;
+  operator: "equals" | "not_equals" | "in" | "gt" | "lt" | "gte" | "lte";
+  value: string | number | boolean | ((string | number | boolean)[]);
 };
 
 export type TemplateCreateRequest = {

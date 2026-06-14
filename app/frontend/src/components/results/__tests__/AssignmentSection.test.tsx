@@ -115,6 +115,59 @@ describe("AssignmentSection", () => {
     }
   });
 
+  it("sends attributes and distinguishes a targeting exclusion", async () => {
+    const targetedResponse = {
+      ...assignResponse,
+      in_experiment: false,
+      variation_index: -1,
+      targeting_excluded: true
+    };
+    const fetchMock = vi.fn(async (..._args: unknown[]) => ({ ok: true, json: async () => targetedResponse }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const view = await renderIntoDocument(<AssignmentSection />);
+    try {
+      await flushEffects();
+      await changeValue(view.container.querySelector("#assignment-user-id") as HTMLInputElement, "user-99");
+      await changeValue(
+        view.container.querySelector("#assignment-attributes") as HTMLTextAreaElement,
+        '{"country": "CA"}'
+      );
+      await click(findButton(view.container, "Assign"));
+      await flushEffects();
+      await flushEffects();
+
+      const options = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
+      const requestBody = JSON.parse(String(options?.body));
+      expect(requestBody.attributes).toEqual({ country: "CA" });
+      expect(view.container.textContent).toContain("Not eligible");
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("rejects invalid attributes JSON before calling the API", async () => {
+    const fetchMock = vi.fn(async (..._args: unknown[]) => ({ ok: true, json: async () => assignResponse }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const view = await renderIntoDocument(<AssignmentSection />);
+    try {
+      await flushEffects();
+      await changeValue(view.container.querySelector("#assignment-user-id") as HTMLInputElement, "user-99");
+      await changeValue(
+        view.container.querySelector("#assignment-attributes") as HTMLTextAreaElement,
+        "{not json"
+      );
+      await click(findButton(view.container, "Assign"));
+      await flushEffects();
+
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(view.container.textContent).toContain("valid JSON object");
+    } finally {
+      await view.unmount();
+    }
+  });
+
   it("shows the save-first hint when no experiment is saved", async () => {
     useAnalysisStore.setState({ ...useAnalysisStore.getState(), resultsProjectId: null });
     useProjectStore.setState({

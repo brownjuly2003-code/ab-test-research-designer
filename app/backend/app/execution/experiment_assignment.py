@@ -24,6 +24,7 @@ from __future__ import annotations
 from typing import Any
 
 from app.backend.app.execution.bucketer import assign_variation, get_equal_weights, in_namespace
+from app.backend.app.execution.targeting import evaluate_targeting
 
 # GrowthBook's default hash attribute. We always hash the caller-supplied unit id, so the
 # stored ``randomization_unit`` (free text like "user"/"session") is informational only.
@@ -57,6 +58,7 @@ def build_experiment_assignment(
     user_id: str,
     hash_version: int = 2,
     sticky_variation_index: int | None = None,
+    attributes: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Assign ``user_id`` to a variation for a stored experiment design.
 
@@ -75,6 +77,10 @@ def build_experiment_assignment(
     Mutual exclusion: when ``setup.namespace`` is set and the user falls outside this
     experiment's namespace slot, they are not in the experiment (``namespace_excluded``).
     A sticky (already-exposed) user is exempt — once in, they stay in.
+
+    Targeting: when ``setup.targeting_rules`` are set and the request's ``attributes`` do
+    not satisfy them, the user is not in the experiment (``targeting_excluded``). Targeting
+    is evaluated before namespace (eligibility first); sticky users are exempt.
     """
     setup = payload.get("setup", {})
     constraints = payload.get("constraints", {})
@@ -94,12 +100,20 @@ def build_experiment_assignment(
     bucket = assignment["hash"]
 
     namespace = setup.get("namespace")
+    targeting_rules = setup.get("targeting_rules") or []
     namespace_excluded = False
+    targeting_excluded = False
     if sticky_variation_index is not None:
         # A recorded exposure means the user was in the experiment at this variation.
         variation_index = int(sticky_variation_index)
         in_experiment = True
         sticky = True
+    elif targeting_rules and not evaluate_targeting(targeting_rules, attributes):
+        # Fails attribute-based eligibility -> not in the experiment.
+        variation_index = -1
+        in_experiment = False
+        sticky = False
+        targeting_excluded = True
     elif namespace and not in_namespace(
         user_id, str(namespace["id"]), float(namespace["range_start"]), float(namespace["range_end"])
     ):
@@ -126,6 +140,7 @@ def build_experiment_assignment(
         "hash_version": hash_version,
         "sticky": sticky,
         "namespace_excluded": namespace_excluded,
+        "targeting_excluded": targeting_excluded,
         "growthbook": {
             "key": experiment_id,
             "variationId": variation_index if in_experiment else 0,

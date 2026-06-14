@@ -262,7 +262,9 @@
       "expected_fractions_non_negative": "expected_fractions должны быть неотрицательными",
       "expected_fractions_sum": "expected_fractions должны суммироваться к 1.0, сейчас {{total}}",
       "bandit_arm_rates_range": "Конверсии вариантов должны быть в диапазоне от 0 до 1.",
-      "namespace_range_order": "range_start неймспейса должен быть меньше range_end"
+      "namespace_range_order": "range_start неймспейса должен быть меньше range_end",
+      "targeting_in_requires_list": "оператор таргетинга 'in' требует значение-список",
+      "targeting_numeric_requires_number": "числовые операторы таргетинга требуют числовое значение"
     },
     "srm_detected": "Обнаружен SRM — проверьте рандомизацию и реализацию трекинга",
     "srm_not_detected": "SRM не обнаружен"

@@ -145,6 +145,41 @@ def test_namespace_slots_are_mutually_exclusive() -> None:
     assert overlap == 0
 
 
+def test_targeting_rules_gate_eligibility() -> None:
+    payload = _payload()
+    payload["setup"]["targeting_rules"] = [{"attribute": "country", "operator": "equals", "value": "US"}]
+
+    eligible = build_experiment_assignment("exp-t", payload, "user-1", attributes={"country": "US"})
+    assert eligible["in_experiment"] is True
+    assert eligible["targeting_excluded"] is False
+
+    excluded = build_experiment_assignment("exp-t", payload, "user-1", attributes={"country": "CA"})
+    assert excluded["in_experiment"] is False
+    assert excluded["targeting_excluded"] is True
+    assert excluded["variation_index"] == -1
+    assert excluded["growthbook"]["inExperiment"] is False
+
+
+def test_targeting_excluded_when_attributes_missing() -> None:
+    payload = _payload()
+    payload["setup"]["targeting_rules"] = [{"attribute": "country", "operator": "equals", "value": "US"}]
+    result = build_experiment_assignment("exp-t", payload, "user-1", attributes=None)
+    assert result["targeting_excluded"] is True
+
+
+def test_targeting_excluded_user_stays_in_when_sticky() -> None:
+    payload = _payload()
+    payload["setup"]["targeting_rules"] = [{"attribute": "country", "operator": "equals", "value": "US"}]
+    # Non-matching attributes would exclude, but an already-exposed user is exempt.
+    sticky = build_experiment_assignment(
+        "exp-t", payload, "user-1", sticky_variation_index=1, attributes={"country": "CA"}
+    )
+    assert sticky["in_experiment"] is True
+    assert sticky["variation_index"] == 1
+    assert sticky["sticky"] is True
+    assert sticky["targeting_excluded"] is False
+
+
 def test_namespace_excluded_user_stays_in_when_sticky() -> None:
     # An already-exposed user is exempt from namespace exclusion (once in, stay in).
     payload = _payload(namespace={"id": "checkout", "range_start": 0.0, "range_end": 0.5})

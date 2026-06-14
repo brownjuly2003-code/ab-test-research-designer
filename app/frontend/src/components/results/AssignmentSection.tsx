@@ -20,6 +20,7 @@ export default function AssignmentSection() {
   const variantNames = displayedAnalysis?.report?.experiment_design?.variants.map((variant) => variant.name) ?? [];
 
   const [userId, setUserId] = useState("");
+  const [attributesText, setAttributesText] = useState("");
   const [result, setResult] = useState<ExperimentAssignmentResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -28,6 +29,7 @@ export default function AssignmentSection() {
     setResult(null);
     setError("");
     setLoading(false);
+    setAttributesText("");
   }, [experimentId]);
 
   const canAssign = Boolean(experimentId) && userId.trim() !== "" && !loading;
@@ -36,14 +38,27 @@ export default function AssignmentSection() {
     if (!experimentId || userId.trim() === "") {
       return;
     }
-    setLoading(true);
     setResult(null);
     setError("");
+    const requestBody: { user_id: string; attributes?: Record<string, unknown> } = { user_id: userId.trim() };
+    if (attributesText.trim() !== "") {
+      try {
+        const parsed = JSON.parse(attributesText);
+        if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+          throw new Error("not an object");
+        }
+        requestBody.attributes = parsed as Record<string, unknown>;
+      } catch {
+        setError(t("results.assignment.attributesInvalid"));
+        return;
+      }
+    }
+    setLoading(true);
     try {
       const response = await fetch(apiUrl(`/api/v1/experiments/${encodeURIComponent(experimentId)}/assign`), {
         method: "POST",
         headers: buildApiRequestHeaders(),
-        body: JSON.stringify({ user_id: userId.trim() })
+        body: JSON.stringify(requestBody)
       });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) {
@@ -90,6 +105,17 @@ export default function AssignmentSection() {
               }}
             />
           </div>
+          <div className="field" style={{ marginTop: "var(--space-3)" }}>
+            <label htmlFor="assignment-attributes">{t("results.assignment.attributesLabel")}</label>
+            <textarea
+              id="assignment-attributes"
+              rows={2}
+              autoComplete="off"
+              placeholder={t("results.assignment.attributesPlaceholder")}
+              value={attributesText}
+              onChange={(event) => setAttributesText(event.target.value)}
+            />
+          </div>
           <div className="actions">
             <button className="btn secondary" type="button" onClick={() => void assignUser()} disabled={!canAssign}>
               {loading ? t("results.assignment.assigning") : t("results.assignment.assignButton")}
@@ -118,6 +144,8 @@ export default function AssignmentSection() {
           <div style={{ display: "grid", gap: "6px" }}>
             {result.in_experiment ? (
               <strong>{t("results.assignment.assignedTo", { variant: assignedVariantName })}</strong>
+            ) : result.targeting_excluded ? (
+              <strong>{t("results.assignment.targetingExcluded")}</strong>
             ) : result.namespace_excluded ? (
               <strong>{t("results.assignment.namespaceExcluded")}</strong>
             ) : (

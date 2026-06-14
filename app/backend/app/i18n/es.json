@@ -262,7 +262,9 @@
       "expected_fractions_non_negative": "expected_fractions must be non-negative",
       "expected_fractions_sum": "expected_fractions must sum to 1.0, got {{total}}",
       "bandit_arm_rates_range": "Las tasas de conversión de cada variante deben estar entre 0 y 1.",
-      "namespace_range_order": "range_start del namespace debe ser menor que range_end"
+      "namespace_range_order": "range_start del namespace debe ser menor que range_end",
+      "targeting_in_requires_list": "el operador de segmentación 'in' requiere un valor de lista",
+      "targeting_numeric_requires_number": "los operadores numéricos de segmentación requieren un valor numérico"
     },
     "srm_detected": "SRM detectado — verifique su aleatorización o implementación de seguimiento",
     "srm_not_detected": "No se detectó SRM"

@@ -708,7 +708,11 @@
       "growthbookNote": "Kompatibel mit GrowthBook-SDKs – verwenden Sie clientseitig denselben Key, Seed und dieselbe Hash-Version.",
       "serviceUnavailable": "Zuweisung nicht verfügbar.",
       "stickyNote": "Sticky: Für diesen Nutzer ist bereits eine Exposition erfasst, daher behält er diese Variante auch bei geändertem Traffic-Split.",
-      "namespaceExcluded": "Gegenseitig ausgeschlossen — dieser Nutzer liegt außerhalb des Namespace-Slots dieses Experiments (kein Holdout)."
+      "namespaceExcluded": "Gegenseitig ausgeschlossen — dieser Nutzer liegt außerhalb des Namespace-Slots dieses Experiments (kein Holdout).",
+      "attributesLabel": "Attribute (JSON, optional)",
+      "attributesPlaceholder": "{\"country\": \"US\", \"plan\": \"pro\"}",
+      "attributesInvalid": "Attribute müssen ein gültiges JSON-Objekt sein.",
+      "targetingExcluded": "Nicht teilnahmeberechtigt — dieser Nutzer erfüllt die Targeting-Regeln nicht."
     },
     "liveStats": {
       "title": "Live-Experimentergebnisse",
