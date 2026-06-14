@@ -428,10 +428,10 @@ _NOTE_UNAVAILABLE = (
     "POST /api/v1/experiments/{id}/pre-period to enable variance reduction on live data."
 )
 _NOTE_AVAILABLE = (
-    "CUPED-adjusted estimates over users with a pre-period covariate: "
-    "Y_adj = Y - theta*(X - mean X), theta = cov(X,Y)/var(X) pooled across arms. The adjusted "
-    "outcome is analysed with the continuous t-test; the effect is unchanged in expectation "
-    "while variance drops with the covariate's correlation."
+    "CUPED-adjusted estimates: Y_adj = Y - theta*(X - mean X), theta = cov(X,Y)/var(X) pooled "
+    "across arms. The adjusted outcome is analysed with the continuous t-test; the effect is "
+    "unchanged in expectation while variance drops with the covariate's correlation. Estimated "
+    "only over users that have a pre-period covariate, so it describes that subpopulation."
 )
 
 
