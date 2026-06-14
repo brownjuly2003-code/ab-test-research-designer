@@ -281,6 +281,57 @@ def test_postgres_backend_query_filters_and_pagination(postgres_repository) -> N
     assert paged["total"] >= initial_total + 2
 
 
+def test_postgres_backend_cuped_aggregates_round_trip(postgres_repository) -> None:
+    # Exercises the E5 pre-period ingestion (ON CONFLICT dedup) and the CUPED sufficient-statistics
+    # CTE on a real Postgres, validating the portable dual-backend SQL (translated ? -> %s).
+    repo = postgres_repository
+    project = repo.create_project(_payload("CUPED PG", "continuous"))
+    exp = project["id"]
+    repo.record_exposures(
+        exp,
+        [
+            {"user_id": "u1", "variation_index": 0},
+            {"user_id": "u2", "variation_index": 0},
+            {"user_id": "u3", "variation_index": 0},  # no covariate -> excluded
+            {"user_id": "u4", "variation_index": 1},
+            {"user_id": "u5", "variation_index": 1},
+            {"user_id": "uH", "variation_index": -1},  # holdout -> excluded
+        ],
+    )
+    assert repo.record_pre_period_values(
+        exp,
+        [
+            {"user_id": "u1", "value": 10.0},
+            {"user_id": "u2", "value": 20.0},
+            {"user_id": "u4", "value": 40.0},
+            {"user_id": "u5", "value": 50.0},
+        ],
+    ) == {"received": 4, "recorded": 4, "deduplicated": 0}
+    # First-write-wins dedup holds on Postgres too.
+    assert repo.record_pre_period_values(exp, [{"user_id": "u1", "value": 99.0}])["deduplicated"] == 1
+    repo.record_conversions(
+        exp,
+        [
+            {"user_id": "u1", "metric": "aov", "value": 2.0},
+            {"user_id": "u2", "metric": "aov", "value": 3.0},
+            {"user_id": "u4", "metric": "aov", "value": 5.0},
+            # u5 has no conversion -> Y = 0
+        ],
+    )
+
+    aggregates = repo.get_cuped_aggregates(exp, "aov")
+    assert aggregates is not None
+    by_index = {arm["variation_index"]: arm for arm in aggregates["variations"]}
+    assert by_index[0]["n"] == 2  # u1, u2 (u3 has no covariate)
+    assert by_index[0]["sum_x"] == 30.0
+    assert by_index[0]["sum_y"] == 5.0
+    assert by_index[0]["sum_xy"] == 80.0  # 10*2 + 20*3
+    assert by_index[1]["n"] == 2  # u4, u5
+    assert by_index[1]["sum_y"] == 5.0  # u4: 5.0 + u5: 0
+    assert by_index[1]["sum_xy"] == 200.0  # 40*5 + 50*0
+    assert -1 not in by_index  # holdout never appears
+
+
 def test_readyz_uses_postgres_checks_without_sqlite_regression(monkeypatch) -> None:
     monkeypatch.setenv("AB_DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/abtest")
     monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")

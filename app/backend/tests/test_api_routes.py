@@ -1194,8 +1194,8 @@ def test_diagnostics_endpoint_returns_runtime_summary(monkeypatch) -> None:
     assert payload["storage"]["db_parent_path"] == str(db_path.parent)
     assert payload["storage"]["db_size_bytes"] >= 0
     assert payload["storage"]["disk_free_bytes"] > 0
-    assert payload["storage"]["schema_version"] == 8
-    assert payload["storage"]["sqlite_user_version"] == 8
+    assert payload["storage"]["schema_version"] == 9
+    assert payload["storage"]["sqlite_user_version"] == 9
     assert payload["storage"]["journal_mode"] == "WAL"
     assert payload["storage"]["synchronous"] == "NORMAL"
     assert payload["storage"]["write_probe_ok"] is True

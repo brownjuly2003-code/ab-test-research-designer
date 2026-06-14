@@ -33,7 +33,7 @@ class DatabaseBackend(Protocol):
 class SQLiteBackend:
     backend_name = "sqlite"
     supports_snapshots = True
-    schema_version = 8
+    schema_version = 9
     payload_schema_version = 1
     workspace_schema_version = 3
     project_select_columns = """
@@ -393,6 +393,22 @@ class SQLiteBackend:
             """
             CREATE INDEX IF NOT EXISTS idx_conversions_experiment_metric
             ON conversions (experiment_id, metric)
+            """
+        )
+        # CUPED pre-period covariate (E5): one pre-experiment value per (experiment, user).
+        # The UNIQUE constraint is the dedup primitive — first-write-wins keeps the covariate
+        # stable. CUPED needs exactly one X per user paired with their outcome Y.
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS pre_period_values (
+                id TEXT PRIMARY KEY,
+                experiment_id TEXT NOT NULL,
+                user_id TEXT NOT NULL,
+                value REAL NOT NULL,
+                created_at TEXT NOT NULL,
+                UNIQUE(experiment_id, user_id),
+                FOREIGN KEY(experiment_id) REFERENCES projects(id) ON DELETE CASCADE
+            )
             """
         )
 
@@ -2761,6 +2777,37 @@ class SQLiteBackend:
         received = len(items)
         return {"received": received, "recorded": recorded, "deduplicated": received - recorded}
 
+    def record_pre_period_values(self, experiment_id: str, items: list[dict]) -> dict:
+        """Record per-user pre-experiment covariate values for CUPED (E5).
+
+        First-write-wins per (experiment, user) via the UNIQUE constraint +
+        ``ON CONFLICT DO NOTHING``; CUPED needs exactly one X per user, and the covariate
+        is historical (pre-assignment) data, so a later value for the same user is dropped.
+        """
+        timestamp = datetime.now(timezone.utc).isoformat()
+        recorded = 0
+        with self._connect() as connection:
+            self._ensure_project_active(connection, experiment_id)
+            for item in items:
+                cursor = connection.execute(
+                    """
+                    INSERT INTO pre_period_values (id, experiment_id, user_id, value, created_at)
+                    VALUES (?, ?, ?, ?, ?)
+                    ON CONFLICT(experiment_id, user_id) DO NOTHING
+                    """,
+                    (
+                        str(uuid.uuid4()),
+                        experiment_id,
+                        item["user_id"],
+                        float(item["value"]),
+                        timestamp,
+                    ),
+                )
+                if cursor.rowcount == 1:
+                    recorded += 1
+        received = len(items)
+        return {"received": received, "recorded": recorded, "deduplicated": received - recorded}
+
     def get_user_exposure(self, experiment_id: str, user_id: str) -> dict | None:
         """The recorded (first-exposure-wins) exposure for one user, or ``None``.
 
@@ -2884,6 +2931,73 @@ class SQLiteBackend:
                 "converted_users": int(row["converted_users"] or 0),
                 "value_sum": float(row["value_sum"] or 0.0),
                 "value_sq_sum": float(row["value_sq_sum"] or 0.0),
+            }
+            for row in rows
+        ]
+        return {
+            "experiment_id": experiment_id,
+            "metric_name": metric_name,
+            "variations": variations,
+        }
+
+    def get_cuped_aggregates(self, experiment_id: str, metric_name: str) -> dict | None:
+        """Per-variation CUPED sufficient statistics over the covered subset (E5).
+
+        Returns ``None`` if the experiment does not exist. Restricted (INNER JOIN) to exposed
+        users that have a pre-period covariate ``X`` — CUPED can only adjust users whose X is
+        known. Per user the outcome ``Y`` is the sum of their conversion values on
+        ``metric_name`` (non-converters contribute 0). Per variation it rolls up the
+        sufficient statistics CUPED needs — ``n``, ``sum_x``, ``sum_x2``, ``sum_y``,
+        ``sum_y2``, ``sum_xy`` — from which a single pooled
+        ``theta = cov(X, Y) / var(X)`` and the per-arm adjusted moments are computed in the
+        service layer (no new statistics in SQL). The holdout tail (``variation_index = -1``)
+        is excluded.
+        """
+        with self._connect() as connection:
+            if not self._project_exists(connection, experiment_id):
+                return None
+            rows = connection.execute(
+                """
+                WITH user_pairs AS (
+                    SELECT
+                        e.variation_index AS variation_index,
+                        e.user_id AS user_id,
+                        p.value AS x,
+                        COALESCE(SUM(c.value), 0) AS y
+                    FROM exposures e
+                    JOIN pre_period_values p
+                        ON p.experiment_id = e.experiment_id
+                        AND p.user_id = e.user_id
+                    LEFT JOIN conversions c
+                        ON c.experiment_id = e.experiment_id
+                        AND c.user_id = e.user_id
+                        AND c.metric = ?
+                    WHERE e.experiment_id = ? AND e.variation_index >= 0
+                    GROUP BY e.variation_index, e.user_id, p.value
+                )
+                SELECT
+                    variation_index,
+                    COUNT(*) AS n,
+                    SUM(x) AS sum_x,
+                    SUM(x * x) AS sum_x2,
+                    SUM(y) AS sum_y,
+                    SUM(y * y) AS sum_y2,
+                    SUM(x * y) AS sum_xy
+                FROM user_pairs
+                GROUP BY variation_index
+                ORDER BY variation_index
+                """,
+                (metric_name, experiment_id),
+            ).fetchall()
+        variations = [
+            {
+                "variation_index": int(row["variation_index"]),
+                "n": int(row["n"]),
+                "sum_x": float(row["sum_x"] or 0.0),
+                "sum_x2": float(row["sum_x2"] or 0.0),
+                "sum_y": float(row["sum_y"] or 0.0),
+                "sum_y2": float(row["sum_y2"] or 0.0),
+                "sum_xy": float(row["sum_xy"] or 0.0),
             }
             for row in rows
         ]
@@ -3279,6 +3393,19 @@ class PostgresBackend(SQLiteBackend):
                 """
                 CREATE INDEX IF NOT EXISTS idx_conversions_experiment_metric
                 ON conversions (experiment_id, metric)
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS pre_period_values (
+                    id TEXT PRIMARY KEY,
+                    experiment_id TEXT NOT NULL,
+                    user_id TEXT NOT NULL,
+                    value REAL NOT NULL,
+                    created_at TEXT NOT NULL,
+                    UNIQUE(experiment_id, user_id),
+                    FOREIGN KEY(experiment_id) REFERENCES projects(id) ON DELETE CASCADE
+                )
                 """
             )
 

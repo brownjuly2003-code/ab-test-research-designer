@@ -751,7 +751,12 @@
       "sequentialNotCrossed": "Ниже последовательной границы — продолжайте сбор данных.",
       "sequentialTitle": "Последовательный мониторинг",
       "sequentialActive": "Информация {{fraction}} от плана · граница z {{boundary}} · план {{planned}}/вариант",
-      "cupedTitle": "CUPED"
+      "cupedTitle": "CUPED",
+      "cupedReduction": "θ {{theta}} · снижение дисперсии {{reduction}}%",
+      "cupedCoverage": "у {{covariate}} из {{exposed}} участников есть pre-period ковариата",
+      "cupedArmLine": "скорр. среднее {{adjusted}} (исходное {{raw}})",
+      "cupedAdjustedEffect": "Скорр. эффект {{effect}} · ДИ [{{lower}}, {{upper}}] · p {{p}}",
+      "cupedComparisonPending": "Пока недостаточно данных ковариаты для CUPED-теста."
     }
   },
   "errors": {

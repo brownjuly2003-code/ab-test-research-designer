@@ -286,6 +286,13 @@ Phase D — live SRM / frequentist / Bayesian / sequential read over the current
 deduplicated exposures and conversions. Recomputed on demand (the dashboard polls);
 there is no separate scheduler process in the local-first MVP.
 
+### `POST /api/v1/experiments/{experiment_id}/pre-period`
+
+Ingest Pre Period Values
+
+Ingest per-user pre-experiment covariate values for CUPED (E5). First-write-wins
+per user; the covariate enables variance reduction on the continuous live-stats.
+
 ### `POST /api/v1/export/comparison`
 
 Export Comparison
