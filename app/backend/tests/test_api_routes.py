@@ -731,6 +731,27 @@ def test_experiment_assign_is_sticky_to_a_recorded_exposure() -> None:
     assert data["growthbook"]["inExperiment"] is True
 
 
+def test_experiment_assign_respects_mutual_exclusion_namespace() -> None:
+    client = TestClient(create_app())
+    payload = _full_payload()
+    payload["project"]["project_name"] = "Namespaced exp"
+    payload["setup"]["namespace"] = {"id": "checkout", "range_start": 0.0, "range_end": 0.5}
+    created = client.post("/api/v1/projects", json=payload)
+    assert created.status_code == 200, created.text
+    project_id = created.json()["id"]
+
+    excluded = 0
+    for index in range(80):
+        data = client.post(
+            f"/api/v1/experiments/{project_id}/assign", json={"user_id": f"ns-{index}"}
+        ).json()
+        if data["namespace_excluded"]:
+            excluded += 1
+            assert data["in_experiment"] is False
+            assert data["variation_index"] == -1
+    assert excluded > 0  # some users fall outside the [0, 0.5) namespace slot
+
+
 def test_experiment_assign_returns_404_for_unknown_experiment() -> None:
     client = TestClient(create_app())
 

@@ -394,6 +394,7 @@ export type ExperimentAssignmentResponse = {
   weights: number[];
   hash_version: number;
   sticky?: boolean;
+  namespace_excluded?: boolean;
   growthbook: GrowthBookAssignmentResult;
 };
 
@@ -457,6 +458,7 @@ export type ExperimentSetup = {
   variants_count: number;
   inclusion_criteria: string;
   exclusion_criteria: string;
+  namespace?: NamespaceConfig | null;
 };
 
 export type ExportEventRecord = {
@@ -698,6 +700,12 @@ export type MultiProjectComparisonResponse = {
   metric_types_used: string[];
   recommendation_highlights: string[];
   monte_carlo_distribution?: { [key: string]: MonteCarloSimulationResponse; } | null;
+};
+
+export type NamespaceConfig = {
+  id: string;
+  range_start: number;
+  range_end: number;
 };
 
 export type ObservedResultsBinary = {

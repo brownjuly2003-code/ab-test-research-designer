@@ -707,7 +707,8 @@
       "bucketLine": "{{user}} · bucket {{bucket}}",
       "growthbookNote": "Compatible avec les SDK GrowthBook — réutilisez le même key, seed et version de hachage côté client.",
       "serviceUnavailable": "Affectation indisponible.",
-      "stickyNote": "Sticky : cet utilisateur a déjà une exposition enregistrée, il conserve donc cette variation même si la répartition du trafic change."
+      "stickyNote": "Sticky : cet utilisateur a déjà une exposition enregistrée, il conserve donc cette variation même si la répartition du trafic change.",
+      "namespaceExcluded": "Mutuellement exclu — cet utilisateur est hors du créneau de namespace de cette expérience (différent d'un holdout)."
     },
     "liveStats": {
       "title": "Résultats de l'expérience en direct",

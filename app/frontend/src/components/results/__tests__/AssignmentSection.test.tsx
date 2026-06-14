@@ -95,6 +95,26 @@ describe("AssignmentSection", () => {
     }
   });
 
+  it("distinguishes a namespace exclusion from a holdout", async () => {
+    const nsResponse = { ...assignResponse, in_experiment: false, variation_index: -1, namespace_excluded: true };
+    const fetchMock = vi.fn(async (..._args: unknown[]) => ({ ok: true, json: async () => nsResponse }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const view = await renderIntoDocument(<AssignmentSection />);
+    try {
+      await flushEffects();
+      const input = view.container.querySelector("#assignment-user-id") as HTMLInputElement;
+      await changeValue(input, "user-99");
+      await click(findButton(view.container, "Assign"));
+      await flushEffects();
+      await flushEffects();
+
+      expect(view.container.textContent).toContain("Mutually excluded");
+    } finally {
+      await view.unmount();
+    }
+  });
+
   it("shows the save-first hint when no experiment is saved", async () => {
     useAnalysisStore.setState({ ...useAnalysisStore.getState(), resultsProjectId: null });
     useProjectStore.setState({
