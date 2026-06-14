@@ -248,11 +248,15 @@ def create_analysis_router(settings, repository, rate_limiter, require_auth, req
         project = repository.get_project(experiment_id, include_archived=True)
         if project is None:
             raise HTTPException(status_code=404, detail="Experiment not found")
+        # Sticky bucketing: honour a previously recorded exposure so the user keeps their
+        # variation even if weights/coverage changed since.
+        existing_exposure = repository.get_user_exposure(experiment_id, payload.user_id)
         result = build_experiment_assignment(
             experiment_id=experiment_id,
             payload=project["payload"],
             user_id=payload.user_id,
             hash_version=payload.hash_version,
+            sticky_variation_index=existing_exposure["variation_index"] if existing_exposure else None,
         )
         return ExperimentAssignmentResponse.model_validate(result)
 

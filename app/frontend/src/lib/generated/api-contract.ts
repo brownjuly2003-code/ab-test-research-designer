@@ -393,6 +393,7 @@ export type ExperimentAssignmentResponse = {
   coverage: number;
   weights: number[];
   hash_version: number;
+  sticky?: boolean;
   growthbook: GrowthBookAssignmentResult;
 };
 

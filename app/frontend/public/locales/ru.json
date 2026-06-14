@@ -718,7 +718,8 @@
       "holdout": "Вне теста — пользователь в холдауте (хвост holdout / ramp-up).",
       "bucketLine": "{{user}} · бакет {{bucket}}",
       "growthbookNote": "Совместимо с GrowthBook SDK — на клиенте используйте тот же key, seed и версию хеша.",
-      "serviceUnavailable": "Назначение недоступно."
+      "serviceUnavailable": "Назначение недоступно.",
+      "stickyNote": "Sticky: у пользователя уже есть записанный показ, поэтому он сохраняет эту вариацию даже при изменении сплита трафика."
     },
     "liveStats": {
       "title": "Результаты live-эксперимента",

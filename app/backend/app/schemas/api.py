@@ -480,6 +480,9 @@ class ExperimentAssignmentResponse(BaseModel):
     coverage: float
     weights: list[float]
     hash_version: int
+    # True when the variation came from a previously recorded exposure (sticky bucketing)
+    # rather than a fresh hash — so a user keeps their variation even if weights/coverage change.
+    sticky: bool = False
     growthbook: GrowthBookAssignmentResult
 
 

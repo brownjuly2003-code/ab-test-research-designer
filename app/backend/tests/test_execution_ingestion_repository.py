@@ -129,6 +129,22 @@ def test_ingestion_summary_none_for_unknown_experiment() -> None:
     assert repo.get_ingestion_summary("nope") is None
 
 
+def test_get_user_exposure_returns_recorded_variation_and_none_otherwise() -> None:
+    repo = _repo()
+    exp = _project(repo)
+
+    assert repo.get_user_exposure(exp, "u1") is None  # nothing recorded yet
+
+    repo.record_exposures(exp, [{"user_id": "u1", "variation_index": 1}])
+    # A re-exposure to a different variation is dropped (sticky), so the stored value stays 1.
+    repo.record_exposures(exp, [{"user_id": "u1", "variation_index": 0}])
+
+    exposure = repo.get_user_exposure(exp, "u1")
+    assert exposure is not None
+    assert exposure["variation_index"] == 1
+    assert repo.get_user_exposure(exp, "other-user") is None
+
+
 def test_record_exposures_rejects_unknown_experiment() -> None:
     repo = _repo()
     with pytest.raises(ApiError):

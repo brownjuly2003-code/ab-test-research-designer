@@ -706,7 +706,8 @@
       "holdout": "Excluido: este usuario no está en el experimento (holdout / cola de ramp-up).",
       "bucketLine": "{{user}} · bucket {{bucket}}",
       "growthbookNote": "Compatible con los SDK de GrowthBook: reutiliza el mismo key, seed y versión de hash en el cliente.",
-      "serviceUnavailable": "Asignación no disponible."
+      "serviceUnavailable": "Asignación no disponible.",
+      "stickyNote": "Sticky: este usuario ya tiene una exposición registrada, por lo que conserva esta variación aunque cambie la división del tráfico."
     },
     "liveStats": {
       "title": "Resultados del experimento en vivo",

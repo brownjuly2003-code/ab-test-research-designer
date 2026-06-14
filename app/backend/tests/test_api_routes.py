@@ -699,6 +699,38 @@ def test_experiment_assign_is_deterministic() -> None:
     assert first.json() == second.json()
 
 
+def test_experiment_assign_is_not_sticky_without_a_recorded_exposure() -> None:
+    client = TestClient(create_app())
+    project = _create_saved_project(client, "Fresh assign")
+
+    response = client.post(f"/api/v1/experiments/{project['id']}/assign", json={"user_id": "fresh-user"})
+
+    assert response.status_code == 200
+    assert response.json()["sticky"] is False
+
+
+def test_experiment_assign_is_sticky_to_a_recorded_exposure() -> None:
+    client = TestClient(create_app())
+    project = _create_saved_project(client, "Sticky to exposure")
+
+    # Record an exposure at variation 1; the assignment must then honour it (sticky).
+    exposure = client.post(
+        f"/api/v1/experiments/{project['id']}/exposures",
+        json={"exposures": [{"user_id": "u-sticky", "variation_index": 1}]},
+    )
+    assert exposure.status_code == 200
+
+    response = client.post(f"/api/v1/experiments/{project['id']}/assign", json={"user_id": "u-sticky"})
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["sticky"] is True
+    assert data["variation_index"] == 1
+    assert data["in_experiment"] is True
+    assert data["growthbook"]["variationId"] == 1
+    assert data["growthbook"]["inExperiment"] is True
+
+
 def test_experiment_assign_returns_404_for_unknown_experiment() -> None:
     client = TestClient(create_app())
 

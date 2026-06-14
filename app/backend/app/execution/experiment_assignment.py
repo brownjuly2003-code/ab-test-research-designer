@@ -56,6 +56,7 @@ def build_experiment_assignment(
     payload: dict[str, Any],
     user_id: str,
     hash_version: int = 2,
+    sticky_variation_index: int | None = None,
 ) -> dict[str, Any]:
     """Assign ``user_id`` to a variation for a stored experiment design.
 
@@ -65,6 +66,11 @@ def build_experiment_assignment(
     MIT SDK can consume it directly. Not-in-experiment users map to the control variation
     (index 0) with ``inExperiment = false`` in the GrowthBook block, matching GrowthBook's
     own fallback semantics.
+
+    Sticky bucketing: when ``sticky_variation_index`` is supplied (the caller found a
+    previously recorded exposure for this user), that stored variation is honoured instead
+    of the fresh hash, so a user keeps their variation even if weights/coverage have since
+    changed. The hash is still computed for transparency in the response.
     """
     setup = payload.get("setup", {})
     constraints = payload.get("constraints", {})
@@ -81,9 +87,17 @@ def build_experiment_assignment(
         weights=weights,
         hash_version=hash_version,
     )
-    variation_index = int(assignment["variation_index"])
-    in_experiment = bool(assignment["in_experiment"])
     bucket = assignment["hash"]
+
+    if sticky_variation_index is not None:
+        # A recorded exposure means the user was in the experiment at this variation.
+        variation_index = int(sticky_variation_index)
+        in_experiment = True
+        sticky = True
+    else:
+        variation_index = int(assignment["variation_index"])
+        in_experiment = bool(assignment["in_experiment"])
+        sticky = False
 
     return {
         "experiment_id": experiment_id,
@@ -96,6 +110,7 @@ def build_experiment_assignment(
         "coverage": coverage,
         "weights": weights,
         "hash_version": hash_version,
+        "sticky": sticky,
         "growthbook": {
             "key": experiment_id,
             "variationId": variation_index if in_experiment else 0,

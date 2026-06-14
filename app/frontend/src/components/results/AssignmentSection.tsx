@@ -127,6 +127,7 @@ export default function AssignmentSection() {
                 bucket: result.hash != null ? result.hash.toFixed(4) : "—"
               })}
             </span>
+            {result.sticky ? <span className="muted">{t("results.assignment.stickyNote")}</span> : null}
             <span className="muted">{t("results.assignment.growthbookNote")}</span>
           </div>
         </div>

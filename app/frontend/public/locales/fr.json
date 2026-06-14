@@ -706,7 +706,8 @@
       "holdout": "Exclu — cet utilisateur n'est pas dans l'expérience (holdout / queue de ramp-up).",
       "bucketLine": "{{user}} · bucket {{bucket}}",
       "growthbookNote": "Compatible avec les SDK GrowthBook — réutilisez le même key, seed et version de hachage côté client.",
-      "serviceUnavailable": "Affectation indisponible."
+      "serviceUnavailable": "Affectation indisponible.",
+      "stickyNote": "Sticky : cet utilisateur a déjà une exposition enregistrée, il conserve donc cette variation même si la répartition du trafic change."
     },
     "liveStats": {
       "title": "Résultats de l'expérience en direct",
