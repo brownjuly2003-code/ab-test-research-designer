@@ -262,7 +262,9 @@
       "expected_fractions_non_negative": "les fractions_attendues doivent être non négatives",
       "expected_fractions_sum": "la somme des fractions attendues doit être égale à 1,0, j'ai obtenu {{total}}",
       "bandit_arm_rates_range": "Les taux de conversion de chaque variante doivent être compris entre 0 et 1.",
-      "namespace_range_order": "range_start de l'espace de noms doit être inférieur à range_end"
+      "namespace_range_order": "range_start de l'espace de noms doit être inférieur à range_end",
+      "targeting_in_requires_list": "l'opérateur de ciblage 'in' nécessite une valeur de liste",
+      "targeting_numeric_requires_number": "les opérateurs de ciblage numériques nécessitent une valeur numérique"
     },
     "srm_detected": "SRM détecté - vérifiez votre mise en œuvre de randomisation ou de suivi",
     "srm_not_detected": "Aucun SRM détecté"

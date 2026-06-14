@@ -53,6 +53,24 @@ class NamespaceConfig(BaseModel):
         return self
 
 
+class TargetingRule(BaseModel):
+    """One attribute-based eligibility rule. All rules on an experiment are AND-ed."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    attribute: str = Field(min_length=1, max_length=100)
+    operator: Literal["equals", "not_equals", "in", "gt", "lt", "gte", "lte"]
+    value: str | float | int | bool | list[str | float | int | bool]
+
+    @model_validator(mode="after")
+    def validate_value(self) -> "TargetingRule":
+        if self.operator == "in" and not isinstance(self.value, list):
+            raise ValueError(translate("errors.schemas.targeting_in_requires_list"))
+        if self.operator in {"gt", "lt", "gte", "lte"} and isinstance(self.value, (list, bool)):
+            raise ValueError(translate("errors.schemas.targeting_numeric_requires_number"))
+        return self
+
+
 class ExperimentSetup(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -66,6 +84,8 @@ class ExperimentSetup(BaseModel):
     exclusion_criteria: str
     # Optional mutual-exclusion namespace (execution layer); planning flow ignores it.
     namespace: NamespaceConfig | None = None
+    # Optional attribute-based targeting rules (AND); planning flow ignores them.
+    targeting_rules: list[TargetingRule] = Field(default_factory=list, max_length=20)
 
     @model_validator(mode="after")
     def validate_variants(self) -> "ExperimentSetup":
@@ -467,8 +487,8 @@ class ExperimentAssignmentRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     user_id: str = Field(min_length=1, max_length=200)
-    # Reserved for attribute-based targeting/eligibility (a future phase); accepted for
-    # forward compatibility but not evaluated in the MVP — only user_id drives assignment.
+    # Evaluated against the experiment's targeting_rules (if any). When the experiment has
+    # no targeting rules, attributes are ignored and only user_id drives the assignment.
     attributes: dict[str, Any] | None = None
     hash_version: Literal[1, 2] = 2
 
@@ -505,6 +525,8 @@ class ExperimentAssignmentResponse(BaseModel):
     # True when the user is excluded because they fall outside this experiment's
     # mutual-exclusion namespace slot (distinct from a holdout/coverage tail).
     namespace_excluded: bool = False
+    # True when the user is excluded because they fail the experiment's targeting rules.
+    targeting_excluded: bool = False
     growthbook: GrowthBookAssignmentResult
 
 

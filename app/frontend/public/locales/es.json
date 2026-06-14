@@ -708,7 +708,11 @@
       "growthbookNote": "Compatible con los SDK de GrowthBook: reutiliza el mismo key, seed y versión de hash en el cliente.",
       "serviceUnavailable": "Asignación no disponible.",
       "stickyNote": "Sticky: este usuario ya tiene una exposición registrada, por lo que conserva esta variación aunque cambie la división del tráfico.",
-      "namespaceExcluded": "Mutuamente excluido: este usuario queda fuera del slot de namespace de este experimento (no es un holdout)."
+      "namespaceExcluded": "Mutuamente excluido: este usuario queda fuera del slot de namespace de este experimento (no es un holdout).",
+      "attributesLabel": "Atributos (JSON, opcional)",
+      "attributesPlaceholder": "{\"country\": \"US\", \"plan\": \"pro\"}",
+      "attributesInvalid": "Los atributos deben ser un objeto JSON válido.",
+      "targetingExcluded": "No elegible: este usuario no cumple las reglas de segmentación del experimento."
     },
     "liveStats": {
       "title": "Resultados del experimento en vivo",

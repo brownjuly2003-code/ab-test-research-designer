@@ -708,7 +708,11 @@
       "growthbookNote": "兼容 GrowthBook SDK——在客户端复用相同的 key、seed 和哈希版本。",
       "serviceUnavailable": "分配不可用。",
       "stickyNote": "粘性：该用户已有记录的曝光，因此即使流量分配发生变化，也会保留此变体。",
-      "namespaceExcluded": "互斥排除——该用户落在此实验的命名空间槽位之外（与保留组不同）。"
+      "namespaceExcluded": "互斥排除——该用户落在此实验的命名空间槽位之外（与保留组不同）。",
+      "attributesLabel": "属性（JSON，可选）",
+      "attributesPlaceholder": "{\"country\": \"US\", \"plan\": \"pro\"}",
+      "attributesInvalid": "属性必须是有效的 JSON 对象。",
+      "targetingExcluded": "不符合条件——该用户不满足实验的定向规则。"
     },
     "liveStats": {
       "title": "实时实验结果",

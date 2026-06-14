@@ -708,7 +708,11 @@
       "growthbookNote": "Compatible avec les SDK GrowthBook — réutilisez le même key, seed et version de hachage côté client.",
       "serviceUnavailable": "Affectation indisponible.",
       "stickyNote": "Sticky : cet utilisateur a déjà une exposition enregistrée, il conserve donc cette variation même si la répartition du trafic change.",
-      "namespaceExcluded": "Mutuellement exclu — cet utilisateur est hors du créneau de namespace de cette expérience (différent d'un holdout)."
+      "namespaceExcluded": "Mutuellement exclu — cet utilisateur est hors du créneau de namespace de cette expérience (différent d'un holdout).",
+      "attributesLabel": "Attributs (JSON, facultatif)",
+      "attributesPlaceholder": "{\"country\": \"US\", \"plan\": \"pro\"}",
+      "attributesInvalid": "Les attributs doivent être un objet JSON valide.",
+      "targetingExcluded": "Non éligible — cet utilisateur ne correspond pas aux règles de ciblage de l'expérience."
     },
     "liveStats": {
       "title": "Résultats de l'expérience en direct",

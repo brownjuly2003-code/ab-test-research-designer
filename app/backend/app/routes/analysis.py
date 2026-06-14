@@ -257,6 +257,7 @@ def create_analysis_router(settings, repository, rate_limiter, require_auth, req
             user_id=payload.user_id,
             hash_version=payload.hash_version,
             sticky_variation_index=existing_exposure["variation_index"] if existing_exposure else None,
+            attributes=payload.attributes,
         )
         return ExperimentAssignmentResponse.model_validate(result)
 
