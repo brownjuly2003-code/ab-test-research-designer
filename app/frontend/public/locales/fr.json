@@ -3,7 +3,7 @@
     "skipToMainContent": "Passer au contenu principal",
     "eyebrow": "Planificateur d'expériences locales",
     "title": "Concepteur de recherche pour tests A/B",
-    "tagline": "Remplissez le contexte de l'expérience, exécutez des calculs déterministes, inspectez les avertissements et séparez les conseils de l'IA des mathématiques difficiles.",
+    "tagline": "Planifiez la taille d'échantillon et la durée de votre test A/B, repérez les résultats fiables et exportez une décision claire, directement dans votre navigateur.",
     "language": {
       "label": "Langue",
       "ariaLabel": "Language preference",
@@ -1004,7 +1004,7 @@
     "workspaceBackup": {
       "title": "Sauvegarde de l'espace de travail",
       "systemDescription": "Exportez ou importez l'espace de travail complet de SQLite, y compris les projets enregistrés, l'historique, les exportations et les révisions.",
-      "projectsDescription": "Exportez ou importez l'espace de travail complet SQLite, y compris les projets enregistrés, l'historique d'analyse, les événements d'exportation et les révisions enregistrées. Les importations exécutent la somme de contrôle, la signature facultative et la validation de référence avant le début des écritures SQLite.",
+      "projectsDescription": "Enregistrez tout votre espace de travail dans un fichier ou restaurez-le depuis une sauvegarde.",
       "exporting": "Exportation...",
       "export": "Exporter l'espace de travail JSON",
       "importing": "Importation...",
@@ -1136,7 +1136,7 @@
       "savedLocally": "Enregistré localement",
       "unknownProject": "Projet inconnu",
       "statusNeedsLocalUpdate": "Nécessite une mise à jour locale",
-      "statusInSync": "En synchronisation avec SQLite",
+      "statusInSync": "Toutes les modifications enregistrées",
       "empty": "Aucun projet enregistré n'est chargé. Vous pouvez toujours travailler sur un brouillon local et l'enregistrer lorsque vous êtes prêt.",
       "labels": {
         "projectName": "Nom du projet",
@@ -1178,7 +1178,7 @@
     },
     "revisions": {
       "title": "Révisions enregistrées",
-      "description": "Instantanés de charge utile capturés lors de la création, de la mise à jour et de l'importation de l'espace de travail. Le chargement d'une révision conserve le projet actuel sélectionné mais marque l'assistant comme modifié jusqu'à ce que vous l'enregistriez.",
+      "description": "Versions précédentes enregistrées de ce projet. Ouvrez-en une pour restaurer ces données.",
       "refreshing": "Rafraîchissant...",
       "refresh": "Actualiser les révisions",
       "empty": "Chargez un projet enregistré pour inspecter ou restaurer les révisions antérieures de la charge utile.",
@@ -1197,7 +1197,7 @@
     },
     "savedProjects": {
       "title": "Projets enregistrés",
-      "description": "Chargez, comparez et archivez les brouillons basés sur SQLite à partir de l'espace de travail local.",
+      "description": "Chargez, comparez et archivez vos expériences enregistrées.",
       "loading": "Chargement...",
       "load": "Charger les projets enregistrés",
       "savedCount_one": "{{count}} enregistré",

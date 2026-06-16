@@ -562,6 +562,11 @@ describe("App UI flow", () => {
     mockBlobDownloadGlobals();
     window.sessionStorage.clear();
     window.localStorage.clear();
+    // Operator surfaces (System / API keys tabs) are gated behind admin mode in
+    // the public app; opt the flow suite into them so the existing tab coverage
+    // keeps exercising backend/diagnostics tiles. The public default (tabs
+    // hidden) is covered by its own test below.
+    window.localStorage.setItem("ab-test:admin", "1");
     vi.mocked(hasAdminSessionToken).mockImplementation(
       () => window.sessionStorage.getItem("ab-test-research-designer:admin-token:v1") !== null
     );
@@ -660,6 +665,30 @@ describe("App UI flow", () => {
       expect(view.container.textContent).toContain("Backend status");
       expect(view.container.textContent).toContain("Runtime diagnostics");
       expect(view.container.textContent).toContain("API session token");
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("hides operator tabs (System / API keys) from the public app by default", async () => {
+    window.localStorage.removeItem("ab-test:admin");
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+
+      // Core planning surface is still present.
+      expect(view.container.textContent).toContain("Plan your A/B experiment");
+      expect(view.container.textContent).toContain("Saved projects");
+
+      // Operator tabs and their backend/diagnostics content are gone.
+      const tabLabels = Array.from(view.container.querySelectorAll("button")).map(
+        (button) => button.textContent?.trim()
+      );
+      expect(tabLabels).not.toContain("System");
+      expect(tabLabels).not.toContain("API keys");
+      expect(view.container.textContent).not.toContain("Backend status");
+      expect(view.container.textContent).not.toContain("Runtime diagnostics");
+      expect(view.container.textContent).not.toContain("API session token");
     } finally {
       await view.unmount();
     }
@@ -936,7 +965,7 @@ describe("App UI flow", () => {
       expect(projectNameInput.value).toBe("Loaded experiment");
       expect(view.container.textContent).toContain("Project id: p-1");
       expect(view.container.textContent).toContain("All changes saved locally.");
-      expect(view.container.textContent).toContain("In sync with SQLite");
+      expect(view.container.textContent).toContain("All changes saved");
       expect(view.container.textContent).toContain("Last analysis:");
       expect(view.container.textContent).toContain("Last export:");
       expect(view.container.textContent).toContain("Snapshot stored:");

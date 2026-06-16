@@ -466,9 +466,12 @@ def run_browser_smoke(
                     f"status={webhook_response.status} body={webhook_response.text()!r}"
                 )
 
-            append_smoke_log(log_path, f"opening {backend_url}")
-            print(f"[smoke] opening {backend_url}", flush=True)
-            page.goto(backend_url, wait_until="networkidle")
+            # Operator surfaces (System / API keys tabs) are gated behind ?admin=1
+            # in the public app; the smoke flow opts in to exercise backend tiles.
+            admin_url = f"{backend_url.rstrip('/')}/?admin=1"
+            append_smoke_log(log_path, f"opening {admin_url}")
+            print(f"[smoke] opening {admin_url}", flush=True)
+            page.goto(admin_url, wait_until="networkidle")
             page.get_by_role("heading", name="AB Test Research Designer").wait_for(timeout=15000)
             page.get_by_text("Plan your A/B experiment", exact=False).wait_for(timeout=15000)
             page.get_by_role("button", name="System", exact=True).click()

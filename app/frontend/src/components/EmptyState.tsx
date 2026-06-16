@@ -21,19 +21,19 @@ export default function EmptyState({
       title: t("empty_state.new_experiment"),
       description: t("empty_state.descriptions.new_experiment"),
       icon: "plus" as const,
-      accent: "rgba(15, 118, 110, 0.12)"
+      accent: "var(--color-primary-light)"
     },
     {
       title: t("empty_state.load_example"),
       description: t("empty_state.descriptions.load_example"),
       icon: "activity" as const,
-      accent: "rgba(79, 70, 229, 0.12)"
+      accent: "var(--color-surface-muted)"
     },
     {
       title: t("empty_state.import_project"),
       description: t("empty_state.descriptions.import_project"),
       icon: "download" as const,
-      accent: "rgba(245, 158, 11, 0.14)"
+      accent: "var(--color-surface-muted)"
     }
   ];
 

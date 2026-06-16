@@ -5,7 +5,9 @@ import { expect, test } from "@playwright/test";
 const browserDraftStorageKey = "ab-test-research-designer:draft:v1";
 
 test("imports the demo project and completes the browser smoke flow", async ({ page }) => {
-  await page.goto("/", { waitUntil: "networkidle" });
+  // Operator surfaces (System / API keys tabs) are gated behind ?admin=1 in the
+  // public app; the smoke flow opts into them to exercise the backend tiles.
+  await page.goto("/?admin=1", { waitUntil: "networkidle" });
   await expect(page.getByRole("heading", { name: "AB Test Research Designer" })).toBeVisible();
   await expect(page.getByText("Plan your A/B experiment")).toBeVisible();
 

@@ -3,7 +3,7 @@
     "skipToMainContent": "Skip to main content",
     "eyebrow": "Local Experiment Planner",
     "title": "AB Test Research Designer",
-    "tagline": "Fill in experiment context, run deterministic calculations, inspect warnings, and keep AI advice separate from hard math.",
+    "tagline": "Plan the sample size and runtime for your A/B test, see which results you can trust, and export a clear decision — right in your browser.",
     "language": {
       "label": "Language",
       "ariaLabel": "Language preference",
@@ -1018,7 +1018,7 @@
     "workspaceBackup": {
       "title": "Workspace backup",
       "systemDescription": "Export or import the full SQLite workspace, including saved projects, history, exports, and revisions.",
-      "projectsDescription": "Export or import the full SQLite workspace, including saved projects, analysis history, export events, and saved revisions. Imports run checksum, optional signature, and reference validation before SQLite writes begin.",
+      "projectsDescription": "Save your whole workspace to a file, or restore everything from a backup.",
       "exporting": "Exporting...",
       "export": "Export workspace JSON",
       "importing": "Importing...",
@@ -1150,7 +1150,7 @@
       "savedLocally": "Saved locally",
       "unknownProject": "Unknown project",
       "statusNeedsLocalUpdate": "Needs local update",
-      "statusInSync": "In sync with SQLite",
+      "statusInSync": "All changes saved",
       "empty": "No saved project is loaded. You can still work in a local draft and save it when ready.",
       "labels": {
         "projectName": "Project name",
@@ -1192,7 +1192,7 @@
     },
     "revisions": {
       "title": "Saved revisions",
-      "description": "Payload snapshots captured on create, update, and workspace import. Loading a revision keeps the current project selected but marks the wizard as changed until you save.",
+      "description": "Earlier saved versions of this project. Open one to restore those inputs.",
       "refreshing": "Refreshing...",
       "refresh": "Refresh revisions",
       "empty": "Load a saved project to inspect or restore earlier payload revisions.",
@@ -1211,7 +1211,7 @@
     },
     "savedProjects": {
       "title": "Saved projects",
-      "description": "Load, compare, and archive SQLite-backed drafts from the local workspace.",
+      "description": "Load, compare, and archive your saved experiments.",
       "loading": "Loading...",
       "load": "Load saved projects",
       "savedCount_one": "{{count}} saved",

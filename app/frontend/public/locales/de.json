@@ -3,7 +3,7 @@
     "skipToMainContent": "Zum Hauptinhalt springen",
     "eyebrow": "Lokaler Experimentplaner",
     "title": "A/B-Test-Forschungsdesigner",
-    "tagline": "Experimentkontext ausfüllen, deterministische Berechnungen ausführen, Warnungen prüfen und KI-Empfehlungen getrennt von der harten Mathematik halten.",
+    "tagline": "Plane Stichprobengröße und Laufzeit deines A/B-Tests, erkenne, welchen Ergebnissen du vertrauen kannst, und exportiere eine klare Entscheidung — direkt im Browser.",
     "language": {
       "label": "Sprache",
       "ariaLabel": "Language preference",
@@ -1004,7 +1004,7 @@
     "workspaceBackup": {
       "title": "Sicherung des Arbeitsbereichs",
       "systemDescription": "Exportieren oder importieren Sie den gesamten SQLite-Arbeitsbereich, einschließlich gespeicherter Projekte, Verlauf, Exporte und Revisionen.",
-      "projectsDescription": "Exportieren oder importieren Sie den gesamten SQLite-Arbeitsbereich, einschließlich gespeicherter Projekte, Analyseverlauf, Exportereignisse und gespeicherter Revisionen. Importe führen Prüfsumme, optionale Signatur und Referenzvalidierung aus, bevor SQLite-Schreibvorgänge beginnen.",
+      "projectsDescription": "Speichere deinen gesamten Arbeitsbereich in einer Datei oder stelle ihn aus einem Backup wieder her.",
       "exporting": "Exportieren...",
       "export": "Arbeitsbereich exportieren JSON",
       "importing": "Importieren...",
@@ -1136,7 +1136,7 @@
       "savedLocally": "Lokal gespeichert",
       "unknownProject": "Unbekanntes Projekt",
       "statusNeedsLocalUpdate": "Benötigt lokales Update",
-      "statusInSync": "Synchronisiert mit SQLite",
+      "statusInSync": "Alle Änderungen gespeichert",
       "empty": "Es wird kein gespeichertes Projekt geladen. Sie können weiterhin an einem lokalen Entwurf arbeiten und ihn speichern, wenn Sie fertig sind.",
       "labels": {
         "projectName": "Projektname",
@@ -1178,7 +1178,7 @@
     },
     "revisions": {
       "title": "Gespeicherte Revisionen",
-      "description": "Nutzlast-Snapshots, die beim Erstellen, Aktualisieren und Arbeitsbereich-Import erfasst werden. Beim Laden einer Revision bleibt das aktuelle Projekt ausgewählt, der Assistent wird jedoch bis zum Speichern als geändert markiert.",
+      "description": "Frühere gespeicherte Versionen dieses Projekts. Öffne eine, um ihre Eingaben wiederherzustellen.",
       "refreshing": "Erfrischend...",
       "refresh": "Revisionen aktualisieren",
       "empty": "Laden Sie ein gespeichertes Projekt, um frühere Nutzlastrevisionen zu überprüfen oder wiederherzustellen.",
@@ -1197,7 +1197,7 @@
     },
     "savedProjects": {
       "title": "Gespeicherte Projekte",
-      "description": "Laden, vergleichen und archivieren Sie SQLite-gestützte Entwürfe aus dem lokalen Arbeitsbereich.",
+      "description": "Lade, vergleiche und archiviere deine gespeicherten Experimente.",
       "loading": "Laden...",
       "load": "Gespeicherte Projekte laden",
       "savedCount_one": "{{count}} gespeichert",

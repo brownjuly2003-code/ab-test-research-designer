@@ -133,6 +133,9 @@ function seedSidebarState() {
 describe("Sidebar and modal accessibility", () => {
   beforeEach(() => {
     document.documentElement.lang = "en";
+    // Operator tabs (System / API keys) are gated behind admin mode; opt in so
+    // the sidebar a11y coverage can reach the backend/workspace controls.
+    window.localStorage.setItem("ab-test:admin", "1");
     useAnalysisStore.setState(initialAnalysisState, true);
     useDraftStore.setState(initialDraftState, true);
     useProjectStore.setState(initialProjectState, true);
@@ -157,6 +160,7 @@ describe("Sidebar and modal accessibility", () => {
   });
 
   afterEach(() => {
+    window.localStorage.clear();
     useAnalysisStore.setState(initialAnalysisState, true);
     useDraftStore.setState(initialDraftState, true);
     useProjectStore.setState(initialProjectState, true);

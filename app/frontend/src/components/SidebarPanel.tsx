@@ -42,6 +42,27 @@ function formatOptionalTimestamp(timestamp: string | null | undefined, emptyLabe
   return timestamp ? formatProjectTimestamp(timestamp) : emptyLabel;
 }
 
+// Operator/admin surfaces (backend status, API keys, webhooks, audit log, Slack
+// install, workspace SQLite import/export) are hidden from the public app. They
+// stay one query param away for the owner: open with `?admin=1` (persisted to
+// localStorage) and `?admin=0` to leave operator mode again.
+function detectAdminMode(): boolean {
+  try {
+    const flag = new URLSearchParams(window.location.search).get("admin");
+    if (flag === "1" || flag === "true") {
+      window.localStorage.setItem("ab-test:admin", "1");
+      return true;
+    }
+    if (flag === "0" || flag === "false") {
+      window.localStorage.removeItem("ab-test:admin");
+      return false;
+    }
+    return window.localStorage.getItem("ab-test:admin") === "1";
+  } catch {
+    return false;
+  }
+}
+
 function formatUptime(seconds: number): string {
   if (!(seconds >= 0)) {
     return "0s";
@@ -149,6 +170,7 @@ const SidebarPanel = memo(function SidebarPanel() {
     apiTokenStatus
   } = project;
   const [activeTab, setActiveTab] = useState<"projects" | "system" | "apiKeys">("projects");
+  const [isAdmin] = useState(detectAdminMode);
   const [projectQuery, setProjectQuery] = useState("");
   const [projectStatus, setProjectStatus] = useState<"active" | "archived" | "all">("active");
   const [projectMetricType, setProjectMetricType] = useState<"all" | "binary" | "continuous">("all");
@@ -514,13 +536,14 @@ const SidebarPanel = memo(function SidebarPanel() {
         aria-label={t("wizardPanel.aria.importWorkspaceFile")}
         onChange={handleWorkspaceImport}
       />
+      {isAdmin ? (
       <div
         style={{
           display: "inline-flex",
           gap: 8,
           padding: 6,
           borderRadius: 999,
-          background: "rgba(255, 255, 255, 0.65)",
+          background: "var(--color-surface-elevated)",
           border: "1px solid var(--line)",
           alignSelf: "flex-start"
         }}
@@ -531,7 +554,7 @@ const SidebarPanel = memo(function SidebarPanel() {
           style={{
             background: activeTab === "projects" ? "var(--color-secondary)" : "transparent",
             color: activeTab === "projects" ? "#ffffff" : "var(--muted)",
-            boxShadow: activeTab === "projects" ? "0 10px 24px rgba(79, 70, 229, 0.2)" : "none"
+            boxShadow: activeTab === "projects" ? "0 6px 16px var(--color-primary-ring)" : "none"
           }}
           onClick={() => setActiveTab("projects")}
         >
@@ -543,7 +566,7 @@ const SidebarPanel = memo(function SidebarPanel() {
           style={{
             background: activeTab === "system" ? "var(--color-secondary)" : "transparent",
             color: activeTab === "system" ? "#ffffff" : "var(--muted)",
-            boxShadow: activeTab === "system" ? "0 10px 24px rgba(79, 70, 229, 0.2)" : "none"
+            boxShadow: activeTab === "system" ? "0 6px 16px var(--color-primary-ring)" : "none"
           }}
           onClick={() => setActiveTab("system")}
         >
@@ -556,7 +579,7 @@ const SidebarPanel = memo(function SidebarPanel() {
             style={{
               background: activeTab === "apiKeys" ? "var(--color-secondary)" : "transparent",
               color: activeTab === "apiKeys" ? "#ffffff" : "var(--muted)",
-              boxShadow: activeTab === "apiKeys" ? "0 10px 24px rgba(79, 70, 229, 0.2)" : "none"
+              boxShadow: activeTab === "apiKeys" ? "0 6px 16px var(--color-primary-ring)" : "none"
             }}
             onClick={() => setActiveTab("apiKeys")}
           >
@@ -564,6 +587,7 @@ const SidebarPanel = memo(function SidebarPanel() {
           </button>
         ) : null}
       </div>
+      ) : null}
 
       {activeTab === "apiKeys" ? (
         <Suspense
@@ -1115,19 +1139,23 @@ const SidebarPanel = memo(function SidebarPanel() {
                 <strong>{t("sidebarPanel.activeProject.labels.projectName")}:</strong>{" "}
                 {activeProject?.project_name ?? t("sidebarPanel.activeProject.unknownProject")}
               </li>
-              <li>
-                <strong>{t("sidebarPanel.activeProject.labels.projectId")}:</strong> {activeProjectId}
-              </li>
+              {isAdmin ? (
+                <li>
+                  <strong>{t("sidebarPanel.activeProject.labels.projectId")}:</strong> {activeProjectId}
+                </li>
+              ) : null}
               <li>
                 <strong>{t("sidebarPanel.activeProject.labels.status")}:</strong>{" "}
                 {hasUnsavedChanges
                   ? t("sidebarPanel.activeProject.statusNeedsLocalUpdate")
                   : t("sidebarPanel.activeProject.statusInSync")}
               </li>
-              <li>
-                <strong>{t("sidebarPanel.activeProject.labels.payloadSchema")}:</strong>{" "}
-                {String(activeProject?.payload_schema_version ?? 1)}
-              </li>
+              {isAdmin ? (
+                <li>
+                  <strong>{t("sidebarPanel.activeProject.labels.payloadSchema")}:</strong>{" "}
+                  {String(activeProject?.payload_schema_version ?? 1)}
+                </li>
+              ) : null}
               <li>
                 <strong>{t("sidebarPanel.activeProject.labels.savedRevisions")}:</strong>{" "}
                 {String(activeProject?.revision_count ?? 0)}
@@ -1144,10 +1172,12 @@ const SidebarPanel = memo(function SidebarPanel() {
                 <strong>{t("sidebarPanel.activeProject.labels.lastExport")}:</strong>{" "}
                 {formatOptionalProjectTimestamp(activeProject?.last_exported_at)}
               </li>
-              <li>
-                <strong>{t("sidebarPanel.activeProject.labels.snapshotStored")}:</strong>{" "}
-                {activeProject?.has_analysis_snapshot ? t("wizardDraft.common.yes") : t("wizardDraft.common.no")}
-              </li>
+              {isAdmin ? (
+                <li>
+                  <strong>{t("sidebarPanel.activeProject.labels.snapshotStored")}:</strong>{" "}
+                  {activeProject?.has_analysis_snapshot ? t("wizardDraft.common.yes") : t("wizardDraft.common.no")}
+                </li>
+              ) : null}
             </ul>
           </>
         ) : (

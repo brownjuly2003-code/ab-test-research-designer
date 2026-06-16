@@ -90,6 +90,9 @@ function seedSidebarState() {
 describe("API keys accessibility", () => {
   beforeEach(() => {
     document.documentElement.lang = "en";
+    // Operator tabs are gated behind admin mode; the API keys tab additionally
+    // requires a configured admin session token (set below).
+    window.localStorage.setItem("ab-test:admin", "1");
     useAnalysisStore.setState(initialAnalysisState, true);
     useDraftStore.setState(initialDraftState, true);
     useProjectStore.setState(initialProjectState, true);
@@ -115,6 +118,7 @@ describe("API keys accessibility", () => {
 
   afterEach(() => {
     clearAdminSessionToken();
+    window.localStorage.clear();
     useAnalysisStore.setState(initialAnalysisState, true);
     useDraftStore.setState(initialDraftState, true);
     useProjectStore.setState(initialProjectState, true);

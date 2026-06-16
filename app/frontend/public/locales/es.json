@@ -3,7 +3,7 @@
     "skipToMainContent": "Saltar al contenido principal",
     "eyebrow": "Planificador local de experimentos",
     "title": "Diseñador de investigación de pruebas A/B",
-    "tagline": "Completa el contexto del experimento, ejecuta cálculos deterministas, revisa advertencias y mantén los consejos de IA separados de las matemáticas duras.",
+    "tagline": "Planifica el tamaño de muestra y la duración de tu test A/B, descubre en qué resultados puedes confiar y exporta una decisión clara, todo en tu navegador.",
     "language": {
       "label": "Idioma",
       "ariaLabel": "Language preference",
@@ -1004,7 +1004,7 @@
     "workspaceBackup": {
       "title": "Copia de seguridad del espacio de trabajo",
       "systemDescription": "Exporte o importe el espacio de trabajo completo de SQLite, incluidos los proyectos guardados, el historial, las exportaciones y las revisiones.",
-      "projectsDescription": "Exporte o importe el espacio de trabajo completo de SQLite, incluidos los proyectos guardados, el historial de análisis, los eventos de exportación y las revisiones guardadas. Las importaciones ejecutan suma de comprobación, firma opcional y validación de referencia antes de que comiencen las escrituras de SQLite.",
+      "projectsDescription": "Guarda todo tu espacio de trabajo en un archivo o restáuralo desde una copia de seguridad.",
       "exporting": "Exportando...",
       "export": "Exportar espacio de trabajo JSON",
       "importing": "Importando...",
@@ -1136,7 +1136,7 @@
       "savedLocally": "Guardado localmente",
       "unknownProject": "Proyecto desconocido",
       "statusNeedsLocalUpdate": "Necesita actualización local",
-      "statusInSync": "En sincronización con SQLite",
+      "statusInSync": "Todos los cambios guardados",
       "empty": "No se carga ningún proyecto guardado. Aún puedes trabajar en un borrador local y guardarlo cuando esté listo.",
       "labels": {
         "projectName": "Nombre del proyecto",
@@ -1178,7 +1178,7 @@
     },
     "revisions": {
       "title": "Revisiones guardadas",
-      "description": "Instantáneas de carga útil capturadas al crear, actualizar e importar el espacio de trabajo. Al cargar una revisión, se mantiene seleccionado el proyecto actual, pero el asistente marca el cambio hasta que lo guarda.",
+      "description": "Versiones anteriores guardadas de este proyecto. Abre una para restaurar esos datos.",
       "refreshing": "Refrescante...",
       "refresh": "Actualizar revisiones",
       "empty": "Cargue un proyecto guardado para inspeccionar o restaurar revisiones de carga útil anteriores.",
@@ -1197,7 +1197,7 @@
     },
     "savedProjects": {
       "title": "Proyectos guardados",
-      "description": "Cargue, compare y archive borradores respaldados por SQLite desde el espacio de trabajo local.",
+      "description": "Carga, compara y archiva tus experimentos guardados.",
       "loading": "Cargando...",
       "load": "Cargar proyectos guardados",
       "savedCount_one": "{{count}} guardado",

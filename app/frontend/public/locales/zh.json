@@ -3,7 +3,7 @@
     "skipToMainContent": "跳至主要内容",
     "eyebrow": "本地实验计划员",
     "title": "A/B 实验研究设计器",
-    "tagline": "填写实验背景、运行确定性计算、检查警告并将人工智能建议与硬数学分开。",
+    "tagline": "在浏览器中规划 A/B 测试的样本量和时长，了解哪些结果值得信赖，并导出清晰的决策。",
     "language": {
       "label": "语言",
       "ariaLabel": "Language preference",
@@ -1004,7 +1004,7 @@
     "workspaceBackup": {
       "title": "工作区备份",
       "systemDescription": "导出或导入完整的 SQLite 工作区，包括保存的项目、历史记录、导出和修订。",
-      "projectsDescription": "导出或导入完整的 SQLite 工作区，包括保存的项目、分析历史记录、导出事件和保存的修订。在 SQLite 写入开始之前导入运行校验和、可选签名和引用验证。",
+      "projectsDescription": "将整个工作区保存为文件，或从备份中恢复。",
       "exporting": "出口...",
       "export": "导出工作区 JSON",
       "importing": "输入...",
@@ -1136,7 +1136,7 @@
       "savedLocally": "保存在本地",
       "unknownProject": "未知项目",
       "statusNeedsLocalUpdate": "需要本地更新",
-      "statusInSync": "与SQLite同步",
+      "statusInSync": "所有更改已保存",
       "empty": "未加载已保存的项目。您仍然可以使用本地草稿并在准备好后保存。",
       "labels": {
         "projectName": "项目名称",
@@ -1178,7 +1178,7 @@
     },
     "revisions": {
       "title": "已保存的修订",
-      "description": "在创建、更新和工作区导入时捕获的有效负载快照。加载修订版会使当前项目保持选中状态，但将向导标记为已更改，直到您保存。",
+      "description": "该项目早先保存的版本。打开任意一个即可恢复其输入。",
       "refreshing": "清爽...",
       "refresh": "刷新修订版",
       "empty": "加载已保存的项目以检查或恢复早期的有效负载修订。",
@@ -1197,7 +1197,7 @@
     },
     "savedProjects": {
       "title": "已保存的项目",
-      "description": "从本地工作区加载、比较和存档 SQLite 支持的草稿。",
+      "description": "加载、比较和归档你保存的实验。",
       "loading": "加载中...",
       "load": "加载保存的项目",
       "savedCount_one": "{{count}} 已保存",
