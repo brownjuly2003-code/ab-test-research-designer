@@ -670,7 +670,7 @@ describe("App UI flow", () => {
     }
   });
 
-  it("hides operator tabs (System / API keys) from the public app by default", async () => {
+  it("hides the operator sidebar (saved projects, System, API keys) from the public app by default", async () => {
     window.localStorage.removeItem("ab-test:admin");
     const view = await renderIntoDocument(<App />);
     try {
@@ -678,14 +678,16 @@ describe("App UI flow", () => {
 
       // Core planning surface is still present.
       expect(view.container.textContent).toContain("Plan your A/B experiment");
-      expect(view.container.textContent).toContain("Saved projects");
+      expect(view.container.textContent).toContain("New experiment");
+      expect(view.container.textContent).toContain("Load example");
 
-      // Operator tabs and their backend/diagnostics content are gone.
+      // The whole operator sidebar (project management + backend/diagnostics) is gone.
       const tabLabels = Array.from(view.container.querySelectorAll("button")).map(
         (button) => button.textContent?.trim()
       );
       expect(tabLabels).not.toContain("System");
       expect(tabLabels).not.toContain("API keys");
+      expect(view.container.textContent).not.toContain("Saved projects");
       expect(view.container.textContent).not.toContain("Backend status");
       expect(view.container.textContent).not.toContain("Runtime diagnostics");
       expect(view.container.textContent).not.toContain("API session token");

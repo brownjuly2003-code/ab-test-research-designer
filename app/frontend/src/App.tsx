@@ -1,9 +1,10 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import ErrorBoundary from "./components/ErrorBoundary";
 import SidebarPanel from "./components/SidebarPanel";
 import WizardPanel, { GlobalSideEffects, OnboardingPanel } from "./components/WizardPanel";
+import { isAdminMode } from "./lib/adminMode";
 import { useDraftStore } from "./stores/draftStore";
 import { useProjectStore } from "./stores/projectStore";
 import { useThemeStore } from "./stores/themeStore";
@@ -28,6 +29,8 @@ export default function App() {
   const activeProjectId = useProjectStore((state) => state.activeProjectId);
   const isEmptyState = showOnboarding && !isDirty && !activeProjectId && step === 0;
   const language = resolveLanguage(i18n.resolvedLanguage);
+  // Operator surfaces (saved-project sidebar) are hidden from the public app.
+  const [admin] = useState(isAdminMode);
 
   useEffect(() => {
     document.documentElement.lang = language;
@@ -42,60 +45,54 @@ export default function App() {
   return (
     <>
       <a href="#main-content" className="skip-link">{t("app.skipToMainContent")}</a>
-      <main id="main-content" className="page" tabIndex={-1}>
-        <div className="shell">
-          <GlobalSideEffects />
-          <section className="hero">
-            <div className="hero-header">
-              <div className="hero-copy">
-                <span className="eyebrow">{t("app.eyebrow")}</span>
-                <h1>{t("app.title")}</h1>
-                <p>{t("app.tagline")}</p>
-              </div>
-              <div style={{ display: "grid", gap: 12 }}>
-                <div className="theme-toggle" role="group" aria-label={t("app.language.ariaLabel")}>
-                  <span className="theme-toggle-label">{t("app.language.label")}</span>
-                  <div className="theme-toggle-buttons">
-                    {SUPPORTED_LANGUAGES.map((option) => (
-                      <button
-                        key={option}
-                        type="button"
-                        className="theme-toggle-button"
-                        aria-label={t(`app.language.options.${option}`)}
-                        aria-pressed={language === option}
-                        title={t(`app.language.options.${option}`)}
-                        onClick={() => void handleLanguageChange(option)}
-                      >
-                        {option.toUpperCase()}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="theme-toggle" role="group" aria-label={t("app.theme.ariaLabel")}>
-                  <span className="theme-toggle-label">{t("app.theme.label")}</span>
-                  <div className="theme-toggle-buttons">
-                    {(["light", "dark", "system"] as const).map((option) => (
-                      <button
-                        key={option}
-                        type="button"
-                        className="theme-toggle-button"
-                        aria-label={t(`app.theme.buttonAria.${option}`)}
-                        aria-pressed={theme === option}
-                        title={t(`app.theme.buttonAria.${option}`)}
-                        onClick={() => setTheme(option)}
-                      >
-                        {t(`app.theme.options.${option}`)}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
+      <header className="topbar">
+        <div className="topbar-inner">
+          <a className="brand" href="/" aria-label={t("app.title")}>
+            <span className="brand-mark" aria-hidden="true">
+              <span>A</span>
+              <span>B</span>
+            </span>
+            <span className="brand-text">
+              <span className="brand-name">{t("app.title")}</span>
+              <span className="brand-tag">{t("app.eyebrow")}</span>
+            </span>
+          </a>
+          <div className="topbar-controls">
+            <select
+              className="lang-select"
+              value={language}
+              aria-label={t("app.language.ariaLabel")}
+              onChange={(event) => void handleLanguageChange(event.target.value as SupportedLanguage)}
+            >
+              {SUPPORTED_LANGUAGES.map((option) => (
+                <option key={option} value={option}>
+                  {t(`app.language.options.${option}`)}
+                </option>
+              ))}
+            </select>
+            <div className="theme-seg" role="group" aria-label={t("app.theme.ariaLabel")}>
+              {(["light", "dark", "system"] as const).map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  className="theme-seg-button"
+                  aria-label={t(`app.theme.buttonAria.${option}`)}
+                  aria-pressed={theme === option}
+                  title={t(`app.theme.buttonAria.${option}`)}
+                  onClick={() => setTheme(option)}
+                >
+                  {t(`app.theme.options.${option}`)}
+                </button>
+              ))}
             </div>
-          </section>
-          <div className="grid">
-            {isEmptyState ? <OnboardingPanel /> : <ErrorBoundary><WizardPanel /></ErrorBoundary>}
-            <ErrorBoundary><SidebarPanel /></ErrorBoundary>
           </div>
+        </div>
+      </header>
+      <main id="main-content" className="page" tabIndex={-1}>
+        <div className={admin ? "workspace workspace--admin" : "workspace"}>
+          <GlobalSideEffects />
+          {isEmptyState ? <OnboardingPanel /> : <ErrorBoundary><WizardPanel /></ErrorBoundary>}
+          {admin ? <ErrorBoundary><SidebarPanel /></ErrorBoundary> : null}
         </div>
       </main>
     </>

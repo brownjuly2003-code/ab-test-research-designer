@@ -8,8 +8,8 @@ test("imports the demo project and completes the browser smoke flow", async ({ p
   // Operator surfaces (System / API keys tabs) are gated behind ?admin=1 in the
   // public app; the smoke flow opts into them to exercise the backend tiles.
   await page.goto("/?admin=1", { waitUntil: "networkidle" });
-  await expect(page.getByRole("heading", { name: "AB Test Research Designer" })).toBeVisible();
-  await expect(page.getByText("Plan your A/B experiment")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Plan your A/B experiment" })).toBeVisible();
+  await expect(page.getByText("AB Test Research Designer")).toBeVisible();
 
   await page.getByRole("button", { name: "System", exact: true }).click();
   await expect(page.getByText("API online")).toBeVisible();

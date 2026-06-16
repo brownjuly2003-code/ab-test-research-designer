@@ -45,7 +45,7 @@ type AxeMatcher = {
 describe.each([
   { locale: "de", activeLabel: "DE" },
   { locale: "es", activeLabel: "ES" }
-] as const)("Locale accessibility: $locale", ({ locale, activeLabel }) => {
+] as const)("Locale accessibility: $locale", ({ locale }) => {
   beforeEach(async () => {
     document.documentElement.lang = "en";
     window.localStorage.clear();
@@ -62,14 +62,14 @@ describe.each([
     try {
       await flushEffects();
 
-      const languageGroup = view.container.querySelector('[aria-label="Language preference"]');
-      expect(languageGroup).not.toBeNull();
+      const languageSelect = view.container.querySelector('[aria-label="Language preference"]');
+      expect(languageSelect).not.toBeNull();
+      expect(languageSelect?.tagName).toBe("SELECT");
 
-      const buttons = Array.from(languageGroup?.querySelectorAll("button") ?? []);
-      expect(buttons.map((button) => button.textContent?.trim())).toEqual(["EN", "RU", "DE", "ES", "FR", "ZH", "AR"]);
+      const optionValues = Array.from((languageSelect as HTMLSelectElement).options).map((option) => option.value);
+      expect(optionValues).toEqual(["en", "ru", "de", "es", "fr", "zh", "ar"]);
 
-      const activeButton = buttons.find((button) => button.textContent?.trim() === activeLabel);
-      expect(activeButton?.getAttribute("aria-pressed")).toBe("true");
+      expect((languageSelect as HTMLSelectElement).value).toBe(locale);
       expect(document.documentElement.lang).toBe(locale);
       expect(document.documentElement.dir).toBe("ltr");
     } finally {

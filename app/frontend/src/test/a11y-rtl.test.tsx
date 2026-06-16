@@ -61,14 +61,14 @@ describe("Arabic RTL accessibility", () => {
     try {
       await flushEffects();
 
-      const languageGroup = view.container.querySelector('[aria-label="Language preference"]');
-      expect(languageGroup).not.toBeNull();
+      const languageSelect = view.container.querySelector('[aria-label="Language preference"]');
+      expect(languageSelect).not.toBeNull();
+      expect(languageSelect?.tagName).toBe("SELECT");
 
-      const buttons = Array.from(languageGroup?.querySelectorAll("button") ?? []);
-      expect(buttons.map((button) => button.textContent?.trim())).toEqual(["EN", "RU", "DE", "ES", "FR", "ZH", "AR"]);
+      const optionValues = Array.from((languageSelect as HTMLSelectElement).options).map((option) => option.value);
+      expect(optionValues).toEqual(["en", "ru", "de", "es", "fr", "zh", "ar"]);
 
-      const activeButton = buttons.find((button) => button.textContent?.trim() === "AR");
-      expect(activeButton?.getAttribute("aria-pressed")).toBe("true");
+      expect((languageSelect as HTMLSelectElement).value).toBe("ar");
       expect(document.documentElement.lang).toBe("ar");
       expect(document.documentElement.dir).toBe("rtl");
     } finally {

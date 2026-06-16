@@ -13,6 +13,7 @@ import {
   type SlackStatusResponse
 } from "../lib/api";
 import { hydrateLoadedPayload, stepLabels, type AuditLogEntry } from "../lib/experiment";
+import { isAdminMode } from "../lib/adminMode";
 import type { ToastType } from "../hooks/useToast";
 import { useAnalysisStore } from "../stores/analysisStore";
 import { useDraftStore } from "../stores/draftStore";
@@ -40,27 +41,6 @@ function formatProjectTimestamp(timestamp: string): string {
 
 function formatOptionalTimestamp(timestamp: string | null | undefined, emptyLabel: string): string {
   return timestamp ? formatProjectTimestamp(timestamp) : emptyLabel;
-}
-
-// Operator/admin surfaces (backend status, API keys, webhooks, audit log, Slack
-// install, workspace SQLite import/export) are hidden from the public app. They
-// stay one query param away for the owner: open with `?admin=1` (persisted to
-// localStorage) and `?admin=0` to leave operator mode again.
-function detectAdminMode(): boolean {
-  try {
-    const flag = new URLSearchParams(window.location.search).get("admin");
-    if (flag === "1" || flag === "true") {
-      window.localStorage.setItem("ab-test:admin", "1");
-      return true;
-    }
-    if (flag === "0" || flag === "false") {
-      window.localStorage.removeItem("ab-test:admin");
-      return false;
-    }
-    return window.localStorage.getItem("ab-test:admin") === "1";
-  } catch {
-    return false;
-  }
 }
 
 function formatUptime(seconds: number): string {
@@ -170,7 +150,7 @@ const SidebarPanel = memo(function SidebarPanel() {
     apiTokenStatus
   } = project;
   const [activeTab, setActiveTab] = useState<"projects" | "system" | "apiKeys">("projects");
-  const [isAdmin] = useState(detectAdminMode);
+  const [isAdmin] = useState(isAdminMode);
   const [projectQuery, setProjectQuery] = useState("");
   const [projectStatus, setProjectStatus] = useState<"active" | "archived" | "all">("active");
   const [projectMetricType, setProjectMetricType] = useState<"all" | "binary" | "continuous">("all");
