@@ -99,6 +99,16 @@ The current production demo lives on Hugging Face Spaces on the free CPU tier �
 
 **Live URL:** https://liovina-ab-test-research-designer.hf.space
 
+**Operator mode (`?admin=1`):** the public app shows only the planning wizard. All
+operator surfaces — the saved-project sidebar (projects, history, revisions,
+archived, workspace backup) and the **System** / **API keys** tabs (backend
+status, API session token, `AB_ADMIN_TOKEN`, Slack App, diagnostics, audit log,
+webhooks, raw endpoints) — are hidden and live behind admin mode. Open
+`…hf.space/?admin=1` to reveal them (persisted to `localStorage['ab-test:admin']`;
+clear with `?admin=0`). Logic: `app/frontend/src/lib/adminMode.ts`. The smoke
+flows (`app/frontend/src/test/e2e-smoke.spec.ts`, `scripts/run_local_smoke.py`)
+open `/?admin=1` so they can exercise those surfaces.
+
 Initial setup (one-time):
 
 1. Generate a write-scoped token at https://huggingface.co/settings/tokens
@@ -143,6 +153,23 @@ upload_folder(
     commit_message="Sync from GitHub main",
 )
 ```
+
+Practical notes (learned 2026-06-16):
+- The `liovina` write token is already stored in the OS git credential manager
+  (`printf 'protocol=https\nhost=huggingface.co\n\n' | git credential fill` returns
+  `username=liovina` + token). Pass it as `token=` to `upload_folder`. Note: the
+  `hf` CLI can report "Not logged in" even when this credential exists — they are
+  separate stores; don't be misled.
+- Deploy from a **clean snapshot of committed `main`**, not the working tree
+  (which carries dist/, caches, untracked notes): `git archive main | tar -x -C
+  D:/hfdeploy` then `folder_path="D:/hfdeploy"`. Use a **native Windows path** —
+  Git Bash `/tmp` and Windows-Python `/tmp` resolve differently and the upload
+  fails with "is not a directory".
+- HF keeps the old container live during `RUNNING_BUILDING`, so the page does not
+  change instantly. Detect rollout by polling the live homepage's JS asset hash
+  for a **change** (`assets/index-<hash>.js`) — do NOT wait for a specific local
+  build hash, because HF's build environment produces a different hash than a
+  local `vite build`.
 
 Verify after HF finishes `APP_STARTING`:
 
