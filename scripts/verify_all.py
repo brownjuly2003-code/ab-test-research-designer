@@ -103,6 +103,16 @@ def main() -> int:
         [sys.executable, "scripts/generate_api_docs.py", "--check"],
         ROOT_DIR,
     )
+    run_step(
+        "locale content gate (self-test)",
+        [sys.executable, "scripts/check_locale_content.py", "--self-test"],
+        ROOT_DIR,
+    )
+    run_step(
+        "locale content gate",
+        [sys.executable, "scripts/check_locale_content.py"],
+        ROOT_DIR,
+    )
     unsigned_backup_env = os.environ.copy()
     unsigned_backup_env.pop("AB_WORKSPACE_SIGNING_KEY", None)
     run_step(
