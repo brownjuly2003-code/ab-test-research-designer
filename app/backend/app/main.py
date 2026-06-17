@@ -1,12 +1,14 @@
 import asyncio
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 import logging
 import os
 from pathlib import Path
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import RequestResponseEndpoint
 import uvicorn
 
 from app.backend.app.config import get_settings
@@ -72,9 +74,9 @@ def create_app() -> FastAPI:
                 cors_headers.append(header_name)
 
     @asynccontextmanager
-    async def lifespan(_: FastAPI):
+    async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         snapshot_service: SnapshotService | None = None
-        snapshot_task: asyncio.Task | None = None
+        snapshot_task: asyncio.Task[None] | None = None
         seed_enabled = settings.seed_demo_on_startup
         snapshot_repo = (os.getenv("AB_HF_SNAPSHOT_REPO") or "").strip()
         snapshot_token = (os.getenv("AB_HF_TOKEN") or "").strip()
@@ -198,7 +200,7 @@ def create_app() -> FastAPI:
     )
 
     @app.middleware("http")
-    async def add_request_language(request: Request, call_next):
+    async def add_request_language(request: Request, call_next: RequestResponseEndpoint) -> Response:
         language = resolve_language(request.headers.get("Accept-Language"))
         request.state.language = language
         language_token = set_current_language(language)
@@ -218,7 +220,7 @@ def create_app() -> FastAPI:
         runtime_counters=runtime_counters,
     )
     register_exception_handlers(app, logger=logger)
-    analysis_routes.build_experiment_report = build_experiment_report
+    setattr(analysis_routes, "build_experiment_report", build_experiment_report)
     app.include_router(
         analysis_routes.create_analysis_router(
             settings,

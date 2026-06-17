@@ -1,13 +1,19 @@
+from __future__ import annotations
+
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 import hashlib
 import hmac
 import json
 import time
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import httpx
 
 from app.backend.app.errors import ApiError
+
+if TYPE_CHECKING:
+    from app.backend.app.repository import ProjectRepository
 
 
 class WebhookService:
@@ -15,11 +21,11 @@ class WebhookService:
 
     def __init__(
         self,
-        repository,
+        repository: ProjectRepository,
         *,
         environment: str,
         client: httpx.Client | None = None,
-        sleep=time.sleep,
+        sleep: Callable[[float], None] = time.sleep,
         executor: ThreadPoolExecutor | None = None,
     ) -> None:
         self.repository = repository

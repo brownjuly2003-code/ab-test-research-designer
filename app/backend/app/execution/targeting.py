@@ -10,14 +10,14 @@ matching the intuitive "the user doesn't qualify" reading.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 NUMERIC_OPERATORS = {"gt", "lt", "gte", "lte"}
 SUPPORTED_OPERATORS = {"equals", "not_equals", "in"} | NUMERIC_OPERATORS
 
 
 def _matches_rule(rule: dict[str, Any], attributes: dict[str, Any]) -> bool:
-    attribute = rule.get("attribute")
+    attribute: Any = rule.get("attribute")
     operator = rule.get("operator")
     expected = rule.get("value")
     actual = attributes.get(attribute)
@@ -33,7 +33,7 @@ def _matches_rule(rule: dict[str, Any], attributes: dict[str, Any]) -> bool:
             return False
         try:
             actual_number = float(actual)
-            expected_number = float(expected)
+            expected_number = float(cast(Any, expected))
         except (TypeError, ValueError):
             return False
         if operator == "gt":

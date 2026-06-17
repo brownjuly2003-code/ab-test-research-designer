@@ -1,5 +1,6 @@
 from math import ceil, sqrt
 from statistics import NormalDist
+from typing import Any
 
 from app.backend.app.constants import MAX_SUPPORTED_VARIANTS
 
@@ -57,7 +58,7 @@ def calculate_binary_sample_size(
     alpha: float,
     power: float,
     variants_count: int = 2,
-) -> dict:
+) -> dict[str, Any]:
     if not 0 < baseline_rate < 1:
         raise ValueError("baseline_rate must be between 0 and 1 for binary metrics")
     if mde_pct <= 0:

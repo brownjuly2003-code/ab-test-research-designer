@@ -1,4 +1,5 @@
 import math
+from typing import Any
 
 from app.backend.app.constants import MAX_SUPPORTED_VARIANTS
 from app.backend.app.stats.binary import calculate_binary_sample_size
@@ -38,7 +39,7 @@ def _build_bonferroni_note(variants_count: int, adjusted_alpha: float | None) ->
     )
 
 
-def calculate_experiment_metrics(payload: dict) -> dict:
+def calculate_experiment_metrics(payload: dict[str, Any]) -> dict[str, Any]:
     metric_type = payload["metric_type"]
     variants_count = int(payload.get("variants_count", len(payload["traffic_split"])))
     traffic_split = payload["traffic_split"]

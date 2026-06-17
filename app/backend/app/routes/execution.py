@@ -1,4 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
+
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.backend.app.schemas.api import (
     ConversionIngestRequest,
@@ -12,8 +15,19 @@ from app.backend.app.schemas.api import (
 from app.backend.app.services.decision_service import synthesize_decision
 from app.backend.app.services.live_stats_service import build_live_stats
 
+if TYPE_CHECKING:
+    from app.backend.app.config import Settings
+    from app.backend.app.http_utils import SlidingWindowRateLimiter
+    from app.backend.app.repository import ProjectRepository
 
-def create_execution_router(settings, repository, rate_limiter, require_auth, require_write_auth) -> APIRouter:
+
+def create_execution_router(
+    settings: "Settings",
+    repository: "ProjectRepository",
+    rate_limiter: "SlidingWindowRateLimiter",
+    require_auth: Callable[[Request], None],
+    require_write_auth: Callable[[Request], None],
+) -> APIRouter:
     """Execution layer (Phase C) — raw exposure/conversion ingestion + a summary read.
 
     Ingestion writes require write auth; the summary read requires read auth. Dedup
@@ -72,7 +86,7 @@ def create_execution_router(settings, repository, rate_limiter, require_auth, re
             raise HTTPException(status_code=404, detail="Experiment not found")
         return IngestionSummaryResponse.model_validate(summary)
 
-    def _compute_live_stats(experiment_id: str) -> dict:
+    def _compute_live_stats(experiment_id: str) -> dict[str, Any]:
         """Shared live-stats build path for the live-stats and decision reads. Raises 404 when the
         experiment (or its aggregates) is missing."""
         project = repository.get_project(experiment_id, include_archived=True)

@@ -1,11 +1,13 @@
+from typing import Any, cast
+
 from app.backend.app.constants import MAX_RECOMMENDED_DURATION_DAYS
 from app.backend.app.i18n import translate
 from app.backend.app.rules.catalog import WARNING_CATALOG
 from app.backend.app.stats.srm import chi_square_srm
 
 
-def _warning(code: str, variables: dict[str, object] | None = None) -> dict:
-    entry = WARNING_CATALOG[code]
+def _warning(code: str, variables: dict[str, object] | None = None) -> dict[str, Any]:
+    entry = cast(dict[str, Any], WARNING_CATALOG[code])
     return {
         "code": code,
         "severity": entry["severity"],
@@ -21,8 +23,10 @@ def _warning(code: str, variables: dict[str, object] | None = None) -> dict:
     }
 
 
-def evaluate_warnings(payload: dict, results: dict | None = None) -> list[dict]:
-    warnings: list[dict] = []
+def evaluate_warnings(
+    payload: dict[str, Any], results: dict[str, Any] | None = None
+) -> list[dict[str, Any]]:
+    warnings: list[dict[str, Any]] = []
     results = results or {}
 
     if payload.get("metric_type") == "continuous" and payload.get("std_dev") is None:

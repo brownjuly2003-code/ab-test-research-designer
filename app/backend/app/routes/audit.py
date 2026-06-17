@@ -1,9 +1,23 @@
-from fastapi import APIRouter, Depends, Query, Response
+from collections.abc import Callable
+from typing import TYPE_CHECKING
+
+from fastapi import APIRouter, Depends, Query, Request, Response
 
 from app.backend.app.schemas.api import AuditLogResponse
 
+if TYPE_CHECKING:
+    from app.backend.app.config import Settings
+    from app.backend.app.http_utils import SlidingWindowRateLimiter
+    from app.backend.app.repository import ProjectRepository
 
-def create_audit_router(settings, repository, rate_limiter, require_auth, require_write_auth) -> APIRouter:
+
+def create_audit_router(
+    settings: "Settings",
+    repository: "ProjectRepository",
+    rate_limiter: "SlidingWindowRateLimiter",
+    require_auth: Callable[[Request], None],
+    require_write_auth: Callable[[Request], None],
+) -> APIRouter:
     router = APIRouter(tags=["audit"])
 
     @router.get(

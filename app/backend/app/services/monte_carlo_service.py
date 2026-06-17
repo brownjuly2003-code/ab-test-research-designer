@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import math
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 
@@ -225,11 +225,11 @@ def simulate_comparison(
                 continue
 
             simulation_results[project_id] = simulate_continuous_uplift_distribution(
-                control_mean=float(continuous_request.get("control_mean")),
-                control_std=float(continuous_request.get("control_std")),
+                control_mean=float(cast(Any, continuous_request.get("control_mean"))),
+                control_std=float(cast(Any, continuous_request.get("control_std"))),
                 control_n=_as_positive_int(continuous_request.get("control_n"), "control_n"),
-                treatment_mean=float(continuous_request.get("treatment_mean")),
-                treatment_std=float(continuous_request.get("treatment_std")),
+                treatment_mean=float(cast(Any, continuous_request.get("treatment_mean"))),
+                treatment_std=float(cast(Any, continuous_request.get("treatment_std"))),
                 treatment_n=_as_positive_int(continuous_request.get("treatment_n"), "treatment_n"),
                 num_simulations=num_simulations,
                 seed=project_seed,

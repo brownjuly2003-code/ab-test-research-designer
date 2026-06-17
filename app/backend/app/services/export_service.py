@@ -447,7 +447,7 @@ def build_standalone_html(request: StandaloneExportRequest) -> str:
 </html>"""
 
 
-def export_multi_project_comparison_to_markdown(comparison: dict) -> str:
+def export_multi_project_comparison_to_markdown(comparison: dict[str, Any]) -> str:
     shared_warnings = comparison.get("shared_warnings", [])
     shared_risks = comparison.get("shared_risks", [])
     shared_assumptions = comparison.get("shared_assumptions", [])
@@ -491,11 +491,11 @@ def export_multi_project_comparison_to_markdown(comparison: dict) -> str:
     )
 
 
-def export_multi_project_comparison_to_pdf(comparison: dict) -> bytes:
+def export_multi_project_comparison_to_pdf(comparison: dict[str, Any]) -> bytes:
     return generate_comparison_report_pdf(comparison)
 
 
-def export_report_to_markdown(report: dict) -> str:
+def export_report_to_markdown(report: dict[str, Any]) -> str:
     recommendations = report["recommendations"]
     risks = report["risks"]
     labels = {
@@ -598,7 +598,7 @@ def export_report_to_markdown(report: dict) -> str:
 """
 
 
-def export_report_to_html(report: dict) -> str:
+def export_report_to_html(report: dict[str, Any]) -> str:
     def as_list(items: list[str]) -> str:
         if not items:
             return f"<li>{_as_html(translate('export.html.none'))}</li>"

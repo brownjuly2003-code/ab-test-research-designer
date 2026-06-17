@@ -3,6 +3,7 @@ import hashlib
 import hmac
 import json
 import secrets
+from typing import TYPE_CHECKING, Any
 from urllib.parse import parse_qs, urlencode
 
 from fastapi import APIRouter, HTTPException, Request
@@ -13,11 +14,15 @@ from app.backend.app.errors import ApiError
 from app.backend.app.services.slack_service import SlackService
 from app.backend.app.slack.signature import verify_slack_signature
 
+if TYPE_CHECKING:
+    from app.backend.app.config import Settings
+    from app.backend.app.repository import ProjectRepository
+
 
 SLACK_SCOPES = "commands,chat:write,chat:write.public,users:read"
 
 
-def _slack_configured(settings) -> bool:
+def _slack_configured(settings: "Settings") -> bool:
     return bool(settings.slack_client_id and settings.slack_client_secret and settings.slack_signing_secret)
 
 
@@ -25,17 +30,17 @@ def _not_configured_response() -> JSONResponse:
     return JSONResponse({"error": "slack_not_configured"}, status_code=503)
 
 
-def _state_secret(settings) -> str:
+def _state_secret(settings: "Settings") -> str:
     return settings.slack_client_secret or settings.slack_signing_secret or "slack-state"
 
 
-def _build_state(settings) -> str:
+def _build_state(settings: "Settings") -> str:
     nonce = secrets.token_urlsafe(24)
     signature = hmac.new(_state_secret(settings).encode("utf-8"), nonce.encode("utf-8"), hashlib.sha256).digest()
     return f"{nonce}.{base64.urlsafe_b64encode(signature).decode('ascii').rstrip('=')}"
 
 
-def _verify_state(settings, state: str) -> bool:
+def _verify_state(settings: "Settings", state: str) -> bool:
     if "." not in state:
         return False
     nonce, encoded_signature = state.rsplit(".", 1)
@@ -43,12 +48,12 @@ def _verify_state(settings, state: str) -> bool:
     return hmac.compare_digest(expected, state)
 
 
-def _build_state_from_nonce(settings, nonce: str) -> str:
+def _build_state_from_nonce(settings: "Settings", nonce: str) -> str:
     signature = hmac.new(_state_secret(settings).encode("utf-8"), nonce.encode("utf-8"), hashlib.sha256).digest()
     return f"{nonce}.{base64.urlsafe_b64encode(signature).decode('ascii').rstrip('=')}"
 
 
-async def _read_signed_body(request: Request, settings) -> bytes:
+async def _read_signed_body(request: Request, settings: "Settings") -> bytes:
     body = await request.body()
     if not verify_slack_signature(
         signing_secret=settings.slack_signing_secret or "",
@@ -60,22 +65,22 @@ async def _read_signed_body(request: Request, settings) -> bytes:
     return body
 
 
-async def _read_signed_form(request: Request, settings) -> dict[str, str]:
+async def _read_signed_form(request: Request, settings: "Settings") -> dict[str, str]:
     body = await _read_signed_body(request, settings)
     parsed = parse_qs(body.decode("utf-8"), keep_blank_values=True)
     return {key: values[-1] if values else "" for key, values in parsed.items()}
 
 
-def _service(repository, request: Request, bot_token: str | None = None) -> SlackService:
+def _service(repository: "ProjectRepository", request: Request, bot_token: str | None = None) -> SlackService:
     client = getattr(request.app.state, "slack_http_client", None)
     return SlackService(repository, bot_token=bot_token, client=client)
 
 
-def create_slack_router(settings, repository) -> APIRouter:
+def create_slack_router(settings: "Settings", repository: "ProjectRepository") -> APIRouter:
     router = APIRouter(tags=["slack"])
 
     @router.get("/api/v1/slack/status")
-    def slack_status() -> dict:
+    def slack_status() -> dict[str, Any]:
         installation = repository.get_latest_slack_installation()
         return {
             "configured": _slack_configured(settings),
@@ -85,8 +90,8 @@ def create_slack_router(settings, repository) -> APIRouter:
             "installed_at": installation.get("installed_at") if installation else None,
         }
 
-    @router.get("/slack/install")
-    def slack_install():
+    @router.get("/slack/install", response_model=None)
+    def slack_install() -> RedirectResponse | JSONResponse:
         if not _slack_configured(settings):
             return _not_configured_response()
         query = urlencode(
@@ -98,8 +103,10 @@ def create_slack_router(settings, repository) -> APIRouter:
         )
         return RedirectResponse(f"https://slack.com/oauth/v2/authorize?{query}")
 
-    @router.get("/slack/oauth/callback")
-    def slack_oauth_callback(request: Request, code: str = "", state: str = ""):
+    @router.get("/slack/oauth/callback", response_model=None)
+    def slack_oauth_callback(
+        request: Request, code: str = "", state: str = ""
+    ) -> JSONResponse | dict[str, Any]:
         if not _slack_configured(settings):
             return _not_configured_response()
         if not code or not _verify_state(settings, state):
@@ -135,8 +142,8 @@ def create_slack_router(settings, repository) -> APIRouter:
         )
         return {"ok": True, "team_id": installation["team_id"], "team_name": installation.get("team_name")}
 
-    @router.post("/slack/commands")
-    async def slack_commands(request: Request):
+    @router.post("/slack/commands", response_model=None)
+    async def slack_commands(request: Request) -> JSONResponse | dict[str, Any]:
         if not _slack_configured(settings):
             return _not_configured_response()
         form = await _read_signed_form(request, settings)
@@ -145,8 +152,8 @@ def create_slack_router(settings, repository) -> APIRouter:
         bot_token = installation.get("bot_token") if installation else None
         return _service(repository, request, bot_token=bot_token).handle_command(form.get("text", ""))
 
-    @router.post("/slack/interactive")
-    async def slack_interactive(request: Request):
+    @router.post("/slack/interactive", response_model=None)
+    async def slack_interactive(request: Request) -> JSONResponse | dict[str, Any]:
         if not _slack_configured(settings):
             return _not_configured_response()
         form = await _read_signed_form(request, settings)
@@ -170,8 +177,8 @@ def create_slack_router(settings, repository) -> APIRouter:
             return {"response_type": "ephemeral", "text": f"Review requested for `{project_id}`."}
         return {"response_type": "ephemeral", "text": "Slack action received."}
 
-    @router.post("/slack/events")
-    async def slack_events(request: Request):
+    @router.post("/slack/events", response_model=None)
+    async def slack_events(request: Request) -> JSONResponse | dict[str, Any]:
         if not _slack_configured(settings):
             return _not_configured_response()
         raw_body = await _read_signed_body(request, settings)

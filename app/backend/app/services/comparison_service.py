@@ -1,4 +1,5 @@
 from statistics import median
+from typing import Any
 
 from app.backend.app.stats.binary import calculate_binary_sample_size
 from app.backend.app.stats.continuous import calculate_continuous_sample_size
@@ -26,7 +27,7 @@ def _unique_strings(items: list[str]) -> list[str]:
     return normalized
 
 
-def _warning_codes(analysis_run: dict) -> list[str]:
+def _warning_codes(analysis_run: dict[str, Any]) -> list[str]:
     warnings = analysis_run.get("analysis", {}).get("calculations", {}).get("warnings", [])
     codes: list[str] = []
     for warning in warnings:
@@ -36,7 +37,7 @@ def _warning_codes(analysis_run: dict) -> list[str]:
     return codes
 
 
-def _risk_highlights(analysis_run: dict) -> list[str]:
+def _risk_highlights(analysis_run: dict[str, Any]) -> list[str]:
     risks = analysis_run.get("analysis", {}).get("report", {}).get("risks", {})
     highlights: list[str] = []
 
@@ -53,7 +54,7 @@ def _risk_highlights(analysis_run: dict) -> list[str]:
     return highlights
 
 
-def _recommendation_highlights(analysis_run: dict) -> list[str]:
+def _recommendation_highlights(analysis_run: dict[str, Any]) -> list[str]:
     recommendations = analysis_run.get("analysis", {}).get("report", {}).get("recommendations", {})
     highlights: list[str] = []
 
@@ -70,7 +71,7 @@ def _recommendation_highlights(analysis_run: dict) -> list[str]:
     return highlights
 
 
-def _warning_severity(analysis_run: dict) -> str:
+def _warning_severity(analysis_run: dict[str, Any]) -> str:
     warnings = analysis_run.get("analysis", {}).get("calculations", {}).get("warnings", [])
     highest_severity = "none"
     highest_rank = 0
@@ -103,7 +104,7 @@ def _build_sensitivity_scale(default_values: list[float], current_value: float, 
     return sorted(selected)
 
 
-def _build_sensitivity(project: dict, analysis_run: dict) -> dict | None:
+def _build_sensitivity(project: dict[str, Any], analysis_run: dict[str, Any]) -> dict[str, Any] | None:
     calculations = analysis_run.get("analysis", {}).get("calculations", {})
     summary = calculations.get("calculation_summary", {})
     results = calculations.get("results", {})
@@ -175,7 +176,7 @@ def _build_sensitivity(project: dict, analysis_run: dict) -> dict | None:
     }
 
 
-def _saved_observed_results(project: dict) -> dict | None:
+def _saved_observed_results(project: dict[str, Any]) -> dict[str, Any] | None:
     additional_context = project.get("payload", {}).get("additional_context")
     if not isinstance(additional_context, dict):
         return None
@@ -186,7 +187,7 @@ def _saved_observed_results(project: dict) -> dict | None:
     return analysis if isinstance(analysis, dict) else None
 
 
-def _shared_items(entries: list[dict], field_name: str) -> list[str]:
+def _shared_items(entries: list[dict[str, Any]], field_name: str) -> list[str]:
     if not entries:
         return []
     shared = _unique_strings(entries[0].get(field_name, []))
@@ -196,7 +197,7 @@ def _shared_items(entries: list[dict], field_name: str) -> list[str]:
     return shared
 
 
-def _unique_items_by_project(entries: list[dict], field_name: str) -> dict[str, list[str]]:
+def _unique_items_by_project(entries: list[dict[str, Any]], field_name: str) -> dict[str, list[str]]:
     frequencies: dict[str, int] = {}
     values_by_project: dict[str, list[str]] = {}
     for entry in entries:
@@ -210,7 +211,7 @@ def _unique_items_by_project(entries: list[dict], field_name: str) -> dict[str, 
     }
 
 
-def _aggregate_recommendations(entries: list[dict]) -> list[str]:
+def _aggregate_recommendations(entries: list[dict[str, Any]]) -> list[str]:
     frequencies: dict[str, int] = {}
     for entry in entries:
         for recommendation in _unique_strings(entry.get("recommendation_highlights", [])):
@@ -234,7 +235,7 @@ def _overlap_lists(base_items: list[str], candidate_items: list[str]) -> tuple[l
     return shared, base_only, candidate_only
 
 
-def _metric_alignment_note(base_entry: dict, candidate_entry: dict) -> str:
+def _metric_alignment_note(base_entry: dict[str, Any], candidate_entry: dict[str, Any]) -> str:
     same_metric_type = base_entry["metric_type"] == candidate_entry["metric_type"]
     same_primary_metric = base_entry["primary_metric"] == candidate_entry["primary_metric"]
 
@@ -248,8 +249,8 @@ def _metric_alignment_note(base_entry: dict, candidate_entry: dict) -> str:
 
 
 def _comparison_highlights(
-    base_entry: dict,
-    candidate_entry: dict,
+    base_entry: dict[str, Any],
+    candidate_entry: dict[str, Any],
     *,
     sample_size_delta: int,
     duration_delta: int,
@@ -296,7 +297,7 @@ def _comparison_highlights(
     return highlights[:5]
 
 
-def _comparison_entry(project: dict, analysis_run: dict) -> dict:
+def _comparison_entry(project: dict[str, Any], analysis_run: dict[str, Any]) -> dict[str, Any]:
     report = analysis_run["analysis"]["report"]
     calculations = analysis_run["analysis"]["calculations"]
     warning_codes = _warning_codes(analysis_run)
@@ -327,7 +328,7 @@ def _comparison_entry(project: dict, analysis_run: dict) -> dict:
     }
 
 
-def build_project_comparison(base_project: dict, base_analysis_run: dict, candidate_project: dict, candidate_analysis_run: dict) -> dict:
+def build_project_comparison(base_project: dict[str, Any], base_analysis_run: dict[str, Any], candidate_project: dict[str, Any], candidate_analysis_run: dict[str, Any]) -> dict[str, Any]:
     base_entry = _comparison_entry(base_project, base_analysis_run)
     candidate_entry = _comparison_entry(candidate_project, candidate_analysis_run)
 
@@ -391,7 +392,7 @@ def build_project_comparison(base_project: dict, base_analysis_run: dict, candid
     }
 
 
-def build_multi_project_comparison(projects_with_runs: list[tuple[dict, dict]]) -> dict:
+def build_multi_project_comparison(projects_with_runs: list[tuple[dict[str, Any], dict[str, Any]]]) -> dict[str, Any]:
     entries = [_comparison_entry(project, analysis_run) for project, analysis_run in projects_with_runs]
     shared_warnings = _shared_items(entries, "warning_codes")
     shared_assumptions = _shared_items(entries, "assumptions")

@@ -46,7 +46,7 @@ def _normalize_text_list(value: object) -> list[str]:
     return deduplicated
 
 
-def parse_llm_hypotheses(raw_text: str) -> list[dict]:
+def parse_llm_hypotheses(raw_text: str) -> list[dict[str, str]]:
     json_candidate = _extract_json_object(raw_text)
     if not json_candidate:
         raise LlmAdviceParseError("LLM response did not contain a JSON object", code="missing_json_object")
@@ -63,7 +63,7 @@ def parse_llm_hypotheses(raw_text: str) -> list[dict]:
     if not isinstance(raw_items, list):
         raise LlmAdviceParseError("LLM response must contain a 'hypotheses' array", code="missing_hypotheses")
 
-    normalized: list[dict] = []
+    normalized: list[dict[str, str]] = []
     for item in raw_items:
         if not isinstance(item, dict):
             continue
@@ -88,7 +88,7 @@ def parse_llm_hypotheses(raw_text: str) -> list[dict]:
     return normalized
 
 
-def parse_llm_advice(raw_text: str) -> dict:
+def parse_llm_advice(raw_text: str) -> dict[str, str | list[str]]:
     json_candidate = _extract_json_object(raw_text)
     if not json_candidate:
         raise LlmAdviceParseError("LLM response did not contain a JSON object", code="missing_json_object")
@@ -110,7 +110,7 @@ def parse_llm_advice(raw_text: str) -> dict:
         "additional_checks",
     ]
 
-    normalized = {}
+    normalized: dict[str, str | list[str]] = {}
     for key in required_keys:
         value = parsed.get(key)
         if key == "brief_assessment":

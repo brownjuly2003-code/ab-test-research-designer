@@ -3,13 +3,16 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from io import BytesIO
 from textwrap import fill
+from typing import Any
 
 import matplotlib
 
 matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
+from matplotlib.axes import Axes
 from matplotlib.backends.backend_pdf import PdfPages
+from matplotlib.figure import Figure
 
 from app.backend.app.stats.binary import calculate_binary_sample_size
 from app.backend.app.stats.continuous import calculate_continuous_sample_size
@@ -47,13 +50,13 @@ def _format_value(value: object) -> str:
     return str(value)
 
 
-def _page_title(fig: plt.Figure, title: str, subtitle: str) -> None:
+def _page_title(fig: Figure, title: str, subtitle: str) -> None:
     fig.text(0.07, 0.965, title, fontsize=20, fontweight="bold", color="#0f172a")
     fig.text(0.07, 0.943, subtitle, fontsize=9, color="#64748b")
     fig.text(0.93, 0.943, "AB Test Research Designer", fontsize=9, color="#64748b", ha="right")
 
 
-def _render_table(axis: plt.Axes, rows: list[list[str]], headers: list[str], *, font_size: int = 9) -> None:
+def _render_table(axis: Axes, rows: list[list[str]], headers: list[str], *, font_size: int = 9) -> None:
     axis.axis("off")
     if not rows:
         axis.text(0.0, 0.5, "No data available.", fontsize=10, color="#64748b", va="center")
@@ -71,7 +74,7 @@ def _render_table(axis: plt.Axes, rows: list[list[str]], headers: list[str], *, 
             cell.set_facecolor("#ffffff")
 
 
-def _warning_lines(calculations: dict) -> list[str]:
+def _warning_lines(calculations: dict[str, Any]) -> list[str]:
     warnings = calculations.get("warnings", [])
     lines: list[str] = []
     for warning in warnings:
@@ -83,7 +86,7 @@ def _warning_lines(calculations: dict) -> list[str]:
     return lines or ["No deterministic warnings recorded."]
 
 
-def _recommendation_lines(analysis: dict) -> list[str]:
+def _recommendation_lines(analysis: dict[str, Any]) -> list[str]:
     lines: list[str] = []
     advice = analysis.get("advice", {})
     advice_payload = advice.get("advice") if isinstance(advice, dict) else None
@@ -111,7 +114,7 @@ def _recommendation_lines(analysis: dict) -> list[str]:
     return lines or ["No recommendations recorded."]
 
 
-def _revision_lines(revisions: list[dict]) -> list[str]:
+def _revision_lines(revisions: list[dict[str, Any]]) -> list[str]:
     if not revisions:
         return ["No saved revisions recorded."]
     lines: list[str] = []
@@ -134,7 +137,7 @@ def _candidate_mde_values(current_mde: float) -> list[float]:
     return rounded[:4]
 
 
-def _build_sensitivity_rows(project_payload: dict, calculations: dict) -> list[dict[str, object]]:
+def _build_sensitivity_rows(project_payload: dict[str, Any], calculations: dict[str, Any]) -> list[dict[str, object]]:
     metrics = project_payload.get("metrics", {})
     setup = project_payload.get("setup", {})
     metric_type = str(metrics.get("metric_type", "binary"))
@@ -179,7 +182,7 @@ def _build_sensitivity_rows(project_payload: dict, calculations: dict) -> list[d
     return rows
 
 
-def _build_power_curve_points(calculations: dict, metrics: dict) -> tuple[list[float], list[int]]:
+def _build_power_curve_points(calculations: dict[str, Any], metrics: dict[str, Any]) -> tuple[list[float], list[int]]:
     summary = calculations.get("calculation_summary", {})
     results = calculations.get("results", {})
     sample_size = int(results.get("sample_size_per_variant", 0) or 0)
@@ -216,7 +219,7 @@ def _build_power_curve_points(calculations: dict, metrics: dict) -> tuple[list[f
     return powers, points
 
 
-def generate_report_pdf(project: dict, analysis: dict, revisions: list[dict]) -> bytes:
+def generate_report_pdf(project: dict[str, Any], analysis: dict[str, Any], revisions: list[dict[str, Any]]) -> bytes:
     payload = project.get("payload", {})
     calculations = analysis.get("calculations", {})
     report = analysis.get("report", {})
@@ -239,7 +242,7 @@ def generate_report_pdf(project: dict, analysis: dict, revisions: list[dict]) ->
         summary_fig.text(0.07, 0.79, f"Primary metric: {metrics.get('primary_metric_name', '-')}", fontsize=10)
         summary_fig.text(0.07, 0.765, f"MDE: {_format_value(calculations.get('calculation_summary', {}).get('mde_pct'))}%", fontsize=10)
         summary_fig.text(0.07, 0.74, f"Test type: two-tailed (default)", fontsize=10)
-        variant_axis = summary_fig.add_axes([0.07, 0.12, 0.86, 0.54])
+        variant_axis = summary_fig.add_axes((0.07, 0.12, 0.86, 0.54))
         variant_rows = [
             [
                 str(variant.get("name", f"Variant {index + 1}")),
@@ -253,7 +256,7 @@ def generate_report_pdf(project: dict, analysis: dict, revisions: list[dict]) ->
 
         results_fig = plt.figure(figsize=PAGE_SIZE)
         _page_title(results_fig, "Sample Size Results", "Required sample, traffic, and guardrail detectability")
-        sample_axis = results_fig.add_axes([0.07, 0.58, 0.86, 0.28])
+        sample_axis = results_fig.add_axes((0.07, 0.58, 0.86, 0.28))
         sample_rows = [
             [
                 str(variant.get("name", f"Variant {index + 1}")),
@@ -273,7 +276,7 @@ def generate_report_pdf(project: dict, analysis: dict, revisions: list[dict]) ->
             f"MDE={_format_value(calculations.get('calculation_summary', {}).get('mde_pct'))}%",
             fontsize=10,
         )
-        guardrail_axis = results_fig.add_axes([0.07, 0.12, 0.86, 0.33])
+        guardrail_axis = results_fig.add_axes((0.07, 0.12, 0.86, 0.33))
         guardrail_rows = [
             [
                 str(item.get("name", "-")),
@@ -288,13 +291,13 @@ def generate_report_pdf(project: dict, analysis: dict, revisions: list[dict]) ->
 
         chart_fig = plt.figure(figsize=PAGE_SIZE)
         _page_title(chart_fig, "Power Curve", "Power curve plus a compact sensitivity table")
-        chart_axis = chart_fig.add_axes([0.10, 0.55, 0.80, 0.28])
+        chart_axis = chart_fig.add_axes((0.10, 0.55, 0.80, 0.28))
         chart_axis.plot(powers, sample_sizes, marker="o", linewidth=2.5, color="#0f766e")
         chart_axis.set_title("Power Curve", fontsize=12)
         chart_axis.set_xlabel("Power target")
         chart_axis.set_ylabel("Sample size / variant")
         chart_axis.grid(True, linestyle="--", linewidth=0.6, alpha=0.35)
-        sensitivity_axis = chart_fig.add_axes([0.07, 0.12, 0.86, 0.30])
+        sensitivity_axis = chart_fig.add_axes((0.07, 0.12, 0.86, 0.30))
         sensitivity_table_rows = [
             [
                 f"{row['effect_size']}%",
@@ -313,8 +316,8 @@ def generate_report_pdf(project: dict, analysis: dict, revisions: list[dict]) ->
 
         warning_fig = plt.figure(figsize=PAGE_SIZE)
         _page_title(warning_fig, "Warnings & Recommendations", "Warnings, analyst guidance, and recent revision history")
-        warning_axis = warning_fig.add_axes([0.07, 0.08, 0.40, 0.80])
-        recommendation_axis = warning_fig.add_axes([0.53, 0.08, 0.40, 0.80])
+        warning_axis = warning_fig.add_axes((0.07, 0.08, 0.40, 0.80))
+        recommendation_axis = warning_fig.add_axes((0.53, 0.08, 0.40, 0.80))
         for axis in (warning_axis, recommendation_axis):
             axis.axis("off")
         warning_axis.text(0.0, 0.98, "Warnings", fontsize=12, fontweight="bold", va="top")
@@ -332,7 +335,7 @@ def generate_report_pdf(project: dict, analysis: dict, revisions: list[dict]) ->
     return buffer.getvalue()
 
 
-def generate_comparison_report_pdf(comparison: dict) -> bytes:
+def generate_comparison_report_pdf(comparison: dict[str, Any]) -> bytes:
     projects = comparison.get("projects", [])
     buffer = BytesIO()
 
@@ -368,7 +371,7 @@ def generate_comparison_report_pdf(comparison: dict) -> bytes:
             ),
             fontsize=10,
         )
-        overview_axis = title_fig.add_axes([0.07, 0.12, 0.86, 0.58])
+        overview_axis = title_fig.add_axes((0.07, 0.12, 0.86, 0.58))
         overview_rows = [
             [
                 str(project.get("project_name", "-")),
@@ -389,7 +392,7 @@ def generate_comparison_report_pdf(comparison: dict) -> bytes:
             project_fig.text(0.07, 0.89, f"Primary metric: {project.get('primary_metric', '-')}", fontsize=10)
             project_fig.text(0.07, 0.865, f"Metric type: {project.get('metric_type', '-')}", fontsize=10)
             project_fig.text(0.07, 0.84, f"Executive summary: {project.get('executive_summary', '-')}", fontsize=10)
-            summary_axis = project_fig.add_axes([0.07, 0.54, 0.86, 0.22])
+            summary_axis = project_fig.add_axes((0.07, 0.54, 0.86, 0.22))
             _render_table(
                 summary_axis,
                 [[
@@ -401,8 +404,8 @@ def generate_comparison_report_pdf(comparison: dict) -> bytes:
                 ]],
                 ["Per variant", "Total sample", "Days", "Warnings", "Severity"],
             )
-            warnings_axis = project_fig.add_axes([0.07, 0.16, 0.40, 0.28])
-            recommendations_axis = project_fig.add_axes([0.53, 0.16, 0.40, 0.28])
+            warnings_axis = project_fig.add_axes((0.07, 0.16, 0.40, 0.28))
+            recommendations_axis = project_fig.add_axes((0.53, 0.16, 0.40, 0.28))
             _render_table(
                 warnings_axis,
                 [[item] for item in project.get("warning_codes", [])] or [["None"]],
@@ -418,7 +421,7 @@ def generate_comparison_report_pdf(comparison: dict) -> bytes:
 
         shared_fig = plt.figure(figsize=PAGE_SIZE)
         _page_title(shared_fig, "Shared insights", "Overlap and unique project assumptions")
-        shared_axis = shared_fig.add_axes([0.07, 0.56, 0.86, 0.26])
+        shared_axis = shared_fig.add_axes((0.07, 0.56, 0.86, 0.26))
         _render_table(
             shared_axis,
             [
@@ -428,7 +431,7 @@ def generate_comparison_report_pdf(comparison: dict) -> bytes:
             ],
             ["Area", "Values"],
         )
-        unique_axis = shared_fig.add_axes([0.07, 0.12, 0.86, 0.34])
+        unique_axis = shared_fig.add_axes((0.07, 0.12, 0.86, 0.34))
         unique_rows = [
             [
                 project.get("project_name", "-"),

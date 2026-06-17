@@ -21,7 +21,7 @@ CUPED requires. Continuous Bayesian is out of MVP scope (frequentist continuous 
 from __future__ import annotations
 
 import math
-from typing import Any
+from typing import Any, cast
 
 from app.backend.app.execution.experiment_assignment import normalize_weights
 from app.backend.app.schemas.api import (
@@ -312,6 +312,10 @@ def _continuous_comparison(
             "Per-user values show zero variance in an arm, so a t-test cannot be computed yet."
         )
         return base
+    # A non-None/non-zero std is only returned when exposed_users >= 2, which is
+    # exactly the branch where _continuous_moments also yields a non-None mean.
+    control_mean = cast("float", control_mean)
+    treatment_mean = cast("float", treatment_mean)
     request = ResultsRequest(
         metric_type="continuous",
         continuous=ObservedResultsContinuous(
@@ -513,6 +517,8 @@ def _cuped_arm_stat(
             "adjusted_mean": None,
             "adjusted_std": None,
         }
+    # n is only non-zero when arm is present (n is read from arm["n"]).
+    arm = cast("dict[str, Any]", arm)
     mean_x = arm["sum_x"] / n
     mean_y = arm["sum_y"] / n
     adjusted_mean = mean_y - theta * (mean_x - global_mean_x)
@@ -579,7 +585,7 @@ def _build_cuped_block(
     exposed_total: int,
     cuped_aggregates: dict[str, Any] | None,
 ) -> dict[str, Any]:
-    empty = {
+    empty: dict[str, Any] = {
         "theta": None,
         "variance_reduction_pct": None,
         "covariate_users_total": None,

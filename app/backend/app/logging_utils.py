@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 import json
 import logging
 import re
+from typing import cast
 
 
 SENSITIVE_HEADER_NAMES = {"authorization", "x-api-key", "x-ab-llm-token"}
@@ -40,11 +41,11 @@ class SensitiveDataFilter(logging.Filter):
         record.msg = sanitize_for_logging(record.msg)
         if record.args:
             if isinstance(record.args, dict):
-                record.args = sanitize_for_logging(record.args)
+                record.args = cast("Mapping[str, object]", sanitize_for_logging(record.args))
             elif isinstance(record.args, tuple):
                 record.args = tuple(sanitize_for_logging(item) for item in record.args)
             else:
-                record.args = sanitize_for_logging(record.args)
+                record.args = cast("Mapping[str, object]", sanitize_for_logging(record.args))
         fields = getattr(record, "fields", None)
         if fields is not None:
             record.fields = sanitize_for_logging(fields)

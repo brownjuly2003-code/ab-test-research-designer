@@ -7,6 +7,7 @@ The implementation keeps the stats layer dependency-free and combines:
 """
 
 import math
+from typing import Any
 
 from app.backend.app.stats.binary import normal_ppf, standard_normal_cdf
 
@@ -56,7 +57,7 @@ def _final_boundary_z(n_looks: int, alpha: float) -> float:
 def obrien_fleming_boundaries(
     n_looks: int,
     alpha: float = 0.05,
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     if not 1 <= n_looks <= _MAX_SEQUENTIAL_LOOKS:
         raise ValueError(f"n_looks must be between 1 and {_MAX_SEQUENTIAL_LOOKS}, got {n_looks}")
     if not 0 < alpha < 1:
@@ -64,7 +65,7 @@ def obrien_fleming_boundaries(
 
     z_half_alpha = normal_ppf(1 - alpha / 2)
     final_boundary = _final_boundary_z(n_looks, alpha)
-    boundaries: list[dict] = []
+    boundaries: list[dict[str, Any]] = []
     cumulative_alpha_spent = 0.0
 
     for look in range(1, n_looks + 1):

@@ -1,5 +1,6 @@
 from collections.abc import Callable
 import time
+from typing import Any, cast
 
 import httpx
 
@@ -50,7 +51,7 @@ class LocalOrchestratorAdapter:
         error_code: str | None = None,
         result_key: str = "advice",
         empty: object = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         return {
             "available": False,
             "provider": "local_orchestrator",
@@ -62,7 +63,7 @@ class LocalOrchestratorAdapter:
         }
 
     @staticmethod
-    def _extract_raw_text(data: dict) -> str:
+    def _extract_raw_text(data: dict[str, Any]) -> str:
         candidate_texts: list[str] = []
 
         for item in data.get("model_responses", []):
@@ -87,7 +88,7 @@ class LocalOrchestratorAdapter:
         if delay_seconds > 0:
             self.sleep_func(delay_seconds)
 
-    def _send_request(self, client: httpx.Client, request_payload: dict) -> dict:
+    def _send_request(self, client: httpx.Client, request_payload: dict[str, Any]) -> dict[str, Any]:
         last_error: httpx.HTTPError | None = None
 
         for attempt in range(1, self.max_attempts + 1):
@@ -97,7 +98,7 @@ class LocalOrchestratorAdapter:
                     json=request_payload,
                 )
                 response.raise_for_status()
-                return response.json()
+                return cast(dict[str, Any], response.json())
             except httpx.TimeoutException as exc:
                 last_error = exc
                 if attempt == self.max_attempts:
@@ -124,7 +125,7 @@ class LocalOrchestratorAdapter:
         *,
         result_key: str,
         empty: object,
-    ) -> dict:
+    ) -> dict[str, Any]:
         request_payload = {
             "query": prompt,
             "pattern": self.pattern,
@@ -132,7 +133,7 @@ class LocalOrchestratorAdapter:
             "reasoning": self.reasoning,
         }
 
-        def fallback(error: str, **kwargs) -> dict:
+        def fallback(error: str, **kwargs: Any) -> dict[str, Any]:
             return self._fallback(error, result_key=result_key, empty=empty, **kwargs)
 
         try:
@@ -167,12 +168,12 @@ class LocalOrchestratorAdapter:
             "error_code": None,
         }
 
-    def request_advice(self, payload: dict) -> dict:
+    def request_advice(self, payload: dict[str, Any]) -> dict[str, Any]:
         return self._request_structured(
             build_llm_advice_prompt(payload), parse_llm_advice, result_key="advice", empty=None
         )
 
-    def request_hypotheses(self, payload: dict) -> dict:
+    def request_hypotheses(self, payload: dict[str, Any]) -> dict[str, Any]:
         return self._request_structured(
             build_hypothesis_ideation_prompt(payload), parse_llm_hypotheses, result_key="hypotheses", empty=[]
         )

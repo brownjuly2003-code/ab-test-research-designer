@@ -1,3 +1,6 @@
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any, cast
+
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.backend.app.errors import ApiError
@@ -40,6 +43,11 @@ from app.backend.app.stats.continuous import calculate_continuous_sample_size
 from app.backend.app.stats.duration import estimate_experiment_duration_days
 from app.backend.app.stats.srm import chi_square_srm
 
+if TYPE_CHECKING:
+    from app.backend.app.config import Settings
+    from app.backend.app.http_utils import SlidingWindowRateLimiter
+    from app.backend.app.repository import ProjectRepository
+
 
 def _build_calculation_payload(payload: ExperimentInput) -> CalculationRequest:
     return CalculationRequest(
@@ -67,7 +75,7 @@ def _build_calculation_payload(payload: ExperimentInput) -> CalculationRequest:
     )
 
 
-def _build_llm_advice_payload(payload: ExperimentInput, calculation_result: dict) -> dict:
+def _build_llm_advice_payload(payload: ExperimentInput, calculation_result: dict[str, Any]) -> dict[str, Any]:
     normalized_payload = payload.model_dump()
     return {
         "project_context": normalized_payload["project"],
@@ -97,7 +105,13 @@ def pick_adapter(
     return local_adapter, ""
 
 
-def create_analysis_router(settings, repository, rate_limiter, require_auth, require_write_auth) -> APIRouter:
+def create_analysis_router(
+    settings: "Settings",
+    repository: "ProjectRepository",
+    rate_limiter: "SlidingWindowRateLimiter",
+    require_auth: Callable[[Request], None],
+    require_write_auth: Callable[[Request], None],
+) -> APIRouter:
     router = APIRouter(tags=["calculations"])
     local_adapter = LocalOrchestratorAdapter(
         base_url=settings.llm_base_url,
@@ -139,18 +153,20 @@ def create_analysis_router(settings, repository, rate_limiter, require_auth, req
         for mde in payload.mde_values:
             for power in payload.power_values:
                 if payload.metric_type == "binary":
+                    # validate_metric_specific_fields guarantees baseline_rate is set for binary metrics.
                     calculation = calculate_binary_sample_size(
-                        baseline_rate=float(payload.baseline_rate) / 100,
+                        baseline_rate=float(cast("float", payload.baseline_rate)) / 100,
                         mde_pct=mde,
                         alpha=payload.alpha,
                         power=power,
                         variants_count=payload.variants,
                     )
                 else:
-                    baseline_mean = float(payload.baseline_mean)
+                    # validate_metric_specific_fields guarantees baseline_mean and std_dev are set for continuous metrics.
+                    baseline_mean = float(cast("float", payload.baseline_mean))
                     calculation = calculate_continuous_sample_size(
                         baseline_mean=baseline_mean,
-                        std_dev=float(payload.std_dev),
+                        std_dev=float(cast("float", payload.std_dev)),
                         mde_pct=(mde / baseline_mean) * 100,
                         alpha=payload.alpha,
                         power=power,
@@ -289,7 +305,11 @@ def create_analysis_router(settings, repository, rate_limiter, require_auth, req
         )
         advice_payload = _build_llm_advice_payload(payload, calculation_result)
         try:
-            advice = adapter.request_advice(advice_payload, token=token) if token else adapter.request_advice(advice_payload)
+            advice = (
+                cast("OpenAIAdapter | AnthropicAdapter", adapter).request_advice(advice_payload, token=token)
+                if token
+                else adapter.request_advice(advice_payload)
+            )
         except LLMAuthError as exc:
             raise ApiError(str(exc), error_code="llm_auth", status_code=exc.status_code) from exc
         except LLMTransientError as exc:
@@ -314,7 +334,11 @@ def create_analysis_router(settings, repository, rate_limiter, require_auth, req
         )
         advice_payload = payload.model_dump(exclude_none=True)
         try:
-            result = adapter.request_advice(advice_payload, token=token) if token else adapter.request_advice(advice_payload)
+            result = (
+                cast("OpenAIAdapter | AnthropicAdapter", adapter).request_advice(advice_payload, token=token)
+                if token
+                else adapter.request_advice(advice_payload)
+            )
         except LLMAuthError as exc:
             raise ApiError(str(exc), error_code="llm_auth", status_code=exc.status_code) from exc
         except LLMTransientError as exc:
@@ -336,7 +360,7 @@ def create_analysis_router(settings, repository, rate_limiter, require_auth, req
         ideation_payload = payload.model_dump(exclude_none=True)
         try:
             result = (
-                adapter.request_hypotheses(ideation_payload, token=token)
+                cast("OpenAIAdapter | AnthropicAdapter", adapter).request_hypotheses(ideation_payload, token=token)
                 if token
                 else adapter.request_hypotheses(ideation_payload)
             )

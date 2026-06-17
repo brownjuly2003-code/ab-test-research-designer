@@ -1,7 +1,7 @@
 from typing import Any
 
 
-def project_status_blocks(project: dict, analysis_run: dict | None) -> list[dict[str, Any]]:
+def project_status_blocks(project: dict[str, Any], analysis_run: dict[str, Any] | None) -> list[dict[str, Any]]:
     fields = [
         {"type": "mrkdwn", "text": f"*Project*\n{project['project_name']}"},
         {"type": "mrkdwn", "text": f"*ID*\n`{project['id']}`"},
