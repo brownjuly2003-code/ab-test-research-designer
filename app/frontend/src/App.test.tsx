@@ -566,7 +566,7 @@ describe("App UI flow", () => {
     // the public app; opt the flow suite into them so the existing tab coverage
     // keeps exercising backend/diagnostics tiles. The public default (tabs
     // hidden) is covered by its own test below.
-    window.localStorage.setItem("ab-test:admin", "1");
+    window.sessionStorage.setItem("ab-test:admin", "1");
     vi.mocked(hasAdminSessionToken).mockImplementation(
       () => window.sessionStorage.getItem("ab-test-research-designer:admin-token:v1") !== null
     );
@@ -671,7 +671,7 @@ describe("App UI flow", () => {
   });
 
   it("hides the operator sidebar (saved projects, System, API keys) from the public app by default", async () => {
-    window.localStorage.removeItem("ab-test:admin");
+    window.sessionStorage.removeItem("ab-test:admin");
     const view = await renderIntoDocument(<App />);
     try {
       await flushEffects();

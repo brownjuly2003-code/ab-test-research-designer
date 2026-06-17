@@ -92,7 +92,7 @@ describe("API keys accessibility", () => {
     document.documentElement.lang = "en";
     // Operator tabs are gated behind admin mode; the API keys tab additionally
     // requires a configured admin session token (set below).
-    window.localStorage.setItem("ab-test:admin", "1");
+    window.sessionStorage.setItem("ab-test:admin", "1");
     useAnalysisStore.setState(initialAnalysisState, true);
     useDraftStore.setState(initialDraftState, true);
     useProjectStore.setState(initialProjectState, true);
