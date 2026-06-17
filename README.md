@@ -111,7 +111,7 @@ Full inputs and outputs: [docs/case-studies/checkout-redesign.json](https://gith
 
 ## Roadmap
 
-Post-v1.1.0 Tier 2/3 roadmap items are all landed as of 2026-04-25. See the [archived progress log](archive/2026-04-23-bcg-planning-docs/progress.md) for the full tiered backlog.
+Post-v1.1.0 Tier 2/3 roadmap items are all landed as of 2026-04-25.
 
 **Landed:**
 - **Portfolio polish.** HF Space startup seed, v1.1.0 screenshots, case-study section, GHCR Docker publish, dynamic shields.io badges.
@@ -409,8 +409,6 @@ Active docs:
 5. [docs/RUNBOOK.md](docs/RUNBOOK.md)
 6. [docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md)
 7. [CHANGELOG.md](CHANGELOG.md)
-
-Archived planning/setup files live under `archive/`.
 
 ## Notes
 

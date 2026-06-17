@@ -39,13 +39,12 @@ app/frontend/test-results/
 exports/*
 !exports/.gitkeep
 
-# archived smoke artifacts
-archive/e2e-runs/
-archive/manual-smoke-runs/
-archive/smoke-runs/*
-!archive/smoke-runs/.gitkeep
-!archive/smoke-runs/README.md
-archive/verify-workspace-backup/*
+# archive/ — internal planning docs + smoke/verify run artifacts.
+# Untracked from the public repo on 2026-06-17 (kept locally, never committed).
+/archive/
+
+# internal audit reports — kept local, never in the public repo
+/audit_*.md
 
 # verify artifacts (CI uploads these; should not be tracked)
 .ci-artifacts/
