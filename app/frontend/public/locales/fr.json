@@ -645,7 +645,8 @@
         "srmCheck": "Contrôle SRM",
         "bandit": "Bandit vs fixe",
         "assignment": "Affectation d'utilisateur",
-        "liveStats": "Expérience en direct"
+        "liveStats": "Expérience en direct",
+        "decision": "Synthèse de décision"
       },
       "badges": {
         "loaded": "Chargé",
@@ -745,6 +746,55 @@
       "cupedArmLine": "moyenne ajustée {{adjusted}} (brute {{raw}})",
       "cupedAdjustedEffect": "Effet ajusté {{effect}} · IC [{{lower}}, {{upper}}] · p {{p}}",
       "cupedComparisonPending": "Pas encore assez de données de covariable pour un test CUPED."
+    },
+    "decision": {
+      "title": "Synthèse de décision",
+      "description": "Un verdict synthétisé — déployer, ne pas déployer ou continuer — assemblé à partir des signaux en direct SRM, fréquentiste, bayésien et séquentiel. Aucune nouvelle statistique.",
+      "refresh": "Générer la décision",
+      "refreshing": "Génération...",
+      "saveFirst": "Enregistrez d'abord cette expérience pour générer une décision.",
+      "serviceUnavailable": "Synthèse de décision indisponible.",
+      "verdictLabel": "Verdict",
+      "verdict": {
+        "ship": "Déployer",
+        "no_ship": "Ne pas déployer",
+        "keep_running": "Continuer"
+      },
+      "verdictHint": {
+        "ship": "Une variante montre un gain positif et confirmé par rapport au contrôle.",
+        "no_ship": "Aucune variante n'est une amélioration fiable par rapport au contrôle.",
+        "keep_running": "Le résultat n'est pas encore concluant — collectez plus de données avant de décider."
+      },
+      "confidence": {
+        "label": "Confiance",
+        "high": "Élevée",
+        "medium": "Moyenne",
+        "low": "Faible"
+      },
+      "reasonsTitle": "Pourquoi",
+      "blockersTitle": "Bloqueurs",
+      "exportHeading": "Synthèse de décision",
+      "export": {
+        "copy": "Copier en Markdown",
+        "copied": "Copié",
+        "download": "Télécharger .md"
+      },
+      "reason": {
+        "no_exposures": "Aucune exposition enregistrée pour l'instant — commencez à envoyer du trafic vers l'expérience.",
+        "insufficient_per_arm": "Pas encore assez d'utilisateurs par groupe pour lancer un test.",
+        "blocked_untrustworthy": "Les résultats ne sont pas fiables tant que le bloqueur ci-dessus n'est pas résolu.",
+        "significant_win": "{{arm}} est un gagnant significatif ({{effect}} d'effet relatif, p={{p}}).",
+        "bayesian_win": "{{arm}} bat le contrôle avec une probabilité de {{probability}}.",
+        "sequential_crossed": "{{arm}} a franchi la limite de suivi séquentiel.",
+        "sequential_not_crossed": "{{arm}} semble significatif mais n'a pas encore franchi la limite séquentielle — continuez la collecte.",
+        "significant_loss": "{{arm}} est significativement moins bon que le contrôle ({{effect}} d'effet relatif).",
+        "inconclusive_ci": "{{arm}} : l'intervalle de confiance inclut encore zéro — pas d'effet clair pour l'instant.",
+        "info_fraction_incomplete": "Seulement {{fraction}} de l'échantillon prévu a été collecté.",
+        "info_fraction_complete_no_effect": "L'expérience a atteint sa taille prévue sans effet détectable."
+      },
+      "blocker": {
+        "srm_mismatch": "Discordance du ratio d'échantillons (p={{p}}) — l'affectation semble cassée ; corrigez la randomisation ou le suivi avant de faire confiance aux résultats."
+      }
     }
   },
   "errors": {

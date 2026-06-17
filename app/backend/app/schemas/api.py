@@ -694,6 +694,23 @@ class LiveStatsResponse(BaseModel):
     cuped: LiveCupedBlock
 
 
+class DecisionReason(BaseModel):
+    # A machine code (e.g. "significant_win", "srm_mismatch") rendered through the frontend
+    # results.decision i18n namespace, plus numeric params for interpolation/formatting.
+    code: str
+    params: dict[str, Any] = Field(default_factory=dict)
+
+
+class DecisionReadoutResponse(BaseModel):
+    # Synthesized ship/no-ship verdict over the live-stats signals. No new statistics — see
+    # services/decision_service.py. ``blockers`` are hard problems (e.g. SRM) that force no_ship.
+    experiment_id: str
+    verdict: Literal["ship", "no_ship", "keep_running"]
+    confidence: Literal["high", "medium", "low"]
+    reasons: list[DecisionReason] = Field(default_factory=list)
+    blockers: list[DecisionReason] = Field(default_factory=list)
+
+
 class WarningResponse(BaseModel):
     code: str
     severity: str

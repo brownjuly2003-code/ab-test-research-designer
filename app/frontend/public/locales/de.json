@@ -645,7 +645,8 @@
         "srmCheck": "SRM-Prüfung",
         "bandit": "Bandit vs. fest",
         "assignment": "Nutzerzuweisung",
-        "liveStats": "Live-Experiment"
+        "liveStats": "Live-Experiment",
+        "decision": "Entscheidungs-Readout"
       },
       "badges": {
         "loaded": "Geladen",
@@ -745,6 +746,55 @@
       "cupedArmLine": "angepasster Mittelwert {{adjusted}} (roh {{raw}})",
       "cupedAdjustedEffect": "Angepasster Effekt {{effect}} · KI [{{lower}}, {{upper}}] · p {{p}}",
       "cupedComparisonPending": "Noch nicht genügend Kovariaten-Daten für einen CUPED-Test."
+    },
+    "decision": {
+      "title": "Entscheidungs-Readout",
+      "description": "Ein synthetisiertes Urteil — ausrollen, nicht ausrollen oder weiterlaufen lassen — zusammengesetzt aus den Live-Signalen SRM, frequentistisch, bayesianisch und sequenziell. Keine neue Statistik.",
+      "refresh": "Entscheidung erzeugen",
+      "refreshing": "Wird erzeugt...",
+      "saveFirst": "Speichern Sie dieses Experiment zuerst, um eine Entscheidung zu erzeugen.",
+      "serviceUnavailable": "Entscheidungs-Readout nicht verfügbar.",
+      "verdictLabel": "Urteil",
+      "verdict": {
+        "ship": "Ausrollen",
+        "no_ship": "Nicht ausrollen",
+        "keep_running": "Weiterlaufen lassen"
+      },
+      "verdictHint": {
+        "ship": "Eine Variante zeigt einen bestätigten, positiven Vorsprung gegenüber der Kontrolle.",
+        "no_ship": "Keine Variante ist eine vertrauenswürdige Verbesserung gegenüber der Kontrolle.",
+        "keep_running": "Das Ergebnis ist noch nicht eindeutig — sammeln Sie mehr Daten, bevor Sie entscheiden."
+      },
+      "confidence": {
+        "label": "Konfidenz",
+        "high": "Hoch",
+        "medium": "Mittel",
+        "low": "Niedrig"
+      },
+      "reasonsTitle": "Begründung",
+      "blockersTitle": "Blocker",
+      "exportHeading": "Entscheidungs-Readout",
+      "export": {
+        "copy": "Als Markdown kopieren",
+        "copied": "Kopiert",
+        "download": ".md herunterladen"
+      },
+      "reason": {
+        "no_exposures": "Noch keine Expositionen erfasst — leiten Sie Traffic in das Experiment.",
+        "insufficient_per_arm": "Noch nicht genügend Nutzer pro Arm für einen Test.",
+        "blocked_untrustworthy": "Den Ergebnissen kann nicht vertraut werden, bis der Blocker oben behoben ist.",
+        "significant_win": "{{arm}} ist ein signifikanter Gewinner ({{effect}} relativer Effekt, p={{p}}).",
+        "bayesian_win": "{{arm}} schlägt die Kontrolle mit Wahrscheinlichkeit {{probability}}.",
+        "sequential_crossed": "{{arm}} hat die sequenzielle Überwachungsgrenze überschritten.",
+        "sequential_not_crossed": "{{arm}} wirkt signifikant, hat aber die sequenzielle Grenze noch nicht überschritten — weiter sammeln.",
+        "significant_loss": "{{arm}} ist signifikant schlechter als die Kontrolle ({{effect}} relativer Effekt).",
+        "inconclusive_ci": "{{arm}}: Das Konfidenzintervall schließt noch die Null ein — noch kein klarer Effekt.",
+        "info_fraction_incomplete": "Erst {{fraction}} der geplanten Stichprobe wurde gesammelt.",
+        "info_fraction_complete_no_effect": "Das Experiment hat seinen geplanten Umfang ohne nachweisbaren Effekt erreicht."
+      },
+      "blocker": {
+        "srm_mismatch": "Sample-Ratio-Mismatch (p={{p}}) — die Zuweisung scheint defekt; korrigieren Sie Randomisierung oder Tracking, bevor Sie den Ergebnissen vertrauen."
+      }
     }
   },
   "errors": {

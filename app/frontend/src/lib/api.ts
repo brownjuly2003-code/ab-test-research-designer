@@ -29,6 +29,8 @@ import type {
   BanditSimulationRequest,
   BanditSimulationResponse,
   ProjectArchiveResponse as GeneratedProjectArchiveResponse,
+  DecisionReadoutResponse,
+  DecisionReason,
   ExperimentAssignmentRequest,
   ExperimentAssignmentResponse,
   ExportResponse,
@@ -52,6 +54,7 @@ import type {
 export type { HypothesisCandidate, HypothesisIdeationRequest, HypothesisIdeationResponse };
 export type { BanditRegretPoint, BanditSimulationRequest, BanditSimulationResponse };
 export type { ExperimentAssignmentRequest, ExperimentAssignmentResponse };
+export type { DecisionReadoutResponse, DecisionReason };
 export type {
   LiveArmStat,
   LiveComparison,
