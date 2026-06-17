@@ -14,6 +14,13 @@ export function buildApiRequestHeaders(): Record<string, string> {
     "Content-Type": "application/json"
   };
 
+  if (typeof document !== "undefined") {
+    const language = document.documentElement.lang?.trim();
+    if (language) {
+      headers["Accept-Language"] = language;
+    }
+  }
+
   if (typeof window === "undefined") {
     return headers;
   }

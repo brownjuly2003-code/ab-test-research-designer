@@ -268,5 +268,23 @@
     },
     "srm_detected": "Обнаружен SRM — проверьте рандомизацию и реализацию трекинга",
     "srm_not_detected": "SRM не обнаружен"
+  },
+  "results": {
+    "verdict": {
+      "no_difference": "Статистически значимого различия нет при alpha={{alpha}}",
+      "uplift": "Статистически значимый прирост при alpha={{alpha}}",
+      "decline": "Статистически значимое снижение при alpha={{alpha}}",
+      "significant": "Статистически значимый результат при alpha={{alpha}}",
+      "degenerate": "Невозможно вычислить: нулевая стандартная ошибка"
+    },
+    "significance": {
+      "significant": "статистически значимо",
+      "not_significant": "статистически незначимо"
+    },
+    "interpretation": {
+      "binary": "Конверсия варианта {{treatment}}% против контроля {{control}}%. Абсолютный эффект {{effect}} п.п. при {{ciLevel}}% ДИ [{{ciLower}}, {{ciUpper}}] п.п. Двусторонний p-value {{pValue}}; результат {{significance}}.",
+      "continuous": "Среднее варианта {{treatmentMean}} против контроля {{controlMean}}. Эффект {{effect}} при {{ciLevel}}% ДИ [{{ciLower}}, {{ciUpper}}]. Двусторонний p-value {{pValue}}.",
+      "degenerate": "Наблюдаемые данные вырождены, поэтому тестовая статистика не может быть вычислена."
+    }
   }
 }

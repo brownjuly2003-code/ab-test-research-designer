@@ -748,35 +748,39 @@ export default function WizardDraftStep({
         />
       ) : null}
 
-      <div className="actions">
-        <button className="btn secondary" disabled={!canGoBack || loading} onClick={onBack}>
-          {t("wizard.actions.back")}
-        </button>
-        <button className="btn ghost" disabled={loading || saving} onClick={onStartNew}>
-          {t("wizardDraft.buttons.newDraft")}
-        </button>
-        {current.section === "project" ? (
-          <button className="btn ghost" disabled={loading || saving} onClick={onOpenTemplateGallery}>
-            {t("wizardDraft.buttons.startFromTemplate")}
+      <div className={styles.footer}>
+        <div className={styles["footer-tools"]}>
+          <button className="btn ghost" disabled={loading || saving} onClick={onStartNew}>
+            {t("wizardDraft.buttons.newDraft")}
           </button>
-        ) : null}
-        <button className="btn ghost" disabled={loading || saving || importingDraft} onClick={onImportDraft}>
-          {importingDraft ? <><Spinner /> {t("wizardDraft.buttons.importing")}</> : t("wizardDraft.buttons.importDraft")}
-        </button>
-        <button className="btn ghost" disabled={loading || saving || importingDraft} onClick={onExportDraft}>
-          {t("wizardDraft.buttons.exportDraft")}
-        </button>
-        <button
-          className="btn ghost"
-          disabled={!canMutateBackend || loading || saving}
-          title={activeProjectId ? t("wizardDraft.buttons.updateProjectTitle") : t("wizardDraft.buttons.saveProjectTitle")}
-          onClick={onSave}
-        >
-          {saving ? <><Spinner /> {t("wizardDraft.buttons.saving")}</> : activeProjectId ? t("wizardDraft.buttons.updateProject") : t("wizard.actions.save")}
-        </button>
-        <button className="btn primary" disabled={loading} onClick={onNext}>
-          {t("wizard.actions.next")}
-        </button>
+          {current.section === "project" ? (
+            <button className="btn ghost" disabled={loading || saving} onClick={onOpenTemplateGallery}>
+              {t("wizardDraft.buttons.startFromTemplate")}
+            </button>
+          ) : null}
+          <button className="btn ghost" disabled={loading || saving || importingDraft} onClick={onImportDraft}>
+            {importingDraft ? <><Spinner /> {t("wizardDraft.buttons.importing")}</> : t("wizardDraft.buttons.importDraft")}
+          </button>
+          <button className="btn ghost" disabled={loading || saving || importingDraft} onClick={onExportDraft}>
+            {t("wizardDraft.buttons.exportDraft")}
+          </button>
+        </div>
+        <div className={["actions", styles["footer-nav"]].join(" ")}>
+          <button className="btn secondary btn-back" disabled={!canGoBack || loading} onClick={onBack}>
+            {t("wizard.actions.back")}
+          </button>
+          <button
+            className="btn ghost"
+            disabled={!canMutateBackend || loading || saving}
+            title={activeProjectId ? t("wizardDraft.buttons.updateProjectTitle") : t("wizardDraft.buttons.saveProjectTitle")}
+            onClick={onSave}
+          >
+            {saving ? <><Spinner /> {t("wizardDraft.buttons.saving")}</> : activeProjectId ? t("wizardDraft.buttons.updateProject") : t("wizard.actions.save")}
+          </button>
+          <button className="btn primary" disabled={loading} onClick={onNext}>
+            {t("wizard.actions.next")}
+          </button>
+        </div>
       </div>
     </div>
   );

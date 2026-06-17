@@ -268,5 +268,23 @@
     },
     "srm_detected": "SRM detected - check your randomization or tracking implementation",
     "srm_not_detected": "No SRM detected"
+  },
+  "results": {
+    "verdict": {
+      "no_difference": "No statistically significant difference at alpha={{alpha}}",
+      "uplift": "Statistically significant uplift at alpha={{alpha}}",
+      "decline": "Statistically significant decline at alpha={{alpha}}",
+      "significant": "Statistically significant result at alpha={{alpha}}",
+      "degenerate": "Cannot compute: zero standard error"
+    },
+    "significance": {
+      "significant": "statistically significant",
+      "not_significant": "not statistically significant"
+    },
+    "interpretation": {
+      "binary": "Treatment conversion {{treatment}}% vs control {{control}}%. Absolute effect {{effect}} pp with {{ciLevel}}% CI [{{ciLower}}, {{ciUpper}}] pp. Two-sided p-value {{pValue}}; result is {{significance}}.",
+      "continuous": "Treatment mean {{treatmentMean}} vs control {{controlMean}}. Effect {{effect}} with {{ciLevel}}% CI [{{ciLower}}, {{ciUpper}}]. Two-sided p-value {{pValue}}.",
+      "degenerate": "Observed inputs are degenerate, so the test statistic cannot be computed."
+    }
   }
 }

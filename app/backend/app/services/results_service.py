@@ -1,6 +1,7 @@
 import math
 from statistics import NormalDist
 
+from app.backend.app.i18n import translate
 from app.backend.app.schemas.api import (
     ObservedResultsBinary,
     ObservedResultsContinuous,
@@ -130,10 +131,17 @@ def _analyze_continuous(obs: ObservedResultsContinuous | None) -> ResultsRespons
         is_significant=is_significant,
         power_achieved=round(_bounded_probability(power_achieved), 3),
         verdict=_verdict(is_significant, effect, obs.alpha),
-        interpretation=(
-            f"Treatment mean {obs.treatment_mean:.4f} vs control {obs.control_mean:.4f}. "
-            f"Effect {effect:+.4f} with {(1 - obs.alpha) * 100:.1f}% CI [{ci_lower:.4f}, {ci_upper:.4f}]. "
-            f"Two-sided p-value {p_value:.6f}."
+        interpretation=translate(
+            "results.interpretation.continuous",
+            {
+                "treatmentMean": f"{obs.treatment_mean:.4f}",
+                "controlMean": f"{obs.control_mean:.4f}",
+                "effect": f"{effect:+.4f}",
+                "ciLevel": f"{(1 - obs.alpha) * 100:.1f}",
+                "ciLower": f"{ci_lower:.4f}",
+                "ciUpper": f"{ci_upper:.4f}",
+                "pValue": f"{p_value:.6f}",
+            },
         ),
     )
 
@@ -156,13 +164,14 @@ def _welch_df(obs: ObservedResultsContinuous) -> float:
 
 
 def _verdict(is_significant: bool, effect: float, alpha: float) -> str:
+    alpha_str = f"{alpha:.3f}"
     if not is_significant:
-        return f"No statistically significant difference at alpha={alpha:.3f}"
+        return translate("results.verdict.no_difference", {"alpha": alpha_str})
     if effect > 0:
-        return f"Statistically significant uplift at alpha={alpha:.3f}"
+        return translate("results.verdict.uplift", {"alpha": alpha_str})
     if effect < 0:
-        return f"Statistically significant decline at alpha={alpha:.3f}"
-    return f"Statistically significant result at alpha={alpha:.3f}"
+        return translate("results.verdict.decline", {"alpha": alpha_str})
+    return translate("results.verdict.significant", {"alpha": alpha_str})
 
 
 def _interpretation_binary(
@@ -176,12 +185,23 @@ def _interpretation_binary(
     p_value: float,
     is_significant: bool,
 ) -> str:
-    significance_text = "statistically significant" if is_significant else "not statistically significant"
-    return (
-        f"Treatment conversion {p2 * 100:.4f}% vs control {p1 * 100:.4f}%. "
-        f"Absolute effect {effect * 100:+.4f} pp with {ci_level * 100:.1f}% CI "
-        f"[{ci_lower * 100:.4f}, {ci_upper * 100:.4f}] pp. "
-        f"Two-sided p-value {p_value:.6f}; result is {significance_text}."
+    significance_text = translate(
+        "results.significance.significant"
+        if is_significant
+        else "results.significance.not_significant"
+    )
+    return translate(
+        "results.interpretation.binary",
+        {
+            "treatment": f"{p2 * 100:.4f}",
+            "control": f"{p1 * 100:.4f}",
+            "effect": f"{effect * 100:+.4f}",
+            "ciLevel": f"{ci_level * 100:.1f}",
+            "ciLower": f"{ci_lower * 100:.4f}",
+            "ciUpper": f"{ci_upper * 100:.4f}",
+            "pValue": f"{p_value:.6f}",
+            "significance": significance_text,
+        },
     )
 
 
@@ -205,8 +225,8 @@ def _degenerate_response(
         test_statistic=0.0,
         is_significant=False,
         power_achieved=0.0,
-        verdict="Cannot compute: zero standard error",
-        interpretation="Observed inputs are degenerate, so the test statistic cannot be computed.",
+        verdict=translate("results.verdict.degenerate"),
+        interpretation=translate("results.interpretation.degenerate"),
     )
 
 

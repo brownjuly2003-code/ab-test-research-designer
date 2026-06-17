@@ -15,6 +15,14 @@ export function resolveMetricType(metricType: string): "binary" | "continuous" {
   return metricType === "continuous" ? "continuous" : "binary";
 }
 
+// Trims binary floating-point noise (e.g. 0.0021000000000000003 -> 0.0021) for display.
+export function formatStatNumber(value: number): string {
+  if (!Number.isFinite(value)) {
+    return String(value);
+  }
+  return String(Number(value.toPrecision(12)));
+}
+
 export function resolveCurrentMde(analysis: AnalysisResponsePayload): number {
   const summary = analysis.calculations.calculation_summary;
   return resolveMetricType(summary.metric_type) === "continuous" ? summary.mde_absolute : summary.mde_pct;

@@ -20,9 +20,9 @@ export const FIELD_TOOLTIPS: Record<string, string> = {
   baseline_value:
     "Current baseline metric. For binary metrics use 0.042 for 4.2%; for continuous metrics use the current mean, such as 45.20.",
   expected_uplift_pct:
-    "Expected relative improvement versus baseline. Example: 8 means the treatment is expected to improve the metric by 8%.",
+    "Expected relative improvement versus baseline. Example: 8 means the treatment is expected to improve the metric by 8%. This is planning context only and does not change the required sample size.",
   mde_pct:
-    "Minimum detectable effect as a percent of baseline. Smaller MDE values require larger sample sizes.",
+    "Minimum detectable effect as a percent of baseline. Smaller MDE values require larger sample sizes. Sample size and duration are driven by this MDE, not by the expected uplift.",
   alpha:
     "False-positive threshold. 0.05 means accepting a 5% probability of a Type I error.",
   power:

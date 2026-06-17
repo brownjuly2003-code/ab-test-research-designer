@@ -268,5 +268,23 @@
     },
     "srm_detected": "تم اكتشاف SRM - تحقق من التوزيع العشوائي أو تنفيذ التتبع",
     "srm_not_detected": "لم يتم اكتشاف SRM"
+  },
+  "results": {
+    "verdict": {
+      "no_difference": "لا يوجد فرق ذو دلالة إحصائية عند alpha={{alpha}}",
+      "uplift": "زيادة ذات دلالة إحصائية عند alpha={{alpha}}",
+      "decline": "انخفاض ذو دلالة إحصائية عند alpha={{alpha}}",
+      "significant": "نتيجة ذات دلالة إحصائية عند alpha={{alpha}}",
+      "degenerate": "تعذّر الحساب: الخطأ المعياري يساوي صفرًا"
+    },
+    "significance": {
+      "significant": "ذو دلالة إحصائية",
+      "not_significant": "غير ذي دلالة إحصائية"
+    },
+    "interpretation": {
+      "binary": "تحويل مجموعة المعالجة {{treatment}}% مقابل المجموعة الضابطة {{control}}%. الأثر المطلق {{effect}} نقطة مئوية بفاصل ثقة {{ciLevel}}% [{{ciLower}}، {{ciUpper}}] نقطة مئوية. القيمة الاحتمالية الثنائية {{pValue}}؛ النتيجة {{significance}}.",
+      "continuous": "متوسط مجموعة المعالجة {{treatmentMean}} مقابل المجموعة الضابطة {{controlMean}}. الأثر {{effect}} بفاصل ثقة {{ciLevel}}% [{{ciLower}}، {{ciUpper}}]. القيمة الاحتمالية الثنائية {{pValue}}.",
+      "degenerate": "المدخلات المرصودة متدهورة، لذا لا يمكن حساب إحصاءة الاختبار."
+    }
   }
 }

@@ -12,9 +12,9 @@
         "ru": "Ruso",
         "de": "Alemán",
         "es": "Español",
-        "fr": "Franc?s",
+        "fr": "Francés",
         "zh": "Chino simplificado",
-        "ar": "?rabe"
+        "ar": "Árabe"
       }
     },
     "theme": {
@@ -53,7 +53,7 @@
       "1": "Proyecto",
       "2": "Hipótesis",
       "3": "Configuración",
-      "4": "M?tricas",
+      "4": "Métricas",
       "5": "Restricciones",
       "6": "Revisar"
     },
@@ -61,7 +61,7 @@
       "next": "Siguiente",
       "back": "Atrás",
       "save": "Guardar proyecto",
-      "runAnalysis": "Ejecutar an?lisis",
+      "runAnalysis": "Ejecutar análisis",
       "export": "Exportar"
     }
   },
@@ -71,7 +71,7 @@
     "newDraftTitle": "Revisar un nuevo borrador",
     "unsavedChangesPresent": "Hay cambios no guardados presentes.",
     "syncedWithLocalStorage": "Este proyecto cargado está sincronizado con el almacenamiento local.",
-    "description": "Verifique los valores a continuaci?n antes de guardar o ejecutar el flujo determinista del backend.",
+    "description": "Verifique los valores a continuación antes de guardar o ejecutar el flujo determinista del backend.",
     "fixFields": "Corrija estos campos antes de guardar o ejecutar el análisis",
     "newDraftButton": "Nuevo borrador",
     "importing": "Importando...",
@@ -89,7 +89,7 @@
       "project": "Contexto del proyecto",
       "hypothesis": "Hipótesis",
       "setup": "Configuración del experimento",
-      "metrics": "M?tricas",
+      "metrics": "Métricas",
       "constraints": "Restricciones"
     },
     "note": {
@@ -103,11 +103,11 @@
     "fixFields": "Corrija estos campos antes de guardar o ejecutar el análisis",
     "analysisFramework": {
       "title": "Marco de análisis",
-      "description": "Elija si la planificaci?n utiliza la potencia NHST cl?sica o la precisi?n bayesiana.",
+      "description": "Elija si la planificación utiliza la potencia NHST clásica o la precisión bayesiana.",
       "frequentist": "Frecuentista",
       "frequentistDescription": "Establezca alfa y potencia para el enfoque clásico de horizonte fijo.",
       "bayesian": "Bayesiano",
-      "bayesianDescription": "Defina la precisi?n y el nivel de credibilidad deseados para la planificaci?n basada en intervalos."
+      "bayesianDescription": "Defina la precisión y el nivel de credibilidad deseados para la planificación basada en intervalos."
     },
     "common": {
       "yes": "Sí",
@@ -124,11 +124,11 @@
         "project_description": "Descripción del proyecto"
       },
       "hypothesis": {
-        "change_description": "Descripci?n del cambio",
+        "change_description": "Descripción del cambio",
         "target_audience": "Audiencia objetivo",
         "business_problem": "Problema empresarial",
-        "hypothesis_statement": "Enunciado de la hip?tesis",
-        "what_to_validate": "Qu? validar",
+        "hypothesis_statement": "Enunciado de la hipótesis",
+        "what_to_validate": "Qué validar",
         "desired_result": "Resultado deseado"
       },
       "setup": {
@@ -147,9 +147,9 @@
         "baseline_value": "Valor de referencia",
         "expected_uplift_pct": "% de aumento esperado",
         "mde_pct": "MDE %",
-        "std_dev": "Desviaci?n est?ndar",
+        "std_dev": "Desviación estándar",
         "secondary_metrics": "Métricas secundarias",
-        "guardrail_metrics": "M?tricas guardrail",
+        "guardrail_metrics": "Métricas guardrail",
         "alpha": "Alfa",
         "power": "Potencia"
       },
@@ -176,12 +176,12 @@
       "audience_share_in_test": "Proporción de tráfico diario que es elegible para la prueba. Utilice 0,6 para el 60% del tráfico entrante.",
       "variants_count": "Número total de variantes incluido el control. 2 = un test A/B clásico, mientras que 3+ variantes aumentan las necesidades de muestra.",
       "baseline_value": "Métrica de referencia actual. Para métricas binarias utilice 0,042 para 4,2%; para métricas continuas utilice la media actual, como 45,20.",
-      "expected_uplift_pct": "Mejora relativa esperada respecto a la l?nea base. Ejemplo: 8 significa que se espera que la variante de tratamiento mejore la m?trica en un 8 %.",
-      "mde_pct": "Efecto m?nimo detectable como porcentaje de la l?nea base. Valores de MDE m?s peque?os requieren tama?os de muestra mayores.",
+      "expected_uplift_pct": "Mejora relativa esperada respecto a la línea base. Ejemplo: 8 significa que se espera que la variante de tratamiento mejore la métrica en un 8 %. Es solo contexto de planificación y no cambia el tamaño de muestra requerido.",
+      "mde_pct": "Efecto mínimo detectable como porcentaje de la línea base. Valores de MDE más pequeños requieren tamaños de muestra mayores. El tamaño de muestra y la duración se calculan a partir de este MDE, no del aumento esperado.",
       "alpha": "Umbral de falsos positivos. 0,05 significa aceptar una probabilidad del 5% de cometer un error de Tipo I.",
       "power": "Probabilidad de detectar un efecto real si existe. 0,8 es el mínimo estándar para experimentos de productos.",
-      "analysis_mode": "Elija si la planificaci?n se enmarca con la potencia NHST cl?sica o con precisi?n bayesiana basada en intervalos de credibilidad.",
-      "desired_precision": "Semiamplitud objetivo del intervalo de credibilidad. Para m?tricas binarias utilice puntos porcentuales; para m?tricas continuas, unidades brutas.",
+      "analysis_mode": "Elija si la planificación se enmarca con la potencia NHST clásica o con precisión bayesiana basada en intervalos de credibilidad.",
+      "desired_precision": "Semiamplitud objetivo del intervalo de credibilidad. Para métricas binarias utilice puntos porcentuales; para métricas continuas, unidades brutas.",
       "credibility": "Nivel de credibilidad para el intervalo bayesiano. 0,95 corresponde a un intervalo de credibilidad del 95 %.",
       "std_dev": "Desviación estándar de la métrica continua. Requerido solo para métricas continuas; Ejemplo: 12,5 para el valor medio del pedido.",
       "interference_risk": "Riesgo de que los usuarios o unidades puedan influirse entre sí a través de variantes y romper el aislamiento.",
@@ -228,33 +228,33 @@
       }
     },
     "cuped": {
-      "title": "Reducci?n de varianza con CUPED",
-      "description": "Use comportamiento previo al experimento correlacionado para reducir la varianza y comparar el tama?o de muestra ingenuo frente al ajustado con CUPED.",
-      "enable": "Activar reducci?n de varianza con CUPED",
-      "enableTooltip": "Si tiene datos previos al experimento correlacionados con la m?trica de resultado, CUPED puede reducir el tama?o de muestra requerido en rho?.",
-      "preExperimentStdDev": "Desviaci?n est?ndar previa al experimento",
+      "title": "Reducción de varianza con CUPED",
+      "description": "Use comportamiento previo al experimento correlacionado para reducir la varianza y comparar el tamaño de muestra ingenuo frente al ajustado con CUPED.",
+      "enable": "Activar reducción de varianza con CUPED",
+      "enableTooltip": "Si tiene datos previos al experimento correlacionados con la métrica de resultado, CUPED puede reducir el tamaño de muestra requerido en rho².",
+      "preExperimentStdDev": "Desviación estándar previa al experimento",
       "preExperimentStdDevTooltip": "Desviación estándar de la covariable previa al experimento, como los ingresos de la semana anterior a la prueba.",
       "correlationWithOutcome": "Correlación con el resultado",
       "correlationWithOutcomeTooltip": "Correlación de Pearson entre la covariable previa al experimento y el resultado del experimento. Los valores típicos son de 0,3 a 0,7."
     },
     "guardrails": {
-      "title": "M?tricas guardrail",
-      "description": "M?tricas para monitorear sin cambiar el tama?o de muestra principal. Se admiten hasta 3 m?tricas guardrail.",
+      "title": "Métricas guardrail",
+      "description": "Métricas para monitorear sin cambiar el tamaño de muestra principal. Se admiten hasta 3 métricas guardrail.",
       "metricName": "Nombre de la métrica",
-      "metricNameAriaLabel": "Nombre de la m?trica guardrail {{index}}",
+      "metricNameAriaLabel": "Nombre de la métrica guardrail {{index}}",
       "metricType": "Tipo de métrica",
-      "metricTypeAriaLabel": "Tipo de m?trica guardrail {{index}}",
+      "metricTypeAriaLabel": "Tipo de métrica guardrail {{index}}",
       "binaryPct": "Binario (%)",
       "continuous": "Continuo",
       "remove": "Eliminar",
       "removeAriaLabel": "Quitar guardrail {{index}}",
       "baselinePct": "% de referencia",
-      "baselineRateAriaLabel": "Tasa de l?nea base guardrail {{index}}",
+      "baselineRateAriaLabel": "Tasa de línea base guardrail {{index}}",
       "baselineMean": "Media basal",
-      "baselineMeanAriaLabel": "Media de l?nea base guardrail {{index}}",
+      "baselineMeanAriaLabel": "Media de línea base guardrail {{index}}",
       "stdDev": "Desarrollo estándar",
-      "stdDevAriaLabel": "Desviaci?n est?ndar de guardrail {{index}}",
-      "add": "Agregar m?trica guardrail"
+      "stdDevAriaLabel": "Desviación estándar de guardrail {{index}}",
+      "add": "Agregar métrica guardrail"
     },
     "buttons": {
       "newDraft": "Nuevo borrador",
@@ -281,16 +281,16 @@
       "mdePositive": "MDE % debe ser mayor que 0.",
       "alphaRange": "Alfa debe estar entre 0 y 1.",
       "powerRange": "La potencia debe estar entre 0 y 1.",
-      "continuousStdPositive": "Las m?tricas continuas requieren una desviaci?n est?ndar positiva.",
-      "cupedStdPositive": "La desviaci?n est?ndar previa al experimento para CUPED debe ser positiva.",
+      "continuousStdPositive": "Las métricas continuas requieren una desviación estándar positiva.",
+      "cupedStdPositive": "La desviación estándar previa al experimento para CUPED debe ser positiva.",
       "cupedCorrelationRange": "La correlación CUPED debe estar entre -1 y 1.",
-      "desiredPrecisionPositive": "La precisi?n deseada debe ser mayor que 0 en modo bayesiano.",
+      "desiredPrecisionPositive": "La precisión deseada debe ser mayor que 0 en modo bayesiano.",
       "credibilityRange": "La credibilidad debe estar entre 0,5 y 1.",
-      "guardrailsMax": "Las m?tricas guardrail no pueden superar 3 elementos.",
-      "guardrailNameRequired": "Los nombres de las m?tricas guardrail son obligatorios.",
-      "guardrailBinaryBaselineRange": "Las m?tricas guardrail binarias requieren un % de l?nea base entre 0 y 100.",
-      "guardrailContinuousFields": "Las m?tricas guardrail continuas requieren una media de l?nea base y una desviaci?n est?ndar positiva.",
-      "guardrailMetricType": "El tipo de m?trica guardrail debe ser binario o continuo.",
+      "guardrailsMax": "Las métricas guardrail no pueden superar 3 elementos.",
+      "guardrailNameRequired": "Los nombres de las métricas guardrail son obligatorios.",
+      "guardrailBinaryBaselineRange": "Las métricas guardrail binarias requieren un % de línea base entre 0 y 100.",
+      "guardrailContinuousFields": "Las métricas guardrail continuas requieren una media de línea base y una desviación estándar positiva.",
+      "guardrailMetricType": "El tipo de métrica guardrail debe ser binario o continuo.",
       "metricType": "El tipo de métrica debe ser binario o continuo.",
       "holdoutFractionRange": "La fracción de holdout debe estar entre 0 y 1.",
       "mutuallyExclusiveMin": "Los experimentos mutuamente excluyentes deben ser un entero de al menos 1."
@@ -330,9 +330,9 @@
       "noneDescription": "La capa heurística no detectó problemas de duración, tráfico o contaminación."
     },
     "ai_advice": "Recomendaciones de IA",
-    "srm_check": "Verificaci?n de SRM",
-    "sequential_design": "Dise?o secuencial",
-    "guardrail_metrics": "M?tricas guardrail",
+    "srm_check": "Verificación de SRM",
+    "sequential_design": "Diseño secuencial",
+    "guardrail_metrics": "Métricas guardrail",
     "actual_results": "Resultados reales del experimento",
     "aiAdvice": {
       "title": "Salida del orquestador local",
@@ -347,7 +347,7 @@
       "unavailable": "Consejos de IA no disponibles. La salida determinista central todavía funciona."
     },
     "comparison": {
-      "empty": "Cargue una comparaci?n de proyectos guardados desde la barra lateral de Proyectos para revisar instant?neas de la l?nea base y de los candidatos.",
+      "empty": "Cargue una comparación de proyectos guardados desde la barra lateral de Proyectos para revisar instantáneas de la línea base y de los candidatos.",
       "loading": "Cargando panel de comparación...",
       "monteCarlo": {
         "title": "Vista de distribuciÃ³n",
@@ -369,18 +369,18 @@
         "title": "Panel de comparación",
         "subtitle": "Revise los experimentos guardados uno al lado del otro en función de los supuestos de planificación, la sensibilidad y los efectos observados.",
         "exporting": "Exportando...",
-        "exportMarkdown": "Exportar comparaci?n en Markdown",
+        "exportMarkdown": "Exportar comparación en Markdown",
         "exportPdf": "Exportar PDF comparativo",
         "close": "Cerrar panel",
         "exportFailed": "La exportación de comparación falló.",
         "mixedMetricTypes": "Tipos de métricas mixtas: la comparación de efectos directos no es significativa.",
         "projectsTitle": "Proyectos",
-        "projectsSubtitle": "Metadatos de planificaci?n de alto nivel para los experimentos seleccionados.",
+        "projectsSubtitle": "Metadatos de planificación de alto nivel para los experimentos seleccionados.",
         "sampleSize": "Muestra total: {{value}}",
         "duration": "Duración: {{value}} días",
         "warnings": "Advertencias: {{value}}",
         "powerCurvesTitle": "Curvas de potencia",
-        "powerCurvesSubtitle": "Cada línea muestra tama?o de muestra por variante en MDE puntos en la potencia configurada del proyecto.",
+        "powerCurvesSubtitle": "Cada línea muestra tamaño de muestra por variante en MDE puntos en la potencia configurada del proyecto.",
         "sensitivityTitle": "Cuadrícula de sensibilidad",
         "sensitivitySubtitle": "Matrices de duración por proyecto en MDE y combinaciones de potencia.",
         "sensitivityUnavailable": "Datos de sensibilidad no disponibles.",
@@ -413,20 +413,20 @@
       "openQuestions": "Preguntas abiertas"
     },
     "metricsPlan": {
-      "coverage": "Cobertura de m?tricas primarias, secundarias y guardrail",
+      "coverage": "Cobertura de métricas primarias, secundarias y guardrail",
       "primary": "Primaria",
       "secondary": "Secundaria",
       "guardrail": "Guardrail",
       "diagnostic": "Diagnóstico",
-      "guardrailMetrics": "M?tricas guardrail",
+      "guardrailMetrics": "Métricas guardrail",
       "guardrailMetricsDescription": "Estas métricas se monitorean, pero no cambian el tamaño de la muestra primaria.",
-      "baseline": "L?nea base"
+      "baseline": "Línea base"
     },
     "powerCurve": {
       "title": "Curva de potencia",
-      "description": "Compare los objetivos de MDE con los niveles de potencia planificados y los tama?os de muestra requeridos.",
+      "description": "Compare los objetivos de MDE con los niveles de potencia planificados y los tamaños de muestra requeridos.",
       "loadingSensitivity": "Cargando análisis de sensibilidad...",
-      "chartAriaLabel": "Gr?fico de curva de potencia que muestra el efecto m?nimo detectable frente a la potencia objetivo",
+      "chartAriaLabel": "Gráfico de curva de potencia que muestra el efecto mínimo detectable frente a la potencia objetivo",
       "loadingChart": "Cargando gráfico..."
     },
     "risks": {
@@ -440,8 +440,8 @@
     },
     "bayesian": {
       "title": "Posterior bayesiano",
-      "unavailable": "Las entradas del posterior bayesiano no est?n disponibles para este an?lisis.",
-      "targetSampleSize": "Tama?o de muestra objetivo:",
+      "unavailable": "Las entradas del posterior bayesiano no están disponibles para este análisis.",
+      "targetSampleSize": "Tamaño de muestra objetivo:",
       "perVariantAt": "por variante en",
       "credibilityAnd": "credibilidad y",
       "intervalHalfWidth": "Semiamplitud del intervalo."
@@ -449,13 +449,13 @@
     "sequentialDesign": {
       "unavailable": "Los límites secuenciales no están configurados para el análisis actual.",
       "title": "Diseño secuencial grupal (O'Brien-Fleming)",
-      "adjustedSampleSize": "Tama?o de muestra ajustado:",
+      "adjustedSampleSize": "Tamaño de muestra ajustado:",
       "perVariant": "por variante",
-      "moreThanFixedHorizon": "m?s que con horizonte fijo",
+      "moreThanFixedHorizon": "más que con horizonte fijo",
       "columns": {
         "look": "Corte",
         "infoFraction": "Fracción de información",
-        "cumulativeAlphaSpent": "? acumulado gastado",
+        "cumulativeAlphaSpent": "α acumulado gastado",
         "zBoundary": "Límite Z",
         "stopIf": "Detener si |Z| ≥"
       },
@@ -463,19 +463,19 @@
     },
     "srmCheck": {
       "title": "¿Se dividió el tráfico según lo previsto?",
-      "description": "Ingrese los recuentos de usuarios observados por variante para verificar desajuste de proporci?n de muestra. Un resultado rojo significa que la asignación o el seguimiento pueden estar interrumpidos.",
+      "description": "Ingrese los recuentos de usuarios observados por variante para verificar desajuste de proporción de muestra. Un resultado rojo significa que la asignación o el seguimiento pueden estar interrumpidos.",
       "actualUsersPlaceholder": "Usuarios reales",
       "checking": "Comprobando...",
       "checkButton": "Comprobar SRM",
       "detected": "SRM detectado",
       "notDetected": "No se detectó SRM",
-      "serviceUnavailable": "La verificaci?n de SRM no est? disponible.",
+      "serviceUnavailable": "La verificación de SRM no está disponible.",
       "chiSquare": "Chi-cuadrado = {{chiSquare}}, p = {{pValue}}",
       "expectedObserved": "Esperado: [{{expected}}] | Observado: [{{observed}}]"
     },
     "observedResults": {
       "title": "Ingrese los resultados reales del experimento",
-      "description": "Una vez finalizado el experimento, ingrese los datos observados para calcular significancia estad?stica a partir de los resultados reales.",
+      "description": "Una vez finalizado el experimento, ingrese los datos observados para calcular significancia estadística a partir de los resultados reales.",
       "historicalReadOnly": "Las instantáneas históricas son de solo lectura. Regrese al borrador en vivo para guardar los resultados observados.",
       "saveProjectFirst": "Guarde el proyecto primero si desea conservar los resultados observados.",
       "analyzeButton": "Analizar resultados",
@@ -491,10 +491,10 @@
         "treatmentUsers": "Usuarios del tratamiento",
         "alpha": "Alfa",
         "controlMean": "Media de control",
-        "controlStdDev": "Desviaci?n est?ndar del control",
+        "controlStdDev": "Desviación estándar del control",
         "controlN": "n del control",
         "treatmentMean": "Media del tratamiento",
-        "treatmentStdDev": "Desviaci?n est?ndar del tratamiento",
+        "treatmentStdDev": "Desviación estándar del tratamiento",
         "treatmentN": "n del tratamiento"
       },
       "cards": {
@@ -504,7 +504,7 @@
         "testStatistic": "estadística de prueba",
         "relativeChange": "Cambio relativo",
         "powerAchieved": "Potencia alcanzada",
-        "forestPlot": "Forest plot",
+        "forestPlot": "Gráfico de bosque",
         "observedSummary": "Resumen observado",
         "controlRate": "Tasa de control",
         "treatmentRate": "Tasa de tratamiento",
@@ -521,7 +521,7 @@
     },
     "sensitivityOverview": {
       "reportPill": "Informe",
-      "title": "Dise?o determinista del experimento",
+      "title": "Diseño determinista del experimento",
       "export": "Exportar",
       "exportMenuAriaLabel": "Opciones de exportación de informes",
       "exportReportTitle": "Exportar informe (Ctrl+E)",
@@ -534,11 +534,11 @@
       "exportFullReport": "Exportar informe completo",
       "cards": {
         "perVariant": "Por variante",
-        "sampleSizePerVariant": "tama?o de muestra / variante",
+        "sampleSizePerVariant": "tamaño de muestra / variante",
         "powerMeta": "{{power}} potencia",
         "bonferroni": "Bonferroni",
         "totalSample": "Muestra total",
-        "totalSampleSubtitle": "tama?o de muestra total",
+        "totalSampleSubtitle": "tamaño de muestra total",
         "variantsMeta": "{{count}} variantes",
         "duration": "Duración",
         "durationValue": "{{days}} días",
@@ -554,27 +554,27 @@
         "none": "Sin advertencias"
       },
       "bayesianEstimate": {
-        "title": "Estimaci?n bayesiana",
+        "title": "Estimación bayesiana",
         "frequentist": "Frecuentista",
         "bayesian": "Bayesiano",
         "usersPerVariant": "Usuarios / variante"
       },
       "cuped": {
-        "title": "Estimaci?n ajustada con CUPED",
+        "title": "Estimación ajustada con CUPED",
         "without": "Sin CUPED",
         "with": "Con CUPED",
-        "sampleSizeSavings": "-{{pct}}% tama?o de muestra",
+        "sampleSizeSavings": "-{{pct}}% tamaño de muestra",
         "durationChange": "La duración estimada cambia de {{from}} a {{to}} días.",
-        "adjustedStdDev": "Desviaci?n est?ndar ajustada: {{value}}.",
+        "adjustedStdDev": "Desviación estándar ajustada: {{value}}.",
         "theta": "Coeficiente CUPED theta = {{value}} (se aplica como Y' = Y - theta*(X - mean(X)))."
       },
       "sensitivityTable": {
         "title": "Tabla de sensibilidad",
-        "description": "Matriz de duraci?n para los escenarios de MDE y potencia devueltos por el backend.",
+        "description": "Matriz de duración para los escenarios de MDE y potencia devueltos por el backend.",
         "loading": "Cargando tabla de sensibilidad..."
       },
       "sampleSizeBreakdown": {
-        "title": "Desglose del tama?o de muestra",
+        "title": "Desglose del tamaño de muestra",
         "description": "El requisito de muestra por variante se muestra junto con la asignación de tráfico configurada."
       },
       "calculationSummary": {
@@ -634,7 +634,7 @@
         "comparison": "Comparación",
         "sensitivity": "Sensibilidad",
         "powerCurve": "Curva de potencia",
-        "sequentialDesign": "Dise?o secuencial",
+        "sequentialDesign": "Diseño secuencial",
         "bayesianPosterior": "posterior bayesiano",
         "observedResults": "Resultados observados",
         "warningsAndRisks": "Advertencias y riesgos",
@@ -642,7 +642,7 @@
         "metricsPlan": "Plan de métricas",
         "riskAssessment": "Evaluación de riesgos",
         "aiRecommendations": "Recomendaciones de IA",
-        "srmCheck": "Verificaci?n de SRM",
+        "srmCheck": "Verificación de SRM",
         "bandit": "Bandit vs. fijo",
         "assignment": "Asignación de usuario",
         "liveStats": "Experimento en vivo"
@@ -842,7 +842,7 @@
     "shortcuts": {
       "openHelp": "Abrir ayuda de atajos de teclado",
       "focusSearch": "Enfocar la búsqueda de proyectos guardados",
-      "runAnalysis": "Ejecutar an?lisis",
+      "runAnalysis": "Ejecutar análisis",
       "moveSteps": "Moverse entre los pasos del asistente",
       "exportMarkdown": "Informe de rebajas de exportación",
       "saveProject": "Guardar proyecto",

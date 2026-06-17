@@ -268,5 +268,23 @@
     },
     "srm_detected": "检测到 SRM - 检查您的随机化或跟踪实施",
     "srm_not_detected": "未检测到 SRM"
+  },
+  "results": {
+    "verdict": {
+      "no_difference": "在 alpha={{alpha}} 下无统计显著差异",
+      "uplift": "在 alpha={{alpha}} 下有统计显著提升",
+      "decline": "在 alpha={{alpha}} 下有统计显著下降",
+      "significant": "在 alpha={{alpha}} 下结果具有统计显著性",
+      "degenerate": "无法计算：标准误为零"
+    },
+    "significance": {
+      "significant": "具有统计显著性",
+      "not_significant": "不具有统计显著性"
+    },
+    "interpretation": {
+      "binary": "实验组转化率 {{treatment}}% 对照组 {{control}}%。绝对效应 {{effect}} 个百分点，{{ciLevel}}% 置信区间 [{{ciLower}}, {{ciUpper}}] 个百分点。双侧 p 值 {{pValue}}；结果{{significance}}。",
+      "continuous": "实验组均值 {{treatmentMean}} 对照组 {{controlMean}}。效应 {{effect}}，{{ciLevel}}% 置信区间 [{{ciLower}}, {{ciUpper}}]。双侧 p 值 {{pValue}}。",
+      "degenerate": "观测输入退化，无法计算检验统计量。"
+    }
   }
 }
