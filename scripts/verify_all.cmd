@@ -51,6 +51,14 @@ echo [verify] generated api docs
 python "%ROOT_DIR%scripts\generate_api_docs.py" --check
 if errorlevel 1 exit /b %errorlevel%
 
+echo [verify] locale content gate ^(self-test^)
+python "%ROOT_DIR%scripts\check_locale_content.py" --self-test
+if errorlevel 1 exit /b %errorlevel%
+
+echo [verify] locale content gate
+python "%ROOT_DIR%scripts\check_locale_content.py"
+if errorlevel 1 exit /b %errorlevel%
+
 set "ORIGINAL_AB_WORKSPACE_SIGNING_KEY=%AB_WORKSPACE_SIGNING_KEY%"
 set "AB_WORKSPACE_SIGNING_KEY="
 echo [verify] workspace backup roundtrip (checksum)

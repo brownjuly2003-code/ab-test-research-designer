@@ -67,6 +67,23 @@ jobs:
           path: archive/smoke-runs/
           if-no-files-found: ignore
 
+  locale-content:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Verify locale content gate detector
+        run: python scripts/check_locale_content.py --self-test
+
+      - name: Check locale catalogs for mojibake / replacement chars
+        run: python scripts/check_locale_content.py
+
   verify-postgres:
     runs-on: ubuntu-latest
     timeout-minutes: 20

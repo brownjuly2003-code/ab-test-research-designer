@@ -276,6 +276,19 @@ export type ConversionIngestRequest = {
   conversions: ConversionEvent[];
 };
 
+export type DecisionReadoutResponse = {
+  experiment_id: string;
+  verdict: "ship" | "no_ship" | "keep_running";
+  confidence: "high" | "medium" | "low";
+  reasons?: DecisionReason[];
+  blockers?: DecisionReason[];
+};
+
+export type DecisionReason = {
+  code: string;
+  params?: { [key: string]: unknown; };
+};
+
 export type DiagnosticsAuthSummary = {
   enabled: boolean;
   mode: string;

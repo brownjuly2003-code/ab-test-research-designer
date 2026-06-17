@@ -405,6 +405,44 @@ def test_live_stats_route_reports_srm_and_comparison() -> None:
     assert "MVP" in data["disclaimer"]
 
 
+# --- decision readout route -----------------------------------------------------------
+
+
+def test_decision_route_returns_404_for_unknown_experiment() -> None:
+    client = TestClient(create_app())
+    response = client.get("/api/v1/experiments/missing/decision")
+    assert response.status_code == 404
+
+
+def test_decision_route_ships_on_a_clear_win() -> None:
+    client = TestClient(create_app())
+    project_id = _create_binary_project(client)
+
+    exposures = [{"user_id": f"c{i}", "variation_index": 0} for i in range(200)]
+    exposures += [{"user_id": f"t{i}", "variation_index": 1} for i in range(200)]
+    assert (
+        client.post(f"/api/v1/experiments/{project_id}/exposures", json={"exposures": exposures}).status_code
+        == 200
+    )
+    conversions = [{"user_id": f"c{i}", "metric": "purchase"} for i in range(20)]  # control 10%
+    conversions += [{"user_id": f"t{i}", "metric": "purchase"} for i in range(40)]  # treatment 20%
+    assert (
+        client.post(
+            f"/api/v1/experiments/{project_id}/conversions", json={"conversions": conversions}
+        ).status_code
+        == 200
+    )
+
+    response = client.get(f"/api/v1/experiments/{project_id}/decision")
+    assert response.status_code == 200, response.text
+    decision = response.json()
+    assert decision["experiment_id"] == project_id
+    assert decision["verdict"] == "ship"
+    assert decision["confidence"] in {"high", "medium"}
+    assert any(reason["code"] == "significant_win" for reason in decision["reasons"])
+    assert decision["blockers"] == []
+
+
 # --- CUPED on live data (E5) ----------------------------------------------------------
 
 

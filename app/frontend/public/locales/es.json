@@ -645,7 +645,8 @@
         "srmCheck": "Verificación de SRM",
         "bandit": "Bandit vs. fijo",
         "assignment": "Asignación de usuario",
-        "liveStats": "Experimento en vivo"
+        "liveStats": "Experimento en vivo",
+        "decision": "Lectura de decisión"
       },
       "badges": {
         "loaded": "Cargado",
@@ -745,6 +746,55 @@
       "cupedArmLine": "media ajustada {{adjusted}} (bruta {{raw}})",
       "cupedAdjustedEffect": "Efecto ajustado {{effect}} · IC [{{lower}}, {{upper}}] · p {{p}}",
       "cupedComparisonPending": "Aún no hay suficientes datos de covariable para una prueba CUPED."
+    },
+    "decision": {
+      "title": "Lectura de decisión",
+      "description": "Un veredicto sintetizado — lanzar, no lanzar o seguir ejecutando — compuesto a partir de las señales en vivo de SRM, frecuentista, bayesiana y secuencial. Sin estadística nueva.",
+      "refresh": "Sintetizar decisión",
+      "refreshing": "Sintetizando...",
+      "saveFirst": "Guarda este experimento primero para sintetizar una decisión.",
+      "serviceUnavailable": "Lectura de decisión no disponible.",
+      "verdictLabel": "Veredicto",
+      "verdict": {
+        "ship": "Lanzar",
+        "no_ship": "No lanzar",
+        "keep_running": "Seguir ejecutando"
+      },
+      "verdictHint": {
+        "ship": "Una variante muestra una mejora positiva y confirmada sobre el control.",
+        "no_ship": "Ninguna variante es una mejora fiable sobre el control.",
+        "keep_running": "El resultado aún no es concluyente: recopila más datos antes de decidir."
+      },
+      "confidence": {
+        "label": "Confianza",
+        "high": "Alta",
+        "medium": "Media",
+        "low": "Baja"
+      },
+      "reasonsTitle": "Por qué",
+      "blockersTitle": "Bloqueos",
+      "exportHeading": "Lectura de decisión",
+      "export": {
+        "copy": "Copiar como Markdown",
+        "copied": "Copiado",
+        "download": "Descargar .md"
+      },
+      "reason": {
+        "no_exposures": "Aún no se han registrado exposiciones: empieza a enviar tráfico al experimento.",
+        "insufficient_per_arm": "Aún no hay suficientes usuarios por grupo para ejecutar una prueba.",
+        "blocked_untrustworthy": "No se puede confiar en los resultados hasta resolver el bloqueo anterior.",
+        "significant_win": "{{arm}} es un ganador significativo ({{effect}} de efecto relativo, p={{p}}).",
+        "bayesian_win": "{{arm}} supera al control con una probabilidad de {{probability}}.",
+        "sequential_crossed": "{{arm}} ha cruzado el límite de monitoreo secuencial.",
+        "sequential_not_crossed": "{{arm}} parece significativo, pero aún no ha cruzado el límite secuencial: sigue recopilando.",
+        "significant_loss": "{{arm}} es significativamente peor que el control ({{effect}} de efecto relativo).",
+        "inconclusive_ci": "{{arm}}: el intervalo de confianza todavía incluye el cero, aún no hay un efecto claro.",
+        "info_fraction_incomplete": "Solo se ha recopilado {{fraction}} de la muestra planificada.",
+        "info_fraction_complete_no_effect": "El experimento alcanzó su tamaño planificado sin un efecto detectable."
+      },
+      "blocker": {
+        "srm_mismatch": "Desajuste en la proporción de muestras (p={{p}}): la asignación parece rota; corrige la aleatorización o el seguimiento antes de confiar en cualquier resultado."
+      }
     }
   },
   "errors": {

@@ -494,9 +494,9 @@ def run_browser_smoke(
             if "simplified checkout flow" not in project_description_input.input_value():
                 raise RuntimeError("Smoke import did not populate the demo project description.")
 
-            language_switcher_buttons = page.locator('[role="group"]').nth(0).locator("button.theme-toggle-button")
-            if language_switcher_buttons.count() != 7:
-                raise RuntimeError("Smoke expected the 7-button language switcher to remain visible.")
+            language_switcher_options = page.locator("select.lang-select").first.locator("option")
+            if language_switcher_options.count() != 7:
+                raise RuntimeError("Smoke expected the 7-option language switcher to remain visible.")
 
             append_smoke_log(log_path, "verifying browser draft persistence")
             print("[smoke] verifying browser draft persistence", flush=True)

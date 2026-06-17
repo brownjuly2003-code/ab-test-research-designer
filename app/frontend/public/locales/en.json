@@ -645,7 +645,8 @@
         "srmCheck": "SRM check",
         "bandit": "Bandit vs fixed",
         "assignment": "User assignment",
-        "liveStats": "Live experiment"
+        "liveStats": "Live experiment",
+        "decision": "Decision readout"
       },
       "badges": {
         "loaded": "Loaded",
@@ -745,6 +746,55 @@
       "cupedArmLine": "adjusted mean {{adjusted}} (raw {{raw}})",
       "cupedAdjustedEffect": "Adjusted effect {{effect}} · CI [{{lower}}, {{upper}}] · p {{p}}",
       "cupedComparisonPending": "Not enough covariate data for a CUPED test yet."
+    },
+    "decision": {
+      "title": "Decision readout",
+      "description": "One synthesized verdict — ship, don't ship, or keep running — assembled from the live SRM, frequentist, Bayesian, and sequential signals. No new statistics.",
+      "refresh": "Synthesize decision",
+      "refreshing": "Synthesizing...",
+      "saveFirst": "Save this experiment first to synthesize a decision.",
+      "serviceUnavailable": "Decision readout unavailable.",
+      "verdictLabel": "Verdict",
+      "verdict": {
+        "ship": "Ship it",
+        "no_ship": "Don't ship",
+        "keep_running": "Keep running"
+      },
+      "verdictHint": {
+        "ship": "A treatment shows a confirmed, positive win over control.",
+        "no_ship": "No treatment is a trustworthy improvement over control.",
+        "keep_running": "The result is not conclusive yet — collect more data before deciding."
+      },
+      "confidence": {
+        "label": "Confidence",
+        "high": "High",
+        "medium": "Medium",
+        "low": "Low"
+      },
+      "reasonsTitle": "Why",
+      "blockersTitle": "Blockers",
+      "exportHeading": "Decision readout",
+      "export": {
+        "copy": "Copy as Markdown",
+        "copied": "Copied",
+        "download": "Download .md"
+      },
+      "reason": {
+        "no_exposures": "No exposures recorded yet — start sending traffic to the experiment.",
+        "insufficient_per_arm": "Not enough users per arm yet to run a test.",
+        "blocked_untrustworthy": "Results can't be trusted until the blocker above is resolved.",
+        "significant_win": "{{arm}} is a significant winner ({{effect}} relative effect, p={{p}}).",
+        "bayesian_win": "{{arm}} beats control with probability {{probability}}.",
+        "sequential_crossed": "{{arm}} has crossed the sequential monitoring boundary.",
+        "sequential_not_crossed": "{{arm}} looks significant but has not crossed the sequential boundary yet — keep collecting.",
+        "significant_loss": "{{arm}} is significantly worse than control ({{effect}} relative effect).",
+        "inconclusive_ci": "{{arm}}: the confidence interval still includes zero — no clear effect yet.",
+        "info_fraction_incomplete": "Only {{fraction}} of the planned sample has been collected.",
+        "info_fraction_complete_no_effect": "The experiment reached its planned size without a detectable effect."
+      },
+      "blocker": {
+        "srm_mismatch": "Sample-ratio mismatch (p={{p}}) — assignment looks broken; fix randomization or tracking before trusting any result."
+      }
     }
   },
   "errors": {

@@ -645,7 +645,8 @@
         "srmCheck": "SRM 检查",
         "bandit": "老虎机 vs 固定",
         "assignment": "用户分配",
-        "liveStats": "实时实验"
+        "liveStats": "实时实验",
+        "decision": "决策摘要"
       },
       "badges": {
         "loaded": "已加载",
@@ -745,6 +746,55 @@
       "cupedArmLine": "调整后均值 {{adjusted}}（原始 {{raw}}）",
       "cupedAdjustedEffect": "调整后效应 {{effect}} · 置信区间 [{{lower}}, {{upper}}] · p {{p}}",
       "cupedComparisonPending": "协变量数据尚不足以进行 CUPED 检验。"
+    },
+    "decision": {
+      "title": "决策摘要",
+      "description": "一个综合判定——发布、不发布或继续运行——由实时 SRM、频率派、贝叶斯和序贯信号汇总而成。没有新的统计方法。",
+      "refresh": "生成决策",
+      "refreshing": "生成中...",
+      "saveFirst": "请先保存此实验以生成决策。",
+      "serviceUnavailable": "决策摘要不可用。",
+      "verdictLabel": "判定",
+      "verdict": {
+        "ship": "发布",
+        "no_ship": "不发布",
+        "keep_running": "继续运行"
+      },
+      "verdictHint": {
+        "ship": "某个实验组相对对照组显示出已确认的正向胜出。",
+        "no_ship": "没有任何实验组相对对照组是可信的改进。",
+        "keep_running": "结果尚不确定——在决策前请收集更多数据。"
+      },
+      "confidence": {
+        "label": "置信度",
+        "high": "高",
+        "medium": "中",
+        "low": "低"
+      },
+      "reasonsTitle": "原因",
+      "blockersTitle": "阻断项",
+      "exportHeading": "决策摘要",
+      "export": {
+        "copy": "复制为 Markdown",
+        "copied": "已复制",
+        "download": "下载 .md"
+      },
+      "reason": {
+        "no_exposures": "尚未记录任何曝光——请开始向实验导入流量。",
+        "insufficient_per_arm": "每组用户数量尚不足以运行检验。",
+        "blocked_untrustworthy": "在解决上述阻断项之前，结果不可信。",
+        "significant_win": "{{arm}} 是显著的胜出者（相对效应 {{effect}}，p={{p}}）。",
+        "bayesian_win": "{{arm}} 以 {{probability}} 的概率优于对照组。",
+        "sequential_crossed": "{{arm}} 已越过序贯监测边界。",
+        "sequential_not_crossed": "{{arm}} 看起来显著，但尚未越过序贯边界——请继续收集数据。",
+        "significant_loss": "{{arm}} 显著劣于对照组（相对效应 {{effect}}）。",
+        "inconclusive_ci": "{{arm}}：置信区间仍包含零——目前没有明确效应。",
+        "info_fraction_incomplete": "仅收集了计划样本的 {{fraction}}。",
+        "info_fraction_complete_no_effect": "实验已达到计划规模，但未检测到效应。"
+      },
+      "blocker": {
+        "srm_mismatch": "样本比例不匹配（p={{p}}）——分流似乎已损坏；在信任任何结果之前请修复随机化或追踪。"
+      }
     }
   },
   "errors": {

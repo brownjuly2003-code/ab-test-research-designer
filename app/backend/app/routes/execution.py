@@ -2,12 +2,14 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app.backend.app.schemas.api import (
     ConversionIngestRequest,
+    DecisionReadoutResponse,
     ExposureIngestRequest,
     IngestionSummaryResponse,
     IngestResultResponse,
     LiveStatsResponse,
     PrePeriodIngestRequest,
 )
+from app.backend.app.services.decision_service import synthesize_decision
 from app.backend.app.services.live_stats_service import build_live_stats
 
 
@@ -70,6 +72,19 @@ def create_execution_router(settings, repository, rate_limiter, require_auth, re
             raise HTTPException(status_code=404, detail="Experiment not found")
         return IngestionSummaryResponse.model_validate(summary)
 
+    def _compute_live_stats(experiment_id: str) -> dict:
+        """Shared live-stats build path for the live-stats and decision reads. Raises 404 when the
+        experiment (or its aggregates) is missing."""
+        project = repository.get_project(experiment_id, include_archived=True)
+        if project is None:
+            raise HTTPException(status_code=404, detail="Experiment not found")
+        metric_name = project["payload"].get("metrics", {}).get("primary_metric_name", "")
+        aggregates = repository.get_experiment_analysis_aggregates(experiment_id, metric_name)
+        if aggregates is None:
+            raise HTTPException(status_code=404, detail="Experiment not found")
+        cuped_aggregates = repository.get_cuped_aggregates(experiment_id, metric_name)
+        return build_live_stats(experiment_id, project["payload"], aggregates, cuped_aggregates)
+
     @router.get(
         "/api/v1/experiments/{experiment_id}/live-stats",
         response_model=LiveStatsResponse,
@@ -79,17 +94,18 @@ def create_execution_router(settings, repository, rate_limiter, require_auth, re
         """Phase D — live SRM / frequentist / Bayesian / sequential read over the current
         deduplicated exposures and conversions. Recomputed on demand (the dashboard polls);
         there is no separate scheduler process in the local-first MVP."""
-        project = repository.get_project(experiment_id, include_archived=True)
-        if project is None:
-            raise HTTPException(status_code=404, detail="Experiment not found")
-        metric_name = project["payload"].get("metrics", {}).get("primary_metric_name", "")
-        aggregates = repository.get_experiment_analysis_aggregates(experiment_id, metric_name)
-        if aggregates is None:
-            raise HTTPException(status_code=404, detail="Experiment not found")
-        cuped_aggregates = repository.get_cuped_aggregates(experiment_id, metric_name)
-        result = build_live_stats(
-            experiment_id, project["payload"], aggregates, cuped_aggregates
-        )
-        return LiveStatsResponse.model_validate(result)
+        return LiveStatsResponse.model_validate(_compute_live_stats(experiment_id))
+
+    @router.get(
+        "/api/v1/experiments/{experiment_id}/decision",
+        response_model=DecisionReadoutResponse,
+        dependencies=[Depends(require_auth)],
+    )
+    def get_decision(experiment_id: str) -> DecisionReadoutResponse:
+        """Decision Readout — one synthesized ship / no-ship / keep-running verdict over the same
+        live-stats signals (SRM, frequentist effect/CI, Bayesian P(B>A), sequential crossing). No
+        new statistics; see services/decision_service.py."""
+        decision = synthesize_decision(_compute_live_stats(experiment_id))
+        return DecisionReadoutResponse.model_validate(decision)
 
     return router

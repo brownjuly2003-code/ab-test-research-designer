@@ -270,6 +270,14 @@ Assign Experiment
 
 Ingest Conversions
 
+### `GET /api/v1/experiments/{experiment_id}/decision`
+
+Get Decision
+
+Decision Readout — one synthesized ship / no-ship / keep-running verdict over the same
+live-stats signals (SRM, frequentist effect/CI, Bayesian P(B>A), sequential crossing). No
+new statistics; see services/decision_service.py.
+
 ### `POST /api/v1/experiments/{experiment_id}/exposures`
 
 Ingest Exposures
