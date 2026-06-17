@@ -369,11 +369,19 @@ export function clearAdminSessionToken(): void {
   storage.removeItem(adminSessionTokenStorageKey);
 }
 
+function currentLanguageHeader(): Record<string, string> {
+  if (typeof document === "undefined") {
+    return {};
+  }
+  const language = document.documentElement.lang?.trim();
+  return language ? { "Accept-Language": language } : {};
+}
+
 function buildHeaders(
   additionalHeaders: Record<string, string> = {},
   token: string = readApiSessionToken()
 ): Record<string, string> {
-  const headers = { ...additionalHeaders };
+  const headers = { ...currentLanguageHeader(), ...additionalHeaders };
   if (token) {
     headers.Authorization = `Bearer ${token}`;
   }

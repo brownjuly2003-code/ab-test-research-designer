@@ -9,7 +9,7 @@ import styles from "../../ResultsPanel.module.css";
 import SampleSizeBar from "../../SampleSizeBar";
 import SensitivityTable from "../../SensitivityTable";
 import { formatResultTimestamp } from "../resultsShared";
-import { resolveCurrentMde, resolveMetricType } from "../sensitivityShared";
+import { formatStatNumber, resolveCurrentMde, resolveMetricType } from "../sensitivityShared";
 
 type SensitivityOverviewProps = {
   displayedAnalysis: AnalysisResponsePayload;
@@ -184,7 +184,7 @@ export default function SensitivityOverview({
         </div>
       </div>
       <div className="two-col" style={{ marginTop: "var(--space-4)" }}>
-        <div className="card"><h3>{t("results.sensitivityOverview.calculationSummary.title")}</h3><ul className="list"><li>{t("results.sensitivityOverview.calculationSummary.metricType")}: {String(displayedAnalysis.calculations.calculation_summary.metric_type)}</li><li>{t("results.sensitivityOverview.calculationSummary.baselineValue")}: {String(displayedAnalysis.calculations.calculation_summary.baseline_value)}</li><li>{t("results.sensitivityOverview.calculationSummary.mdePct")}: {String(displayedAnalysis.calculations.calculation_summary.mde_pct)}</li><li>{t("results.sensitivityOverview.calculationSummary.mdeAbsolute")}: {String(displayedAnalysis.calculations.calculation_summary.mde_absolute)}</li><li>{t("results.sensitivityOverview.calculationSummary.alpha")}: {String(displayedAnalysis.calculations.calculation_summary.alpha)}</li><li>{t("results.sensitivityOverview.calculationSummary.power")}: {String(displayedAnalysis.calculations.calculation_summary.power)}</li></ul></div>
+        <div className="card"><h3>{t("results.sensitivityOverview.calculationSummary.title")}</h3><ul className="list"><li>{t("results.sensitivityOverview.calculationSummary.metricType")}: {String(displayedAnalysis.calculations.calculation_summary.metric_type)}</li><li>{t("results.sensitivityOverview.calculationSummary.baselineValue")}: {formatStatNumber(displayedAnalysis.calculations.calculation_summary.baseline_value)}</li><li>{t("results.sensitivityOverview.calculationSummary.mdePct")}: {String(displayedAnalysis.calculations.calculation_summary.mde_pct)}</li><li>{t("results.sensitivityOverview.calculationSummary.mdeAbsolute")}: {formatStatNumber(displayedAnalysis.calculations.calculation_summary.mde_absolute)}</li><li>{t("results.sensitivityOverview.calculationSummary.alpha")}: {String(displayedAnalysis.calculations.calculation_summary.alpha)}</li><li>{t("results.sensitivityOverview.calculationSummary.power")}: {String(displayedAnalysis.calculations.calculation_summary.power)}</li></ul></div>
         <div className="card"><h3>{t("results.sensitivityOverview.assumptions.title")}</h3><ul className="list">{(displayedAnalysis.report.calculations?.assumptions ?? []).map((item) => <li key={String(item)}>{String(item)}</li>)}</ul></div>
       </div>
       {activeProject ? (

@@ -174,7 +174,7 @@ Environment template:
 ```bash
 cd app/backend
 python -m pip install -r requirements.txt
-cd D:\AB_TEST
+cd ../..                                 # back to repo root
 python -m uvicorn app.backend.app.main:app --host 127.0.0.1 --port 8008
 ```
 

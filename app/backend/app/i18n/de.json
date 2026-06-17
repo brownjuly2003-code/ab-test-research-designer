@@ -268,5 +268,23 @@
     },
     "srm_detected": "SRM erkannt — prüfen Sie Ihre Randomisierung oder Tracking-Implementierung",
     "srm_not_detected": "Keine SRM erkannt"
+  },
+  "results": {
+    "verdict": {
+      "no_difference": "Kein statistisch signifikanter Unterschied bei alpha={{alpha}}",
+      "uplift": "Statistisch signifikanter Anstieg bei alpha={{alpha}}",
+      "decline": "Statistisch signifikanter Rückgang bei alpha={{alpha}}",
+      "significant": "Statistisch signifikantes Ergebnis bei alpha={{alpha}}",
+      "degenerate": "Berechnung nicht möglich: Standardfehler ist null"
+    },
+    "significance": {
+      "significant": "statistisch signifikant",
+      "not_significant": "statistisch nicht signifikant"
+    },
+    "interpretation": {
+      "binary": "Konversion der Testvariante {{treatment}}% vs. Kontrolle {{control}}%. Absoluter Effekt {{effect}} pp mit {{ciLevel}}% KI [{{ciLower}}, {{ciUpper}}] pp. Zweiseitiger p-Wert {{pValue}}; das Ergebnis ist {{significance}}.",
+      "continuous": "Mittelwert der Testvariante {{treatmentMean}} vs. Kontrolle {{controlMean}}. Effekt {{effect}} mit {{ciLevel}}% KI [{{ciLower}}, {{ciUpper}}]. Zweiseitiger p-Wert {{pValue}}.",
+      "degenerate": "Die beobachteten Eingaben sind entartet, daher kann die Teststatistik nicht berechnet werden."
+    }
   }
 }

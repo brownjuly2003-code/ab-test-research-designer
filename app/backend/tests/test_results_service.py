@@ -113,6 +113,38 @@ def test_results_endpoint_binary_interpretation_reflects_custom_alpha() -> None:
     assert "95.0% CI" not in payload["interpretation"]
 
 
+def test_results_endpoint_localizes_verdict_via_accept_language() -> None:
+    client = TestClient(create_app())
+    body = {
+        "metric_type": "binary",
+        "binary": {
+            "control_conversions": 100,
+            "control_users": 1000,
+            "treatment_conversions": 130,
+            "treatment_users": 1000,
+        },
+    }
+
+    english = client.post("/api/v1/results", json=body)
+    russian = client.post("/api/v1/results", json=body, headers={"Accept-Language": "ru"})
+
+    assert english.status_code == 200 and russian.status_code == 200
+    en_payload = english.json()
+    ru_payload = russian.json()
+
+    # English stays byte-identical to the historical wording.
+    assert en_payload["verdict"] == "Statistically significant uplift at alpha=0.050"
+    # Russian is localized but conveys the same significant-uplift verdict.
+    assert ru_payload["verdict"] != en_payload["verdict"]
+    assert "alpha=0.050" in ru_payload["verdict"]
+    assert "значим" in ru_payload["verdict"]
+    # Numbers are language-independent.
+    assert ru_payload["test_statistic"] == en_payload["test_statistic"]
+    assert ru_payload["p_value"] == en_payload["p_value"]
+    assert ru_payload["ci_lower"] == en_payload["ci_lower"]
+    assert ru_payload["ci_upper"] == en_payload["ci_upper"]
+
+
 def test_results_endpoint_binary_not_significant_and_ci_crosses_zero() -> None:
     client = TestClient(create_app())
 

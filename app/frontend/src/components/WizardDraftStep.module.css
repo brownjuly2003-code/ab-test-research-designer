@@ -284,3 +284,29 @@
     grid-template-columns: 1fr;
   }
 }
+
+.footer {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.footer-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.footer-tools :global(.btn) {
+  font-size: var(--font-size-sm);
+}
+
+.footer-nav {
+  margin-top: 0;
+}
+
+.footer-nav :global(.btn-back) {
+  margin-inline-end: auto;
+}

@@ -268,5 +268,23 @@
     },
     "srm_detected": "SRM detectado — verifique su aleatorización o implementación de seguimiento",
     "srm_not_detected": "No se detectó SRM"
+  },
+  "results": {
+    "verdict": {
+      "no_difference": "Sin diferencia estadísticamente significativa con alpha={{alpha}}",
+      "uplift": "Aumento estadísticamente significativo con alpha={{alpha}}",
+      "decline": "Disminución estadísticamente significativa con alpha={{alpha}}",
+      "significant": "Resultado estadísticamente significativo con alpha={{alpha}}",
+      "degenerate": "No se puede calcular: error estándar cero"
+    },
+    "significance": {
+      "significant": "estadísticamente significativo",
+      "not_significant": "estadísticamente no significativo"
+    },
+    "interpretation": {
+      "binary": "Conversión del tratamiento {{treatment}}% frente al control {{control}}%. Efecto absoluto {{effect}} pp con IC del {{ciLevel}}% [{{ciLower}}, {{ciUpper}}] pp. Valor p bilateral {{pValue}}; el resultado es {{significance}}.",
+      "continuous": "Media del tratamiento {{treatmentMean}} frente al control {{controlMean}}. Efecto {{effect}} con IC del {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. Valor p bilateral {{pValue}}.",
+      "degenerate": "Las entradas observadas son degeneradas, por lo que no se puede calcular el estadístico de prueba."
+    }
   }
 }

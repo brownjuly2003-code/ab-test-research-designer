@@ -12,14 +12,14 @@
         "ru": "Russisch",
         "de": "Deutsch",
         "es": "Spanisch",
-        "fr": "Franz?sisch",
+        "fr": "Französisch",
         "zh": "Vereinfachtes Chinesisch",
         "ar": "Arabisch"
       }
     },
     "theme": {
       "label": "Thema",
-      "ariaLabel": "Themenpr?ferenz",
+      "ariaLabel": "Themenpräferenz",
       "buttonAria": {
         "light": "Helles Thema",
         "dark": "Dunkles Thema",
@@ -55,20 +55,20 @@
       "3": "Setup",
       "4": "Metriken",
       "5": "Einschränkungen",
-      "6": "Pr?fung"
+      "6": "Prüfung"
     },
     "actions": {
       "next": "Weiter",
       "back": "Zurück",
       "save": "Projekt speichern",
-      "runAnalysis": "Analyse ausf?hren",
+      "runAnalysis": "Analyse ausführen",
       "export": "Export"
     }
   },
   "wizardReview": {
-    "title": "Eingaben pr?fen",
-    "savedProjectTitle": "Gespeichertes Projekt pr?fen",
-    "newDraftTitle": "Neuen Entwurf pr?fen",
+    "title": "Eingaben prüfen",
+    "savedProjectTitle": "Gespeichertes Projekt prüfen",
+    "newDraftTitle": "Neuen Entwurf prüfen",
     "unsavedChangesPresent": "Es sind nicht gespeicherte Änderungen vorhanden.",
     "syncedWithLocalStorage": "Dieses geladene Projekt ist mit dem lokalen Speicher synchronisiert.",
     "description": "Überprüfen Sie die folgenden Werte, bevor Sie den deterministischen Backend-Flow speichern oder ausführen.",
@@ -97,17 +97,17 @@
       "workingOnNewDraft": "Neuen Entwurf bearbeiten",
       "projectIdStatus": "Projekt-ID: {{projectId}}. {{status}}",
       "unsavedChangesPending": "Nicht gespeicherte Änderungen warten auf lokale Aktualisierung.",
-      "allChangesSaved": "Alle ?nderungen lokal gespeichert.",
+      "allChangesSaved": "Alle Änderungen lokal gespeichert.",
       "savingCreatesProject": "Durch das Speichern wird ein neuer lokaler Projektdatensatz erstellt."
     },
     "fixFields": "Korrigieren Sie diese Felder, bevor Sie die Analyse speichern oder ausführen",
     "analysisFramework": {
       "title": "Analyseansatz",
-      "description": "W?hlen Sie, ob die Planung klassische NHST-Power oder bayesianische Pr?zision verwendet.",
+      "description": "Wählen Sie, ob die Planung klassische NHST-Power oder bayesianische Präzision verwendet.",
       "frequentist": "Frequentistisch",
-      "frequentistDescription": "Legen Sie Alpha und Power f?r den klassischen Ansatz mit festem Horizont fest.",
+      "frequentistDescription": "Legen Sie Alpha und Power für den klassischen Ansatz mit festem Horizont fest.",
       "bayesian": "Bayesianisch",
-      "bayesianDescription": "Legen Sie die gew?nschte Pr?zision und das Kredibilit?tsniveau f?r die intervallbasierte Planung fest."
+      "bayesianDescription": "Legen Sie die gewünschte Präzision und das Kredibilitätsniveau für die intervallbasierte Planung fest."
     },
     "common": {
       "yes": "Ja",
@@ -124,7 +124,7 @@
         "project_description": "Projektbeschreibung"
       },
       "hypothesis": {
-        "change_description": "?nderungsbeschreibung",
+        "change_description": "Änderungsbeschreibung",
         "target_audience": "Zielgruppe",
         "business_problem": "Geschäftsproblem",
         "hypothesis_statement": "Hypothesenaussage",
@@ -172,17 +172,17 @@
     },
     "helpText": {
       "traffic_split": "Relative Verkehrsgewichte pro Variante. Beispiel: 50,50 für eine ausgeglichene A/B-Aufteilung oder 34,33,33 für drei Varianten.",
-      "expected_daily_traffic": "Durchschnittliche Anzahl an Nutzern oder Sitzungen, die t?glich am Experiment teilnehmen. Beispiel: 12000.",
-      "audience_share_in_test": "Anteil des t?glichen Traffics, der f?r den Test infrage kommt. Verwenden Sie 0,6 f?r 60 % des eingehenden Traffics.",
-      "variants_count": "Gesamtzahl der Varianten inklusive Kontrolle. 2 = klassischer A/B-Test; 3+ Varianten erh?hen den Stichprobenbedarf.",
-      "baseline_value": "Aktueller Referenzwert. F?r bin?re Metriken verwenden Sie 0,042 f?r 4,2 %; f?r kontinuierliche Metriken den aktuellen Mittelwert, z. B. 45,20.",
-      "expected_uplift_pct": "Erwartete relative Verbesserung gegen?ber der Referenz. Beispiel: 8 bedeutet, dass die Testvariante die Metrik voraussichtlich um 8 % verbessert.",
-      "mde_pct": "Minimal detektierbarer Effekt als Prozentsatz der Referenz. Kleinere MDE-Werte erfordern gr??ere Stichprobengr??en.",
+      "expected_daily_traffic": "Durchschnittliche Anzahl an Nutzern oder Sitzungen, die täglich am Experiment teilnehmen. Beispiel: 12000.",
+      "audience_share_in_test": "Anteil des täglichen Traffics, der für den Test infrage kommt. Verwenden Sie 0,6 für 60 % des eingehenden Traffics.",
+      "variants_count": "Gesamtzahl der Varianten inklusive Kontrolle. 2 = klassischer A/B-Test; 3+ Varianten erhöhen den Stichprobenbedarf.",
+      "baseline_value": "Aktueller Referenzwert. Für binäre Metriken verwenden Sie 0,042 für 4,2 %; für kontinuierliche Metriken den aktuellen Mittelwert, z. B. 45,20.",
+      "expected_uplift_pct": "Erwartete relative Verbesserung gegenüber der Referenz. Beispiel: 8 bedeutet, dass die Testvariante die Metrik voraussichtlich um 8 % verbessert. Dies dient nur dem Planungskontext und ändert die erforderliche Stichprobengröße nicht.",
+      "mde_pct": "Minimal detektierbarer Effekt als Prozentsatz der Referenz. Kleinere MDE-Werte erfordern größere Stichprobengrößen. Stichprobengröße und Dauer richten sich nach diesem MDE, nicht nach dem erwarteten Uplift.",
       "alpha": "Falsch-positiver Schwellenwert. 0,05 bedeutet, dass eine Wahrscheinlichkeit von 5 % für einen Fehler vom Typ I akzeptiert wird.",
       "power": "Wahrscheinlichkeit, einen echten Effekt zu erkennen, falls vorhanden. 0,8 ist das Standardminimum für Produktexperimente.",
-      "analysis_mode": "W?hlen Sie, ob die Planung mit klassischer NHST-Power oder bayesianischer Pr?zision ?ber Kredibilit?tsintervalle erfolgt.",
-      "desired_precision": "Ziel-Halbbreite des Kredibilit?tsintervalls. F?r bin?re Metriken verwenden Sie Prozentpunkte; f?r kontinuierliche Metriken Roheinheiten.",
-      "credibility": "Kredibilit?tsniveau f?r das bayesianische Intervall. 0,95 entspricht einem 95-%-Kredibilit?tsintervall.",
+      "analysis_mode": "Wählen Sie, ob die Planung mit klassischer NHST-Power oder bayesianischer Präzision über Kredibilitätsintervalle erfolgt.",
+      "desired_precision": "Ziel-Halbbreite des Kredibilitätsintervalls. Für binäre Metriken verwenden Sie Prozentpunkte; für kontinuierliche Metriken Roheinheiten.",
+      "credibility": "Kredibilitätsniveau für das bayesianische Intervall. 0,95 entspricht einem 95-%-Kredibilitätsintervall.",
       "std_dev": "Standardabweichung der kontinuierlichen Metrik. Nur für kontinuierliche Metriken erforderlich; Beispiel: 12,5 für den durchschnittlichen Bestellwert.",
       "interference_risk": "Risiko, dass Benutzer oder Einheiten sich variantenübergreifend gegenseitig beeinflussen und die Isolation durchbrechen können.",
       "holdout_fraction": "Globaler Holdout: Anteil des Traffics, der als saubere Kontrolle aus allen Experimenten herausgehalten wird. Leer lassen für keinen, oder 0,1 für einen Holdout von 10 % eingeben. Reduziert den Traffic für diesen Test, sodass die Dauer steigt, während die Stichprobengröße gleich bleibt.",
@@ -218,20 +218,20 @@
     },
     "interimAnalyses": {
       "title": "Zwischenanalysen",
-      "tooltip": "Wie oft Sie die Ergebnisse w?hrend des Experiments pr?fen m?chten. 1 bel?sst den Standardtest mit festem Horizont. 2-5 aktiviert O?Brien-Fleming-Gruppensequenz-Monitoring mit fr?hen Stoppgrenzen.",
+      "tooltip": "Wie oft Sie die Ergebnisse während des Experiments prüfen möchten. 1 belässt den Standardtest mit festem Horizont. 2-5 aktiviert O'Brien-Fleming-Gruppensequenz-Monitoring mit frühen Stoppgrenzen.",
       "options": {
         "1": "1 - Fester Horizont (keine Zwischenanalysen)",
-        "2": "2 ? Eine Zwischenanalyse + Finale",
-        "3": "3 ? Zwei Zwischenanalysen + Finale",
-        "4": "4 ? Drei Zwischenanalysen + Finale",
-        "5": "5 ? Vier Zwischenanalysen + Finale"
+        "2": "2 – Eine Zwischenanalyse + Finale",
+        "3": "3 – Zwei Zwischenanalysen + Finale",
+        "4": "4 – Drei Zwischenanalysen + Finale",
+        "5": "5 – Vier Zwischenanalysen + Finale"
       }
     },
     "cuped": {
       "title": "CUPED Varianzreduktion",
-      "description": "Verwenden Sie korreliertes Verhalten vor dem Experiment, um die Varianz zu reduzieren und die naive mit der CUPED-bereinigten Stichprobengr??e zu vergleichen.",
+      "description": "Verwenden Sie korreliertes Verhalten vor dem Experiment, um die Varianz zu reduzieren und die naive mit der CUPED-bereinigten Stichprobengröße zu vergleichen.",
       "enable": "CUPED-Varianzreduktion aktivieren",
-      "enableTooltip": "Wenn Sie Daten vor dem Experiment haben, die mit der Zielmetrik korrelieren, kann CUPED die erforderliche Stichprobengr??e um rho? reduzieren.",
+      "enableTooltip": "Wenn Sie Daten vor dem Experiment haben, die mit der Zielmetrik korrelieren, kann CUPED die erforderliche Stichprobengröße um rho² reduzieren.",
       "preExperimentStdDev": "Standardabweichung vor dem Experiment",
       "preExperimentStdDevTooltip": "Standardabweichung der Kovariate vor dem Experiment, z. B. Umsatz in der Woche vor dem Test.",
       "correlationWithOutcome": "Korrelation mit dem Ergebnis",
@@ -239,7 +239,7 @@
     },
     "guardrails": {
       "title": "Guardrail-Metriken",
-      "description": "Metriken, die ?berwacht werden, ohne die prim?re Stichprobengr??e zu ?ndern. Bis zu 3 Guardrails werden unterst?tzt.",
+      "description": "Metriken, die überwacht werden, ohne die primäre Stichprobengröße zu ändern. Bis zu 3 Guardrails werden unterstützt.",
       "metricName": "Metrikname",
       "metricNameAriaLabel": "Name der Guardrail-Metrik {{index}}",
       "metricType": "Metriktyp",
@@ -254,7 +254,7 @@
       "baselineMeanAriaLabel": "Guardrail-Referenzmittelwert {{index}}",
       "stdDev": "Standard-Entw",
       "stdDevAriaLabel": "Guardrail Standard-Entwickler {{index}}",
-      "add": "Guardrail-Metrik hinzuf?gen"
+      "add": "Guardrail-Metrik hinzufügen"
     },
     "buttons": {
       "newDraft": "Neuer Entwurf",
@@ -284,9 +284,9 @@
       "continuousStdPositive": "Kontinuierliche Metriken erfordern eine positive Standardabweichung.",
       "cupedStdPositive": "Die CUPED-Standardabweichung vor dem Experiment muss positiv sein.",
       "cupedCorrelationRange": "Die CUPED-Korrelation muss zwischen -1 und 1 liegen.",
-      "desiredPrecisionPositive": "Die gew?nschte Pr?zision muss im bayesianischen Modus gr??er als 0 sein.",
+      "desiredPrecisionPositive": "Die gewünschte Präzision muss im bayesianischen Modus größer als 0 sein.",
       "credibilityRange": "Die Glaubwürdigkeit muss zwischen 0,5 und 1 liegen.",
-      "guardrailsMax": "Guardrail-Metriken d?rfen h?chstens 3 Eintr?ge enthalten.",
+      "guardrailsMax": "Guardrail-Metriken dürfen höchstens 3 Einträge enthalten.",
       "guardrailNameRequired": "Namen von Guardrail-Metriken sind erforderlich.",
       "guardrailBinaryBaselineRange": "Binäre Guardrails erfordern einen Basisprozentsatz zwischen 0 und 100.",
       "guardrailContinuousFields": "Kontinuierliche Guardrails erfordern einen Basismittelwert und eine positive Standardabweichung.",
@@ -380,9 +380,9 @@
         "duration": "Dauer: {{value}} Tage",
         "warnings": "Warnungen: {{value}}",
         "powerCurvesTitle": "Power-Kurven",
-        "powerCurvesSubtitle": "Jede Zeile zeigt pro Variante Stichprobengr??e über MDE Punkte bei der konfigurierten Power des Projekts.",
+        "powerCurvesSubtitle": "Jede Zeile zeigt pro Variante Stichprobengröße über MDE Punkte bei der konfigurierten Power des Projekts.",
         "sensitivityTitle": "Empfindlichkeitsraster",
-        "sensitivitySubtitle": "Laufzeitmatrizen je Projekt ?ber MDE- und Power-Kombinationen.",
+        "sensitivitySubtitle": "Laufzeitmatrizen je Projekt über MDE- und Power-Kombinationen.",
         "sensitivityUnavailable": "Empfindlichkeitsdaten nicht verfügbar.",
         "observedEffectsTitle": "Beobachtete Effekte",
         "observedEffectsSubtitle": "Gespeicherte beobachtete Ergebnisse werden als eine Waldparzellenzeile pro Projekt angezeigt.",
@@ -413,7 +413,7 @@
       "openQuestions": "Offene Fragen"
     },
     "metricsPlan": {
-      "coverage": "Abdeckung von Prim?r-, Sekund?r- und Guardrail-Metriken",
+      "coverage": "Abdeckung von Primär-, Sekundär- und Guardrail-Metriken",
       "primary": "Primär",
       "secondary": "Sekundär",
       "guardrail": "Guardrail",
@@ -424,9 +424,9 @@
     },
     "powerCurve": {
       "title": "Power-Kurve",
-      "description": "Vergleichen Sie MDE-Ziele mit geplanter Power und erforderlicher Stichprobengr??e.",
-      "loadingSensitivity": "Sensitivit?tsdaten werden geladen...",
-      "chartAriaLabel": "Power-Kurvendiagramm mit minimal detektierbarem Effekt gegen?ber Ziel-Power",
+      "description": "Vergleichen Sie MDE-Ziele mit geplanter Power und erforderlicher Stichprobengröße.",
+      "loadingSensitivity": "Sensitivitätsdaten werden geladen...",
+      "chartAriaLabel": "Power-Kurvendiagramm mit minimal detektierbarem Effekt gegenüber Ziel-Power",
       "loadingChart": "Diagramm wird geladen..."
     },
     "risks": {
@@ -440,22 +440,22 @@
     },
     "bayesian": {
       "title": "Bayesianische A-posteriori-Verteilung",
-      "unavailable": "Eingaben f?r die bayesianische A-posteriori-Verteilung sind f?r diese Analyse nicht verf?gbar.",
-      "targetSampleSize": "Ziel-Stichprobengr??e:",
+      "unavailable": "Eingaben für die bayesianische A-posteriori-Verteilung sind für diese Analyse nicht verfügbar.",
+      "targetSampleSize": "Ziel-Stichprobengröße:",
       "perVariantAt": "pro Variante bei",
-      "credibilityAnd": "Kredibilit?tsniveau und",
+      "credibilityAnd": "Kredibilitätsniveau und",
       "intervalHalfWidth": "Halbe Intervallbreite."
     },
     "sequentialDesign": {
       "unavailable": "Sequentielle Grenzen sind für die aktuelle Analyse nicht konfiguriert.",
       "title": "Gruppensequenzielles Design (O'Brien-Fleming)",
-      "adjustedSampleSize": "Angepasste Stichprobengr??e:",
+      "adjustedSampleSize": "Angepasste Stichprobengröße:",
       "perVariant": "pro Variante",
       "moreThanFixedHorizon": "mehr als ein fester Horizont",
       "columns": {
         "look": "Blick",
         "infoFraction": "Info-Fraktion",
-        "cumulativeAlphaSpent": "Kumuliertes ?",
+        "cumulativeAlphaSpent": "Kumuliertes α",
         "zBoundary": "Z-Grenze",
         "stopIf": "Stoppen, wenn |Z| ≥"
       },
@@ -463,13 +463,13 @@
     },
     "srmCheck": {
       "title": "Wurde der Traffic wie geplant aufgeteilt?",
-      "description": "Geben Sie die beobachteten Benutzerzahlen pro Variante ein, um nach Stichprobenverh?ltnis-Abweichung zu suchen. Ein rotes Ergebnis bedeutet, dass die Zuweisung oder Nachverfolgung möglicherweise fehlerhaft ist.",
-      "actualUsersPlaceholder": "Tats?chliche Nutzer",
+      "description": "Geben Sie die beobachteten Benutzerzahlen pro Variante ein, um nach Stichprobenverhältnis-Abweichung zu suchen. Ein rotes Ergebnis bedeutet, dass die Zuweisung oder Nachverfolgung möglicherweise fehlerhaft ist.",
+      "actualUsersPlaceholder": "Tatsächliche Nutzer",
       "checking": "Überprüfung...",
-      "checkButton": "SRM pr?fen",
+      "checkButton": "SRM prüfen",
       "detected": "SRM erkannt",
       "notDetected": "Kein SRM erkannt",
-      "serviceUnavailable": "SRM-Pr?fung nicht verf?gbar.",
+      "serviceUnavailable": "SRM-Prüfung nicht verfügbar.",
       "chiSquare": "Chi-Quadrat = {{chiSquare}}, p = {{pValue}}",
       "expectedObserved": "Erwartet: [{{expected}}] | Beobachtet: [{{observed}}]"
     },
@@ -534,11 +534,11 @@
       "exportFullReport": "Vollständigen Bericht exportieren",
       "cards": {
         "perVariant": "Pro Variante",
-        "sampleSizePerVariant": "Stichprobengr??e / Variante",
+        "sampleSizePerVariant": "Stichprobengröße / Variante",
         "powerMeta": "{{power}} Power",
         "bonferroni": "Bonferroni",
         "totalSample": "Gesamtstichprobe",
-        "totalSampleSubtitle": "Gesamt Stichprobengr??e",
+        "totalSampleSubtitle": "Gesamt Stichprobengröße",
         "variantsMeta": "{{count}} Varianten",
         "duration": "Dauer",
         "durationValue": "{{days}} Tage",
@@ -563,18 +563,18 @@
         "title": "CUPED-angepasste Schätzung",
         "without": "Ohne CUPED",
         "with": "Mit CUPED",
-        "sampleSizeSavings": "-{{pct}}% Stichprobengr??e",
+        "sampleSizeSavings": "-{{pct}}% Stichprobengröße",
         "durationChange": "Die geschätzte Dauer ändert sich von {{from}} auf {{to}} Tage.",
         "adjustedStdDev": "Angepasste Standardabweichung: {{value}}.",
         "theta": "CUPED-Koeffizient theta = {{value}} (anwenden als Y' = Y - theta*(X - mean(X)))."
       },
       "sensitivityTable": {
         "title": "Sensitivitätstabelle",
-        "description": "Laufzeitmatrix ?ber die vom Backend zur?ckgegebenen MDE- und Power-Szenarien.",
-        "loading": "Sensitivit?tstabelle wird geladen..."
+        "description": "Laufzeitmatrix über die vom Backend zurückgegebenen MDE- und Power-Szenarien.",
+        "loading": "Sensitivitätstabelle wird geladen..."
       },
       "sampleSizeBreakdown": {
-        "title": "Aufschl?sselung der Stichprobengr??e",
+        "title": "Aufschlüsselung der Stichprobengröße",
         "description": "Beispielanforderung pro Variante, die neben der konfigurierten Traffic-Zuteilung angezeigt wird."
       },
       "calculationSummary": {
@@ -642,7 +642,7 @@
         "metricsPlan": "Metrikplan",
         "riskAssessment": "Risikobewertung",
         "aiRecommendations": "KI-Empfehlungen",
-        "srmCheck": "SRM-Pr?fung",
+        "srmCheck": "SRM-Prüfung",
         "bandit": "Bandit vs. fest",
         "assignment": "Nutzerzuweisung",
         "liveStats": "Live-Experiment"
@@ -653,7 +653,7 @@
         "pending": "Ausstehend",
         "planning": "Planung",
         "significant": "Signifikant",
-        "review": "Pr?fung",
+        "review": "Prüfung",
         "postTest": "Nachtest",
         "available": "Verfügbar",
         "offline": "Offline",
@@ -842,7 +842,7 @@
     "shortcuts": {
       "openHelp": "Hilfe zu Tastaturkürzeln öffnen",
       "focusSearch": "Fokus gespeicherte Projektsuche",
-      "runAnalysis": "Analyse ausf?hren",
+      "runAnalysis": "Analyse ausführen",
       "moveSteps": "Wechseln Sie zwischen den Schritten des Assistenten",
       "exportMarkdown": "Markdown-Bericht exportieren",
       "saveProject": "Projekt speichern",
