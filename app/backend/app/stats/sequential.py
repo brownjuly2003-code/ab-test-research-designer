@@ -95,6 +95,19 @@ def sequential_sample_size_inflation(
     alpha: float = 0.05,
     power: float = 0.8,
 ) -> float:
+    """Maximum-sample-size inflation factor for an O'Brien-Fleming design at ``n_looks`` looks.
+
+    The factor is a reference-design approximation calibrated for the common two-sided
+    ``alpha ~= 0.05`` / ``power ~= 0.80`` setting (the values practitioners use ~99% of the time).
+    For O'Brien-Fleming the inflation is dominated by ``n_looks``; its dependence on ``alpha`` and
+    ``power`` is second order (a few tenths of a percent across the usual ranges) and is
+    intentionally *not* modelled here — an exact value needs the group-sequential power integral,
+    which would pull a numerical-integration dependency into this stdlib-only stats layer.
+
+    ``alpha`` / ``power`` are kept in the signature for call-site symmetry with the rest of the
+    stats API and so a future exact implementation is a drop-in; callers should treat the result as
+    valid for standard designs and not rely on it varying with ``alpha`` / ``power``.
+    """
     if not 1 <= n_looks <= _MAX_SEQUENTIAL_LOOKS:
         raise ValueError(f"n_looks must be between 1 and {_MAX_SEQUENTIAL_LOOKS}, got {n_looks}")
     if not 0 < alpha < 1:

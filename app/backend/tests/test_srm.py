@@ -1,6 +1,7 @@
 from pathlib import Path
 import sys
 
+import pytest
 from fastapi.testclient import TestClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
@@ -180,3 +181,15 @@ def test_srm_mismatched_lengths() -> None:
     )
 
     assert response.status_code == 422
+
+
+def test_chi_square_srm_rejects_unnormalized_fractions() -> None:
+    # The pure function enforces its own contract (the API request schema and the live path
+    # normalize upstream, so this is defense-in-depth against direct misuse).
+    with pytest.raises(ValueError):
+        chi_square_srm(observed_counts=[50, 50], expected_fractions=[0.5, 0.4])
+
+
+def test_chi_square_srm_rejects_nonpositive_fraction() -> None:
+    with pytest.raises(ValueError):
+        chi_square_srm(observed_counts=[50, 50], expected_fractions=[1.0, 0.0])
