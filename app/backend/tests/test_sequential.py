@@ -26,6 +26,31 @@ def test_five_looks_final_boundary() -> None:
     assert abs(boundaries[-1]["z_boundary"] - 2.04) < 0.1
 
 
+# Published two-sided O'Brien-Fleming final-look z-boundaries (equal increments,
+# Lan-DeMets alpha spending) as tabulated in the standard group-sequential
+# references (Jennison & Turnbull 2000; reproduced by gsDesign / EAST). Pinning
+# to these guards against silent drift in the boundary maths. K=3 and K=5 are
+# NOT anchor points in the implementation's table {1,2,4,8,16}, so they verify
+# the interpolation lands on the published value, not just the stored anchors.
+PUBLISHED_OBF_FINAL_Z = {
+    (2, 0.05): 1.977,
+    (3, 0.05): 2.004,  # non-anchor look -> exercises interpolation
+    (4, 0.05): 2.024,
+    (5, 0.05): 2.040,  # non-anchor look -> exercises interpolation
+    (4, 0.01): 2.609,
+    (4, 0.10): 1.733,
+}
+
+
+def test_final_boundary_matches_published_obf_references() -> None:
+    for (n_looks, alpha), published_z in PUBLISHED_OBF_FINAL_Z.items():
+        final_z = obrien_fleming_boundaries(n_looks, alpha=alpha)[-1]["z_boundary"]
+        assert abs(final_z - published_z) < 0.015, (
+            f"OBF final z for {n_looks} looks / alpha={alpha}: "
+            f"got {final_z}, published {published_z}"
+        )
+
+
 def test_boundaries_monotone_decreasing() -> None:
     boundaries = obrien_fleming_boundaries(5, alpha=0.05)
     z_values = [entry["z_boundary"] for entry in boundaries]

@@ -45,6 +45,11 @@ DISCLAIMER = (
 
 _BAYESIAN_SIMULATIONS = 10000
 _BAYESIAN_SEED = 42
+# P(treatment > control) is a Monte-Carlo estimate. With 10k draws its standard
+# error is sqrt(p(1-p)/N) <= sqrt(0.25/10000) = 0.005, so anything past the third
+# decimal is simulation noise, not signal. Round there to avoid reporting false
+# precision (e.g. 0.732518 implying 6-digit certainty from a +/-0.5% estimate).
+_BAYESIAN_PROBABILITY_DECIMALS = 3
 
 
 def build_live_stats(
@@ -288,7 +293,7 @@ def _binary_comparison(
     base["status"] = "ok"
     base["analysis"] = analysis.model_dump()
     base["probability_treatment_beats_control"] = round(
-        simulation["probability_uplift_positive"], 6
+        simulation["probability_uplift_positive"], _BAYESIAN_PROBABILITY_DECIMALS
     )
     return base
 
@@ -331,7 +336,9 @@ def _continuous_comparison(
     )
     base["status"] = "ok"
     base["analysis"] = analyze_results(request).model_dump()
-    base["probability_treatment_beats_control"] = round(simulation["probability_uplift_positive"], 6)
+    base["probability_treatment_beats_control"] = round(
+        simulation["probability_uplift_positive"], _BAYESIAN_PROBABILITY_DECIMALS
+    )
     return base
 
 

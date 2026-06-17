@@ -219,6 +219,26 @@ def test_live_stats_binary_comparison_runs_frequentist_and_bayesian() -> None:
     assert prob > 0.9  # treatment 12% clearly beats control 10%
 
 
+def test_live_stats_probability_rounded_to_monte_carlo_precision() -> None:
+    # P(treatment > control) is a 10k-draw Monte-Carlo estimate whose standard
+    # error is ~0.005, so the service rounds it to 3 decimals. Assert it never
+    # carries digits below that simulation-noise floor (no false precision).
+    binary = build_live_stats(
+        "e", _binary_design(), _aggregates(_arm(0, 5000, 500), _arm(1, 5000, 600))
+    )["comparisons"][0]["probability_treatment_beats_control"]
+    continuous = build_live_stats(
+        "e",
+        _continuous_design(),
+        _aggregates(
+            _arm(0, 4, 4, value_sum=100.0, value_sq_sum=3000.0),
+            _arm(1, 4, 4, value_sum=180.0, value_sq_sum=8600.0),
+        ),
+    )["comparisons"][0]["probability_treatment_beats_control"]
+    for prob in (binary, continuous):
+        assert prob is not None
+        assert round(prob, 3) == prob  # rounded; no precision past the 3rd decimal
+
+
 def test_live_stats_comparison_insufficient_data_when_arm_too_small() -> None:
     result = build_live_stats(
         "e", _binary_design(), _aggregates(_arm(0, 1, 0), _arm(1, 1, 1))
