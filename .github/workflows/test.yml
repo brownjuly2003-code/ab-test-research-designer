@@ -84,6 +84,23 @@ jobs:
       - name: Check locale catalogs for mojibake / replacement chars
         run: python scripts/check_locale_content.py
 
+  repo-hygiene:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Verify repo-hygiene detector
+        run: python scripts/check_repo_hygiene.py --self-test
+
+      - name: Check no internal archive/ or root audit_*.md is tracked
+        run: python scripts/check_repo_hygiene.py
+
   verify-postgres:
     runs-on: ubuntu-latest
     timeout-minutes: 20
