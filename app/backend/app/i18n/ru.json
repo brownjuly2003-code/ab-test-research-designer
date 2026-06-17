@@ -278,8 +278,8 @@
       "degenerate": "Невозможно вычислить: нулевая стандартная ошибка"
     },
     "significance": {
-      "significant": "статистически значимо",
-      "not_significant": "статистически незначимо"
+      "significant": "статистически значим",
+      "not_significant": "статистически незначим"
     },
     "interpretation": {
       "binary": "Конверсия варианта {{treatment}}% против контроля {{control}}%. Абсолютный эффект {{effect}} п.п. при {{ciLevel}}% ДИ [{{ciLower}}, {{ciUpper}}] п.п. Двусторонний p-value {{pValue}}; результат {{significance}}.",

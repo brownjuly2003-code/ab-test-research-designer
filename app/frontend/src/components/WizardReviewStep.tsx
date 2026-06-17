@@ -175,35 +175,39 @@ export default function WizardReviewStep({
           </div>
         ))}
       </div>
-      <div className="actions">
-        <button className="btn secondary" disabled={loading} onClick={onBack}>
-          {t("wizard.actions.back")}
-        </button>
-        <button className="btn ghost" disabled={loading || saving} onClick={onStartNew}>
-          {t("wizardReview.newDraftButton")}
-        </button>
-        <button className="btn ghost" disabled={loading || saving || importingDraft} onClick={onImportDraft}>
-          {importingDraft ? t("wizardReview.importing") : t("wizardReview.importDraft")}
-        </button>
-        <button className="btn ghost" disabled={loading || saving || importingDraft} onClick={onExportDraft}>
-          {t("wizardReview.exportDraft")}
-        </button>
-        <button
-          className="btn ghost"
-          disabled={!canMutateBackend || loading || saving}
-          title={activeProjectId ? t("wizardReview.updateProjectTitle") : t("wizardReview.saveProjectTitle")}
-          onClick={onSave}
-        >
-          {saving ? <><Spinner /> {t("wizardReview.saving")}</> : activeProjectId ? t("wizardReview.updateProject") : t("wizard.actions.save")}
-        </button>
-        <button
-          className="btn primary"
-          disabled={!canMutateBackend || loading}
-          title={t("wizardReview.runAnalysisTitle")}
-          onClick={onRunAnalysis}
-        >
-          {loading ? <><Spinner /> {t("wizardReview.analyzing")}</> : t("wizard.actions.runAnalysis")}
-        </button>
+      <div className={styles.footer}>
+        <div className={styles["footer-tools"]}>
+          <button className="btn ghost" disabled={loading || saving} onClick={onStartNew}>
+            {t("wizardReview.newDraftButton")}
+          </button>
+          <button className="btn ghost" disabled={loading || saving || importingDraft} onClick={onImportDraft}>
+            {importingDraft ? t("wizardReview.importing") : t("wizardReview.importDraft")}
+          </button>
+          <button className="btn ghost" disabled={loading || saving || importingDraft} onClick={onExportDraft}>
+            {t("wizardReview.exportDraft")}
+          </button>
+        </div>
+        <div className={["actions", styles["footer-nav"]].join(" ")}>
+          <button className="btn secondary btn-back" disabled={loading} onClick={onBack}>
+            {t("wizard.actions.back")}
+          </button>
+          <button
+            className="btn ghost"
+            disabled={!canMutateBackend || loading || saving}
+            title={activeProjectId ? t("wizardReview.updateProjectTitle") : t("wizardReview.saveProjectTitle")}
+            onClick={onSave}
+          >
+            {saving ? <><Spinner /> {t("wizardReview.saving")}</> : activeProjectId ? t("wizardReview.updateProject") : t("wizard.actions.save")}
+          </button>
+          <button
+            className="btn primary"
+            disabled={!canMutateBackend || loading}
+            title={t("wizardReview.runAnalysisTitle")}
+            onClick={onRunAnalysis}
+          >
+            {loading ? <><Spinner /> {t("wizardReview.analyzing")}</> : t("wizard.actions.runAnalysis")}
+          </button>
+        </div>
       </div>
     </div>
   );
