@@ -16,7 +16,11 @@ test("imports the demo project and completes the browser smoke flow", async ({ p
   await page.getByRole("button", { name: "Projects", exact: true }).click();
 
   await page.getByRole("button", { name: "Load example" }).click();
-  await expect(page.getByText("Example loaded - click Run analysis to see results")).toBeVisible();
+  // The status surfaces in both the App-level banner and the ResultsPanel inline status, so
+  // match the first (same pattern as the "Analysis completed." assertion below).
+  await expect(
+    page.getByText("Example loaded - click Run analysis to see results").first()
+  ).toBeVisible();
 
   await expect(page.locator("#project-project_name")).toHaveValue("Checkout redesign");
   await expect(page.locator("#project-project_description")).toHaveValue(
