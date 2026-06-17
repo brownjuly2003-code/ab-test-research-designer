@@ -1,16 +1,21 @@
+from __future__ import annotations
+
 import json
-from typing import Any
+from typing import TYPE_CHECKING, Any, cast
 
 import httpx
 
 from app.backend.app.errors import ApiError
 from app.backend.app.slack.blocks import project_status_blocks
 
+if TYPE_CHECKING:
+    from app.backend.app.repository import ProjectRepository
+
 
 class SlackService:
     def __init__(
         self,
-        repository,
+        repository: ProjectRepository,
         *,
         bot_token: str | None = None,
         client: httpx.Client | None = None,
@@ -31,16 +36,19 @@ class SlackService:
         team_name: str | None,
         bot_token: str,
         user_token: str | None,
-    ) -> dict:
-        return self.repository.upsert_slack_installation(
-            team_id=team_id,
-            team_name=team_name,
-            bot_token=bot_token,
-            user_token=user_token,
+    ) -> dict[str, Any]:
+        return cast(
+            dict[str, Any],
+            self.repository.upsert_slack_installation(
+                team_id=team_id,
+                team_name=team_name,
+                bot_token=bot_token,
+                user_token=user_token,
+            ),
         )
 
-    def get_installation(self, team_id: str) -> dict | None:
-        return self.repository.get_slack_installation(team_id)
+    def get_installation(self, team_id: str) -> dict[str, Any] | None:
+        return cast("dict[str, Any] | None", self.repository.get_slack_installation(team_id))
 
     def is_installed(self) -> bool:
         return self.repository.get_latest_slack_installation() is not None
@@ -67,7 +75,7 @@ class SlackService:
                 "Content-Type": "application/json; charset=utf-8",
             },
         )
-        data = response.json()
+        data = cast(dict[str, Any], response.json())
         if not data.get("ok"):
             raise ApiError(str(data.get("error") or "Slack API error"), error_code="slack_api_error", status_code=502)
         return data

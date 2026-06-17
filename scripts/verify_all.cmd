@@ -70,6 +70,10 @@ python "%ROOT_DIR%scripts\verify_workspace_backup.py" --fixture
 if errorlevel 1 exit /b %errorlevel%
 set "AB_WORKSPACE_SIGNING_KEY=%ORIGINAL_AB_WORKSPACE_SIGNING_KEY%"
 
+echo [verify] backend type check (mypy --strict)
+python -m mypy
+if errorlevel 1 exit /b %errorlevel%
+
 echo [verify] backend tests
 set "BACKEND_JUNIT_PATH="
 if not "%ARTIFACTS_DIR%"=="" set "BACKEND_JUNIT_PATH=%ARTIFACTS_DIR%\backend-junit.xml"

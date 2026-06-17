@@ -1,11 +1,15 @@
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+if TYPE_CHECKING:
+    from app.backend.app.config import Settings
 
-def register_frontend_routes(app: FastAPI, settings) -> None:
+
+def register_frontend_routes(app: FastAPI, settings: "Settings") -> None:
     frontend_dist_path = Path(settings.frontend_dist_path)
     frontend_index_path = frontend_dist_path / "index.html"
     if not (settings.serve_frontend_dist and frontend_index_path.exists()):

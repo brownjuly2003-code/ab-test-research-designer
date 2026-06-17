@@ -1,6 +1,8 @@
 import hmac
 import logging
+from collections.abc import Callable
 from time import perf_counter
+from typing import TYPE_CHECKING, Any
 import uuid
 
 from fastapi import FastAPI, HTTPException, Request, Response, status
@@ -8,6 +10,7 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.background import BackgroundTask, BackgroundTasks
+from starlette.middleware.base import RequestResponseEndpoint
 
 from app.backend.app.errors import ApiError
 from app.backend.app.http_utils import (
@@ -30,6 +33,11 @@ from app.backend.app.http_utils import (
 )
 from app.backend.app.logging_utils import log_event
 
+if TYPE_CHECKING:
+    from app.backend.app.config import Settings
+    from app.backend.app.http_utils import SlidingWindowRateLimiter
+    from app.backend.app.repository import ProjectRepository
+
 
 def create_runtime_counters() -> dict[str, int | str | None]:
     return {
@@ -49,13 +57,17 @@ def create_runtime_counters() -> dict[str, int | str | None]:
 def register_http_runtime(
     app: FastAPI,
     *,
-    settings,
+    settings: "Settings",
     logger: logging.Logger,
-    repository,
-    request_rate_limiter,
-    auth_failure_limiter,
-    runtime_counters: dict,
-):
+    repository: "ProjectRepository",
+    request_rate_limiter: "SlidingWindowRateLimiter",
+    auth_failure_limiter: "SlidingWindowRateLimiter",
+    runtime_counters: dict[str, Any],
+) -> tuple[
+    Callable[[Request], None],
+    Callable[[Request], None],
+    Callable[[Request], None],
+]:
     def record_runtime_response(status_code: int, error_code: str | None = None, *, auth_rejection: bool = False) -> None:
         from datetime import datetime, timezone
 
@@ -105,7 +117,7 @@ def register_http_runtime(
         raise HTTPException(status_code=401, detail="Unauthorized")
 
     @app.middleware("http")
-    async def add_request_metadata(request: Request, call_next):
+    async def add_request_metadata(request: Request, call_next: RequestResponseEndpoint) -> Response:
         request_id = request.headers.get("x-request-id", str(uuid.uuid4()))
         started = perf_counter()
         request.state.request_id = request_id
@@ -255,7 +267,7 @@ def register_http_runtime(
                 window_seconds=getattr(request.state, "rate_limit_window_seconds", None),
             )
             if not rate_limit_decision.allowed:
-                response = build_error_response(
+                response: Response = build_error_response(
                     request,
                     detail="Too many requests",
                     error_code="rate_limited",

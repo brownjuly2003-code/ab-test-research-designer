@@ -1,0 +1,21 @@
+[tool.mypy]
+# Strict static typing gate for the backend application package, on par with the
+# RAG_Support / GraceKelly projects. The package is imported as
+# `app.backend.app.*` with the repo root on sys.path (PEP 420 namespace
+# packages, no __init__.py), so mypy needs the repo root as the package base to
+# compute matching module names.
+python_version = "3.13"
+strict = true
+namespace_packages = true
+explicit_package_bases = true
+mypy_path = "."
+files = ["app/backend/app"]
+show_error_codes = true
+warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+# openpyxl ships no type stubs and has no stub package on PyPI; export_service
+# uses it only to write .xlsx workbooks. Suppress the missing-import error here
+# rather than scattering inline ignores at every call site.
+module = ["openpyxl.*"]
+ignore_missing_imports = true

@@ -8,7 +8,8 @@ from pathlib import Path
 import secrets
 import shutil
 import sqlite3
-from typing import Any, Protocol
+from types import TracebackType
+from typing import Any, Protocol, cast
 from urllib.parse import unquote, urlparse
 import uuid
 
@@ -124,7 +125,7 @@ class SQLiteBackend:
         return value
 
     @staticmethod
-    def _row_to_project(row: sqlite3.Row) -> dict:
+    def _row_to_project(row: sqlite3.Row) -> dict[str, Any]:
         project = dict(row)
         payload_json = project.pop("payload_json")
         project["payload"] = SQLiteBackend._decode_json_value(payload_json)
@@ -596,7 +597,7 @@ class SQLiteBackend:
             )
 
     @staticmethod
-    def _build_analysis_summary(analysis_payload: dict) -> dict:
+    def _build_analysis_summary(analysis_payload: dict[str, Any]) -> dict[str, Any]:
         calculations = analysis_payload.get("calculations", {})
         calculation_summary = calculations.get("calculation_summary", {})
         results = calculations.get("results", {})
@@ -613,7 +614,7 @@ class SQLiteBackend:
         }
 
     @classmethod
-    def _analysis_row_to_record(cls, row: sqlite3.Row) -> dict:
+    def _analysis_row_to_record(cls, row: sqlite3.Row) -> dict[str, Any]:
         analysis = cls._decode_json_value(row["analysis_json"])
         return {
             "id": row["id"],
@@ -624,7 +625,7 @@ class SQLiteBackend:
         }
 
     @staticmethod
-    def _analysis_row_to_workspace_record(row: sqlite3.Row) -> dict:
+    def _analysis_row_to_workspace_record(row: sqlite3.Row) -> dict[str, Any]:
         return {
             "id": row["id"],
             "project_id": row["project_id"],
@@ -633,11 +634,11 @@ class SQLiteBackend:
         }
 
     @staticmethod
-    def _export_row_to_record(row: sqlite3.Row) -> dict:
+    def _export_row_to_record(row: sqlite3.Row) -> dict[str, Any]:
         return dict(row)
 
     @staticmethod
-    def _revision_row_to_record(row: sqlite3.Row) -> dict:
+    def _revision_row_to_record(row: sqlite3.Row) -> dict[str, Any]:
         return {
             "id": row["id"],
             "project_id": row["project_id"],
@@ -721,7 +722,7 @@ class SQLiteBackend:
         self.webhook_service = webhook_service
 
     @classmethod
-    def _project_row_to_workspace_record(cls, row: sqlite3.Row) -> dict:
+    def _project_row_to_workspace_record(cls, row: sqlite3.Row) -> dict[str, Any]:
         project = cls._row_to_project(row)
         project.pop("revision_count", None)
         project.pop("last_revision_at", None)
@@ -730,7 +731,7 @@ class SQLiteBackend:
         return project
 
     @staticmethod
-    def _project_list_row_to_record(row: sqlite3.Row) -> dict:
+    def _project_list_row_to_record(row: sqlite3.Row) -> dict[str, Any]:
         project = dict(row)
         project["has_analysis_snapshot"] = bool(project.get("has_analysis_snapshot"))
         project["is_archived"] = bool(project.get("is_archived"))
@@ -740,7 +741,7 @@ class SQLiteBackend:
     def _create_revision(
         connection: sqlite3.Connection,
         project_id: str,
-        payload: dict,
+        payload: dict[str, Any],
         source: str,
         created_at: str,
         revision_id: str | None = None,
@@ -769,14 +770,17 @@ class SQLiteBackend:
         include_archived: bool = False,
     ) -> sqlite3.Row | None:
         archived_clause = "" if include_archived else "AND archived_at IS NULL"
-        return connection.execute(
-            f"""
+        return cast(
+            "sqlite3.Row | None",
+            connection.execute(
+                f"""
             SELECT {self.project_select_columns}
             FROM projects
             WHERE id = ? {archived_clause}
             """,
-            (project_id,),
-        ).fetchone()
+                (project_id,),
+            ).fetchone(),
+        )
 
     @staticmethod
     def _normalize_history_limit(limit: int) -> int:
@@ -786,7 +790,7 @@ class SQLiteBackend:
     def _normalize_history_offset(offset: int) -> int:
         return max(0, int(offset))
 
-    def list_projects(self, *, include_archived: bool = False) -> list[dict]:
+    def list_projects(self, *, include_archived: bool = False) -> list[dict[str, Any]]:
         archived_filter = "" if include_archived else "WHERE projects.archived_at IS NULL"
         with self._connect() as connection:
             rows = connection.execute(
@@ -844,7 +848,7 @@ class SQLiteBackend:
         sort_dir: str = "desc",
         limit: int = 50,
         offset: int = 0,
-    ) -> dict:
+    ) -> dict[str, Any]:
         limit = max(1, min(int(limit), 200))
         offset = max(0, int(offset))
         normalized_query = q.strip().lower() if isinstance(q, str) else ""
@@ -950,7 +954,7 @@ class SQLiteBackend:
             "has_more": (offset + len(rows)) < int(total),
         }
 
-    def create_project(self, payload: dict) -> dict:
+    def create_project(self, payload: dict[str, Any]) -> dict[str, Any]:
         project_id = str(uuid.uuid4())
         timestamp = datetime.now(timezone.utc).isoformat()
         project_name = payload["project"]["project_name"]
@@ -979,9 +983,10 @@ class SQLiteBackend:
             )
             self._create_revision(connection, project_id, payload, "create", timestamp)
 
-        return self.get_project(project_id, include_archived=True)
+        # The project was just inserted in this transaction, so it always exists.
+        return cast("dict[str, Any]", self.get_project(project_id, include_archived=True))
 
-    def get_project(self, project_id: str, *, include_archived: bool = False) -> dict | None:
+    def get_project(self, project_id: str, *, include_archived: bool = False) -> dict[str, Any] | None:
         with self._connect() as connection:
             row = self._get_project_row(connection, project_id, include_archived=include_archived)
 
@@ -1007,7 +1012,7 @@ class SQLiteBackend:
         if row["archived_at"] is not None:
             raise ApiError("Project is archived", error_code="project_archived")
 
-    def update_project(self, project_id: str, payload: dict) -> dict | None:
+    def update_project(self, project_id: str, payload: dict[str, Any]) -> dict[str, Any] | None:
         timestamp = datetime.now(timezone.utc).isoformat()
         project_name = payload["project"]["project_name"]
 
@@ -1035,7 +1040,7 @@ class SQLiteBackend:
 
         return self.get_project(project_id, include_archived=True)
 
-    def record_analysis(self, project_id: str, analysis_payload: dict) -> dict | None:
+    def record_analysis(self, project_id: str, analysis_payload: dict[str, Any]) -> dict[str, Any] | None:
         timestamp = datetime.now(timezone.utc).isoformat()
         analysis_run_id = str(uuid.uuid4())
 
@@ -1063,7 +1068,7 @@ class SQLiteBackend:
 
         return self.get_project(project_id, include_archived=True)
 
-    def record_export(self, project_id: str, export_format: str, analysis_run_id: str | None = None) -> dict | None:
+    def record_export(self, project_id: str, export_format: str, analysis_run_id: str | None = None) -> dict[str, Any] | None:
         timestamp = datetime.now(timezone.utc).isoformat()
         export_event_id = str(uuid.uuid4())
 
@@ -1113,7 +1118,7 @@ class SQLiteBackend:
         team_name: str | None,
         bot_token: str,
         user_token: str | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         timestamp = datetime.now(timezone.utc).isoformat()
         with self._connect() as connection:
             connection.execute(
@@ -1140,7 +1145,7 @@ class SQLiteBackend:
             raise ApiError("Slack installation not found", error_code="slack_installation_not_found", status_code=500)
         return installation
 
-    def get_slack_installation(self, team_id: str) -> dict | None:
+    def get_slack_installation(self, team_id: str) -> dict[str, Any] | None:
         with self._connect() as connection:
             row = connection.execute(
                 """
@@ -1152,7 +1157,7 @@ class SQLiteBackend:
             ).fetchone()
         return dict(row) if row is not None else None
 
-    def get_latest_slack_installation(self) -> dict | None:
+    def get_latest_slack_installation(self) -> dict[str, Any] | None:
         with self._connect() as connection:
             row = connection.execute(
                 """
@@ -1339,7 +1344,7 @@ class SQLiteBackend:
             "read": ("read", "write", "admin"),
             "admin": ("admin",),
         }
-        scopes = scope_filters.get(scope, None)
+        scopes = scope_filters.get(scope) if scope is not None else None
         with self._connect() as connection:
             if scopes is None:
                 row = connection.execute(
@@ -2076,7 +2081,7 @@ class SQLiteBackend:
         analysis_offset: int = 0,
         export_limit: int = 20,
         export_offset: int = 0,
-    ) -> dict | None:
+    ) -> dict[str, Any] | None:
         analysis_limit = self._normalize_history_limit(analysis_limit)
         analysis_offset = self._normalize_history_offset(analysis_offset)
         export_limit = self._normalize_history_limit(export_limit)
@@ -2147,7 +2152,7 @@ class SQLiteBackend:
         *,
         limit: int = 20,
         offset: int = 0,
-    ) -> dict | None:
+    ) -> dict[str, Any] | None:
         limit = self._normalize_history_limit(limit)
         offset = self._normalize_history_offset(offset)
 
@@ -2187,7 +2192,7 @@ class SQLiteBackend:
             "revisions": [self._revision_row_to_record(row) for row in revision_rows],
         }
 
-    def get_analysis_run(self, project_id: str, analysis_run_id: str) -> dict | None:
+    def get_analysis_run(self, project_id: str, analysis_run_id: str) -> dict[str, Any] | None:
         with self._connect() as connection:
             row = connection.execute(
                 """
@@ -2203,7 +2208,7 @@ class SQLiteBackend:
 
         return self._analysis_row_to_record(row)
 
-    def get_latest_analysis_run(self, project_id: str) -> dict | None:
+    def get_latest_analysis_run(self, project_id: str) -> dict[str, Any] | None:
         with self._connect() as connection:
             row = connection.execute(
                 """
@@ -2221,7 +2226,7 @@ class SQLiteBackend:
 
         return self._analysis_row_to_record(row)
 
-    def get_diagnostics_summary(self) -> dict:
+    def get_diagnostics_summary(self) -> dict[str, Any]:
         disk_free_bytes = shutil.disk_usage(self.db_path.parent).free
         db_size_bytes = self.db_path.stat().st_size if self.db_path.exists() else 0
         write_probe_ok, write_probe_detail = self._run_write_probe()
@@ -2293,7 +2298,7 @@ class SQLiteBackend:
         except sqlite3.Error as exc:
             return False, str(exc)
 
-    def export_workspace(self) -> dict:
+    def export_workspace(self) -> dict[str, Any]:
         with self._connect() as connection:
             project_rows = connection.execute(
                 f"""
@@ -2336,7 +2341,7 @@ class SQLiteBackend:
         return bundle
 
     @classmethod
-    def _workspace_integrity_source(cls, bundle: dict) -> dict:
+    def _workspace_integrity_source(cls, bundle: dict[str, Any]) -> dict[str, Any]:
         def normalize_project_payload(payload: object) -> object:
             if not isinstance(payload, dict):
                 return payload
@@ -2364,7 +2369,7 @@ class SQLiteBackend:
         }
 
     @classmethod
-    def _workspace_counts(cls, bundle: dict) -> dict[str, int]:
+    def _workspace_counts(cls, bundle: dict[str, Any]) -> dict[str, int]:
         source = cls._workspace_integrity_source(bundle)
         return {
             "projects": len(source["projects"]),
@@ -2374,7 +2379,7 @@ class SQLiteBackend:
         }
 
     @classmethod
-    def _workspace_checksum(cls, bundle: dict) -> str:
+    def _workspace_checksum(cls, bundle: dict[str, Any]) -> str:
         serialized = json.dumps(
             cls._workspace_integrity_source(bundle),
             sort_keys=True,
@@ -2383,7 +2388,7 @@ class SQLiteBackend:
         return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
 
     @classmethod
-    def _workspace_signature(cls, bundle: dict, signing_key: str) -> str:
+    def _workspace_signature(cls, bundle: dict[str, Any], signing_key: str) -> str:
         serialized = json.dumps(
             cls._workspace_integrity_source(bundle),
             sort_keys=True,
@@ -2391,7 +2396,7 @@ class SQLiteBackend:
         )
         return hmac.new(signing_key.encode("utf-8"), serialized.encode("utf-8"), hashlib.sha256).hexdigest()
 
-    def _build_workspace_integrity(self, bundle: dict) -> dict:
+    def _build_workspace_integrity(self, bundle: dict[str, Any]) -> dict[str, Any]:
         integrity = {
             "counts": self._workspace_counts(bundle),
             "checksum_sha256": self._workspace_checksum(bundle),
@@ -2400,7 +2405,7 @@ class SQLiteBackend:
             integrity["signature_hmac_sha256"] = self._workspace_signature(bundle, self.workspace_signing_key)
         return integrity
 
-    def _validate_workspace_bundle(self, bundle: dict) -> bool:
+    def _validate_workspace_bundle(self, bundle: dict[str, Any]) -> bool:
         schema_version = int(bundle.get("schema_version", 1))
         if schema_version not in {1, 2, 3}:
             raise ApiError(
@@ -2480,7 +2485,7 @@ class SQLiteBackend:
                 )
         return signature_verified
 
-    def validate_workspace_bundle(self, bundle: dict) -> dict:
+    def validate_workspace_bundle(self, bundle: dict[str, Any]) -> dict[str, Any]:
         signature_verified = self._validate_workspace_bundle(bundle)
         imported_projects = bundle.get("projects", [])
         imported_analysis_runs = bundle.get("analysis_runs", [])
@@ -2526,7 +2531,7 @@ class SQLiteBackend:
             "signature_verified": signature_verified,
         }
 
-    def import_workspace(self, bundle: dict) -> dict:
+    def import_workspace(self, bundle: dict[str, Any]) -> dict[str, Any]:
         self.validate_workspace_bundle(bundle)
         imported_projects = bundle.get("projects", [])
         imported_analysis_runs = bundle.get("analysis_runs", [])
@@ -2628,7 +2633,9 @@ class SQLiteBackend:
                 )
 
             for revision in imported_project_revisions:
-                new_project_id = project_id_map.get(revision["project_id"])
+                # Revisions in a valid bundle always reference an imported project,
+                # so the lookup resolves to a freshly minted project id.
+                new_project_id = cast("str", project_id_map.get(revision["project_id"]))
                 self._create_revision(
                     connection,
                     new_project_id,
@@ -2647,7 +2654,7 @@ class SQLiteBackend:
             "imported_project_revisions": imported_revision_count,
         }
 
-    def archive_project(self, project_id: str) -> dict | None:
+    def archive_project(self, project_id: str) -> dict[str, Any] | None:
         timestamp = datetime.now(timezone.utc).isoformat()
         with self._connect() as connection:
             if not self._project_exists(connection, project_id):
@@ -2676,7 +2683,7 @@ class SQLiteBackend:
             "archived_at": archived_project.get("archived_at"),
         }
 
-    def delete_project(self, project_id: str) -> dict | None:
+    def delete_project(self, project_id: str) -> dict[str, Any] | None:
         with self._connect() as connection:
             if not self._project_exists(connection, project_id):
                 return None
@@ -2693,7 +2700,7 @@ class SQLiteBackend:
             "deleted": True,
         }
 
-    def restore_project(self, project_id: str) -> dict | None:
+    def restore_project(self, project_id: str) -> dict[str, Any] | None:
         timestamp = datetime.now(timezone.utc).isoformat()
 
         with self._connect() as connection:
@@ -2715,7 +2722,7 @@ class SQLiteBackend:
 
     # --- Execution layer (Phase C): exposure / conversion ingestion -----------------
 
-    def record_exposures(self, experiment_id: str, items: list[dict]) -> dict:
+    def record_exposures(self, experiment_id: str, items: list[dict[str, Any]]) -> dict[str, Any]:
         """Record exposure events with first-exposure-wins dedup.
 
         Exactly one exposure survives per (experiment, user) thanks to the UNIQUE
@@ -2747,7 +2754,7 @@ class SQLiteBackend:
         received = len(items)
         return {"received": received, "recorded": recorded, "deduplicated": received - recorded}
 
-    def record_conversions(self, experiment_id: str, items: list[dict]) -> dict:
+    def record_conversions(self, experiment_id: str, items: list[dict[str, Any]]) -> dict[str, Any]:
         """Record conversion events. When an ``idempotency_key`` is supplied, retries with
         the same key are deduped per experiment; events without a key are always recorded
         (NULLs are distinct in the UNIQUE index on both SQLite and Postgres)."""
@@ -2777,7 +2784,7 @@ class SQLiteBackend:
         received = len(items)
         return {"received": received, "recorded": recorded, "deduplicated": received - recorded}
 
-    def record_pre_period_values(self, experiment_id: str, items: list[dict]) -> dict:
+    def record_pre_period_values(self, experiment_id: str, items: list[dict[str, Any]]) -> dict[str, Any]:
         """Record per-user pre-experiment covariate values for CUPED (E5).
 
         First-write-wins per (experiment, user) via the UNIQUE constraint +
@@ -2808,7 +2815,7 @@ class SQLiteBackend:
         received = len(items)
         return {"received": received, "recorded": recorded, "deduplicated": received - recorded}
 
-    def get_user_exposure(self, experiment_id: str, user_id: str) -> dict | None:
+    def get_user_exposure(self, experiment_id: str, user_id: str) -> dict[str, Any] | None:
         """The recorded (first-exposure-wins) exposure for one user, or ``None``.
 
         This is the sticky-bucket store: once a user has been exposed, the assignment
@@ -2828,7 +2835,7 @@ class SQLiteBackend:
             return None
         return {"variation_index": int(row["variation_index"]), "created_at": row["created_at"]}
 
-    def get_ingestion_summary(self, experiment_id: str) -> dict | None:
+    def get_ingestion_summary(self, experiment_id: str) -> dict[str, Any] | None:
         """Per-variation exposure counts and per-metric conversion counts for an
         experiment. Returns ``None`` if the experiment does not exist. This is the raw
         aggregate Phase D's live SRM / sequential / Bayesian reads will build on."""
@@ -2873,7 +2880,7 @@ class SQLiteBackend:
 
     def get_experiment_analysis_aggregates(
         self, experiment_id: str, metric_name: str
-    ) -> dict | None:
+    ) -> dict[str, Any] | None:
         """Per-variation analysis-ready rollup for one metric — the input Phase D's live
         SRM / frequentist / Bayesian reads build on.
 
@@ -2940,7 +2947,7 @@ class SQLiteBackend:
             "variations": variations,
         }
 
-    def get_cuped_aggregates(self, experiment_id: str, metric_name: str) -> dict | None:
+    def get_cuped_aggregates(self, experiment_id: str, metric_name: str) -> dict[str, Any] | None:
         """Per-variation CUPED sufficient statistics over the covered subset (E5).
 
         Returns ``None`` if the experiment does not exist. Restricted (INNER JOIN) to exposed
@@ -3016,7 +3023,7 @@ class _PostgresRow(dict[str, Any]):
     def __getitem__(self, key: object) -> Any:
         if isinstance(key, int):
             return self._ordered_values[key]
-        return super().__getitem__(key)
+        return super().__getitem__(cast("str", key))
 
 
 class _PostgresCursorResult:
@@ -3044,11 +3051,17 @@ class _PooledPostgresConnection:
         self._connection: Any | None = None
 
     def __enter__(self) -> "_PooledPostgresConnection":
-        self._connection = self._backend._pool.getconn()
-        self._connection.row_factory = dict_row
+        connection: Any = self._backend._pool.getconn()
+        connection.row_factory = dict_row
+        self._connection = connection
         return self
 
-    def __exit__(self, exc_type, exc, tb) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
+    ) -> None:
         if self._connection is None:
             return
         try:
@@ -3103,7 +3116,7 @@ class PostgresBackend(SQLiteBackend):
     def close(self) -> None:
         self._pool.close()
 
-    def _connect(self) -> _PooledPostgresConnection:
+    def _connect(self) -> _PooledPostgresConnection:  # type: ignore[override]  # PostgresBackend reuses SQLiteBackend's query methods with a duck-typed pooled connection that mirrors the sqlite3.Connection context-manager + execute() surface used by those methods
         return _PooledPostgresConnection(self)
 
     @staticmethod
@@ -3409,7 +3422,7 @@ class PostgresBackend(SQLiteBackend):
                 """
             )
 
-    def list_projects(self, *, include_archived: bool = False) -> list[dict]:
+    def list_projects(self, *, include_archived: bool = False) -> list[dict[str, Any]]:
         archived_filter = "" if include_archived else "WHERE projects.archived_at IS NULL"
         hypothesis_expr = self._json_extract_expression("projects.payload_json", "hypothesis", "hypothesis_statement")
         metric_expr = self._json_extract_expression("projects.payload_json", "metrics", "metric_type")
@@ -3470,7 +3483,7 @@ class PostgresBackend(SQLiteBackend):
         sort_dir: str = "desc",
         limit: int = 50,
         offset: int = 0,
-    ) -> dict:
+    ) -> dict[str, Any]:
         limit = max(1, min(int(limit), 200))
         offset = max(0, int(offset))
         normalized_query = q.strip().lower() if isinstance(q, str) else ""
@@ -3646,7 +3659,7 @@ class PostgresBackend(SQLiteBackend):
                 pass
         return event
 
-    def get_diagnostics_summary(self) -> dict:
+    def get_diagnostics_summary(self) -> dict[str, Any]:
         parsed = urlparse(self.database_url)
         write_probe_ok, write_probe_detail = self._run_write_probe()
 

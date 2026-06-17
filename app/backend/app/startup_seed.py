@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 from dataclasses import dataclass
 import logging
+from typing import Any
 
 from app.backend.app.config import Settings
 from app.backend.app.logging_utils import log_event
@@ -42,7 +43,7 @@ class SeedResult:
     skipped_projects: int = 0
 
 
-def _demo_advice_payload() -> dict:
+def _demo_advice_payload() -> dict[str, Any]:
     return {
         "available": False,
         "provider": "local_orchestrator",
@@ -54,7 +55,7 @@ def _demo_advice_payload() -> dict:
     }
 
 
-def _build_seed_payload(template_payload: dict, project_name: str) -> dict:
+def _build_seed_payload(template_payload: dict[str, Any], project_name: str) -> dict[str, Any]:
     payload = copy.deepcopy(template_payload)
     payload["project"]["project_name"] = project_name
     payload["project"]["project_description"] = (
@@ -66,7 +67,7 @@ def _build_seed_payload(template_payload: dict, project_name: str) -> dict:
     return payload
 
 
-def _build_analysis_payload(project_payload: dict) -> dict:
+def _build_analysis_payload(project_payload: dict[str, Any]) -> dict[str, Any]:
     payload = ExperimentInput.model_validate(project_payload)
     calculation_payload = _build_calculation_payload(payload)
     calculation_result = calculate_experiment_metrics(calculation_payload.model_dump())

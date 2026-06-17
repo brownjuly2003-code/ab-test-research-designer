@@ -1,7 +1,9 @@
 import base64
 import re
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
 from app.backend.app.schemas.api import ComparisonExportRequest, ExperimentReport, ExportResponse, StandaloneExportRequest
 from app.backend.app.services.comparison_service import build_multi_project_comparison
@@ -13,13 +15,23 @@ from app.backend.app.services.export_service import (
     export_report_to_markdown,
 )
 
+if TYPE_CHECKING:
+    from app.backend.app.config import Settings
+    from app.backend.app.http_utils import SlidingWindowRateLimiter
+    from app.backend.app.repository import ProjectRepository
+
 
 def _sanitize_filename(value: str) -> str:
     sanitized = re.sub(r'[<>:"/\\|?*]+', "-", value).strip().strip(".")
     return sanitized or "ab-test-report"
 
 
-def create_export_router(settings, repository, rate_limiter, require_auth) -> APIRouter:
+def create_export_router(
+    settings: "Settings",
+    repository: "ProjectRepository",
+    rate_limiter: "SlidingWindowRateLimiter",
+    require_auth: Callable[[Request], None],
+) -> APIRouter:
     router = APIRouter(tags=["workspace"])
 
     @router.post(
@@ -44,7 +56,7 @@ def create_export_router(settings, repository, rate_limiter, require_auth) -> AP
         dependencies=[Depends(require_auth)],
     )
     def export_comparison(payload: ComparisonExportRequest) -> ExportResponse:
-        projects_with_runs: list[tuple[dict, dict]] = []
+        projects_with_runs: list[tuple[dict[str, Any], dict[str, Any]]] = []
         for project_id in payload.project_ids:
             project = repository.get_project(project_id)
             if project is None:

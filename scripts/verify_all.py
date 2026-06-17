@@ -129,6 +129,11 @@ def main() -> int:
         ROOT_DIR,
         env=signed_backup_env,
     )
+    run_step(
+        "backend type check (mypy --strict)",
+        [sys.executable, "-m", "mypy"],
+        ROOT_DIR,
+    )
     backend_tests_command = [sys.executable, "-m", "pytest", "app/backend/tests", "-q"]
     if artifacts_dir is not None:
         backend_tests_command.extend(["--junitxml", str(artifacts_dir / "backend-junit.xml")])

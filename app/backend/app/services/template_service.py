@@ -1,7 +1,12 @@
+from __future__ import annotations
+
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import yaml
+
+if TYPE_CHECKING:
+    from app.backend.app.repository import ProjectRepository
 
 
 BUILT_IN_TEMPLATE_DIR = Path(__file__).resolve().parents[2] / "templates"
@@ -25,7 +30,7 @@ def load_built_in_templates() -> list[dict[str, Any]]:
     return templates
 
 
-def sync_built_in_templates(repository) -> None:
+def sync_built_in_templates(repository: ProjectRepository) -> None:
     for template in load_built_in_templates():
         repository.upsert_template(
             template_id=template["id"],

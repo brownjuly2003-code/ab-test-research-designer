@@ -1,7 +1,8 @@
 import json
+from typing import Any
 
 
-def build_hypothesis_ideation_prompt(payload: dict) -> str:
+def build_hypothesis_ideation_prompt(payload: dict[str, Any]) -> str:
     count = int(payload.get("count", 3))
     response_format = {
         "hypotheses": [
@@ -26,7 +27,7 @@ def build_hypothesis_ideation_prompt(payload: dict) -> str:
     )
 
 
-def build_llm_advice_prompt(payload: dict) -> str:
+def build_llm_advice_prompt(payload: dict[str, Any]) -> str:
     response_format = {
         "brief_assessment": "string",
         "key_risks": ["string"],

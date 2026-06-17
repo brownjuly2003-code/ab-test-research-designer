@@ -1,3 +1,6 @@
+from collections.abc import Callable
+from typing import TYPE_CHECKING
+
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.backend.app.schemas.api import (
@@ -8,12 +11,20 @@ from app.backend.app.schemas.api import (
     ApiKeyRecord,
 )
 
+if TYPE_CHECKING:
+    from app.backend.app.config import Settings
+    from app.backend.app.repository import ProjectRepository
+
 
 def _request_ip(request: Request) -> str | None:
     return request.client.host if request.client else None
 
 
-def create_keys_router(settings, repository, require_admin_auth) -> APIRouter:
+def create_keys_router(
+    settings: "Settings",
+    repository: "ProjectRepository",
+    require_admin_auth: Callable[[Request], None],
+) -> APIRouter:
     router = APIRouter(tags=["keys"])
 
     @router.post(

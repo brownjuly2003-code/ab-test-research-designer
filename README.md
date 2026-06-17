@@ -21,7 +21,7 @@ license: mit
 [![Lighthouse](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/brownjuly2003-code/ab-test-research-designer/main/badges/lighthouse.json)](https://github.com/brownjuly2003-code/ab-test-research-designer/actions/workflows/test.yml)
 [![Docs](https://img.shields.io/badge/docs-astro--starlight-blue)](https://brownjuly2003-code.github.io/ab-test-research-designer/)
 
-Local-first experiment planning tool for A/B and multi-variant tests. Plan sample size and duration from the wizard, review deterministic statistical guidance (SRM, Bayesian, group-sequential, CUPED, guardrails), compare saved experiments side by side, and export decision-ready reports in seven languages (English, Russian, German, Spanish, French, Simplified Chinese, Arabic with RTL) — all against a local SQLite workspace with no cloud required.
+Local-first experiment planning tool for A/B and multi-variant tests. Plan sample size and duration from the wizard, review deterministic statistical guidance (SRM, Bayesian, group-sequential, CUPED) plus design-time guardrail-metric recommendations, compare saved experiments side by side, and export decision-ready reports in seven languages (English, Russian, German, Spanish, French, Simplified Chinese, Arabic with RTL) — all against a local SQLite workspace with no cloud required.
 
 Built with **FastAPI + React 19 + TypeScript + Vite + SQLite**, verified end-to-end via `scripts/verify_all.cmd --with-e2e` (350+ backend tests, 200+ frontend tests, Playwright E2E, Lighthouse CI, axe accessibility checks). Backend coverage gated at 89%+ in CI.
 

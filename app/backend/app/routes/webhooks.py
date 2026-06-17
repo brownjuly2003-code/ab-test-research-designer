@@ -1,3 +1,5 @@
+from collections.abc import Callable
+from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -12,12 +14,16 @@ from app.backend.app.schemas.api import (
     WebhookTestResponse,
 )
 
+if TYPE_CHECKING:
+    from app.backend.app.config import Settings
+    from app.backend.app.repository import ProjectRepository
+
 
 def _request_ip(request: Request) -> str | None:
     return request.client.host if request.client else None
 
 
-def _validate_webhook_target_url(settings, target_url: str) -> str:
+def _validate_webhook_target_url(settings: "Settings", target_url: str) -> str:
     parsed = urlparse(target_url.strip())
     if parsed.scheme == "https" and parsed.netloc:
         return target_url.strip()
@@ -31,7 +37,11 @@ def _validate_webhook_target_url(settings, target_url: str) -> str:
     raise ValueError("Webhook target_url must use HTTPS unless AB_ENV=local and host is localhost or 127.0.0.1")
 
 
-def create_webhooks_router(settings, repository, require_admin_auth) -> APIRouter:
+def create_webhooks_router(
+    settings: "Settings",
+    repository: "ProjectRepository",
+    require_admin_auth: Callable[[Request], None],
+) -> APIRouter:
     router = APIRouter(tags=["webhooks"])
 
     @router.post(

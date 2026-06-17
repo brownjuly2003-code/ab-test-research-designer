@@ -1,5 +1,6 @@
 import re
-from typing import Literal
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from fastapi.responses import JSONResponse
@@ -25,6 +26,11 @@ from app.backend.app.services.export_service import (
 )
 from app.backend.app.services.monte_carlo_service import simulate_comparison
 from app.backend.app.services.pdf_service import generate_report_pdf
+
+if TYPE_CHECKING:
+    from app.backend.app.config import Settings
+    from app.backend.app.http_utils import SlidingWindowRateLimiter
+    from app.backend.app.repository import ProjectRepository
 
 
 def _project_snapshot_placeholder() -> None:
@@ -53,7 +59,13 @@ def _request_ip(request: Request) -> str | None:
     return request.client.host if request.client else None
 
 
-def create_projects_router(settings, repository, rate_limiter, require_auth, require_write_auth) -> APIRouter:
+def create_projects_router(
+    settings: "Settings",
+    repository: "ProjectRepository",
+    rate_limiter: "SlidingWindowRateLimiter",
+    require_auth: Callable[[Request], None],
+    require_write_auth: Callable[[Request], None],
+) -> APIRouter:
     router = APIRouter(tags=["projects"])
 
     @router.get(
@@ -159,8 +171,8 @@ def create_projects_router(settings, repository, rate_limiter, require_auth, req
         include_monte_carlo: bool = Query(default=False),
         monte_carlo_simulations: int = Query(default=10000, ge=1000, le=50000),
     ) -> JSONResponse:
-        projects_with_runs: list[tuple[dict, dict]] = []
-        project_records: list[dict] = []
+        projects_with_runs: list[tuple[dict[str, Any], dict[str, Any]]] = []
+        project_records: list[dict[str, Any]] = []
         for project_id in payload.project_ids:
             project = repository.get_project(project_id)
             if project is None:

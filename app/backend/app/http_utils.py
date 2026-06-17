@@ -5,10 +5,15 @@ from threading import Lock
 from time import monotonic, perf_counter
 import uuid
 
+from typing import TYPE_CHECKING, Any, cast
+
 from fastapi import Request, Response, status
 from fastapi.responses import JSONResponse
 
 from app.backend.app.schemas.api import ErrorResponse
+
+if TYPE_CHECKING:
+    from app.backend.app.config import Settings
 
 if hasattr(status, "HTTP_413_CONTENT_TOO_LARGE"):
     HTTP_413_BODY_TOO_LARGE = status.HTTP_413_CONTENT_TOO_LARGE
@@ -124,7 +129,7 @@ def get_client_identifier(request: Request) -> str:
     return "unknown"
 
 
-def get_request_body_limit(path: str, method: str, settings) -> int | None:
+def get_request_body_limit(path: str, method: str, settings: "Settings") -> int | None:
     if method not in BODY_LIMITED_METHODS:
         return None
     if path in WORKSPACE_BUNDLE_PATHS:
@@ -166,7 +171,7 @@ def get_request_id(request: Request) -> str:
 
 
 def get_process_time_ms(request: Request) -> float:
-    started = getattr(request.state, "request_started", None)
+    started = cast("float | None", getattr(request.state, "request_started", None))
     if started is None:
         return 0.0
     return (perf_counter() - started) * 1000
@@ -234,7 +239,7 @@ async def buffer_request_body_with_limit(request: Request, max_bytes: int) -> No
 def build_error_response(
     request: Request,
     *,
-    detail: str | list[dict] | dict,
+    detail: str | list[dict[str, Any]] | dict[str, Any],
     error_code: str,
     status_code: int,
     extra_headers: dict[str, str] | None = None,

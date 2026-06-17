@@ -1,5 +1,6 @@
 from math import ceil, isfinite, sqrt
 from statistics import NormalDist
+from typing import Any
 
 from app.backend.app.constants import MAX_SUPPORTED_VARIANTS
 
@@ -69,7 +70,7 @@ def calculate_continuous_sample_size(
     alpha: float,
     power: float,
     variants_count: int = 2,
-) -> dict:
+) -> dict[str, Any]:
     if baseline_mean <= 0:
         raise ValueError("baseline_mean must be positive for relative MDE calculations")
     if not isfinite(std_dev) or std_dev <= 1e-12:

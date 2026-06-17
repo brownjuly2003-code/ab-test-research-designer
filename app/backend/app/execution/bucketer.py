@@ -16,6 +16,8 @@ diverge from a UTF-16 client; user ids and seeds are expected to be BMP text in 
 
 from __future__ import annotations
 
+from typing import Any
+
 FNV_OFFSET_BASIS_32 = 0x811C9DC5
 FNV_PRIME_32 = 0x01000193
 UINT32_MASK = 0xFFFFFFFF
@@ -161,7 +163,7 @@ def assign_variation(
     coverage: float = 1.0,
     weights: list[float] | None = None,
     hash_version: int = 2,
-) -> dict[str, object]:
+) -> dict[str, Any]:
     """Deterministically assign ``user_id`` to a variation for an experiment ``seed``.
 
     Returns the variation index (-1 = not in experiment / outside coverage), the

@@ -1,4 +1,15 @@
-from app.backend.app.schemas.report import ExperimentReport
+from typing import Any
+
+from app.backend.app.schemas.report import (
+    CalculationsSection,
+    ExperimentDesignSection,
+    ExperimentReport,
+    GuardrailMetricReport,
+    MetricsPlanSection,
+    RecommendationsSection,
+    RisksSection,
+    VariantDefinition,
+)
 from app.backend.app.i18n import translate
 from app.backend.app.stats.binary import calculate_detectable_mde_binary
 from app.backend.app.stats.continuous import calculate_detectable_mde_continuous
@@ -12,13 +23,13 @@ def _variant_names(variants_count: int) -> list[str]:
 
 
 def build_guardrail_section(
-    guardrail_metrics: list[dict],
+    guardrail_metrics: list[dict[str, Any]],
     primary_n: int,
     *,
     alpha: float = 0.05,
     power: float = 0.8,
-) -> list[dict]:
-    results = []
+) -> list[dict[str, Any]]:
+    results: list[dict[str, Any]] = []
 
     for guardrail in guardrail_metrics:
         if guardrail["metric_type"] == "binary":
@@ -70,7 +81,11 @@ def build_guardrail_section(
     return results
 
 
-def build_experiment_report(payload: dict, calculation_result: dict, llm_advice: dict | None = None) -> dict:
+def build_experiment_report(
+    payload: dict[str, Any],
+    calculation_result: dict[str, Any],
+    llm_advice: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     project = payload["project"]
     hypothesis = payload["hypothesis"]
     setup = payload["setup"]
@@ -80,14 +95,14 @@ def build_experiment_report(payload: dict, calculation_result: dict, llm_advice:
 
     variant_names = _variant_names(setup["variants_count"])
     variants = [
-        {
-            "name": name,
-            "description": (
+        VariantDefinition(
+            name=name,
+            description=(
                 translate("report.variant_control_description")
                 if index == 0
                 else hypothesis["change_description"]
             ),
-        }
+        )
         for index, name in enumerate(variant_names)
     ]
 
@@ -116,30 +131,30 @@ def build_experiment_report(payload: dict, calculation_result: dict, llm_advice:
                 },
             )
         ),
-        calculations={
-            "sample_size_per_variant": calculation_result["results"]["sample_size_per_variant"],
-            "total_sample_size": calculation_result["results"]["total_sample_size"],
-            "estimated_duration_days": calculation_result["results"]["estimated_duration_days"],
-            "assumptions": calculation_result["assumptions"],
-        },
-        experiment_design={
-            "variants": variants,
-            "randomization_unit": setup["randomization_unit"],
-            "traffic_split": setup["traffic_split"],
-            "target_audience": hypothesis["target_audience"],
-            "inclusion_criteria": setup["inclusion_criteria"],
-            "exclusion_criteria": setup["exclusion_criteria"],
-            "recommended_duration_days": calculation_result["results"]["estimated_duration_days"],
-            "stopping_conditions": [
+        calculations=CalculationsSection(
+            sample_size_per_variant=calculation_result["results"]["sample_size_per_variant"],
+            total_sample_size=calculation_result["results"]["total_sample_size"],
+            estimated_duration_days=calculation_result["results"]["estimated_duration_days"],
+            assumptions=calculation_result["assumptions"],
+        ),
+        experiment_design=ExperimentDesignSection(
+            variants=variants,
+            randomization_unit=setup["randomization_unit"],
+            traffic_split=setup["traffic_split"],
+            target_audience=hypothesis["target_audience"],
+            inclusion_criteria=setup["inclusion_criteria"],
+            exclusion_criteria=setup["exclusion_criteria"],
+            recommended_duration_days=calculation_result["results"]["estimated_duration_days"],
+            stopping_conditions=[
                 translate("report.stopping_conditions.planned_duration_reached"),
                 translate("report.stopping_conditions.critical_instrumentation_failure"),
             ],
-        },
-        metrics_plan={
-            "primary": [metrics["primary_metric_name"]],
-            "secondary": metrics.get("secondary_metrics") or [],
-            "guardrail": guardrail_metric_names,
-            "diagnostic": [
+        ),
+        metrics_plan=MetricsPlanSection(
+            primary=[metrics["primary_metric_name"]],
+            secondary=metrics.get("secondary_metrics") or [],
+            guardrail=guardrail_metric_names,
+            diagnostic=[
                 translate("report.diagnostic_assignment_rate"),
                 translate("report.diagnostic_exposure_balance"),
                 translate(
@@ -147,34 +162,34 @@ def build_experiment_report(payload: dict, calculation_result: dict, llm_advice:
                     {"primary_metric_name": metrics["primary_metric_name"]},
                 ),
             ],
-        },
-        guardrail_metrics=guardrail_report,
-        risks={
-            "statistical": warning_messages or [translate("report.risks.no_major_warnings")],
-            "product": [
+        ),
+        guardrail_metrics=[GuardrailMetricReport(**guardrail) for guardrail in guardrail_report],
+        risks=RisksSection(
+            statistical=warning_messages or [translate("report.risks.no_major_warnings")],
+            product=[
                 translate("report.risks.product", {"desired_result": hypothesis["desired_result"]}),
             ],
-            "technical": [
+            technical=[
                 constraints["technical_constraints"] or translate("report.risks.no_technical_constraints"),
             ],
-            "operational": [
+            operational=[
                 constraints["known_risks"] or translate("report.risks.no_operational_risks"),
             ],
-        },
-        recommendations={
-            "before_launch": [
+        ),
+        recommendations=RecommendationsSection(
+            before_launch=[
                 translate("report.recommendations.before_launch_default"),
                 *llm_improvements,
             ],
-            "during_test": [
+            during_test=[
                 translate("report.recommendations.during_test_monitor"),
                 translate("report.recommendations.during_test_avoid_early_stop"),
             ],
-            "after_test": [
+            after_test=[
                 translate("report.recommendations.after_test_interpret"),
                 translate("report.recommendations.after_test_segment"),
             ],
-        },
+        ),
         open_questions=[
             translate("report.open_questions.validate", {"what_to_validate": hypothesis["what_to_validate"]}),
             translate("report.open_questions.market_stability", {"market": project["market"]}),

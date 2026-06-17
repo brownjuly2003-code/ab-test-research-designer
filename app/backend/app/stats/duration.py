@@ -1,13 +1,14 @@
+from collections.abc import Sequence
 from math import ceil
 
 
 def estimate_experiment_duration_days(
     sample_size_per_variant: int,
-    expected_daily_traffic: int,
+    expected_daily_traffic: float,
     audience_share_in_test: float,
-    traffic_split: list[int],
+    traffic_split: Sequence[float],
     traffic_allocation_fraction: float = 1.0,
-) -> dict:
+) -> dict[str, float]:
     if sample_size_per_variant <= 0:
         raise ValueError("sample_size_per_variant must be positive")
     if expected_daily_traffic <= 0:

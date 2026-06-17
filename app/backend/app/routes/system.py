@@ -1,11 +1,26 @@
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 from fastapi import APIRouter, Request, Response, status
 from pydantic import BaseModel
 
 from app.backend.app.http_utils import AUTH_READ_ONLY_METHODS, get_auth_mode
-from app.backend.app.schemas.api import DiagnosticsResponse, ReadinessCheck, ReadinessResponse
+from app.backend.app.schemas.api import (
+    DiagnosticsAuthSummary,
+    DiagnosticsFrontendSummary,
+    DiagnosticsGuardsSummary,
+    DiagnosticsLlmSummary,
+    DiagnosticsLoggingSummary,
+    DiagnosticsResponse,
+    DiagnosticsRuntimeSummary,
+    ReadinessCheck,
+    ReadinessResponse,
+)
+
+if TYPE_CHECKING:
+    from app.backend.app.config import Settings
+    from app.backend.app.repository import ProjectRepository
 
 
 class HealthResponse(BaseModel):
@@ -15,7 +30,12 @@ class HealthResponse(BaseModel):
     environment: str
 
 
-def create_system_router(settings, repository, runtime_counters, start_time) -> APIRouter:
+def create_system_router(
+    settings: "Settings",
+    repository: "ProjectRepository",
+    runtime_counters: dict[str, Any],
+    start_time: datetime,
+) -> APIRouter:
     router = APIRouter(tags=["system"])
     frontend_dist_path = Path(settings.frontend_dist_path)
     frontend_index_path = frontend_dist_path / "index.html"
@@ -149,49 +169,49 @@ def create_system_router(settings, repository, runtime_counters, start_time) -> 
             app_version=settings.app_version,
             request_timing_headers_enabled=True,
             storage=storage_summary,
-            frontend={
-                "serve_frontend_dist": settings.serve_frontend_dist,
-                "dist_path": settings.frontend_dist_path,
-                "dist_exists": frontend_dist_path.exists(),
-            },
-            llm={
-                "provider": "local_orchestrator",
-                "base_url": settings.llm_base_url,
-                "timeout_seconds": settings.llm_timeout_seconds,
-                "max_attempts": settings.llm_max_attempts,
-                "initial_backoff_seconds": settings.llm_initial_backoff_seconds,
-                "backoff_multiplier": settings.llm_backoff_multiplier,
-            },
-            logging={
-                "level": settings.log_level,
-                "format": settings.log_format,
-            },
-            auth={
-                "enabled": settings.api_token is not None or settings.readonly_api_token is not None or api_keys_enabled,
-                "mode": get_auth_mode(settings.api_token, settings.readonly_api_token, api_keys_enabled),
-                "write_enabled": settings.api_token is not None or write_api_keys_enabled,
-                "readonly_enabled": settings.readonly_api_token is not None or read_api_keys_enabled,
-                "legacy_tokens_enabled": settings.api_token is not None or settings.readonly_api_token is not None,
-                "api_keys_enabled": api_keys_enabled,
-                "admin_token_enabled": settings.admin_token is not None,
-                "session_scope": session_scope,
-                "session_source": getattr(request.state, "auth_source", None),
-                "session_can_write": session_scope in {"write", "admin"},
-                "session_admin_authenticated": bool(getattr(request.state, "admin_authenticated", False)),
-                "accepted_headers": ["Authorization: Bearer", "X-API-Key"],
-                "read_only_methods": sorted(AUTH_READ_ONLY_METHODS),
-            },
-            guards={
-                "security_headers_enabled": True,
-                "rate_limit_enabled": settings.rate_limit_enabled,
-                "rate_limit_requests": settings.rate_limit_requests,
-                "rate_limit_window_seconds": settings.rate_limit_window_seconds,
-                "auth_failure_limit": settings.auth_failure_limit,
-                "auth_failure_window_seconds": settings.auth_failure_window_seconds,
-                "max_request_body_bytes": settings.max_request_body_bytes,
-                "max_workspace_body_bytes": settings.max_workspace_body_bytes,
-            },
-            runtime=runtime_counters,
+            frontend=DiagnosticsFrontendSummary(
+                serve_frontend_dist=settings.serve_frontend_dist,
+                dist_path=settings.frontend_dist_path,
+                dist_exists=frontend_dist_path.exists(),
+            ),
+            llm=DiagnosticsLlmSummary(
+                provider="local_orchestrator",
+                base_url=settings.llm_base_url,
+                timeout_seconds=settings.llm_timeout_seconds,
+                max_attempts=settings.llm_max_attempts,
+                initial_backoff_seconds=settings.llm_initial_backoff_seconds,
+                backoff_multiplier=settings.llm_backoff_multiplier,
+            ),
+            logging=DiagnosticsLoggingSummary(
+                level=settings.log_level,
+                format=settings.log_format,
+            ),
+            auth=DiagnosticsAuthSummary(
+                enabled=settings.api_token is not None or settings.readonly_api_token is not None or api_keys_enabled,
+                mode=get_auth_mode(settings.api_token, settings.readonly_api_token, api_keys_enabled),
+                write_enabled=settings.api_token is not None or write_api_keys_enabled,
+                readonly_enabled=settings.readonly_api_token is not None or read_api_keys_enabled,
+                legacy_tokens_enabled=settings.api_token is not None or settings.readonly_api_token is not None,
+                api_keys_enabled=api_keys_enabled,
+                admin_token_enabled=settings.admin_token is not None,
+                session_scope=session_scope,
+                session_source=getattr(request.state, "auth_source", None),
+                session_can_write=session_scope in {"write", "admin"},
+                session_admin_authenticated=bool(getattr(request.state, "admin_authenticated", False)),
+                accepted_headers=["Authorization: Bearer", "X-API-Key"],
+                read_only_methods=sorted(AUTH_READ_ONLY_METHODS),
+            ),
+            guards=DiagnosticsGuardsSummary(
+                security_headers_enabled=True,
+                rate_limit_enabled=settings.rate_limit_enabled,
+                rate_limit_requests=settings.rate_limit_requests,
+                rate_limit_window_seconds=settings.rate_limit_window_seconds,
+                auth_failure_limit=settings.auth_failure_limit,
+                auth_failure_window_seconds=settings.auth_failure_window_seconds,
+                max_request_body_bytes=settings.max_request_body_bytes,
+                max_workspace_body_bytes=settings.max_workspace_body_bytes,
+            ),
+            runtime=DiagnosticsRuntimeSummary(**runtime_counters),
         )
 
     return router

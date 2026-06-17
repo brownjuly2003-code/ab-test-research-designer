@@ -1,5 +1,6 @@
 import asyncio
 from collections.abc import Callable
+from typing import Any, cast
 
 import httpx
 
@@ -11,11 +12,11 @@ from app.backend.app.llm.prompt_builder import build_hypothesis_ideation_prompt,
 class AnthropicAdapter(LocalOrchestratorAdapter):
     api_url = "https://api.anthropic.com/v1/messages"
 
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, **kwargs: Any) -> None:
         super().__init__(base_url="https://api.anthropic.com", model="claude-haiku-4-5-20251001", reasoning=False, **kwargs)
 
     @staticmethod
-    def _extract_response_text(data: dict) -> str:
+    def _extract_response_text(data: dict[str, Any]) -> str:
         fragments = [
             item.get("text", "").strip()
             for item in data.get("content", [])
@@ -30,9 +31,12 @@ class AnthropicAdapter(LocalOrchestratorAdapter):
         token: str,
         parse_fn: Callable[[str], object] = parse_llm_advice,
         result_key: str = "advice",
-    ) -> dict:
+    ) -> dict[str, Any]:
+        # The shared self.transport is typed BaseTransport | None for the base
+        # class's sync httpx.Client; here it only ever feeds an AsyncClient.
+        async_transport = cast("httpx.AsyncBaseTransport | None", self.transport)
         try:
-            async with httpx.AsyncClient(timeout=self.timeout_seconds, transport=self.transport) as client:
+            async with httpx.AsyncClient(timeout=self.timeout_seconds, transport=async_transport) as client:
                 response = await client.post(
                     self.api_url,
                     headers={
@@ -86,7 +90,7 @@ class AnthropicAdapter(LocalOrchestratorAdapter):
             "error_code": None,
         }
 
-    def _run_with_retry(self, prompt: str, *, token: str, parse_fn: Callable[[str], object], result_key: str) -> dict:
+    def _run_with_retry(self, prompt: str, *, token: str, parse_fn: Callable[[str], object], result_key: str) -> dict[str, Any]:
         last_error: LLMTransientError | None = None
 
         for attempt in range(1, self.max_attempts + 1):
@@ -104,14 +108,14 @@ class AnthropicAdapter(LocalOrchestratorAdapter):
             raise last_error
         raise LLMTransientError("Anthropic request failed. Try again or switch to local suggestions.")
 
-    def request_advice(self, payload: dict, *, token: str = "") -> dict:
+    def request_advice(self, payload: dict[str, Any], *, token: str = "") -> dict[str, Any]:
         if not token:
             raise LLMAuthError("Anthropic token is required.")
         return self._run_with_retry(
             build_llm_advice_prompt(payload), token=token, parse_fn=parse_llm_advice, result_key="advice"
         )
 
-    def request_hypotheses(self, payload: dict, *, token: str = "") -> dict:
+    def request_hypotheses(self, payload: dict[str, Any], *, token: str = "") -> dict[str, Any]:
         if not token:
             raise LLMAuthError("Anthropic token is required.")
         return self._run_with_retry(
