@@ -1,3 +1,14 @@
+"""Precision-based sample sizing for the Bayesian planning mode.
+
+These size an experiment so the posterior credible interval reaches a target half-width
+(``desired_precision``). With the flat/weakly-informative priors this tool assumes, the posterior
+is well approximated by a normal centred on the observed effect, so the required N coincides with
+the frequentist normal-approximation precision formula ``N = 2 * var * (z / precision)**2`` — the
+prior does not enter beyond that approximation. They are *not* a full Bayesian design over an
+informative prior; the "Bayesian" label denotes the planning mode (size-to-precision rather than
+size-to-power), not prior-dependent math.
+"""
+
 import math
 
 from app.backend.app.stats.binary import normal_ppf

@@ -259,6 +259,39 @@ def test_live_stats_multi_arm_compares_each_treatment_to_control() -> None:
     assert [c["treatment_index"] for c in result["comparisons"]] == [1, 2]
 
 
+def test_live_stats_multi_arm_applies_bonferroni_to_each_comparison() -> None:
+    # Three variants -> two control-vs-treatment comparisons -> each test runs at alpha / 2 = 0.025,
+    # so the reported confidence level is 0.975 and the comparison carries the Bonferroni note. This
+    # mirrors the planning side (stats.binary) and keeps the live readout's family-wise error in line
+    # with the alpha the sample size was planned for.
+    design = _binary_design()
+    design["setup"]["traffic_split"] = [34, 33, 33]
+    design["setup"]["variants_count"] = 3
+    result = build_live_stats(
+        "e",
+        design,
+        _aggregates(_arm(0, 4000, 400), _arm(1, 4000, 480), _arm(2, 4000, 360)),
+    )
+    comparisons = result["comparisons"]
+    assert [c["treatment_index"] for c in comparisons] == [1, 2]
+    for comparison in comparisons:
+        assert comparison["status"] == "ok"
+        assert comparison["analysis"]["ci_level"] == 0.975
+        assert "Bonferroni" in (comparison["note"] or "")
+
+
+def test_live_stats_two_arm_keeps_nominal_alpha() -> None:
+    # One treatment -> Bonferroni is a no-op: nominal 0.05 -> 0.95 CI level, no multiple-comparison
+    # note. Guards the two-variant path against regressing when the multi-arm correction was added.
+    result = build_live_stats(
+        "e", _binary_design(), _aggregates(_arm(0, 4000, 400), _arm(1, 4000, 480))
+    )
+    comparison = result["comparisons"][0]
+    assert comparison["status"] == "ok"
+    assert comparison["analysis"]["ci_level"] == 0.95
+    assert comparison["note"] is None
+
+
 # --- service: sequential + CUPED ------------------------------------------------------
 
 

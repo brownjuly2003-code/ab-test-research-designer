@@ -11,6 +11,10 @@ def chi_square_srm(
         raise ValueError("observed_counts must contain at least two variants")
     if any(count < 0 for count in observed_counts):
         raise ValueError("observed_counts must not contain negative counts")
+    if any(fraction <= 0 for fraction in expected_fractions):
+        raise ValueError("expected_fractions must all be positive")
+    if not math.isclose(sum(expected_fractions), 1.0, abs_tol=1e-6):
+        raise ValueError("expected_fractions must sum to 1")
 
     total = sum(observed_counts)
     if total == 0:

@@ -92,17 +92,26 @@ def build_live_stats(
 
     expected_fractions = normalize_weights(traffic_split) if traffic_split else []
 
+    # Family-wise error control at analysis time, mirroring the planning side (stats.binary /
+    # stats.continuous Bonferroni): every control-vs-treatment test runs at alpha / (#treatments),
+    # so the live readout's false-positive rate matches the alpha the sample size was planned for.
+    # One treatment -> adjusted == nominal, so two-variant experiments are unchanged.
+    comparison_count = max(1, variants_count - 1)
+    adjusted_alpha = alpha / comparison_count
+
     srm = _build_srm_block(arms, expected_fractions)
     comparisons = [
         _build_comparison(
             metric_type=metric_type,
             baseline_value=baseline_value,
-            alpha=alpha,
+            alpha=adjusted_alpha,
             control=arms[0],
             treatment=arms[treatment_index],
         )
         for treatment_index in range(1, variants_count)
     ]
+    if comparison_count > 1:
+        _annotate_multiple_comparison(comparisons, alpha, adjusted_alpha, comparison_count)
     sequential = _build_sequential_block(
         project_payload=project_payload,
         n_looks=n_looks,
@@ -112,11 +121,15 @@ def build_live_stats(
     )
     cuped = _build_cuped_block(
         metric_type=metric_type,
-        alpha=alpha,
+        alpha=adjusted_alpha,
         variants_count=variants_count,
         exposed_total=exposures_total,
         cuped_aggregates=cuped_aggregates,
     )
+    if comparison_count > 1:
+        _annotate_multiple_comparison(
+            cuped.get("comparisons", []), alpha, adjusted_alpha, comparison_count
+        )
 
     return {
         "experiment_id": experiment_id,
@@ -189,6 +202,26 @@ def _continuous_moments(arm: dict[str, Any]) -> tuple[float | None, float | None
         return mean, None
     variance = (arm["value_sq_sum"] - n * mean * mean) / (n - 1)
     return mean, math.sqrt(variance) if variance > 0 else 0.0
+
+
+def _annotate_multiple_comparison(
+    comparisons: list[dict[str, Any]],
+    nominal_alpha: float,
+    adjusted_alpha: float,
+    comparison_count: int,
+) -> None:
+    """Record the Bonferroni context on each evaluable comparison so the adjusted significance and
+    confidence interval are transparent. The live tests already ran at ``adjusted_alpha`` (see
+    ``build_live_stats``); this only annotates the ``ok`` comparisons, leaving the insufficient-data
+    notes intact."""
+    note = (
+        f"Bonferroni-adjusted alpha {adjusted_alpha:.6g} across {comparison_count} "
+        f"treatment-vs-control comparisons (nominal alpha {nominal_alpha:.6g}); significance and the "
+        "confidence interval use this adjusted level to control the family-wise error rate."
+    )
+    for comparison in comparisons:
+        if comparison.get("status") == "ok":
+            comparison["note"] = note
 
 
 def _build_comparison(
@@ -393,7 +426,10 @@ def _build_sequential_block(
         "current_boundary_z": round(current_boundary_z, 4) if current_boundary_z is not None else None,
         "note": (
             "O'Brien-Fleming sequential boundary at the current information fraction. A treatment "
-            "is sequential-significant only when |z| exceeds this (stricter early, ~nominal at the end)."
+            "is sequential-significant only when |z| exceeds this (stricter early, ~nominal at the end). "
+            "The boundary strictly controls alpha only at the pre-planned looks — reading this "
+            "repeatedly at arbitrary fractions is continuous peeking, so treat any between-look "
+            "crossing as provisional until a planned look."
         ),
     }
 
