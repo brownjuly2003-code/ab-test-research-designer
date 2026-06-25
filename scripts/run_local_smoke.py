@@ -1,22 +1,20 @@
 from __future__ import annotations
 
 import argparse
-from datetime import UTC, datetime
 import json
 import os
-from pathlib import Path
 import socket
 import subprocess
 import sys
 import time
+from datetime import UTC, datetime
+from pathlib import Path
 from urllib.error import URLError
 from urllib.request import urlopen
 
 from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
-from playwright.sync_api import expect
-from playwright.sync_api import sync_playwright
-
+from playwright.sync_api import expect, sync_playwright
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 FRONTEND_DIR = ROOT_DIR / "app" / "frontend"

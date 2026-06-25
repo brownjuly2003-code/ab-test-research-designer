@@ -1,9 +1,9 @@
 import csv
-from datetime import datetime, timezone
-from io import BytesIO, StringIO
-from html import escape
 import json
 import math
+from datetime import UTC, datetime
+from html import escape
+from io import BytesIO, StringIO
 from statistics import NormalDist
 from typing import Any
 
@@ -11,7 +11,10 @@ from openpyxl import Workbook
 
 from app.backend.app.i18n import translate
 from app.backend.app.schemas.api import StandaloneExportRequest
-from app.backend.app.services.pdf_service import _build_sensitivity_rows, generate_comparison_report_pdf
+from app.backend.app.services.pdf_service import (
+    _build_sensitivity_rows,
+    generate_comparison_report_pdf,
+)
 
 
 def _list_to_markdown(items: list[str]) -> str:
@@ -345,7 +348,7 @@ def build_standalone_html(request: StandaloneExportRequest) -> str:
     calculation = request.calculation
     results = calculation.get("results", {})
     summary = calculation.get("calculation_summary", {})
-    generated_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    generated_at = datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
     assumptions = calculation.get("assumptions", [])
     assumptions_html = "".join(f"<li>{_as_html(item)}</li>" for item in assumptions)
     key_metrics = [
@@ -885,7 +888,6 @@ def export_project_report_to_csv(project: dict[str, Any], analysis: dict[str, An
 
 def export_project_report_to_xlsx(project: dict[str, Any], analysis: dict[str, Any]) -> bytes:
     sections = _build_report_export_sections(project, analysis)
-    payload = project.get("payload", {})
     workbook = Workbook()
     summary_sheet = workbook.active
     summary_sheet.title = translate("export.project.summary_sheet")

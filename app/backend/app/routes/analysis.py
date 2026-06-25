@@ -4,8 +4,14 @@ from typing import TYPE_CHECKING, Any, cast
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.backend.app.errors import ApiError
+from app.backend.app.execution.bucketer import preview_assignment_distribution
+from app.backend.app.execution.experiment_assignment import build_experiment_assignment
 from app.backend.app.i18n import translate
-from app.backend.app.llm.adapter import LLMAuthError, LLMTransientError, LocalOrchestratorAdapter
+from app.backend.app.llm.adapter import (
+    LLMAuthError,
+    LLMTransientError,
+    LocalOrchestratorAdapter,
+)
 from app.backend.app.llm.anthropic_adapter import AnthropicAdapter
 from app.backend.app.llm.openai_adapter import OpenAIAdapter
 from app.backend.app.schemas.api import (
@@ -35,8 +41,6 @@ from app.backend.app.schemas.api import (
     SrmCheckRequest,
     SrmCheckResponse,
 )
-from app.backend.app.execution.bucketer import preview_assignment_distribution
-from app.backend.app.execution.experiment_assignment import build_experiment_assignment
 from app.backend.app.services.calculations_service import calculate_experiment_metrics
 from app.backend.app.services.design_service import build_experiment_report
 from app.backend.app.services.monte_carlo_service import simulate_thompson_sampling
@@ -253,7 +257,7 @@ def create_analysis_router(
                 rejected=rejected,
             )
             for metric, adjusted, rejected in zip(
-                payload.metrics, correction["adjusted_pvalues"], correction["rejected"]
+                payload.metrics, correction["adjusted_pvalues"], correction["rejected"], strict=True
             )
         ]
         return MultipleTestingResponse(

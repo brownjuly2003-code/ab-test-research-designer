@@ -1,6 +1,5 @@
 from app.backend.app.constants import MAX_RECOMMENDED_DURATION_DAYS
 
-
 WARNING_CATALOG = {
     "LONG_DURATION": {
         "severity": "high",

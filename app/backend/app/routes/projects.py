@@ -19,7 +19,10 @@ from app.backend.app.schemas.api import (
     ProjectRecord,
     ProjectRevisionHistoryResponse,
 )
-from app.backend.app.services.comparison_service import build_multi_project_comparison, build_project_comparison
+from app.backend.app.services.comparison_service import (
+    build_multi_project_comparison,
+    build_project_comparison,
+)
 from app.backend.app.services.export_service import (
     export_project_report_to_csv,
     export_project_report_to_xlsx,

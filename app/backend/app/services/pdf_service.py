@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from io import BytesIO
 from textwrap import fill
 from typing import Any
@@ -30,8 +30,8 @@ def _format_timestamp(value: str | None) -> str:
     except ValueError:
         return value
     if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=timezone.utc)
-    return parsed.astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+        parsed = parsed.replace(tzinfo=UTC)
+    return parsed.astimezone(UTC).strftime("%Y-%m-%d %H:%M UTC")
 
 
 def _format_value(value: object) -> str:
@@ -241,7 +241,7 @@ def generate_report_pdf(project: dict[str, Any], analysis: dict[str, Any], revis
         summary_fig.text(0.07, 0.815, f"Metric type: {metrics.get('metric_type', '-')}", fontsize=10)
         summary_fig.text(0.07, 0.79, f"Primary metric: {metrics.get('primary_metric_name', '-')}", fontsize=10)
         summary_fig.text(0.07, 0.765, f"MDE: {_format_value(calculations.get('calculation_summary', {}).get('mde_pct'))}%", fontsize=10)
-        summary_fig.text(0.07, 0.74, f"Test type: two-tailed (default)", fontsize=10)
+        summary_fig.text(0.07, 0.74, "Test type: two-tailed (default)", fontsize=10)
         variant_axis = summary_fig.add_axes((0.07, 0.12, 0.86, 0.54))
         variant_rows = [
             [

@@ -19,3 +19,18 @@ warn_unused_ignores = true
 # rather than scattering inline ignores at every call site.
 module = ["openpyxl.*"]
 ignore_missing_imports = true
+
+[tool.ruff]
+# Lint gate complementing the mypy --strict gate (run from verify_all). Line
+# length (E501) is intentionally NOT enforced: the codebase favours descriptive
+# long lines in SQL builders, comments and i18n strings, so enforcing a width
+# would be churn without signal. The selected families catch real issues only.
+target-version = "py313"
+
+[tool.ruff.lint]
+# F  = pyflakes (unused imports/vars, undefined names)
+# I  = import ordering (isort)
+# B  = flake8-bugbear (likely-bugs: zip-without-strict, mutable defaults, ...)
+# C4 = flake8-comprehensions (redundant/clearer comprehensions)
+# UP = pyupgrade (modern 3.13 idioms)
+select = ["F", "I", "B", "C4", "UP"]

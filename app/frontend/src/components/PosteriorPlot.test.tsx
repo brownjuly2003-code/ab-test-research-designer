@@ -56,11 +56,6 @@ describe("PosteriorPlot", () => {
     }
   });
 
-  it.skip("renders a shaded credibility interval overlay", async () => {
-    // TODO: moved — real recharts assertions require the file to NOT flat-mock recharts.
-    // See PosteriorPlot.integration.test.tsx for the restored assertion.
-  });
-
   it("renders without runtime warnings for valid posterior inputs", async () => {
     const view = await renderIntoDocument(
       <PosteriorPlot

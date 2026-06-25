@@ -40,7 +40,10 @@ from app.backend.app.services.results_service import (
     build_ratio_results_response,
 )
 from app.backend.app.stats import cuped, stratification
-from app.backend.app.stats.always_valid import default_mixture_variance, evaluate_always_valid
+from app.backend.app.stats.always_valid import (
+    default_mixture_variance,
+    evaluate_always_valid,
+)
 from app.backend.app.stats.ratio import compare_ratios, ratio_estimate
 from app.backend.app.stats.srm import chi_square_srm
 

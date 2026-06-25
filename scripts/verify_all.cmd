@@ -70,6 +70,10 @@ python "%ROOT_DIR%scripts\verify_workspace_backup.py" --fixture
 if errorlevel 1 exit /b %errorlevel%
 set "AB_WORKSPACE_SIGNING_KEY=%ORIGINAL_AB_WORKSPACE_SIGNING_KEY%"
 
+echo [verify] backend lint (ruff)
+python -m ruff check "%ROOT_DIR%app\backend\app" "%ROOT_DIR%scripts"
+if errorlevel 1 exit /b %errorlevel%
+
 echo [verify] backend type check (mypy --strict)
 python -m mypy
 if errorlevel 1 exit /b %errorlevel%
@@ -89,9 +93,9 @@ if "%WITH_COVERAGE%"=="1" (
 )
 if "%WITH_COVERAGE%"=="1" (
   if "%ARTIFACTS_DIR%"=="" (
-    python -m pytest "%ROOT_DIR%app\backend\tests" -q --cov=app/backend/app --cov-report=term --cov-report=json:"%BACKEND_COVERAGE_PATH%"
+    python -m pytest "%ROOT_DIR%app\backend\tests" -q --cov=app/backend/app --cov-report=term --cov-report=json:"%BACKEND_COVERAGE_PATH%" --cov-fail-under=88
   ) else (
-    python -m pytest "%ROOT_DIR%app\backend\tests" -q --junitxml "%BACKEND_JUNIT_PATH%" --cov=app/backend/app --cov-report=term --cov-report=json:"%BACKEND_COVERAGE_PATH%"
+    python -m pytest "%ROOT_DIR%app\backend\tests" -q --junitxml "%BACKEND_JUNIT_PATH%" --cov=app/backend/app --cov-report=term --cov-report=json:"%BACKEND_COVERAGE_PATH%" --cov-fail-under=88
   )
 ) else (
   if "%ARTIFACTS_DIR%"=="" (

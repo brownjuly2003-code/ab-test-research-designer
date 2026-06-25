@@ -3,8 +3,8 @@ from __future__ import annotations
 import argparse
 import copy
 import os
-from pathlib import Path
 import sys
+from pathlib import Path
 
 from fastapi.testclient import TestClient
 
@@ -12,7 +12,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.backend.app.config import get_settings
 from app.backend.app.main import create_app
-
 
 SAMPLE_PROJECTS = (
     {

@@ -1,9 +1,10 @@
 import hmac
 import logging
+import uuid
 from collections.abc import Callable
+from datetime import UTC
 from time import perf_counter
 from typing import TYPE_CHECKING, Any
-import uuid
 
 from fastapi import FastAPI, HTTPException, Request, Response, status
 from fastapi.encoders import jsonable_encoder
@@ -69,9 +70,9 @@ def register_http_runtime(
     Callable[[Request], None],
 ]:
     def record_runtime_response(status_code: int, error_code: str | None = None, *, auth_rejection: bool = False) -> None:
-        from datetime import datetime, timezone
+        from datetime import datetime
 
-        timestamp = datetime.now(timezone.utc).isoformat()
+        timestamp = datetime.now(UTC).isoformat()
         runtime_counters["total_requests"] += 1
         runtime_counters["last_request_at"] = timestamp
         if status_code >= 500:

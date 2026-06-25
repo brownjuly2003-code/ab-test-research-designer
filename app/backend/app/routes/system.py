@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -148,13 +148,13 @@ def create_system_router(
         response.status_code = status.HTTP_200_OK if ready else status.HTTP_503_SERVICE_UNAVAILABLE
         return ReadinessResponse(
             status="ready" if ready else "degraded",
-            generated_at=datetime.now(timezone.utc).isoformat(),
+            generated_at=datetime.now(UTC).isoformat(),
             checks=checks,
         )
 
     @router.get("/api/v1/diagnostics", response_model=DiagnosticsResponse)
     def diagnostics(request: Request) -> DiagnosticsResponse:
-        diagnostics_generated_at = datetime.now(timezone.utc)
+        diagnostics_generated_at = datetime.now(UTC)
         storage_summary = repository.get_diagnostics_summary()
         api_keys_enabled = repository.has_api_keys()
         write_api_keys_enabled = repository.has_active_api_keys(scope="write")

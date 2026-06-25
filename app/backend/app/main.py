@@ -1,15 +1,15 @@
 import asyncio
-from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
-from datetime import datetime, timezone
 import logging
 import os
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 from pathlib import Path
 
+import uvicorn
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import RequestResponseEndpoint
-import uvicorn
 
 from app.backend.app.config import get_settings
 from app.backend.app.frontend_routes import register_frontend_routes
@@ -19,24 +19,28 @@ from app.backend.app.http_runtime import (
     register_http_runtime,
 )
 from app.backend.app.http_utils import SlidingWindowRateLimiter, get_auth_mode
-from app.backend.app.i18n import reset_current_language, resolve_language, set_current_language
+from app.backend.app.i18n import (
+    reset_current_language,
+    resolve_language,
+    set_current_language,
+)
 from app.backend.app.logging_utils import configure_logging, log_event
 from app.backend.app.repository import ProjectRepository
-from app.backend.app.routes.audit import create_audit_router
 from app.backend.app.routes import analysis as analysis_routes
+from app.backend.app.routes.audit import create_audit_router
 from app.backend.app.routes.execution import create_execution_router
 from app.backend.app.routes.export import create_export_router
 from app.backend.app.routes.keys import create_keys_router
 from app.backend.app.routes.projects import create_projects_router
-from app.backend.app.routes.system import create_system_router
 from app.backend.app.routes.slack import create_slack_router
+from app.backend.app.routes.system import create_system_router
 from app.backend.app.routes.templates import create_templates_router
 from app.backend.app.routes.webhooks import create_webhooks_router
 from app.backend.app.routes.workspace import create_workspace_router
 from app.backend.app.services.design_service import build_experiment_report
 from app.backend.app.services.snapshot_service import SnapshotService
-from app.backend.app.startup_seed import seed_demo_workspace
 from app.backend.app.services.webhook_service import WebhookService
+from app.backend.app.startup_seed import seed_demo_workspace
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +48,7 @@ logger = logging.getLogger(__name__)
 def create_app() -> FastAPI:
     settings = get_settings()
     configure_logging(level=settings.log_level, log_format=settings.log_format)
-    started_at = datetime.now(timezone.utc)
+    started_at = datetime.now(UTC)
     repository = ProjectRepository(
         settings.database_url,
         busy_timeout_ms=settings.sqlite_busy_timeout_ms,
@@ -156,7 +160,7 @@ def create_app() -> FastAPI:
         if snapshot_service is not None:
             try:
                 await asyncio.wait_for(snapshot_service.push_snapshot(), timeout=10)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 logger.warning("snapshot: final push timed out")
             except Exception:
                 logger.warning("snapshot: final push failed", exc_info=True)
@@ -220,7 +224,10 @@ def create_app() -> FastAPI:
         runtime_counters=runtime_counters,
     )
     register_exception_handlers(app, logger=logger)
-    setattr(analysis_routes, "build_experiment_report", build_experiment_report)
+    # Intentional runtime injection seam: bind the report builder onto the routes
+    # module dynamically. Kept as setattr so it stays opaque to mypy --strict
+    # (no-implicit-reexport) — a direct assignment would couple to the import.
+    setattr(analysis_routes, "build_experiment_report", build_experiment_report)  # noqa: B010
     app.include_router(
         analysis_routes.create_analysis_router(
             settings,

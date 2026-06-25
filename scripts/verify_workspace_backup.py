@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import argparse
-from datetime import datetime, timezone
 import json
-from pathlib import Path
 import sys
 import uuid
+from datetime import UTC, datetime
+from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
@@ -108,7 +108,7 @@ def main() -> int:
         ROOT_DIR
         / "archive"
         / "verify-workspace-backup"
-        / f"{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}-{uuid.uuid4().hex[:8]}"
+        / f"{datetime.now(UTC).strftime('%Y%m%d-%H%M%S')}-{uuid.uuid4().hex[:8]}"
     )
     artifact_dir.mkdir(parents=True, exist_ok=True)
 

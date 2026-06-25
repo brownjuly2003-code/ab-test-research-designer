@@ -1,22 +1,22 @@
 import csv
-from datetime import datetime, timezone
-import hmac
 import hashlib
-from io import StringIO
+import hmac
 import json
-from pathlib import Path
 import secrets
 import shutil
 import sqlite3
+import uuid
+from datetime import UTC, datetime
+from io import StringIO
+from pathlib import Path
 from types import TracebackType
 from typing import Any, Protocol, cast
 from urllib.parse import unquote, urlparse
-import uuid
 
-from pydantic import ValidationError
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 from psycopg_pool import ConnectionPool
+from pydantic import ValidationError
 
 from app.backend.app.constants import MAX_CUPED_COVARIATES, MAX_STRATA
 from app.backend.app.errors import ApiError
@@ -606,7 +606,7 @@ class SQLiteBackend:
             ).fetchone()
             if existing_run is None:
                 run_id = row["last_analysis_run_id"] or str(uuid.uuid4())
-                created_at = row["last_analysis_at"] or datetime.now(timezone.utc).isoformat()
+                created_at = row["last_analysis_at"] or datetime.now(UTC).isoformat()
                 connection.execute(
                     """
                     INSERT INTO analysis_runs (id, project_id, analysis_json, created_at)
@@ -1012,7 +1012,7 @@ class SQLiteBackend:
 
     def create_project(self, payload: dict[str, Any]) -> dict[str, Any]:
         project_id = str(uuid.uuid4())
-        timestamp = datetime.now(timezone.utc).isoformat()
+        timestamp = datetime.now(UTC).isoformat()
         project_name = payload["project"]["project_name"]
 
         with self._connect() as connection:
@@ -1069,7 +1069,7 @@ class SQLiteBackend:
             raise ApiError("Project is archived", error_code="project_archived")
 
     def update_project(self, project_id: str, payload: dict[str, Any]) -> dict[str, Any] | None:
-        timestamp = datetime.now(timezone.utc).isoformat()
+        timestamp = datetime.now(UTC).isoformat()
         project_name = payload["project"]["project_name"]
 
         with self._connect() as connection:
@@ -1097,7 +1097,7 @@ class SQLiteBackend:
         return self.get_project(project_id, include_archived=True)
 
     def record_analysis(self, project_id: str, analysis_payload: dict[str, Any]) -> dict[str, Any] | None:
-        timestamp = datetime.now(timezone.utc).isoformat()
+        timestamp = datetime.now(UTC).isoformat()
         analysis_run_id = str(uuid.uuid4())
 
         with self._connect() as connection:
@@ -1125,7 +1125,7 @@ class SQLiteBackend:
         return self.get_project(project_id, include_archived=True)
 
     def record_export(self, project_id: str, export_format: str, analysis_run_id: str | None = None) -> dict[str, Any] | None:
-        timestamp = datetime.now(timezone.utc).isoformat()
+        timestamp = datetime.now(UTC).isoformat()
         export_event_id = str(uuid.uuid4())
 
         with self._connect() as connection:
@@ -1175,7 +1175,7 @@ class SQLiteBackend:
         bot_token: str,
         user_token: str | None = None,
     ) -> dict[str, Any]:
-        timestamp = datetime.now(timezone.utc).isoformat()
+        timestamp = datetime.now(UTC).isoformat()
         with self._connect() as connection:
             connection.execute(
                 """
@@ -1249,7 +1249,7 @@ class SQLiteBackend:
         tags: list[str],
         payload: dict[str, Any],
     ) -> dict[str, Any]:
-        timestamp = datetime.now(timezone.utc).isoformat()
+        timestamp = datetime.now(UTC).isoformat()
         with self._connect() as connection:
             connection.execute(
                 """
@@ -1341,7 +1341,7 @@ class SQLiteBackend:
         )
 
     def use_template(self, template_id: str) -> dict[str, Any] | None:
-        timestamp = datetime.now(timezone.utc).isoformat()
+        timestamp = datetime.now(UTC).isoformat()
         with self._connect() as connection:
             cursor = connection.execute(
                 """
@@ -1435,7 +1435,7 @@ class SQLiteBackend:
         api_key_id = str(uuid.uuid4())
         plaintext_key = f"abk_{secrets.token_urlsafe(32)}"
         key_hash = self.build_api_key_hash(plaintext_key)
-        created_at = datetime.now(timezone.utc).isoformat()
+        created_at = datetime.now(UTC).isoformat()
 
         with self._connect() as connection:
             connection.execute(
@@ -1501,7 +1501,7 @@ class SQLiteBackend:
         }
 
     def revoke_api_key(self, api_key_id: str) -> dict[str, Any] | None:
-        timestamp = datetime.now(timezone.utc).isoformat()
+        timestamp = datetime.now(UTC).isoformat()
         with self._connect() as connection:
             cursor = connection.execute(
                 """
@@ -1573,7 +1573,7 @@ class SQLiteBackend:
             raise ApiError("api_key_id is not allowed for global scope", error_code="webhook_scope_invalid")
 
         subscription_id = str(uuid.uuid4())
-        timestamp = datetime.now(timezone.utc).isoformat()
+        timestamp = datetime.now(UTC).isoformat()
         normalized_event_filter = [value for value in event_filter if value]
 
         with self._connect() as connection:
@@ -1706,7 +1706,7 @@ class SQLiteBackend:
         if not updates:
             return self.get_webhook_subscription(subscription_id)
 
-        timestamp = datetime.now(timezone.utc).isoformat()
+        timestamp = datetime.now(UTC).isoformat()
         updates.append("updated_at = ?")
         params.append(timestamp)
         params.append(subscription_id)
@@ -1845,7 +1845,7 @@ class SQLiteBackend:
         response_body: str | None = None,
         error_message: str | None = None,
     ) -> dict[str, Any] | None:
-        timestamp = datetime.now(timezone.utc).isoformat()
+        timestamp = datetime.now(UTC).isoformat()
         truncated_body = response_body[:2048] if response_body else None
 
         with self._connect() as connection:
@@ -1946,7 +1946,7 @@ class SQLiteBackend:
 
     def authenticate_api_key(self, plaintext_key: str) -> dict[str, Any] | None:
         key_hash = self.build_api_key_hash(plaintext_key)
-        last_used_at = datetime.now(timezone.utc).isoformat()
+        last_used_at = datetime.now(UTC).isoformat()
         with self._connect() as connection:
             row = connection.execute(
                 """
@@ -2003,7 +2003,7 @@ class SQLiteBackend:
         ts: str | None = None,
         dispatch_webhooks: bool = True,
     ) -> dict[str, Any]:
-        timestamp = ts or datetime.now(timezone.utc).isoformat()
+        timestamp = ts or datetime.now(UTC).isoformat()
         with self._connect() as connection:
             cursor = connection.execute(
                 """
@@ -2387,7 +2387,7 @@ class SQLiteBackend:
 
         bundle = {
             "schema_version": self.workspace_schema_version,
-            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "generated_at": datetime.now(UTC).isoformat(),
             "projects": [self._project_row_to_workspace_record(row) for row in project_rows],
             "analysis_runs": [self._analysis_row_to_workspace_record(row) for row in analysis_rows],
             "export_events": [self._export_row_to_record(row) for row in export_rows],
@@ -2711,7 +2711,7 @@ class SQLiteBackend:
         }
 
     def archive_project(self, project_id: str) -> dict[str, Any] | None:
-        timestamp = datetime.now(timezone.utc).isoformat()
+        timestamp = datetime.now(UTC).isoformat()
         with self._connect() as connection:
             if not self._project_exists(connection, project_id):
                 return None
@@ -2757,7 +2757,7 @@ class SQLiteBackend:
         }
 
     def restore_project(self, project_id: str) -> dict[str, Any] | None:
-        timestamp = datetime.now(timezone.utc).isoformat()
+        timestamp = datetime.now(UTC).isoformat()
 
         with self._connect() as connection:
             if not self._project_exists(connection, project_id):
@@ -2786,7 +2786,7 @@ class SQLiteBackend:
         same user is dropped, so the variation a user first saw stays sticky. Duplicate
         exposures would otherwise inflate one arm's count and manufacture a false SRM.
         """
-        timestamp = datetime.now(timezone.utc).isoformat()
+        timestamp = datetime.now(UTC).isoformat()
         recorded = 0
         with self._connect() as connection:
             self._ensure_project_active(connection, experiment_id)
@@ -2814,7 +2814,7 @@ class SQLiteBackend:
         """Record conversion events. When an ``idempotency_key`` is supplied, retries with
         the same key are deduped per experiment; events without a key are always recorded
         (NULLs are distinct in the UNIQUE index on both SQLite and Postgres)."""
-        timestamp = datetime.now(timezone.utc).isoformat()
+        timestamp = datetime.now(UTC).isoformat()
         recorded = 0
         with self._connect() as connection:
             self._ensure_project_active(connection, experiment_id)
@@ -2849,7 +2849,7 @@ class SQLiteBackend:
         Each item may carry a ``covariate_name``; single-covariate ingestion omits it and lands
         under the reserved ``__default__`` name, so the legacy one-covariate path is unchanged.
         """
-        timestamp = datetime.now(timezone.utc).isoformat()
+        timestamp = datetime.now(UTC).isoformat()
         recorded = 0
         with self._connect() as connection:
             self._ensure_project_active(connection, experiment_id)
@@ -2882,7 +2882,7 @@ class SQLiteBackend:
         NOTHING``: the stratum is an assignment-time attribute (platform / country / new-vs-returning),
         so a later value for the same user is dropped, mirroring the first-exposure-wins exposure store.
         """
-        timestamp = datetime.now(timezone.utc).isoformat()
+        timestamp = datetime.now(UTC).isoformat()
         recorded = 0
         with self._connect() as connection:
             self._ensure_project_active(connection, experiment_id)
@@ -4012,7 +4012,7 @@ class PostgresBackend(SQLiteBackend):
         ts: str | None = None,
         dispatch_webhooks: bool = True,
     ) -> dict[str, Any]:
-        timestamp = ts or datetime.now(timezone.utc).isoformat()
+        timestamp = ts or datetime.now(UTC).isoformat()
         with self._connect() as connection:
             row = connection.execute(
                 """

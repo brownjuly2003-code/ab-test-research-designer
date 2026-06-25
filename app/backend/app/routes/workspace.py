@@ -3,7 +3,11 @@ from typing import TYPE_CHECKING
 
 from fastapi import APIRouter, Depends, Request
 
-from app.backend.app.schemas.api import WorkspaceBundle, WorkspaceImportResponse, WorkspaceValidationResponse
+from app.backend.app.schemas.api import (
+    WorkspaceBundle,
+    WorkspaceImportResponse,
+    WorkspaceValidationResponse,
+)
 
 if TYPE_CHECKING:
     from app.backend.app.config import Settings

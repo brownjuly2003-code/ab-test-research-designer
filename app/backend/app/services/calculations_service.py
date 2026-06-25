@@ -2,11 +2,12 @@ import math
 from typing import Any
 
 from app.backend.app.constants import MAX_SUPPORTED_VARIANTS
-from app.backend.app.stats.binary import calculate_binary_sample_size
+from app.backend.app.rules.engine import evaluate_warnings
 from app.backend.app.stats.bayesian import (
     bayesian_sample_size_binary,
     bayesian_sample_size_continuous,
 )
+from app.backend.app.stats.binary import calculate_binary_sample_size
 from app.backend.app.stats.continuous import (
     calculate_continuous_sample_size,
     calculate_cuped_theta,
@@ -17,7 +18,6 @@ from app.backend.app.stats.sequential import (
     obrien_fleming_boundaries,
     sequential_sample_size_inflation,
 )
-from app.backend.app.rules.engine import evaluate_warnings
 
 
 def _validate_variant_configuration(variants_count: int, traffic_split: list[int]) -> None:
