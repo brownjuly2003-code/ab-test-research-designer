@@ -590,6 +590,17 @@ export type IngestionSummaryResponse = {
   conversion_counts: ConversionCountBucket[];
 };
 
+export type LiveAlwaysValidBlock = {
+  status: string;
+  always_valid_p_value?: number | null;
+  confidence_level?: number | null;
+  ci_sequence_lower?: number | null;
+  ci_sequence_upper?: number | null;
+  is_significant?: boolean | null;
+  mixture_variance?: number | null;
+  note?: string | null;
+};
+
 export type LiveArmStat = {
   variation_index: number;
   exposed_users: number;
@@ -607,6 +618,7 @@ export type LiveComparison = {
   analysis?: ResultsResponse | null;
   probability_treatment_beats_control?: number | null;
   sequential_significant?: boolean | null;
+  always_valid?: LiveAlwaysValidBlock | null;
   note?: string | null;
 };
 

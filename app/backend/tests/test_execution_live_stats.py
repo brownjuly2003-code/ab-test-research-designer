@@ -312,6 +312,76 @@ def test_live_stats_two_arm_keeps_nominal_alpha() -> None:
     assert comparison["note"] is None
 
 
+# --- service: always-valid (mSPRT) ----------------------------------------------------
+
+
+def test_live_stats_binary_comparison_includes_always_valid_block() -> None:
+    result = build_live_stats(
+        "e", _binary_design(), _aggregates(_arm(0, 5000, 500), _arm(1, 5000, 650))
+    )
+    block = result["comparisons"][0]["always_valid"]
+    assert block is not None
+    assert block["status"] == "ok"
+    assert 0.0 <= block["always_valid_p_value"] <= 1.0
+    assert block["ci_sequence_lower"] < block["ci_sequence_upper"]
+    assert block["confidence_level"] == 0.95  # two-arm: nominal alpha
+    # tau^2 from the design MDE: baseline 0.10 * 5% relative = 0.005 absolute -> tau^2 = 2.5e-5.
+    assert abs(block["mixture_variance"] - 2.5e-5) < 1e-9
+
+
+def test_live_stats_continuous_comparison_includes_always_valid_block() -> None:
+    result = build_live_stats(
+        "e",
+        _continuous_design(),
+        _aggregates(
+            _arm(0, 50, 50, value_sum=2250.0, value_sq_sum=108000.0),
+            _arm(1, 50, 50, value_sum=2400.0, value_sq_sum=123000.0),
+        ),
+    )
+    block = result["comparisons"][0]["always_valid"]
+    assert block is not None
+    assert block["status"] == "ok"
+    assert block["ci_sequence_lower"] < block["ci_sequence_upper"]
+
+
+def test_live_stats_always_valid_flags_clear_effect_and_excludes_zero() -> None:
+    # A large, unambiguous lift (10% -> 14% on 5000/arm) should be anytime-significant, and the
+    # confidence sequence must exclude zero in agreement with that verdict (test/CS duality).
+    result = build_live_stats(
+        "e", _binary_design(), _aggregates(_arm(0, 5000, 500), _arm(1, 5000, 700))
+    )
+    block = result["comparisons"][0]["always_valid"]
+    assert block["is_significant"] is True
+    assert block["ci_sequence_lower"] > 0  # whole sequence above zero
+    assert block["always_valid_p_value"] < 0.05
+
+
+def test_live_stats_always_valid_not_significant_without_effect() -> None:
+    # Identical arms: no effect -> always-valid p clamps to 1, sequence straddles zero.
+    result = build_live_stats(
+        "e", _binary_design(), _aggregates(_arm(0, 5000, 500), _arm(1, 5000, 500))
+    )
+    block = result["comparisons"][0]["always_valid"]
+    assert block["is_significant"] is False
+    assert block["always_valid_p_value"] == 1.0
+    assert block["ci_sequence_lower"] < 0 < block["ci_sequence_upper"]
+
+
+def test_live_stats_always_valid_is_fwer_consistent_in_multi_arm() -> None:
+    # Three variants -> each comparison runs at alpha/2 = 0.025, so the anytime-valid sequence uses
+    # the same FWER-adjusted level (0.975) as the frequentist CI. Guards the multi-arm path.
+    design = _binary_design()
+    design["setup"]["traffic_split"] = [34, 33, 33]
+    design["setup"]["variants_count"] = 3
+    result = build_live_stats(
+        "e",
+        design,
+        _aggregates(_arm(0, 4000, 400), _arm(1, 4000, 480), _arm(2, 4000, 360)),
+    )
+    for comparison in result["comparisons"]:
+        assert comparison["always_valid"]["confidence_level"] == 0.975
+
+
 # --- service: sequential + CUPED ------------------------------------------------------
 
 
