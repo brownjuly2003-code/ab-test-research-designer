@@ -10,6 +10,7 @@ from pathlib import Path
 import sys
 import uuid
 
+import pytest
 from fastapi.testclient import TestClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
@@ -119,6 +120,31 @@ def _cuped_aggregates(*arms: dict) -> dict:
     return {"experiment_id": "e", "metric_name": "aov", "variations": list(arms)}
 
 
+def _ratio_design(*, n_looks: int = 1) -> dict:
+    design = _binary_design(n_looks=n_looks)
+    design["metrics"] = {
+        "primary_metric_name": "ctr",
+        "metric_type": "ratio",
+        "numerator_metric_name": "clicks",
+        "denominator_metric_name": "impressions",
+        "baseline_value": 0.2,
+        "mde_pct": 5,
+        "alpha": 0.05,
+        "power": 0.8,
+    }
+    return design
+
+
+def _ratio_aggregates(*arms: dict) -> dict:
+    # arms reuse the CUPED sufficient-statistics shape (x = denominator, y = numerator).
+    return {
+        "experiment_id": "e",
+        "numerator_metric": "clicks",
+        "denominator_metric": "impressions",
+        "variations": list(arms),
+    }
+
+
 # --- repository: analysis aggregates --------------------------------------------------
 
 
@@ -173,6 +199,87 @@ def test_analysis_aggregates_empty_for_fresh_experiment() -> None:
     exp = _project(repo)
     aggregates = repo.get_experiment_analysis_aggregates(exp, "purchase")
     assert aggregates == {"experiment_id": exp, "metric_name": "purchase", "variations": []}
+
+
+# --- repository: ratio aggregates (F2) ------------------------------------------------
+
+
+def test_ratio_aggregates_rolls_up_numerator_and_denominator_per_user() -> None:
+    repo = _repo()
+    exp = _project(repo)
+    repo.record_exposures(
+        exp,
+        [
+            {"user_id": "u1", "variation_index": 0},
+            {"user_id": "u2", "variation_index": 0},
+            {"user_id": "u3", "variation_index": 1},
+            {"user_id": "uH", "variation_index": -1},  # holdout — excluded from the arms
+        ],
+    )
+    repo.record_conversions(
+        exp,
+        [
+            # u1: 2 clicks over 10 impressions; u2: 1 click over 20 impressions.
+            {"user_id": "u1", "metric": "clicks", "value": 2.0},
+            {"user_id": "u1", "metric": "impressions", "value": 10.0},
+            {"user_id": "u2", "metric": "clicks", "value": 1.0},
+            {"user_id": "u2", "metric": "impressions", "value": 20.0},
+            {"user_id": "u2", "metric": "other", "value": 99.0},  # unrelated metric -> ignored
+            {"user_id": "u3", "metric": "clicks", "value": 5.0},
+            {"user_id": "u3", "metric": "impressions", "value": 50.0},
+            {"user_id": "uH", "metric": "clicks", "value": 100.0},  # holdout -> excluded
+        ],
+    )
+
+    aggregates = repo.get_ratio_aggregates(exp, "clicks", "impressions")
+    assert aggregates is not None
+    assert aggregates["numerator_metric"] == "clicks"
+    assert aggregates["denominator_metric"] == "impressions"
+    by_index = {arm["variation_index"]: arm for arm in aggregates["variations"]}
+
+    # arm 0: u1 (x=10, y=2), u2 (x=20, y=1)
+    assert by_index[0]["n"] == 2
+    assert by_index[0]["sum_x"] == 30.0  # 10 + 20
+    assert by_index[0]["sum_y"] == 3.0  # 2 + 1
+    assert by_index[0]["sum_x2"] == 500.0  # 100 + 400
+    assert by_index[0]["sum_y2"] == 5.0  # 4 + 1
+    assert by_index[0]["sum_xy"] == 40.0  # 10*2 + 20*1
+    # arm 1: u3 (x=50, y=5)
+    assert by_index[1]["n"] == 1
+    assert by_index[1]["sum_xy"] == 250.0  # 50*5
+    assert -1 not in by_index  # holdout never appears
+
+
+def test_ratio_aggregates_counts_exposed_users_without_events() -> None:
+    # Every exposed user is the analysis unit; one with no numerator/denominator events
+    # contributes (x=0, y=0) and still counts toward n (it is not dropped).
+    repo = _repo()
+    exp = _project(repo)
+    repo.record_exposures(
+        exp,
+        [
+            {"user_id": "u1", "variation_index": 0},
+            {"user_id": "u2", "variation_index": 0},  # no conversions -> (x=0, y=0)
+        ],
+    )
+    repo.record_conversions(
+        exp,
+        [
+            {"user_id": "u1", "metric": "clicks", "value": 3.0},
+            {"user_id": "u1", "metric": "impressions", "value": 12.0},
+        ],
+    )
+    aggregates = repo.get_ratio_aggregates(exp, "clicks", "impressions")
+    assert aggregates is not None
+    by_index = {arm["variation_index"]: arm for arm in aggregates["variations"]}
+    assert by_index[0]["n"] == 2  # both exposed users count
+    assert by_index[0]["sum_x"] == 12.0
+    assert by_index[0]["sum_y"] == 3.0
+
+
+def test_ratio_aggregates_none_for_unknown_experiment() -> None:
+    repo = _repo()
+    assert repo.get_ratio_aggregates("missing", "clicks", "impressions") is None
 
 
 # --- service: SRM guardrail -----------------------------------------------------------
@@ -265,6 +372,97 @@ def test_live_stats_continuous_comparison_has_frequentist_and_bayesian() -> None
     prob = comparison["probability_treatment_beats_control"]
     assert 0.0 <= prob <= 1.0
     assert prob > 0.5  # treatment mean 45 > control mean 25
+
+
+# --- service: ratio metrics (F2, delta method) ----------------------------------------
+
+# Denominators (impressions) shared across arms; numerators (clicks) chosen so control ratio
+# ≈ 0.20 and treatment ≈ 0.30, with per-user scatter so the delta-method variance is non-zero.
+_RATIO_DEN = [10.0, 20.0, 30.0, 40.0, 50.0, 60.0]
+_RATIO_NUM_CONTROL = [1.0, 5.0, 5.0, 9.0, 12.0, 10.0]  # sum 42 / 210 = 0.20
+_RATIO_NUM_TREATMENT = [2.0, 7.0, 9.0, 12.0, 17.0, 16.0]  # sum 63 / 210 = 0.30
+
+
+def test_live_stats_ratio_runs_delta_method_and_always_valid() -> None:
+    result = build_live_stats(
+        "e",
+        _ratio_design(),
+        _aggregates(_arm(0, 6, 0), _arm(1, 6, 0)),
+        ratio_aggregates=_ratio_aggregates(
+            _cuped_arm(0, _RATIO_DEN, _RATIO_NUM_CONTROL),
+            _cuped_arm(1, _RATIO_DEN, _RATIO_NUM_TREATMENT),
+        ),
+    )
+    assert result["metric_type"] == "ratio"
+    comparison = result["comparisons"][0]
+    assert comparison["status"] == "ok"
+    assert comparison["treatment_index"] == 1
+    assert comparison["control"]["ratio"] == pytest.approx(0.20, abs=1e-6)
+    assert comparison["treatment"]["ratio"] == pytest.approx(0.30, abs=1e-6)
+    assert comparison["analysis"]["metric_type"] == "ratio"
+    assert comparison["analysis"]["observed_effect"] == pytest.approx(0.10, abs=1e-6)
+    # The anytime-valid (mSPRT) view is computed over the same ratio difference.
+    assert comparison["always_valid"]["status"] in ("ok", "not_evaluable")
+    # Bayesian P(B>A) is not provided for ratio metrics in the MVP.
+    assert comparison["probability_treatment_beats_control"] is None
+    # CUPED routes through the continuous estimator, so it does not apply to a ratio metric.
+    assert result["cuped"]["status"] == "not_applicable"
+
+
+def test_live_stats_ratio_insufficient_when_arm_too_small() -> None:
+    result = build_live_stats(
+        "e",
+        _ratio_design(),
+        _aggregates(_arm(0, 1, 0), _arm(1, 1, 0)),
+        ratio_aggregates=_ratio_aggregates(
+            _cuped_arm(0, [10.0], [2.0]),
+            _cuped_arm(1, [10.0], [3.0]),
+        ),
+    )
+    comparison = result["comparisons"][0]
+    assert comparison["status"] == "insufficient_data"
+    assert comparison["analysis"] is None
+    assert comparison["control"]["ratio"] is None
+
+
+def test_live_stats_ratio_multi_arm_uses_bonferroni() -> None:
+    design = _ratio_design()
+    design["setup"]["variants_count"] = 3
+    design["setup"]["traffic_split"] = [34, 33, 33]
+    result = build_live_stats(
+        "e",
+        design,
+        _aggregates(_arm(0, 6, 0), _arm(1, 6, 0), _arm(2, 6, 0)),
+        ratio_aggregates=_ratio_aggregates(
+            _cuped_arm(0, _RATIO_DEN, _RATIO_NUM_CONTROL),
+            _cuped_arm(1, _RATIO_DEN, _RATIO_NUM_TREATMENT),
+            _cuped_arm(2, _RATIO_DEN, _RATIO_NUM_TREATMENT),
+        ),
+    )
+    comparisons = result["comparisons"]
+    assert len(comparisons) == 2
+    for comparison in comparisons:
+        if comparison["status"] == "ok":
+            # Bonferroni alpha = 0.05 / 2 comparisons = 0.025 -> CI level 0.975.
+            assert comparison["analysis"]["ci_level"] == pytest.approx(0.975)
+            assert "Bonferroni" in (comparison["note"] or "")
+
+
+def test_live_stats_ratio_sequential_does_not_crash_with_multiple_looks() -> None:
+    # Ratio sizing is a later sub-phase; calculate_experiment_metrics rejects metric_type "ratio".
+    # The sequential block must degrade to insufficient_data, not crash the whole live read.
+    result = build_live_stats(
+        "e",
+        _ratio_design(n_looks=4),
+        _aggregates(_arm(0, 6, 0), _arm(1, 6, 0)),
+        ratio_aggregates=_ratio_aggregates(
+            _cuped_arm(0, _RATIO_DEN, _RATIO_NUM_CONTROL),
+            _cuped_arm(1, _RATIO_DEN, _RATIO_NUM_TREATMENT),
+        ),
+    )
+    assert result["sequential"]["status"] == "insufficient_data"
+    # The primary comparison still computed fine.
+    assert result["comparisons"][0]["status"] == "ok"
 
 
 def test_live_stats_multi_arm_compares_each_treatment_to_control() -> None:

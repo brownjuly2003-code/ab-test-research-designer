@@ -54,8 +54,21 @@ if TYPE_CHECKING:
 
 
 def _build_calculation_payload(payload: ExperimentInput) -> CalculationRequest:
+    metric_type = payload.metrics.metric_type
+    if metric_type == "ratio":
+        # Sample-size planning for ratio metrics (delta-method power) is a later sub-phase. A ratio
+        # experiment is analyzed live (stats.ratio over ingested numerator/denominator events), not
+        # through the planning calculator, so reject the planning path with a clear message rather
+        # than feed an unsupported metric_type into the calculator.
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "Sample-size planning is not available for ratio metrics yet. Run the experiment "
+                "and read its live execution stats (delta method) to analyze a ratio metric."
+            ),
+        )
     return CalculationRequest(
-        metric_type=payload.metrics.metric_type,
+        metric_type=metric_type,
         baseline_value=payload.metrics.baseline_value,
         std_dev=payload.metrics.std_dev,
         cuped_pre_experiment_std=payload.metrics.cuped_pre_experiment_std,

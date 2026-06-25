@@ -92,12 +92,29 @@ def create_execution_router(
         project = repository.get_project(experiment_id, include_archived=True)
         if project is None:
             raise HTTPException(status_code=404, detail="Experiment not found")
-        metric_name = project["payload"].get("metrics", {}).get("primary_metric_name", "")
+        metrics = project["payload"].get("metrics", {})
+        metric_name = metrics.get("primary_metric_name", "")
         aggregates = repository.get_experiment_analysis_aggregates(experiment_id, metric_name)
         if aggregates is None:
             raise HTTPException(status_code=404, detail="Experiment not found")
         cuped_aggregates = repository.get_cuped_aggregates(experiment_id, metric_name)
-        return build_live_stats(experiment_id, project["payload"], aggregates, cuped_aggregates)
+        # Ratio metrics (R = numerator/denominator) roll up two ingested conversion metrics per
+        # user; the executor reads them only when the design's metric_type is "ratio".
+        ratio_aggregates = None
+        if metrics.get("metric_type") == "ratio":
+            numerator = metrics.get("numerator_metric_name")
+            denominator = metrics.get("denominator_metric_name")
+            if numerator and denominator:
+                ratio_aggregates = repository.get_ratio_aggregates(
+                    experiment_id, numerator, denominator
+                )
+        return build_live_stats(
+            experiment_id,
+            project["payload"],
+            aggregates,
+            cuped_aggregates,
+            ratio_aggregates,
+        )
 
     @router.get(
         "/api/v1/experiments/{experiment_id}/live-stats",

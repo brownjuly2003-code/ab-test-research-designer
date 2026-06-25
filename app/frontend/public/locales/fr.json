@@ -763,6 +763,7 @@
       "comparisonPending": "Pas encore assez de données pour un test.",
       "armExposures": "{{exposed}} exposés · {{converted}} convertis",
       "armMean": "moyenne {{mean}} ± {{std}}",
+      "armRatio": "{{exposed}} exposés · ratio {{ratio}}",
       "significant": "Significatif",
       "notSignificant": "Non significatif",
       "effectLine": "Effet {{effect}} · IC [{{lower}}, {{upper}}] · p {{p}}",

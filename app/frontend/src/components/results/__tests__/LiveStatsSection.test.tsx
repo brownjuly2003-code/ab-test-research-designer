@@ -127,6 +127,53 @@ const cupedAvailableResponse = {
   }
 };
 
+const ratioResponse = {
+  ...liveStatsResponse,
+  metric_type: "ratio",
+  primary_metric_name: "ctr",
+  comparisons: [
+    {
+      treatment_index: 1,
+      status: "ok",
+      control: { variation_index: 0, exposed_users: 500, converted_users: 0, ratio: 0.2 },
+      treatment: { variation_index: 1, exposed_users: 500, converted_users: 0, ratio: 0.3 },
+      analysis: {
+        metric_type: "ratio",
+        observed_effect: 0.1,
+        observed_effect_relative: 50.0,
+        control_rate: null,
+        treatment_rate: null,
+        ci_lower: 0.05,
+        ci_upper: 0.15,
+        ci_level: 0.95,
+        p_value: 0.0009,
+        test_statistic: 3.3,
+        is_significant: true,
+        power_achieved: 0.92,
+        verdict: "Statistically significant uplift",
+        interpretation: "Treatment ratio beats control."
+      },
+      probability_treatment_beats_control: null,
+      sequential_significant: null,
+      always_valid: {
+        status: "ok",
+        always_valid_p_value: 0.01,
+        confidence_level: 0.95,
+        ci_sequence_lower: 0.02,
+        ci_sequence_upper: 0.18,
+        is_significant: true,
+        mixture_variance: 0.0001,
+        note: "Anytime-valid mSPRT view."
+      },
+      note: null
+    }
+  ],
+  cuped: {
+    status: "not_applicable",
+    note: "Live CUPED applies to continuous metrics."
+  }
+};
+
 describe("LiveStatsSection", () => {
   beforeEach(() => {
     resetResultsStores();
@@ -212,6 +259,29 @@ describe("LiveStatsSection", () => {
       expect(text).toContain("pre-period covariate"); // cupedCoverage line
       expect(text).toContain("adjusted mean"); // cupedArmLine
       expect(text).toContain("Adjusted effect"); // cupedAdjustedEffect line
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("renders ratio arms and the delta-method comparison", async () => {
+    const fetchMock = vi.fn(async (..._args: unknown[]) => ({ ok: true, json: async () => ratioResponse }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const view = await renderIntoDocument(<LiveStatsSection />);
+    try {
+      await flushEffects();
+      await click(findButton(view.container, "Refresh live stats"));
+      await flushEffects();
+      await flushEffects();
+
+      const text = view.container.textContent ?? "";
+      expect(text).toContain("ratio 0.2000"); // control arm ratio R̂
+      expect(text).toContain("ratio 0.3000"); // treatment arm ratio R̂
+      expect(text).toContain("Significant");
+      expect(text).toContain("Effect 0.1000"); // delta-method ratio difference
+      // Bayesian P(B>A) is not shown for ratio metrics.
+      expect(text).not.toContain("P(treatment beats control)");
     } finally {
       await view.unmount();
     }

@@ -35,6 +35,10 @@ export const FIELD_TOOLTIPS: Record<string, string> = {
     "Credibility level for the Bayesian interval. 0.95 corresponds to a 95% credible interval.",
   std_dev:
     "Standard deviation of the continuous metric. Required only for continuous metrics; example: 12.5 for average order value.",
+  numerator_metric_name:
+    "Numerator event for a ratio metric (e.g. clicks for click-through rate). Ingest it as a conversion metric of this name; the live delta-method test reads it per user.",
+  denominator_metric_name:
+    "Denominator event for a ratio metric (e.g. impressions for click-through rate). Ingest it as a separate conversion metric; the ratio is sum(numerator)/sum(denominator) per arm.",
   holdout_fraction:
     "Global holdout: share of traffic kept out of every experiment as a clean control. Leave empty for none, or use 0.1 for a 10% holdout. Reduces the traffic this test receives, so the duration grows; sample size is unchanged.",
   mutually_exclusive_experiments:
@@ -127,7 +131,8 @@ export const sections: SectionConfig[] = [
         key: "metric_type",
         options: [
           { label: "Binary", value: "binary" },
-          { label: "Continuous", value: "continuous" }
+          { label: "Continuous", value: "continuous" },
+          { label: "Ratio", value: "ratio" }
         ]
       },
       {
@@ -156,6 +161,18 @@ export const sections: SectionConfig[] = [
         emptyValue: "",
         visibleWhen: (state) => state.metrics.metric_type === "continuous",
         helpText: FIELD_TOOLTIPS.std_dev
+      },
+      {
+        label: "Numerator metric",
+        key: "numerator_metric_name",
+        visibleWhen: (state) => state.metrics.metric_type === "ratio",
+        helpText: FIELD_TOOLTIPS.numerator_metric_name
+      },
+      {
+        label: "Denominator metric",
+        key: "denominator_metric_name",
+        visibleWhen: (state) => state.metrics.metric_type === "ratio",
+        helpText: FIELD_TOOLTIPS.denominator_metric_name
       },
       { label: "Secondary metrics", key: "secondary_metrics", kind: "textarea", fullWidth: true },
       { label: "Guardrail metrics", key: "guardrail_metrics", kind: "textarea", fullWidth: true }

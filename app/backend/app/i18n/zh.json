@@ -284,6 +284,7 @@
     "interpretation": {
       "binary": "实验组转化率 {{treatment}}% 对照组 {{control}}%。绝对效应 {{effect}} 个百分点，{{ciLevel}}% 置信区间 [{{ciLower}}, {{ciUpper}}] 个百分点。双侧 p 值 {{pValue}}；结果{{significance}}。",
       "continuous": "实验组均值 {{treatmentMean}} 对照组 {{controlMean}}。效应 {{effect}}，{{ciLevel}}% 置信区间 [{{ciLower}}, {{ciUpper}}]。双侧 p 值 {{pValue}}。",
+      "ratio": "实验组比率 {{treatmentRatio}} 对照组 {{controlRatio}}。绝对效应 {{effect}}，{{ciLevel}}% 置信区间 [{{ciLower}}, {{ciUpper}}]。双侧 p 值 {{pValue}}（delta 方法）；结果{{significance}}。",
       "degenerate": "观测输入退化，无法计算检验统计量。"
     }
   }

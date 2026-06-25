@@ -608,6 +608,7 @@ export type LiveArmStat = {
   conversion_rate?: number | null;
   mean?: number | null;
   std?: number | null;
+  ratio?: number | null;
 };
 
 export type LiveComparison = {
@@ -711,7 +712,7 @@ export type MetricPValue = {
 
 export type MetricsConfig = {
   primary_metric_name: string;
-  metric_type: "binary" | "continuous";
+  metric_type: "binary" | "continuous" | "ratio";
   baseline_value: number;
   expected_uplift_pct?: number | null;
   mde_pct: number;
@@ -720,6 +721,8 @@ export type MetricsConfig = {
   std_dev?: number | null;
   cuped_pre_experiment_std?: number | null;
   cuped_correlation?: number | null;
+  numerator_metric_name?: string | null;
+  denominator_metric_name?: string | null;
   secondary_metrics?: string[];
   guardrail_metrics?: GuardrailMetricInput[];
 };
@@ -902,7 +905,7 @@ export type ProjectListItem = {
   id: string;
   project_name: string;
   hypothesis?: string | null;
-  metric_type?: ("binary" | "continuous") | null;
+  metric_type?: ("binary" | "continuous" | "ratio") | null;
   duration_days?: number | null;
   payload_schema_version: number;
   archived_at?: string | null;

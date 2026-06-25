@@ -118,7 +118,7 @@ class MetricsConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     primary_metric_name: str
-    metric_type: Literal["binary", "continuous"]
+    metric_type: Literal["binary", "continuous", "ratio"]
     baseline_value: float
     expected_uplift_pct: float | None = None
     mde_pct: float = Field(gt=0)
@@ -127,6 +127,11 @@ class MetricsConfig(BaseModel):
     std_dev: float | None = None
     cuped_pre_experiment_std: float | None = Field(default=None, gt=0)
     cuped_correlation: float | None = Field(default=None, gt=-1.0, lt=1.0)
+    # Ratio metrics (R = sum(numerator)/sum(denominator), e.g. clicks/impressions) are carried as
+    # two ingested conversion metrics. Both names are required when metric_type == "ratio" and
+    # ignored otherwise; the live executor rolls them up per user via get_ratio_aggregates.
+    numerator_metric_name: str | None = Field(default=None, max_length=100)
+    denominator_metric_name: str | None = Field(default=None, max_length=100)
     secondary_metrics: list[str] = Field(default_factory=list)
     guardrail_metrics: list[GuardrailMetricInput] = Field(default_factory=list, max_length=3)
 
@@ -139,6 +144,15 @@ class MetricsConfig(BaseModel):
                 raise ValueError(translate("errors.schemas.continuous_baseline_positive"))
             if self.std_dev is None or self.std_dev <= 0:
                 raise ValueError(translate("errors.schemas.continuous_std_positive"))
+        if self.metric_type == "ratio":
+            if not self.numerator_metric_name or not self.denominator_metric_name:
+                raise ValueError(
+                    "ratio metric_type requires numerator_metric_name and denominator_metric_name"
+                )
+            if self.numerator_metric_name == self.denominator_metric_name:
+                raise ValueError(
+                    "numerator_metric_name and denominator_metric_name must be different"
+                )
         return self
 
 
@@ -662,6 +676,7 @@ class LiveArmStat(BaseModel):
     conversion_rate: float | None = None  # binary metrics
     mean: float | None = None  # continuous metrics
     std: float | None = None  # continuous metrics
+    ratio: float | None = None  # ratio metrics (R̂ = sum numerator / sum denominator)
 
 
 class LiveAlwaysValidBlock(BaseModel):
@@ -1239,7 +1254,7 @@ class ProjectListItem(BaseModel):
     id: str
     project_name: str
     hypothesis: str | None = None
-    metric_type: Literal["binary", "continuous"] | None = None
+    metric_type: Literal["binary", "continuous", "ratio"] | None = None
     duration_days: int | None = None
     payload_schema_version: int
     archived_at: str | None = None

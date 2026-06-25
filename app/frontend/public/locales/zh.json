@@ -763,6 +763,7 @@
       "comparisonPending": "数据尚不足以进行检验。",
       "armExposures": "{{exposed}} 次曝光 · {{converted}} 次转化",
       "armMean": "均值 {{mean}} ± {{std}}",
+      "armRatio": "{{exposed}} 次曝光 · 比率 {{ratio}}",
       "significant": "显著",
       "notSignificant": "不显著",
       "effectLine": "效应 {{effect}} · 置信区间 [{{lower}}, {{upper}}] · p {{p}}",

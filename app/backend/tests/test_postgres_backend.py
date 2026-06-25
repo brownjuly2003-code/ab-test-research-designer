@@ -332,6 +332,49 @@ def test_postgres_backend_cuped_aggregates_round_trip(postgres_repository) -> No
     assert -1 not in by_index  # holdout never appears
 
 
+def test_postgres_backend_ratio_aggregates_round_trip(postgres_repository) -> None:
+    # Exercises the F2 ratio sufficient-statistics CTE (numerator/denominator CASE rollup) on a real
+    # Postgres, validating the portable dual-backend SQL (translated ? -> %s). The CTE is independent
+    # of the design metric_type — it rolls up two named conversion metrics per exposed user.
+    repo = postgres_repository
+    project = repo.create_project(_payload("Ratio PG", "binary"))
+    exp = project["id"]
+    repo.record_exposures(
+        exp,
+        [
+            {"user_id": "u1", "variation_index": 0},
+            {"user_id": "u2", "variation_index": 0},
+            {"user_id": "u3", "variation_index": 1},
+            {"user_id": "u4", "variation_index": 1},  # exposed, no events -> (x=0, y=0)
+            {"user_id": "uH", "variation_index": -1},  # holdout -> excluded
+        ],
+    )
+    repo.record_conversions(
+        exp,
+        [
+            {"user_id": "u1", "metric": "clicks", "value": 2.0},
+            {"user_id": "u1", "metric": "impressions", "value": 10.0},
+            {"user_id": "u2", "metric": "clicks", "value": 1.0},
+            {"user_id": "u2", "metric": "impressions", "value": 20.0},
+            {"user_id": "u3", "metric": "clicks", "value": 5.0},
+            {"user_id": "u3", "metric": "impressions", "value": 50.0},
+            {"user_id": "uH", "metric": "clicks", "value": 100.0},  # holdout -> excluded
+        ],
+    )
+
+    aggregates = repo.get_ratio_aggregates(exp, "clicks", "impressions")
+    assert aggregates is not None
+    by_index = {arm["variation_index"]: arm for arm in aggregates["variations"]}
+    assert by_index[0]["n"] == 2  # u1, u2
+    assert by_index[0]["sum_x"] == 30.0  # impressions 10 + 20
+    assert by_index[0]["sum_y"] == 3.0  # clicks 2 + 1
+    assert by_index[0]["sum_xy"] == 40.0  # 10*2 + 20*1
+    assert by_index[1]["n"] == 2  # u3, u4 (u4 has no events but is still counted)
+    assert by_index[1]["sum_x"] == 50.0
+    assert by_index[1]["sum_xy"] == 250.0  # 50*5 + 0
+    assert -1 not in by_index  # holdout never appears
+
+
 def test_readyz_uses_postgres_checks_without_sqlite_regression(monkeypatch) -> None:
     monkeypatch.setenv("AB_DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/abtest")
     monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")

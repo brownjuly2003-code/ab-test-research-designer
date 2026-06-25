@@ -284,6 +284,7 @@
     "interpretation": {
       "binary": "Treatment conversion {{treatment}}% vs control {{control}}%. Absolute effect {{effect}} pp with {{ciLevel}}% CI [{{ciLower}}, {{ciUpper}}] pp. Two-sided p-value {{pValue}}; result is {{significance}}.",
       "continuous": "Treatment mean {{treatmentMean}} vs control {{controlMean}}. Effect {{effect}} with {{ciLevel}}% CI [{{ciLower}}, {{ciUpper}}]. Two-sided p-value {{pValue}}.",
+      "ratio": "Treatment ratio {{treatmentRatio}} vs control {{controlRatio}}. Absolute effect {{effect}} with {{ciLevel}}% CI [{{ciLower}}, {{ciUpper}}]. Two-sided p-value {{pValue}} (delta method); result is {{significance}}.",
       "degenerate": "Observed inputs are degenerate, so the test statistic cannot be computed."
     }
   }

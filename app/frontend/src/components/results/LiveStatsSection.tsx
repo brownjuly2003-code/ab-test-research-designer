@@ -29,6 +29,13 @@ function formatNumber(value: number | null | undefined, digits = 2): string {
 }
 
 function armLine(arm: LiveArmStat, metricType: string): string {
+  if (metricType === "ratio") {
+    // A ratio metric has no per-user conversion count; show exposed users and the ratio R̂.
+    return t("results.liveStats.armRatio", {
+      exposed: arm.exposed_users,
+      ratio: formatNumber(arm.ratio, 4)
+    });
+  }
   const base = t("results.liveStats.armExposures", {
     exposed: arm.exposed_users,
     converted: arm.converted_users

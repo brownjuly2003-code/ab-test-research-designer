@@ -284,6 +284,7 @@
     "interpretation": {
       "binary": "تحويل مجموعة المعالجة {{treatment}}% مقابل المجموعة الضابطة {{control}}%. الأثر المطلق {{effect}} نقطة مئوية بفاصل ثقة {{ciLevel}}% [{{ciLower}}، {{ciUpper}}] نقطة مئوية. القيمة الاحتمالية الثنائية {{pValue}}؛ النتيجة {{significance}}.",
       "continuous": "متوسط مجموعة المعالجة {{treatmentMean}} مقابل المجموعة الضابطة {{controlMean}}. الأثر {{effect}} بفاصل ثقة {{ciLevel}}% [{{ciLower}}، {{ciUpper}}]. القيمة الاحتمالية الثنائية {{pValue}}.",
+      "ratio": "نسبة مجموعة المعالجة {{treatmentRatio}} مقابل المجموعة الضابطة {{controlRatio}}. الأثر المطلق {{effect}} بفاصل ثقة {{ciLevel}}% [{{ciLower}}، {{ciUpper}}]. القيمة الاحتمالية الثنائية {{pValue}} (طريقة دلتا)؛ النتيجة {{significance}}.",
       "degenerate": "المدخلات المرصودة متدهورة، لذا لا يمكن حساب إحصاءة الاختبار."
     }
   }
