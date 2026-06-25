@@ -1,0 +1,55 @@
+name: Deploy to Hugging Face Space
+
+# Manual (operator-triggered) and tag-driven deploys only — never on a plain
+# push to main, so merging code never auto-deploys. The Space is a Docker SDK
+# Space that builds the frontend itself, so this just uploads the source tree
+# (scripts/deploy_hf.py mirrors the manual docs/DEPLOY.md recipe) and HF rebuilds.
+#
+# Requires a repository secret HF_TOKEN (write-scoped HF token for the `liovina`
+# account): gh secret set HF_TOKEN
+on:
+  workflow_dispatch:
+    inputs:
+      health_timeout:
+        description: "Seconds to wait for the Space /health to return 200"
+        default: "600"
+        required: false
+  push:
+    tags:
+      - "v*"
+
+concurrency:
+  group: deploy-hf
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install Hugging Face Hub client
+        run: python -m pip install "huggingface_hub==1.5.0"
+
+      - name: Fail fast if HF_TOKEN is missing
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          if [ -z "$HF_TOKEN" ]; then
+            echo "::error::HF_TOKEN repository secret is not set. Add it with: gh secret set HF_TOKEN"
+            exit 1
+          fi
+
+      - name: Upload snapshot to HF Space and smoke /health
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: >
+          python scripts/deploy_hf.py
+          --health-url https://liovina-ab-test-research-designer.hf.space/health
+          --health-timeout ${{ github.event.inputs.health_timeout || '600' }}
+          --commit-message "Deploy ${{ github.sha }} via ${{ github.workflow }}"
