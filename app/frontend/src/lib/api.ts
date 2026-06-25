@@ -45,6 +45,9 @@ import type {
   LiveSequentialBlock,
   LiveSrmBlock,
   LiveStatsResponse,
+  LiveStratifiedBlock,
+  LiveStratifiedComparison,
+  LiveStratumEffect,
   MetricPValue,
   MultipleTestingMetricResult,
   MultipleTestingRequest,
@@ -68,7 +71,10 @@ export type {
   LiveCupedComparison,
   LiveSequentialBlock,
   LiveSrmBlock,
-  LiveStatsResponse
+  LiveStatsResponse,
+  LiveStratifiedBlock,
+  LiveStratifiedComparison,
+  LiveStratumEffect
 };
 
 const apiSessionTokenStorageKey = "ab-test-research-designer:api-token:v1";

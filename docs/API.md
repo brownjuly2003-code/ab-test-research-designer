@@ -301,6 +301,14 @@ Ingest Pre Period Values
 Ingest per-user pre-experiment covariate values for CUPED (E5). First-write-wins
 per user; the covariate enables variance reduction on the continuous live-stats.
 
+### `POST /api/v1/experiments/{experiment_id}/strata`
+
+Ingest Strata
+
+Ingest one categorical stratum per user for post-stratification (F3b). First-write-wins
+per user; the stratum lets the live-stats read estimate the effect within each stratum and
+recombine it, reducing variance when the stratum explains outcome variation.
+
 ### `POST /api/v1/export/comparison`
 
 Export Comparison

@@ -796,7 +796,13 @@
       "cupedCoverage": "у {{covariate}} из {{exposed}} участников есть pre-period ковариата",
       "cupedArmLine": "скорр. среднее {{adjusted}} (исходное {{raw}})",
       "cupedAdjustedEffect": "Скорр. эффект {{effect}} · ДИ [{{lower}}, {{upper}}] · p {{p}}",
-      "cupedComparisonPending": "Пока недостаточно данных ковариаты для CUPED-теста."
+      "cupedComparisonPending": "Пока недостаточно данных ковариаты для CUPED-теста.",
+      "stratifiedTitle": "Пост-стратификация",
+      "stratifiedCoverage": "{{stratified}} из {{exposed}} показанных пользователей имеют страту · страт: {{strata}}",
+      "stratifiedEffect": "Эффект со стратификацией {{effect}} · ДИ [{{lower}}, {{upper}}] · p {{p}}",
+      "stratifiedReduction": "Снижение дисперсии {{reduction}}% · собрано по {{n}} стратам",
+      "stratifiedStratumLine": "{{stratum}}: пользователей {{users}} · эффект {{effect}}",
+      "stratifiedPending": "Пока ни в одной страте нет обеих групп с достаточным числом пользователей для теста со стратификацией."
     },
     "decision": {
       "title": "Итоговое решение",

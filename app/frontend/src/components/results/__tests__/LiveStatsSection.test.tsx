@@ -73,6 +73,10 @@ const liveStatsResponse = {
   cuped: {
     status: "unavailable",
     note: "CUPED needs a per-user pre-experiment covariate, which the MVP does not ingest."
+  },
+  stratified: {
+    status: "unavailable",
+    note: "Post-stratification needs a per-user stratum."
   }
 };
 
@@ -171,6 +175,38 @@ const ratioResponse = {
   cuped: {
     status: "not_applicable",
     note: "Live CUPED applies to continuous metrics."
+  }
+};
+
+const stratifiedAvailableResponse = {
+  ...liveStatsResponse,
+  stratified: {
+    status: "available",
+    note: "Post-stratified estimate over exposed users that carry a stratum.",
+    num_strata: 2,
+    stratified_users_total: 400,
+    exposed_users_total: 420,
+    comparisons: [
+      {
+        treatment_index: 1,
+        status: "ok",
+        effect: 0.08,
+        standard_error: 0.02,
+        test_statistic: 4.0,
+        p_value: 0.0001,
+        ci_lower: 0.04,
+        ci_upper: 0.12,
+        ci_level: 0.95,
+        is_significant: true,
+        variance_reduction_pct: 23.5,
+        num_strata: 2,
+        strata: [
+          { stratum: "ios", users: 200, control_users: 100, treatment_users: 100, effect: 0.1 },
+          { stratum: "android", users: 200, control_users: 100, treatment_users: 100, effect: 0.06 }
+        ],
+        note: null
+      }
+    ]
   }
 };
 
@@ -314,6 +350,31 @@ describe("LiveStatsSection", () => {
       expect(text).toContain("Effect 0.1000"); // delta-method ratio difference
       // Bayesian P(B>A) is not shown for ratio metrics.
       expect(text).not.toContain("P(treatment beats control)");
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("renders the post-stratification block with per-stratum effects", async () => {
+    const fetchMock = vi.fn(async (..._args: unknown[]) => ({
+      ok: true,
+      json: async () => stratifiedAvailableResponse
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const view = await renderIntoDocument(<LiveStatsSection />);
+    try {
+      await flushEffects();
+      await click(findButton(view.container, "Refresh live stats"));
+      await flushEffects();
+      await flushEffects();
+
+      const text = view.container.textContent ?? "";
+      expect(text).toContain("Post-stratification"); // block title
+      expect(text).toContain("Post-stratified effect"); // stratifiedEffect line
+      expect(text).toContain("Variance reduction"); // stratifiedReduction line
+      expect(text).toContain("ios"); // per-stratum breakdown
+      expect(text).toContain("android");
     } finally {
       await view.unmount();
     }

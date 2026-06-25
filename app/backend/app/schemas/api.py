@@ -634,6 +634,22 @@ class PrePeriodIngestRequest(BaseModel):
     pre_period_values: list[PrePeriodEvent] = Field(min_length=1, max_length=MAX_INGEST_BATCH)
 
 
+class StratumEvent(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    user_id: str = Field(min_length=1, max_length=200)
+    # The user's categorical stratum, an attribute known at assignment time (e.g. "ios"/"android",
+    # "US"/"EU", "new"/"returning"). Post-stratification (F3b) estimates the effect within each
+    # stratum and recombines the per-stratum effects weighted by stratum size.
+    stratum: str = Field(min_length=1, max_length=100)
+
+
+class StratumIngestRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    strata: list[StratumEvent] = Field(min_length=1, max_length=MAX_INGEST_BATCH)
+
+
 class IngestResultResponse(BaseModel):
     received: int
     recorded: int
@@ -765,6 +781,45 @@ class LiveCupedBlock(BaseModel):
     comparisons: list["LiveCupedComparison"] = Field(default_factory=list)
 
 
+class LiveStratumEffect(BaseModel):
+    # One stratum's within-stratum effect that feeds the size-weighted post-stratified combine.
+    stratum: str
+    users: int  # stratum size across both arms (the combine weight numerator n_s)
+    control_users: int
+    treatment_users: int
+    effect: float | None = None  # within-stratum Δ_s (treatment − control); null if an arm is sparse
+
+
+class LiveStratifiedComparison(BaseModel):
+    # status: "ok" | "insufficient_data" (no stratum has both arms with >=2 users)
+    treatment_index: int
+    status: str
+    effect: float | None = None  # post-stratified Δ = Σ (n_s/N)·Δ_s
+    standard_error: float | None = None
+    test_statistic: float | None = None
+    p_value: float | None = None
+    ci_lower: float | None = None
+    ci_upper: float | None = None
+    ci_level: float | None = None  # 1 - alpha (FWER-adjusted), mirroring the other live blocks
+    is_significant: bool | None = None
+    variance_reduction_pct: float | None = None  # vs the naive pooled estimate; may be negative
+    num_strata: int | None = None  # strata that contributed (both arms populated with >=2 users)
+    strata: list["LiveStratumEffect"] = Field(default_factory=list)
+    note: str | None = None
+
+
+class LiveStratifiedBlock(BaseModel):
+    # status: "available" (strata ingested + a usable comparison) |
+    #         "unavailable" (no stratum ingested / no covered users) |
+    #         "too_many_strata" (more distinct strata than the supported cap)
+    status: str
+    note: str
+    num_strata: int | None = None
+    stratified_users_total: int | None = None  # exposed users that carry a stratum
+    exposed_users_total: int | None = None
+    comparisons: list["LiveStratifiedComparison"] = Field(default_factory=list)
+
+
 class LiveStatsResponse(BaseModel):
     experiment_id: str
     metric_type: str
@@ -776,6 +831,7 @@ class LiveStatsResponse(BaseModel):
     comparisons: list[LiveComparison]
     sequential: LiveSequentialBlock
     cuped: LiveCupedBlock
+    stratified: LiveStratifiedBlock
 
 
 class DecisionReason(BaseModel):

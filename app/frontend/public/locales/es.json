@@ -784,7 +784,13 @@
       "cupedCoverage": "{{covariate}} de {{exposed}} usuarios expuestos tienen covariable de preperíodo",
       "cupedArmLine": "media ajustada {{adjusted}} (bruta {{raw}})",
       "cupedAdjustedEffect": "Efecto ajustado {{effect}} · IC [{{lower}}, {{upper}}] · p {{p}}",
-      "cupedComparisonPending": "Aún no hay suficientes datos de covariable para una prueba CUPED."
+      "cupedComparisonPending": "Aún no hay suficientes datos de covariable para una prueba CUPED.",
+      "stratifiedTitle": "Posestratificación",
+      "stratifiedCoverage": "{{stratified}} de {{exposed}} usuarios expuestos tienen un estrato · {{strata}} estratos",
+      "stratifiedEffect": "Efecto posestratificado {{effect}} · IC [{{lower}}, {{upper}}] · p {{p}}",
+      "stratifiedReduction": "Reducción de varianza {{reduction}}% · combinado en {{n}} estratos",
+      "stratifiedStratumLine": "{{stratum}}: {{users}} usuarios · efecto {{effect}}",
+      "stratifiedPending": "Todavía ningún estrato tiene ambos grupos con suficientes usuarios para una prueba posestratificada."
     },
     "decision": {
       "title": "Lectura de decisión",

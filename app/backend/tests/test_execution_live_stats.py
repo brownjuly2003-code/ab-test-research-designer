@@ -1199,3 +1199,268 @@ def test_live_stats_route_reports_available_cuped_after_pre_period_ingest() -> N
     assert len(cuped["comparisons"]) == 1
     assert cuped["comparisons"][0]["status"] == "ok"
     assert cuped["comparisons"][0]["analysis"] is not None
+
+
+# --- post-stratification (F3b) --------------------------------------------------------
+
+
+def _stratum(name: str, *arms: dict) -> dict:
+    return {"stratum": name, "variations": list(arms)}
+
+
+def _stratified_aggregates(
+    *strata: dict, num_strata: int | None = None, too_many: bool = False
+) -> dict:
+    if too_many:
+        return {
+            "experiment_id": "e",
+            "metric_name": "aov",
+            "strata": [],
+            "num_strata": num_strata if num_strata is not None else 99,
+            "too_many_strata": True,
+        }
+    return {
+        "experiment_id": "e",
+        "metric_name": "aov",
+        "strata": list(strata),
+        "num_strata": num_strata if num_strata is not None else len(strata),
+    }
+
+
+def test_stratified_unavailable_without_strata() -> None:
+    result = build_live_stats(
+        "e",
+        _continuous_design(),
+        _aggregates(_arm(0, 4, 4, 100.0, 2600.0), _arm(1, 4, 4, 180.0, 8200.0)),
+        None,
+        None,
+        None,
+    )
+    assert result["stratified"]["status"] == "unavailable"
+
+
+def test_stratified_not_applicable_for_ratio_metric() -> None:
+    result = build_live_stats(
+        "e",
+        _ratio_design(),
+        _aggregates(_arm(0, 4, 0), _arm(1, 4, 0)),
+        None,
+        _ratio_aggregates(
+            _cuped_arm(0, [1, 1, 1, 1], [1, 0, 1, 0]),
+            _cuped_arm(1, [1, 1, 1, 1], [1, 1, 1, 0]),
+        ),
+        None,
+    )
+    # A ratio metric has no single per-user outcome the combine reads.
+    assert result["stratified"]["status"] == "unavailable"
+
+
+def test_stratified_single_stratum_matches_unadjusted_continuous() -> None:
+    # One stratum holding all users -> the post-stratified effect equals the naive unadjusted
+    # mean difference and the variance reduction is exactly zero (weight 1, pooled == stratified).
+    control = _arm(0, 4, 4, 40.0, 408.0)  # values [10,12,8,10] -> mean 10
+    treatment = _arm(1, 4, 4, 48.0, 584.0)  # values [12,14,10,12] -> mean 12
+    result = build_live_stats(
+        "e",
+        _continuous_design(),
+        _aggregates(control, treatment),
+        None,
+        None,
+        _stratified_aggregates(_stratum("all", control, treatment)),
+    )
+    unadjusted_effect = result["comparisons"][0]["analysis"]["observed_effect"]
+    stratified = result["stratified"]
+    assert stratified["status"] == "available"
+    assert stratified["num_strata"] == 1
+    assert stratified["stratified_users_total"] == 8
+    comparison = stratified["comparisons"][0]
+    assert comparison["status"] == "ok"
+    assert comparison["effect"] == pytest.approx(unadjusted_effect)
+    assert comparison["effect"] == pytest.approx(2.0)
+    assert comparison["variance_reduction_pct"] == pytest.approx(0.0)
+    assert comparison["num_strata"] == 1
+
+
+def test_stratified_reduces_variance_when_strata_explain_outcome_continuous() -> None:
+    # Two strata with very different outcome levels (large between-strata variation) but small
+    # within-stratum variance and the same +2 effect in each. The naive pooled estimate carries
+    # the between-strata variance; post-stratification removes it, so variance drops sharply while
+    # the effect is preserved.
+    strata = _stratified_aggregates(
+        _stratum("low", _arm(0, 4, 4, 40.0, 408.0), _arm(1, 4, 4, 48.0, 584.0)),  # ~10 vs ~12
+        _stratum("high", _arm(0, 4, 4, 400.0, 40008.0), _arm(1, 4, 4, 408.0, 41624.0)),  # ~100 vs ~102
+    )
+    pooled_control = _arm(0, 8, 8, 440.0, 40416.0)
+    pooled_treatment = _arm(1, 8, 8, 456.0, 42208.0)
+    result = build_live_stats(
+        "e",
+        _continuous_design(),
+        _aggregates(pooled_control, pooled_treatment),
+        None,
+        None,
+        strata,
+    )
+    stratified = result["stratified"]
+    assert stratified["status"] == "available"
+    assert stratified["num_strata"] == 2
+    comparison = stratified["comparisons"][0]
+    assert comparison["status"] == "ok"
+    assert comparison["effect"] == pytest.approx(2.0)  # effect preserved
+    assert comparison["variance_reduction_pct"] > 90.0  # between-strata variance removed
+    assert comparison["num_strata"] == 2
+
+
+def test_stratified_binary_two_strata_happy() -> None:
+    strata = _stratified_aggregates(
+        _stratum("A", _arm(0, 100, 10), _arm(1, 100, 20)),  # 0.10 vs 0.20
+        _stratum("B", _arm(0, 100, 40), _arm(1, 100, 50)),  # 0.40 vs 0.50
+    )
+    result = build_live_stats(
+        "e",
+        _binary_design(),
+        _aggregates(_arm(0, 200, 50), _arm(1, 200, 70)),
+        None,
+        None,
+        strata,
+    )
+    stratified = result["stratified"]
+    assert stratified["status"] == "available"
+    comparison = stratified["comparisons"][0]
+    assert comparison["status"] == "ok"
+    assert comparison["effect"] == pytest.approx(0.10)  # both strata show +0.10
+    assert comparison["num_strata"] == 2
+    assert len(comparison["strata"]) == 2
+
+
+def test_stratified_drops_stratum_with_a_sparse_arm() -> None:
+    # Stratum "B" has a treatment arm with a single user (<2) -> dropped from the combine, shown
+    # with a null effect; only stratum "A" contributes.
+    strata = _stratified_aggregates(
+        _stratum("A", _arm(0, 100, 10), _arm(1, 100, 20)),
+        _stratum("B", _arm(0, 100, 40), _arm(1, 1, 1)),
+    )
+    result = build_live_stats(
+        "e",
+        _binary_design(),
+        _aggregates(_arm(0, 200, 50), _arm(1, 101, 21)),
+        None,
+        None,
+        strata,
+    )
+    comparison = result["stratified"]["comparisons"][0]
+    assert comparison["status"] == "ok"
+    assert comparison["num_strata"] == 1  # only "A" contributed
+    by_name = {row["stratum"]: row for row in comparison["strata"]}
+    assert by_name["A"]["effect"] is not None
+    assert by_name["B"]["effect"] is None  # sparse arm -> dropped from the combine
+
+
+def test_stratified_insufficient_when_no_stratum_has_both_arms() -> None:
+    # The only stratum has a control arm but no treatment arm -> no per-stratum effect -> the
+    # comparison is insufficient_data even though the block itself is "available".
+    strata = _stratified_aggregates(_stratum("solo", _arm(0, 50, 10)))
+    result = build_live_stats(
+        "e",
+        _binary_design(),
+        _aggregates(_arm(0, 50, 10), _arm(1, 50, 15)),
+        None,
+        None,
+        strata,
+    )
+    stratified = result["stratified"]
+    assert stratified["status"] == "available"
+    assert stratified["comparisons"][0]["status"] == "insufficient_data"
+
+
+def test_stratified_too_many_strata_flag() -> None:
+    result = build_live_stats(
+        "e",
+        _binary_design(),
+        _aggregates(_arm(0, 50, 10), _arm(1, 50, 15)),
+        None,
+        None,
+        _stratified_aggregates(num_strata=99, too_many=True),
+    )
+    assert result["stratified"]["status"] == "too_many_strata"
+    assert result["stratified"]["num_strata"] == 99
+
+
+def test_stratified_aggregates_group_by_stratum_and_exclude_holdout_and_unstratified() -> None:
+    repo = _repo()
+    exp = _project(repo)
+    repo.record_exposures(
+        exp,
+        [
+            {"user_id": "u1", "variation_index": 0},
+            {"user_id": "u2", "variation_index": 0},
+            {"user_id": "u3", "variation_index": 1},
+            {"user_id": "u4", "variation_index": 1},
+            {"user_id": "u5", "variation_index": 0},  # no stratum -> excluded
+            {"user_id": "uH", "variation_index": -1},  # holdout -> excluded
+        ],
+    )
+    repo.record_strata(
+        exp,
+        [
+            {"user_id": "u1", "stratum": "ios"},
+            {"user_id": "u2", "stratum": "android"},
+            {"user_id": "u3", "stratum": "ios"},
+            {"user_id": "u4", "stratum": "android"},
+            {"user_id": "uH", "stratum": "ios"},  # holdout has a stratum but the arm is excluded
+        ],
+    )
+    repo.record_conversions(
+        exp,
+        [
+            {"user_id": "u1", "metric": "purchase", "value": 1.0},
+            {"user_id": "u3", "metric": "purchase", "value": 1.0},
+        ],
+    )
+
+    aggregates = repo.get_stratified_aggregates(exp, "purchase")
+    assert aggregates is not None
+    assert aggregates["num_strata"] == 2
+    by_name = {stratum["stratum"]: stratum for stratum in aggregates["strata"]}
+    assert sorted(by_name) == ["android", "ios"]
+    ios = {arm["variation_index"]: arm for arm in by_name["ios"]["variations"]}
+    assert ios[0]["exposed_users"] == 1 and ios[0]["converted_users"] == 1  # u1
+    assert ios[1]["exposed_users"] == 1 and ios[1]["converted_users"] == 1  # u3
+    android = {arm["variation_index"]: arm for arm in by_name["android"]["variations"]}
+    assert android[0]["exposed_users"] == 1 and android[0]["converted_users"] == 0  # u2
+    assert android[1]["exposed_users"] == 1 and android[1]["converted_users"] == 0  # u4
+    total_users = sum(arm["exposed_users"] for s in aggregates["strata"] for arm in s["variations"])
+    assert total_users == 4  # u5 (no stratum) and uH (holdout) never appear
+
+
+def test_stratified_aggregates_none_for_unknown_experiment() -> None:
+    repo = _repo()
+    assert repo.get_stratified_aggregates("missing", "purchase") is None
+
+
+def test_record_strata_dedups_per_user() -> None:
+    repo = _repo()
+    exp = _project(repo)
+    first = repo.record_strata(
+        exp, [{"user_id": "u1", "stratum": "ios"}, {"user_id": "u2", "stratum": "android"}]
+    )
+    assert first == {"received": 2, "recorded": 2, "deduplicated": 0}
+    # First-write-wins: a later stratum for u1 is dropped and the original is kept.
+    second = repo.record_strata(exp, [{"user_id": "u1", "stratum": "android"}])
+    assert second == {"received": 1, "recorded": 0, "deduplicated": 1}
+
+
+def test_strata_ingestion_endpoint_records_and_dedups() -> None:
+    client = TestClient(create_app())
+    project_id = _create_binary_project(client)
+    first = client.post(
+        f"/api/v1/experiments/{project_id}/strata",
+        json={"strata": [{"user_id": "u1", "stratum": "ios"}, {"user_id": "u2", "stratum": "android"}]},
+    )
+    assert first.status_code == 200, first.text
+    assert first.json() == {"received": 2, "recorded": 2, "deduplicated": 0}
+    again = client.post(
+        f"/api/v1/experiments/{project_id}/strata",
+        json={"strata": [{"user_id": "u1", "stratum": "android"}]},
+    )
+    assert again.status_code == 200
+    assert again.json()["deduplicated"] == 1

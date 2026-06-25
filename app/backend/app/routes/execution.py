@@ -11,6 +11,7 @@ from app.backend.app.schemas.api import (
     IngestResultResponse,
     LiveStatsResponse,
     PrePeriodIngestRequest,
+    StratumIngestRequest,
 )
 from app.backend.app.services.decision_service import synthesize_decision
 from app.backend.app.services.live_stats_service import build_live_stats
@@ -75,6 +76,21 @@ def create_execution_router(
         )
         return IngestResultResponse.model_validate(result)
 
+    @router.post(
+        "/api/v1/experiments/{experiment_id}/strata",
+        response_model=IngestResultResponse,
+        dependencies=[Depends(require_write_auth)],
+    )
+    def ingest_strata(experiment_id: str, payload: StratumIngestRequest) -> IngestResultResponse:
+        """Ingest one categorical stratum per user for post-stratification (F3b). First-write-wins
+        per user; the stratum lets the live-stats read estimate the effect within each stratum and
+        recombine it, reducing variance when the stratum explains outcome variation."""
+        result = repository.record_strata(
+            experiment_id,
+            [event.model_dump() for event in payload.strata],
+        )
+        return IngestResultResponse.model_validate(result)
+
     @router.get(
         "/api/v1/experiments/{experiment_id}/ingestion",
         response_model=IngestionSummaryResponse,
@@ -98,6 +114,8 @@ def create_execution_router(
         if aggregates is None:
             raise HTTPException(status_code=404, detail="Experiment not found")
         cuped_aggregates = repository.get_cuped_aggregates(experiment_id, metric_name)
+        # Post-stratification (F3b): per-(stratum, variation) rollup over users that carry a stratum.
+        stratified_aggregates = repository.get_stratified_aggregates(experiment_id, metric_name)
         # Ratio metrics (R = numerator/denominator) roll up two ingested conversion metrics per
         # user; the executor reads them only when the design's metric_type is "ratio".
         ratio_aggregates = None
@@ -114,6 +132,7 @@ def create_execution_router(
             aggregates,
             cuped_aggregates,
             ratio_aggregates,
+            stratified_aggregates,
         )
 
     @router.get(

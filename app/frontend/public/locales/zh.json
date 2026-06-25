@@ -784,7 +784,13 @@
       "cupedCoverage": "{{exposed}} 名曝光用户中有 {{covariate}} 名具有实验前协变量",
       "cupedArmLine": "调整后均值 {{adjusted}}（原始 {{raw}}）",
       "cupedAdjustedEffect": "调整后效应 {{effect}} · 置信区间 [{{lower}}, {{upper}}] · p {{p}}",
-      "cupedComparisonPending": "协变量数据尚不足以进行 CUPED 检验。"
+      "cupedComparisonPending": "协变量数据尚不足以进行 CUPED 检验。",
+      "stratifiedTitle": "事后分层",
+      "stratifiedCoverage": "{{exposed}} 名曝光用户中有 {{stratified}} 名带有分层 · {{strata}} 个层",
+      "stratifiedEffect": "事后分层效应 {{effect}} · 置信区间 [{{lower}}, {{upper}}] · p {{p}}",
+      "stratifiedReduction": "方差降低 {{reduction}}% · 合并 {{n}} 个层",
+      "stratifiedStratumLine": "{{stratum}}：{{users}} 名用户 · 效应 {{effect}}",
+      "stratifiedPending": "目前还没有任何层的两个组都拥有足够用户来进行事后分层检验。"
     },
     "decision": {
       "title": "决策摘要",
