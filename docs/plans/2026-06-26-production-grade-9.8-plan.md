@@ -6,6 +6,12 @@
 
 Деплой seeded-демо на HF **санкционирован** (по готовности → выкатить + live-проверка).
 
+## СТАТУС (2026-06-26, остановка после Phase 2)
+- ✅ **Phase 1 ВЛИТА** (PR #27 → merge `f60e84a3`): coverage-гейт enforced ≥88%, ruff-гейт (F,I,B,C4,UP) поверх mypy strict, 0 TODO.
+- ✅ **Phase 2 ВЛИТА** (PR #28 → merge `7c26cb83`): `deploy-hf.yml` (workflow_dispatch + tag `v*`, НЕ на push) + `scripts/deploy_hf.py` (зеркало ручного рецепта + /health-smoke). Деплой держится (триггерится только вручную/тегом).
+- ⏳ **Phase 3 — СЛЕД. СЕССИЯ начинает здесь** (стат. доборы), затем Phase 4 (главный объём — продакшн), 5 (demo+deploy), 6 (переоценка).
+- ⚠️ **Перед первым CI-деплоем**: Юля задаёт repo-секрет `gh secret set HF_TOKEN` (write-токен `liovina`). Без него deploy-job падает с подсказкой (по дизайну).
+
 ## Старт (факты на 2026-06-26, main=`abe44277`, ось A полностью влита)
 - Coverage **91%** (badge), НЕ гейтится в CI. Tests 622 backend passed.
 - Единственный TODO — в тесте `app/frontend/src/components/PosteriorPlot.test.tsx` (не прод).
@@ -26,14 +32,14 @@
 ---
 
 ## Phase 1 — Гейты качества (дёшево, Windows+CI; Тестирование/CI/Качество)
-- [ ] **T1.1 Coverage-гейт.** `--cov-fail-under=90` в `verify_all.{py,cmd}` + CI; pytest-cov уже даёт 91%. Порог чуть ниже текущего (буфер на флап). → Verify: CI `verify` падает при <90%, badge живёт.
-- [ ] **T1.2 Дожать TODO** в `PosteriorPlot.test.tsx` (реальные recharts-ассершены без flat-mock) → 0 TODO/FIXME/HACK в app+src. → Verify: grep пусто, vitest зелёный.
-- [ ] **T1.3 ruff/docstring строгость.** Включить `D` (pydocstyle) на публичных stats/services ИЛИ ruff `--select` расширить (complexity `C901`), без массового шума. → Verify: ruff зелёный, mypy strict цел.
+- [x] **T1.1 Coverage-гейт.** `--cov-fail-under=90` в `verify_all.{py,cmd}` + CI; pytest-cov уже даёт 91%. Порог чуть ниже текущего (буфер на флап). → Verify: CI `verify` падает при <90%, badge живёт.
+- [x] **T1.2 Дожать TODO** в `PosteriorPlot.test.tsx` (реальные recharts-ассершены без flat-mock) → 0 TODO/FIXME/HACK в app+src. → Verify: grep пусто, vitest зелёный.
+- [x] **T1.3 ruff строгость.** Включить `D` (pydocstyle) на публичных stats/services ИЛИ ruff `--select` расширить (complexity `C901`), без массового шума. → Verify: ruff зелёный, mypy strict цел.
 - → Тестирование 9.8, Качество 9.6 (добор в P3/P4), CI 9.5 (автодеплой добьёт в P2).
 
 ## Phase 2 — Автоматизация деплоя (CI/процесс → 9.8)
-- [ ] **T2.1 GH Action `deploy-hf.yml`** — `workflow_dispatch` (+ on tag `v*`): `git archive main` → `upload_folder` на HF Space через секрет `HF_TOKEN` (репо-секрет, токен `liovina`). `ignore_patterns` как в `docs/DEPLOY.md`. → Verify: ручной dispatch зелёный, Space обновился (смена asset-хэша).
-- [ ] **T2.2** Пост-деплой smoke в workflow (curl `/api/health` Space). → Verify: job падает при нездоровом Space.
+- [x] **T2.1 GH Action `deploy-hf.yml`** — `workflow_dispatch` (+ on tag `v*`): `git archive main` → `upload_folder` на HF Space через секрет `HF_TOKEN` (репо-секрет, токен `liovina`). `ignore_patterns` как в `docs/DEPLOY.md`. → Verify: ручной dispatch зелёный, Space обновился (смена asset-хэша).
+- [x] **T2.2** Пост-деплой smoke в workflow (`/health`-poll в `deploy_hf.py`). → Verify: job падает при нездоровом Space.
 - ⚠️ Секрет `HF_TOKEN` в репо: Юля задаёт `gh secret set HF_TOKEN` (свой токен — НЕ печатать/коммитить).
 
 ## Phase 3 — Стат. глубина доборы (→ 9.8)
