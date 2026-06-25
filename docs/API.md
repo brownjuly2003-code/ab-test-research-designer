@@ -313,6 +313,10 @@ Export Html Standalone
 
 Generate Hypotheses
 
+### `POST /api/v1/multiple-testing`
+
+Multiple Testing
+
 ### `POST /api/v1/projects/{project_id}/archive`
 
 Archive Project

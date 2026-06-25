@@ -1,5 +1,10 @@
 MAX_SUPPORTED_VARIANTS = 10
 
+# Upper bound on the number of metric p-values accepted by the multiple-testing endpoint. A real
+# experiment tracks a primary plus a battery of secondary and guardrail metrics; 100 is generous
+# while still bounding request size.
+MAX_SUPPORTED_METRICS = 100
+
 # Eight weeks is the point after which the planner flags long-running experiments.
 MAX_RECOMMENDED_DURATION_DAYS = 56
 

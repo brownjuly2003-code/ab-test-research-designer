@@ -18,6 +18,7 @@ import DecisionReadoutSection from "./results/DecisionReadoutSection";
 import ExperimentDesignSection from "./results/ExperimentDesignSection";
 import LiveStatsSection from "./results/LiveStatsSection";
 import MetricsPlanSection from "./results/MetricsPlanSection";
+import MultipleTestingSection from "./results/MultipleTestingSection";
 import ObservedResultsSection from "./results/ObservedResultsSection";
 import PowerCurveSection from "./results/PowerCurveSection";
 import RisksSection from "./results/RisksSection";
@@ -156,6 +157,7 @@ export default function ResultsPanel(_props: ResultsPanelProps) {
         <Accordion title={t("results.panel.accordion.riskAssessment")} badge={t("results.panel.itemsCount", { count: (displayedAnalysis.report.risks?.statistical?.length ?? 0) + (displayedAnalysis.report.risks?.product?.length ?? 0) + (displayedAnalysis.report.risks?.technical?.length ?? 0) + (displayedAnalysis.report.risks?.operational?.length ?? 0) })}><RisksSection /></Accordion>
         <Accordion title={t("results.panel.accordion.aiRecommendations")} badge={displayedAnalysis.advice.available ? t("results.panel.badges.available") : t("results.panel.badges.offline")}><AiAdviceSection /></Accordion>
         <Accordion title={t("results.panel.accordion.srmCheck")} badge={t("results.panel.badges.manual")}><SrmCheckSection /></Accordion>
+        <Accordion title={t("results.panel.accordion.multipleTesting")} badge={t("results.panel.badges.manual")}><MultipleTestingSection /></Accordion>
         <Accordion title={t("results.panel.accordion.bandit")} badge={t("results.panel.badges.planning")}><BanditSection /></Accordion>
         <Accordion title={t("results.panel.accordion.assignment")} badge={t("results.panel.badges.execution")}><AssignmentSection /></Accordion>
         <Accordion title={t("results.panel.accordion.liveStats")} badge={t("results.panel.badges.execution")}><LiveStatsSection /></Accordion>

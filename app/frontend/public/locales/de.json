@@ -473,6 +473,36 @@
       "chiSquare": "Chi-Quadrat = {{chiSquare}}, p = {{pValue}}",
       "expectedObserved": "Erwartet: [{{expected}}] | Beobachtet: [{{observed}}]"
     },
+    "multipleTesting": {
+      "title": "Korrektur für viele getestete Metriken",
+      "description": "Wenn ein Experiment mehrere Metriken verfolgt, erhöht das Testen jeder Metrik auf demselben Niveau die Zahl falsch positiver Ergebnisse. Benjamini-Hochberg kontrolliert die False Discovery Rate (FDR); Holm kontrolliert die familienbezogene Fehlerrate (FWER). Geben Sie den p-value jeder Metrik ein, um zu sehen, welche nach der Korrektur signifikant bleiben.",
+      "metricLabelPlaceholder": "Name der Metrik",
+      "pValuePlaceholder": "z. B. 0,012",
+      "addMetric": "Metrik hinzufügen",
+      "removeMetric": "Metrik entfernen",
+      "methodLabel": "Korrekturmethode",
+      "method": {
+        "bh": "Benjamini-Hochberg (FDR)",
+        "holm": "Holm-Bonferroni (FWER)"
+      },
+      "levelLabelFdr": "FDR-Niveau (q)",
+      "levelLabelFwer": "Signifikanzniveau (alpha)",
+      "runButton": "Korrektur anwenden",
+      "running": "Korrektur läuft...",
+      "needMetrics": "Fügen Sie mindestens eine Metrik mit einem p-value zwischen 0 und 1 hinzu.",
+      "serviceUnavailable": "Korrektur für multiples Testen nicht verfügbar.",
+      "summary": "{{rejected}} von {{total}} Metriken bleiben auf dem Niveau {{level}} signifikant.",
+      "criticalValue": "Verwirft jede Metrik mit einem p-value von höchstens {{value}}.",
+      "columns": {
+        "metric": "Metrik",
+        "adjusted": "Angepasster p",
+        "decision": "Entscheidung"
+      },
+      "decision": {
+        "significant": "Signifikant",
+        "notSignificant": "Nicht signifikant"
+      }
+    },
     "observedResults": {
       "title": "Beobachtete Experimentergebnisse eingeben",
       "description": "Geben Sie nach Abschluss des Experiments beobachtete Daten ein, um statistische Signifikanz aus den tatsächlichen Ergebnissen zu berechnen.",
@@ -643,6 +673,7 @@
         "riskAssessment": "Risikobewertung",
         "aiRecommendations": "KI-Empfehlungen",
         "srmCheck": "SRM-Prüfung",
+        "multipleTesting": "Multiples Testen",
         "bandit": "Bandit vs. fest",
         "assignment": "Nutzerzuweisung",
         "liveStats": "Live-Experiment",

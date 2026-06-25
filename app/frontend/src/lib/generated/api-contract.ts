@@ -704,6 +704,11 @@ export type LlmAdviceResponse = {
   error_code?: string | null;
 };
 
+export type MetricPValue = {
+  label: string;
+  p_value: number;
+};
+
 export type MetricsConfig = {
   primary_metric_name: string;
   metric_type: "binary" | "continuous";
@@ -749,6 +754,29 @@ export type MultiProjectComparisonResponse = {
   metric_types_used: string[];
   recommendation_highlights: string[];
   monte_carlo_distribution?: { [key: string]: MonteCarloSimulationResponse; } | null;
+};
+
+export type MultipleTestingMetricResult = {
+  label: string;
+  p_value: number;
+  adjusted_p_value: number;
+  rejected: boolean;
+};
+
+export type MultipleTestingRequest = {
+  metrics: MetricPValue[];
+  level?: number;
+  method?: "bh" | "holm";
+};
+
+export type MultipleTestingResponse = {
+  method: "bh" | "holm";
+  level: number;
+  num_tests: number;
+  num_rejected: number;
+  threshold_rank: number;
+  critical_value: number;
+  results: MultipleTestingMetricResult[];
 };
 
 export type NamespaceConfig = {

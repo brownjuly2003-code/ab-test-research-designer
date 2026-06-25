@@ -24,6 +24,9 @@ from app.backend.app.schemas.api import (
     HypothesisIdeationResponse,
     LlmAdviceRequest,
     LlmAdviceResponse,
+    MultipleTestingMetricResult,
+    MultipleTestingRequest,
+    MultipleTestingResponse,
     ResultsRequest,
     ResultsResponse,
     SensitivityCell,
@@ -41,6 +44,7 @@ from app.backend.app.services.results_service import analyze_results
 from app.backend.app.stats.binary import calculate_binary_sample_size
 from app.backend.app.stats.continuous import calculate_continuous_sample_size
 from app.backend.app.stats.duration import estimate_experiment_duration_days
+from app.backend.app.stats.multiple_testing import benjamini_hochberg, holm_bonferroni
 from app.backend.app.stats.srm import chi_square_srm
 
 if TYPE_CHECKING:
@@ -214,6 +218,39 @@ def create_analysis_router(
             ),
             observed_counts=payload.observed_counts,
             expected_counts=[round(count, 1) for count in expected_counts],
+        )
+
+    @router.post(
+        "/api/v1/multiple-testing",
+        response_model=MultipleTestingResponse,
+        dependencies=[Depends(require_write_auth)],
+    )
+    def multiple_testing(payload: MultipleTestingRequest) -> MultipleTestingResponse:
+        pvalues = [metric.p_value for metric in payload.metrics]
+        correction = (
+            benjamini_hochberg(pvalues, q=payload.level)
+            if payload.method == "bh"
+            else holm_bonferroni(pvalues, alpha=payload.level)
+        )
+        results = [
+            MultipleTestingMetricResult(
+                label=metric.label,
+                p_value=metric.p_value,
+                adjusted_p_value=round(adjusted, 6),
+                rejected=rejected,
+            )
+            for metric, adjusted, rejected in zip(
+                payload.metrics, correction["adjusted_pvalues"], correction["rejected"]
+            )
+        ]
+        return MultipleTestingResponse(
+            method=correction["method"],
+            level=correction["level"],
+            num_tests=correction["num_tests"],
+            num_rejected=correction["num_rejected"],
+            threshold_rank=correction["threshold_rank"],
+            critical_value=round(correction["critical_value"], 6),
+            results=results,
         )
 
     @router.post(

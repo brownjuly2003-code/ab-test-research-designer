@@ -2,7 +2,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from app.backend.app.constants import MAX_SUPPORTED_VARIANTS
+from app.backend.app.constants import MAX_SUPPORTED_METRICS, MAX_SUPPORTED_VARIANTS
 from app.backend.app.i18n import translate
 from app.backend.app.schemas.report import ExperimentReport
 
@@ -418,6 +418,44 @@ class SrmCheckResponse(BaseModel):
     verdict: str
     observed_counts: list[int]
     expected_counts: list[float]
+
+
+class MetricPValue(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    label: str = Field(min_length=1, max_length=200)
+    p_value: float = Field(ge=0.0, le=1.0)
+
+
+class MultipleTestingRequest(BaseModel):
+    """A battery of per-metric p-values to correct for multiple testing.
+
+    ``method`` selects the error rate controlled at ``level``: ``bh`` (Benjamini-Hochberg) bounds the
+    false discovery rate, ``holm`` (Holm-Bonferroni) bounds the family-wise error rate.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    metrics: list[MetricPValue] = Field(min_length=1, max_length=MAX_SUPPORTED_METRICS)
+    level: float = Field(default=0.05, gt=0.0, lt=1.0)
+    method: Literal["bh", "holm"] = "bh"
+
+
+class MultipleTestingMetricResult(BaseModel):
+    label: str
+    p_value: float
+    adjusted_p_value: float
+    rejected: bool
+
+
+class MultipleTestingResponse(BaseModel):
+    method: Literal["bh", "holm"]
+    level: float
+    num_tests: int
+    num_rejected: int
+    threshold_rank: int
+    critical_value: float
+    results: list[MultipleTestingMetricResult]
 
 
 class BanditSimulationRequest(BaseModel):

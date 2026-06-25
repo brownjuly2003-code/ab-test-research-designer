@@ -473,6 +473,36 @@
       "chiSquare": "Хи-квадрат = {{chiSquare}}, p = {{pValue}}",
       "expectedObserved": "Ожидалось: [{{expected}}] | Наблюдалось: [{{observed}}]"
     },
+    "multipleTesting": {
+      "title": "Поправка на множественную проверку метрик",
+      "description": "Когда в эксперименте несколько метрик, проверка каждой на одном уровне раздувает число ложноположительных. Benjamini-Hochberg контролирует долю ложных открытий (FDR); Holm контролирует вероятность хотя бы одной ошибки (FWER). Введите p-value каждой метрики, чтобы увидеть, какие остаются значимыми после поправки.",
+      "metricLabelPlaceholder": "Название метрики",
+      "pValuePlaceholder": "напр. 0,012",
+      "addMetric": "Добавить метрику",
+      "removeMetric": "Удалить метрику",
+      "methodLabel": "Метод поправки",
+      "method": {
+        "bh": "Benjamini-Hochberg (FDR)",
+        "holm": "Holm-Bonferroni (FWER)"
+      },
+      "levelLabelFdr": "Уровень FDR (q)",
+      "levelLabelFwer": "Уровень значимости (alpha)",
+      "runButton": "Применить поправку",
+      "running": "Вычисление...",
+      "needMetrics": "Добавьте хотя бы одну метрику с p-value от 0 до 1.",
+      "serviceUnavailable": "Поправка на множественную проверку недоступна.",
+      "summary": "{{rejected}} из {{total}} метрик остаются значимыми на уровне {{level}}.",
+      "criticalValue": "Отвергаются все метрики с p-value не выше {{value}}.",
+      "columns": {
+        "metric": "Метрика",
+        "adjusted": "Скоррект. p",
+        "decision": "Решение"
+      },
+      "decision": {
+        "significant": "Значима",
+        "notSignificant": "Не значима"
+      }
+    },
     "observedResults": {
       "title": "Введите фактические результаты эксперимента",
       "description": "После завершения эксперимента введите наблюдаемые данные, чтобы вычислить статистическую значимость по реальным исходам.",
@@ -643,6 +673,7 @@
         "riskAssessment": "Оценка рисков",
         "aiRecommendations": "AI-рекомендации",
         "srmCheck": "Проверка SRM",
+        "multipleTesting": "Множественная проверка",
         "bandit": "Бандит vs фиксированный",
         "assignment": "Назначение пользователя",
         "liveStats": "Live-эксперимент",

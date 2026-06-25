@@ -473,6 +473,36 @@
       "chiSquare": "Chi-square = {{chiSquare}}, p = {{pValue}}",
       "expectedObserved": "Expected: [{{expected}}] | Observed: [{{observed}}]"
     },
+    "multipleTesting": {
+      "title": "Correct for testing many metrics",
+      "description": "When an experiment tracks several metrics, testing each at the same level inflates false positives. Benjamini-Hochberg controls the false discovery rate (FDR); Holm controls the family-wise error rate (FWER). Enter each metric's p-value to see which stay significant after correction.",
+      "metricLabelPlaceholder": "Metric name",
+      "pValuePlaceholder": "e.g. 0.012",
+      "addMetric": "Add metric",
+      "removeMetric": "Remove metric",
+      "methodLabel": "Correction method",
+      "method": {
+        "bh": "Benjamini-Hochberg (FDR)",
+        "holm": "Holm-Bonferroni (FWER)"
+      },
+      "levelLabelFdr": "FDR level (q)",
+      "levelLabelFwer": "Significance level (alpha)",
+      "runButton": "Apply correction",
+      "running": "Correcting...",
+      "needMetrics": "Add at least one metric with a p-value between 0 and 1.",
+      "serviceUnavailable": "Multiple-testing correction unavailable.",
+      "summary": "{{rejected}} of {{total}} metrics stay significant at level {{level}}.",
+      "criticalValue": "Rejects every metric with a p-value at or below {{value}}.",
+      "columns": {
+        "metric": "Metric",
+        "adjusted": "Adjusted p",
+        "decision": "Decision"
+      },
+      "decision": {
+        "significant": "Significant",
+        "notSignificant": "Not significant"
+      }
+    },
     "observedResults": {
       "title": "Enter actual experiment results",
       "description": "After the experiment finishes, enter observed data to compute statistical significance from actual outcomes.",
@@ -643,6 +673,7 @@
         "riskAssessment": "Risk assessment",
         "aiRecommendations": "AI recommendations",
         "srmCheck": "SRM check",
+        "multipleTesting": "Multiple testing",
         "bandit": "Bandit vs fixed",
         "assignment": "User assignment",
         "liveStats": "Live experiment",
