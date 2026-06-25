@@ -473,6 +473,36 @@
       "chiSquare": "卡方 = {{chiSquare}}，p = {{pValue}}",
       "expectedObserved": "预期：[{{expected}}] |观察到：[{{observed}}]"
     },
+    "multipleTesting": {
+      "title": "多指标检验校正",
+      "description": "当实验同时跟踪多个指标时，对每个指标使用相同水平进行检验会增加假阳性。Benjamini-Hochberg 控制错误发现率（FDR）；Holm 控制族系误差率（FWER）。输入每个指标的 p-value，查看校正后哪些指标仍然显著。",
+      "metricLabelPlaceholder": "指标名称",
+      "pValuePlaceholder": "例如 0.012",
+      "addMetric": "添加指标",
+      "removeMetric": "删除指标",
+      "methodLabel": "校正方法",
+      "method": {
+        "bh": "Benjamini-Hochberg (FDR)",
+        "holm": "Holm-Bonferroni (FWER)"
+      },
+      "levelLabelFdr": "FDR 水平 (q)",
+      "levelLabelFwer": "显著性水平 (alpha)",
+      "runButton": "应用校正",
+      "running": "校正中...",
+      "needMetrics": "请至少添加一个 p-value 在 0 到 1 之间的指标。",
+      "serviceUnavailable": "多重检验校正不可用。",
+      "summary": "在水平 {{level}} 下，{{total}} 个指标中有 {{rejected}} 个仍然显著。",
+      "criticalValue": "拒绝所有 p-value 不超过 {{value}} 的指标。",
+      "columns": {
+        "metric": "指标",
+        "adjusted": "校正后 p",
+        "decision": "结论"
+      },
+      "decision": {
+        "significant": "显著",
+        "notSignificant": "不显著"
+      }
+    },
     "observedResults": {
       "title": "输入实际实验结果",
       "description": "实验完成后，输入观察到的数据以计算实际结果的统计显着性。",
@@ -643,6 +673,7 @@
         "riskAssessment": "风险评估",
         "aiRecommendations": "人工智能建议",
         "srmCheck": "SRM 检查",
+        "multipleTesting": "多重检验",
         "bandit": "老虎机 vs 固定",
         "assignment": "用户分配",
         "liveStats": "实时实验",

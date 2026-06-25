@@ -45,6 +45,10 @@ import type {
   LiveSequentialBlock,
   LiveSrmBlock,
   LiveStatsResponse,
+  MetricPValue,
+  MultipleTestingMetricResult,
+  MultipleTestingRequest,
+  MultipleTestingResponse,
   ProjectDeleteResponse as GeneratedProjectDeleteResponse,
   ProjectListResponse as GeneratedProjectListResponse,
   SensitivityRequest,
@@ -55,6 +59,7 @@ export type { HypothesisCandidate, HypothesisIdeationRequest, HypothesisIdeation
 export type { BanditRegretPoint, BanditSimulationRequest, BanditSimulationResponse };
 export type { ExperimentAssignmentRequest, ExperimentAssignmentResponse };
 export type { DecisionReadoutResponse, DecisionReason };
+export type { MetricPValue, MultipleTestingMetricResult, MultipleTestingRequest, MultipleTestingResponse };
 export type {
   LiveArmStat,
   LiveComparison,

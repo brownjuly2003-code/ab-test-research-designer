@@ -473,6 +473,36 @@
       "chiSquare": "مربع كاي = {{chiSquare}}، p = {{pValue}}",
       "expectedObserved": "المتوقع: [{{expected}}] | تمت الملاحظة: [{{observed}}]"
     },
+    "multipleTesting": {
+      "title": "تصحيح اختبار العديد من المقاييس",
+      "description": "عندما تتابع التجربة عدة مقاييس، فإن اختبار كل منها عند المستوى نفسه يزيد من الإيجابيات الكاذبة. تتحكم طريقة Benjamini-Hochberg في معدل الاكتشاف الخاطئ (FDR)؛ بينما تتحكم Holm في معدل الخطأ على مستوى العائلة (FWER). أدخل قيمة p-value لكل مقياس لمعرفة أيها يبقى ذا دلالة بعد التصحيح.",
+      "metricLabelPlaceholder": "اسم المقياس",
+      "pValuePlaceholder": "مثال 0.012",
+      "addMetric": "إضافة مقياس",
+      "removeMetric": "إزالة المقياس",
+      "methodLabel": "طريقة التصحيح",
+      "method": {
+        "bh": "Benjamini-Hochberg (FDR)",
+        "holm": "Holm-Bonferroni (FWER)"
+      },
+      "levelLabelFdr": "مستوى FDR (q)",
+      "levelLabelFwer": "مستوى الدلالة (alpha)",
+      "runButton": "تطبيق التصحيح",
+      "running": "جارٍ التصحيح...",
+      "needMetrics": "أضف مقياسًا واحدًا على الأقل بقيمة p-value بين 0 و1.",
+      "serviceUnavailable": "تصحيح الاختبارات المتعددة غير متاح.",
+      "summary": "{{rejected}} من {{total}} مقاييس تبقى ذات دلالة عند المستوى {{level}}.",
+      "criticalValue": "يرفض كل مقياس قيمته p-value أقل من أو تساوي {{value}}.",
+      "columns": {
+        "metric": "المقياس",
+        "adjusted": "p المصحَّحة",
+        "decision": "القرار"
+      },
+      "decision": {
+        "significant": "ذو دلالة",
+        "notSignificant": "غير ذي دلالة"
+      }
+    },
     "observedResults": {
       "title": "أدخل نتائج التجربة الفعلية",
       "description": "بعد انتهاء التجربة، أدخل البيانات المرصودة لحساب الأهمية الإحصائية من النتائج الفعلية.",
@@ -643,6 +673,7 @@
         "riskAssessment": "تقييم المخاطر",
         "aiRecommendations": "توصيات الذكاء الاصطناعي",
         "srmCheck": "فحص SRM",
+        "multipleTesting": "الاختبارات المتعددة",
         "bandit": "الباندِت مقابل الثابت",
         "assignment": "تعيين المستخدم",
         "liveStats": "تجربة مباشرة",

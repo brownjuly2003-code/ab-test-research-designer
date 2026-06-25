@@ -473,6 +473,36 @@
       "chiSquare": "Chi carré = {{chiSquare}}, p = {{pValue}}",
       "expectedObserved": "Attendu : [{{expected}}] | Observé : [{{observed}}]"
     },
+    "multipleTesting": {
+      "title": "Correction pour le test de nombreuses métriques",
+      "description": "Lorsqu'une expérience suit plusieurs métriques, tester chacune au même niveau gonfle les faux positifs. Benjamini-Hochberg contrôle le taux de fausses découvertes (FDR) ; Holm contrôle le taux d'erreur par famille (FWER). Saisissez le p-value de chaque métrique pour voir lesquelles restent significatives après correction.",
+      "metricLabelPlaceholder": "Nom de la métrique",
+      "pValuePlaceholder": "p. ex. 0,012",
+      "addMetric": "Ajouter une métrique",
+      "removeMetric": "Supprimer la métrique",
+      "methodLabel": "Méthode de correction",
+      "method": {
+        "bh": "Benjamini-Hochberg (FDR)",
+        "holm": "Holm-Bonferroni (FWER)"
+      },
+      "levelLabelFdr": "Niveau de FDR (q)",
+      "levelLabelFwer": "Niveau de signification (alpha)",
+      "runButton": "Appliquer la correction",
+      "running": "Correction...",
+      "needMetrics": "Ajoutez au moins une métrique avec un p-value entre 0 et 1.",
+      "serviceUnavailable": "Correction pour tests multiples indisponible.",
+      "summary": "{{rejected}} métriques sur {{total}} restent significatives au niveau {{level}}.",
+      "criticalValue": "Rejette toute métrique dont le p-value est inférieur ou égal à {{value}}.",
+      "columns": {
+        "metric": "Métrique",
+        "adjusted": "p ajusté",
+        "decision": "Décision"
+      },
+      "decision": {
+        "significant": "Significative",
+        "notSignificant": "Non significative"
+      }
+    },
     "observedResults": {
       "title": "Saisir les résultats réels de l'expérience",
       "description": "Une fois l'expérience terminée, saisissez les données observées pour calculer la signification statistique à partir des résultats réels.",
@@ -643,6 +673,7 @@
         "riskAssessment": "L'évaluation des risques",
         "aiRecommendations": "Recommandations IA",
         "srmCheck": "Contrôle SRM",
+        "multipleTesting": "Tests multiples",
         "bandit": "Bandit vs fixe",
         "assignment": "Affectation d'utilisateur",
         "liveStats": "Expérience en direct",

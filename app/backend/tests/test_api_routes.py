@@ -2403,3 +2403,72 @@ def test_templates_delete_removes_user_template(monkeypatch) -> None:
     assert deleted.json() == {"id": template_id, "deleted": True}
     assert all(template["id"] != template_id for template in listed.json()["templates"])
     get_settings.cache_clear()
+
+
+def test_multiple_testing_endpoint_applies_benjamini_hochberg() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/multiple-testing",
+        json={
+            "metrics": [
+                {"label": "Checkout conversion", "p_value": 0.001},
+                {"label": "Add to cart", "p_value": 0.012},
+                {"label": "Revenue per user", "p_value": 0.04},
+                {"label": "Bounce rate", "p_value": 0.6},
+            ],
+            "level": 0.05,
+            "method": "bh",
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["method"] == "bh"
+    assert payload["num_tests"] == 4
+    assert payload["results"][0]["label"] == "Checkout conversion"
+    # Adjusted p-values are returned per metric in input order and never below the raw p-value.
+    for metric in payload["results"]:
+        assert metric["adjusted_p_value"] >= metric["p_value"] - 1e-9
+    # A metric is rejected exactly when its adjusted p-value clears the level.
+    for metric in payload["results"]:
+        assert metric["rejected"] == (metric["adjusted_p_value"] <= 0.05)
+    assert payload["num_rejected"] == sum(1 for m in payload["results"] if m["rejected"])
+
+
+def test_multiple_testing_endpoint_supports_holm_method() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/multiple-testing",
+        json={
+            "metrics": [
+                {"label": "A", "p_value": 0.001},
+                {"label": "B", "p_value": 0.02},
+                {"label": "C", "p_value": 0.5},
+            ],
+            "method": "holm",
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["method"] == "holm"
+    assert payload["level"] == 0.05  # default applied
+    assert payload["results"][0]["rejected"] is True
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        {"metrics": [], "level": 0.05},  # empty battery
+        {"metrics": [{"label": "A", "p_value": 1.4}]},  # p-value out of range
+        {"metrics": [{"label": "A", "p_value": 0.1}], "level": 0},  # level boundary
+        {"metrics": [{"label": "A", "p_value": 0.1}], "method": "bonferroni"},  # unknown method
+        {"metrics": [{"label": "", "p_value": 0.1}]},  # empty label
+    ],
+)
+def test_multiple_testing_endpoint_rejects_invalid_input(body: dict[str, object]) -> None:
+    client = TestClient(create_app())
+    response = client.post("/api/v1/multiple-testing", json=body)
+    assert response.status_code == 422
