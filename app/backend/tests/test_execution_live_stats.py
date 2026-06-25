@@ -15,6 +15,7 @@ from fastapi.testclient import TestClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
+from app.backend.app.constants import MAX_CUPED_COVARIATES
 from app.backend.app.main import create_app
 from app.backend.app.repository import ProjectRepository
 from app.backend.app.services.live_stats_service import build_live_stats
@@ -116,8 +117,35 @@ def _cuped_arm(
     }
 
 
-def _cuped_aggregates(*arms: dict) -> dict:
-    return {"experiment_id": "e", "metric_name": "aov", "variations": list(arms)}
+def _multi_cuped_arm(index: int, covariates: list[list[float]], ys: list[float]) -> dict:
+    """A multi-covariate CUPED per-variation row. ``covariates`` is a list of k per-covariate
+    value-lists (each length n, aligned with ``ys``); the regression sufficient statistics
+    (sum_x[], sum_xy[], symmetric sum_xx[][]) are rolled up here as the repository would."""
+    n = len(ys)
+    k = len(covariates)
+    assert all(len(values) == n for values in covariates)
+    return {
+        "variation_index": index,
+        "n": n,
+        "sum_y": float(sum(ys)),
+        "sum_y2": float(sum(y * y for y in ys)),
+        "sum_x": [float(sum(covariates[j])) for j in range(k)],
+        "sum_xy": [float(sum(covariates[j][i] * ys[i] for i in range(n))) for j in range(k)],
+        "sum_xx": [
+            [float(sum(covariates[i][m] * covariates[j][m] for m in range(n))) for j in range(k)]
+            for i in range(k)
+        ],
+    }
+
+
+def _multi_cuped_aggregates(names: list[str], *arms: dict, too_many: bool = False) -> dict:
+    return {
+        "experiment_id": "e",
+        "metric_name": "aov",
+        "covariate_names": list(names),
+        "too_many_covariates": too_many,
+        "variations": list(arms),
+    }
 
 
 def _ratio_design(*, n_looks: int = 1) -> dict:
@@ -777,14 +805,16 @@ def test_cuped_constant_covariate_gives_zero_theta_and_matches_unadjusted() -> N
             _arm(0, 4, 4, value_sum=100.0, value_sq_sum=2600.0),
             _arm(1, 4, 4, value_sum=180.0, value_sq_sum=8200.0),
         ),
-        _cuped_aggregates(
-            _cuped_arm(0, xs=[5, 5, 5, 5], ys=[20, 30, 20, 30]),
-            _cuped_arm(1, xs=[5, 5, 5, 5], ys=[40, 50, 40, 50]),
+        _multi_cuped_aggregates(
+            ["__default__"],
+            _multi_cuped_arm(0, [[5, 5, 5, 5]], [20, 30, 20, 30]),
+            _multi_cuped_arm(1, [[5, 5, 5, 5]], [40, 50, 40, 50]),
         ),
     )
     cuped = result["cuped"]
     assert cuped["status"] == "available"
     assert cuped["theta"] == 0.0
+    assert cuped["num_covariates"] == 1
     assert cuped["variance_reduction_pct"] == 0.0
     comparison = cuped["comparisons"][0]
     assert comparison["status"] == "ok"
@@ -803,14 +833,16 @@ def test_cuped_correlated_covariate_reduces_variance_and_preserves_effect() -> N
             _arm(0, 4, 4, value_sum=100.0, value_sq_sum=2950.0),
             _arm(1, 4, 4, value_sum=130.0, value_sq_sum=4550.0),
         ),
-        _cuped_aggregates(
-            _cuped_arm(0, xs=[1, 2, 3, 4], ys=[10, 25, 25, 40]),
-            _cuped_arm(1, xs=[1, 2, 3, 4], ys=[20, 30, 35, 45]),
+        _multi_cuped_aggregates(
+            ["__default__"],
+            _multi_cuped_arm(0, [[1, 2, 3, 4]], [10, 25, 25, 40]),
+            _multi_cuped_arm(1, [[1, 2, 3, 4]], [20, 30, 35, 45]),
         ),
     )
     cuped = result["cuped"]
     assert cuped["status"] == "available"
     assert cuped["theta"] == 8.5  # cov(X,Y)/var(X) pooled = (85/7)/(10/7)
+    assert cuped["covariates"] == [{"name": "__default__", "theta": 8.5}]
     assert cuped["variance_reduction_pct"] > 50.0  # strong correlation -> large reduction
     assert cuped["covariate_users_total"] == 8
     comparison = cuped["comparisons"][0]
@@ -829,9 +861,10 @@ def test_cuped_insufficient_when_arm_has_under_two_covariate_users() -> None:
             _arm(0, 4, 4, value_sum=100.0, value_sq_sum=2950.0),
             _arm(1, 4, 4, value_sum=130.0, value_sq_sum=4550.0),
         ),
-        _cuped_aggregates(
-            _cuped_arm(0, xs=[1, 2, 3, 4], ys=[10, 25, 25, 40]),
-            _cuped_arm(1, xs=[1], ys=[20]),  # only one covariate user in the treatment arm
+        _multi_cuped_aggregates(
+            ["__default__"],
+            _multi_cuped_arm(0, [[1, 2, 3, 4]], [10, 25, 25, 40]),
+            _multi_cuped_arm(1, [[1]], [20]),  # only one covariate user in the treatment arm
         ),
     )
     assert result["cuped"]["status"] == "available"
@@ -876,18 +909,21 @@ def test_cuped_aggregates_restrict_to_covariate_users_and_exclude_holdout() -> N
 
     aggregates = repo.get_cuped_aggregates(exp, "aov")
     assert aggregates is not None
+    # Legacy single-covariate ingestion lands under the reserved "__default__" name.
+    assert aggregates["covariate_names"] == ["__default__"]
+    assert aggregates["too_many_covariates"] is False
     by_index = {arm["variation_index"]: arm for arm in aggregates["variations"]}
 
     assert by_index[0]["n"] == 2  # u1, u2 (u3 has no covariate)
-    assert by_index[0]["sum_x"] == 30.0
-    assert by_index[0]["sum_x2"] == 500.0  # 10^2 + 20^2
+    assert by_index[0]["sum_x"] == [30.0]
+    assert by_index[0]["sum_xx"] == [[500.0]]  # 10^2 + 20^2 (raw second moment = diagonal)
     assert by_index[0]["sum_y"] == 5.0  # u1: 2.0 + u2: 3.0
     assert by_index[0]["sum_y2"] == 13.0  # 2^2 + 3^2
-    assert by_index[0]["sum_xy"] == 80.0  # 10*2 + 20*3
+    assert by_index[0]["sum_xy"] == [80.0]  # 10*2 + 20*3
 
     assert by_index[1]["n"] == 2  # u4, u5
     assert by_index[1]["sum_y"] == 5.0  # u4: 5.0 + u5: 0
-    assert by_index[1]["sum_xy"] == 200.0  # 40*5 + 50*0
+    assert by_index[1]["sum_xy"] == [200.0]  # 40*5 + 50*0
     assert -1 not in by_index  # holdout never appears
 
 
@@ -906,6 +942,148 @@ def test_record_pre_period_values_dedups_per_user() -> None:
     # First-write-wins: a later value for u1 is dropped.
     second = repo.record_pre_period_values(exp, [{"user_id": "u1", "value": 99.0}])
     assert second == {"received": 1, "recorded": 0, "deduplicated": 1}
+
+
+def test_record_pre_period_values_dedups_per_named_covariate() -> None:
+    # First-write-wins is per (user, covariate): two different covariates for the same user are
+    # both recorded; a repeat of the same (user, covariate) is dropped (F3a).
+    repo = _repo()
+    exp = _project(repo)
+    first = repo.record_pre_period_values(
+        exp,
+        [
+            {"user_id": "u1", "covariate_name": "spend", "value": 5.0},
+            {"user_id": "u1", "covariate_name": "visits", "value": 2.0},
+        ],
+    )
+    assert first == {"received": 2, "recorded": 2, "deduplicated": 0}
+    repeat = repo.record_pre_period_values(
+        exp, [{"user_id": "u1", "covariate_name": "spend", "value": 99.0}]
+    )
+    assert repeat == {"received": 1, "recorded": 0, "deduplicated": 1}
+
+
+def test_cuped_aggregates_multi_covariate_requires_complete_vector() -> None:
+    # Multi-covariate CUPED only adjusts users that carry every covariate (F3a). A user missing one
+    # covariate is dropped, mirroring E5's "must have the covariate" rule for the vector case.
+    repo = _repo()
+    exp = _project(repo)
+    repo.record_exposures(
+        exp,
+        [
+            {"user_id": "a", "variation_index": 0},
+            {"user_id": "b", "variation_index": 0},
+            {"user_id": "c", "variation_index": 0},  # only one covariate -> incomplete -> excluded
+        ],
+    )
+    repo.record_pre_period_values(
+        exp,
+        [
+            {"user_id": "a", "covariate_name": "spend", "value": 2.0},
+            {"user_id": "a", "covariate_name": "visits", "value": 1.0},
+            {"user_id": "b", "covariate_name": "spend", "value": 4.0},
+            {"user_id": "b", "covariate_name": "visits", "value": 3.0},
+            {"user_id": "c", "covariate_name": "spend", "value": 9.0},  # no "visits" -> incomplete
+        ],
+    )
+    repo.record_conversions(
+        exp,
+        [
+            {"user_id": "a", "metric": "rev", "value": 10.0},
+            {"user_id": "b", "metric": "rev", "value": 20.0},
+        ],
+    )
+
+    aggregates = repo.get_cuped_aggregates(exp, "rev")
+    assert aggregates is not None
+    assert aggregates["covariate_names"] == ["spend", "visits"]  # discovered, sorted
+    arm0 = {arm["variation_index"]: arm for arm in aggregates["variations"]}[0]
+    assert arm0["n"] == 2  # a, b (c dropped — incomplete vector)
+    assert arm0["sum_x"] == [6.0, 4.0]  # spend 2+4, visits 1+3
+    assert arm0["sum_y"] == 30.0 and arm0["sum_y2"] == 500.0
+    # symmetric raw cross-moment matrix: spend^2=4+16=20, spend*visits=2+12=14, visits^2=1+9=10
+    assert arm0["sum_xx"] == [[20.0, 14.0], [14.0, 10.0]]
+    assert arm0["sum_xy"] == [100.0, 70.0]  # spend*y 20+80, visits*y 10+60
+
+
+def test_cuped_multi_covariate_live_returns_theta_vector() -> None:
+    result = build_live_stats(
+        "e",
+        _continuous_design(),
+        _aggregates(
+            _arm(0, 4, 4, value_sum=80.0, value_sq_sum=1808.0),
+            _arm(1, 4, 4, value_sum=112.0, value_sq_sum=3344.0),
+        ),
+        _multi_cuped_aggregates(
+            ["spend", "visits"],
+            _multi_cuped_arm(0, [[1, 2, 3, 4], [2, 1, 4, 3]], [10, 12, 30, 28]),
+            _multi_cuped_arm(1, [[1, 2, 3, 4], [2, 1, 4, 3]], [18, 20, 38, 36]),
+        ),
+    )
+    cuped = result["cuped"]
+    assert cuped["status"] == "available"
+    assert cuped["num_covariates"] == 2
+    assert cuped["theta"] is None  # scalar convenience only for the single-covariate case
+    assert [c["name"] for c in cuped["covariates"]] == ["spend", "visits"]
+    assert cuped["variance_reduction_pct"] is not None
+    assert cuped["comparisons"][0]["status"] == "ok"
+
+
+def test_cuped_too_many_covariates_flagged() -> None:
+    repo = _repo()
+    exp = _project(repo)
+    repo.record_exposures(exp, [{"user_id": "u1", "variation_index": 0}])
+    over_cap = MAX_CUPED_COVARIATES + 1
+    repo.record_pre_period_values(
+        exp,
+        [{"user_id": "u1", "covariate_name": f"c{i:02d}", "value": float(i)} for i in range(over_cap)],
+    )
+    aggregates = repo.get_cuped_aggregates(exp, "rev")
+    assert aggregates is not None
+    assert aggregates["too_many_covariates"] is True
+    assert aggregates["variations"] == []  # heavy rollup skipped
+    block = build_live_stats(
+        "e",
+        _continuous_design(),
+        _aggregates(
+            _arm(0, 4, 4, value_sum=100.0, value_sq_sum=2600.0),
+            _arm(1, 4, 4, value_sum=180.0, value_sq_sum=8200.0),
+        ),
+        aggregates,
+    )["cuped"]
+    assert block["status"] == "too_many_covariates"
+    assert block["num_covariates"] == over_cap
+
+
+def test_cuped_aggregates_migrate_legacy_single_covariate() -> None:
+    # A database written before F3a has rows only in the legacy pre_period_values table; reopening
+    # the repository backfills them into pre_period_covariates under the "__default__" name.
+    repo = _repo()
+    exp = _project(repo)
+    repo.record_exposures(
+        exp, [{"user_id": "u1", "variation_index": 0}, {"user_id": "u2", "variation_index": 0}]
+    )
+    repo.record_conversions(exp, [{"user_id": "u1", "metric": "aov", "value": 4.0}])
+    with repo._backend._connect() as conn:  # type: ignore[attr-defined]
+        conn.execute("DELETE FROM pre_period_covariates")
+        conn.execute(
+            "INSERT INTO pre_period_values (id, experiment_id, user_id, value, created_at) "
+            "VALUES (?,?,?,?,?)",
+            ("legacy1", exp, "u1", 10.0, "2026-01-01"),
+        )
+        conn.execute(
+            "INSERT INTO pre_period_values (id, experiment_id, user_id, value, created_at) "
+            "VALUES (?,?,?,?,?)",
+            ("legacy2", exp, "u2", 20.0, "2026-01-01"),
+        )
+        conn.commit()
+
+    reopened = ProjectRepository(str(repo._backend.db_path))  # type: ignore[attr-defined]
+    aggregates = reopened.get_cuped_aggregates(exp, "aov")
+    assert aggregates is not None
+    assert aggregates["covariate_names"] == ["__default__"]
+    arm0 = {arm["variation_index"]: arm for arm in aggregates["variations"]}[0]
+    assert arm0["n"] == 2 and arm0["sum_x"] == [30.0]  # 10 + 20 migrated
 
 
 def _create_continuous_project(client: TestClient) -> str:

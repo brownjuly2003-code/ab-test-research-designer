@@ -18,6 +18,7 @@ from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 from psycopg_pool import ConnectionPool
 
+from app.backend.app.constants import MAX_CUPED_COVARIATES
 from app.backend.app.errors import ApiError
 from app.backend.app.schemas.api import ExperimentInput
 
@@ -34,7 +35,7 @@ class DatabaseBackend(Protocol):
 class SQLiteBackend:
     backend_name = "sqlite"
     supports_snapshots = True
-    schema_version = 9
+    schema_version = 10
     payload_schema_version = 1
     workspace_schema_version = 3
     project_select_columns = """
@@ -399,6 +400,8 @@ class SQLiteBackend:
         # CUPED pre-period covariate (E5): one pre-experiment value per (experiment, user).
         # The UNIQUE constraint is the dedup primitive — first-write-wins keeps the covariate
         # stable. CUPED needs exactly one X per user paired with their outcome Y.
+        # Retained for backward compatibility and as the migration source for the multi-covariate
+        # table below; new writes go to pre_period_covariates (F3a).
         connection.execute(
             """
             CREATE TABLE IF NOT EXISTS pre_period_values (
@@ -408,6 +411,24 @@ class SQLiteBackend:
                 value REAL NOT NULL,
                 created_at TEXT NOT NULL,
                 UNIQUE(experiment_id, user_id),
+                FOREIGN KEY(experiment_id) REFERENCES projects(id) ON DELETE CASCADE
+            )
+            """
+        )
+        # Multi-covariate CUPED (F3a): several named pre-experiment covariates per (experiment,
+        # user). The named covariate is part of the dedup key so each (user, covariate) keeps one
+        # first-write-wins value; single-covariate CUPED is the special case covariate_name =
+        # '__default__'. Generalizes pre_period_values without a fragile UNIQUE-constraint rebuild.
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS pre_period_covariates (
+                id TEXT PRIMARY KEY,
+                experiment_id TEXT NOT NULL,
+                user_id TEXT NOT NULL,
+                covariate_name TEXT NOT NULL,
+                value REAL NOT NULL,
+                created_at TEXT NOT NULL,
+                UNIQUE(experiment_id, user_id, covariate_name),
                 FOREIGN KEY(experiment_id) REFERENCES projects(id) ON DELETE CASCADE
             )
             """
@@ -443,6 +464,17 @@ class SQLiteBackend:
             """
             CREATE INDEX IF NOT EXISTS idx_audit_log_key
             ON audit_log (key_id, ts DESC, id DESC)
+            """
+        )
+        # F3a: carry any legacy single-covariate pre-period values into the multi-covariate table
+        # under the reserved '__default__' name. Idempotent (ON CONFLICT) — re-running on a
+        # migrated DB copies nothing; a fresh DB has no legacy rows.
+        connection.execute(
+            """
+            INSERT OR IGNORE INTO pre_period_covariates
+                (id, experiment_id, user_id, covariate_name, value, created_at)
+            SELECT lower(hex(randomblob(16))), experiment_id, user_id, '__default__', value, created_at
+            FROM pre_period_values
             """
         )
 
@@ -2785,11 +2817,13 @@ class SQLiteBackend:
         return {"received": received, "recorded": recorded, "deduplicated": received - recorded}
 
     def record_pre_period_values(self, experiment_id: str, items: list[dict[str, Any]]) -> dict[str, Any]:
-        """Record per-user pre-experiment covariate values for CUPED (E5).
+        """Record per-user pre-experiment covariate values for CUPED (E5 / F3a).
 
-        First-write-wins per (experiment, user) via the UNIQUE constraint +
-        ``ON CONFLICT DO NOTHING``; CUPED needs exactly one X per user, and the covariate
-        is historical (pre-assignment) data, so a later value for the same user is dropped.
+        First-write-wins per (experiment, user, covariate) via the UNIQUE constraint +
+        ``ON CONFLICT DO NOTHING``; CUPED needs exactly one X per user per covariate, and the
+        covariate is historical (pre-assignment) data, so a later value for the same key is dropped.
+        Each item may carry a ``covariate_name``; single-covariate ingestion omits it and lands
+        under the reserved ``__default__`` name, so the legacy one-covariate path is unchanged.
         """
         timestamp = datetime.now(timezone.utc).isoformat()
         recorded = 0
@@ -2798,14 +2832,16 @@ class SQLiteBackend:
             for item in items:
                 cursor = connection.execute(
                     """
-                    INSERT INTO pre_period_values (id, experiment_id, user_id, value, created_at)
-                    VALUES (?, ?, ?, ?, ?)
-                    ON CONFLICT(experiment_id, user_id) DO NOTHING
+                    INSERT INTO pre_period_covariates
+                        (id, experiment_id, user_id, covariate_name, value, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(experiment_id, user_id, covariate_name) DO NOTHING
                     """,
                     (
                         str(uuid.uuid4()),
                         experiment_id,
                         item["user_id"],
+                        item.get("covariate_name") or "__default__",
                         float(item["value"]),
                         timestamp,
                     ),
@@ -2948,70 +2984,176 @@ class SQLiteBackend:
         }
 
     def get_cuped_aggregates(self, experiment_id: str, metric_name: str) -> dict[str, Any] | None:
-        """Per-variation CUPED sufficient statistics over the covered subset (E5).
+        """Per-variation multi-covariate CUPED sufficient statistics over the covered subset (F3a).
 
-        Returns ``None`` if the experiment does not exist. Restricted (INNER JOIN) to exposed
-        users that have a pre-period covariate ``X`` — CUPED can only adjust users whose X is
-        known. Per user the outcome ``Y`` is the sum of their conversion values on
-        ``metric_name`` (non-converters contribute 0). Per variation it rolls up the
-        sufficient statistics CUPED needs — ``n``, ``sum_x``, ``sum_x2``, ``sum_y``,
-        ``sum_y2``, ``sum_xy`` — from which a single pooled
-        ``theta = cov(X, Y) / var(X)`` and the per-arm adjusted moments are computed in the
-        service layer (no new statistics in SQL). The holdout tail (``variation_index = -1``)
-        is excluded.
+        Returns ``None`` if the experiment does not exist. The covariate names are discovered from
+        the ingested ``pre_period_covariates`` rows (sorted; single-covariate CUPED is the special
+        case of the lone ``__default__`` name). Restricted to exposed users that carry the
+        **complete** covariate vector — CUPED can only adjust users whose every X is known — with
+        the holdout tail (``variation_index = -1``) excluded. Per user the outcome ``Y`` is the sum
+        of their conversion values on ``metric_name`` (non-converters contribute 0). Per variation it
+        rolls up the regression sufficient statistics — ``n``, ``sum_y``, ``sum_y2`` and, over the
+        covariate vector, ``sum_x[]``, ``sum_xy[]`` and the symmetric raw cross-moment matrix
+        ``sum_xx[][]`` — from which the service forms the pooled coefficient vector
+        ``theta = Sigma_xx^{-1} Sigma_xy`` and the per-arm adjusted moments (no new statistics in
+        SQL). The k×k matrix is assembled in Python so the SQL stays covariate-count-agnostic and
+        portable across SQLite and Postgres. ``too_many_covariates`` flags the pathological case of
+        more than ``MAX_CUPED_COVARIATES`` distinct names (the heavy rollup is then skipped).
         """
         with self._connect() as connection:
             if not self._project_exists(connection, experiment_id):
                 return None
-            rows = connection.execute(
+            name_rows = connection.execute(
                 """
-                WITH user_pairs AS (
+                SELECT DISTINCT covariate_name
+                FROM pre_period_covariates
+                WHERE experiment_id = ?
+                ORDER BY covariate_name
+                """,
+                (experiment_id,),
+            ).fetchall()
+            covariate_names = [str(row["covariate_name"]) for row in name_rows]
+            if not covariate_names:
+                return self._empty_cuped_aggregates(experiment_id, metric_name)
+            if len(covariate_names) > MAX_CUPED_COVARIATES:
+                result = self._empty_cuped_aggregates(experiment_id, metric_name)
+                result["covariate_names"] = covariate_names
+                result["too_many_covariates"] = True
+                return result
+
+            count = len(covariate_names)
+            index_of = {name: position for position, name in enumerate(covariate_names)}
+
+            # Shared CTEs: exposed-user outcomes Y, the experiment's covariate rows, and the
+            # "covered" users that carry the complete covariate vector (all ``count`` covariates).
+            covered_cte = """
+                WITH user_outcomes AS (
                     SELECT
                         e.variation_index AS variation_index,
                         e.user_id AS user_id,
-                        p.value AS x,
                         COALESCE(SUM(c.value), 0) AS y
                     FROM exposures e
-                    JOIN pre_period_values p
-                        ON p.experiment_id = e.experiment_id
-                        AND p.user_id = e.user_id
                     LEFT JOIN conversions c
                         ON c.experiment_id = e.experiment_id
                         AND c.user_id = e.user_id
                         AND c.metric = ?
                     WHERE e.experiment_id = ? AND e.variation_index >= 0
-                    GROUP BY e.variation_index, e.user_id, p.value
+                    GROUP BY e.variation_index, e.user_id
+                ),
+                user_cov AS (
+                    SELECT user_id, covariate_name, value
+                    FROM pre_period_covariates
+                    WHERE experiment_id = ?
+                ),
+                covered AS (
+                    SELECT o.variation_index AS variation_index, o.user_id AS user_id, o.y AS y
+                    FROM user_outcomes o
+                    JOIN user_cov uc ON uc.user_id = o.user_id
+                    GROUP BY o.variation_index, o.user_id, o.y
+                    HAVING COUNT(DISTINCT uc.covariate_name) = ?
                 )
-                SELECT
-                    variation_index,
-                    COUNT(*) AS n,
-                    SUM(x) AS sum_x,
-                    SUM(x * x) AS sum_x2,
-                    SUM(y) AS sum_y,
-                    SUM(y * y) AS sum_y2,
-                    SUM(x * y) AS sum_xy
-                FROM user_pairs
+            """
+            covered_params = (metric_name, experiment_id, experiment_id, count)
+
+            variation_rows = connection.execute(
+                covered_cte
+                + """
+                SELECT variation_index, COUNT(*) AS n, SUM(y) AS sum_y, SUM(y * y) AS sum_y2
+                FROM covered
                 GROUP BY variation_index
                 ORDER BY variation_index
                 """,
-                (metric_name, experiment_id),
+                covered_params,
             ).fetchall()
-        variations = [
-            {
-                "variation_index": int(row["variation_index"]),
-                "n": int(row["n"]),
-                "sum_x": float(row["sum_x"] or 0.0),
-                "sum_x2": float(row["sum_x2"] or 0.0),
-                "sum_y": float(row["sum_y"] or 0.0),
-                "sum_y2": float(row["sum_y2"] or 0.0),
-                "sum_xy": float(row["sum_xy"] or 0.0),
+
+            covariate_rows = connection.execute(
+                covered_cte
+                + """
+                SELECT
+                    cv.variation_index AS variation_index,
+                    uc.covariate_name AS covariate_name,
+                    SUM(uc.value) AS sum_x,
+                    SUM(uc.value * cv.y) AS sum_xy
+                FROM covered cv
+                JOIN user_cov uc ON uc.user_id = cv.user_id
+                GROUP BY cv.variation_index, uc.covariate_name
+                """,
+                covered_params,
+            ).fetchall()
+
+            cross_rows = connection.execute(
+                covered_cte
+                + """
+                SELECT
+                    cv.variation_index AS variation_index,
+                    a.covariate_name AS cov_i,
+                    b.covariate_name AS cov_j,
+                    SUM(a.value * b.value) AS sum_ij
+                FROM covered cv
+                JOIN user_cov a ON a.user_id = cv.user_id
+                JOIN user_cov b ON b.user_id = cv.user_id AND a.covariate_name <= b.covariate_name
+                GROUP BY cv.variation_index, a.covariate_name, b.covariate_name
+                """,
+                covered_params,
+            ).fetchall()
+
+        def blank(variation_index: int) -> dict[str, Any]:
+            return {
+                "variation_index": variation_index,
+                "n": 0,
+                "sum_y": 0.0,
+                "sum_y2": 0.0,
+                "sum_x": [0.0] * count,
+                "sum_xy": [0.0] * count,
+                "sum_xx": [[0.0] * count for _ in range(count)],
             }
-            for row in rows
-        ]
+
+        variations: dict[int, dict[str, Any]] = {}
+        for row in variation_rows:
+            index = int(row["variation_index"])
+            entry = variations.setdefault(index, blank(index))
+            entry["n"] = int(row["n"])
+            entry["sum_y"] = float(row["sum_y"] or 0.0)
+            entry["sum_y2"] = float(row["sum_y2"] or 0.0)
+        for row in covariate_rows:
+            index = int(row["variation_index"])
+            name = str(row["covariate_name"])
+            if name not in index_of:
+                continue
+            entry = variations.setdefault(index, blank(index))
+            position = index_of[name]
+            entry["sum_x"][position] = float(row["sum_x"] or 0.0)
+            entry["sum_xy"][position] = float(row["sum_xy"] or 0.0)
+        for row in cross_rows:
+            index = int(row["variation_index"])
+            name_i = str(row["cov_i"])
+            name_j = str(row["cov_j"])
+            if name_i not in index_of or name_j not in index_of:
+                continue
+            entry = variations.setdefault(index, blank(index))
+            i = index_of[name_i]
+            j = index_of[name_j]
+            value = float(row["sum_ij"] or 0.0)
+            entry["sum_xx"][i][j] = value
+            entry["sum_xx"][j][i] = value
+
+        ordered = [variations[index] for index in sorted(variations)]
         return {
             "experiment_id": experiment_id,
             "metric_name": metric_name,
-            "variations": variations,
+            "covariate_names": covariate_names,
+            "too_many_covariates": False,
+            "variations": ordered,
+        }
+
+    @staticmethod
+    def _empty_cuped_aggregates(experiment_id: str, metric_name: str) -> dict[str, Any]:
+        return {
+            "experiment_id": experiment_id,
+            "metric_name": metric_name,
+            "covariate_names": [],
+            "too_many_covariates": False,
+            "variations": [],
         }
 
     def get_ratio_aggregates(
@@ -3489,6 +3631,23 @@ class PostgresBackend(SQLiteBackend):
                     value REAL NOT NULL,
                     created_at TEXT NOT NULL,
                     UNIQUE(experiment_id, user_id),
+                    FOREIGN KEY(experiment_id) REFERENCES projects(id) ON DELETE CASCADE
+                )
+                """
+            )
+            # Multi-covariate CUPED (F3a) — Postgres mirror of the SQLite table. Fresh containers
+            # get the table straight from here; the legacy-data backfill is SQLite-only (Postgres
+            # is provisioned fresh in CI / has no in-project migration path).
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS pre_period_covariates (
+                    id TEXT PRIMARY KEY,
+                    experiment_id TEXT NOT NULL,
+                    user_id TEXT NOT NULL,
+                    covariate_name TEXT NOT NULL,
+                    value REAL NOT NULL,
+                    created_at TEXT NOT NULL,
+                    UNIQUE(experiment_id, user_id, covariate_name),
                     FOREIGN KEY(experiment_id) REFERENCES projects(id) ON DELETE CASCADE
                 )
                 """

@@ -321,15 +321,61 @@ def test_postgres_backend_cuped_aggregates_round_trip(postgres_repository) -> No
 
     aggregates = repo.get_cuped_aggregates(exp, "aov")
     assert aggregates is not None
+    assert aggregates["covariate_names"] == ["__default__"]  # legacy single-covariate ingestion
     by_index = {arm["variation_index"]: arm for arm in aggregates["variations"]}
     assert by_index[0]["n"] == 2  # u1, u2 (u3 has no covariate)
-    assert by_index[0]["sum_x"] == 30.0
+    assert by_index[0]["sum_x"] == [30.0]
     assert by_index[0]["sum_y"] == 5.0
-    assert by_index[0]["sum_xy"] == 80.0  # 10*2 + 20*3
+    assert by_index[0]["sum_xy"] == [80.0]  # 10*2 + 20*3
     assert by_index[1]["n"] == 2  # u4, u5
     assert by_index[1]["sum_y"] == 5.0  # u4: 5.0 + u5: 0
-    assert by_index[1]["sum_xy"] == 200.0  # 40*5 + 50*0
+    assert by_index[1]["sum_xy"] == [200.0]  # 40*5 + 50*0
     assert -1 not in by_index  # holdout never appears
+
+
+def test_postgres_backend_multi_cuped_aggregates_round_trip(postgres_repository) -> None:
+    # Exercises the F3a multi-covariate CUPED rollup (covariate discovery + the self-join cross-moment
+    # CTEs + the complete-vector HAVING filter) on a real Postgres, validating the portable dual-backend
+    # SQL (translated ? -> %s) that cannot be checked on Windows without a Postgres.
+    repo = postgres_repository
+    project = repo.create_project(_payload("Multi CUPED PG", "continuous"))
+    exp = project["id"]
+    repo.record_exposures(
+        exp,
+        [
+            {"user_id": "a", "variation_index": 0},
+            {"user_id": "b", "variation_index": 0},
+            {"user_id": "c", "variation_index": 0},  # only one covariate -> incomplete -> excluded
+        ],
+    )
+    repo.record_pre_period_values(
+        exp,
+        [
+            {"user_id": "a", "covariate_name": "spend", "value": 2.0},
+            {"user_id": "a", "covariate_name": "visits", "value": 1.0},
+            {"user_id": "b", "covariate_name": "spend", "value": 4.0},
+            {"user_id": "b", "covariate_name": "visits", "value": 3.0},
+            {"user_id": "c", "covariate_name": "spend", "value": 9.0},  # no "visits"
+        ],
+    )
+    repo.record_conversions(
+        exp,
+        [
+            {"user_id": "a", "metric": "aov", "value": 10.0},
+            {"user_id": "b", "metric": "aov", "value": 20.0},
+        ],
+    )
+
+    aggregates = repo.get_cuped_aggregates(exp, "aov")
+    assert aggregates is not None
+    assert aggregates["covariate_names"] == ["spend", "visits"]  # discovered, sorted
+    assert aggregates["too_many_covariates"] is False
+    arm0 = {arm["variation_index"]: arm for arm in aggregates["variations"]}[0]
+    assert arm0["n"] == 2  # a, b (c dropped — incomplete vector)
+    assert arm0["sum_x"] == [6.0, 4.0]  # spend 2+4, visits 1+3
+    assert arm0["sum_y"] == 30.0 and arm0["sum_y2"] == 500.0
+    assert arm0["sum_xx"] == [[20.0, 14.0], [14.0, 10.0]]  # symmetric raw cross-moments
+    assert arm0["sum_xy"] == [100.0, 70.0]  # spend*y 20+80, visits*y 10+60
 
 
 def test_postgres_backend_ratio_aggregates_round_trip(postgres_repository) -> None:

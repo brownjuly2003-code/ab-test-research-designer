@@ -791,6 +791,8 @@
       "sequentialActive": "Информация {{fraction}} от плана · граница z {{boundary}} · план {{planned}}/вариант",
       "cupedTitle": "CUPED",
       "cupedReduction": "θ {{theta}} · снижение дисперсии {{reduction}}%",
+      "cupedReductionMulti": "Ковариат: {{n}} · снижение дисперсии {{reduction}}%",
+      "cupedCovariateLine": "{{name}}: θ {{theta}}",
       "cupedCoverage": "у {{covariate}} из {{exposed}} участников есть pre-period ковариата",
       "cupedArmLine": "скорр. среднее {{adjusted}} (исходное {{raw}})",
       "cupedAdjustedEffect": "Скорр. эффект {{effect}} · ДИ [{{lower}}, {{upper}}] · p {{p}}",

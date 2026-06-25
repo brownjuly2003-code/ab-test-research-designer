@@ -779,6 +779,8 @@
       "sequentialActive": "Information {{fraction}} du plan · limite z {{boundary}} · prévu {{planned}}/variante",
       "cupedTitle": "CUPED",
       "cupedReduction": "θ {{theta}} · réduction de variance {{reduction}}%",
+      "cupedReductionMulti": "{{n}} covariables · réduction de variance {{reduction}}%",
+      "cupedCovariateLine": "{{name}}: θ {{theta}}",
       "cupedCoverage": "{{covariate}} des {{exposed}} utilisateurs exposés ont une covariable de pré-période",
       "cupedArmLine": "moyenne ajustée {{adjusted}} (brute {{raw}})",
       "cupedAdjustedEffect": "Effet ajusté {{effect}} · IC [{{lower}}, {{upper}}] · p {{p}}",

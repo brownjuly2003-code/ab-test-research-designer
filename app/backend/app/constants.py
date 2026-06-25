@@ -8,6 +8,12 @@ MAX_SUPPORTED_METRICS = 100
 # Eight weeks is the point after which the planner flags long-running experiments.
 MAX_RECOMMENDED_DURATION_DAYS = 56
 
+# Upper bound on the number of distinct pre-period covariates multi-covariate CUPED (F3a) regresses
+# the outcome on. The normal-equations solve is O(k^3); a handful of covariates is the realistic
+# regime, and the cap bounds pathological ingestion. If more distinct names are ingested the lowest
+# (sorted) names up to this cap are used and the response flags the truncation.
+MAX_CUPED_COVARIATES = 10
+
 DEFAULT_CORS_METHODS = ("GET", "POST", "PUT", "DELETE", "OPTIONS")
 DEFAULT_CORS_HEADERS = ("Accept", "Content-Type")
 

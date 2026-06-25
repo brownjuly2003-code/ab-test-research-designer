@@ -779,6 +779,8 @@
       "sequentialActive": "المعلومات {{fraction}} من الخطة · الحد z {{boundary}} · المخطط {{planned}}/متغير",
       "cupedTitle": "CUPED",
       "cupedReduction": "θ {{theta}} · تقليل التباين {{reduction}}%",
+      "cupedReductionMulti": "{{n}} متغيرات مرافقة · تقليل التباين {{reduction}}%",
+      "cupedCovariateLine": "{{name}}: θ {{theta}}",
       "cupedCoverage": "{{covariate}} من أصل {{exposed}} مستخدمًا معرّضًا لديهم متغير مساعد لما قبل التجربة",
       "cupedArmLine": "المتوسط المعدّل {{adjusted}} (الخام {{raw}})",
       "cupedAdjustedEffect": "الأثر المعدّل {{effect}} · فاصل الثقة [{{lower}}, {{upper}}] · p {{p}}",

@@ -194,12 +194,33 @@ function CupedBlock({ cuped, variantNames }: { cuped: LiveCupedBlock; variantNam
       <strong>{t("results.liveStats.cupedTitle")}</strong>
       {cuped.status === "available" ? (
         <>
-          <span className="muted">
-            {t("results.liveStats.cupedReduction", {
-              theta: formatNumber(cuped.theta, 4),
-              reduction: formatNumber(cuped.variance_reduction_pct)
-            })}
-          </span>
+          {cuped.covariates && cuped.covariates.length > 1 ? (
+            <>
+              <span className="muted">
+                {t("results.liveStats.cupedReductionMulti", {
+                  n: cuped.num_covariates ?? cuped.covariates.length,
+                  reduction: formatNumber(cuped.variance_reduction_pct)
+                })}
+              </span>
+              <ul className="cuped-covariates" style={{ margin: 0, paddingLeft: "18px" }}>
+                {cuped.covariates.map((covariate) => (
+                  <li key={covariate.name} className="muted">
+                    {t("results.liveStats.cupedCovariateLine", {
+                      name: covariate.name,
+                      theta: formatNumber(covariate.theta, 4)
+                    })}
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : (
+            <span className="muted">
+              {t("results.liveStats.cupedReduction", {
+                theta: formatNumber(cuped.theta, 4),
+                reduction: formatNumber(cuped.variance_reduction_pct)
+              })}
+            </span>
+          )}
           <span className="muted">
             {t("results.liveStats.cupedCoverage", {
               covariate: cuped.covariate_users_total ?? 0,

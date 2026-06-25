@@ -635,6 +635,8 @@ export type LiveCupedBlock = {
   status: string;
   note: string;
   theta?: number | null;
+  num_covariates?: number | null;
+  covariates?: LiveCupedCovariate[];
   variance_reduction_pct?: number | null;
   covariate_users_total?: number | null;
   exposed_users_total?: number | null;
@@ -648,6 +650,11 @@ export type LiveCupedComparison = {
   treatment: LiveCupedArmStat;
   analysis?: ResultsResponse | null;
   note?: string | null;
+};
+
+export type LiveCupedCovariate = {
+  name: string;
+  theta: number;
 };
 
 export type LiveSequentialBlock = {
@@ -809,6 +816,7 @@ export type ObservedResultsContinuous = {
 export type PrePeriodEvent = {
   user_id: string;
   value: number;
+  covariate_name?: string;
 };
 
 export type PrePeriodIngestRequest = {

@@ -622,6 +622,10 @@ class PrePeriodEvent(BaseModel):
     user_id: str = Field(min_length=1, max_length=200)
     # Pre-experiment covariate X for CUPED (e.g. the user's pre-period spend / activity).
     value: float
+    # Which covariate this value belongs to (multi-covariate CUPED, F3a). Single-covariate
+    # ingestion omits it and lands under the reserved "__default__" name, so the one-covariate
+    # path is unchanged.
+    covariate_name: str = Field(default="__default__", min_length=1, max_length=100)
 
 
 class PrePeriodIngestRequest(BaseModel):
@@ -717,12 +721,19 @@ class LiveSequentialBlock(BaseModel):
     note: str
 
 
+class LiveCupedCovariate(BaseModel):
+    # One pre-period covariate and its fitted CUPED coefficient (the regression weight from the
+    # pooled normal equations theta = Sigma_xx^-1 Sigma_xy).
+    name: str
+    theta: float
+
+
 class LiveCupedArmStat(BaseModel):
     variation_index: int
-    # Exposed users that also have a pre-period covariate (the CUPED-eligible subset).
+    # Exposed users that also have the complete pre-period covariate vector (CUPED-eligible subset).
     covariate_users: int
     unadjusted_mean: float | None = None  # mean(Y) over the covered subset
-    adjusted_mean: float | None = None  # mean(Y_adj) = mean(Y) - theta*(mean(X) - global mean(X))
+    adjusted_mean: float | None = None  # mean(Y_adj) = mean(Y) - theta·(mean(X) - global mean(X))
     adjusted_std: float | None = None
 
 
@@ -737,12 +748,17 @@ class LiveCupedComparison(BaseModel):
 
 
 class LiveCupedBlock(BaseModel):
-    # status: "available" (pre-period covariate ingested + continuous metric) |
+    # status: "available" (pre-period covariate(s) ingested + continuous metric) |
     #         "unavailable" (no covariate ingested) |
+    #         "too_many_covariates" (more distinct covariates than the supported cap) |
     #         "not_applicable" (binary metric — live CUPED routes through the continuous estimator)
     status: str
     note: str
-    theta: float | None = None  # pooled cov(X, Y) / var(X)
+    # Single-covariate convenience: the lone coefficient when exactly one covariate is used, else
+    # null (the full coefficient vector is in `covariates`). Kept for backward compatibility.
+    theta: float | None = None
+    num_covariates: int | None = None
+    covariates: list["LiveCupedCovariate"] = Field(default_factory=list)
     variance_reduction_pct: float | None = None  # pooled (1 - var_adjusted / var_unadjusted) * 100
     covariate_users_total: int | None = None
     exposed_users_total: int | None = None
