@@ -284,6 +284,7 @@
     "interpretation": {
       "binary": "Конверсия варианта {{treatment}}% против контроля {{control}}%. Абсолютный эффект {{effect}} п.п. при {{ciLevel}}% ДИ [{{ciLower}}, {{ciUpper}}] п.п. Двусторонний p-value {{pValue}}; результат {{significance}}.",
       "continuous": "Среднее варианта {{treatmentMean}} против контроля {{controlMean}}. Эффект {{effect}} при {{ciLevel}}% ДИ [{{ciLower}}, {{ciUpper}}]. Двусторонний p-value {{pValue}}.",
+      "ratio": "Отношение варианта {{treatmentRatio}} против контроля {{controlRatio}}. Абсолютный эффект {{effect}} при {{ciLevel}}% ДИ [{{ciLower}}, {{ciUpper}}]. Двусторонний p-value {{pValue}} (дельта-метод); результат {{significance}}.",
       "degenerate": "Наблюдаемые данные вырождены, поэтому тестовая статистика не может быть вычислена."
     }
   }

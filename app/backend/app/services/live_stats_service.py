@@ -34,8 +34,12 @@ from app.backend.app.services.monte_carlo_service import (
     simulate_continuous_uplift_distribution,
     simulate_uplift_distribution,
 )
-from app.backend.app.services.results_service import analyze_results
+from app.backend.app.services.results_service import (
+    analyze_results,
+    build_ratio_results_response,
+)
 from app.backend.app.stats.always_valid import default_mixture_variance, evaluate_always_valid
+from app.backend.app.stats.ratio import compare_ratios, ratio_estimate
 from app.backend.app.stats.srm import chi_square_srm
 
 DISCLAIMER = (
@@ -58,13 +62,18 @@ def build_live_stats(
     project_payload: dict[str, Any],
     aggregates: dict[str, Any],
     cuped_aggregates: dict[str, Any] | None = None,
+    ratio_aggregates: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Assemble the live-stats payload from a stored experiment design and the current
     per-variation analysis aggregates (``repository.get_experiment_analysis_aggregates``).
 
     ``cuped_aggregates`` (``repository.get_cuped_aggregates``) carries the per-variation CUPED
     sufficient statistics over users with a pre-period covariate; ``None`` / empty keeps the
-    CUPED block ``unavailable``."""
+    CUPED block ``unavailable``.
+
+    ``ratio_aggregates`` (``repository.get_ratio_aggregates``) carries the per-variation ratio
+    sufficient statistics (numerator/denominator per user); it drives the comparisons when the
+    design's ``metric_type`` is ``ratio`` (delta method) and is ignored otherwise."""
     metrics = project_payload.get("metrics", {})
     setup = project_payload.get("setup", {})
     constraints = project_payload.get("constraints", {})
@@ -115,17 +124,25 @@ def build_live_stats(
     )
 
     srm = _build_srm_block(arms, expected_fractions)
-    comparisons = [
-        _build_comparison(
-            metric_type=metric_type,
-            baseline_value=baseline_value,
+    if metric_type == "ratio":
+        comparisons = _build_ratio_comparisons(
+            ratio_aggregates=ratio_aggregates,
+            variants_count=variants_count,
             alpha=adjusted_alpha,
-            control=arms[0],
-            treatment=arms[treatment_index],
             mixture_variance=design_mixture_variance,
         )
-        for treatment_index in range(1, variants_count)
-    ]
+    else:
+        comparisons = [
+            _build_comparison(
+                metric_type=metric_type,
+                baseline_value=baseline_value,
+                alpha=adjusted_alpha,
+                control=arms[0],
+                treatment=arms[treatment_index],
+                mixture_variance=design_mixture_variance,
+            )
+            for treatment_index in range(1, variants_count)
+        ]
     if comparison_count > 1:
         _annotate_multiple_comparison(comparisons, alpha, adjusted_alpha, comparison_count)
     sequential = _build_sequential_block(
@@ -419,6 +436,96 @@ def _always_valid_block(
     }
 
 
+# --- Ratio metrics on live data (F2) --------------------------------------------------------
+#
+# A ratio metric R = sum(Y)/sum(X) is randomized on the user (X = denominator events, Y =
+# numerator events, both per user). The naive variance is wrong because the analysis unit differs
+# from the randomization unit; ``stats.ratio`` applies the delta method to recover the correct
+# variance from the per-user (co)variances. The two ingested conversion metrics (numerator and
+# denominator) roll up to per-variation sufficient statistics via
+# ``repository.get_ratio_aggregates``; here we run the two-sample delta-method test per
+# control-vs-treatment comparison, reusing the same always-valid (mSPRT) view and FWER-adjusted
+# alpha as the binary/continuous paths. No new test statistic enters the binary/continuous paths.
+
+
+def _empty_ratio_arm(index: int) -> dict[str, Any]:
+    return {
+        "variation_index": index,
+        "n": 0,
+        "sum_x": 0.0,
+        "sum_x2": 0.0,
+        "sum_y": 0.0,
+        "sum_y2": 0.0,
+        "sum_xy": 0.0,
+    }
+
+
+def _ratio_arm_stat(arm: dict[str, Any]) -> dict[str, Any]:
+    n = int(arm["n"])
+    estimate = ratio_estimate(arm) if n >= 2 else None
+    return {
+        "variation_index": int(arm["variation_index"]),
+        "exposed_users": n,
+        "converted_users": 0,  # a ratio metric has no single per-user conversion count
+        "ratio": round(estimate["ratio"], 6) if estimate is not None else None,
+    }
+
+
+def _build_ratio_comparison(
+    control: dict[str, Any],
+    treatment: dict[str, Any],
+    alpha: float,
+    mixture_variance: float | None,
+) -> dict[str, Any]:
+    base: dict[str, Any] = {
+        "treatment_index": int(treatment["variation_index"]),
+        "control": _ratio_arm_stat(control),
+        "treatment": _ratio_arm_stat(treatment),
+        "analysis": None,
+        "probability_treatment_beats_control": None,
+        "sequential_significant": None,
+        "always_valid": None,
+        "note": None,
+    }
+    if int(control["n"]) < 2 or int(treatment["n"]) < 2:
+        base["status"] = "insufficient_data"
+        base["note"] = "Each arm needs at least 2 exposed users before a ratio test can run."
+        return base
+    result = compare_ratios(control, treatment, alpha)
+    if result is None:
+        base["status"] = "insufficient_data"
+        base["note"] = (
+            "The ratio variance is degenerate in an arm (zero denominator or no variation across "
+            "users), so a delta-method test cannot be computed yet."
+        )
+        return base
+    base["status"] = "ok"
+    base["analysis"] = build_ratio_results_response(result, alpha).model_dump()
+    # Anytime-valid view over the same ratio difference Δ and its delta-method variance.
+    base["always_valid"] = _always_valid_block(
+        result["effect"], result["variance"], mixture_variance, alpha
+    )
+    return base
+
+
+def _build_ratio_comparisons(
+    *,
+    ratio_aggregates: dict[str, Any] | None,
+    variants_count: int,
+    alpha: float,
+    mixture_variance: float | None,
+) -> list[dict[str, Any]]:
+    by_index = {
+        int(item["variation_index"]): item
+        for item in (ratio_aggregates or {}).get("variations", [])
+    }
+    arms = [by_index.get(index, _empty_ratio_arm(index)) for index in range(variants_count)]
+    return [
+        _build_ratio_comparison(arms[0], arms[treatment_index], alpha, mixture_variance)
+        for treatment_index in range(1, variants_count)
+    ]
+
+
 def _expected_absolute_effect(
     baseline_value: float,
     metrics: dict[str, Any],
@@ -490,7 +597,23 @@ def _build_sequential_block(
             ),
         }
 
-    calculation = calculate_experiment_metrics(_calc_payload_from_design(project_payload))
+    try:
+        calculation = calculate_experiment_metrics(_calc_payload_from_design(project_payload))
+    except (ValueError, KeyError):
+        # Sizing is not yet available for every metric type (e.g. ratio metrics, whose sample-size
+        # planning is a later sub-phase). Without a planned sample size the boundary cannot be
+        # placed, so report insufficient data rather than crash the whole live read; the
+        # frequentist comparison stays valid at the planned horizon.
+        return {
+            "status": "insufficient_data",
+            "n_looks": n_looks,
+            "planned_sample_size_per_variant": None,
+            "total_exposed": total_exposed,
+            "note": (
+                "Sequential planning is not available for this metric type yet, so the O'Brien-"
+                "Fleming boundary cannot be evaluated."
+            ),
+        }
     planned_per_variant = int(
         calculation.get("sequential_adjusted_sample_size")
         or calculation.get("sample_size_per_variant")

@@ -763,6 +763,7 @@
       "comparisonPending": "لا توجد بيانات كافية لإجراء اختبار بعد.",
       "armExposures": "{{exposed}} تعرض · {{converted}} تحويل",
       "armMean": "المتوسط {{mean}} ± {{std}}",
+      "armRatio": "{{exposed}} تعرض · النسبة {{ratio}}",
       "significant": "ذو دلالة",
       "notSignificant": "بلا دلالة",
       "effectLine": "التأثير {{effect}} · فترة الثقة [{{lower}}, {{upper}}] · p {{p}}",

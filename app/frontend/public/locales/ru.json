@@ -775,6 +775,7 @@
       "comparisonPending": "Пока недостаточно данных для теста.",
       "armExposures": "{{exposed}} показано · {{converted}} конверсий",
       "armMean": "среднее {{mean}} ± {{std}}",
+      "armRatio": "{{exposed}} показано · отношение {{ratio}}",
       "significant": "Значимо",
       "notSignificant": "Незначимо",
       "effectLine": "Эффект {{effect}} · ДИ [{{lower}}, {{upper}}] · p {{p}}",

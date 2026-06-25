@@ -284,6 +284,7 @@
     "interpretation": {
       "binary": "Konversion der Testvariante {{treatment}}% vs. Kontrolle {{control}}%. Absoluter Effekt {{effect}} pp mit {{ciLevel}}% KI [{{ciLower}}, {{ciUpper}}] pp. Zweiseitiger p-Wert {{pValue}}; das Ergebnis ist {{significance}}.",
       "continuous": "Mittelwert der Testvariante {{treatmentMean}} vs. Kontrolle {{controlMean}}. Effekt {{effect}} mit {{ciLevel}}% KI [{{ciLower}}, {{ciUpper}}]. Zweiseitiger p-Wert {{pValue}}.",
+      "ratio": "Verhältnis der Testvariante {{treatmentRatio}} vs. Kontrolle {{controlRatio}}. Absoluter Effekt {{effect}} mit {{ciLevel}}% KI [{{ciLower}}, {{ciUpper}}]. Zweiseitiger p-Wert {{pValue}} (Delta-Methode); das Ergebnis ist {{significance}}.",
       "degenerate": "Die beobachteten Eingaben sind entartet, daher kann die Teststatistik nicht berechnet werden."
     }
   }

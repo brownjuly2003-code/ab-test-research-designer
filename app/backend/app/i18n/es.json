@@ -284,6 +284,7 @@
     "interpretation": {
       "binary": "Conversión del tratamiento {{treatment}}% frente al control {{control}}%. Efecto absoluto {{effect}} pp con IC del {{ciLevel}}% [{{ciLower}}, {{ciUpper}}] pp. Valor p bilateral {{pValue}}; el resultado es {{significance}}.",
       "continuous": "Media del tratamiento {{treatmentMean}} frente al control {{controlMean}}. Efecto {{effect}} con IC del {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. Valor p bilateral {{pValue}}.",
+      "ratio": "Ratio del tratamiento {{treatmentRatio}} frente al control {{controlRatio}}. Efecto absoluto {{effect}} con IC del {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. Valor p bilateral {{pValue}} (método delta); el resultado es {{significance}}.",
       "degenerate": "Las entradas observadas son degeneradas, por lo que no se puede calcular el estadístico de prueba."
     }
   }

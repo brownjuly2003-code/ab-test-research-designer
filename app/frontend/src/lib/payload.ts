@@ -61,6 +61,8 @@ export const initialState: FullPayload = {
     mde_pct: 5,
     alpha: 0.05,
     power: 0.8,
+    numerator_metric_name: "",
+    denominator_metric_name: "",
     std_dev: "",
     cuped_pre_experiment_std: "",
     cuped_correlation: "",
@@ -233,8 +235,16 @@ export function buildAnalyzePayload(state: FullPayload): ExperimentInputPayload 
 export function buildCalculationPayload(state: FullPayload): CalculateRequest {
   const payload = buildApiPayload(state);
 
+  // Ratio metrics have no sample-size planner (sizing is a later sub-phase) — they are analyzed
+  // live via the delta method. The live preview's `canCompute` guard already skips ratio, so this
+  // is only a type-narrowing safeguard and is never reached in normal use.
+  if (payload.metrics.metric_type === "ratio") {
+    throw new Error("ratio metrics do not support sample-size planning");
+  }
+  const metricType = payload.metrics.metric_type;
+
   return {
-    metric_type: payload.metrics.metric_type,
+    metric_type: metricType,
     baseline_value: payload.metrics.baseline_value,
     std_dev: payload.metrics.std_dev,
     cuped_pre_experiment_std: payload.metrics.cuped_pre_experiment_std,
