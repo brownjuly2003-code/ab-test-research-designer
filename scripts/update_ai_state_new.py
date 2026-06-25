@@ -4,7 +4,6 @@ import re
 from pathlib import Path
 from textwrap import dedent
 
-
 ROOT = Path(r"D:\AI_state_new")
 
 

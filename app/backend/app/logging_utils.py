@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
-from datetime import datetime, timezone
 import json
 import logging
 import re
+from collections.abc import Mapping
+from datetime import UTC, datetime
 from typing import cast
-
 
 SENSITIVE_HEADER_NAMES = {"authorization", "x-api-key", "x-ab-llm-token"}
 
@@ -54,7 +53,7 @@ class SensitiveDataFilter(logging.Filter):
 
 class PlainStructuredFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
-        timestamp = datetime.fromtimestamp(record.created, tz=timezone.utc).isoformat()
+        timestamp = datetime.fromtimestamp(record.created, tz=UTC).isoformat()
         base = f"{timestamp} {record.levelname} {record.name}: {record.getMessage()}"
         fields = getattr(record, "fields", {})
         if isinstance(fields, dict) and fields:
@@ -66,7 +65,7 @@ class PlainStructuredFormatter(logging.Formatter):
 class JsonStructuredFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         payload = {
-            "timestamp": datetime.fromtimestamp(record.created, tz=timezone.utc).isoformat(),
+            "timestamp": datetime.fromtimestamp(record.created, tz=UTC).isoformat(),
             "level": record.levelname,
             "logger": record.name,
             "message": record.getMessage(),

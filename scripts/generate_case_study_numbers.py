@@ -4,8 +4,8 @@ import copy
 import json
 import logging
 import math
-from pathlib import Path
 import sys
+from pathlib import Path
 
 import yaml
 from fastapi.testclient import TestClient
@@ -14,7 +14,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.backend.app.config import get_settings
 from app.backend.app.main import create_app
-
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 TEMPLATE_PATH = REPO_ROOT / "app" / "backend" / "templates" / "checkout_conversion.yaml"

@@ -23,7 +23,7 @@ def chi_square_srm(
     expected_counts = [fraction * total for fraction in expected_fractions]
     chi_square = sum(
         ((observed - expected) ** 2) / expected
-        for observed, expected in zip(observed_counts, expected_counts)
+        for observed, expected in zip(observed_counts, expected_counts, strict=True)
         if expected > 0
     )
 

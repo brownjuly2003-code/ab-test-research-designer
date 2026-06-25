@@ -23,7 +23,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.backend.app.execution.bucketer import assign_variation, get_equal_weights, in_namespace
+from app.backend.app.execution.bucketer import (
+    assign_variation,
+    get_equal_weights,
+    in_namespace,
+)
 from app.backend.app.execution.targeting import evaluate_targeting
 
 # GrowthBook's default hash attribute. We always hash the caller-supplied unit id, so the

@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Mapping
 from contextvars import ContextVar, Token
 from pathlib import Path
-from typing import Literal, Mapping
+from typing import Literal
 
 Language = Literal["en", "ru", "de", "es", "fr", "zh", "ar"]
 SUPPORTED_LANGUAGES: tuple[Language, ...] = ("en", "ru", "de", "es", "fr", "zh", "ar")

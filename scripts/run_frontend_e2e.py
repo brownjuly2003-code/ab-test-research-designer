@@ -1,16 +1,15 @@
 from __future__ import annotations
 
 import argparse
-from datetime import datetime
 import os
-from pathlib import Path
 import socket
 import subprocess
 import sys
 import time
+from datetime import datetime
+from pathlib import Path
 from urllib.error import URLError
 from urllib.request import urlopen
-
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 FRONTEND_DIR = ROOT_DIR / "app" / "frontend"

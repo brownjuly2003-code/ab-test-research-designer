@@ -1,5 +1,6 @@
 from typing import Any
 
+from app.backend.app.i18n import translate
 from app.backend.app.schemas.report import (
     CalculationsSection,
     ExperimentDesignSection,
@@ -10,7 +11,6 @@ from app.backend.app.schemas.report import (
     RisksSection,
     VariantDefinition,
 )
-from app.backend.app.i18n import translate
 from app.backend.app.stats.binary import calculate_detectable_mde_binary
 from app.backend.app.stats.continuous import calculate_detectable_mde_continuous
 

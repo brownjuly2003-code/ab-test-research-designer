@@ -2,16 +2,15 @@ from __future__ import annotations
 
 import argparse
 import os
-from pathlib import Path
 import signal
 import socket
 import subprocess
 import sys
 import tempfile
 import time
+from pathlib import Path
 from urllib.error import URLError
 from urllib.request import urlopen
-
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 BACKEND_HOST = "127.0.0.1"

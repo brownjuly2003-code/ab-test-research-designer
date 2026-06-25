@@ -42,7 +42,7 @@ _SINGULAR_RELATIVE_TOLERANCE = 1e-12
 
 def dot(left: Sequence[float], right: Sequence[float]) -> float:
     """Inner product of two equal-length vectors."""
-    return sum(a * b for a, b in zip(left, right))
+    return sum(a * b for a, b in zip(left, right, strict=True))
 
 
 def quadratic_form(matrix: Sequence[Sequence[float]], vector: Sequence[float]) -> float:

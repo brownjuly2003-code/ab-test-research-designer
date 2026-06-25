@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import copy
-from dataclasses import dataclass
 import logging
+from dataclasses import dataclass
 from typing import Any
 
 from app.backend.app.config import Settings
@@ -13,8 +13,10 @@ from app.backend.app.schemas.api import AnalysisResponse, ExperimentInput
 from app.backend.app.services.calculations_service import calculate_experiment_metrics
 from app.backend.app.services.design_service import build_experiment_report
 from app.backend.app.services.export_service import export_report_to_markdown
-from app.backend.app.services.template_service import load_built_in_templates, sync_built_in_templates
-
+from app.backend.app.services.template_service import (
+    load_built_in_templates,
+    sync_built_in_templates,
+)
 
 logger = logging.getLogger(__name__)
 

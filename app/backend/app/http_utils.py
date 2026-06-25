@@ -1,10 +1,9 @@
+import uuid
 from collections import deque
 from dataclasses import dataclass
 from math import ceil
 from threading import Lock
 from time import monotonic, perf_counter
-import uuid
-
 from typing import TYPE_CHECKING, Any, cast
 
 from fastapi import Request, Response, status
@@ -207,7 +206,7 @@ async def buffer_request_body_with_limit(request: Request, max_bytes: int) -> No
         except ValueError:
             pass
     if hasattr(request, "_body"):
-        if len(getattr(request, "_body")) > max_bytes:
+        if len(request._body) > max_bytes:
             raise RequestBodyTooLargeError(max_bytes)
         return
     buffered_chunks: list[bytes] = []

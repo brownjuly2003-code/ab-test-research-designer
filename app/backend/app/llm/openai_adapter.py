@@ -1,13 +1,23 @@
 import asyncio
-
-import httpx
-
 from collections.abc import Callable
 from typing import Any, cast
 
-from app.backend.app.llm.adapter import LLMAuthError, LLMTransientError, LocalOrchestratorAdapter
-from app.backend.app.llm.parser import LlmAdviceParseError, parse_llm_advice, parse_llm_hypotheses
-from app.backend.app.llm.prompt_builder import build_hypothesis_ideation_prompt, build_llm_advice_prompt
+import httpx
+
+from app.backend.app.llm.adapter import (
+    LLMAuthError,
+    LLMTransientError,
+    LocalOrchestratorAdapter,
+)
+from app.backend.app.llm.parser import (
+    LlmAdviceParseError,
+    parse_llm_advice,
+    parse_llm_hypotheses,
+)
+from app.backend.app.llm.prompt_builder import (
+    build_hypothesis_ideation_prompt,
+    build_llm_advice_prompt,
+)
 
 
 class OpenAIAdapter(LocalOrchestratorAdapter):

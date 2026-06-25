@@ -1,11 +1,18 @@
-from collections.abc import Callable
 import time
+from collections.abc import Callable
 from typing import Any, cast
 
 import httpx
 
-from app.backend.app.llm.parser import LlmAdviceParseError, parse_llm_advice, parse_llm_hypotheses
-from app.backend.app.llm.prompt_builder import build_hypothesis_ideation_prompt, build_llm_advice_prompt
+from app.backend.app.llm.parser import (
+    LlmAdviceParseError,
+    parse_llm_advice,
+    parse_llm_hypotheses,
+)
+from app.backend.app.llm.prompt_builder import (
+    build_hypothesis_ideation_prompt,
+    build_llm_advice_prompt,
+)
 
 
 class LLMAuthError(Exception):

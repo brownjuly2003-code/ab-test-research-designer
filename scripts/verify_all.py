@@ -10,6 +10,14 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 FRONTEND_DIR = ROOT_DIR / "app" / "frontend"
 NPM_EXECUTABLE = "npm.cmd" if os.name == "nt" else "npm"
 
+# Enforced minimum backend line coverage when --with-coverage is requested.
+# Observed totals differ by platform because Windows skips POSIX-only branches
+# (workspace backup paths, subprocess/signing): ubuntu CI ~91%, Windows ~89%.
+# The gate runs in the ubuntu verify leg (the one passing --with-coverage); the
+# floor is set below BOTH so it never flaps yet still fails a real regression
+# (>3% drop). Mirrored in verify_all.cmd.
+COVERAGE_FAIL_UNDER = 88
+
 
 def format_command(command: list[str]) -> str:
     if os.name == "nt":
@@ -46,7 +54,7 @@ def main() -> int:
     parser.add_argument(
         "--with-coverage",
         action="store_true",
-        help="Write a backend coverage JSON report without enforcing a threshold.",
+        help=f"Write a backend coverage JSON report and enforce >= {COVERAGE_FAIL_UNDER}% line coverage.",
     )
     parser.add_argument(
         "--with-lighthouse",
@@ -130,6 +138,11 @@ def main() -> int:
         env=signed_backup_env,
     )
     run_step(
+        "backend lint (ruff)",
+        [sys.executable, "-m", "ruff", "check", "app/backend/app", "scripts"],
+        ROOT_DIR,
+    )
+    run_step(
         "backend type check (mypy --strict)",
         [sys.executable, "-m", "mypy"],
         ROOT_DIR,
@@ -146,6 +159,7 @@ def main() -> int:
                 "--cov=app/backend/app",
                 "--cov-report=term",
                 f"--cov-report=json:{coverage_json}",
+                f"--cov-fail-under={COVERAGE_FAIL_UNDER}",
             ]
         )
     run_step("backend tests", backend_tests_command, ROOT_DIR)

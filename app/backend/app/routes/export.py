@@ -5,7 +5,12 @@ from typing import TYPE_CHECKING, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
-from app.backend.app.schemas.api import ComparisonExportRequest, ExperimentReport, ExportResponse, StandaloneExportRequest
+from app.backend.app.schemas.api import (
+    ComparisonExportRequest,
+    ExperimentReport,
+    ExportResponse,
+    StandaloneExportRequest,
+)
 from app.backend.app.services.comparison_service import build_multi_project_comparison
 from app.backend.app.services.export_service import (
     build_standalone_html,

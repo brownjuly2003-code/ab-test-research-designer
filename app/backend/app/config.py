@@ -1,6 +1,6 @@
+import os
 from dataclasses import dataclass
 from functools import lru_cache
-import os
 from pathlib import Path
 
 from app.backend.app.constants import DEFAULT_CORS_HEADERS, DEFAULT_CORS_METHODS

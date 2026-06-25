@@ -1,17 +1,16 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timezone
 import hashlib
 import json
 import logging
-from pathlib import Path
 import shutil
 import tempfile
+from datetime import UTC, datetime
+from pathlib import Path
 
 from huggingface_hub import HfApi
 from huggingface_hub.errors import HfHubHTTPError
-
 
 logger = logging.getLogger(__name__)
 
@@ -84,7 +83,7 @@ class SnapshotService:
                     timeout=30,
                 )
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.warning("snapshot: restore timed out")
             return False
         except HfHubHTTPError as error:
@@ -151,7 +150,7 @@ class SnapshotService:
             logger.warning("snapshot: push skipped, local db missing")
             return ""
 
-        timestamp = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+        timestamp = datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
         sha256 = self._sha256(self.local_db_path)
         size_bytes = self.local_db_path.stat().st_size
         delta_bytes = (
@@ -216,7 +215,7 @@ class SnapshotService:
                 ),
                 timeout=30,
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.warning("snapshot: push timed out")
             return ""
         except HfHubHTTPError:

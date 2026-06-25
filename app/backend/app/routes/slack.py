@@ -6,9 +6,9 @@ import secrets
 from typing import TYPE_CHECKING, Any
 from urllib.parse import parse_qs, urlencode
 
+import httpx
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
-import httpx
 
 from app.backend.app.errors import ApiError
 from app.backend.app.services.slack_service import SlackService

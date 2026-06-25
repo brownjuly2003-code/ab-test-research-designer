@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
 import sys
 import tempfile
+from pathlib import Path
 
 import uvicorn
-
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 FRONTEND_DIST_DIR = ROOT_DIR / "app" / "frontend" / "dist"
