@@ -421,6 +421,58 @@ def test_postgres_backend_ratio_aggregates_round_trip(postgres_repository) -> No
     assert -1 not in by_index  # holdout never appears
 
 
+def test_postgres_backend_stratified_aggregates_round_trip(postgres_repository) -> None:
+    # Exercises the F3b post-stratification rollup (user_strata inner join + GROUP BY stratum,
+    # variation) on a real Postgres, validating the portable dual-backend SQL (translated ? -> %s)
+    # and first-write-wins strata dedup that cannot be checked on Windows without a Postgres.
+    repo = postgres_repository
+    project = repo.create_project(_payload("Stratified PG", "binary"))
+    exp = project["id"]
+    repo.record_exposures(
+        exp,
+        [
+            {"user_id": "u1", "variation_index": 0},
+            {"user_id": "u2", "variation_index": 0},
+            {"user_id": "u3", "variation_index": 1},
+            {"user_id": "u4", "variation_index": 1},
+            {"user_id": "u5", "variation_index": 0},  # no stratum -> excluded
+            {"user_id": "uH", "variation_index": -1},  # holdout -> excluded
+        ],
+    )
+    assert repo.record_strata(
+        exp,
+        [
+            {"user_id": "u1", "stratum": "ios"},
+            {"user_id": "u2", "stratum": "android"},
+            {"user_id": "u3", "stratum": "ios"},
+            {"user_id": "u4", "stratum": "android"},
+        ],
+    ) == {"received": 4, "recorded": 4, "deduplicated": 0}
+    # First-write-wins dedup holds on Postgres too.
+    assert repo.record_strata(exp, [{"user_id": "u1", "stratum": "android"}])["deduplicated"] == 1
+    repo.record_conversions(
+        exp,
+        [
+            {"user_id": "u1", "metric": "purchase", "value": 1.0},
+            {"user_id": "u3", "metric": "purchase", "value": 1.0},
+        ],
+    )
+
+    aggregates = repo.get_stratified_aggregates(exp, "purchase")
+    assert aggregates is not None
+    assert aggregates["num_strata"] == 2
+    by_name = {stratum["stratum"]: stratum for stratum in aggregates["strata"]}
+    assert sorted(by_name) == ["android", "ios"]
+    ios = {arm["variation_index"]: arm for arm in by_name["ios"]["variations"]}
+    assert ios[0]["exposed_users"] == 1 and ios[0]["converted_users"] == 1  # u1 (kept ios)
+    assert ios[1]["exposed_users"] == 1 and ios[1]["converted_users"] == 1  # u3
+    android = {arm["variation_index"]: arm for arm in by_name["android"]["variations"]}
+    assert android[0]["exposed_users"] == 1 and android[0]["converted_users"] == 0  # u2
+    assert android[1]["exposed_users"] == 1 and android[1]["converted_users"] == 0  # u4
+    total_users = sum(arm["exposed_users"] for s in aggregates["strata"] for arm in s["variations"])
+    assert total_users == 4  # u5 (no stratum) and uH (holdout) never appear
+
+
 def test_readyz_uses_postgres_checks_without_sqlite_regression(monkeypatch) -> None:
     monkeypatch.setenv("AB_DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/abtest")
     monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")

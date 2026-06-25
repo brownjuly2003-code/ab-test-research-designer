@@ -784,7 +784,13 @@
       "cupedCoverage": "{{covariate}} von {{exposed}} exponierten Nutzern haben eine Vorperioden-Kovariate",
       "cupedArmLine": "angepasster Mittelwert {{adjusted}} (roh {{raw}})",
       "cupedAdjustedEffect": "Angepasster Effekt {{effect}} · KI [{{lower}}, {{upper}}] · p {{p}}",
-      "cupedComparisonPending": "Noch nicht genügend Kovariaten-Daten für einen CUPED-Test."
+      "cupedComparisonPending": "Noch nicht genügend Kovariaten-Daten für einen CUPED-Test.",
+      "stratifiedTitle": "Post-Stratifizierung",
+      "stratifiedCoverage": "{{stratified}} von {{exposed}} exponierten Nutzern haben ein Stratum · {{strata}} Strata",
+      "stratifiedEffect": "Post-stratifizierter Effekt {{effect}} · KI [{{lower}}, {{upper}}] · p {{p}}",
+      "stratifiedReduction": "Varianzreduktion {{reduction}}% · kombiniert über {{n}} Strata",
+      "stratifiedStratumLine": "{{stratum}}: {{users}} Nutzer · Effekt {{effect}}",
+      "stratifiedPending": "Noch hat kein Stratum beide Gruppen mit genügend Nutzern für einen post-stratifizierten Test."
     },
     "decision": {
       "title": "Entscheidungs-Readout",

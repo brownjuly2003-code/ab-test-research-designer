@@ -18,7 +18,7 @@ from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 from psycopg_pool import ConnectionPool
 
-from app.backend.app.constants import MAX_CUPED_COVARIATES
+from app.backend.app.constants import MAX_CUPED_COVARIATES, MAX_STRATA
 from app.backend.app.errors import ApiError
 from app.backend.app.schemas.api import ExperimentInput
 
@@ -35,7 +35,7 @@ class DatabaseBackend(Protocol):
 class SQLiteBackend:
     backend_name = "sqlite"
     supports_snapshots = True
-    schema_version = 10
+    schema_version = 11
     payload_schema_version = 1
     workspace_schema_version = 3
     project_select_columns = """
@@ -431,6 +431,30 @@ class SQLiteBackend:
                 UNIQUE(experiment_id, user_id, covariate_name),
                 FOREIGN KEY(experiment_id) REFERENCES projects(id) ON DELETE CASCADE
             )
+            """
+        )
+        # Post-stratification (F3b): one categorical stratum per (experiment, user), known at
+        # assignment time (platform / country / new-vs-returning). The UNIQUE constraint is the dedup
+        # primitive — first-write-wins keeps the stratum stable, mirroring the exposure store. The
+        # live-stats read joins this onto exposures to estimate the effect within each stratum and
+        # recombine the per-stratum effects weighted by stratum size.
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS user_strata (
+                id TEXT PRIMARY KEY,
+                experiment_id TEXT NOT NULL,
+                user_id TEXT NOT NULL,
+                stratum TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                UNIQUE(experiment_id, user_id),
+                FOREIGN KEY(experiment_id) REFERENCES projects(id) ON DELETE CASCADE
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_user_strata_experiment_stratum
+            ON user_strata (experiment_id, stratum)
             """
         )
 
@@ -2851,6 +2875,37 @@ class SQLiteBackend:
         received = len(items)
         return {"received": received, "recorded": recorded, "deduplicated": received - recorded}
 
+    def record_strata(self, experiment_id: str, items: list[dict[str, Any]]) -> dict[str, Any]:
+        """Record one categorical stratum per user for post-stratification (F3b).
+
+        First-write-wins per (experiment, user) via the UNIQUE constraint + ``ON CONFLICT DO
+        NOTHING``: the stratum is an assignment-time attribute (platform / country / new-vs-returning),
+        so a later value for the same user is dropped, mirroring the first-exposure-wins exposure store.
+        """
+        timestamp = datetime.now(timezone.utc).isoformat()
+        recorded = 0
+        with self._connect() as connection:
+            self._ensure_project_active(connection, experiment_id)
+            for item in items:
+                cursor = connection.execute(
+                    """
+                    INSERT INTO user_strata (id, experiment_id, user_id, stratum, created_at)
+                    VALUES (?, ?, ?, ?, ?)
+                    ON CONFLICT(experiment_id, user_id) DO NOTHING
+                    """,
+                    (
+                        str(uuid.uuid4()),
+                        experiment_id,
+                        item["user_id"],
+                        str(item["stratum"]),
+                        timestamp,
+                    ),
+                )
+                if cursor.rowcount == 1:
+                    recorded += 1
+        received = len(items)
+        return {"received": received, "recorded": recorded, "deduplicated": received - recorded}
+
     def get_user_exposure(self, experiment_id: str, user_id: str) -> dict[str, Any] | None:
         """The recorded (first-exposure-wins) exposure for one user, or ``None``.
 
@@ -2981,6 +3036,94 @@ class SQLiteBackend:
             "experiment_id": experiment_id,
             "metric_name": metric_name,
             "variations": variations,
+        }
+
+    def get_stratified_aggregates(
+        self, experiment_id: str, metric_name: str
+    ) -> dict[str, Any] | None:
+        """Per-(stratum, variation) analysis rollup for post-stratification (F3b).
+
+        Returns ``None`` if the experiment does not exist. Mirrors
+        ``get_experiment_analysis_aggregates`` but inner-joins each exposed user onto their recorded
+        ``user_strata`` row and groups by (stratum, variation): users without a stratum are excluded
+        (they cannot be placed in a stratum), and the holdout tail (``variation_index = -1``) is
+        excluded. Per (stratum, variation) it returns the same shape the main rollup yields per
+        variation — ``exposed_users``, ``converted_users``, ``value_sum``, ``value_sq_sum`` — so the
+        service can reuse the binary / continuous moment helpers. ``too_many_strata`` flags the
+        pathological case of more than ``MAX_STRATA`` distinct strata (the rollup is then skipped).
+        """
+        with self._connect() as connection:
+            if not self._project_exists(connection, experiment_id):
+                return None
+            stratum_rows = connection.execute(
+                """
+                SELECT DISTINCT stratum
+                FROM user_strata
+                WHERE experiment_id = ?
+                ORDER BY stratum
+                """,
+                (experiment_id,),
+            ).fetchall()
+            strata = [str(row["stratum"]) for row in stratum_rows]
+            if len(strata) > MAX_STRATA:
+                return {
+                    "experiment_id": experiment_id,
+                    "metric_name": metric_name,
+                    "strata": [],
+                    "num_strata": len(strata),
+                    "too_many_strata": True,
+                }
+            rows = connection.execute(
+                """
+                WITH user_values AS (
+                    SELECT
+                        s.stratum AS stratum,
+                        e.variation_index AS variation_index,
+                        e.user_id AS user_id,
+                        COALESCE(SUM(c.value), 0) AS user_value,
+                        MAX(CASE WHEN c.id IS NOT NULL THEN 1 ELSE 0 END) AS converted
+                    FROM exposures e
+                    JOIN user_strata s
+                        ON s.experiment_id = e.experiment_id AND s.user_id = e.user_id
+                    LEFT JOIN conversions c
+                        ON c.experiment_id = e.experiment_id
+                        AND c.user_id = e.user_id
+                        AND c.metric = ?
+                    WHERE e.experiment_id = ? AND e.variation_index >= 0
+                    GROUP BY s.stratum, e.variation_index, e.user_id
+                )
+                SELECT
+                    stratum,
+                    variation_index,
+                    COUNT(*) AS exposed_users,
+                    SUM(converted) AS converted_users,
+                    SUM(user_value) AS value_sum,
+                    SUM(user_value * user_value) AS value_sq_sum
+                FROM user_values
+                GROUP BY stratum, variation_index
+                ORDER BY stratum, variation_index
+                """,
+                (metric_name, experiment_id),
+            ).fetchall()
+        by_stratum: dict[str, list[dict[str, Any]]] = {}
+        for row in rows:
+            by_stratum.setdefault(str(row["stratum"]), []).append(
+                {
+                    "variation_index": int(row["variation_index"]),
+                    "exposed_users": int(row["exposed_users"]),
+                    "converted_users": int(row["converted_users"] or 0),
+                    "value_sum": float(row["value_sum"] or 0.0),
+                    "value_sq_sum": float(row["value_sq_sum"] or 0.0),
+                }
+            )
+        strata_payload = [
+            {"stratum": stratum, "variations": by_stratum.get(stratum, [])} for stratum in strata
+        ]
+        return {
+            "experiment_id": experiment_id,
+            "metric_name": metric_name,
+            "strata": strata_payload,
+            "num_strata": len(strata),
         }
 
     def get_cuped_aggregates(self, experiment_id: str, metric_name: str) -> dict[str, Any] | None:
@@ -3650,6 +3793,26 @@ class PostgresBackend(SQLiteBackend):
                     UNIQUE(experiment_id, user_id, covariate_name),
                     FOREIGN KEY(experiment_id) REFERENCES projects(id) ON DELETE CASCADE
                 )
+                """
+            )
+            # Post-stratification (F3b) — Postgres mirror of the SQLite ``user_strata`` table.
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS user_strata (
+                    id TEXT PRIMARY KEY,
+                    experiment_id TEXT NOT NULL,
+                    user_id TEXT NOT NULL,
+                    stratum TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    UNIQUE(experiment_id, user_id),
+                    FOREIGN KEY(experiment_id) REFERENCES projects(id) ON DELETE CASCADE
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_user_strata_experiment_stratum
+                ON user_strata (experiment_id, stratum)
                 """
             )
 

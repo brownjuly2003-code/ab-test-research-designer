@@ -688,6 +688,41 @@ export type LiveStatsResponse = {
   comparisons: LiveComparison[];
   sequential: LiveSequentialBlock;
   cuped: LiveCupedBlock;
+  stratified: LiveStratifiedBlock;
+};
+
+export type LiveStratifiedBlock = {
+  status: string;
+  note: string;
+  num_strata?: number | null;
+  stratified_users_total?: number | null;
+  exposed_users_total?: number | null;
+  comparisons?: LiveStratifiedComparison[];
+};
+
+export type LiveStratifiedComparison = {
+  treatment_index: number;
+  status: string;
+  effect?: number | null;
+  standard_error?: number | null;
+  test_statistic?: number | null;
+  p_value?: number | null;
+  ci_lower?: number | null;
+  ci_upper?: number | null;
+  ci_level?: number | null;
+  is_significant?: boolean | null;
+  variance_reduction_pct?: number | null;
+  num_strata?: number | null;
+  strata?: LiveStratumEffect[];
+  note?: string | null;
+};
+
+export type LiveStratumEffect = {
+  stratum: string;
+  users: number;
+  control_users: number;
+  treatment_users: number;
+  effect?: number | null;
 };
 
 export type LlmAdviceRequest = {
@@ -1084,6 +1119,15 @@ export type StandaloneExportRequest = {
   ai_advice?: { [key: string]: unknown; } | null;
   sensitivity?: { [key: string]: unknown; } | null;
   results?: { [key: string]: unknown; } | null;
+};
+
+export type StratumEvent = {
+  user_id: string;
+  stratum: string;
+};
+
+export type StratumIngestRequest = {
+  strata: StratumEvent[];
 };
 
 export type TargetingRule = {

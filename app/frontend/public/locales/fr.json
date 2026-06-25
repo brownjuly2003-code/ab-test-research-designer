@@ -784,7 +784,13 @@
       "cupedCoverage": "{{covariate}} des {{exposed}} utilisateurs exposés ont une covariable de pré-période",
       "cupedArmLine": "moyenne ajustée {{adjusted}} (brute {{raw}})",
       "cupedAdjustedEffect": "Effet ajusté {{effect}} · IC [{{lower}}, {{upper}}] · p {{p}}",
-      "cupedComparisonPending": "Pas encore assez de données de covariable pour un test CUPED."
+      "cupedComparisonPending": "Pas encore assez de données de covariable pour un test CUPED.",
+      "stratifiedTitle": "Post-stratification",
+      "stratifiedCoverage": "{{stratified}} sur {{exposed}} utilisateurs exposés ont une strate · {{strata}} strates",
+      "stratifiedEffect": "Effet post-stratifié {{effect}} · IC [{{lower}}, {{upper}}] · p {{p}}",
+      "stratifiedReduction": "Réduction de variance {{reduction}}% · combinée sur {{n}} strates",
+      "stratifiedStratumLine": "{{stratum}} : {{users}} utilisateurs · effet {{effect}}",
+      "stratifiedPending": "Aucune strate n'a encore les deux groupes avec assez d'utilisateurs pour un test post-stratifié."
     },
     "decision": {
       "title": "Synthèse de décision",

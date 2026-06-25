@@ -6,7 +6,9 @@ import type {
   LiveComparison,
   LiveCupedBlock,
   LiveCupedComparison,
-  LiveStatsResponse
+  LiveStatsResponse,
+  LiveStratifiedBlock,
+  LiveStratifiedComparison
 } from "../../lib/api";
 import { apiUrl } from "../../lib/experiment";
 import { useAnalysisStore } from "../../stores/analysisStore";
@@ -242,6 +244,97 @@ function CupedBlock({ cuped, variantNames }: { cuped: LiveCupedBlock; variantNam
   );
 }
 
+function StratifiedComparisonCard({
+  comparison,
+  variantNames
+}: {
+  comparison: LiveStratifiedComparison;
+  variantNames: string[];
+}) {
+  const controlName = variantNames[0] ?? "#1";
+  const treatmentName = variantNames[comparison.treatment_index] ?? `#${comparison.treatment_index + 1}`;
+
+  return (
+    <div style={{ display: "grid", gap: "4px", marginTop: "6px" }}>
+      <strong style={{ fontSize: "0.9em" }}>
+        {t("results.liveStats.comparisonTitle", { treatment: treatmentName, control: controlName })}
+      </strong>
+      {comparison.status === "insufficient_data" ? (
+        <span className="muted">{comparison.note ?? t("results.liveStats.stratifiedPending")}</span>
+      ) : (
+        <>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "center" }}>
+            <span className={`pill ${comparison.is_significant ? "accent" : ""}`}>
+              {comparison.is_significant
+                ? t("results.liveStats.significant")
+                : t("results.liveStats.notSignificant")}
+            </span>
+            <span className="muted">
+              {t("results.liveStats.stratifiedEffect", {
+                effect: formatNumber(comparison.effect, 4),
+                lower: formatNumber(comparison.ci_lower, 4),
+                upper: formatNumber(comparison.ci_upper, 4),
+                p: formatNumber(comparison.p_value, 4)
+              })}
+            </span>
+          </div>
+          <span className="muted">
+            {t("results.liveStats.stratifiedReduction", {
+              reduction: formatNumber(comparison.variance_reduction_pct),
+              n: comparison.num_strata ?? 0
+            })}
+          </span>
+          <ul className="stratified-strata" style={{ margin: 0, paddingLeft: "18px" }}>
+            {(comparison.strata ?? []).map((stratum) => (
+              <li key={stratum.stratum} className="muted">
+                {t("results.liveStats.stratifiedStratumLine", {
+                  stratum: stratum.stratum,
+                  users: stratum.users,
+                  effect: stratum.effect == null ? "—" : formatNumber(stratum.effect, 4)
+                })}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </div>
+  );
+}
+
+function StratifiedBlock({
+  stratified,
+  variantNames
+}: {
+  stratified: LiveStratifiedBlock;
+  variantNames: string[];
+}) {
+  return (
+    <div className="callout" style={{ display: "grid", gap: "6px" }}>
+      <strong>{t("results.liveStats.stratifiedTitle")}</strong>
+      {stratified.status === "available" ? (
+        <>
+          <span className="muted">
+            {t("results.liveStats.stratifiedCoverage", {
+              stratified: stratified.stratified_users_total ?? 0,
+              exposed: stratified.exposed_users_total ?? 0,
+              strata: stratified.num_strata ?? 0
+            })}
+          </span>
+          {(stratified.comparisons ?? []).map((comparison) => (
+            <StratifiedComparisonCard
+              key={comparison.treatment_index}
+              comparison={comparison}
+              variantNames={variantNames}
+            />
+          ))}
+        </>
+      ) : (
+        <span className="muted">{stratified.note}</span>
+      )}
+    </div>
+  );
+}
+
 export default function LiveStatsSection() {
   const analysisResult = useAnalysisStore((state) => state.analysisResult);
   const resultsProjectId = useAnalysisStore((state) => state.resultsProjectId);
@@ -371,6 +464,8 @@ export default function LiveStatsSection() {
               </div>
 
               <CupedBlock cuped={stats.cuped} variantNames={variantNames} />
+
+              <StratifiedBlock stratified={stats.stratified} variantNames={variantNames} />
             </>
           )}
 

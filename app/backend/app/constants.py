@@ -14,6 +14,12 @@ MAX_RECOMMENDED_DURATION_DAYS = 56
 # (sorted) names up to this cap are used and the response flags the truncation.
 MAX_CUPED_COVARIATES = 10
 
+# Upper bound on the number of distinct strata post-stratification (F3b) will split the sample into.
+# A good stratifier has few, well-populated levels (platform, country, new-vs-returning); too many
+# sparse strata *increase* variance (Miratrix et al.), so this caps a pathological high-cardinality
+# attribute (e.g. a mistakenly-ingested user id). Above the cap the stratified block is skipped.
+MAX_STRATA = 50
+
 DEFAULT_CORS_METHODS = ("GET", "POST", "PUT", "DELETE", "OPTIONS")
 DEFAULT_CORS_HEADERS = ("Accept", "Content-Type")
 
