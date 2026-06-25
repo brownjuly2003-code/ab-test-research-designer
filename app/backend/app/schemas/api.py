@@ -626,6 +626,20 @@ class LiveArmStat(BaseModel):
     std: float | None = None  # continuous metrics
 
 
+class LiveAlwaysValidBlock(BaseModel):
+    # Anytime-valid (mSPRT) readout: the p-value and confidence sequence stay valid under
+    # continuous monitoring (peek at any time, stop whenever), unlike the fixed-horizon test.
+    # status: "ok" | "not_evaluable" (degenerate variance in an arm)
+    status: str
+    always_valid_p_value: float | None = None
+    confidence_level: float | None = None  # 1 - alpha used for the sequence (FWER-adjusted)
+    ci_sequence_lower: float | None = None  # confidence-sequence bounds on the effect
+    ci_sequence_upper: float | None = None
+    is_significant: bool | None = None  # sequence excludes 0 == always-valid p < alpha
+    mixture_variance: float | None = None  # tau^2 mixing variance (from the design MDE)
+    note: str | None = None
+
+
 class LiveComparison(BaseModel):
     # status: "ok" | "insufficient_data" (an arm has <2 exposed users or a degenerate stat)
     treatment_index: int
@@ -635,6 +649,7 @@ class LiveComparison(BaseModel):
     analysis: ResultsResponse | None = None  # reuses the frequentist /results response shape
     probability_treatment_beats_control: float | None = None  # Bayesian P(B>A), binary only
     sequential_significant: bool | None = None  # |z| crosses the current O'Brien-Fleming boundary
+    always_valid: LiveAlwaysValidBlock | None = None  # anytime-valid mSPRT view, null until "ok"
     note: str | None = None
 
 

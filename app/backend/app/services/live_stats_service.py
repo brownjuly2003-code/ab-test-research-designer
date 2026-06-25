@@ -35,6 +35,7 @@ from app.backend.app.services.monte_carlo_service import (
     simulate_uplift_distribution,
 )
 from app.backend.app.services.results_service import analyze_results
+from app.backend.app.stats.always_valid import default_mixture_variance, evaluate_always_valid
 from app.backend.app.stats.srm import chi_square_srm
 
 DISCLAIMER = (
@@ -104,6 +105,15 @@ def build_live_stats(
     comparison_count = max(1, variants_count - 1)
     adjusted_alpha = alpha / comparison_count
 
+    # Mixing variance tau^2 for the anytime-valid (mSPRT) view, derived from the design's MDE so it
+    # is fixed *before* any data is seen (a precondition for the anytime-valid guarantee) and
+    # concentrates power around the effect the experiment was sized for. None -> per-comparison
+    # fallback to the observed variance scale (only when the design carries no usable MDE).
+    expected_effect = _expected_absolute_effect(baseline_value, metrics)
+    design_mixture_variance = (
+        default_mixture_variance(expected_effect) if expected_effect else None
+    )
+
     srm = _build_srm_block(arms, expected_fractions)
     comparisons = [
         _build_comparison(
@@ -112,6 +122,7 @@ def build_live_stats(
             alpha=adjusted_alpha,
             control=arms[0],
             treatment=arms[treatment_index],
+            mixture_variance=design_mixture_variance,
         )
         for treatment_index in range(1, variants_count)
     ]
@@ -236,6 +247,7 @@ def _build_comparison(
     alpha: float,
     control: dict[str, Any],
     treatment: dict[str, Any],
+    mixture_variance: float | None = None,
 ) -> dict[str, Any]:
     control_stat = _arm_stat(metric_type, control)
     treatment_stat = _arm_stat(metric_type, treatment)
@@ -246,6 +258,7 @@ def _build_comparison(
         "analysis": None,
         "probability_treatment_beats_control": None,
         "sequential_significant": None,
+        "always_valid": None,
         "note": None,
     }
 
@@ -255,8 +268,8 @@ def _build_comparison(
         return base
 
     if metric_type == "binary":
-        return _binary_comparison(base, alpha, baseline_value, control, treatment)
-    return _continuous_comparison(base, alpha, control, treatment)
+        return _binary_comparison(base, alpha, baseline_value, control, treatment, mixture_variance)
+    return _continuous_comparison(base, alpha, control, treatment, mixture_variance)
 
 
 def _binary_comparison(
@@ -265,6 +278,7 @@ def _binary_comparison(
     baseline_value: float,
     control: dict[str, Any],
     treatment: dict[str, Any],
+    mixture_variance: float | None = None,
 ) -> dict[str, Any]:
     request = ResultsRequest(
         metric_type="binary",
@@ -295,6 +309,13 @@ def _binary_comparison(
     base["probability_treatment_beats_control"] = round(
         simulation["probability_uplift_positive"], _BAYESIAN_PROBABILITY_DECIMALS
     )
+    # Anytime-valid view over the same observed difference. Unpooled variance matches the variance
+    # behind the displayed frequentist confidence interval, so the two readouts stay consistent.
+    effect = treatment_rate - control_rate
+    variance = control_rate * (1 - control_rate) / control["exposed_users"] + (
+        treatment_rate * (1 - treatment_rate) / treatment["exposed_users"]
+    )
+    base["always_valid"] = _always_valid_block(effect, variance, mixture_variance, alpha)
     return base
 
 
@@ -303,6 +324,7 @@ def _continuous_comparison(
     alpha: float,
     control: dict[str, Any],
     treatment: dict[str, Any],
+    mixture_variance: float | None = None,
 ) -> dict[str, Any]:
     control_mean, control_std = _continuous_moments(control)
     treatment_mean, treatment_std = _continuous_moments(treatment)
@@ -343,7 +365,79 @@ def _continuous_comparison(
     base["probability_treatment_beats_control"] = round(
         simulation["probability_uplift_positive"], _BAYESIAN_PROBABILITY_DECIMALS
     )
+    # Anytime-valid view over the same observed mean difference (Welch variance of the estimate).
+    effect = treatment_mean - control_mean
+    variance = (
+        control_std**2 / control["exposed_users"]
+        + treatment_std**2 / treatment["exposed_users"]
+    )
+    base["always_valid"] = _always_valid_block(effect, variance, mixture_variance, alpha)
     return base
+
+
+_ALWAYS_VALID_DECIMALS = 6
+
+
+def _always_valid_block(
+    effect: float,
+    variance: float,
+    mixture_variance: float | None,
+    alpha: float,
+) -> dict[str, Any]:
+    """mSPRT anytime-valid p-value + confidence sequence for one comparison.
+
+    ``mixture_variance`` (tau^2) comes from the design MDE when available; otherwise it falls back
+    to the observed variance scale so the block still renders. A degenerate (zero) variance — both
+    arms fully (non-)converting — leaves the block ``not_evaluable``.
+    """
+    tau_squared = mixture_variance if (mixture_variance and mixture_variance > 0) else variance
+    if variance <= 0 or tau_squared <= 0:
+        return {
+            "status": "not_evaluable",
+            "always_valid_p_value": None,
+            "confidence_level": None,
+            "ci_sequence_lower": None,
+            "ci_sequence_upper": None,
+            "is_significant": None,
+            "mixture_variance": None,
+            "note": "Not enough variation in the arms yet to form an anytime-valid interval.",
+        }
+    result = evaluate_always_valid(effect, variance, tau_squared, alpha)
+    return {
+        "status": "ok",
+        "always_valid_p_value": round(result["always_valid_p_value"], _ALWAYS_VALID_DECIMALS),
+        "confidence_level": round(result["confidence_level"], _ALWAYS_VALID_DECIMALS),
+        "ci_sequence_lower": round(result["ci_sequence_lower"], _ALWAYS_VALID_DECIMALS),
+        "ci_sequence_upper": round(result["ci_sequence_upper"], _ALWAYS_VALID_DECIMALS),
+        "is_significant": result["is_significant"],
+        "mixture_variance": round(tau_squared, 8),
+        "note": (
+            "Anytime-valid mSPRT view: this p-value and confidence sequence stay valid under "
+            "continuous monitoring, so you may stop as soon as the sequence excludes zero without "
+            "inflating the false-positive rate."
+        ),
+    }
+
+
+def _expected_absolute_effect(
+    baseline_value: float,
+    metrics: dict[str, Any],
+) -> float | None:
+    """Absolute effect the experiment was sized for, used to derive the mSPRT mixing variance.
+
+    MDE is a relative uplift over the baseline (rate for binary, mean for continuous), so the
+    absolute scale is ``baseline_value * mde_pct / 100``. Returns ``None`` when the design carries
+    no usable MDE/baseline (then the always-valid block falls back to the observed scale)."""
+    mde_pct = metrics.get("mde_pct")
+    if mde_pct is None or baseline_value <= 0:
+        return None
+    try:
+        mde = float(mde_pct)
+    except (TypeError, ValueError):
+        return None
+    if mde <= 0:
+        return None
+    return baseline_value * (mde / 100.0)
 
 
 def _calc_payload_from_design(project_payload: dict[str, Any]) -> dict[str, Any]:

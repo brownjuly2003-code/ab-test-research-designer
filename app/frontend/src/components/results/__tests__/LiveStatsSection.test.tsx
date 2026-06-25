@@ -48,6 +48,16 @@ const liveStatsResponse = {
       },
       probability_treatment_beats_control: 0.9996,
       sequential_significant: false,
+      always_valid: {
+        status: "ok",
+        always_valid_p_value: 0.0123,
+        confidence_level: 0.95,
+        ci_sequence_lower: 0.4,
+        ci_sequence_upper: 3.6,
+        is_significant: true,
+        mixture_variance: 0.000025,
+        note: "Anytime-valid mSPRT view over the observed difference."
+      },
       note: null
     }
   ],
@@ -160,6 +170,27 @@ describe("LiveStatsSection", () => {
       expect(text).toContain("Significant");
       expect(text).toContain("P(treatment beats control)");
       expect(text).toContain("CUPED");
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("renders the anytime-valid (mSPRT) block for a comparison", async () => {
+    const fetchMock = vi.fn(async (..._args: unknown[]) => ({ ok: true, json: async () => liveStatsResponse }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const view = await renderIntoDocument(<LiveStatsSection />);
+    try {
+      await flushEffects();
+      await click(findButton(view.container, "Refresh live stats"));
+      await flushEffects();
+      await flushEffects();
+
+      const text = view.container.textContent ?? "";
+      expect(text).toContain("Anytime-valid"); // block label
+      expect(text).toContain("Significant at any look"); // is_significant verdict
+      expect(text).toContain("Always-valid p ="); // p-value + confidence sequence line
+      expect(text).toContain("continuous monitoring"); // localized hint
     } finally {
       await view.unmount();
     }

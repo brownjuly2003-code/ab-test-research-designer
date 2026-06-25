@@ -102,6 +102,29 @@ function ComparisonCard({
                 : t("results.liveStats.sequentialNotCrossed")}
             </span>
           ) : null}
+          {comparison.always_valid?.status === "ok" ? (
+            <div style={{ display: "grid", gap: "4px", marginTop: "2px" }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "center" }}>
+                <span className="pill">{t("results.liveStats.alwaysValidLabel")}</span>
+                <span className={`pill ${comparison.always_valid.is_significant ? "accent" : ""}`}>
+                  {comparison.always_valid.is_significant
+                    ? t("results.liveStats.alwaysValidSignificant")
+                    : t("results.liveStats.alwaysValidNotSignificant")}
+                </span>
+              </div>
+              <span className="muted">
+                {t("results.liveStats.alwaysValidLine", {
+                  p: formatNumber(comparison.always_valid.always_valid_p_value, 4),
+                  level: formatPercent(comparison.always_valid.confidence_level),
+                  lower: formatNumber(comparison.always_valid.ci_sequence_lower, 4),
+                  upper: formatNumber(comparison.always_valid.ci_sequence_upper, 4)
+                })}
+              </span>
+              <span className="muted" style={{ fontSize: "0.85em" }}>
+                {t("results.liveStats.alwaysValidHint")}
+              </span>
+            </div>
+          ) : null}
         </>
       )}
     </div>
