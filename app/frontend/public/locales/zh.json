@@ -779,6 +779,8 @@
       "sequentialActive": "信息量为计划的 {{fraction}} · 边界 z {{boundary}} · 计划 {{planned}}/变体",
       "cupedTitle": "CUPED",
       "cupedReduction": "θ {{theta}} · 方差缩减 {{reduction}}%",
+      "cupedReductionMulti": "{{n}} 个协变量 · 方差缩减 {{reduction}}%",
+      "cupedCovariateLine": "{{name}}: θ {{theta}}",
       "cupedCoverage": "{{exposed}} 名曝光用户中有 {{covariate}} 名具有实验前协变量",
       "cupedArmLine": "调整后均值 {{adjusted}}（原始 {{raw}}）",
       "cupedAdjustedEffect": "调整后效应 {{effect}} · 置信区间 [{{lower}}, {{upper}}] · p {{p}}",

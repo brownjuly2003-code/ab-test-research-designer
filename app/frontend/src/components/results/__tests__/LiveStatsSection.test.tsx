@@ -264,6 +264,38 @@ describe("LiveStatsSection", () => {
     }
   });
 
+  it("lists each covariate's coefficient when CUPED uses multiple covariates", async () => {
+    const multiResponse = {
+      ...cupedAvailableResponse,
+      cuped: {
+        ...cupedAvailableResponse.cuped,
+        theta: null,
+        num_covariates: 2,
+        covariates: [
+          { name: "spend", theta: 3.2 },
+          { name: "visits", theta: 1.6 }
+        ]
+      }
+    };
+    const fetchMock = vi.fn(async (..._args: unknown[]) => ({ ok: true, json: async () => multiResponse }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const view = await renderIntoDocument(<LiveStatsSection />);
+    try {
+      await flushEffects();
+      await click(findButton(view.container, "Refresh live stats"));
+      await flushEffects();
+      await flushEffects();
+
+      const text = view.container.textContent ?? "";
+      expect(text).toContain("2 covariates"); // cupedReductionMulti line
+      expect(text).toContain("spend"); // per-covariate coefficient line
+      expect(text).toContain("visits");
+    } finally {
+      await view.unmount();
+    }
+  });
+
   it("renders ratio arms and the delta-method comparison", async () => {
     const fetchMock = vi.fn(async (..._args: unknown[]) => ({ ok: true, json: async () => ratioResponse }));
     vi.stubGlobal("fetch", fetchMock);

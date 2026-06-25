@@ -14,8 +14,9 @@ the current aggregates — there is no new math here:
                         compares the live z-statistic to the boundary at the current
                         information fraction.
 
-CUPED is honestly marked unavailable: the MVP ingests no per-user pre-period covariate, which
-CUPED requires. Continuous Bayesian is out of MVP scope (frequentist continuous is supported).
+- **CUPED**             variance reduction with one or more ingested per-user pre-period
+                        covariates (``stats.cuped``); marked unavailable until a covariate is
+                        ingested. Continuous Bayesian is out of MVP scope (frequentist supported).
 """
 
 from __future__ import annotations
@@ -38,6 +39,7 @@ from app.backend.app.services.results_service import (
     analyze_results,
     build_ratio_results_response,
 )
+from app.backend.app.stats import cuped
 from app.backend.app.stats.always_valid import default_mixture_variance, evaluate_always_valid
 from app.backend.app.stats.ratio import compare_ratios, ratio_estimate
 from app.backend.app.stats.srm import chi_square_srm
@@ -662,71 +664,119 @@ def _build_sequential_block(
     }
 
 
-# --- CUPED on live data (E5) ----------------------------------------------------------------
+# --- CUPED on live data (E5 single covariate, F3a multi-covariate) ---------------------------
 #
-# CUPED (Deng et al. 2013) reduces variance using a pre-experiment covariate X that is
-# correlated with the outcome Y but, being measured *before* assignment, is independent of the
-# treatment. The adjusted outcome is
+# CUPED (Deng et al. 2013) reduces variance using pre-experiment covariates X that are correlated
+# with the outcome Y but, being measured *before* assignment, are independent of the treatment.
+# With a covariate vector X = (X_1, ..., X_k) the adjusted outcome is the regression (ANCOVA) form
 #
-#     Y_adj = Y - theta * (X - mean(X)),   theta = cov(X, Y) / var(X)
+#     Y_adj = Y - theta^T (X - mean(X)),   theta = Sigma_xx^{-1} Sigma_xy   (normal equations)
 #
 # estimated on the pooled data (pooling is unbiased because X is pre-treatment). Subtracting the
 # global mean(X) keeps E[Y_adj] = E[Y], so the treatment-effect estimate is unchanged in
-# expectation while its variance drops by a factor of (1 - rho^2), rho = corr(X, Y).
+# expectation while its variance drops by a factor of (1 - R^2), R^2 the regression fit. For k = 1
+# this is exactly the E5 single-covariate CUPED (theta = cov(X, Y) / var(X)).
 #
-# No per-user loop is needed: from the per-arm sufficient statistics (n, sum_x, sum_x2, sum_y,
-# sum_y2, sum_xy) the adjusted arm mean and variance follow in closed form
+# No per-user loop is needed: from the per-arm sufficient statistics (n, sum_y, sum_y2 and, over
+# the covariate vector, sum_x[], sum_xy[], sum_xx[][]) the adjusted arm mean and variance follow
+# in closed form
 #
-#     mean(Y_adj)_a = mean(Y)_a - theta * (mean(X)_a - global mean(X))
-#     var(Y_adj)_a  = var(Y)_a - 2*theta*cov(X,Y)_a + theta^2 * var(X)_a
+#     mean(Y_adj)_a = mean(Y)_a - theta^T (mean(X)_a - global mean(X))
+#     var(Y_adj)_a  = var(Y)_a - 2*theta^T Sigma_xy_a + theta^T Sigma_xx_a theta
 #
-# (the centering constant theta*global_mean(X) does not affect variance). Those per-arm adjusted
-# moments feed the existing continuous t-test (``analyze_results``) — no new test statistic here.
+# (the centering constant does not affect variance; the pooled theta meets each arm's own
+# moments). Those per-arm adjusted moments feed the existing continuous t-test (``analyze_results``)
+# — no new test statistic here. The linear algebra lives in ``stats.cuped`` (stdlib).
 
 _NOTE_NOT_APPLICABLE = (
     "Live CUPED applies to continuous metrics — the adjusted outcome is analysed with the "
     "continuous t-test. This experiment uses a binary metric, so CUPED is not applied here."
 )
 _NOTE_UNAVAILABLE = (
-    "CUPED needs a per-user pre-experiment covariate. Ingest pre-period values via "
+    "CUPED needs per-user pre-experiment covariates. Ingest pre-period values via "
     "POST /api/v1/experiments/{id}/pre-period to enable variance reduction on live data."
 )
+_NOTE_TOO_MANY = (
+    "More distinct pre-period covariates were ingested than live CUPED supports. Reduce the "
+    "number of covariate names to enable the multi-covariate adjustment."
+)
 _NOTE_AVAILABLE = (
-    "CUPED-adjusted estimates: Y_adj = Y - theta*(X - mean X), theta = cov(X,Y)/var(X) pooled "
-    "across arms. The adjusted outcome is analysed with the continuous t-test; the effect is "
-    "unchanged in expectation while variance drops with the covariate's correlation. Estimated "
-    "only over users that have a pre-period covariate, so it describes that subpopulation."
+    "CUPED-adjusted estimates: Y_adj = Y - theta^T(X - mean X), the regression coefficients "
+    "theta = Sigma_xx^-1 Sigma_xy pooled across arms. The adjusted outcome is analysed with the "
+    "continuous t-test; the effect is unchanged in expectation while variance drops with the "
+    "covariates' correlation. Estimated only over users that carry the full covariate vector, so "
+    "it describes that subpopulation."
 )
 
 
-def _moments(items: list[dict[str, Any]]) -> dict[str, float] | None:
-    """Sample means / variances / covariance from pooled sufficient statistics, or ``None``
-    when there are fewer than 2 observations (variance undefined)."""
-    n = sum(int(item["n"]) for item in items)
+def _multi_moments(
+    n: int,
+    sum_y: float,
+    sum_y2: float,
+    sum_x: list[float],
+    sum_xy: list[float],
+    sum_xx: list[list[float]],
+) -> dict[str, Any] | None:
+    """Means, outcome variance, the covariate covariance matrix ``Sigma_xx`` and the
+    covariate/outcome covariance vector ``Sigma_xy`` from pooled sufficient statistics, or
+    ``None`` when there are fewer than 2 observations (a sample variance is undefined)."""
     if n < 2:
         return None
-    sum_x = sum(item["sum_x"] for item in items)
-    sum_x2 = sum(item["sum_x2"] for item in items)
-    sum_y = sum(item["sum_y"] for item in items)
-    sum_y2 = sum(item["sum_y2"] for item in items)
-    sum_xy = sum(item["sum_xy"] for item in items)
-    mean_x = sum_x / n
+    k = len(sum_x)
     mean_y = sum_y / n
+    mean_x = [value / n for value in sum_x]
+    var_y = (sum_y2 - n * mean_y * mean_y) / (n - 1)
+    sigma_xy = [(sum_xy[j] - n * mean_x[j] * mean_y) / (n - 1) for j in range(k)]
+    sigma_xx = [
+        [(sum_xx[i][j] - n * mean_x[i] * mean_x[j]) / (n - 1) for j in range(k)]
+        for i in range(k)
+    ]
     return {
         "n": n,
-        "mean_x": mean_x,
         "mean_y": mean_y,
-        "var_x": (sum_x2 - n * mean_x * mean_x) / (n - 1),
-        "var_y": (sum_y2 - n * mean_y * mean_y) / (n - 1),
-        "cov_xy": (sum_xy - n * mean_x * mean_y) / (n - 1),
+        "mean_x": mean_x,
+        "var_y": var_y,
+        "sigma_xy": sigma_xy,
+        "sigma_xx": sigma_xx,
+    }
+
+
+def _pool_sufficient(arms: list[dict[str, Any]], k: int) -> dict[str, Any]:
+    """Sum per-arm sufficient statistics into pooled totals (X is pre-treatment, so pooling
+    across arms is unbiased)."""
+    total_n = 0
+    sum_y = 0.0
+    sum_y2 = 0.0
+    sum_x = [0.0] * k
+    sum_xy = [0.0] * k
+    sum_xx = [[0.0] * k for _ in range(k)]
+    for arm in arms:
+        total_n += int(arm["n"])
+        sum_y += float(arm["sum_y"])
+        sum_y2 += float(arm["sum_y2"])
+        for i in range(k):
+            sum_x[i] += float(arm["sum_x"][i])
+            sum_xy[i] += float(arm["sum_xy"][i])
+            for j in range(k):
+                sum_xx[i][j] += float(arm["sum_xx"][i][j])
+    return {
+        "n": total_n,
+        "sum_y": sum_y,
+        "sum_y2": sum_y2,
+        "sum_x": sum_x,
+        "sum_xy": sum_xy,
+        "sum_xx": sum_xx,
     }
 
 
 def _cuped_arm_stat(
-    arm: dict[str, Any] | None, index: int, theta: float, global_mean_x: float
+    arm: dict[str, Any] | None,
+    index: int,
+    theta: list[float],
+    global_mean_x: list[float],
 ) -> dict[str, Any]:
     n = int(arm["n"]) if arm else 0
-    if n == 0:
+    if n == 0 or arm is None:
         return {
             "variation_index": index,
             "covariate_users": 0,
@@ -734,18 +784,17 @@ def _cuped_arm_stat(
             "adjusted_mean": None,
             "adjusted_std": None,
         }
-    # n is only non-zero when arm is present (n is read from arm["n"]).
-    arm = cast("dict[str, Any]", arm)
-    mean_x = arm["sum_x"] / n
+    k = len(theta)
+    mean_x = [arm["sum_x"][j] / n for j in range(k)]
     mean_y = arm["sum_y"] / n
-    adjusted_mean = mean_y - theta * (mean_x - global_mean_x)
+    adjusted_mean = mean_y - cuped.dot(theta, [mean_x[j] - global_mean_x[j] for j in range(k)])
     adjusted_std: float | None = None
-    arm_moments = _moments([arm])
+    arm_moments = _multi_moments(
+        n, arm["sum_y"], arm["sum_y2"], arm["sum_x"], arm["sum_xy"], arm["sum_xx"]
+    )
     if arm_moments is not None:
-        adjusted_var = (
-            arm_moments["var_y"]
-            - 2 * theta * arm_moments["cov_xy"]
-            + theta * theta * arm_moments["var_x"]
+        adjusted_var = cuped.adjusted_variance(
+            arm_moments["var_y"], theta, arm_moments["sigma_xy"], arm_moments["sigma_xx"]
         )
         adjusted_std = math.sqrt(adjusted_var) if adjusted_var > 0 else 0.0
     return {
@@ -804,6 +853,8 @@ def _build_cuped_block(
 ) -> dict[str, Any]:
     empty: dict[str, Any] = {
         "theta": None,
+        "num_covariates": None,
+        "covariates": [],
         "variance_reduction_pct": None,
         "covariate_users_total": None,
         "exposed_users_total": None,
@@ -812,29 +863,43 @@ def _build_cuped_block(
     if metric_type != "continuous":
         return {"status": "not_applicable", "note": _NOTE_NOT_APPLICABLE, **empty}
 
-    by_index = {
-        int(item["variation_index"]): item
-        for item in (cuped_aggregates or {}).get("variations", [])
-    }
+    aggregates = cuped_aggregates or {}
+    if aggregates.get("too_many_covariates"):
+        return {
+            "status": "too_many_covariates",
+            "note": _NOTE_TOO_MANY,
+            **empty,
+            "num_covariates": len(aggregates.get("covariate_names", [])),
+            "exposed_users_total": exposed_total,
+        }
+
+    covariate_names = list(aggregates.get("covariate_names", []))
+    k = len(covariate_names)
+    by_index = {int(item["variation_index"]): item for item in aggregates.get("variations", [])}
     covariate_users_total = sum(int(item["n"]) for item in by_index.values())
-    if covariate_users_total == 0:
+    if k == 0 or covariate_users_total == 0:
         return {
             "status": "unavailable",
             "note": _NOTE_UNAVAILABLE,
             **empty,
+            "num_covariates": k or None,
             "covariate_users_total": 0,
             "exposed_users_total": exposed_total,
         }
 
-    pooled = _moments(list(by_index.values()))
-    # theta needs var(X) > 0; a constant covariate carries no information -> theta = 0 (CUPED
-    # collapses to the unadjusted estimate).
-    if pooled is None or pooled["var_x"] <= 0:
-        theta = 0.0
-        global_mean_x = pooled["mean_x"] if pooled else 0.0
+    sums = _pool_sufficient(list(by_index.values()), k)
+    pooled = _multi_moments(
+        sums["n"], sums["sum_y"], sums["sum_y2"], sums["sum_x"], sums["sum_xy"], sums["sum_xx"]
+    )
+    # theta needs an invertible Sigma_xx; collinear / constant covariates carry no usable signal
+    # -> theta = 0 vector (CUPED collapses to the unadjusted estimate).
+    if pooled is None:
+        theta = [0.0] * k
+        global_mean_x = [0.0] * k
     else:
-        theta = pooled["cov_xy"] / pooled["var_x"]
         global_mean_x = pooled["mean_x"]
+        solved = cuped.cuped_theta(pooled["sigma_xx"], pooled["sigma_xy"])
+        theta = solved if solved is not None else [0.0] * k
 
     arm_stats = [
         _cuped_arm_stat(by_index.get(index), index, theta, global_mean_x)
@@ -847,15 +912,19 @@ def _build_cuped_block(
 
     variance_reduction_pct = None
     if pooled is not None and pooled["var_y"] > 0:
-        adjusted_var = (
-            pooled["var_y"] - 2 * theta * pooled["cov_xy"] + theta * theta * pooled["var_x"]
+        adjusted_var = cuped.adjusted_variance(
+            pooled["var_y"], theta, pooled["sigma_xy"], pooled["sigma_xx"]
         )
         variance_reduction_pct = round((1 - adjusted_var / pooled["var_y"]) * 100, 4)
 
+    covariates = [{"name": covariate_names[j], "theta": round(theta[j], 6)} for j in range(k)]
     return {
         "status": "available",
         "note": _NOTE_AVAILABLE,
-        "theta": round(theta, 6),
+        # Single-covariate convenience (backward compatible); the vector lives in `covariates`.
+        "theta": round(theta[0], 6) if k == 1 else None,
+        "num_covariates": k,
+        "covariates": covariates,
         "variance_reduction_pct": variance_reduction_pct,
         "covariate_users_total": covariate_users_total,
         "exposed_users_total": exposed_total,
