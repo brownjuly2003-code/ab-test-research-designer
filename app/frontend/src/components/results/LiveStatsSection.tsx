@@ -9,6 +9,8 @@ import type {
   LiveGuardrailBlock,
   LiveGuardrailComparison,
   LiveGuardrailMetricResult,
+  LiveHoldoutArmStat,
+  LiveHoldoutBlock,
   LiveStatsResponse,
   LiveStratifiedBlock,
   LiveStratifiedComparison
@@ -479,6 +481,78 @@ function GuardrailBlock({
   );
 }
 
+function holdoutArmLine(arm: LiveHoldoutArmStat | null | undefined, metricType: string): string {
+  if (!arm) {
+    return "—";
+  }
+  const base = t("results.liveStats.armExposures", {
+    exposed: arm.exposed_users,
+    converted: arm.converted_users
+  });
+  if (metricType === "binary") {
+    return `${base} · ${formatPercent(arm.conversion_rate)}`;
+  }
+  return `${base} · ${t("results.liveStats.armMean", {
+    mean: formatNumber(arm.mean),
+    std: formatNumber(arm.std)
+  })}`;
+}
+
+function HoldoutBlock({ holdout, metricType }: { holdout: LiveHoldoutBlock | undefined; metricType: string }) {
+  if (!holdout) {
+    return null;
+  }
+  return (
+    <div className="callout" style={{ display: "grid", gap: "6px" }}>
+      <strong>{t("results.liveStats.holdoutTitle")}</strong>
+      {holdout.status === "ok" && holdout.analysis ? (
+        <>
+          <span className="muted">
+            {t("results.liveStats.holdoutTreated")}: {holdoutArmLine(holdout.treated, metricType)}
+          </span>
+          <span className="muted">
+            {t("results.liveStats.holdoutHeldBack")}: {holdoutArmLine(holdout.holdout, metricType)}
+          </span>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "center", marginTop: "2px" }}>
+            <span className={`pill ${holdout.analysis.is_significant ? "accent" : ""}`}>
+              {holdout.analysis.is_significant
+                ? t("results.liveStats.significant")
+                : t("results.liveStats.notSignificant")}
+            </span>
+            <span className="muted">
+              {t("results.liveStats.holdoutEffectLine", {
+                effect: formatNumber(holdout.analysis.observed_effect, 4),
+                lower: formatNumber(holdout.analysis.ci_lower, 4),
+                upper: formatNumber(holdout.analysis.ci_upper, 4),
+                p: formatNumber(holdout.analysis.p_value, 4)
+              })}
+            </span>
+          </div>
+          {holdout.probability_treated_beats_holdout != null ? (
+            <span className="muted">
+              {t("results.liveStats.holdoutBayesianLine", {
+                prob: formatPercent(holdout.probability_treated_beats_holdout)
+              })}
+            </span>
+          ) : null}
+          {holdout.always_valid?.status === "ok" ? (
+            <span className="muted">
+              {t("results.liveStats.alwaysValidLine", {
+                p: formatNumber(holdout.always_valid.always_valid_p_value, 4),
+                level: formatPercent(holdout.always_valid.confidence_level),
+                lower: formatNumber(holdout.always_valid.ci_sequence_lower, 4),
+                upper: formatNumber(holdout.always_valid.ci_sequence_upper, 4)
+              })}
+            </span>
+          ) : null}
+        </>
+      ) : (
+        <span className="muted">{holdout.note}</span>
+      )}
+    </div>
+  );
+}
+
 export default function LiveStatsSection() {
   const analysisResult = useAnalysisStore((state) => state.analysisResult);
   const resultsProjectId = useAnalysisStore((state) => state.resultsProjectId);
@@ -612,6 +686,8 @@ export default function LiveStatsSection() {
               <StratifiedBlock stratified={stats.stratified} variantNames={variantNames} />
 
               <GuardrailBlock guardrail={stats.guardrail} variantNames={variantNames} />
+
+              <HoldoutBlock holdout={stats.holdout} metricType={stats.metric_type} />
             </>
           )}
 

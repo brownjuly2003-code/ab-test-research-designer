@@ -20,6 +20,11 @@ MAX_CUPED_COVARIATES = 10
 # attribute (e.g. a mistakenly-ingested user id). Above the cap the stratified block is skipped.
 MAX_STRATA = 50
 
+# Reserved variation index for a holdout member — a user held back from the rollout (F5). The
+# bucketer already returns -1 for "not in experiment", and the per-arm primary rollup excludes it
+# (variation_index >= 0); the cumulative holdout read selects exactly this tail.
+HOLDOUT_VARIATION_INDEX = -1
+
 DEFAULT_CORS_METHODS = ("GET", "POST", "PUT", "DELETE", "OPTIONS")
 DEFAULT_CORS_HEADERS = ("Accept", "Content-Type")
 

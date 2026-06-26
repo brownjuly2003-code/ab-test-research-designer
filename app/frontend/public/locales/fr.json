@@ -805,7 +805,12 @@
       "guardrailIncreaseIsBad": "une hausse est nuisible",
       "guardrailDecreaseIsBad": "une baisse est nuisible",
       "guardrailArmLine": "{{exposed}} exposés · {{point}}",
-      "guardrailEffectLine": "Préjudice {{harm}} · borne inférieure unilatérale {{lower}} · p {{p}}"
+      "guardrailEffectLine": "Préjudice {{harm}} · borne inférieure unilatérale {{lower}} · p {{p}}",
+      "holdoutTitle": "Holdout (cumulatif)",
+      "holdoutTreated": "Traités (déployé)",
+      "holdoutHeldBack": "Holdout (retenus)",
+      "holdoutEffectLine": "Effet cumulatif {{effect}} · IC [{{lower}}, {{upper}}] · p {{p}}",
+      "holdoutBayesianLine": "P(traités bat holdout) = {{prob}}"
     },
     "decision": {
       "title": "Synthèse de décision",

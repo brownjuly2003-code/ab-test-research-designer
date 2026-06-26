@@ -282,6 +282,15 @@ new statistics; see services/decision_service.py.
 
 Ingest Exposures
 
+### `POST /api/v1/experiments/{experiment_id}/holdout`
+
+Ingest Holdout
+
+Ingest holdout members — users held back from the rollout (F5). Recorded as
+``variation_index = -1`` exposures (first-write-wins per user); the live-stats read compares
+the pooled treated arms against this held-back group to measure the rollout's cumulative
+effect. Holdout outcomes ride the ordinary conversion stream under the primary metric name.
+
 ### `GET /api/v1/experiments/{experiment_id}/ingestion`
 
 Get Ingestion Summary

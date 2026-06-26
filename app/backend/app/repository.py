@@ -18,7 +18,11 @@ from psycopg.types.json import Jsonb
 from psycopg_pool import ConnectionPool
 from pydantic import ValidationError
 
-from app.backend.app.constants import MAX_CUPED_COVARIATES, MAX_STRATA
+from app.backend.app.constants import (
+    HOLDOUT_VARIATION_INDEX,
+    MAX_CUPED_COVARIATES,
+    MAX_STRATA,
+)
 from app.backend.app.errors import ApiError
 from app.backend.app.schemas.api import ExperimentInput
 
@@ -2906,6 +2910,41 @@ class SQLiteBackend:
         received = len(items)
         return {"received": received, "recorded": recorded, "deduplicated": received - recorded}
 
+    def record_holdout(self, experiment_id: str, items: list[dict[str, Any]]) -> dict[str, Any]:
+        """Record holdout members — users held back from the rollout — as ``variation_index = -1``
+        exposures (F5).
+
+        First-write-wins per (experiment, user) via the UNIQUE constraint + ``ON CONFLICT DO
+        NOTHING``: a user already exposed to an arm keeps that arm (you cannot be both treated and
+        held back), and a duplicate holdout entry is dropped. The holdout tail is excluded from the
+        per-arm primary rollup (``get_experiment_analysis_aggregates`` filters ``variation_index >=
+        0``); ``get_holdout_aggregates`` reads it back for the cumulative treated-vs-holdout view.
+        Holdout outcomes ride the ordinary conversion stream under the primary metric name.
+        """
+        timestamp = datetime.now(UTC).isoformat()
+        recorded = 0
+        with self._connect() as connection:
+            self._ensure_project_active(connection, experiment_id)
+            for item in items:
+                cursor = connection.execute(
+                    """
+                    INSERT INTO exposures (id, experiment_id, user_id, variation_index, created_at)
+                    VALUES (?, ?, ?, ?, ?)
+                    ON CONFLICT(experiment_id, user_id) DO NOTHING
+                    """,
+                    (
+                        str(uuid.uuid4()),
+                        experiment_id,
+                        item["user_id"],
+                        HOLDOUT_VARIATION_INDEX,
+                        timestamp,
+                    ),
+                )
+                if cursor.rowcount == 1:
+                    recorded += 1
+        received = len(items)
+        return {"received": received, "recorded": recorded, "deduplicated": received - recorded}
+
     def get_user_exposure(self, experiment_id: str, user_id: str) -> dict[str, Any] | None:
         """The recorded (first-exposure-wins) exposure for one user, or ``None``.
 
@@ -3036,6 +3075,58 @@ class SQLiteBackend:
             "experiment_id": experiment_id,
             "metric_name": metric_name,
             "variations": variations,
+        }
+
+    def get_holdout_aggregates(
+        self, experiment_id: str, metric_name: str
+    ) -> dict[str, Any] | None:
+        """Held-back (``variation_index = -1``) rollup for the cumulative holdout read (F5).
+
+        Returns ``None`` if the experiment does not exist. Mirrors
+        ``get_experiment_analysis_aggregates`` but selects the holdout tail the per-arm rollup
+        *excludes* — ``WHERE variation_index = -1`` — and folds it into a single ``holdout`` group
+        with the same shape (``exposed_users``, ``converted_users``, ``value_sum``, ``value_sq_sum``).
+        A user with several conversion events still counts once for the binary rate and contributes
+        the sum of their values to the continuous rollup. The pooled treated arms come from the main
+        aggregates (``variation_index >= 1``), so no second treated query is needed here.
+        """
+        with self._connect() as connection:
+            if not self._project_exists(connection, experiment_id):
+                return None
+            row = connection.execute(
+                """
+                WITH user_values AS (
+                    SELECT
+                        e.user_id AS user_id,
+                        COALESCE(SUM(c.value), 0) AS user_value,
+                        MAX(CASE WHEN c.id IS NOT NULL THEN 1 ELSE 0 END) AS converted
+                    FROM exposures e
+                    LEFT JOIN conversions c
+                        ON c.experiment_id = e.experiment_id
+                        AND c.user_id = e.user_id
+                        AND c.metric = ?
+                    WHERE e.experiment_id = ? AND e.variation_index = -1
+                    GROUP BY e.user_id
+                )
+                SELECT
+                    COUNT(*) AS exposed_users,
+                    SUM(converted) AS converted_users,
+                    SUM(user_value) AS value_sum,
+                    SUM(user_value * user_value) AS value_sq_sum
+                FROM user_values
+                """,
+                (metric_name, experiment_id),
+            ).fetchone()
+        holdout = {
+            "exposed_users": int(row["exposed_users"] or 0) if row is not None else 0,
+            "converted_users": int(row["converted_users"] or 0) if row is not None else 0,
+            "value_sum": float(row["value_sum"] or 0.0) if row is not None else 0.0,
+            "value_sq_sum": float(row["value_sq_sum"] or 0.0) if row is not None else 0.0,
+        }
+        return {
+            "experiment_id": experiment_id,
+            "metric_name": metric_name,
+            "holdout": holdout,
         }
 
     def get_stratified_aggregates(

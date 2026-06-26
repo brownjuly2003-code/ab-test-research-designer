@@ -805,7 +805,12 @@
       "guardrailIncreaseIsBad": "increase is harmful",
       "guardrailDecreaseIsBad": "decrease is harmful",
       "guardrailArmLine": "{{exposed}} exposed · {{point}}",
-      "guardrailEffectLine": "Harm {{harm}} · one-sided lower bound {{lower}} · p {{p}}"
+      "guardrailEffectLine": "Harm {{harm}} · one-sided lower bound {{lower}} · p {{p}}",
+      "holdoutTitle": "Holdout (cumulative)",
+      "holdoutTreated": "Treated (rolled out)",
+      "holdoutHeldBack": "Holdout (held back)",
+      "holdoutEffectLine": "Cumulative effect {{effect}} · CI [{{lower}}, {{upper}}] · p {{p}}",
+      "holdoutBayesianLine": "P(treated beats holdout) = {{prob}}"
     },
     "decision": {
       "title": "Decision readout",

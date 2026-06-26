@@ -805,7 +805,12 @@
       "guardrailIncreaseIsBad": "الزيادة ضارة",
       "guardrailDecreaseIsBad": "الانخفاض ضار",
       "guardrailArmLine": "{{exposed}} ظهور · {{point}}",
-      "guardrailEffectLine": "الضرر {{harm}} · الحد الأدنى أحادي الجانب {{lower}} · p {{p}}"
+      "guardrailEffectLine": "الضرر {{harm}} · الحد الأدنى أحادي الجانب {{lower}} · p {{p}}",
+      "holdoutTitle": "Holdout (تراكمي)",
+      "holdoutTreated": "المُعالَجون (تم الإطلاق)",
+      "holdoutHeldBack": "Holdout (محتجزون)",
+      "holdoutEffectLine": "التأثير التراكمي {{effect}} · فترة الثقة [{{lower}}, {{upper}}] · p {{p}}",
+      "holdoutBayesianLine": "P(المُعالَجون يتفوقون على Holdout) = {{prob}}"
     },
     "decision": {
       "title": "ملخص القرار",

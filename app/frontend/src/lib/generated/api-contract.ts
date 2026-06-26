@@ -542,6 +542,14 @@ export type HealthResponse = {
   environment: string;
 };
 
+export type HoldoutEvent = {
+  user_id: string;
+};
+
+export type HoldoutIngestRequest = {
+  holdout: HoldoutEvent[];
+};
+
 export type HypothesisCandidate = {
   change: string;
   rationale: string;
@@ -695,6 +703,27 @@ export type LiveGuardrailMetricResult = {
   comparisons?: LiveGuardrailComparison[];
 };
 
+export type LiveHoldoutArmStat = {
+  label: string;
+  exposed_users: number;
+  converted_users: number;
+  conversion_rate?: number | null;
+  mean?: number | null;
+  std?: number | null;
+};
+
+export type LiveHoldoutBlock = {
+  status: string;
+  note: string;
+  treated?: LiveHoldoutArmStat | null;
+  holdout?: LiveHoldoutArmStat | null;
+  analysis?: ResultsResponse | null;
+  probability_treated_beats_holdout?: number | null;
+  always_valid?: LiveAlwaysValidBlock | null;
+  treated_users_total?: number | null;
+  holdout_users_total?: number | null;
+};
+
 export type LiveSequentialBlock = {
   status: string;
   n_looks: number;
@@ -728,6 +757,7 @@ export type LiveStatsResponse = {
   cuped: LiveCupedBlock;
   stratified: LiveStratifiedBlock;
   guardrail: LiveGuardrailBlock;
+  holdout: LiveHoldoutBlock;
 };
 
 export type LiveStratifiedBlock = {
