@@ -77,6 +77,32 @@ PostgreSQL write-probe passes. The probe checks the live schema version against 
 `schema_version` and performs a real (rolled-back) write, so it catches an unreachable or
 read-only database.
 
+## Ingestion: batch semantics, idempotency, limits
+
+Exposure and conversion events are ingested in batches (`POST /api/v1/experiments/{id}/exposures`
+and `.../conversions`). Each request returns an accounting object:
+
+```json
+{ "received": 10000, "recorded": 10000, "deduplicated": 0 }
+```
+
+`received == recorded + deduplicated` always holds.
+
+- **At-least-once safe.** Production ingestion is at-least-once: clients retry on timeout and queues
+  redeliver. Replaying an identical batch is safe — it records nothing (`recorded == 0`) and never
+  inflates stored totals. This is verified at scale (10k-event replay) in
+  `app/backend/tests/test_ingestion_load.py`.
+- **Exposures: first-exposure-wins** per `(experiment, user)`. A user's first-seen variation is
+  sticky; a duplicate or later exposure is dropped, so a redelivery cannot inflate an arm and
+  manufacture a false SRM.
+- **Conversions: idempotency keys.** Supply an `idempotency_key` so retries with the same key are
+  deduplicated per experiment. Events sent without a key are always recorded (use a key whenever the
+  producer may retry).
+- **Batch size limit.** `AB_MAX_REQUEST_BODY_BYTES` (default 1 MiB) bounds a single request body, so
+  very large backfills must be chunked into multiple batches. Each batch is one transaction
+  (all-or-nothing per request); throughput scales with the PostgreSQL backend and connection pool
+  (`AB_DB_POOL_SIZE`).
+
 ## Retention and backup
 
 - **Backups.** Use managed PostgreSQL automated backups, or schedule `pg_dump`:
