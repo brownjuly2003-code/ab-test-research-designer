@@ -1795,3 +1795,163 @@ def test_live_stats_route_collects_guardrail_aggregates_by_name() -> None:
     assert comparison["is_breached"] is True
     assert comparison["control"]["point_estimate"] == pytest.approx(0.05)  # 2/40
     assert comparison["treatment"]["point_estimate"] == pytest.approx(0.5)  # 20/40
+
+
+# --- holdout groups (F5) --------------------------------------------------------------
+
+
+def _holdout_aggregates(
+    exposed: int, converted: int, value_sum: float = 0.0, value_sq_sum: float = 0.0
+) -> dict:
+    """A held-back (variation_index = -1) rollup as repository.get_holdout_aggregates returns it."""
+    return {
+        "experiment_id": "e",
+        "metric_name": "purchase",
+        "holdout": {
+            "exposed_users": exposed,
+            "converted_users": converted,
+            "value_sum": value_sum,
+            "value_sq_sum": value_sq_sum,
+        },
+    }
+
+
+def test_holdout_unavailable_when_no_holdout_ingested() -> None:
+    result = build_live_stats(
+        "e", _binary_design(), _aggregates(_arm(0, 5000, 500), _arm(1, 5000, 600))
+    )
+    block = result["holdout"]
+    assert block["status"] == "unavailable"
+    assert block["treated"] is None
+    assert block["holdout"] is None
+    assert "No holdout users" in block["note"]
+
+
+def test_holdout_unavailable_for_ratio_metric() -> None:
+    # A ratio metric has no single per-user outcome the pool reads -> holdout is not applicable.
+    result = build_live_stats(
+        "e",
+        _ratio_design(),
+        _aggregates(_arm(0, 100, 0), _arm(1, 100, 0)),
+        holdout_aggregates=_holdout_aggregates(100, 10),
+    )
+    block = result["holdout"]
+    assert block["status"] == "unavailable"
+    assert "ratio metric" in block["note"]
+
+
+def test_holdout_insufficient_when_holdout_too_small() -> None:
+    # A single held-back user cannot form a variance, so the cumulative test cannot run yet. The
+    # treated total still reflects the pooled treatment arms (control excluded).
+    result = build_live_stats(
+        "e",
+        _binary_design(),
+        _aggregates(_arm(0, 5000, 500), _arm(1, 5000, 600)),
+        holdout_aggregates=_holdout_aggregates(1, 0),
+    )
+    block = result["holdout"]
+    assert block["status"] == "insufficient_data"
+    assert block["holdout_users_total"] == 1
+    assert block["treated_users_total"] == 5000  # arm 1 only; the control arm is not "treated"
+
+
+def test_holdout_ok_binary_pools_treated_arms_excluding_control() -> None:
+    # Two treatment arms fold into one treated pool (control arm 0 excluded); the pool is compared
+    # against the held-back holdout group. Treated 700/6000 (=300+400 over 3000+3000); holdout 50/2000.
+    design = _binary_design()
+    design["setup"]["variants_count"] = 3
+    design["setup"]["traffic_split"] = [34, 33, 33]
+    result = build_live_stats(
+        "e",
+        design,
+        _aggregates(_arm(0, 3000, 600), _arm(1, 3000, 300), _arm(2, 3000, 400)),
+        holdout_aggregates=_holdout_aggregates(2000, 50),
+    )
+    block = result["holdout"]
+    assert block["status"] == "ok"
+    assert block["treated_users_total"] == 6000  # arms 1 + 2 pooled; control (arm 0) excluded
+    assert block["holdout_users_total"] == 2000
+    assert block["treated"]["label"] == "treated"
+    assert block["treated"]["exposed_users"] == 6000
+    assert block["treated"]["converted_users"] == 700  # 300 + 400 (control's 600 not pooled)
+    assert block["treated"]["conversion_rate"] == pytest.approx(700 / 6000, abs=1e-6)
+    assert block["holdout"]["label"] == "holdout"
+    assert block["holdout"]["conversion_rate"] == pytest.approx(50 / 2000)
+    # observed_effect is in percentage points for a binary metric (rate difference × 100).
+    assert block["analysis"]["observed_effect"] == pytest.approx((700 / 6000 - 50 / 2000) * 100, abs=1e-3)
+    assert block["analysis"]["is_significant"] is True  # large positive cumulative effect
+    assert block["probability_treated_beats_holdout"] is not None
+    assert block["always_valid"]["status"] == "ok"
+
+
+def test_holdout_ok_continuous_cumulative_effect() -> None:
+    # Continuous primary: pooled treated mean 48 vs holdout mean 45 -> +3 cumulative effect.
+    treated = _arm(1, 4000, 0, value_sum=192000.0, value_sq_sum=9791856.0)  # mean 48, var 144
+    control = _arm(0, 4000, 0, value_sum=180000.0, value_sq_sum=9215856.0)  # excluded from the pool
+    result = build_live_stats(
+        "e",
+        _continuous_design(),
+        _aggregates(control, treated),
+        holdout_aggregates=_holdout_aggregates(2000, 0, value_sum=90000.0, value_sq_sum=4337856.0),
+    )
+    block = result["holdout"]
+    assert block["status"] == "ok"
+    assert block["treated"]["mean"] == pytest.approx(48.0, abs=1e-6)
+    assert block["holdout"]["mean"] == pytest.approx(45.0, abs=1e-6)
+    assert block["treated"]["std"] is not None  # continuous arms carry mean/std, not a rate
+    assert block["analysis"]["observed_effect"] == pytest.approx(3.0, abs=1e-6)
+    assert block["analysis"]["is_significant"] is True
+    assert block["always_valid"]["status"] == "ok"
+
+
+def test_live_stats_route_collects_holdout_aggregates() -> None:
+    # End-to-end: held-back users are ingested via POST /holdout (variation_index = -1 exposures), the
+    # treated arm via /exposures, and outcomes for both ride the ordinary /conversions stream under the
+    # primary metric. The endpoint rolls up the holdout tail and the block reports the cumulative
+    # treated-vs-holdout effect — proving routes/execution._compute_live_stats wires get_holdout_aggregates.
+    client = TestClient(create_app())
+    project_id = _create_binary_project(client)
+
+    control = [f"c{i}" for i in range(100)]
+    treatment = [f"t{i}" for i in range(100)]
+    held_back = [f"h{i}" for i in range(100)]
+    exposures = [{"user_id": u, "variation_index": 0} for u in control]
+    exposures += [{"user_id": u, "variation_index": 1} for u in treatment]
+    assert (
+        client.post(
+            f"/api/v1/experiments/{project_id}/exposures", json={"exposures": exposures}
+        ).status_code
+        == 200
+    )
+    assert (
+        client.post(
+            f"/api/v1/experiments/{project_id}/holdout",
+            json={"holdout": [{"user_id": u} for u in held_back]},
+        ).status_code
+        == 200
+    )
+
+    # Primary outcomes: treated 30/100, holdout 8/100 (control 10/100 is not part of the holdout read).
+    conversions = [{"user_id": u, "metric": "purchase"} for u in control[:10]]
+    conversions += [{"user_id": u, "metric": "purchase"} for u in treatment[:30]]
+    conversions += [{"user_id": u, "metric": "purchase"} for u in held_back[:8]]
+    assert (
+        client.post(
+            f"/api/v1/experiments/{project_id}/conversions", json={"conversions": conversions}
+        ).status_code
+        == 200
+    )
+
+    response = client.get(f"/api/v1/experiments/{project_id}/live-stats")
+    assert response.status_code == 200, response.text
+    block = response.json()["holdout"]
+    assert block["status"] == "ok"
+    assert block["treated_users_total"] == 100  # treatment arm only; control excluded
+    assert block["holdout_users_total"] == 100
+    assert block["treated"]["conversion_rate"] == pytest.approx(0.30)
+    assert block["holdout"]["conversion_rate"] == pytest.approx(0.08)
+    # observed_effect is in percentage points for a binary metric (0.30 − 0.08 = 0.22 → 22.0).
+    assert block["analysis"]["observed_effect"] == pytest.approx(22.0, abs=1e-3)
+    assert block["analysis"]["is_significant"] is True
+    # The holdout tail never inflates the primary arms: exposures_total counts only vi >= 0.
+    assert response.json()["exposures_total"] == 200

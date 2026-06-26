@@ -805,7 +805,12 @@
       "guardrailIncreaseIsBad": "un aumento es perjudicial",
       "guardrailDecreaseIsBad": "una disminución es perjudicial",
       "guardrailArmLine": "{{exposed}} expuestos · {{point}}",
-      "guardrailEffectLine": "Daño {{harm}} · límite inferior unilateral {{lower}} · p {{p}}"
+      "guardrailEffectLine": "Daño {{harm}} · límite inferior unilateral {{lower}} · p {{p}}",
+      "holdoutTitle": "Holdout (acumulado)",
+      "holdoutTreated": "Tratados (desplegado)",
+      "holdoutHeldBack": "Holdout (retenidos)",
+      "holdoutEffectLine": "Efecto acumulado {{effect}} · IC [{{lower}}, {{upper}}] · p {{p}}",
+      "holdoutBayesianLine": "P(tratados supera a holdout) = {{prob}}"
     },
     "decision": {
       "title": "Lectura de decisión",

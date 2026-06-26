@@ -805,7 +805,12 @@
       "guardrailIncreaseIsBad": "Anstieg ist schädlich",
       "guardrailDecreaseIsBad": "Rückgang ist schädlich",
       "guardrailArmLine": "{{exposed}} exponiert · {{point}}",
-      "guardrailEffectLine": "Schaden {{harm}} · einseitige Untergrenze {{lower}} · p {{p}}"
+      "guardrailEffectLine": "Schaden {{harm}} · einseitige Untergrenze {{lower}} · p {{p}}",
+      "holdoutTitle": "Holdout (kumulativ)",
+      "holdoutTreated": "Behandelt (ausgerollt)",
+      "holdoutHeldBack": "Holdout (zurückgehalten)",
+      "holdoutEffectLine": "Kumulativer Effekt {{effect}} · KI [{{lower}}, {{upper}}] · p {{p}}",
+      "holdoutBayesianLine": "P(Behandelt schlägt Holdout) = {{prob}}"
     },
     "decision": {
       "title": "Entscheidungs-Readout",

@@ -473,6 +473,50 @@ def test_postgres_backend_stratified_aggregates_round_trip(postgres_repository) 
     assert total_users == 4  # u5 (no stratum) and uH (holdout) never appear
 
 
+def test_postgres_backend_holdout_aggregates_round_trip(postgres_repository) -> None:
+    # Exercises the F5 holdout rollup (variation_index = -1 selection) on a real Postgres, validating
+    # the portable dual-backend SQL (translated ? -> %s) and that record_holdout writes the held-back
+    # tail as -1 exposures with first-write-wins dedup — neither checkable on Windows without Postgres.
+    repo = postgres_repository
+    project = repo.create_project(_payload("Holdout PG", "binary"))
+    exp = project["id"]
+    repo.record_exposures(
+        exp,
+        [
+            {"user_id": "t1", "variation_index": 1},
+            {"user_id": "t2", "variation_index": 1},
+            {"user_id": "c1", "variation_index": 0},
+        ],
+    )
+    assert repo.record_holdout(
+        exp, [{"user_id": "h1"}, {"user_id": "h2"}, {"user_id": "h3"}]
+    ) == {"received": 3, "recorded": 3, "deduplicated": 0}
+    # A user already exposed to an arm cannot also be held back (first-write-wins on the exposure key).
+    assert repo.record_holdout(exp, [{"user_id": "t1"}])["deduplicated"] == 1
+    repo.record_conversions(
+        exp,
+        [
+            {"user_id": "t1", "metric": "purchase", "value": 1.0},
+            {"user_id": "h1", "metric": "purchase", "value": 1.0},
+            {"user_id": "h2", "metric": "purchase", "value": 1.0},
+        ],
+    )
+
+    holdout = repo.get_holdout_aggregates(exp, "purchase")
+    assert holdout is not None
+    assert holdout["holdout"]["exposed_users"] == 3  # h1, h2, h3 (t1 stayed in its arm)
+    assert holdout["holdout"]["converted_users"] == 2  # h1, h2
+    assert holdout["holdout"]["value_sum"] == 2.0
+
+    # The held-back tail never leaks into the per-arm primary rollup (variation_index >= 0).
+    arms = repo.get_experiment_analysis_aggregates(exp, "purchase")
+    assert arms is not None
+    by_index = {arm["variation_index"]: arm for arm in arms["variations"]}
+    assert -1 not in by_index
+    assert by_index[1]["exposed_users"] == 2  # t1, t2
+    assert by_index[1]["converted_users"] == 1  # t1
+
+
 def test_readyz_uses_postgres_checks_without_sqlite_regression(monkeypatch) -> None:
     monkeypatch.setenv("AB_DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/abtest")
     monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")

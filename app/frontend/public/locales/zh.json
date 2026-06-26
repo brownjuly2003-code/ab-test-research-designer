@@ -805,7 +805,12 @@
       "guardrailIncreaseIsBad": "上升为有害",
       "guardrailDecreaseIsBad": "下降为有害",
       "guardrailArmLine": "{{exposed}} 次曝光 · {{point}}",
-      "guardrailEffectLine": "损害 {{harm}} · 单侧下界 {{lower}} · p {{p}}"
+      "guardrailEffectLine": "损害 {{harm}} · 单侧下界 {{lower}} · p {{p}}",
+      "holdoutTitle": "Holdout（累积）",
+      "holdoutTreated": "实验组（已发布）",
+      "holdoutHeldBack": "Holdout（保留组）",
+      "holdoutEffectLine": "累积效应 {{effect}} · 置信区间 [{{lower}}, {{upper}}] · p {{p}}",
+      "holdoutBayesianLine": "P(实验组优于 Holdout) = {{prob}}"
     },
     "decision": {
       "title": "决策摘要",

@@ -78,6 +78,7 @@ def build_live_stats(
     ratio_aggregates: dict[str, Any] | None = None,
     stratified_aggregates: dict[str, Any] | None = None,
     guardrail_aggregates: dict[str, Any] | None = None,
+    holdout_aggregates: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Assemble the live-stats payload from a stored experiment design and the current
     per-variation analysis aggregates (``repository.get_experiment_analysis_aggregates``).
@@ -92,7 +93,11 @@ def build_live_stats(
 
     ``guardrail_aggregates`` maps each declared guardrail metric name to its per-variation analysis
     aggregates (same shape as ``aggregates``, one entry per guardrail); ``None`` / empty keeps the
-    guardrail block ``unavailable``."""
+    guardrail block ``unavailable``.
+
+    ``holdout_aggregates`` (``repository.get_holdout_aggregates``) carries the held-back
+    (``variation_index = -1``) group's rollup for the cumulative treated-vs-holdout read; ``None`` /
+    no holdout users keeps the holdout block ``unavailable``."""
     metrics = project_payload.get("metrics", {})
     setup = project_payload.get("setup", {})
     constraints = project_payload.get("constraints", {})
@@ -195,6 +200,13 @@ def build_live_stats(
         variants_count=variants_count,
         alpha=adjusted_alpha,
     )
+    holdout = _build_holdout_block(
+        metric_type=metric_type,
+        alpha=adjusted_alpha,
+        arms=arms,
+        holdout_aggregates=holdout_aggregates,
+        mixture_variance=design_mixture_variance,
+    )
 
     return {
         "experiment_id": experiment_id,
@@ -209,6 +221,7 @@ def build_live_stats(
         "cuped": cuped,
         "stratified": stratified,
         "guardrail": guardrail,
+        "holdout": holdout,
     }
 
 
@@ -1403,3 +1416,211 @@ def _build_guardrail_block(
         "any_breached": any_breached,
         "metrics": metrics,
     }
+
+
+# --- Holdout groups on live data (F5) --------------------------------------------------------
+#
+# A holdout is a long-lived group held back from the rollout (variation_index = -1). The cumulative
+# read compares the *pooled treated arms* (variation_index >= 1) against the holdout on the primary
+# metric: it answers "what is the standing effect of everything we rolled out, vs users who got
+# nothing" — distinct from the per-variant primary test, and a check on the winner's-curse tendency
+# of summed individual wins to overstate reality. Pooling the treatment arms is a sum of sufficient
+# statistics; the treated-vs-holdout effect then reuses the same two-proportion / Welch test
+# (``analyze_results``), Bayesian P(B>A) (``simulate_uplift_distribution``) and anytime-valid view the
+# primary path uses — no new statistic. The control arm (variation_index = 0) stays out of the treated
+# pool: it is the in-window baseline, whereas the holdout is the long-lived held-back group. Supported
+# for binary and continuous metrics; a ratio metric has no single per-user outcome the pool reads.
+
+_NOTE_HOLDOUT_UNAVAILABLE_RATIO = (
+    "Holdout analysis applies to binary and continuous metrics; this experiment uses a ratio metric."
+)
+_NOTE_HOLDOUT_UNAVAILABLE = (
+    "No holdout users have been ingested yet. Hold users back from the rollout via "
+    "POST /api/v1/experiments/{id}/holdout to measure the rollout's cumulative effect against a "
+    "held-back group; their outcomes ride the ordinary conversion stream under the primary metric."
+)
+_NOTE_HOLDOUT_INSUFFICIENT = (
+    "Each side (the pooled treated arms and the holdout) needs at least 2 users with usable variation "
+    "before the cumulative test can run."
+)
+_NOTE_HOLDOUT_OK = (
+    "Cumulative effect of the rollout: the pooled treated arms (variation_index >= 1) vs the held-back "
+    "holdout group on the primary metric. This is the standing effect of everything shipped — a check "
+    "on the per-variant wins — reusing the same frequentist, Bayesian and anytime-valid views."
+)
+
+
+def _pool_treated_arms(arms: list[dict[str, Any]]) -> dict[str, Any]:
+    """Fold the treatment arms (variation_index >= 1) into one pooled treated arm by summing their
+    sufficient statistics. The control arm (index 0) is excluded — it is the in-window baseline, not
+    part of the rolled-out treatment."""
+    pooled = {"exposed_users": 0, "converted_users": 0, "value_sum": 0.0, "value_sq_sum": 0.0}
+    for arm in arms[1:]:
+        pooled["exposed_users"] += int(arm["exposed_users"])
+        pooled["converted_users"] += int(arm["converted_users"])
+        pooled["value_sum"] += float(arm["value_sum"])
+        pooled["value_sq_sum"] += float(arm["value_sq_sum"])
+    return pooled
+
+
+def _holdout_arm_stat(metric_type: str, arm: dict[str, Any], label: str) -> dict[str, Any]:
+    exposed = int(arm["exposed_users"])
+    stat: dict[str, Any] = {
+        "label": label,
+        "exposed_users": exposed,
+        "converted_users": int(arm["converted_users"]),
+    }
+    if metric_type == "binary":
+        stat["conversion_rate"] = (
+            round(int(arm["converted_users"]) / exposed, 6) if exposed else None
+        )
+    else:
+        mean, std = _continuous_moments(arm)
+        stat["mean"] = round(mean, 6) if mean is not None else None
+        stat["std"] = round(std, 6) if std is not None else None
+    return stat
+
+
+def _holdout_binary(
+    base: dict[str, Any],
+    alpha: float,
+    holdout: dict[str, Any],
+    treated: dict[str, Any],
+    mixture_variance: float | None,
+) -> dict[str, Any]:
+    holdout_rate = int(holdout["converted_users"]) / int(holdout["exposed_users"])
+    treated_rate = int(treated["converted_users"]) / int(treated["exposed_users"])
+    request = ResultsRequest(
+        metric_type="binary",
+        binary=ObservedResultsBinary(
+            control_conversions=int(holdout["converted_users"]),
+            control_users=int(holdout["exposed_users"]),
+            treatment_conversions=int(treated["converted_users"]),
+            treatment_users=int(treated["exposed_users"]),
+            alpha=alpha,
+        ),
+    )
+    analysis = analyze_results(request)
+    simulation = simulate_uplift_distribution(
+        baseline_conversion=holdout_rate,
+        observed_conversion_a=holdout_rate,
+        sample_size_a=int(holdout["exposed_users"]),
+        observed_conversion_b=treated_rate,
+        sample_size_b=int(treated["exposed_users"]),
+        num_simulations=_BAYESIAN_SIMULATIONS,
+        seed=_BAYESIAN_SEED,
+    )
+    # holdout is the baseline (A), the pooled treated arms the treatment (B): a positive effect means
+    # the rollout improved the metric over holding users back. Same unpooled variance as the primary.
+    effect = treated_rate - holdout_rate
+    variance = holdout_rate * (1 - holdout_rate) / int(holdout["exposed_users"]) + (
+        treated_rate * (1 - treated_rate) / int(treated["exposed_users"])
+    )
+    base["status"] = "ok"
+    base["note"] = _NOTE_HOLDOUT_OK
+    base["analysis"] = analysis.model_dump()
+    base["probability_treated_beats_holdout"] = round(
+        simulation["probability_uplift_positive"], _BAYESIAN_PROBABILITY_DECIMALS
+    )
+    base["always_valid"] = _always_valid_block(effect, variance, mixture_variance, alpha)
+    return base
+
+
+def _holdout_continuous(
+    base: dict[str, Any],
+    alpha: float,
+    holdout: dict[str, Any],
+    treated: dict[str, Any],
+    mixture_variance: float | None,
+) -> dict[str, Any]:
+    holdout_mean, holdout_std = _continuous_moments(holdout)
+    treated_mean, treated_std = _continuous_moments(treated)
+    if not holdout_std or not treated_std:
+        base["status"] = "insufficient_data"
+        base["note"] = (
+            "Per-user values show zero variance in the treated or holdout group, so a t-test cannot "
+            "be computed yet."
+        )
+        return base
+    holdout_mean = cast("float", holdout_mean)
+    treated_mean = cast("float", treated_mean)
+    request = ResultsRequest(
+        metric_type="continuous",
+        continuous=ObservedResultsContinuous(
+            control_mean=holdout_mean,
+            control_std=holdout_std,
+            control_n=int(holdout["exposed_users"]),
+            treatment_mean=treated_mean,
+            treatment_std=treated_std,
+            treatment_n=int(treated["exposed_users"]),
+            alpha=alpha,
+        ),
+    )
+    simulation = simulate_continuous_uplift_distribution(
+        control_mean=holdout_mean,
+        control_std=holdout_std,
+        control_n=int(holdout["exposed_users"]),
+        treatment_mean=treated_mean,
+        treatment_std=treated_std,
+        treatment_n=int(treated["exposed_users"]),
+        num_simulations=_BAYESIAN_SIMULATIONS,
+        seed=_BAYESIAN_SEED,
+    )
+    effect = treated_mean - holdout_mean
+    variance = (
+        holdout_std**2 / int(holdout["exposed_users"])
+        + treated_std**2 / int(treated["exposed_users"])
+    )
+    base["status"] = "ok"
+    base["note"] = _NOTE_HOLDOUT_OK
+    base["analysis"] = analyze_results(request).model_dump()
+    base["probability_treated_beats_holdout"] = round(
+        simulation["probability_uplift_positive"], _BAYESIAN_PROBABILITY_DECIMALS
+    )
+    base["always_valid"] = _always_valid_block(effect, variance, mixture_variance, alpha)
+    return base
+
+
+def _build_holdout_block(
+    *,
+    metric_type: str,
+    alpha: float,
+    arms: list[dict[str, Any]],
+    holdout_aggregates: dict[str, Any] | None,
+    mixture_variance: float | None,
+) -> dict[str, Any]:
+    empty: dict[str, Any] = {
+        "treated": None,
+        "holdout": None,
+        "analysis": None,
+        "probability_treated_beats_holdout": None,
+        "always_valid": None,
+        "treated_users_total": None,
+        "holdout_users_total": None,
+    }
+    if metric_type not in ("binary", "continuous"):
+        return {"status": "unavailable", "note": _NOTE_HOLDOUT_UNAVAILABLE_RATIO, **empty}
+
+    holdout = (holdout_aggregates or {}).get("holdout")
+    holdout_users = int(holdout["exposed_users"]) if holdout else 0
+    if not holdout or holdout_users == 0:
+        return {"status": "unavailable", "note": _NOTE_HOLDOUT_UNAVAILABLE, **empty}
+
+    treated = _pool_treated_arms(arms)
+    treated_users = int(treated["exposed_users"])
+    base: dict[str, Any] = {
+        "treated": _holdout_arm_stat(metric_type, treated, "treated"),
+        "holdout": _holdout_arm_stat(metric_type, holdout, "holdout"),
+        "analysis": None,
+        "probability_treated_beats_holdout": None,
+        "always_valid": None,
+        "treated_users_total": treated_users,
+        "holdout_users_total": holdout_users,
+    }
+    if treated_users < 2 or holdout_users < 2:
+        base["status"] = "insufficient_data"
+        base["note"] = _NOTE_HOLDOUT_INSUFFICIENT
+        return base
+    if metric_type == "binary":
+        return _holdout_binary(base, alpha, holdout, treated, mixture_variance)
+    return _holdout_continuous(base, alpha, holdout, treated, mixture_variance)

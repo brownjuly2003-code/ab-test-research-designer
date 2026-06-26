@@ -243,6 +243,45 @@ const guardrailBreachedResponse = {
   }
 };
 
+const holdoutOkResponse = {
+  ...liveStatsResponse,
+  holdout: {
+    status: "ok",
+    note: "Cumulative effect of the rollout: the pooled treated arms vs the held-back holdout group.",
+    treated: { label: "treated", exposed_users: 6000, converted_users: 700, conversion_rate: 0.1167 },
+    holdout: { label: "holdout", exposed_users: 2000, converted_users: 50, conversion_rate: 0.025 },
+    analysis: {
+      metric_type: "binary",
+      observed_effect: 0.0917,
+      observed_effect_relative: 366.8,
+      control_rate: 2.5,
+      treatment_rate: 11.67,
+      ci_lower: 0.08,
+      ci_upper: 0.1,
+      ci_level: 0.95,
+      p_value: 0.0001,
+      test_statistic: 12.0,
+      is_significant: true,
+      power_achieved: 0.99,
+      verdict: "Significant cumulative effect",
+      interpretation: "The rollout improves the metric over the holdout."
+    },
+    probability_treated_beats_holdout: 0.9999,
+    always_valid: {
+      status: "ok",
+      always_valid_p_value: 0.0001,
+      confidence_level: 0.95,
+      ci_sequence_lower: 0.07,
+      ci_sequence_upper: 0.11,
+      is_significant: true,
+      mixture_variance: 0.000025,
+      note: "Anytime-valid mSPRT view."
+    },
+    treated_users_total: 6000,
+    holdout_users_total: 2000
+  }
+};
+
 describe("LiveStatsSection", () => {
   beforeEach(() => {
     resetResultsStores();
@@ -433,6 +472,31 @@ describe("LiveStatsSection", () => {
       expect(text).toContain("Breached"); // status pill label
       expect(text).toContain("increase is harmful"); // harm-direction label
       expect(text).toContain("one-sided lower bound"); // guardrailEffectLine
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("renders the holdout block with a cumulative effect", async () => {
+    const fetchMock = vi.fn(async (..._args: unknown[]) => ({
+      ok: true,
+      json: async () => holdoutOkResponse
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const view = await renderIntoDocument(<LiveStatsSection />);
+    try {
+      await flushEffects();
+      await click(findButton(view.container, "Refresh live stats"));
+      await flushEffects();
+      await flushEffects();
+
+      const text = view.container.textContent ?? "";
+      expect(text).toContain("Holdout (cumulative)"); // block title
+      expect(text).toContain("Treated (rolled out)"); // treated label
+      expect(text).toContain("Holdout (held back)"); // holdout label
+      expect(text).toContain("Cumulative effect"); // holdoutEffectLine
+      expect(text).toContain("P(treated beats holdout)"); // holdoutBayesianLine
     } finally {
       await view.unmount();
     }

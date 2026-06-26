@@ -7,6 +7,7 @@ from app.backend.app.schemas.api import (
     ConversionIngestRequest,
     DecisionReadoutResponse,
     ExposureIngestRequest,
+    HoldoutIngestRequest,
     IngestionSummaryResponse,
     IngestResultResponse,
     LiveStatsResponse,
@@ -91,6 +92,22 @@ def create_execution_router(
         )
         return IngestResultResponse.model_validate(result)
 
+    @router.post(
+        "/api/v1/experiments/{experiment_id}/holdout",
+        response_model=IngestResultResponse,
+        dependencies=[Depends(require_write_auth)],
+    )
+    def ingest_holdout(experiment_id: str, payload: HoldoutIngestRequest) -> IngestResultResponse:
+        """Ingest holdout members — users held back from the rollout (F5). Recorded as
+        ``variation_index = -1`` exposures (first-write-wins per user); the live-stats read compares
+        the pooled treated arms against this held-back group to measure the rollout's cumulative
+        effect. Holdout outcomes ride the ordinary conversion stream under the primary metric name."""
+        result = repository.record_holdout(
+            experiment_id,
+            [event.model_dump() for event in payload.holdout],
+        )
+        return IngestResultResponse.model_validate(result)
+
     @router.get(
         "/api/v1/experiments/{experiment_id}/ingestion",
         response_model=IngestionSummaryResponse,
@@ -134,6 +151,10 @@ def create_execution_router(
             for metric in (metrics.get("guardrail_metrics") or [])
             if (name := metric.get("name"))
         }
+        # Holdout groups (F5): the held-back (variation_index = -1) rollup feeds the cumulative
+        # treated-vs-holdout read on the primary metric; the pooled treated arms come from the main
+        # aggregates above, so this is a single extra lookup for the held-back tail.
+        holdout_aggregates = repository.get_holdout_aggregates(experiment_id, metric_name)
         return build_live_stats(
             experiment_id,
             project["payload"],
@@ -142,6 +163,7 @@ def create_execution_router(
             ratio_aggregates,
             stratified_aggregates,
             guardrail_aggregates,
+            holdout_aggregates,
         )
 
     @router.get(

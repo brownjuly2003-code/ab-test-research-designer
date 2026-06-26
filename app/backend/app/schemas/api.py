@@ -657,6 +657,21 @@ class StratumIngestRequest(BaseModel):
     strata: list[StratumEvent] = Field(min_length=1, max_length=MAX_INGEST_BATCH)
 
 
+class HoldoutEvent(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    # A user held back from the rollout (recorded as a variation_index = -1 exposure). The holdout
+    # is the long-lived "got nothing" group; the live read compares the pooled treated arms against
+    # it to measure the cumulative effect of everything the experiment rolled out (F5).
+    user_id: str = Field(min_length=1, max_length=200)
+
+
+class HoldoutIngestRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    holdout: list[HoldoutEvent] = Field(min_length=1, max_length=MAX_INGEST_BATCH)
+
+
 class IngestResultResponse(BaseModel):
     received: int
     recorded: int
@@ -868,6 +883,34 @@ class LiveGuardrailBlock(BaseModel):
     metrics: list["LiveGuardrailMetricResult"] = Field(default_factory=list)
 
 
+class LiveHoldoutArmStat(BaseModel):
+    # One side of the cumulative comparison: the pooled treated arms or the held-back holdout group.
+    label: str  # "treated" (union of variation_index >= 1) | "holdout" (variation_index = -1)
+    exposed_users: int
+    converted_users: int
+    conversion_rate: float | None = None  # binary metrics
+    mean: float | None = None  # continuous metrics
+    std: float | None = None  # continuous metrics
+
+
+class LiveHoldoutBlock(BaseModel):
+    # Cumulative held-back readout (F5): pooled treated arms vs the long-lived holdout group on the
+    # primary metric, measuring the standing effect of everything the experiment rolled out — apart
+    # from the per-variant primary test. Reuses the primary path's frequentist + Bayesian + anytime-
+    # valid views; no new statistic.
+    # status: "ok" | "insufficient_data" (a side has <2 users / degenerate variance) |
+    #         "unavailable" (no holdout users ingested, or a ratio metric)
+    status: str
+    note: str
+    treated: LiveHoldoutArmStat | None = None
+    holdout: LiveHoldoutArmStat | None = None
+    analysis: ResultsResponse | None = None  # treated-vs-holdout effect (reuses the /results shape)
+    probability_treated_beats_holdout: float | None = None  # Bayesian P(treated > holdout), binary only
+    always_valid: LiveAlwaysValidBlock | None = None  # anytime-valid mSPRT view, null until "ok"
+    treated_users_total: int | None = None
+    holdout_users_total: int | None = None
+
+
 class LiveStatsResponse(BaseModel):
     experiment_id: str
     metric_type: str
@@ -881,6 +924,7 @@ class LiveStatsResponse(BaseModel):
     cuped: LiveCupedBlock
     stratified: LiveStratifiedBlock
     guardrail: LiveGuardrailBlock
+    holdout: LiveHoldoutBlock
 
 
 class DecisionReason(BaseModel):

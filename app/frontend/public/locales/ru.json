@@ -817,7 +817,12 @@
       "guardrailIncreaseIsBad": "рост — это вред",
       "guardrailDecreaseIsBad": "падение — это вред",
       "guardrailArmLine": "{{exposed}} показов · {{point}}",
-      "guardrailEffectLine": "Вред {{harm}} · односторонняя нижняя граница {{lower}} · p {{p}}"
+      "guardrailEffectLine": "Вред {{harm}} · односторонняя нижняя граница {{lower}} · p {{p}}",
+      "holdoutTitle": "Holdout (накопительный эффект)",
+      "holdoutTreated": "Обработанные (выкатка)",
+      "holdoutHeldBack": "Holdout (отложенные)",
+      "holdoutEffectLine": "Накопительный эффект {{effect}} · ДИ [{{lower}}, {{upper}}] · p {{p}}",
+      "holdoutBayesianLine": "P(выкатка лучше holdout) = {{prob}}"
     },
     "decision": {
       "title": "Итоговое решение",
