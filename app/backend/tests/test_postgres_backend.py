@@ -1,4 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
+from datetime import UTC, datetime
 from pathlib import Path
 import subprocess
 import sys
@@ -515,6 +516,58 @@ def test_postgres_backend_holdout_aggregates_round_trip(postgres_repository) -> 
     assert -1 not in by_index
     assert by_index[1]["exposed_users"] == 2  # t1, t2
     assert by_index[1]["converted_users"] == 1  # t1
+
+
+def test_postgres_backend_event_time_occurred_at_round_trip(postgres_repository) -> None:
+    # Exercises the P4.1 event-time column (occurred_at) on a real Postgres: a supplied client event
+    # time is stored distinctly from created_at, an omitted one defaults to the server-receive time,
+    # and holdout's -1 tail keeps the NOT NULL column populated. None of this is checkable on Windows
+    # without a Postgres (the SQLite suite covers the same behaviour on its own backend).
+    repo = postgres_repository
+    project = repo.create_project(_payload("Event-time PG", "binary"))
+    exp = project["id"]
+    exposure_time = datetime(2026, 5, 1, 12, 0, 0, tzinfo=UTC)
+    conversion_time = datetime(2026, 5, 1, 13, 0, 0, tzinfo=UTC)
+    repo.record_exposures(
+        exp,
+        [
+            {"user_id": "u1", "variation_index": 0, "occurred_at": exposure_time},
+            {"user_id": "u2", "variation_index": 1},  # no occurred_at -> defaults to created_at
+        ],
+    )
+    repo.record_conversions(
+        exp,
+        [
+            {"user_id": "u1", "metric": "purchase", "occurred_at": conversion_time},
+            {"user_id": "u2", "metric": "purchase"},  # no occurred_at -> defaults to created_at
+        ],
+    )
+    repo.record_holdout(exp, [{"user_id": "h1"}])
+
+    with repo._backend._connect() as connection:  # type: ignore[attr-defined]
+        exposures = {
+            row["user_id"]: (row["created_at"], row["occurred_at"])
+            for row in connection.execute(
+                "SELECT user_id, created_at, occurred_at FROM exposures WHERE experiment_id = ?",
+                (exp,),
+            ).fetchall()
+        }
+        conversions = {
+            row["user_id"]: (row["created_at"], row["occurred_at"])
+            for row in connection.execute(
+                "SELECT user_id, created_at, occurred_at FROM conversions WHERE experiment_id = ?",
+                (exp,),
+            ).fetchall()
+        }
+
+    # Supplied event time is stored (UTC-normalized), separate from the server-receive time.
+    assert exposures["u1"][1] == exposure_time.isoformat()
+    assert exposures["u1"][1] != exposures["u1"][0]
+    assert conversions["u1"][1] == conversion_time.isoformat()
+    # Omitted event time and the holdout tail default to the server-receive time.
+    assert exposures["u2"][1] == exposures["u2"][0]
+    assert conversions["u2"][1] == conversions["u2"][0]
+    assert exposures["h1"][1] == exposures["h1"][0]
 
 
 def test_readyz_uses_postgres_checks_without_sqlite_regression(monkeypatch) -> None:

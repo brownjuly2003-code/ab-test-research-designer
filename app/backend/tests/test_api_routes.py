@@ -824,6 +824,44 @@ def test_ingest_exposures_dedups_and_summary_reports_counts() -> None:
     assert {bucket["variation_index"]: bucket["count"] for bucket in data["exposure_counts"]} == {0: 1, 1: 1}
 
 
+def test_ingest_accepts_event_time_and_rejects_invalid_occurred_at() -> None:
+    client = TestClient(create_app())
+    project = _create_saved_project(client, "Ingest event-time")
+
+    # A client event time (occurred_at) is accepted on both exposures and conversions (P4.1).
+    accepted = client.post(
+        f"/api/v1/experiments/{project['id']}/exposures",
+        json={
+            "exposures": [
+                {"user_id": "u1", "variation_index": 0, "occurred_at": "2026-05-01T12:00:00+00:00"}
+            ]
+        },
+    )
+    assert accepted.status_code == 200
+    assert accepted.json() == {"received": 1, "recorded": 1, "deduplicated": 0}
+
+    conversions = client.post(
+        f"/api/v1/experiments/{project['id']}/conversions",
+        json={
+            "conversions": [
+                {"user_id": "u1", "metric": "purchase", "occurred_at": "2026-05-01T13:00:00Z"}
+            ]
+        },
+    )
+    assert conversions.status_code == 200
+
+    # A non-timestamp occurred_at is rejected at the API boundary.
+    rejected = client.post(
+        f"/api/v1/experiments/{project['id']}/exposures",
+        json={
+            "exposures": [
+                {"user_id": "u2", "variation_index": 0, "occurred_at": "not-a-timestamp"}
+            ]
+        },
+    )
+    assert rejected.status_code == 422
+
+
 def test_ingest_exposures_returns_404_for_unknown_experiment() -> None:
     client = TestClient(create_app())
 
@@ -1194,8 +1232,8 @@ def test_diagnostics_endpoint_returns_runtime_summary(monkeypatch) -> None:
     assert payload["storage"]["db_parent_path"] == str(db_path.parent)
     assert payload["storage"]["db_size_bytes"] >= 0
     assert payload["storage"]["disk_free_bytes"] > 0
-    assert payload["storage"]["schema_version"] == 11
-    assert payload["storage"]["sqlite_user_version"] == 11
+    assert payload["storage"]["schema_version"] == 12
+    assert payload["storage"]["sqlite_user_version"] == 12
     assert payload["storage"]["journal_mode"] == "WAL"
     assert payload["storage"]["synchronous"] == "NORMAL"
     assert payload["storage"]["write_probe_ok"] is True

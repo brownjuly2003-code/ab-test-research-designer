@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -599,6 +600,9 @@ class ExposureEvent(BaseModel):
     # Only real exposures are recorded — a -1 ("not in experiment") assignment is never an
     # exposure, so the floor is 0.
     variation_index: int = Field(ge=0, le=MAX_SUPPORTED_VARIANTS - 1)
+    # Client event time — when the exposure happened (P4.1). Optional; defaults to the server-receive
+    # time when omitted. Stored distinctly from created_at; late/out-of-order attribution is P4.2.
+    occurred_at: datetime | None = None
 
 
 class ExposureIngestRequest(BaseModel):
@@ -615,6 +619,9 @@ class ConversionEvent(BaseModel):
     value: float = 1.0
     # When supplied, retries with the same key are deduped per experiment (idempotent ingest).
     idempotency_key: str | None = Field(default=None, min_length=1, max_length=200)
+    # Client event time — when the conversion happened (P4.1). Optional; defaults to the
+    # server-receive time when omitted. Foundation for late-conversion attribution (P4.2).
+    occurred_at: datetime | None = None
 
 
 class ConversionIngestRequest(BaseModel):
