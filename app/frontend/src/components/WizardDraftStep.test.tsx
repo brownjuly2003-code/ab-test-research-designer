@@ -227,6 +227,48 @@ describe("WizardDraftStep", () => {
     }
   });
 
+  it("edits the guardrail harm-direction and tolerance-margin and persists them", async () => {
+    vi.mocked(useCalculationPreview).mockReturnValue({
+      result: null,
+      isLoading: false,
+      error: null
+    });
+
+    const view = await renderIntoDocument(<WizardDraftStepHarness />);
+    try {
+      await flushEffects();
+
+      const direction = view.container.querySelector("#guardrail-direction-1");
+      if (!(direction instanceof HTMLSelectElement)) {
+        throw new Error("Guardrail direction select was not rendered");
+      }
+      // Defaults to the classic latency / error guardrail (an increase is harmful).
+      expect(direction.value).toBe("increase_is_bad");
+
+      await changeValue(direction, "decrease_is_bad");
+      await flushEffects();
+      const directionAfter = view.container.querySelector("#guardrail-direction-1");
+      if (!(directionAfter instanceof HTMLSelectElement)) {
+        throw new Error("Guardrail direction select disappeared after edit");
+      }
+      expect(directionAfter.value).toBe("decrease_is_bad");
+
+      const margin = view.container.querySelector("#guardrail-margin-1");
+      if (!(margin instanceof HTMLInputElement)) {
+        throw new Error("Guardrail margin input was not rendered");
+      }
+      await changeValue(margin, "5");
+      await flushEffects();
+      const marginAfter = view.container.querySelector("#guardrail-margin-1");
+      if (!(marginAfter instanceof HTMLInputElement)) {
+        throw new Error("Guardrail margin input disappeared after edit");
+      }
+      expect(marginAfter.value).toBe("5");
+    } finally {
+      await view.unmount();
+    }
+  });
+
   it("renders interim analyses control on constraints step", async () => {
     vi.mocked(useCalculationPreview).mockReturnValue({
       result: null,

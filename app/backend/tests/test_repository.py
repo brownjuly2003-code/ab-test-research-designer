@@ -385,6 +385,10 @@ def test_repository_normalizes_legacy_guardrail_metric_strings_for_workspace_exp
             "baseline_rate": 2.4,
             "baseline_mean": None,
             "std_dev": None,
+            # F4 added a harm direction and a non-inferiority margin to the guardrail schema; a
+            # legacy guardrail that predates them normalizes to their back-compatible defaults.
+            "direction": "increase_is_bad",
+            "non_inferiority_margin_pct": None,
         }
     ]
     assert bundle["projects"][0]["payload"]["metrics"]["guardrail_metrics"] == expected_guardrails
