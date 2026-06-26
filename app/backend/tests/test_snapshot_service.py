@@ -182,7 +182,7 @@ def test_push_snapshot_returns_empty_string_on_hf_error(snapshot_service: Snapsh
     assert "snapshot: push failed" in caplog.text
 
 
-def test_startup_restore_skips_seed_and_shutdown_pushes_snapshot(monkeypatch, app_env: Path, capsys) -> None:
+def test_startup_restore_keeps_seed_for_topup_and_shutdown_pushes_snapshot(monkeypatch, app_env: Path, capsys) -> None:
     monkeypatch.setenv("AB_SEED_DEMO_ON_STARTUP", "true")
     monkeypatch.setenv("AB_HF_SNAPSHOT_REPO", "liovina/ab-test-designer-snapshots")
     monkeypatch.setenv("AB_HF_TOKEN", "hf_test_token")
@@ -199,10 +199,14 @@ def test_startup_restore_skips_seed_and_shutdown_pushes_snapshot(monkeypatch, ap
             with TestClient(create_app()):
                 pass
 
-    seed_demo_workspace.assert_not_called()
+    # A successful restore must NOT disable the demo seed: seed_demo_workspace is
+    # idempotent and tops up execution data (and any newly added demo) on top of the
+    # restored snapshot, so snapshots predating the execution seed (Phase 5) do not
+    # leave the hosted demo's live-stats surface empty.
+    seed_demo_workspace.assert_called_once()
     snapshot_service.restore_latest.assert_awaited_once()
     snapshot_service.push_snapshot.assert_awaited_once()
-    assert "snapshot: restored from restore-commit-123" in capsys.readouterr().err
+    assert "snapshot: restored from restore-commit-123 (demo seed tops up idempotently)" in capsys.readouterr().err
 
 
 def test_startup_restore_falls_back_to_seed_when_snapshot_missing(monkeypatch, app_env: Path, capsys) -> None:

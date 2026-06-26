@@ -151,3 +151,54 @@ def test_startup_seed_disabled_does_not_create_projects(monkeypatch, temp_db_pat
 
     assert response.status_code == 200
     assert response.json()["projects"] == []
+
+
+def test_restore_keeps_demo_seed_enabled_for_execution_top_up(monkeypatch, temp_db_path) -> None:
+    """A restored snapshot must NOT disable the demo seed.
+
+    ``seed_demo_workspace`` is idempotent and tops up execution data (and any newly
+    added demo) on top of the restore, so a snapshot predating the execution seed
+    (Phase 5) does not leave the hosted demo's live-stats surface empty. Regression
+    guard for the ``main.lifespan`` restore branch.
+    """
+    monkeypatch.setenv("AB_SEED_DEMO_ON_STARTUP", "true")
+    monkeypatch.setenv("AB_HF_SNAPSHOT_REPO", "fake/snapshot-repo")
+    monkeypatch.setenv("AB_HF_TOKEN", "fake-token")
+    # Disable the periodic push loop; the final shutdown push uses the fake below.
+    monkeypatch.setenv("AB_HF_SNAPSHOT_INTERVAL_SECONDS", "0")
+    get_settings.cache_clear()
+
+    class _FakeSnapshotService:
+        """restore_latest() reports success without touching the DB — models a
+        restored snapshot that predates the execution seed (designs only / empty)."""
+
+        last_restored_commit = "deadbeef"
+
+        def __init__(self, **_kwargs: object) -> None:
+            pass
+
+        async def restore_latest(self) -> bool:
+            return True
+
+        async def push_snapshot(self) -> None:
+            return None
+
+    monkeypatch.setattr("app.backend.app.main.SnapshotService", _FakeSnapshotService)
+
+    with TestClient(create_app()) as client:
+        demo_projects = [
+            project
+            for project in client.get(
+                "/api/v1/projects", params={"status": "all", "limit": 200}
+            ).json()["projects"]
+            if project["project_name"].startswith("Demo - ")
+        ]
+        # Seed still ran despite the successful restore.
+        assert len(demo_projects) == 4
+
+        checkout = _demo_by_name(client, "Demo - Checkout Conversion")
+        ingestion = client.get(f"/api/v1/experiments/{checkout['id']}/ingestion").json()
+
+    # Execution data was topped up after the restore (live-stats surface populated).
+    assert ingestion["exposures_total"] > 0
+    assert ingestion["conversions_total"] > 0

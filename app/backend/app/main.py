@@ -143,9 +143,14 @@ def create_app() -> FastAPI:
             )
             restored = await snapshot_service.restore_latest()
             if restored:
-                seed_enabled = False
+                # Keep the demo seed enabled after a restore: seed_demo_workspace is
+                # idempotent — it skips existing designs and any demo that already
+                # carries exposures, and only tops up missing execution data or a
+                # newly added demo on top of the restored snapshot. Snapshots that
+                # predate the execution seed (Phase 5) would otherwise leave the
+                # live-stats surface empty, so restoring must not disable the seed.
                 logger.info(
-                    "snapshot: restored from %s",
+                    "snapshot: restored from %s (demo seed tops up idempotently)",
                     snapshot_service.last_restored_commit or "unknown",
                 )
             elif settings.seed_demo_on_startup:
