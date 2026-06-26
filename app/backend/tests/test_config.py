@@ -123,3 +123,51 @@ def test_settings_support_database_url_and_pool_size(monkeypatch) -> None:
     assert settings.db_pool_size == 12
 
     get_settings.cache_clear()
+
+
+def test_settings_production_requires_postgres(monkeypatch) -> None:
+    monkeypatch.setenv("AB_ENV", "production")
+    monkeypatch.delenv("AB_DATABASE_URL", raising=False)
+    get_settings.cache_clear()
+
+    with pytest.raises(ValueError, match="AB_ENV=production requires a PostgreSQL"):
+        get_settings()
+
+    get_settings.cache_clear()
+
+
+def test_settings_production_alias_is_case_insensitive(monkeypatch) -> None:
+    monkeypatch.setenv("AB_ENV", "PROD")
+    monkeypatch.delenv("AB_DATABASE_URL", raising=False)
+    get_settings.cache_clear()
+
+    with pytest.raises(ValueError, match="AB_ENV=production requires a PostgreSQL"):
+        get_settings()
+
+    get_settings.cache_clear()
+
+
+def test_settings_production_with_postgres_is_allowed(monkeypatch) -> None:
+    monkeypatch.setenv("AB_ENV", "production")
+    monkeypatch.setenv("AB_DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/abtest")
+    get_settings.cache_clear()
+
+    settings = get_settings()
+
+    assert settings.is_production is True
+    assert settings.uses_postgres is True
+
+    get_settings.cache_clear()
+
+
+def test_settings_local_allows_sqlite_default(monkeypatch) -> None:
+    monkeypatch.setenv("AB_ENV", "local")
+    monkeypatch.delenv("AB_DATABASE_URL", raising=False)
+    get_settings.cache_clear()
+
+    settings = get_settings()
+
+    assert settings.is_production is False
+    assert settings.uses_postgres is False
+
+    get_settings.cache_clear()

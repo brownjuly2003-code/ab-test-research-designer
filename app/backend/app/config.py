@@ -2,8 +2,12 @@ import os
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
+from urllib.parse import urlparse
 
 from app.backend.app.constants import DEFAULT_CORS_HEADERS, DEFAULT_CORS_METHODS
+
+PRODUCTION_ENVIRONMENTS = frozenset({"production", "prod"})
+POSTGRES_URL_SCHEMES = frozenset({"postgres", "postgresql"})
 
 
 @dataclass(frozen=True)
@@ -47,6 +51,16 @@ class Settings:
     auth_failure_window_seconds: int
     max_request_body_bytes: int
     max_workspace_body_bytes: int
+
+    @property
+    def is_production(self) -> bool:
+        """True when AB_ENV declares a production environment (``production`` / ``prod``)."""
+        return self.environment.strip().lower() in PRODUCTION_ENVIRONMENTS
+
+    @property
+    def uses_postgres(self) -> bool:
+        """True when AB_DATABASE_URL points at PostgreSQL (the durable production backend)."""
+        return urlparse(self.database_url).scheme in POSTGRES_URL_SCHEMES
 
 
 def _read_csv_env(name: str, default: tuple[str, ...]) -> tuple[str, ...]:
@@ -101,6 +115,12 @@ def _validate_settings(settings: Settings) -> Settings:
         raise ValueError("AB_PORT must be between 1 and 65535")
     if not settings.database_url.strip():
         raise ValueError("AB_DATABASE_URL must not be empty when configured")
+    if settings.is_production and not settings.uses_postgres:
+        raise ValueError(
+            "AB_ENV=production requires a PostgreSQL AB_DATABASE_URL "
+            "(postgres:// or postgresql://); the SQLite default is not durable for "
+            "production. See docs/PRODUCTION.md."
+        )
     if settings.db_pool_size < 1:
         raise ValueError("AB_DB_POOL_SIZE must be at least 1")
     if not settings.cors_origins:

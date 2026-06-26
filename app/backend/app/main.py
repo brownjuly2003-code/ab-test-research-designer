@@ -45,6 +45,25 @@ from app.backend.app.startup_seed import seed_demo_workspace
 logger = logging.getLogger(__name__)
 
 
+def _verify_production_storage(repository: ProjectRepository) -> None:
+    """Fail fast in production unless the durable PostgreSQL backend is live and writable.
+
+    Config validation already requires a PostgreSQL ``AB_DATABASE_URL`` in production
+    (``config._validate_settings``); this confirms the backend actually resolved to
+    PostgreSQL and that a real write-probe succeeds before the process starts serving,
+    turning "config says PG" into "PG is reachable and writable".
+    """
+    if repository.backend_name != "postgres":
+        raise RuntimeError(
+            "Production mode requires the PostgreSQL backend; resolved backend is "
+            f"{repository.backend_name!r}. Set AB_DATABASE_URL to a postgres:// URL."
+        )
+    summary = repository.get_diagnostics_summary()
+    if not summary.get("write_probe_ok", False):
+        detail = summary.get("write_probe_detail", "unknown error")
+        raise RuntimeError(f"Production storage health check failed: {detail}")
+
+
 def create_app() -> FastAPI:
     settings = get_settings()
     configure_logging(level=settings.log_level, log_format=settings.log_format)
@@ -57,6 +76,8 @@ def create_app() -> FastAPI:
         workspace_signing_key=settings.workspace_signing_key,
         pool_size=settings.db_pool_size,
     )
+    if settings.is_production:
+        _verify_production_storage(repository)
     webhook_service = WebhookService(repository, environment=settings.environment)
     repository.set_webhook_service(webhook_service)
     runtime_counters = create_runtime_counters()
