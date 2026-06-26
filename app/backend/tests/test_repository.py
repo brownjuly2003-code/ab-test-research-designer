@@ -1045,3 +1045,85 @@ def test_repository_hard_deletes_project_and_cascades_history() -> None:
     assert repository.get_project(project["id"], include_archived=True) is None
     assert repository.get_project_history(project["id"]) is None
     assert repository.get_project_revisions(project["id"]) is None
+
+
+def test_repository_migrates_event_time_occurred_at() -> None:
+    """A DB created before occurred_at existed gets the column added on both event tables and
+    backfilled to created_at, so legacy events read occurred_at == server-receive time (P4.1)."""
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+
+    with sqlite3.connect(db_path) as connection:
+        connection.execute(
+            """
+            CREATE TABLE projects (
+                id TEXT PRIMARY KEY,
+                project_name TEXT NOT NULL,
+                payload_json TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            """
+        )
+        # Legacy event tables — the pre-P4.1 shape, without occurred_at.
+        connection.execute(
+            """
+            CREATE TABLE exposures (
+                id TEXT PRIMARY KEY,
+                experiment_id TEXT NOT NULL,
+                user_id TEXT NOT NULL,
+                variation_index INTEGER NOT NULL,
+                created_at TEXT NOT NULL,
+                UNIQUE(experiment_id, user_id)
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE TABLE conversions (
+                id TEXT PRIMARY KEY,
+                experiment_id TEXT NOT NULL,
+                user_id TEXT NOT NULL,
+                metric TEXT NOT NULL,
+                value REAL NOT NULL DEFAULT 1,
+                idempotency_key TEXT,
+                created_at TEXT NOT NULL,
+                UNIQUE(experiment_id, idempotency_key)
+            )
+            """
+        )
+        connection.execute(
+            "INSERT INTO exposures (id, experiment_id, user_id, variation_index, created_at) "
+            "VALUES ('e1', 'exp-legacy', 'u1', 0, '2026-01-01T00:00:00+00:00')"
+        )
+        connection.execute(
+            "INSERT INTO conversions (id, experiment_id, user_id, metric, value, idempotency_key, created_at) "
+            "VALUES ('c1', 'exp-legacy', 'u1', 'purchase', 1, NULL, '2026-01-02T00:00:00+00:00')"
+        )
+        connection.execute("PRAGMA user_version = 11")
+
+    repository = ProjectRepository(str(db_path))
+
+    with sqlite3.connect(db_path) as connection:
+        connection.row_factory = sqlite3.Row
+        exposure_columns = {
+            row[1] for row in connection.execute("PRAGMA table_info(exposures)").fetchall()
+        }
+        conversion_columns = {
+            row[1] for row in connection.execute("PRAGMA table_info(conversions)").fetchall()
+        }
+        exposure = connection.execute(
+            "SELECT created_at, occurred_at FROM exposures WHERE id = 'e1'"
+        ).fetchone()
+        conversion = connection.execute(
+            "SELECT created_at, occurred_at FROM conversions WHERE id = 'c1'"
+        ).fetchone()
+        schema_version = connection.execute("PRAGMA user_version").fetchone()[0]
+
+    assert "occurred_at" in exposure_columns
+    assert "occurred_at" in conversion_columns
+    # Legacy rows are backfilled to their server-receive time.
+    assert exposure["occurred_at"] == exposure["created_at"] == "2026-01-01T00:00:00+00:00"
+    assert conversion["occurred_at"] == conversion["created_at"] == "2026-01-02T00:00:00+00:00"
+    assert schema_version == repository.schema_version == 12

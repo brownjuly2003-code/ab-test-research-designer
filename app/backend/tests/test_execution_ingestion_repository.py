@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from pathlib import Path
 import sys
 import uuid
@@ -169,3 +170,86 @@ def test_deleting_experiment_cascades_ingestion_rows() -> None:
 
     # Re-creating the row set under a fresh project id must start clean (cascade removed rows).
     assert repo.get_ingestion_summary(exp) is None
+
+
+def test_ingestion_records_event_time_occurred_at() -> None:
+    """occurred_at (client event time) is stored distinctly from created_at (server-receive), and
+    defaults to created_at when the event omits it (P4.1 event-time foundation)."""
+    repo = _repo()
+    exp = _project(repo)
+
+    exposure_time = datetime(2026, 5, 1, 12, 0, 0, tzinfo=UTC)
+    conversion_time = datetime(2026, 5, 1, 13, 0, 0, tzinfo=UTC)
+    repo.record_exposures(
+        exp,
+        [
+            {"user_id": "u1", "variation_index": 0, "occurred_at": exposure_time},
+            {"user_id": "u2", "variation_index": 1},  # no occurred_at -> defaults to created_at
+        ],
+    )
+    repo.record_conversions(
+        exp,
+        [
+            {"user_id": "u1", "metric": "purchase", "occurred_at": conversion_time},
+            {"user_id": "u2", "metric": "purchase"},  # no occurred_at -> defaults to created_at
+        ],
+    )
+
+    with repo._backend._connect() as connection:  # type: ignore[attr-defined]
+        exposures = {
+            row["user_id"]: (row["created_at"], row["occurred_at"])
+            for row in connection.execute(
+                "SELECT user_id, created_at, occurred_at FROM exposures WHERE experiment_id = ?",
+                (exp,),
+            ).fetchall()
+        }
+        conversions = {
+            row["user_id"]: (row["created_at"], row["occurred_at"])
+            for row in connection.execute(
+                "SELECT user_id, created_at, occurred_at FROM conversions WHERE experiment_id = ?",
+                (exp,),
+            ).fetchall()
+        }
+
+    # Supplied event time is stored (UTC-normalized), separate from the server-receive time.
+    assert exposures["u1"][1] == exposure_time.isoformat()
+    assert exposures["u1"][1] != exposures["u1"][0]
+    assert conversions["u1"][1] == conversion_time.isoformat()
+    assert conversions["u1"][1] != conversions["u1"][0]
+    # Omitted event time defaults to the server-receive time (occurred_at == created_at).
+    assert exposures["u2"][1] == exposures["u2"][0]
+    assert conversions["u2"][1] == conversions["u2"][0]
+
+
+def test_ingestion_normalizes_naive_occurred_at_to_utc() -> None:
+    """A naive client timestamp (no tzinfo) is recorded as UTC, so event times are comparable (P4.1)."""
+    repo = _repo()
+    exp = _project(repo)
+    repo.record_exposures(
+        exp,
+        [{"user_id": "u1", "variation_index": 0, "occurred_at": datetime(2026, 5, 1, 9, 30, 0)}],
+    )
+
+    with repo._backend._connect() as connection:  # type: ignore[attr-defined]
+        occurred_at = connection.execute(
+            "SELECT occurred_at FROM exposures WHERE experiment_id = ? AND user_id = ?",
+            (exp, "u1"),
+        ).fetchone()["occurred_at"]
+
+    assert occurred_at == datetime(2026, 5, 1, 9, 30, 0, tzinfo=UTC).isoformat()
+
+
+def test_holdout_exposure_records_occurred_at_as_received() -> None:
+    """Holdout members carry no client event time, so occurred_at == created_at — keeping the
+    NOT NULL event-time column populated for the -1 tail too (P4.1)."""
+    repo = _repo()
+    exp = _project(repo)
+    repo.record_holdout(exp, [{"user_id": "h1"}])
+
+    with repo._backend._connect() as connection:  # type: ignore[attr-defined]
+        row = connection.execute(
+            "SELECT created_at, occurred_at FROM exposures WHERE experiment_id = ? AND user_id = ?",
+            (exp, "h1"),
+        ).fetchone()
+
+    assert row["occurred_at"] == row["created_at"]

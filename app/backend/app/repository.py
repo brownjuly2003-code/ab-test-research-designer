@@ -27,6 +27,31 @@ from app.backend.app.errors import ApiError
 from app.backend.app.schemas.api import ExperimentInput
 
 
+def _normalize_occurred_at(value: Any, fallback: str) -> str:
+    """Normalize a client-supplied event time to a UTC ISO-8601 string (P4.1, event-time).
+
+    ``occurred_at`` is when the event happened on the client; ``created_at`` (the ``fallback``)
+    is when the server received it. ``value`` may be a ``datetime`` (parsed by the ingest schema),
+    an ISO string, or ``None``. A naive datetime is assumed UTC; ``None`` or an unparseable value
+    falls back to the server-receive time, so ``occurred_at`` defaults to the received time. This
+    only records event-time; out-of-window / late attribution is layered on in P4.2.
+    """
+    if value is None:
+        return fallback
+    if isinstance(value, datetime):
+        moment = value
+    elif isinstance(value, str):
+        try:
+            moment = datetime.fromisoformat(value)
+        except ValueError:
+            return fallback
+    else:
+        return fallback
+    if moment.tzinfo is None:
+        moment = moment.replace(tzinfo=UTC)
+    return moment.astimezone(UTC).isoformat()
+
+
 class DatabaseBackend(Protocol):
     backend_name: str
     supports_snapshots: bool
@@ -39,7 +64,7 @@ class DatabaseBackend(Protocol):
 class SQLiteBackend:
     backend_name = "sqlite"
     supports_snapshots = True
-    schema_version = 11
+    schema_version = 12
     payload_schema_version = 1
     workspace_schema_version = 3
     project_select_columns = """
@@ -369,6 +394,7 @@ class SQLiteBackend:
                 user_id TEXT NOT NULL,
                 variation_index INTEGER NOT NULL,
                 created_at TEXT NOT NULL,
+                occurred_at TEXT NOT NULL,
                 UNIQUE(experiment_id, user_id),
                 FOREIGN KEY(experiment_id) REFERENCES projects(id) ON DELETE CASCADE
             )
@@ -380,6 +406,9 @@ class SQLiteBackend:
             ON exposures (experiment_id, variation_index)
             """
         )
+        # Event-time semantics (P4.1): occurred_at is the client event time (when it happened),
+        # kept distinct from created_at (server-receive). On legacy rows it is backfilled to
+        # created_at in _migrate_db; the late/out-of-order attribution that uses it arrives in P4.2.
         connection.execute(
             """
             CREATE TABLE IF NOT EXISTS conversions (
@@ -390,6 +419,7 @@ class SQLiteBackend:
                 value REAL NOT NULL DEFAULT 1,
                 idempotency_key TEXT,
                 created_at TEXT NOT NULL,
+                occurred_at TEXT NOT NULL,
                 UNIQUE(experiment_id, idempotency_key),
                 FOREIGN KEY(experiment_id) REFERENCES projects(id) ON DELETE CASCADE
             )
@@ -505,6 +535,19 @@ class SQLiteBackend:
             FROM pre_period_values
             """
         )
+        # Event-time backfill (P4.1): DBs created before occurred_at existed get the column added
+        # (nullable — SQLite cannot retrofit a NOT NULL column) and backfilled to created_at, so
+        # legacy events read occurred_at == server-receive time. New writes always populate it.
+        for event_table in ("exposures", "conversions"):
+            event_columns = {
+                row["name"]
+                for row in connection.execute(f"PRAGMA table_info({event_table})").fetchall()
+            }
+            if "occurred_at" not in event_columns:
+                connection.execute(f"ALTER TABLE {event_table} ADD COLUMN occurred_at TEXT")
+                connection.execute(
+                    f"UPDATE {event_table} SET occurred_at = created_at WHERE occurred_at IS NULL"
+                )
 
         def normalize_payload_json(payload_json: str) -> str | None:
             try:
@@ -2797,8 +2840,8 @@ class SQLiteBackend:
             for item in items:
                 cursor = connection.execute(
                     """
-                    INSERT INTO exposures (id, experiment_id, user_id, variation_index, created_at)
-                    VALUES (?, ?, ?, ?, ?)
+                    INSERT INTO exposures (id, experiment_id, user_id, variation_index, created_at, occurred_at)
+                    VALUES (?, ?, ?, ?, ?, ?)
                     ON CONFLICT(experiment_id, user_id) DO NOTHING
                     """,
                     (
@@ -2807,6 +2850,7 @@ class SQLiteBackend:
                         item["user_id"],
                         int(item["variation_index"]),
                         timestamp,
+                        _normalize_occurred_at(item.get("occurred_at"), timestamp),
                     ),
                 )
                 if cursor.rowcount == 1:
@@ -2825,8 +2869,8 @@ class SQLiteBackend:
             for item in items:
                 cursor = connection.execute(
                     """
-                    INSERT INTO conversions (id, experiment_id, user_id, metric, value, idempotency_key, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO conversions (id, experiment_id, user_id, metric, value, idempotency_key, created_at, occurred_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT(experiment_id, idempotency_key) DO NOTHING
                     """,
                     (
@@ -2837,6 +2881,7 @@ class SQLiteBackend:
                         float(item.get("value", 1.0)),
                         item.get("idempotency_key"),
                         timestamp,
+                        _normalize_occurred_at(item.get("occurred_at"), timestamp),
                     ),
                 )
                 if cursor.rowcount == 1:
@@ -2928,8 +2973,8 @@ class SQLiteBackend:
             for item in items:
                 cursor = connection.execute(
                     """
-                    INSERT INTO exposures (id, experiment_id, user_id, variation_index, created_at)
-                    VALUES (?, ?, ?, ?, ?)
+                    INSERT INTO exposures (id, experiment_id, user_id, variation_index, created_at, occurred_at)
+                    VALUES (?, ?, ?, ?, ?, ?)
                     ON CONFLICT(experiment_id, user_id) DO NOTHING
                     """,
                     (
@@ -2937,6 +2982,7 @@ class SQLiteBackend:
                         experiment_id,
                         item["user_id"],
                         HOLDOUT_VARIATION_INDEX,
+                        timestamp,
                         timestamp,
                     ),
                 )
@@ -3824,6 +3870,7 @@ class PostgresBackend(SQLiteBackend):
                     user_id TEXT NOT NULL,
                     variation_index INTEGER NOT NULL,
                     created_at TEXT NOT NULL,
+                    occurred_at TEXT NOT NULL,
                     UNIQUE(experiment_id, user_id),
                     FOREIGN KEY(experiment_id) REFERENCES projects(id) ON DELETE CASCADE
                 )
@@ -3835,6 +3882,8 @@ class PostgresBackend(SQLiteBackend):
                 ON exposures (experiment_id, variation_index)
                 """
             )
+            # Event-time semantics (P4.1) — Postgres mirror of the SQLite occurred_at column. Fresh
+            # containers get it from here (CI provisions Postgres fresh, so no backfill is needed).
             connection.execute(
                 """
                 CREATE TABLE IF NOT EXISTS conversions (
@@ -3845,6 +3894,7 @@ class PostgresBackend(SQLiteBackend):
                     value REAL NOT NULL DEFAULT 1,
                     idempotency_key TEXT,
                     created_at TEXT NOT NULL,
+                    occurred_at TEXT NOT NULL,
                     UNIQUE(experiment_id, idempotency_key),
                     FOREIGN KEY(experiment_id) REFERENCES projects(id) ON DELETE CASCADE
                 )

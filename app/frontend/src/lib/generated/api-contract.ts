@@ -270,6 +270,7 @@ export type ConversionEvent = {
   metric: string;
   value?: number;
   idempotency_key?: string | null;
+  occurred_at?: string | null;
 };
 
 export type ConversionIngestRequest = {
@@ -496,6 +497,7 @@ export type ExposureCountBucket = {
 export type ExposureEvent = {
   user_id: string;
   variation_index: number;
+  occurred_at?: string | null;
 };
 
 export type ExposureIngestRequest = {
