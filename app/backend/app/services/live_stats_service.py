@@ -79,6 +79,7 @@ def build_live_stats(
     stratified_aggregates: dict[str, Any] | None = None,
     guardrail_aggregates: dict[str, Any] | None = None,
     holdout_aggregates: dict[str, Any] | None = None,
+    event_timing_summary: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Assemble the live-stats payload from a stored experiment design and the current
     per-variation analysis aggregates (``repository.get_experiment_analysis_aggregates``).
@@ -97,7 +98,11 @@ def build_live_stats(
 
     ``holdout_aggregates`` (``repository.get_holdout_aggregates``) carries the held-back
     (``variation_index = -1``) group's rollup for the cumulative treated-vs-holdout read; ``None`` /
-    no holdout users keeps the holdout block ``unavailable``."""
+    no holdout users keeps the holdout block ``unavailable``.
+
+    ``event_timing_summary`` (``repository.get_event_timing_summary``) carries the late /
+    out-of-order conversion counts on the primary metric (P4.2); ``None`` keeps the event-timing
+    block ``unavailable``. It is informational only — it does not change any comparison or verdict."""
     metrics = project_payload.get("metrics", {})
     setup = project_payload.get("setup", {})
     constraints = project_payload.get("constraints", {})
@@ -207,6 +212,7 @@ def build_live_stats(
         holdout_aggregates=holdout_aggregates,
         mixture_variance=design_mixture_variance,
     )
+    event_timing = _build_event_timing_block(event_timing_summary)
 
     return {
         "experiment_id": experiment_id,
@@ -222,6 +228,7 @@ def build_live_stats(
         "stratified": stratified,
         "guardrail": guardrail,
         "holdout": holdout,
+        "event_timing": event_timing,
     }
 
 
@@ -1624,3 +1631,35 @@ def _build_holdout_block(
     if metric_type == "binary":
         return _holdout_binary(base, alpha, holdout, treated, mixture_variance)
     return _holdout_continuous(base, alpha, holdout, treated, mixture_variance)
+
+
+def _build_event_timing_block(
+    event_timing_summary: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Late / out-of-order conversion indicator (P4.2).
+
+    Reports how conversions on the primary metric distribute relative to each user's exposure:
+    ``in_window`` (attributed), ``late`` (after the attribution horizon), and ``out_of_order``
+    (before the exposure — causally impossible). Purely informational — a data-quality indicator
+    that never alters a comparison or the decision verdict. ``unavailable`` when no summary was
+    computed (e.g. the experiment has no exposures yet).
+    """
+    if not event_timing_summary:
+        return {
+            "status": "unavailable",
+            "metric": None,
+            "horizon_days": None,
+            "in_window": None,
+            "late": None,
+            "out_of_order": None,
+            "total": None,
+        }
+    return {
+        "status": "ok",
+        "metric": event_timing_summary.get("metric_name"),
+        "horizon_days": event_timing_summary.get("horizon_days"),
+        "in_window": int(event_timing_summary.get("in_window", 0)),
+        "late": int(event_timing_summary.get("late", 0)),
+        "out_of_order": int(event_timing_summary.get("out_of_order", 0)),
+        "total": int(event_timing_summary.get("total", 0)),
+    }

@@ -810,7 +810,10 @@
       "holdoutTreated": "Treated (rolled out)",
       "holdoutHeldBack": "Holdout (held back)",
       "holdoutEffectLine": "Cumulative effect {{effect}} · CI [{{lower}}, {{upper}}] · p {{p}}",
-      "holdoutBayesianLine": "P(treated beats holdout) = {{prob}}"
+      "holdoutBayesianLine": "P(treated beats holdout) = {{prob}}",
+      "eventTimingTitle": "Event timing",
+      "eventTimingSummary": "{{late}} late · {{outOfOrder}} out-of-order of {{total}} conversions (attribution window {{horizon}} d)",
+      "eventTimingHint": "Conversions arriving after the attribution window (late) or before the exposure (out-of-order), by event time — a data-quality signal; they don't change the result."
     },
     "decision": {
       "title": "Decision readout",

@@ -918,6 +918,21 @@ class LiveHoldoutBlock(BaseModel):
     holdout_users_total: int | None = None
 
 
+class LiveEventTimingBlock(BaseModel):
+    # Late / out-of-order conversion indicator (P4.2). Classifies each conversion on the primary
+    # metric by its event time (occurred_at) relative to the converting user's exposure: in_window
+    # (attributed), late (after the attribution horizon), out_of_order (before the exposure).
+    # Informational data-quality signal only — never alters a comparison or the decision verdict.
+    # status: "ok" | "unavailable" (no summary computed, e.g. no exposures yet).
+    status: str
+    metric: str | None = None
+    horizon_days: float | None = None
+    in_window: int | None = None
+    late: int | None = None
+    out_of_order: int | None = None
+    total: int | None = None
+
+
 class LiveStatsResponse(BaseModel):
     experiment_id: str
     metric_type: str
@@ -932,6 +947,7 @@ class LiveStatsResponse(BaseModel):
     stratified: LiveStratifiedBlock
     guardrail: LiveGuardrailBlock
     holdout: LiveHoldoutBlock
+    event_timing: LiveEventTimingBlock
 
 
 class DecisionReason(BaseModel):

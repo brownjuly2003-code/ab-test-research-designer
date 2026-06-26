@@ -6,7 +6,7 @@ import secrets
 import shutil
 import sqlite3
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from io import StringIO
 from pathlib import Path
 from types import TracebackType
@@ -50,6 +50,22 @@ def _normalize_occurred_at(value: Any, fallback: str) -> str:
     if moment.tzinfo is None:
         moment = moment.replace(tzinfo=UTC)
     return moment.astimezone(UTC).isoformat()
+
+
+def _parse_iso(value: Any) -> datetime | None:
+    """Parse a stored ISO-8601 timestamp back to a tz-aware datetime, or ``None`` if unparseable.
+
+    Stored ``occurred_at`` / ``created_at`` values are UTC-aware ISO strings (see
+    ``_normalize_occurred_at``); a naive value is treated as UTC so comparisons never mix
+    naive/aware datetimes. Used by the P4.2 event-timing classification.
+    """
+    if not isinstance(value, str):
+        return None
+    try:
+        moment = datetime.fromisoformat(value)
+    except ValueError:
+        return None
+    return moment if moment.tzinfo is not None else moment.replace(tzinfo=UTC)
 
 
 class DatabaseBackend(Protocol):
@@ -3173,6 +3189,70 @@ class SQLiteBackend:
             "experiment_id": experiment_id,
             "metric_name": metric_name,
             "holdout": holdout,
+        }
+
+    def get_event_timing_summary(
+        self, experiment_id: str, metric_name: str, horizon_days: float
+    ) -> dict[str, Any] | None:
+        """Classify each conversion on ``metric_name`` by its event time relative to the converting
+        user's exposure (P4.2 late / out-of-order detection — the first consumer of P4.1 occurred_at).
+
+        Returns ``None`` if the experiment does not exist. For every (exposed user with
+        ``variation_index >= 0``, conversion on the metric) pair it compares the conversion's
+        ``occurred_at`` (client event time) to that user's exposure ``occurred_at``:
+
+        - ``out_of_order`` — conversion strictly before the exposure (causally impossible; a clock-skew
+          or ingest-order artifact).
+        - ``late`` — conversion more than ``horizon_days`` after the exposure (outside the attribution
+          window).
+        - ``in_window`` — within ``[exposure, exposure + horizon_days]``.
+
+        Counts are over conversion *events* (a user with several conversions contributes each). The
+        holdout tail (``variation_index = -1``) is excluded. This is an informational diagnostic — it
+        does not change the primary rollup (``get_experiment_analysis_aggregates`` stays event-time
+        agnostic) or any verdict. The ISO-8601 strings are parsed and compared in Python so the two
+        backends share one portable query (no SQLite ``julianday`` vs Postgres interval divergence).
+        """
+        with self._connect() as connection:
+            if not self._project_exists(connection, experiment_id):
+                return None
+            rows = connection.execute(
+                """
+                SELECT e.occurred_at AS exposure_at, c.occurred_at AS conversion_at
+                FROM exposures e
+                JOIN conversions c
+                    ON c.experiment_id = e.experiment_id
+                    AND c.user_id = e.user_id
+                    AND c.metric = ?
+                WHERE e.experiment_id = ? AND e.variation_index >= 0
+                """,
+                (metric_name, experiment_id),
+            ).fetchall()
+        horizon = timedelta(days=horizon_days)
+        in_window = 0
+        late = 0
+        out_of_order = 0
+        for row in rows:
+            exposure_at = _parse_iso(row["exposure_at"])
+            conversion_at = _parse_iso(row["conversion_at"])
+            if exposure_at is None or conversion_at is None:
+                # Unparseable timestamps should not occur post-P4.1; count as neutral (in-window)
+                # rather than flag a spurious anomaly.
+                in_window += 1
+            elif conversion_at < exposure_at:
+                out_of_order += 1
+            elif conversion_at > exposure_at + horizon:
+                late += 1
+            else:
+                in_window += 1
+        return {
+            "experiment_id": experiment_id,
+            "metric_name": metric_name,
+            "horizon_days": horizon_days,
+            "in_window": in_window,
+            "late": late,
+            "out_of_order": out_of_order,
+            "total": in_window + late + out_of_order,
         }
 
     def get_stratified_aggregates(

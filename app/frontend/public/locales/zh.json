@@ -810,7 +810,10 @@
       "holdoutTreated": "实验组（已发布）",
       "holdoutHeldBack": "Holdout（保留组）",
       "holdoutEffectLine": "累积效应 {{effect}} · 置信区间 [{{lower}}, {{upper}}] · p {{p}}",
-      "holdoutBayesianLine": "P(实验组优于 Holdout) = {{prob}}"
+      "holdoutBayesianLine": "P(实验组优于 Holdout) = {{prob}}",
+      "eventTimingTitle": "事件时序",
+      "eventTimingSummary": "{{total}} 次转化中 {{late}} 次迟到 · {{outOfOrder}} 次乱序（归因窗口 {{horizon}} 天）",
+      "eventTimingHint": "按事件时间统计：晚于归因窗口（迟到）或早于曝光（乱序）的转化——数据质量信号，不影响结果。"
     },
     "decision": {
       "title": "决策摘要",

@@ -253,3 +253,57 @@ def test_holdout_exposure_records_occurred_at_as_received() -> None:
         ).fetchone()
 
     assert row["occurred_at"] == row["created_at"]
+
+
+def test_event_timing_summary_classifies_in_window_late_and_out_of_order() -> None:
+    """Each conversion is classified by its event time relative to the user's exposure (P4.2):
+    in-window, late (beyond the horizon), or out-of-order (before the exposure). The holdout tail
+    is excluded, and the read returns None for a missing experiment."""
+    repo = _repo()
+    exp = _project(repo)
+
+    def at(day: int) -> datetime:
+        return datetime(2026, 5, day, 12, 0, 0, tzinfo=UTC)
+
+    repo.record_exposures(
+        exp,
+        [
+            {"user_id": "u1", "variation_index": 0, "occurred_at": at(1)},
+            {"user_id": "u2", "variation_index": 1, "occurred_at": at(1)},
+            {"user_id": "u3", "variation_index": 0, "occurred_at": at(10)},
+        ],
+    )
+    repo.record_conversions(
+        exp,
+        [
+            {"user_id": "u1", "metric": "purchase", "occurred_at": at(2)},  # in-window (+1d)
+            {"user_id": "u2", "metric": "purchase", "occurred_at": at(20)},  # late (+19d > 14)
+            {"user_id": "u3", "metric": "purchase", "occurred_at": at(8)},  # out-of-order (before)
+        ],
+    )
+    # A holdout member's conversion must never enter the timing counts (variation_index = -1).
+    repo.record_holdout(exp, [{"user_id": "h1"}])
+    repo.record_conversions(exp, [{"user_id": "h1", "metric": "purchase", "occurred_at": at(2)}])
+
+    summary = repo.get_event_timing_summary(exp, "purchase", 14.0)
+    assert summary is not None
+    assert summary["in_window"] == 1
+    assert summary["late"] == 1
+    assert summary["out_of_order"] == 1
+    assert summary["total"] == 3  # holdout conversion excluded
+    assert summary["horizon_days"] == 14.0
+
+    assert repo.get_event_timing_summary("missing", "purchase", 14.0) is None
+
+
+def test_event_timing_summary_defaults_omitted_event_time_to_in_window() -> None:
+    """A conversion ingested without occurred_at defaults to the receive time (== exposure receive
+    time here), so it lands in-window — never spuriously flagged as late/out-of-order (P4.2)."""
+    repo = _repo()
+    exp = _project(repo)
+    repo.record_exposures(exp, [{"user_id": "u1", "variation_index": 0}])
+    repo.record_conversions(exp, [{"user_id": "u1", "metric": "purchase"}])
+
+    summary = repo.get_event_timing_summary(exp, "purchase", 14.0)
+    assert summary is not None
+    assert (summary["in_window"], summary["late"], summary["out_of_order"]) == (1, 0, 0)

@@ -570,6 +570,44 @@ def test_postgres_backend_event_time_occurred_at_round_trip(postgres_repository)
     assert exposures["h1"][1] == exposures["h1"][0]
 
 
+def test_postgres_backend_event_timing_summary_round_trip(postgres_repository) -> None:
+    # Exercises the P4.2 late / out-of-order classification on a real Postgres: the timing query
+    # joins conversions to exposures and the counts come back correctly through the dual-backend SQL.
+    # Not checkable on Windows without a Postgres (the SQLite suite covers the same logic).
+    repo = postgres_repository
+    project = repo.create_project(_payload("Event-timing PG", "binary"))
+    exp = project["id"]
+
+    def at(day: int) -> datetime:
+        return datetime(2026, 6, day, 12, 0, 0, tzinfo=UTC)
+
+    repo.record_exposures(
+        exp,
+        [
+            {"user_id": "u1", "variation_index": 0, "occurred_at": at(1)},
+            {"user_id": "u2", "variation_index": 1, "occurred_at": at(1)},
+            {"user_id": "u3", "variation_index": 0, "occurred_at": at(10)},
+        ],
+    )
+    repo.record_conversions(
+        exp,
+        [
+            {"user_id": "u1", "metric": "purchase", "occurred_at": at(2)},  # in-window
+            {"user_id": "u2", "metric": "purchase", "occurred_at": at(25)},  # late (+24d > 14)
+            {"user_id": "u3", "metric": "purchase", "occurred_at": at(8)},  # out-of-order
+        ],
+    )
+    repo.record_holdout(exp, [{"user_id": "h1"}])
+    repo.record_conversions(exp, [{"user_id": "h1", "metric": "purchase", "occurred_at": at(2)}])
+
+    summary = repo.get_event_timing_summary(exp, "purchase", 14.0)
+    assert summary is not None
+    assert summary["in_window"] == 1
+    assert summary["late"] == 1
+    assert summary["out_of_order"] == 1
+    assert summary["total"] == 3  # holdout conversion excluded
+
+
 def test_readyz_uses_postgres_checks_without_sqlite_regression(monkeypatch) -> None:
     monkeypatch.setenv("AB_DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/abtest")
     monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")
