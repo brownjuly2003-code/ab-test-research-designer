@@ -822,7 +822,10 @@
       "holdoutTreated": "Обработанные (выкатка)",
       "holdoutHeldBack": "Holdout (отложенные)",
       "holdoutEffectLine": "Накопительный эффект {{effect}} · ДИ [{{lower}}, {{upper}}] · p {{p}}",
-      "holdoutBayesianLine": "P(выкатка лучше holdout) = {{prob}}"
+      "holdoutBayesianLine": "P(выкатка лучше holdout) = {{prob}}",
+      "eventTimingTitle": "Тайминг событий",
+      "eventTimingSummary": "{{late}} поздних · {{outOfOrder}} вне порядка из {{total}} конверсий (окно атрибуции {{horizon}} дн.)",
+      "eventTimingHint": "Конверсии после окна атрибуции (поздние) или раньше показа (вне порядка) по времени события — сигнал качества данных; на результат не влияют."
     },
     "decision": {
       "title": "Итоговое решение",

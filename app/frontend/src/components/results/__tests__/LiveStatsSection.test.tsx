@@ -330,6 +330,38 @@ describe("LiveStatsSection", () => {
     }
   });
 
+  it("surfaces the event-timing indicator when conversions are late or out-of-order", async () => {
+    const withTiming = {
+      ...liveStatsResponse,
+      event_timing: {
+        status: "ok",
+        metric: "purchase_conversion",
+        horizon_days: 14,
+        in_window: 40,
+        late: 7,
+        out_of_order: 3,
+        total: 50
+      }
+    };
+    const fetchMock = vi.fn(async (..._args: unknown[]) => ({ ok: true, json: async () => withTiming }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const view = await renderIntoDocument(<LiveStatsSection />);
+    try {
+      await flushEffects();
+      await click(findButton(view.container, "Refresh live stats"));
+      await flushEffects();
+      await flushEffects();
+
+      const text = view.container.textContent ?? "";
+      expect(text).toContain("Event timing");
+      expect(text).toContain("7 late");
+      expect(text).toContain("3 out-of-order");
+    } finally {
+      await view.unmount();
+    }
+  });
+
   it("renders the anytime-valid (mSPRT) block for a comparison", async () => {
     const fetchMock = vi.fn(async (..._args: unknown[]) => ({ ok: true, json: async () => liveStatsResponse }));
     vi.stubGlobal("fetch", fetchMock);

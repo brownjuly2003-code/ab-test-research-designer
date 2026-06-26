@@ -6,6 +6,7 @@ import type {
   LiveComparison,
   LiveCupedBlock,
   LiveCupedComparison,
+  LiveEventTimingBlock,
   LiveGuardrailBlock,
   LiveGuardrailComparison,
   LiveGuardrailMetricResult,
@@ -553,6 +554,34 @@ function HoldoutBlock({ holdout, metricType }: { holdout: LiveHoldoutBlock | und
   );
 }
 
+function EventTimingBlock({ eventTiming }: { eventTiming: LiveEventTimingBlock | undefined }) {
+  if (!eventTiming || eventTiming.status !== "ok") {
+    return null;
+  }
+  const late = eventTiming.late ?? 0;
+  const outOfOrder = eventTiming.out_of_order ?? 0;
+  // A clean event stream needs no callout — only surface the indicator when something is off-window.
+  if (late === 0 && outOfOrder === 0) {
+    return null;
+  }
+  return (
+    <div className="callout" style={{ display: "grid", gap: "6px" }}>
+      <strong>{t("results.liveStats.eventTimingTitle")}</strong>
+      <span className="muted">
+        {t("results.liveStats.eventTimingSummary", {
+          late,
+          outOfOrder,
+          total: eventTiming.total ?? 0,
+          horizon: eventTiming.horizon_days ?? 0
+        })}
+      </span>
+      <span className="muted" style={{ fontSize: "0.85em" }}>
+        {t("results.liveStats.eventTimingHint")}
+      </span>
+    </div>
+  );
+}
+
 export default function LiveStatsSection() {
   const analysisResult = useAnalysisStore((state) => state.analysisResult);
   const resultsProjectId = useAnalysisStore((state) => state.resultsProjectId);
@@ -688,6 +717,8 @@ export default function LiveStatsSection() {
               <GuardrailBlock guardrail={stats.guardrail} variantNames={variantNames} />
 
               <HoldoutBlock holdout={stats.holdout} metricType={stats.metric_type} />
+
+              <EventTimingBlock eventTiming={stats.event_timing} />
             </>
           )}
 

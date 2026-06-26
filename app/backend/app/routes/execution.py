@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
+from app.backend.app.constants import ATTRIBUTION_HORIZON_DAYS
 from app.backend.app.schemas.api import (
     ConversionIngestRequest,
     DecisionReadoutResponse,
@@ -155,6 +156,11 @@ def create_execution_router(
         # treated-vs-holdout read on the primary metric; the pooled treated arms come from the main
         # aggregates above, so this is a single extra lookup for the held-back tail.
         holdout_aggregates = repository.get_holdout_aggregates(experiment_id, metric_name)
+        # Event-time diagnostics (P4.2): classify conversions on the primary metric as in-window /
+        # late / out-of-order relative to each user's exposure, using the P4.1 occurred_at column.
+        event_timing_summary = repository.get_event_timing_summary(
+            experiment_id, metric_name, ATTRIBUTION_HORIZON_DAYS
+        )
         return build_live_stats(
             experiment_id,
             project["payload"],
@@ -164,6 +170,7 @@ def create_execution_router(
             stratified_aggregates,
             guardrail_aggregates,
             holdout_aggregates,
+            event_timing_summary,
         )
 
     @router.get(

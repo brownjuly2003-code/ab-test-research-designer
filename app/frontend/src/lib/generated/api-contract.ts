@@ -669,6 +669,16 @@ export type LiveCupedCovariate = {
   theta: number;
 };
 
+export type LiveEventTimingBlock = {
+  status: string;
+  metric?: string | null;
+  horizon_days?: number | null;
+  in_window?: number | null;
+  late?: number | null;
+  out_of_order?: number | null;
+  total?: number | null;
+};
+
 export type LiveGuardrailArmStat = {
   variation_index: number;
   exposed_users: number;
@@ -760,6 +770,7 @@ export type LiveStatsResponse = {
   stratified: LiveStratifiedBlock;
   guardrail: LiveGuardrailBlock;
   holdout: LiveHoldoutBlock;
+  event_timing: LiveEventTimingBlock;
 };
 
 export type LiveStratifiedBlock = {

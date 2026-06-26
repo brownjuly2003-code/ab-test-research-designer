@@ -25,6 +25,13 @@ MAX_STRATA = 50
 # (variation_index >= 0); the cumulative holdout read selects exactly this tail.
 HOLDOUT_VARIATION_INDEX = -1
 
+# Attribution horizon for late / out-of-order conversion detection (P4.2). A conversion is
+# attributed to a user's exposure only when its event time (occurred_at) falls within
+# [exposure, exposure + ATTRIBUTION_HORIZON_DAYS]; a conversion before the exposure is out-of-order
+# (causally impossible) and one after the horizon is late. 14 days is a conservative default that
+# covers most conversion cycles without attributing stale activity to the experiment.
+ATTRIBUTION_HORIZON_DAYS = 14.0
+
 DEFAULT_CORS_METHODS = ("GET", "POST", "PUT", "DELETE", "OPTIONS")
 DEFAULT_CORS_HEADERS = ("Accept", "Content-Type")
 

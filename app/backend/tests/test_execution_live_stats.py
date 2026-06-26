@@ -1955,3 +1955,51 @@ def test_live_stats_route_collects_holdout_aggregates() -> None:
     assert block["analysis"]["is_significant"] is True
     # The holdout tail never inflates the primary arms: exposures_total counts only vi >= 0.
     assert response.json()["exposures_total"] == 200
+
+
+def test_live_stats_event_timing_unavailable_without_summary() -> None:
+    # No event-timing summary supplied -> the block is "unavailable" (never fabricated).
+    result = build_live_stats("e", _binary_design(), _aggregates(_arm(0, 100, 10), _arm(1, 100, 12)))
+    assert result["event_timing"]["status"] == "unavailable"
+    assert result["event_timing"]["late"] is None
+
+
+def test_live_stats_route_reports_event_timing() -> None:
+    # End-to-end (P4.2): conversions ingested with client event times are classified relative to each
+    # user's exposure and the /live-stats event_timing block reports the late / out-of-order counts,
+    # proving routes/execution._compute_live_stats wires get_event_timing_summary.
+    client = TestClient(create_app())
+    project_id = _create_binary_project(client)
+
+    exposures = [
+        {"user_id": "u1", "variation_index": 0, "occurred_at": "2026-05-01T12:00:00+00:00"},
+        {"user_id": "u2", "variation_index": 1, "occurred_at": "2026-05-01T12:00:00+00:00"},
+        {"user_id": "u3", "variation_index": 0, "occurred_at": "2026-05-10T12:00:00+00:00"},
+    ]
+    assert (
+        client.post(
+            f"/api/v1/experiments/{project_id}/exposures", json={"exposures": exposures}
+        ).status_code
+        == 200
+    )
+    conversions = [
+        {"user_id": "u1", "metric": "purchase", "occurred_at": "2026-05-02T12:00:00+00:00"},  # in-window
+        {"user_id": "u2", "metric": "purchase", "occurred_at": "2026-05-20T12:00:00+00:00"},  # late (+19d)
+        {"user_id": "u3", "metric": "purchase", "occurred_at": "2026-05-08T12:00:00+00:00"},  # out-of-order
+    ]
+    assert (
+        client.post(
+            f"/api/v1/experiments/{project_id}/conversions", json={"conversions": conversions}
+        ).status_code
+        == 200
+    )
+
+    response = client.get(f"/api/v1/experiments/{project_id}/live-stats")
+    assert response.status_code == 200, response.text
+    block = response.json()["event_timing"]
+    assert block["status"] == "ok"
+    assert block["horizon_days"] == 14.0
+    assert block["in_window"] == 1
+    assert block["late"] == 1
+    assert block["out_of_order"] == 1
+    assert block["total"] == 3

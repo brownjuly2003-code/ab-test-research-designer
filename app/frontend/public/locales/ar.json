@@ -810,7 +810,10 @@
       "holdoutTreated": "المُعالَجون (تم الإطلاق)",
       "holdoutHeldBack": "Holdout (محتجزون)",
       "holdoutEffectLine": "التأثير التراكمي {{effect}} · فترة الثقة [{{lower}}, {{upper}}] · p {{p}}",
-      "holdoutBayesianLine": "P(المُعالَجون يتفوقون على Holdout) = {{prob}}"
+      "holdoutBayesianLine": "P(المُعالَجون يتفوقون على Holdout) = {{prob}}",
+      "eventTimingTitle": "توقيت الأحداث",
+      "eventTimingSummary": "{{late}} متأخرة · {{outOfOrder}} خارج الترتيب من أصل {{total}} تحويلات (نافذة الإسناد {{horizon}} يوم)",
+      "eventTimingHint": "التحويلات الواردة بعد نافذة الإسناد (متأخرة) أو قبل العرض (خارج الترتيب)، حسب وقت الحدث — مؤشر على جودة البيانات؛ لا تغيّر النتيجة."
     },
     "decision": {
       "title": "ملخص القرار",
