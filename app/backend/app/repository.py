@@ -448,6 +448,18 @@ class SQLiteBackend:
             ON conversions (experiment_id, metric)
             """
         )
+        # Per-user conversion lookup index (live-read performance). The heavy live-read rollups
+        # (stratified / CUPED / ratio / event-timing / holdout) join each exposed user onto their
+        # conversions with ``experiment_id = ? AND user_id = e.user_id AND metric = ?``; without a
+        # composite index on (experiment_id, user_id, metric) that correlated join degrades to a
+        # per-user scan. This index makes it a direct seek. Kept alongside the (experiment_id, metric)
+        # index above, which still serves the metric-only filter in get_experiment_analysis_aggregates.
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_conversions_experiment_user_metric
+            ON conversions (experiment_id, user_id, metric)
+            """
+        )
         # CUPED pre-period covariate (E5): one pre-experiment value per (experiment, user).
         # The UNIQUE constraint is the dedup primitive — first-write-wins keeps the covariate
         # stable. CUPED needs exactly one X per user paired with their outcome Y.
@@ -3266,22 +3278,25 @@ class SQLiteBackend:
                 conv_resolved AS (
                     SELECT
                         COALESCE(im.canonical_id, c.user_id) AS cuser,
-                        c.value AS value,
-                        c.id AS id
+                        c.value AS value
                     FROM conversions c
                     LEFT JOIN identity_map im
                         ON im.experiment_id = c.experiment_id
                         AND im.anonymous_id = c.user_id
                     WHERE c.experiment_id = ? AND c.metric = ?
                 ),
-                spike AS (
-                    SELECT cuser
+                conv_per_user AS (
+                    -- Collapse the per-event conversions to one row per canonical user *before* the
+                    -- join to the arms. Joining the per-event ``conv_resolved`` directly made SQLite
+                    -- scan it once per arm user (an O(users * conversions) blow-up); pre-aggregating
+                    -- gives a one-row-per-user table the planner can hash-join. ``n_events`` carries
+                    -- the rate-spike signal, so the separate ``spike`` aggregation is no longer needed.
+                    SELECT cuser, SUM(value) AS user_value, COUNT(*) AS n_events
                     FROM conv_resolved
                     GROUP BY cuser
-                    HAVING COUNT(*) > ?
                 ),
                 excluded AS (
-                    SELECT COALESCE(im.canonical_id, x.user_id) AS cuser
+                    SELECT DISTINCT COALESCE(im.canonical_id, x.user_id) AS cuser
                     FROM excluded_users x
                     LEFT JOIN identity_map im
                         ON im.experiment_id = x.experiment_id
@@ -3289,16 +3304,20 @@ class SQLiteBackend:
                     WHERE x.experiment_id = ?
                 ),
                 user_values AS (
+                    -- Deny-list users are removed with a LEFT JOIN ... IS NULL anti-join, and rate-spike
+                    -- users (more than the threshold conversion events) by ``n_events`` from the
+                    -- per-user rollup — both materialized once. ``converted`` is 1 when the user has any
+                    -- conversion (``conv_per_user`` row present); a non-converter contributes value 0.
                     SELECT
                         arm.variation_index AS variation_index,
                         arm.cuser AS cuser,
-                        COALESCE(SUM(cr.value), 0) AS user_value,
-                        MAX(CASE WHEN cr.id IS NOT NULL THEN 1 ELSE 0 END) AS converted
+                        COALESCE(cpu.user_value, 0) AS user_value,
+                        CASE WHEN cpu.cuser IS NOT NULL THEN 1 ELSE 0 END AS converted
                     FROM arm
-                    LEFT JOIN conv_resolved cr ON cr.cuser = arm.cuser
-                    WHERE NOT EXISTS (SELECT 1 FROM excluded ex WHERE ex.cuser = arm.cuser)
-                        AND NOT EXISTS (SELECT 1 FROM spike sp WHERE sp.cuser = arm.cuser)
-                    GROUP BY arm.variation_index, arm.cuser
+                    LEFT JOIN conv_per_user cpu ON cpu.cuser = arm.cuser
+                    LEFT JOIN excluded ex ON ex.cuser = arm.cuser
+                    WHERE ex.cuser IS NULL
+                        AND (cpu.cuser IS NULL OR cpu.n_events <= ?)
                 )
                 SELECT
                     variation_index,
@@ -3310,7 +3329,7 @@ class SQLiteBackend:
                 GROUP BY variation_index
                 ORDER BY variation_index
                 """,
-                (experiment_id, experiment_id, metric_name, BOT_CONVERSION_EVENT_THRESHOLD, experiment_id),
+                (experiment_id, experiment_id, metric_name, experiment_id, BOT_CONVERSION_EVENT_THRESHOLD),
             ).fetchall()
         variations = [
             {
@@ -4313,6 +4332,14 @@ class PostgresBackend(SQLiteBackend):
                 """
                 CREATE INDEX IF NOT EXISTS idx_conversions_experiment_metric
                 ON conversions (experiment_id, metric)
+                """
+            )
+            # Per-user conversion lookup index — Postgres mirror of the SQLite index. Speeds the
+            # correlated per-user conversion join in the heavy live-read rollups (see the SQLite note).
+            connection.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_conversions_experiment_user_metric
+                ON conversions (experiment_id, user_id, metric)
                 """
             )
             connection.execute(
