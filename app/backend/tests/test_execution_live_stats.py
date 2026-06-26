@@ -1464,3 +1464,334 @@ def test_strata_ingestion_endpoint_records_and_dedups() -> None:
     )
     assert again.status_code == 200
     assert again.json()["deduplicated"] == 1
+
+
+# --- guardrail metrics on live data (F4) ----------------------------------------------
+#
+# Each declared guardrail metric is measured on the ordinary conversion stream (one conversion
+# metric per guardrail name) and checked with a directed one-sided breach test. The block reports
+# ok / warning / breached / unavailable; a breach is what the decision readout vetoes a ship on.
+
+
+def _guardrail_metric(
+    name: str,
+    *,
+    metric_type: str = "binary",
+    baseline_rate: float | None = None,
+    baseline_mean: float | None = None,
+    std_dev: float | None = None,
+    direction: str = "increase_is_bad",
+    margin_pct: float | None = None,
+) -> dict:
+    return {
+        "name": name,
+        "metric_type": metric_type,
+        "baseline_rate": baseline_rate,
+        "baseline_mean": baseline_mean,
+        "std_dev": std_dev,
+        "direction": direction,
+        "non_inferiority_margin_pct": margin_pct,
+    }
+
+
+def _with_guardrails(base: dict, *guardrails: dict) -> dict:
+    base["metrics"]["guardrail_metrics"] = list(guardrails)
+    return base
+
+
+def test_guardrail_unavailable_when_none_declared() -> None:
+    result = build_live_stats(
+        "e", _binary_design(), _aggregates(_arm(0, 5000, 500), _arm(1, 5000, 600))
+    )
+    block = result["guardrail"]
+    assert block["status"] == "unavailable"
+    assert block["any_breached"] is False
+    assert block["metrics"] == []
+    assert "declared" in block["note"]  # the "none declared" note, not the "no data yet" note
+
+
+def test_guardrail_unavailable_when_declared_but_no_data_ingested() -> None:
+    # The guardrail is declared but no aggregates arrive (no guardrail outcomes ingested) -> each
+    # metric is insufficient_data and the block stays unavailable, distinct from "none declared".
+    design = _with_guardrails(_binary_design(), _guardrail_metric("error_rate", baseline_rate=5.0))
+    result = build_live_stats(
+        "e", design, _aggregates(_arm(0, 5000, 500), _arm(1, 5000, 600)), guardrail_aggregates=None
+    )
+    block = result["guardrail"]
+    assert block["status"] == "unavailable"
+    assert block["any_breached"] is False
+    assert len(block["metrics"]) == 1  # declared, just unmeasured
+    assert block["metrics"][0]["status"] == "insufficient_data"
+    assert "no guardrail outcomes" in block["note"]
+
+
+def test_guardrail_ok_when_treatment_improves_the_metric() -> None:
+    # The treatment lowers the error rate (8% -> 2%): harm is negative, never a breach.
+    design = _with_guardrails(_binary_design(), _guardrail_metric("error_rate", baseline_rate=5.0))
+    result = build_live_stats(
+        "e",
+        design,
+        _aggregates(_arm(0, 5000, 500), _arm(1, 5000, 600)),
+        guardrail_aggregates={"error_rate": _aggregates(_arm(0, 5000, 400), _arm(1, 5000, 100))},
+    )
+    block = result["guardrail"]
+    assert block["status"] == "ok"
+    assert block["any_breached"] is False
+    comparison = block["metrics"][0]["comparisons"][0]
+    assert comparison["status"] == "ok"
+    assert comparison["is_breached"] is False
+    assert comparison["harm"] == pytest.approx(-0.06, abs=1e-6)
+
+
+def test_guardrail_breach_on_binary_increase_is_bad() -> None:
+    # Error rate climbs 2% -> 8% at n=5000/arm: a large, significant degradation -> breach.
+    design = _with_guardrails(_binary_design(), _guardrail_metric("error_rate", baseline_rate=5.0))
+    result = build_live_stats(
+        "e",
+        design,
+        _aggregates(_arm(0, 5000, 500), _arm(1, 5000, 600)),
+        guardrail_aggregates={"error_rate": _aggregates(_arm(0, 5000, 100), _arm(1, 5000, 400))},
+    )
+    block = result["guardrail"]
+    assert block["status"] == "breached"
+    assert block["any_breached"] is True
+    metric = block["metrics"][0]
+    assert metric["name"] == "error_rate"
+    assert metric["direction"] == "increase_is_bad"
+    assert metric["status"] == "breached"
+    comparison = metric["comparisons"][0]
+    assert comparison["status"] == "breached"
+    assert comparison["is_breached"] is True
+    assert comparison["harm"] == pytest.approx(0.06, abs=1e-6)
+    assert comparison["control"]["point_estimate"] == pytest.approx(0.02)
+    assert comparison["treatment"]["point_estimate"] == pytest.approx(0.08)
+    assert comparison["p_value"] < 0.05
+
+
+def test_guardrail_warning_when_point_degrades_but_not_significant() -> None:
+    # +1.2pp degradation at n=1000/arm: the point estimate worsens past the (zero) margin but the
+    # one-sided lower bound does not clear it -> warning, not a breach. The operator is alerted.
+    design = _with_guardrails(_binary_design(), _guardrail_metric("error_rate", baseline_rate=5.0))
+    result = build_live_stats(
+        "e",
+        design,
+        _aggregates(_arm(0, 5000, 500), _arm(1, 5000, 600)),
+        guardrail_aggregates={"error_rate": _aggregates(_arm(0, 1000, 50), _arm(1, 1000, 62))},
+    )
+    block = result["guardrail"]
+    assert block["status"] == "warning"
+    assert block["any_breached"] is False
+    comparison = block["metrics"][0]["comparisons"][0]
+    assert comparison["status"] == "warning"
+    assert comparison["is_breached"] is False
+    assert comparison["harm"] > 0
+    assert comparison["p_value"] >= 0.05
+
+
+def test_guardrail_insufficient_when_an_arm_is_too_small() -> None:
+    # Fewer than 2 exposed users in an arm: no point estimate, so the breach test cannot run.
+    design = _with_guardrails(_binary_design(), _guardrail_metric("error_rate", baseline_rate=5.0))
+    result = build_live_stats(
+        "e",
+        design,
+        _aggregates(_arm(0, 5000, 500), _arm(1, 5000, 600)),
+        guardrail_aggregates={"error_rate": _aggregates(_arm(0, 1, 0), _arm(1, 5000, 400))},
+    )
+    block = result["guardrail"]
+    assert block["status"] == "unavailable"  # the only metric is unmeasurable
+    metric = block["metrics"][0]
+    assert metric["status"] == "insufficient_data"
+    comparison = metric["comparisons"][0]
+    assert comparison["status"] == "insufficient_data"
+    assert comparison["is_breached"] is None
+
+
+def test_guardrail_decrease_is_bad_continuous_breach() -> None:
+    # Revenue per user (decrease_is_bad) drops 45 -> 40: a −5 effect is +5 of harm -> breach.
+    design = _with_guardrails(
+        _continuous_design(),
+        _guardrail_metric(
+            "revenue_per_user",
+            metric_type="continuous",
+            baseline_mean=45.0,
+            std_dev=12.0,
+            direction="decrease_is_bad",
+        ),
+    )
+    result = build_live_stats(
+        "e",
+        design,
+        _aggregates(_arm(0, 4, 4, 100.0, 3000.0), _arm(1, 4, 4, 180.0, 8600.0)),
+        guardrail_aggregates={
+            "revenue_per_user": _aggregates(
+                _arm(0, 4, 0, value_sum=180.0, value_sq_sum=8102.0),  # mean 45
+                _arm(1, 4, 0, value_sum=160.0, value_sq_sum=6402.0),  # mean 40
+            )
+        },
+    )
+    block = result["guardrail"]
+    assert block["status"] == "breached"
+    metric = block["metrics"][0]
+    assert metric["metric_type"] == "continuous"
+    assert metric["direction"] == "decrease_is_bad"
+    comparison = metric["comparisons"][0]
+    assert comparison["effect"] == pytest.approx(-5.0)  # treatment mean 40 − control mean 45
+    assert comparison["harm"] == pytest.approx(5.0)  # decrease_is_bad flips the sign
+    assert comparison["is_breached"] is True
+
+
+def test_guardrail_margin_absorbs_degradation_within_tolerance() -> None:
+    # The same +6pp degradation that breaches at margin 0 is tolerated by a 10pp margin (5% baseline
+    # × 200%): harm sits below the margin -> ok. This isolates the non-inferiority margin's effect.
+    design = _with_guardrails(
+        _binary_design(), _guardrail_metric("error_rate", baseline_rate=5.0, margin_pct=200.0)
+    )
+    result = build_live_stats(
+        "e",
+        design,
+        _aggregates(_arm(0, 5000, 500), _arm(1, 5000, 600)),
+        guardrail_aggregates={"error_rate": _aggregates(_arm(0, 5000, 100), _arm(1, 5000, 400))},
+    )
+    block = result["guardrail"]
+    comparison = block["metrics"][0]["comparisons"][0]
+    assert comparison["margin"] == pytest.approx(0.10)  # 0.05 baseline × 200%
+    assert comparison["status"] == "ok"
+    assert comparison["is_breached"] is False
+    assert block["status"] == "ok"
+
+
+def test_guardrail_multi_treatment_reports_the_worst_status() -> None:
+    # Three variants: one treatment only warns, the other breaches. The metric and the block both
+    # report the worst comparison (breached > warning > ok).
+    design = _with_guardrails(_binary_design(), _guardrail_metric("error_rate", baseline_rate=2.0))
+    design["setup"]["variants_count"] = 3
+    design["setup"]["traffic_split"] = [34, 33, 33]
+    result = build_live_stats(
+        "e",
+        design,
+        _aggregates(_arm(0, 5000, 500), _arm(1, 5000, 520), _arm(2, 5000, 540)),
+        guardrail_aggregates={
+            "error_rate": _aggregates(
+                _arm(0, 5000, 100),  # 2.0%
+                _arm(1, 5000, 110),  # 2.2% -> warning
+                _arm(2, 5000, 400),  # 8.0% -> breach
+            )
+        },
+    )
+    metric = result["guardrail"]["metrics"][0]
+    assert len(metric["comparisons"]) == 2
+    assert metric["comparisons"][0]["status"] == "warning"
+    assert metric["comparisons"][1]["status"] == "breached"
+    assert metric["status"] == "breached"  # worst across treatments
+    assert result["guardrail"]["status"] == "breached"
+    assert result["guardrail"]["any_breached"] is True
+
+
+def _create_guardrail_project(client: TestClient, guardrail: dict) -> str:
+    """A binary primary experiment that declares one guardrail metric, for the endpoint path."""
+    payload = {
+        "project": {
+            "project_name": "Guardrail route exp",
+            "domain": "e-commerce",
+            "product_type": "web app",
+            "platform": "web",
+            "market": "US",
+            "project_description": "Testing the live guardrail read.",
+        },
+        "hypothesis": {
+            "change_description": "faster checkout",
+            "target_audience": "all users",
+            "business_problem": "abandonment",
+            "hypothesis_statement": "faster checkout lifts conversion",
+            "what_to_validate": "conversion",
+            "desired_result": "uplift",
+        },
+        "setup": {
+            "experiment_type": "ab",
+            "randomization_unit": "user",
+            "traffic_split": [50, 50],
+            "expected_daily_traffic": 12000,
+            "audience_share_in_test": 0.6,
+            "variants_count": 2,
+            "inclusion_criteria": "all",
+            "exclusion_criteria": "staff",
+        },
+        "metrics": {
+            "primary_metric_name": "purchase",
+            "metric_type": "binary",
+            "baseline_value": 0.10,
+            "mde_pct": 5,
+            "alpha": 0.05,
+            "power": 0.8,
+            "std_dev": None,
+            "guardrail_metrics": [guardrail],
+        },
+        "constraints": {
+            "seasonality_present": False,
+            "active_campaigns_present": False,
+            "returning_users_present": True,
+            "interference_risk": "low",
+            "technical_constraints": "none",
+            "legal_or_ethics_constraints": "none",
+            "known_risks": "none",
+            "deadline_pressure": "low",
+            "long_test_possible": True,
+        },
+        "additional_context": {"llm_context": ""},
+    }
+    created = client.post("/api/v1/projects", json=payload)
+    assert created.status_code == 200, created.text
+    return created.json()["id"]
+
+
+def test_live_stats_route_collects_guardrail_aggregates_by_name() -> None:
+    # End-to-end: a guardrail's outcomes ride the ordinary conversion stream under the guardrail's
+    # name; the endpoint rolls them up per name and the live block reports the breach. This proves
+    # routes/execution._compute_live_stats assembles guardrail_aggregates keyed by metric name.
+    client = TestClient(create_app())
+    project_id = _create_guardrail_project(
+        client,
+        {
+            "name": "error_rate",
+            "metric_type": "binary",
+            "baseline_rate": 5.0,
+            "direction": "increase_is_bad",
+        },
+    )
+
+    control = [f"c{i}" for i in range(40)]
+    treatment = [f"t{i}" for i in range(40)]
+    exposures = [{"user_id": u, "variation_index": 0} for u in control]
+    exposures += [{"user_id": u, "variation_index": 1} for u in treatment]
+    assert (
+        client.post(
+            f"/api/v1/experiments/{project_id}/exposures", json={"exposures": exposures}
+        ).status_code
+        == 200
+    )
+
+    # Guardrail outcomes under the guardrail's own metric name: 2/40 control vs 20/40 treatment.
+    guardrail_events = [
+        {"user_id": u, "metric": "error_rate", "value": 1.0} for u in control[:2]
+    ]
+    guardrail_events += [
+        {"user_id": u, "metric": "error_rate", "value": 1.0} for u in treatment[:20]
+    ]
+    assert (
+        client.post(
+            f"/api/v1/experiments/{project_id}/conversions", json={"conversions": guardrail_events}
+        ).status_code
+        == 200
+    )
+
+    response = client.get(f"/api/v1/experiments/{project_id}/live-stats")
+    assert response.status_code == 200, response.text
+    block = response.json()["guardrail"]
+    assert block["status"] == "breached"
+    assert block["any_breached"] is True
+    metric = block["metrics"][0]
+    assert metric["name"] == "error_rate"
+    comparison = metric["comparisons"][0]
+    assert comparison["is_breached"] is True
+    assert comparison["control"]["point_estimate"] == pytest.approx(0.05)  # 2/40
+    assert comparison["treatment"]["point_estimate"] == pytest.approx(0.5)  # 20/40

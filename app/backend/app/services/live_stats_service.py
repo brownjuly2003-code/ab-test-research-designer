@@ -44,6 +44,14 @@ from app.backend.app.stats.always_valid import (
     default_mixture_variance,
     evaluate_always_valid,
 )
+from app.backend.app.stats.guardrail import (
+    INCREASE_IS_BAD,
+    STATUS_BREACHED,
+    STATUS_OK,
+    STATUS_WARNING,
+    evaluate_guardrail,
+    worst_status,
+)
 from app.backend.app.stats.ratio import compare_ratios, ratio_estimate
 from app.backend.app.stats.srm import chi_square_srm
 
@@ -69,6 +77,7 @@ def build_live_stats(
     cuped_aggregates: dict[str, Any] | None = None,
     ratio_aggregates: dict[str, Any] | None = None,
     stratified_aggregates: dict[str, Any] | None = None,
+    guardrail_aggregates: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Assemble the live-stats payload from a stored experiment design and the current
     per-variation analysis aggregates (``repository.get_experiment_analysis_aggregates``).
@@ -79,7 +88,11 @@ def build_live_stats(
 
     ``ratio_aggregates`` (``repository.get_ratio_aggregates``) carries the per-variation ratio
     sufficient statistics (numerator/denominator per user); it drives the comparisons when the
-    design's ``metric_type`` is ``ratio`` (delta method) and is ignored otherwise."""
+    design's ``metric_type`` is ``ratio`` (delta method) and is ignored otherwise.
+
+    ``guardrail_aggregates`` maps each declared guardrail metric name to its per-variation analysis
+    aggregates (same shape as ``aggregates``, one entry per guardrail); ``None`` / empty keeps the
+    guardrail block ``unavailable``."""
     metrics = project_payload.get("metrics", {})
     setup = project_payload.get("setup", {})
     constraints = project_payload.get("constraints", {})
@@ -176,6 +189,12 @@ def build_live_stats(
         exposed_total=exposures_total,
         stratified_aggregates=stratified_aggregates,
     )
+    guardrail = _build_guardrail_block(
+        guardrail_metrics=metrics.get("guardrail_metrics", []),
+        guardrail_aggregates=guardrail_aggregates,
+        variants_count=variants_count,
+        alpha=adjusted_alpha,
+    )
 
     return {
         "experiment_id": experiment_id,
@@ -189,6 +208,7 @@ def build_live_stats(
         "sequential": sequential,
         "cuped": cuped,
         "stratified": stratified,
+        "guardrail": guardrail,
     }
 
 
@@ -1154,4 +1174,232 @@ def _build_stratified_block(
         "stratified_users_total": covered_total,
         "exposed_users_total": exposed_total,
         "comparisons": comparisons,
+    }
+
+
+# --- Guardrail metrics on live data (F4) -----------------------------------------------------
+#
+# A guardrail metric must not be harmed by the treatment. Unlike the two-sided primary test, each
+# guardrail is checked with a *directed* one-sided breach test (``stats.guardrail``): the harm is the
+# treatment−control difference signed by the guardrail's harm direction, its variance is the same
+# unpooled (binary p(1−p)/n) / Welch (continuous s²/n) variance the primary comparison uses, and a
+# breach is a statistically significant degradation beyond an optional tolerance margin. Guardrail
+# outcomes are ingested through the ordinary conversion stream (one conversion metric per guardrail
+# name) and rolled up by ``repository.get_experiment_analysis_aggregates`` per guardrail — no new
+# store and no new test statistic. A breach feeds the decision readout as a ship blocker.
+
+_NOTE_GUARDRAIL_NONE = (
+    "No guardrail metrics are declared for this experiment. Add guardrail metrics in the design to "
+    "monitor protected metrics (latency, error rate, revenue) for regressions on live data."
+)
+_NOTE_GUARDRAIL_UNAVAILABLE = (
+    "Guardrail metrics are declared but no guardrail outcomes have been ingested yet. Send guardrail "
+    "events through POST /api/v1/experiments/{id}/conversions using each guardrail's name as the "
+    "conversion metric."
+)
+_NOTE_GUARDRAIL_OK = (
+    "No guardrail metric shows a significant regression beyond its tolerance margin."
+)
+_NOTE_GUARDRAIL_WARNING = (
+    "A guardrail metric is degrading past its tolerance margin but not yet significantly — watch it "
+    "before shipping."
+)
+_NOTE_GUARDRAIL_BREACHED = (
+    "A guardrail metric is significantly degraded beyond its tolerance margin. Shipping is blocked "
+    "until the regression is understood."
+)
+_GUARDRAIL_INSUFFICIENT_NOTE = (
+    "Each arm needs at least 2 exposed users with guardrail data before a breach test can run."
+)
+
+
+def _guardrail_baseline(metric: dict[str, Any]) -> float | None:
+    """Design baseline of a guardrail in natural units: the rate (``baseline_rate`` is a percent) for
+    a binary guardrail, the mean for a continuous one. ``None`` when the design omits it (then no
+    relative margin can be scaled and the margin falls back to 0)."""
+    if metric.get("metric_type") == "binary":
+        baseline_rate = metric.get("baseline_rate")
+        return float(baseline_rate) / 100.0 if baseline_rate is not None else None
+    baseline_mean = metric.get("baseline_mean")
+    return float(baseline_mean) if baseline_mean is not None else None
+
+
+def _guardrail_margin_abs(metric: dict[str, Any]) -> float:
+    """Tolerated degradation in natural units = baseline · margin_pct/100; 0 when no margin (any
+    significant degradation breaches) or no usable baseline to scale a relative margin against."""
+    margin_pct = metric.get("non_inferiority_margin_pct")
+    if margin_pct is None:
+        return 0.0
+    baseline = _guardrail_baseline(metric)
+    if baseline is None:
+        return 0.0
+    return abs(baseline) * float(margin_pct) / 100.0
+
+
+def _guardrail_point(metric_type: str, arm: dict[str, Any]) -> tuple[float, float] | None:
+    """``(point estimate, variance of that estimate)`` for one guardrail arm, or ``None`` when the
+    arm has fewer than 2 exposed users. Reuses the same unpooled binary / continuous moments as
+    post-stratification — no new statistic."""
+    n = int(arm["exposed_users"])
+    if n < 2:
+        return None
+    if metric_type == "binary":
+        return stratification.binary_point_variance(int(arm["converted_users"]), n)
+    return stratification.continuous_point_variance(
+        float(arm["value_sum"]), float(arm["value_sq_sum"]), n
+    )
+
+
+def _guardrail_arm_stat(metric_type: str, arm: dict[str, Any]) -> dict[str, Any]:
+    point = _guardrail_point(metric_type, arm)
+    return {
+        "variation_index": int(arm["variation_index"]),
+        "exposed_users": int(arm["exposed_users"]),
+        "point_estimate": round(point[0], 6) if point is not None else None,
+    }
+
+
+def _guardrail_comparison(
+    *,
+    metric_type: str,
+    direction: str,
+    margin_abs: float,
+    alpha: float,
+    control: dict[str, Any],
+    treatment: dict[str, Any],
+) -> dict[str, Any]:
+    base: dict[str, Any] = {
+        "treatment_index": int(treatment["variation_index"]),
+        "control": _guardrail_arm_stat(metric_type, control),
+        "treatment": _guardrail_arm_stat(metric_type, treatment),
+        "effect": None,
+        "harm": None,
+        "harm_lower_bound": None,
+        "margin": round(margin_abs, 8),
+        "p_value": None,
+        "is_breached": None,
+        "note": None,
+    }
+    control_point = _guardrail_point(metric_type, control)
+    treatment_point = _guardrail_point(metric_type, treatment)
+    if control_point is None or treatment_point is None:
+        base["status"] = "insufficient_data"
+        base["note"] = _GUARDRAIL_INSUFFICIENT_NOTE
+        return base
+    effect = treatment_point[0] - control_point[0]
+    variance = control_point[1] + treatment_point[1]
+    result = evaluate_guardrail(
+        effect, variance, direction=direction, margin=margin_abs, alpha=alpha
+    )
+    if result is None:
+        base["status"] = "insufficient_data"
+        base["note"] = (
+            "Guardrail values show zero variance in an arm, so a breach test cannot be computed yet."
+        )
+        return base
+    base["status"] = result["status"]
+    base["effect"] = round(effect, 6)
+    base["harm"] = round(result["harm"], 6)
+    base["harm_lower_bound"] = round(result["harm_lower_bound"], 6)
+    base["p_value"] = round(result["p_value"], 6)
+    base["is_breached"] = result["is_breached"]
+    return base
+
+
+def _guardrail_metric_result(
+    *,
+    metric: dict[str, Any],
+    aggregates: dict[str, Any] | None,
+    variants_count: int,
+    alpha: float,
+) -> dict[str, Any]:
+    metric_type = str(metric.get("metric_type", "binary"))
+    direction = str(metric.get("direction", INCREASE_IS_BAD))
+    margin_abs = _guardrail_margin_abs(metric)
+    by_index = {
+        int(item["variation_index"]): item
+        for item in (aggregates or {}).get("variations", [])
+    }
+    arms = [
+        by_index.get(
+            index,
+            {
+                "variation_index": index,
+                "exposed_users": 0,
+                "converted_users": 0,
+                "value_sum": 0.0,
+                "value_sq_sum": 0.0,
+            },
+        )
+        for index in range(variants_count)
+    ]
+    comparisons = [
+        _guardrail_comparison(
+            metric_type=metric_type,
+            direction=direction,
+            margin_abs=margin_abs,
+            alpha=alpha,
+            control=arms[0],
+            treatment=arms[treatment_index],
+        )
+        for treatment_index in range(1, variants_count)
+    ]
+    evaluated = [c["status"] for c in comparisons if c["status"] != "insufficient_data"]
+    status = worst_status(evaluated) if evaluated else "insufficient_data"
+    margin_pct = metric.get("non_inferiority_margin_pct")
+    return {
+        "name": str(metric.get("name", "")),
+        "metric_type": metric_type,
+        "direction": direction,
+        "margin_pct": float(margin_pct) if margin_pct is not None else None,
+        "status": status,
+        "comparisons": comparisons,
+    }
+
+
+def _build_guardrail_block(
+    *,
+    guardrail_metrics: list[dict[str, Any]],
+    guardrail_aggregates: dict[str, Any] | None,
+    variants_count: int,
+    alpha: float,
+) -> dict[str, Any]:
+    if not guardrail_metrics:
+        return {
+            "status": "unavailable",
+            "note": _NOTE_GUARDRAIL_NONE,
+            "any_breached": False,
+            "metrics": [],
+        }
+
+    aggregates_by_name = guardrail_aggregates or {}
+    metrics = [
+        _guardrail_metric_result(
+            metric=metric,
+            aggregates=aggregates_by_name.get(str(metric.get("name", ""))),
+            variants_count=variants_count,
+            alpha=alpha,
+        )
+        for metric in guardrail_metrics
+    ]
+    evaluated = [m["status"] for m in metrics if m["status"] != "insufficient_data"]
+    any_breached = any(m["status"] == STATUS_BREACHED for m in metrics)
+    if not evaluated:
+        return {
+            "status": "unavailable",
+            "note": _NOTE_GUARDRAIL_UNAVAILABLE,
+            "any_breached": False,
+            "metrics": metrics,
+        }
+    block_status = worst_status(evaluated)
+    note = {
+        STATUS_BREACHED: _NOTE_GUARDRAIL_BREACHED,
+        STATUS_WARNING: _NOTE_GUARDRAIL_WARNING,
+        STATUS_OK: _NOTE_GUARDRAIL_OK,
+    }[block_status]
+    return {
+        "status": block_status,
+        "note": note,
+        "any_breached": any_breached,
+        "metrics": metrics,
     }

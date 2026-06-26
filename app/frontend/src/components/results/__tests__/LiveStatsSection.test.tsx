@@ -210,6 +210,39 @@ const stratifiedAvailableResponse = {
   }
 };
 
+const guardrailBreachedResponse = {
+  ...liveStatsResponse,
+  guardrail: {
+    status: "breached",
+    note: "A guardrail metric is significantly degraded beyond its tolerance margin.",
+    any_breached: true,
+    metrics: [
+      {
+        name: "error_rate",
+        metric_type: "binary",
+        direction: "increase_is_bad",
+        margin_pct: null,
+        status: "breached",
+        comparisons: [
+          {
+            treatment_index: 1,
+            status: "breached",
+            control: { variation_index: 0, exposed_users: 5000, point_estimate: 0.02 },
+            treatment: { variation_index: 1, exposed_users: 5000, point_estimate: 0.08 },
+            effect: 0.06,
+            harm: 0.06,
+            harm_lower_bound: 0.052,
+            margin: 0.0,
+            p_value: 0.0001,
+            is_breached: true,
+            note: null
+          }
+        ]
+      }
+    ]
+  }
+};
+
 describe("LiveStatsSection", () => {
   beforeEach(() => {
     resetResultsStores();
@@ -375,6 +408,31 @@ describe("LiveStatsSection", () => {
       expect(text).toContain("Variance reduction"); // stratifiedReduction line
       expect(text).toContain("ios"); // per-stratum breakdown
       expect(text).toContain("android");
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("renders the guardrail block with a breached metric", async () => {
+    const fetchMock = vi.fn(async (..._args: unknown[]) => ({
+      ok: true,
+      json: async () => guardrailBreachedResponse
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const view = await renderIntoDocument(<LiveStatsSection />);
+    try {
+      await flushEffects();
+      await click(findButton(view.container, "Refresh live stats"));
+      await flushEffects();
+      await flushEffects();
+
+      const text = view.container.textContent ?? "";
+      expect(text).toContain("Guardrail metrics"); // block title
+      expect(text).toContain("error_rate"); // metric name
+      expect(text).toContain("Breached"); // status pill label
+      expect(text).toContain("increase is harmful"); // harm-direction label
+      expect(text).toContain("one-sided lower bound"); // guardrailEffectLine
     } finally {
       await view.unmount();
     }

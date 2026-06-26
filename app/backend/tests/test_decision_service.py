@@ -244,3 +244,67 @@ def test_positive_but_weak_probability_does_not_ship() -> None:
     )
     assert decision["verdict"] == "keep_running"
     assert "ship" not in decision["verdict"]
+
+
+# --- guardrail breach veto (F4) -------------------------------------------------------
+
+
+def _guardrail(name: str, *, baseline_rate: float, direction: str = "increase_is_bad") -> dict:
+    return {
+        "name": name,
+        "metric_type": "binary",
+        "baseline_rate": baseline_rate,
+        "baseline_mean": None,
+        "std_dev": None,
+        "direction": direction,
+        "non_inferiority_margin_pct": None,
+    }
+
+
+def _decide_with_guardrail(
+    design: dict, primary: list[dict], guardrail_name: str, guardrail_arms: list[dict]
+) -> dict:
+    live = build_live_stats(
+        "e",
+        design,
+        _aggregates(*primary),
+        guardrail_aggregates={guardrail_name: _aggregates(*guardrail_arms)},
+    )
+    return synthesize_decision(live)
+
+
+def test_guardrail_breach_vetoes_a_primary_win() -> None:
+    # The primary is a clear win (10% -> 12%), but the error-rate guardrail breaches (2% -> 8%): the
+    # data is trustworthy, yet the treatment harms a protected metric, so the win is vetoed.
+    design = _binary_design()
+    design["metrics"]["guardrail_metrics"] = [_guardrail("error_rate", baseline_rate=5.0)]
+    decision = _decide_with_guardrail(
+        design,
+        [_arm(0, 5000, 500), _arm(1, 5000, 600)],
+        "error_rate",
+        [_arm(0, 5000, 100), _arm(1, 5000, 400)],
+    )
+    assert decision["verdict"] == "no_ship"
+    assert decision["confidence"] == "high"
+    assert "guardrail_breach" in _codes(decision["blockers"])
+    assert "guardrail_vetoed" in _codes(decision["reasons"])
+    # The vetoed primary win is still surfaced so the operator sees what the guardrail overrode.
+    assert "significant_win" in _codes(decision["reasons"])
+    blocker = next(b for b in decision["blockers"] if b["code"] == "guardrail_breach")
+    assert blocker["params"]["metric"] == "error_rate"
+
+
+def test_guardrail_warning_does_not_veto_a_win() -> None:
+    # A guardrail that only warns (degrades but not significantly) is not a breach: the primary win
+    # still ships. Only a breach vetoes.
+    design = _binary_design()
+    design["metrics"]["guardrail_metrics"] = [_guardrail("error_rate", baseline_rate=5.0)]
+    decision = _decide_with_guardrail(
+        design,
+        [_arm(0, 5000, 500), _arm(1, 5000, 600)],
+        "error_rate",
+        [_arm(0, 1000, 50), _arm(1, 1000, 62)],
+    )
+    assert decision["verdict"] == "ship"
+    assert "guardrail_breach" not in _codes(decision["blockers"])
+    assert "guardrail_vetoed" not in _codes(decision["reasons"])

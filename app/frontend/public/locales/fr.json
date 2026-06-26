@@ -254,6 +254,12 @@
       "baselineMeanAriaLabel": "Moyenne de base du garde-corps {{index}}",
       "stdDev": "Développeur standard",
       "stdDevAriaLabel": "Garde-corps standard dév. {{index}}",
+      "direction": "Sens du préjudice",
+      "directionAriaLabel": "Sens du préjudice du garde-fou {{index}}",
+      "increaseIsBad": "Une hausse est nuisible",
+      "decreaseIsBad": "Une baisse est nuisible",
+      "marginPct": "Marge de tolérance %",
+      "marginAriaLabel": "Marge de tolérance du garde-fou en pourcentage {{index}}",
       "add": "Ajouter une métrique de garde-corps"
     },
     "buttons": {
@@ -790,7 +796,16 @@
       "stratifiedEffect": "Effet post-stratifié {{effect}} · IC [{{lower}}, {{upper}}] · p {{p}}",
       "stratifiedReduction": "Réduction de variance {{reduction}}% · combinée sur {{n}} strates",
       "stratifiedStratumLine": "{{stratum}} : {{users}} utilisateurs · effet {{effect}}",
-      "stratifiedPending": "Aucune strate n'a encore les deux groupes avec assez d'utilisateurs pour un test post-stratifié."
+      "stratifiedPending": "Aucune strate n'a encore les deux groupes avec assez d'utilisateurs pour un test post-stratifié.",
+      "guardrailTitle": "Métriques de garde-fou",
+      "guardrailOk": "OK",
+      "guardrailWarning": "Avertissement",
+      "guardrailBreached": "Enfreinte",
+      "guardrailPending": "Pas encore assez de données de garde-fou pour un test de dégradation.",
+      "guardrailIncreaseIsBad": "une hausse est nuisible",
+      "guardrailDecreaseIsBad": "une baisse est nuisible",
+      "guardrailArmLine": "{{exposed}} exposés · {{point}}",
+      "guardrailEffectLine": "Préjudice {{harm}} · borne inférieure unilatérale {{lower}} · p {{p}}"
     },
     "decision": {
       "title": "Synthèse de décision",
@@ -835,10 +850,12 @@
         "significant_loss": "{{arm}} est significativement moins bon que le contrôle ({{effect}} d'effet relatif).",
         "inconclusive_ci": "{{arm}} : l'intervalle de confiance inclut encore zéro — pas d'effet clair pour l'instant.",
         "info_fraction_incomplete": "Seulement {{fraction}} de l'échantillon prévu a été collecté.",
-        "info_fraction_complete_no_effect": "L'expérience a atteint sa taille prévue sans effet détectable."
+        "info_fraction_complete_no_effect": "L'expérience a atteint sa taille prévue sans effet détectable.",
+        "guardrail_vetoed": "Une métrique de garde-fou est enfreinte, le résultat n'est donc pas livrable même si la métrique principale gagne."
       },
       "blocker": {
-        "srm_mismatch": "Discordance du ratio d'échantillons (p={{p}}) — l'affectation semble cassée ; corrigez la randomisation ou le suivi avant de faire confiance aux résultats."
+        "srm_mismatch": "Discordance du ratio d'échantillons (p={{p}}) — l'affectation semble cassée ; corrigez la randomisation ou le suivi avant de faire confiance aux résultats.",
+        "guardrail_breach": "Le garde-fou « {{metric}} » est dégradé de façon significative au-delà de sa tolérance — la livraison est bloquée jusqu'à comprendre la régression."
       }
     }
   },

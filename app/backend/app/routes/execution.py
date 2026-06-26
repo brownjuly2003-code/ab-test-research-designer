@@ -126,6 +126,14 @@ def create_execution_router(
                 ratio_aggregates = repository.get_ratio_aggregates(
                     experiment_id, numerator, denominator
                 )
+        # Guardrail metrics (F4): each declared guardrail's outcome rides the ordinary conversion
+        # stream under its own metric name, so it rolls up through the same per-variation analysis
+        # aggregates as the primary — one lookup per guardrail, keyed by name for the live block.
+        guardrail_aggregates = {
+            name: repository.get_experiment_analysis_aggregates(experiment_id, name)
+            for metric in (metrics.get("guardrail_metrics") or [])
+            if (name := metric.get("name"))
+        }
         return build_live_stats(
             experiment_id,
             project["payload"],
@@ -133,6 +141,7 @@ def create_execution_router(
             cuped_aggregates,
             ratio_aggregates,
             stratified_aggregates,
+            guardrail_aggregates,
         )
 
     @router.get(

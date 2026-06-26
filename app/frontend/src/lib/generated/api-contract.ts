@@ -518,6 +518,8 @@ export type GuardrailMetricInput = {
   baseline_rate?: number | null;
   baseline_mean?: number | null;
   std_dev?: number | null;
+  direction?: "increase_is_bad" | "decrease_is_bad";
+  non_inferiority_margin_pct?: number | null;
 };
 
 export type GuardrailMetricReport = {
@@ -657,6 +659,42 @@ export type LiveCupedCovariate = {
   theta: number;
 };
 
+export type LiveGuardrailArmStat = {
+  variation_index: number;
+  exposed_users: number;
+  point_estimate?: number | null;
+};
+
+export type LiveGuardrailBlock = {
+  status: string;
+  note: string;
+  any_breached?: boolean;
+  metrics?: LiveGuardrailMetricResult[];
+};
+
+export type LiveGuardrailComparison = {
+  treatment_index: number;
+  status: string;
+  control: LiveGuardrailArmStat;
+  treatment: LiveGuardrailArmStat;
+  effect?: number | null;
+  harm?: number | null;
+  harm_lower_bound?: number | null;
+  margin?: number | null;
+  p_value?: number | null;
+  is_breached?: boolean | null;
+  note?: string | null;
+};
+
+export type LiveGuardrailMetricResult = {
+  name: string;
+  metric_type: string;
+  direction: string;
+  margin_pct?: number | null;
+  status: string;
+  comparisons?: LiveGuardrailComparison[];
+};
+
 export type LiveSequentialBlock = {
   status: string;
   n_looks: number;
@@ -689,6 +727,7 @@ export type LiveStatsResponse = {
   sequential: LiveSequentialBlock;
   cuped: LiveCupedBlock;
   stratified: LiveStratifiedBlock;
+  guardrail: LiveGuardrailBlock;
 };
 
 export type LiveStratifiedBlock = {

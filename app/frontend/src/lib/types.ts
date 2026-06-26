@@ -93,10 +93,14 @@ export type MetricsPayloadSection = ExperimentInputPayload["metrics"];
 export type ConstraintsSection = ExperimentInputPayload["constraints"];
 export type MetricType = MetricsPayloadSection["metric_type"];
 export type GuardrailMetricPayload = NonNullable<MetricsPayloadSection["guardrail_metrics"]>[number];
-export type GuardrailMetricDraft = Omit<GuardrailMetricPayload, "baseline_rate" | "baseline_mean" | "std_dev"> & {
+export type GuardrailMetricDraft = Omit<
+  GuardrailMetricPayload,
+  "baseline_rate" | "baseline_mean" | "std_dev" | "non_inferiority_margin_pct"
+> & {
   baseline_rate?: number | "";
   baseline_mean?: number | "";
   std_dev?: number | "";
+  non_inferiority_margin_pct?: number | "";
 };
 export type GuardrailMetricResult = NonNullable<ApiExperimentReport["guardrail_metrics"]>[number];
 

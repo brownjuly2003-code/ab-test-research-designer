@@ -254,6 +254,12 @@
       "baselineMeanAriaLabel": "Media de línea base guardrail {{index}}",
       "stdDev": "Desarrollo estándar",
       "stdDevAriaLabel": "Desviación estándar de guardrail {{index}}",
+      "direction": "Dirección del daño",
+      "directionAriaLabel": "Dirección del daño del guardrail {{index}}",
+      "increaseIsBad": "Aumentar es perjudicial",
+      "decreaseIsBad": "Disminuir es perjudicial",
+      "marginPct": "Margen de tolerancia %",
+      "marginAriaLabel": "Margen de tolerancia del guardrail en porcentaje {{index}}",
       "add": "Agregar métrica guardrail"
     },
     "buttons": {
@@ -790,7 +796,16 @@
       "stratifiedEffect": "Efecto posestratificado {{effect}} · IC [{{lower}}, {{upper}}] · p {{p}}",
       "stratifiedReduction": "Reducción de varianza {{reduction}}% · combinado en {{n}} estratos",
       "stratifiedStratumLine": "{{stratum}}: {{users}} usuarios · efecto {{effect}}",
-      "stratifiedPending": "Todavía ningún estrato tiene ambos grupos con suficientes usuarios para una prueba posestratificada."
+      "stratifiedPending": "Todavía ningún estrato tiene ambos grupos con suficientes usuarios para una prueba posestratificada.",
+      "guardrailTitle": "Métricas de protección",
+      "guardrailOk": "OK",
+      "guardrailWarning": "Advertencia",
+      "guardrailBreached": "Vulnerada",
+      "guardrailPending": "Aún no hay suficientes datos de la métrica de protección para una prueba de deterioro.",
+      "guardrailIncreaseIsBad": "un aumento es perjudicial",
+      "guardrailDecreaseIsBad": "una disminución es perjudicial",
+      "guardrailArmLine": "{{exposed}} expuestos · {{point}}",
+      "guardrailEffectLine": "Daño {{harm}} · límite inferior unilateral {{lower}} · p {{p}}"
     },
     "decision": {
       "title": "Lectura de decisión",
@@ -835,10 +850,12 @@
         "significant_loss": "{{arm}} es significativamente peor que el control ({{effect}} de efecto relativo).",
         "inconclusive_ci": "{{arm}}: el intervalo de confianza todavía incluye el cero, aún no hay un efecto claro.",
         "info_fraction_incomplete": "Solo se ha recopilado {{fraction}} de la muestra planificada.",
-        "info_fraction_complete_no_effect": "El experimento alcanzó su tamaño planificado sin un efecto detectable."
+        "info_fraction_complete_no_effect": "El experimento alcanzó su tamaño planificado sin un efecto detectable.",
+        "guardrail_vetoed": "Una métrica de protección está vulnerada, por lo que el resultado no es desplegable aunque la métrica principal gane."
       },
       "blocker": {
-        "srm_mismatch": "Desajuste en la proporción de muestras (p={{p}}): la asignación parece rota; corrige la aleatorización o el seguimiento antes de confiar en cualquier resultado."
+        "srm_mismatch": "Desajuste en la proporción de muestras (p={{p}}): la asignación parece rota; corrige la aleatorización o el seguimiento antes de confiar en cualquier resultado.",
+        "guardrail_breach": "La métrica de protección «{{metric}}» se ha deteriorado significativamente más allá de su tolerancia: el despliegue está bloqueado hasta entender la regresión."
       }
     }
   },

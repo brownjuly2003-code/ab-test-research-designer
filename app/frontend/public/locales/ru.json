@@ -254,6 +254,12 @@
       "baselineMeanAriaLabel": "Baseline mean guardrail {{index}}",
       "stdDev": "Std dev",
       "stdDevAriaLabel": "Std dev guardrail {{index}}",
+      "direction": "Направление вреда",
+      "directionAriaLabel": "Направление вреда guardrail {{index}}",
+      "increaseIsBad": "Рост — это вред",
+      "decreaseIsBad": "Падение — это вред",
+      "marginPct": "Допуск, %",
+      "marginAriaLabel": "Допустимое ухудшение guardrail в процентах {{index}}",
       "add": "Добавить guardrail-метрику"
     },
     "buttons": {
@@ -802,7 +808,16 @@
       "stratifiedEffect": "Эффект со стратификацией {{effect}} · ДИ [{{lower}}, {{upper}}] · p {{p}}",
       "stratifiedReduction": "Снижение дисперсии {{reduction}}% · собрано по {{n}} стратам",
       "stratifiedStratumLine": "{{stratum}}: пользователей {{users}} · эффект {{effect}}",
-      "stratifiedPending": "Пока ни в одной страте нет обеих групп с достаточным числом пользователей для теста со стратификацией."
+      "stratifiedPending": "Пока ни в одной страте нет обеих групп с достаточным числом пользователей для теста со стратификацией.",
+      "guardrailTitle": "Защитные метрики",
+      "guardrailOk": "В норме",
+      "guardrailWarning": "Предупреждение",
+      "guardrailBreached": "Нарушено",
+      "guardrailPending": "Пока недостаточно данных по защитной метрике для проверки на ухудшение.",
+      "guardrailIncreaseIsBad": "рост — это вред",
+      "guardrailDecreaseIsBad": "падение — это вред",
+      "guardrailArmLine": "{{exposed}} показов · {{point}}",
+      "guardrailEffectLine": "Вред {{harm}} · односторонняя нижняя граница {{lower}} · p {{p}}"
     },
     "decision": {
       "title": "Итоговое решение",
@@ -847,10 +862,12 @@
         "significant_loss": "{{arm}} значимо хуже контроля ({{effect}} относительного эффекта).",
         "inconclusive_ci": "{{arm}}: доверительный интервал всё ещё включает ноль — явного эффекта пока нет.",
         "info_fraction_incomplete": "Собрано лишь {{fraction}} запланированной выборки.",
-        "info_fraction_complete_no_effect": "Эксперимент достиг запланированного размера без обнаружимого эффекта."
+        "info_fraction_complete_no_effect": "Эксперимент достиг запланированного размера без обнаружимого эффекта.",
+        "guardrail_vetoed": "Защитная метрика нарушена, поэтому результат нельзя выкатывать, даже если основная метрика выигрывает."
       },
       "blocker": {
-        "srm_mismatch": "Несоответствие соотношения выборок (p={{p}}) — назначение, похоже, сломано; исправьте рандомизацию или трекинг, прежде чем доверять результатам."
+        "srm_mismatch": "Несоответствие соотношения выборок (p={{p}}) — назначение, похоже, сломано; исправьте рандомизацию или трекинг, прежде чем доверять результатам.",
+        "guardrail_breach": "Защитная метрика «{{metric}}» значимо ухудшилась сверх допустимого — выкатка заблокирована, пока регрессия не разобрана."
       }
     }
   },
