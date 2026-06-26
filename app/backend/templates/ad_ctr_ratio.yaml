@@ -1,0 +1,63 @@
+name: Feed Ad Click-Through Ratio
+category: Monetization
+description: Test a feed ad ranking change on click-through ratio (clicks / impressions), analyzed by the delta method.
+tags:
+  - ratio
+  - ads
+  - ctr
+payload:
+  project:
+    project_name: ""
+    domain: social feed
+    product_type: mobile app
+    platform: mobile
+    market: Global
+    project_description: Re-rank feed ad inventory to lift click-through without harming the experience.
+  hypothesis:
+    change_description: Rank feed ads by predicted engagement instead of recency
+    target_audience: users who see at least one feed ad per session
+    business_problem: low-relevance ads waste impressions and depress click-through
+    hypothesis_statement: Engagement-ranked ads will raise the click-through ratio at scale.
+    what_to_validate: clicks per impression after the ranking change
+    desired_result: a statistically reliable lift in the click-through ratio
+  setup:
+    experiment_type: ab
+    randomization_unit: user
+    traffic_split:
+      - 50
+      - 50
+    expected_daily_traffic: 240000
+    audience_share_in_test: 0.5
+    variants_count: 2
+    inclusion_criteria: users served at least one feed ad
+    exclusion_criteria: bot traffic and accounts with ads disabled
+  metrics:
+    primary_metric_name: ad_ctr
+    metric_type: ratio
+    baseline_value: 0.05
+    expected_uplift_pct: 6
+    mde_pct: 5
+    alpha: 0.05
+    power: 0.8
+    std_dev: 0.09
+    numerator_metric_name: ad_clicks
+    denominator_metric_name: ad_impressions
+    secondary_metrics:
+      - ad_viewable_rate
+    guardrail_metrics: []
+  constraints:
+    seasonality_present: false
+    active_campaigns_present: false
+    returning_users_present: true
+    interference_risk: medium
+    technical_constraints: ad ranking service must stay within latency budget
+    legal_or_ethics_constraints: ad policy and brand-safety filters must be preserved
+    known_risks: impression volume per user is uneven, so the ratio is analyzed per user via the delta method
+    deadline_pressure: medium
+    long_test_possible: true
+    n_looks: 1
+    analysis_mode: frequentist
+    desired_precision: null
+    credibility: 0.95
+  additional_context:
+    llm_context: Click-through is a ratio (clicks / impressions); the denominator differs per user, so a naive variance is wrong and the delta method is used.

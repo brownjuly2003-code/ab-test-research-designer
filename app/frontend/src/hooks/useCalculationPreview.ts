@@ -154,5 +154,12 @@ function canCompute(draft: FullPayload): boolean {
     return cupedPreExperimentStd > 0 && cupedCorrelation > -1 && cupedCorrelation < 1;
   }
 
+  if (draft.metrics.metric_type === "ratio") {
+    // Ratio sizing reduces to the continuous (delta-method linearized) formula: a positive baseline
+    // ratio R and a positive per-user standard deviation are enough to plan.
+    const stdDev = Number(draft.metrics.std_dev);
+    return baselineValue > 0 && stdDev > 0;
+  }
+
   return false;
 }

@@ -24,10 +24,9 @@ Design notes:
   repository's first-write-wins dedup makes a re-run a no-op even mid-stream.
 * **No schema / API / contract / frontend change** — this is data only.
 
-A *ratio* demo is intentionally absent: a ratio experiment cannot be analyzed yet
-(``routes/analysis`` rejects ratio sizing), and the live-stats view only renders for analyzed
-projects, so a ratio demo's block could not surface. It unlocks once ratio becomes analyzable
-(Phase 3 T3.1).
+The *ratio* demo (``ad_ctr_ratio``) is seeded now that ratio metrics are analyzable (Phase 3 T3.1):
+it ingests per-user numerator (clicks) and denominator (impressions) events so the live ratio block
+(delta method + always-valid) surfaces on the demo path.
 """
 
 from __future__ import annotations
@@ -51,6 +50,7 @@ logger = logging.getLogger(__name__)
 CHECKOUT_TEMPLATE_ID = "checkout_conversion"
 PRICING_TEMPLATE_ID = "pricing_sensitivity"
 ONBOARDING_TEMPLATE_ID = "onboarding_completion"
+AD_CTR_TEMPLATE_ID = "ad_ctr_ratio"
 
 # Fixed anchor so every occurred_at window is stable across runs (the seed never reads the clock).
 # Exposures land on the anchor; in-window conversions a few days later; "late" conversions past the
@@ -64,6 +64,7 @@ _SEED_BY_TEMPLATE = {
     CHECKOUT_TEMPLATE_ID: 104_217,
     PRICING_TEMPLATE_ID: 204_519,
     ONBOARDING_TEMPLATE_ID: 304_023,
+    AD_CTR_TEMPLATE_ID: 404_837,
 }
 
 
@@ -292,10 +293,52 @@ def build_onboarding_execution(payload: dict[str, Any], rng: Random) -> Executio
     return batches
 
 
+def build_ad_ctr_execution(payload: dict[str, Any], rng: Random) -> ExecutionBatches:
+    """Ratio demo (``ad_ctr`` = ad_clicks / ad_impressions) — the delta-method surface (T3.1).
+
+    Click-through is a ratio whose denominator (impressions) differs per user, so the analysis unit
+    is the user and the variance comes from the delta method, not a naive per-impression rate. Each
+    exposed user gets a variable number of impressions and a binomial number of clicks at the arm's
+    true click-through rate, with a clear treatment lift, so the live ratio comparison (delta-method
+    R-hat, CI, p) reads significant and the always-valid view crosses. The numerator and denominator
+    ride the ordinary conversions table (one summed value per user per metric), which
+    ``get_ratio_aggregates`` rolls up into the per-arm sufficient statistics.
+    """
+    metrics = payload["metrics"]
+    numerator = metrics["numerator_metric_name"]
+    denominator = metrics["denominator_metric_name"]
+
+    batches = ExecutionBatches()
+    n_per_arm = 1200
+    exposure_at = _iso(_ANCHOR)
+    arm_rate = {0: 0.046, 1: 0.062}  # control vs treatment true click-through rate (a clear lift)
+
+    for arm in (0, 1):
+        prefix = "ctr-c" if arm == 0 else "ctr-t"
+        rate = arm_rate[arm]
+        for i in range(n_per_arm):
+            uid = f"{prefix}-{i:04d}"
+            impressions = rng.randint(4, 24)  # the denominator differs per user — the ratio's point
+            clicks = sum(1 for _ in range(impressions) if rng.random() < rate)
+            batches.exposures.append(
+                {"user_id": uid, "variation_index": arm, "occurred_at": exposure_at}
+            )
+            batches.conversions.append(
+                {"user_id": uid, "metric": denominator, "value": float(impressions), "occurred_at": _in_window_time(rng)}
+            )
+            if clicks:
+                batches.conversions.append(
+                    {"user_id": uid, "metric": numerator, "value": float(clicks), "occurred_at": _in_window_time(rng)}
+                )
+
+    return batches
+
+
 _BUILDERS: dict[str, Callable[[dict[str, Any], Random], ExecutionBatches]] = {
     CHECKOUT_TEMPLATE_ID: build_checkout_execution,
     PRICING_TEMPLATE_ID: build_pricing_execution,
     ONBOARDING_TEMPLATE_ID: build_onboarding_execution,
+    AD_CTR_TEMPLATE_ID: build_ad_ctr_execution,
 }
 
 

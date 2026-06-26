@@ -233,6 +233,52 @@ describe("useCalculationPreview", () => {
     }
   });
 
+  it("sizes a ratio metric via the delta-method path once baseline and std_dev are set", async () => {
+    vi.useFakeTimers();
+    vi.mocked(requestCalculation).mockResolvedValueOnce(buildPreview(20345, 1));
+
+    const incompleteDraft = cloneInitialState();
+    incompleteDraft.metrics.metric_type = "ratio";
+    incompleteDraft.metrics.baseline_value = 0.05;
+    incompleteDraft.metrics.std_dev = "";
+    incompleteDraft.metrics.numerator_metric_name = "ad_clicks";
+    incompleteDraft.metrics.denominator_metric_name = "ad_impressions";
+
+    const view = await renderIntoDocument(<PreviewProbe draft={incompleteDraft} enabled={true} />);
+    try {
+      await flushEffects();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(300);
+      });
+      await flushEffects();
+
+      // Without std_dev a ratio cannot be sized, so no request fires.
+      expect(requestCalculation).not.toHaveBeenCalled();
+
+      const validDraft = cloneInitialState();
+      validDraft.metrics.metric_type = "ratio";
+      validDraft.metrics.baseline_value = 0.05;
+      validDraft.metrics.std_dev = 0.09;
+      validDraft.metrics.numerator_metric_name = "ad_clicks";
+      validDraft.metrics.denominator_metric_name = "ad_impressions";
+      await view.rerender(<PreviewProbe draft={validDraft} enabled={true} />);
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(300);
+      });
+      await flushEffects();
+
+      expect(requestCalculation).toHaveBeenCalledTimes(1);
+      expect(vi.mocked(requestCalculation).mock.calls[0]?.[0]).toMatchObject({
+        metric_type: "ratio",
+        baseline_value: 0.05,
+        std_dev: 0.09
+      });
+    } finally {
+      await view.unmount();
+    }
+  });
+
   it("waits for desired precision in bayesian mode and forwards bayesian payload fields", async () => {
     vi.useFakeTimers();
     vi.mocked(requestCalculation).mockResolvedValueOnce(buildPreview(10800, 8));

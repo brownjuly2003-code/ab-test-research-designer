@@ -241,6 +241,8 @@
       "binary_baseline_range": "baseline_value doit être compris entre 0 et 1 pour les métriques binaires",
       "continuous_baseline_positive": "baseline_value doit être positif pour les métriques continues",
       "continuous_std_positive": "std_dev doit être positif pour les métriques continues",
+      "ratio_baseline_positive": "baseline_value (ratio de référence) doit être positif pour les métriques de ratio",
+      "ratio_std_positive": "std_dev (écart-type linéarisé par utilisateur) doit être positif pour les métriques de ratio",
       "bayesian_requires_precision": "Le mode bayésien nécessite wanted_precision",
       "control_conversions_exceed_users": "control_conversions ne peut pas dépasser control_users",
       "treatment_conversions_exceed_users": "traitement_conversions ne peut pas dépasser traitement_utilisateurs",

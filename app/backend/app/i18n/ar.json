@@ -241,6 +241,8 @@
       "binary_baseline_range": "يجب أن تتراوح قيمة baseline_value بين 0 و1 للمقاييس الثنائية",
       "continuous_baseline_positive": "يجب أن تكون قيمة baseline_value موجبة للمقاييس المستمرة",
       "continuous_std_positive": "يجب أن يكون std_dev موجبًا للمقاييس المستمرة",
+      "ratio_baseline_positive": "يجب أن تكون قيمة baseline_value (النسبة الأساسية) موجبة لمقاييس النسبة",
+      "ratio_std_positive": "يجب أن يكون std_dev (الانحراف المعياري المخطّط لكل مستخدم) موجبًا لمقاييس النسبة",
       "bayesian_requires_precision": "يتطلب الوضع الافتراضي الدقة المطلوبة",
       "control_conversions_exceed_users": "لا يمكن أن تتجاوز تحويلات control_users",
       "treatment_conversions_exceed_users": "لا يمكن أن تتجاوز تحويلات العلاج عدد مستخدمي العلاج",

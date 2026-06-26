@@ -36,7 +36,7 @@ def test_startup_seed_populates_demo_projects_with_analysis_and_export(monkeypat
             if project["project_name"].startswith("Demo - ")
         ]
 
-        assert len(demo_projects) == 3
+        assert len(demo_projects) == 4
         assert all(project["last_analysis_run_id"] is not None for project in demo_projects)
 
         projects_by_name = {project["project_name"]: project for project in demo_projects}
@@ -83,7 +83,7 @@ def test_startup_seed_is_idempotent_across_restarts(monkeypatch, temp_db_path) -
             for project in response.json()["projects"]
             if project["project_name"].startswith("Demo - ")
         ]
-        assert len(demo_projects) == 3
+        assert len(demo_projects) == 4
 
         checkout = _demo_by_name(client, "Demo - Checkout Conversion")
         second_ingestion = client.get(f"/api/v1/experiments/{checkout['id']}/ingestion").json()
@@ -130,6 +130,16 @@ def test_startup_seed_populates_live_execution_blocks(monkeypatch, temp_db_path)
         # --- Onboarding: deliberately inconclusive (honest "still monitoring" state) ---
         decision = client.get(f"/api/v1/experiments/{onboarding['id']}/decision").json()
         assert decision["verdict"] == "keep_running"
+
+        # --- Feed Ad CTR: the ratio demo lights up the delta-method live block (T3.1) ---
+        ctr = _demo_by_name(client, "Demo - Feed Ad Click-Through Ratio")
+        live = client.get(f"/api/v1/experiments/{ctr['id']}/live-stats").json()
+        assert live["metric_type"] == "ratio"
+        assert live["srm"]["status"] == "ok"
+        comparison = live["comparisons"][0]
+        assert comparison["treatment"]["ratio"] > comparison["control"]["ratio"]
+        assert comparison["analysis"]["is_significant"] is True
+        assert comparison["always_valid"]["is_significant"] is True
 
 
 def test_startup_seed_disabled_does_not_create_projects(monkeypatch, temp_db_path) -> None:

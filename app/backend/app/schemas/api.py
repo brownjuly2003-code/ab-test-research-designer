@@ -288,7 +288,7 @@ class ExperimentInput(BaseModel):
 class CalculationRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    metric_type: Literal["binary", "continuous"]
+    metric_type: Literal["binary", "continuous", "ratio"]
     baseline_value: float
     std_dev: float | None = None
     cuped_pre_experiment_std: float | None = Field(default=None, gt=0)
@@ -328,6 +328,13 @@ class CalculationRequest(BaseModel):
                 raise ValueError(translate("errors.schemas.continuous_baseline_positive"))
             if self.std_dev is None or self.std_dev <= 0:
                 raise ValueError(translate("errors.schemas.continuous_std_positive"))
+        # Ratio sizing reuses the continuous (delta-method linearized) sample-size formula, so it
+        # needs a positive baseline ratio R and a positive per-user linearized standard deviation.
+        if self.metric_type == "ratio":
+            if self.baseline_value <= 0:
+                raise ValueError(translate("errors.schemas.ratio_baseline_positive"))
+            if self.std_dev is None or self.std_dev <= 0:
+                raise ValueError(translate("errors.schemas.ratio_std_positive"))
         return self
 
     @model_validator(mode="after")

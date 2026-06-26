@@ -18,7 +18,7 @@ export const FIELD_TOOLTIPS: Record<string, string> = {
   variants_count:
     "Total number of variants including control. 2 = a classic A/B test, while 3+ variants increase sample needs.",
   baseline_value:
-    "Current baseline metric. For binary metrics use 0.042 for 4.2%; for continuous metrics use the current mean, such as 45.20.",
+    "Current baseline metric. For binary metrics use 0.042 for 4.2%; for continuous metrics use the current mean, such as 45.20; for ratio metrics use the baseline ratio R, such as 0.05 for a 5% click-through rate.",
   expected_uplift_pct:
     "Expected relative improvement versus baseline. Example: 8 means the treatment is expected to improve the metric by 8%. This is planning context only and does not change the required sample size.",
   mde_pct:
@@ -34,7 +34,7 @@ export const FIELD_TOOLTIPS: Record<string, string> = {
   credibility:
     "Credibility level for the Bayesian interval. 0.95 corresponds to a 95% credible interval.",
   std_dev:
-    "Standard deviation of the continuous metric. Required only for continuous metrics; example: 12.5 for average order value.",
+    "Standard deviation per randomization unit. Required for continuous metrics (e.g. 12.5 for average order value) and for ratio metrics, where it is the per-user delta-method linearized standard deviation used to plan the sample size.",
   numerator_metric_name:
     "Numerator event for a ratio metric (e.g. clicks for click-through rate). Ingest it as a conversion metric of this name; the live delta-method test reads it per user.",
   denominator_metric_name:
@@ -159,7 +159,8 @@ export const sections: SectionConfig[] = [
         key: "std_dev",
         kind: "number",
         emptyValue: "",
-        visibleWhen: (state) => state.metrics.metric_type === "continuous",
+        visibleWhen: (state) =>
+          state.metrics.metric_type === "continuous" || state.metrics.metric_type === "ratio",
         helpText: FIELD_TOOLTIPS.std_dev
       },
       {

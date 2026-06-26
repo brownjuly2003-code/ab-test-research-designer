@@ -14,6 +14,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
 from app.backend.app.demo_execution import (  # noqa: E402
+    AD_CTR_TEMPLATE_ID,
     CHECKOUT_TEMPLATE_ID,
     ONBOARDING_TEMPLATE_ID,
     PRICING_TEMPLATE_ID,
@@ -21,6 +22,7 @@ from app.backend.app.demo_execution import (  # noqa: E402
     _LATE_OFFSET,
     _OUT_OF_ORDER_OFFSET,
     _SEED_BY_TEMPLATE,
+    build_ad_ctr_execution,
     build_checkout_execution,
     build_onboarding_execution,
     build_pricing_execution,
@@ -47,6 +49,7 @@ def _rng(template_id: str) -> Random:
         (CHECKOUT_TEMPLATE_ID, build_checkout_execution),
         (PRICING_TEMPLATE_ID, build_pricing_execution),
         (ONBOARDING_TEMPLATE_ID, build_onboarding_execution),
+        (AD_CTR_TEMPLATE_ID, build_ad_ctr_execution),
     ],
 )
 def test_builders_are_deterministic(template_id, builder) -> None:
@@ -115,6 +118,31 @@ def test_pricing_builder_shape() -> None:
     assert {s["stratum"] for s in batches.strata} == {"new", "returning"}
 
     # No holdout / identity / exclusion surface on the pricing demo (those live on checkout).
+    assert batches.holdout == []
+    assert batches.identities == []
+    assert batches.exclusions == []
+
+
+def test_ad_ctr_builder_shape() -> None:
+    payload = _payload(AD_CTR_TEMPLATE_ID)
+    numerator = payload["metrics"]["numerator_metric_name"]
+    denominator = payload["metrics"]["denominator_metric_name"]
+    batches = build_ad_ctr_execution(payload, _rng(AD_CTR_TEMPLATE_ID))
+
+    # 1200/arm exposures; every user carries a denominator (impressions) event.
+    assert len(batches.exposures) == 2400
+    assert {e["variation_index"] for e in batches.exposures} == {0, 1}
+    impressions = [c for c in batches.conversions if c["metric"] == denominator]
+    clicks = [c for c in batches.conversions if c["metric"] == numerator]
+    assert len(impressions) == 2400
+    # Clicks are a binomial subset, so there are some but fewer than one per user.
+    assert 0 < len(clicks) < 2400
+    # The denominator differs per user (the whole point of a ratio metric).
+    assert len({c["value"] for c in impressions}) > 1
+
+    # The ratio demo is purely numerator/denominator events — no other execution surface.
+    assert batches.pre_period_values == []
+    assert batches.strata == []
     assert batches.holdout == []
     assert batches.identities == []
     assert batches.exclusions == []

@@ -244,12 +244,9 @@ export function buildAnalyzePayload(state: FullPayload): ExperimentInputPayload 
 export function buildCalculationPayload(state: FullPayload): CalculateRequest {
   const payload = buildApiPayload(state);
 
-  // Ratio metrics have no sample-size planner (sizing is a later sub-phase) — they are analyzed
-  // live via the delta method. The live preview's `canCompute` guard already skips ratio, so this
-  // is only a type-narrowing safeguard and is never reached in normal use.
-  if (payload.metrics.metric_type === "ratio") {
-    throw new Error("ratio metrics do not support sample-size planning");
-  }
+  // Ratio metrics are sized by the delta method (the per-user linearized value is treated as a
+  // continuous metric with the supplied std_dev), so they flow through the planner like binary and
+  // continuous. `canCompute` requires a positive baseline ratio and std_dev before this runs.
   const metricType = payload.metrics.metric_type;
 
   return {
