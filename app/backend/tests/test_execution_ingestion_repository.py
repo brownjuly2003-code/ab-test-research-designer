@@ -307,3 +307,149 @@ def test_event_timing_summary_defaults_omitted_event_time_to_in_window() -> None
     summary = repo.get_event_timing_summary(exp, "purchase", 14.0)
     assert summary is not None
     assert (summary["in_window"], summary["late"], summary["out_of_order"]) == (1, 0, 0)
+
+
+def test_identity_resolution_empty_map_is_a_noop() -> None:
+    """With no identity links the resolved rollup is byte-identical to the unresolved one (P4.3):
+    the resolution is invisible to every existing path. This is the safety contract."""
+    repo = _repo()
+    exp = _project(repo)
+    repo.record_exposures(
+        exp,
+        [
+            {"user_id": "u1", "variation_index": 0},
+            {"user_id": "u2", "variation_index": 1},
+            {"user_id": "u3", "variation_index": 1},
+        ],
+    )
+    repo.record_conversions(
+        exp,
+        [
+            {"user_id": "u1", "metric": "purchase", "value": 2.0},
+            {"user_id": "u2", "metric": "purchase"},
+            {"user_id": "u2", "metric": "purchase"},  # second event for the same user
+        ],
+    )
+    aggregates = repo.get_experiment_analysis_aggregates(exp, "purchase")
+    assert aggregates is not None
+    by_index = {v["variation_index"]: v for v in aggregates["variations"]}
+    # Control: 1 exposed, 1 converted, value 2.0. Treatment: 2 exposed, 1 converted, u2's two
+    # events fold to one converted user with value 2.0.
+    assert by_index[0] == {
+        "variation_index": 0,
+        "exposed_users": 1,
+        "converted_users": 1,
+        "value_sum": 2.0,
+        "value_sq_sum": 4.0,
+    }
+    assert by_index[1]["exposed_users"] == 2
+    assert by_index[1]["converted_users"] == 1
+    # No links recorded → the indicator summary reports an inactive, all-zero state.
+    summary = repo.get_identity_resolution_summary(exp)
+    assert summary == {
+        "experiment_id": exp,
+        "linked_identities": 0,
+        "canonicalized_events": 0,
+        "merged_users": 0,
+    }
+
+
+def test_identity_resolution_attributes_conversion_to_canonical() -> None:
+    """A user exposed while anonymous who converts under their canonical (logged-in) id has the
+    conversion attributed to the exposed arm once the anonymous → canonical link is recorded (P4.3)."""
+    repo = _repo()
+    exp = _project(repo)
+    # 'anon' is exposed to the treatment arm; the conversion arrives under the logged-in id 'user'.
+    repo.record_exposures(exp, [{"user_id": "anon", "variation_index": 1}])
+    repo.record_conversions(exp, [{"user_id": "user", "metric": "purchase"}])
+
+    before = repo.get_experiment_analysis_aggregates(exp, "purchase")
+    assert before is not None
+    # Without a link the conversion is orphaned — the exposed arm shows zero conversions.
+    assert {v["variation_index"]: v["converted_users"] for v in before["variations"]} == {1: 0}
+
+    repo.record_identities(exp, [{"anonymous_id": "anon", "canonical_id": "user"}])
+
+    after = repo.get_experiment_analysis_aggregates(exp, "purchase")
+    assert after is not None
+    arm = next(v for v in after["variations"] if v["variation_index"] == 1)
+    assert arm["exposed_users"] == 1
+    assert arm["converted_users"] == 1  # now attributed to the canonical user's arm
+
+
+def test_identity_resolution_collapses_reexposure_without_inflating_srm() -> None:
+    """A person exposed while anonymous and re-exposed after login (two raw ids, two exposure rows)
+    collapses to one canonical user — counted once, in the arm of their FIRST exposure (P4.3). This
+    is the SRM-inflation fix: the duplicate exposure no longer manufactures an extra unit."""
+    repo = _repo()
+    exp = _project(repo)
+
+    def at(day: int) -> datetime:
+        return datetime(2026, 5, day, 12, 0, 0, tzinfo=UTC)
+
+    # First exposure (anonymous, arm 0) precedes the post-login re-exposure (arm 1).
+    repo.record_exposures(exp, [{"user_id": "anon", "variation_index": 0, "occurred_at": at(1)}])
+    repo.record_exposures(exp, [{"user_id": "user", "variation_index": 1, "occurred_at": at(2)}])
+    repo.record_identities(exp, [{"anonymous_id": "anon", "canonical_id": "user"}])
+
+    aggregates = repo.get_experiment_analysis_aggregates(exp, "purchase")
+    assert aggregates is not None
+    total_exposed = sum(v["exposed_users"] for v in aggregates["variations"])
+    assert total_exposed == 1  # one person, not two — no SRM inflation
+    by_index = {v["variation_index"]: v["exposed_users"] for v in aggregates["variations"]}
+    assert by_index == {0: 1}  # first-exposure-wins keeps the earlier (arm 0) assignment
+
+
+def test_identity_resolution_first_write_wins_canonical() -> None:
+    """An anonymous id maps to exactly one canonical id: a later re-link for the same anonymous id is
+    dropped (first-write-wins), and a self-link is skipped (P4.3)."""
+    repo = _repo()
+    exp = _project(repo)
+    first = repo.record_identities(exp, [{"anonymous_id": "a", "canonical_id": "c1"}])
+    assert first["recorded"] == 1
+    # Re-link the same anonymous id to a different canonical → dropped.
+    second = repo.record_identities(exp, [{"anonymous_id": "a", "canonical_id": "c2"}])
+    assert second["recorded"] == 0
+    assert second["deduplicated"] == 1
+    # A self-link is a no-op and is neither recorded nor counted as a dedup.
+    selflink = repo.record_identities(exp, [{"anonymous_id": "b", "canonical_id": "b"}])
+    assert selflink == {"received": 1, "recorded": 0, "deduplicated": 0}
+
+    # Resolution still points 'a' at the first canonical 'c1'.
+    repo.record_exposures(exp, [{"user_id": "a", "variation_index": 1}])
+    repo.record_conversions(exp, [{"user_id": "c1", "metric": "purchase"}])
+    aggregates = repo.get_experiment_analysis_aggregates(exp, "purchase")
+    assert aggregates is not None
+    arm = next(v for v in aggregates["variations"] if v["variation_index"] == 1)
+    assert arm["converted_users"] == 1
+
+
+def test_identity_resolution_summary_counts_and_missing_experiment() -> None:
+    """The indicator summary counts active links, re-attributed events, and merged users; the events
+    counted are only those recorded under a linked anonymous id (P4.3)."""
+    repo = _repo()
+    exp = _project(repo)
+    repo.record_exposures(
+        exp,
+        [
+            {"user_id": "anon1", "variation_index": 0},  # linked, under anonymous id
+            {"user_id": "user2", "variation_index": 1},  # unlinked
+        ],
+    )
+    repo.record_conversions(exp, [{"user_id": "anon1", "metric": "purchase"}])  # linked, anonymous
+    repo.record_identities(
+        exp,
+        [
+            {"anonymous_id": "anon1", "canonical_id": "user1"},  # has events → a real merge
+            {"anonymous_id": "ghost", "canonical_id": "user9"},  # linked but no events
+        ],
+    )
+    summary = repo.get_identity_resolution_summary(exp)
+    assert summary is not None
+    assert summary["linked_identities"] == 2
+    # anon1's exposure + anon1's conversion are under an anonymous id → 2 canonicalized events.
+    assert summary["canonicalized_events"] == 2
+    # Only 'user1' absorbed real events; 'ghost' has none.
+    assert summary["merged_users"] == 1
+
+    assert repo.get_identity_resolution_summary("missing") is None

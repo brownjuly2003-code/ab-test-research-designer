@@ -813,7 +813,10 @@
       "holdoutBayesianLine": "P(tratados supera a holdout) = {{prob}}",
       "eventTimingTitle": "Tiempo de eventos",
       "eventTimingSummary": "{{late}} tardías · {{outOfOrder}} fuera de orden de {{total}} conversiones (ventana de atribución {{horizon}} d)",
-      "eventTimingHint": "Conversiones posteriores a la ventana de atribución (tardías) o previas a la exposición (fuera de orden), según la hora del evento: una señal de calidad de datos; no cambian el resultado."
+      "eventTimingHint": "Conversiones posteriores a la ventana de atribución (tardías) o previas a la exposición (fuera de orden), según la hora del evento: una señal de calidad de datos; no cambian el resultado.",
+      "identityTitle": "Resolución de identidad",
+      "identitySummary": "{{linked}} identidades vinculadas · {{merged}} usuarios fusionados · {{events}} eventos reatribuidos",
+      "identityHint": "Los eventos anónimos se asignan al id canónico (con sesión iniciada) de cada usuario, de modo que una persona vista antes y después del inicio de sesión se cuenta una vez, evitando exposiciones y conversiones duplicadas."
     },
     "decision": {
       "title": "Lectura de decisión",

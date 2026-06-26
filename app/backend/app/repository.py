@@ -80,7 +80,7 @@ class DatabaseBackend(Protocol):
 class SQLiteBackend:
     backend_name = "sqlite"
     supports_snapshots = True
-    schema_version = 12
+    schema_version = 13
     payload_schema_version = 1
     workspace_schema_version = 3
     project_select_columns = """
@@ -505,6 +505,31 @@ class SQLiteBackend:
             """
             CREATE INDEX IF NOT EXISTS idx_user_strata_experiment_stratum
             ON user_strata (experiment_id, stratum)
+            """
+        )
+        # Identity resolution (P4.3): maps an anonymous_id to the canonical (logged-in) id so a
+        # person who is exposed while anonymous and converts (or is re-exposed) after login is counted
+        # once, not twice. First-write-wins per (experiment, anonymous_id) via the UNIQUE constraint —
+        # an anonymous_id resolves to exactly one canonical id, and a later re-link is dropped. The
+        # primary rollup left-joins this map and folds each user's events onto their canonical id;
+        # when the map is empty the rollup is byte-identical to the unresolved one.
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS identity_map (
+                id TEXT PRIMARY KEY,
+                experiment_id TEXT NOT NULL,
+                anonymous_id TEXT NOT NULL,
+                canonical_id TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                UNIQUE(experiment_id, anonymous_id),
+                FOREIGN KEY(experiment_id) REFERENCES projects(id) ON DELETE CASCADE
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_identity_map_experiment_anonymous
+            ON identity_map (experiment_id, anonymous_id)
             """
         )
 
@@ -3007,6 +3032,47 @@ class SQLiteBackend:
         received = len(items)
         return {"received": received, "recorded": recorded, "deduplicated": received - recorded}
 
+    def record_identities(self, experiment_id: str, items: list[dict[str, Any]]) -> dict[str, Any]:
+        """Record anonymous → canonical identity links for identity resolution (P4.3).
+
+        First-write-wins per (experiment, anonymous_id) via the UNIQUE constraint + ``ON CONFLICT DO
+        NOTHING``: an anonymous_id resolves to exactly one canonical id, so a later re-link for the
+        same anonymous_id is dropped (a stable canonical mapping). A link whose ``anonymous_id`` equals
+        its ``canonical_id`` is a no-op identity and is skipped (it would never change a rollup and
+        would only inflate the "linked" count). The primary rollup left-joins this map and folds each
+        user's exposures/conversions onto their canonical id, so the same person counted under both an
+        anonymous and a logged-in id collapses to one unit (no SRM inflation, no double conversion).
+        """
+        timestamp = datetime.now(UTC).isoformat()
+        recorded = 0
+        skipped = 0
+        with self._connect() as connection:
+            self._ensure_project_active(connection, experiment_id)
+            for item in items:
+                anonymous_id = item["anonymous_id"]
+                canonical_id = item["canonical_id"]
+                if anonymous_id == canonical_id:
+                    skipped += 1
+                    continue
+                cursor = connection.execute(
+                    """
+                    INSERT INTO identity_map (id, experiment_id, anonymous_id, canonical_id, created_at)
+                    VALUES (?, ?, ?, ?, ?)
+                    ON CONFLICT(experiment_id, anonymous_id) DO NOTHING
+                    """,
+                    (
+                        str(uuid.uuid4()),
+                        experiment_id,
+                        anonymous_id,
+                        canonical_id,
+                        timestamp,
+                    ),
+                )
+                if cursor.rowcount == 1:
+                    recorded += 1
+        received = len(items)
+        return {"received": received, "recorded": recorded, "deduplicated": received - recorded - skipped}
+
     def get_user_exposure(self, experiment_id: str, user_id: str) -> dict[str, Any] | None:
         """The recorded (first-exposure-wins) exposure for one user, or ``None``.
 
@@ -3091,25 +3157,62 @@ class SQLiteBackend:
           across *all* exposed users (non-converters contribute 0), so a continuous mean is
           ``value_sum / exposed_users`` and the sample variance is
           ``(value_sq_sum - exposed_users * mean**2) / (exposed_users - 1)``.
+
+        Identity resolution (P4.3): each exposure and conversion is folded onto its canonical id via
+        ``identity_map`` (``COALESCE(canonical_id, user_id)``), so a person exposed while anonymous and
+        re-exposed / converting after login counts once. A canonical user with several resolved
+        exposures keeps the variation of their *first* exposure (lowest ``occurred_at || created_at ||
+        id``) — first-exposure-wins, mirroring the sticky exposure store — and the later exposures are
+        collapsed (this is the SRM-inflation fix). When ``identity_map`` has no rows the resolution is
+        the identity function and this rollup is byte-identical to the unresolved one (no window
+        functions; portable on both backends).
         """
         with self._connect() as connection:
             if not self._project_exists(connection, experiment_id):
                 return None
             rows = connection.execute(
                 """
-                WITH user_values AS (
+                WITH exp_resolved AS (
                     SELECT
                         e.variation_index AS variation_index,
-                        e.user_id AS user_id,
-                        COALESCE(SUM(c.value), 0) AS user_value,
-                        MAX(CASE WHEN c.id IS NOT NULL THEN 1 ELSE 0 END) AS converted
+                        COALESCE(im.canonical_id, e.user_id) AS cuser,
+                        (e.occurred_at || '|' || e.created_at || '|' || e.id) AS order_key
                     FROM exposures e
-                    LEFT JOIN conversions c
-                        ON c.experiment_id = e.experiment_id
-                        AND c.user_id = e.user_id
-                        AND c.metric = ?
+                    LEFT JOIN identity_map im
+                        ON im.experiment_id = e.experiment_id
+                        AND im.anonymous_id = e.user_id
                     WHERE e.experiment_id = ? AND e.variation_index >= 0
-                    GROUP BY e.variation_index, e.user_id
+                ),
+                exp_first AS (
+                    SELECT cuser, MIN(order_key) AS order_key
+                    FROM exp_resolved
+                    GROUP BY cuser
+                ),
+                arm AS (
+                    SELECT er.cuser AS cuser, er.variation_index AS variation_index
+                    FROM exp_resolved er
+                    JOIN exp_first f ON f.cuser = er.cuser AND f.order_key = er.order_key
+                ),
+                conv_resolved AS (
+                    SELECT
+                        COALESCE(im.canonical_id, c.user_id) AS cuser,
+                        c.value AS value,
+                        c.id AS id
+                    FROM conversions c
+                    LEFT JOIN identity_map im
+                        ON im.experiment_id = c.experiment_id
+                        AND im.anonymous_id = c.user_id
+                    WHERE c.experiment_id = ? AND c.metric = ?
+                ),
+                user_values AS (
+                    SELECT
+                        arm.variation_index AS variation_index,
+                        arm.cuser AS cuser,
+                        COALESCE(SUM(cr.value), 0) AS user_value,
+                        MAX(CASE WHEN cr.id IS NOT NULL THEN 1 ELSE 0 END) AS converted
+                    FROM arm
+                    LEFT JOIN conv_resolved cr ON cr.cuser = arm.cuser
+                    GROUP BY arm.variation_index, arm.cuser
                 )
                 SELECT
                     variation_index,
@@ -3121,7 +3224,7 @@ class SQLiteBackend:
                 GROUP BY variation_index
                 ORDER BY variation_index
                 """,
-                (metric_name, experiment_id),
+                (experiment_id, experiment_id, metric_name),
             ).fetchall()
         variations = [
             {
@@ -3137,6 +3240,72 @@ class SQLiteBackend:
             "experiment_id": experiment_id,
             "metric_name": metric_name,
             "variations": variations,
+        }
+
+    def get_identity_resolution_summary(self, experiment_id: str) -> dict[str, Any] | None:
+        """Informational identity-resolution counts for the live-stats indicator (P4.3).
+
+        Returns ``None`` if the experiment does not exist. Reports:
+
+        - ``linked_identities``     — anonymous → canonical links recorded for the experiment.
+        - ``canonicalized_events``  — exposure + conversion events whose ``user_id`` is a linked
+          anonymous id, i.e. events the rollup re-attributes to a canonical id.
+        - ``merged_users``          — distinct canonical ids that actually absorbed events from a
+          linked anonymous id (the people whose double-count was prevented).
+
+        Purely diagnostic — it does not change any rollup or verdict. All three are zero when no
+        identity links exist, so the indicator is hidden in the common case.
+        """
+        with self._connect() as connection:
+            if not self._project_exists(connection, experiment_id):
+                return None
+            linked = connection.execute(
+                "SELECT COUNT(*) AS n FROM identity_map WHERE experiment_id = ?",
+                (experiment_id,),
+            ).fetchone()["n"]
+            canon_exposures = connection.execute(
+                """
+                SELECT COUNT(*) AS n
+                FROM exposures e
+                JOIN identity_map im
+                    ON im.experiment_id = e.experiment_id AND im.anonymous_id = e.user_id
+                WHERE e.experiment_id = ?
+                """,
+                (experiment_id,),
+            ).fetchone()["n"]
+            canon_conversions = connection.execute(
+                """
+                SELECT COUNT(*) AS n
+                FROM conversions c
+                JOIN identity_map im
+                    ON im.experiment_id = c.experiment_id AND im.anonymous_id = c.user_id
+                WHERE c.experiment_id = ?
+                """,
+                (experiment_id,),
+            ).fetchone()["n"]
+            merged = connection.execute(
+                """
+                SELECT COUNT(DISTINCT im.canonical_id) AS n
+                FROM identity_map im
+                WHERE im.experiment_id = ?
+                    AND (
+                        EXISTS (
+                            SELECT 1 FROM exposures e
+                            WHERE e.experiment_id = im.experiment_id AND e.user_id = im.anonymous_id
+                        )
+                        OR EXISTS (
+                            SELECT 1 FROM conversions c
+                            WHERE c.experiment_id = im.experiment_id AND c.user_id = im.anonymous_id
+                        )
+                    )
+                """,
+                (experiment_id,),
+            ).fetchone()["n"]
+        return {
+            "experiment_id": experiment_id,
+            "linked_identities": int(linked or 0),
+            "canonicalized_events": int((canon_exposures or 0) + (canon_conversions or 0)),
+            "merged_users": int(merged or 0),
         }
 
     def get_holdout_aggregates(
@@ -4034,6 +4203,26 @@ class PostgresBackend(SQLiteBackend):
                 """
                 CREATE INDEX IF NOT EXISTS idx_user_strata_experiment_stratum
                 ON user_strata (experiment_id, stratum)
+                """
+            )
+            # Identity resolution (P4.3) — Postgres mirror of the SQLite ``identity_map`` table.
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS identity_map (
+                    id TEXT PRIMARY KEY,
+                    experiment_id TEXT NOT NULL,
+                    anonymous_id TEXT NOT NULL,
+                    canonical_id TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    UNIQUE(experiment_id, anonymous_id),
+                    FOREIGN KEY(experiment_id) REFERENCES projects(id) ON DELETE CASCADE
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_identity_map_experiment_anonymous
+                ON identity_map (experiment_id, anonymous_id)
                 """
             )
 

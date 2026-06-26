@@ -588,6 +588,15 @@ export type HypothesisIdeationResponse = {
   error_code?: string | null;
 };
 
+export type IdentityIngestRequest = {
+  identities: IdentityLink[];
+};
+
+export type IdentityLink = {
+  anonymous_id: string;
+  canonical_id: string;
+};
+
 export type IngestResultResponse = {
   received: number;
   recorded: number;
@@ -736,6 +745,13 @@ export type LiveHoldoutBlock = {
   holdout_users_total?: number | null;
 };
 
+export type LiveIdentityResolutionBlock = {
+  status: string;
+  linked_identities?: number | null;
+  canonicalized_events?: number | null;
+  merged_users?: number | null;
+};
+
 export type LiveSequentialBlock = {
   status: string;
   n_looks: number;
@@ -771,6 +787,7 @@ export type LiveStatsResponse = {
   guardrail: LiveGuardrailBlock;
   holdout: LiveHoldoutBlock;
   event_timing: LiveEventTimingBlock;
+  identity_resolution: LiveIdentityResolutionBlock;
 };
 
 export type LiveStratifiedBlock = {

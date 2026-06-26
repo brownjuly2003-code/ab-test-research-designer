@@ -291,6 +291,15 @@ Ingest holdout members — users held back from the rollout (F5). Recorded as
 the pooled treated arms against this held-back group to measure the rollout's cumulative
 effect. Holdout outcomes ride the ordinary conversion stream under the primary metric name.
 
+### `POST /api/v1/experiments/{experiment_id}/identities`
+
+Ingest Identities
+
+Ingest anonymous → canonical identity links (P4.3). First-write-wins per anonymous id;
+the live-stats rollup folds each user's exposures and conversions onto their canonical id, so
+a person exposed while anonymous and re-exposed / converting after login is counted once
+instead of inflating SRM and the conversion rate. A self-link is a no-op and is skipped.
+
 ### `GET /api/v1/experiments/{experiment_id}/ingestion`
 
 Get Ingestion Summary

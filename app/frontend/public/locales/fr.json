@@ -813,7 +813,10 @@
       "holdoutBayesianLine": "P(traités bat holdout) = {{prob}}",
       "eventTimingTitle": "Horodatage des événements",
       "eventTimingSummary": "{{late}} en retard · {{outOfOrder}} hors séquence sur {{total}} conversions (fenêtre d'attribution {{horizon}} j)",
-      "eventTimingHint": "Conversions après la fenêtre d'attribution (en retard) ou avant l'exposition (hors séquence), selon l'heure de l'événement : un signal de qualité des données ; elles ne modifient pas le résultat."
+      "eventTimingHint": "Conversions après la fenêtre d'attribution (en retard) ou avant l'exposition (hors séquence), selon l'heure de l'événement : un signal de qualité des données ; elles ne modifient pas le résultat.",
+      "identityTitle": "Résolution d'identité",
+      "identitySummary": "{{linked}} identités liées · {{merged}} utilisateurs fusionnés · {{events}} événements réattribués",
+      "identityHint": "Les événements anonymes sont rattachés à l'id canonique (connecté) de chaque utilisateur, de sorte qu'une personne vue avant et après la connexion est comptée une fois — sans expositions ni conversions en double."
     },
     "decision": {
       "title": "Synthèse de décision",

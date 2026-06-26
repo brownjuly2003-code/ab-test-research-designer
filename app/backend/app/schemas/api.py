@@ -679,6 +679,23 @@ class HoldoutIngestRequest(BaseModel):
     holdout: list[HoldoutEvent] = Field(min_length=1, max_length=MAX_INGEST_BATCH)
 
 
+class IdentityLink(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    # Links an anonymous_id (the id a user had before logging in) to their canonical (logged-in) id,
+    # so events recorded under either are folded onto one person in the rollup — preventing a double
+    # count when an anonymous user is re-exposed or converts after login (P4.3). First-write-wins per
+    # anonymous_id; a self-link (anonymous_id == canonical_id) is a no-op and ignored.
+    anonymous_id: str = Field(min_length=1, max_length=200)
+    canonical_id: str = Field(min_length=1, max_length=200)
+
+
+class IdentityIngestRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    identities: list[IdentityLink] = Field(min_length=1, max_length=MAX_INGEST_BATCH)
+
+
 class IngestResultResponse(BaseModel):
     received: int
     recorded: int
@@ -933,6 +950,18 @@ class LiveEventTimingBlock(BaseModel):
     total: int | None = None
 
 
+class LiveIdentityResolutionBlock(BaseModel):
+    # Identity-resolution indicator (P4.3). Surfaces how many anonymous → canonical links are active
+    # and how much they touched the rollup, which folds each user's events onto their canonical id so
+    # an anonymous-then-login user is counted once (no SRM inflation, no double conversion).
+    # Informational only — the resolution already happened in the primary rollup; this block reports it.
+    # status: "active" (links exist) | "inactive" (no links — block hidden by the frontend).
+    status: str
+    linked_identities: int | None = None
+    canonicalized_events: int | None = None
+    merged_users: int | None = None
+
+
 class LiveStatsResponse(BaseModel):
     experiment_id: str
     metric_type: str
@@ -948,6 +977,7 @@ class LiveStatsResponse(BaseModel):
     guardrail: LiveGuardrailBlock
     holdout: LiveHoldoutBlock
     event_timing: LiveEventTimingBlock
+    identity_resolution: LiveIdentityResolutionBlock
 
 
 class DecisionReason(BaseModel):

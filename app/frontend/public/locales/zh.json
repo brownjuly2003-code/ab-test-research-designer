@@ -813,7 +813,10 @@
       "holdoutBayesianLine": "P(实验组优于 Holdout) = {{prob}}",
       "eventTimingTitle": "事件时序",
       "eventTimingSummary": "{{total}} 次转化中 {{late}} 次迟到 · {{outOfOrder}} 次乱序（归因窗口 {{horizon}} 天）",
-      "eventTimingHint": "按事件时间统计：晚于归因窗口（迟到）或早于曝光（乱序）的转化——数据质量信号，不影响结果。"
+      "eventTimingHint": "按事件时间统计：晚于归因窗口（迟到）或早于曝光（乱序）的转化——数据质量信号，不影响结果。",
+      "identityTitle": "身份归并",
+      "identitySummary": "已关联 {{linked}} 个身份 · 合并 {{merged}} 位用户 · 重新归因 {{events}} 个事件",
+      "identityHint": "匿名事件会归并到每位用户的规范（登录后）ID，因此登录前后的同一人只计一次——避免曝光和转化被重复计算。"
     },
     "decision": {
       "title": "决策摘要",
