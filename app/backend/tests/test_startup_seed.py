@@ -56,15 +56,25 @@ def test_startup_seed_populates_demo_projects_with_analysis_and_export(monkeypat
         assert any(event["format"] == "markdown" for event in checkout_history["export_events"])
 
 
+def _demo_by_name(client: TestClient, name: str) -> dict:
+    projects = client.get("/api/v1/projects", params={"status": "all", "limit": 200}).json()["projects"]
+    return next(project for project in projects if project["project_name"] == name)
+
+
 def test_startup_seed_is_idempotent_across_restarts(monkeypatch, temp_db_path) -> None:
     monkeypatch.setenv("AB_SEED_DEMO_ON_STARTUP", "true")
     get_settings.cache_clear()
 
     app = create_app()
 
-    with TestClient(app):
-        pass
+    # First startup seeds the design demos and their execution data.
+    with TestClient(app) as client:
+        checkout = _demo_by_name(client, "Demo - Checkout Conversion")
+        first_ingestion = client.get(f"/api/v1/experiments/{checkout['id']}/ingestion").json()
+    assert first_ingestion["exposures_total"] > 0
+    assert first_ingestion["conversions_total"] > 0
 
+    # Second startup must not duplicate projects or re-ingest execution events.
     with TestClient(app) as client:
         response = client.get("/api/v1/projects", params={"status": "all", "limit": 200})
         assert response.status_code == 200
@@ -74,6 +84,52 @@ def test_startup_seed_is_idempotent_across_restarts(monkeypatch, temp_db_path) -
             if project["project_name"].startswith("Demo - ")
         ]
         assert len(demo_projects) == 3
+
+        checkout = _demo_by_name(client, "Demo - Checkout Conversion")
+        second_ingestion = client.get(f"/api/v1/experiments/{checkout['id']}/ingestion").json()
+    assert second_ingestion["exposures_total"] == first_ingestion["exposures_total"]
+    assert second_ingestion["conversions_total"] == first_ingestion["conversions_total"]
+
+
+def test_startup_seed_populates_live_execution_blocks(monkeypatch, temp_db_path) -> None:
+    """The seeded demos expose the live-stats surface on the default demo path (T5.1)."""
+    monkeypatch.setenv("AB_SEED_DEMO_ON_STARTUP", "true")
+    get_settings.cache_clear()
+
+    with TestClient(create_app()) as client:
+        checkout = _demo_by_name(client, "Demo - Checkout Conversion")
+        pricing = _demo_by_name(client, "Demo - Pricing Sensitivity")
+        onboarding = _demo_by_name(client, "Demo - Onboarding Completion")
+
+        # --- Checkout: the flagship binary demo lights up the full execution surface ---
+        live = client.get(f"/api/v1/experiments/{checkout['id']}/live-stats").json()
+        decision = client.get(f"/api/v1/experiments/{checkout['id']}/decision").json()
+        assert live["srm"]["status"] == "ok"
+        assert decision["verdict"] == "ship"
+        assert live["guardrail"]["status"] == "ok"
+        assert live["holdout"]["status"] == "ok"
+        assert live["stratified"]["status"] == "available"
+        assert live["identity_resolution"]["status"] == "active"
+        assert live["identity_resolution"]["linked_identities"] == 60
+        assert live["exclusions"]["status"] == "active"
+        assert live["exclusions"]["total_filtered"] == 9
+        assert live["exclusions"]["manual_filtered"] == 8
+        assert live["exclusions"]["rate_spike_filtered"] == 1
+        assert live["event_timing"]["late"] == 12
+        assert live["event_timing"]["out_of_order"] == 3
+
+        # --- Pricing: the continuous demo lights up CUPED + post-stratification ---
+        live = client.get(f"/api/v1/experiments/{pricing['id']}/live-stats").json()
+        decision = client.get(f"/api/v1/experiments/{pricing['id']}/decision").json()
+        assert decision["verdict"] == "ship"
+        assert live["cuped"]["status"] == "available"
+        assert live["cuped"]["variance_reduction_pct"] > 10.0
+        assert live["stratified"]["status"] == "available"
+        assert live["guardrail"]["status"] == "ok"
+
+        # --- Onboarding: deliberately inconclusive (honest "still monitoring" state) ---
+        decision = client.get(f"/api/v1/experiments/{onboarding['id']}/decision").json()
+        assert decision["verdict"] == "keep_running"
 
 
 def test_startup_seed_disabled_does_not_create_projects(monkeypatch, temp_db_path) -> None:
