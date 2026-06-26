@@ -816,7 +816,10 @@
       "eventTimingHint": "Conversions arriving after the attribution window (late) or before the exposure (out-of-order), by event time — a data-quality signal; they don't change the result.",
       "identityTitle": "Identity resolution",
       "identitySummary": "{{linked}} identities linked · {{merged}} users merged · {{events}} events re-attributed",
-      "identityHint": "Anonymous events are folded onto each user's canonical (logged-in) id, so a person seen before and after login is counted once — preventing double-counted exposures and conversions."
+      "identityHint": "Anonymous events are folded onto each user's canonical (logged-in) id, so a person seen before and after login is counted once — preventing double-counted exposures and conversions.",
+      "exclusionTitle": "Filtered participants",
+      "exclusionSummary": "{{total}} participants filtered — {{manual}} deny-list · {{rateSpike}} rate-spike",
+      "exclusionHint": "Bot / fraud filter: users on the manual deny-list and users with an implausible number of conversion events are removed from every aggregate. The raw events are kept — only the analysis changes."
     },
     "decision": {
       "title": "Decision readout",

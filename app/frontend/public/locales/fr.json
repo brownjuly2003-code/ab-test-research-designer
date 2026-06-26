@@ -816,7 +816,10 @@
       "eventTimingHint": "Conversions après la fenêtre d'attribution (en retard) ou avant l'exposition (hors séquence), selon l'heure de l'événement : un signal de qualité des données ; elles ne modifient pas le résultat.",
       "identityTitle": "Résolution d'identité",
       "identitySummary": "{{linked}} identités liées · {{merged}} utilisateurs fusionnés · {{events}} événements réattribués",
-      "identityHint": "Les événements anonymes sont rattachés à l'id canonique (connecté) de chaque utilisateur, de sorte qu'une personne vue avant et après la connexion est comptée une fois — sans expositions ni conversions en double."
+      "identityHint": "Les événements anonymes sont rattachés à l'id canonique (connecté) de chaque utilisateur, de sorte qu'une personne vue avant et après la connexion est comptée une fois — sans expositions ni conversions en double.",
+      "exclusionTitle": "Participants filtrés",
+      "exclusionSummary": "{{total}} participants filtrés — {{manual}} liste de blocage · {{rateSpike}} pic d'activité",
+      "exclusionHint": "Filtre bots / fraude : les utilisateurs sur la liste de blocage manuelle et ceux dont le nombre de conversions est invraisemblable sont retirés de tous les agrégats. Les événements bruts sont conservés ; seule l'analyse change."
     },
     "decision": {
       "title": "Synthèse de décision",

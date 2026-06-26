@@ -81,6 +81,7 @@ def build_live_stats(
     holdout_aggregates: dict[str, Any] | None = None,
     event_timing_summary: dict[str, Any] | None = None,
     identity_resolution_summary: dict[str, Any] | None = None,
+    exclusion_summary: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Assemble the live-stats payload from a stored experiment design and the current
     per-variation analysis aggregates (``repository.get_experiment_analysis_aggregates``).
@@ -107,7 +108,11 @@ def build_live_stats(
 
     ``identity_resolution_summary`` (``repository.get_identity_resolution_summary``) carries the
     anonymous → canonical link counts (P4.3); ``None`` / no links keeps the block ``inactive``. The
-    resolution itself already happened inside the primary rollup — this block only reports it."""
+    resolution itself already happened inside the primary rollup — this block only reports it.
+
+    ``exclusion_summary`` (``repository.get_exclusion_summary``) carries the bot / fraud filter counts
+    (P4.4 — manual deny-list + rate-spike); ``None`` / nothing filtered keeps the block ``inactive``.
+    The exclusion already happened inside the primary rollup — this block only reports it."""
     metrics = project_payload.get("metrics", {})
     setup = project_payload.get("setup", {})
     constraints = project_payload.get("constraints", {})
@@ -219,6 +224,7 @@ def build_live_stats(
     )
     event_timing = _build_event_timing_block(event_timing_summary)
     identity_resolution = _build_identity_resolution_block(identity_resolution_summary)
+    exclusions = _build_exclusion_block(exclusion_summary)
 
     return {
         "experiment_id": experiment_id,
@@ -236,6 +242,7 @@ def build_live_stats(
         "holdout": holdout,
         "event_timing": event_timing,
         "identity_resolution": identity_resolution,
+        "exclusions": exclusions,
     }
 
 
@@ -1696,4 +1703,31 @@ def _build_identity_resolution_block(
         "linked_identities": linked,
         "canonicalized_events": int(identity_resolution_summary.get("canonicalized_events", 0) or 0),
         "merged_users": int(identity_resolution_summary.get("merged_users", 0) or 0),
+    }
+
+
+def _build_exclusion_block(
+    exclusion_summary: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Bot / fraud filter indicator (P4.4).
+
+    Reports how many exposed users the rollup removed, split into the manual deny-list and the
+    rate-spike heuristic. The exclusion already happened in the primary rollup; this block only
+    surfaces it so the filter is never silent. ``inactive`` when nothing was filtered (the common
+    case) — the frontend hides the block then. Purely informational; the per-reason split is disjoint
+    so ``manual_filtered + rate_spike_filtered == total_filtered``.
+    """
+    total = int((exclusion_summary or {}).get("total_filtered", 0) or 0)
+    if not exclusion_summary or total <= 0:
+        return {
+            "status": "inactive",
+            "total_filtered": total,
+            "manual_filtered": None,
+            "rate_spike_filtered": None,
+        }
+    return {
+        "status": "active",
+        "total_filtered": total,
+        "manual_filtered": int(exclusion_summary.get("manual_filtered", 0) or 0),
+        "rate_spike_filtered": int(exclusion_summary.get("rate_spike_filtered", 0) or 0),
     }

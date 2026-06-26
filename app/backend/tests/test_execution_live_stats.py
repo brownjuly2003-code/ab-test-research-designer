@@ -2081,3 +2081,70 @@ def test_live_stats_route_reports_identity_resolution() -> None:
     # repository tests; this proves routes/execution wires the resolution into the live read).
     treatment = next(c for c in body["comparisons"] if c["treatment_index"] == 1)
     assert treatment["treatment"]["converted_users"] == 1
+
+
+def test_live_stats_exclusion_inactive_without_summary() -> None:
+    # No exclusion summary supplied -> the block is "inactive" (hidden by the frontend).
+    result = build_live_stats("e", _binary_design(), _aggregates(_arm(0, 100, 10), _arm(1, 100, 12)))
+    assert result["exclusions"]["status"] == "inactive"
+    assert result["exclusions"]["total_filtered"] == 0
+    assert result["exclusions"]["manual_filtered"] is None
+
+
+def test_live_stats_exclusion_block_active() -> None:
+    # A non-empty summary surfaces the active indicator with its per-reason split.
+    result = build_live_stats(
+        "e",
+        _binary_design(),
+        _aggregates(_arm(0, 100, 10), _arm(1, 100, 12)),
+        exclusion_summary={
+            "experiment_id": "e",
+            "total_filtered": 5,
+            "manual_filtered": 2,
+            "rate_spike_filtered": 3,
+        },
+    )
+    block = result["exclusions"]
+    assert block["status"] == "active"
+    assert block["total_filtered"] == 5
+    assert block["manual_filtered"] == 2
+    assert block["rate_spike_filtered"] == 3
+
+
+def test_live_stats_route_reports_exclusions() -> None:
+    # End-to-end (P4.4): a manually excluded user is dropped from the rollup and the /live-stats
+    # exclusions block reports the filter — proving routes/execution wires the exclusion + summary.
+    client = TestClient(create_app())
+    project_id = _create_binary_project(client)
+
+    exposures = [
+        {"user_id": "keep", "variation_index": 1},
+        {"user_id": "drop", "variation_index": 1},
+    ]
+    assert (
+        client.post(f"/api/v1/experiments/{project_id}/exposures", json={"exposures": exposures}).status_code
+        == 200
+    )
+    # Before any exclusion the block is inactive.
+    before = client.get(f"/api/v1/experiments/{project_id}/live-stats").json()
+    assert before["exclusions"]["status"] == "inactive"
+
+    assert (
+        client.post(
+            f"/api/v1/experiments/{project_id}/exclusions",
+            json={"exclusions": [{"user_id": "drop", "exclusion_reason": "known_bot"}]},
+        ).status_code
+        == 200
+    )
+
+    after = client.get(f"/api/v1/experiments/{project_id}/live-stats")
+    assert after.status_code == 200, after.text
+    body = after.json()
+    block = body["exclusions"]
+    assert block["status"] == "active"
+    assert block["total_filtered"] == 1
+    assert block["manual_filtered"] == 1
+    assert block["rate_spike_filtered"] == 0
+    # The excluded user is gone from the treatment arm's exposed count.
+    treatment = next(c for c in body["comparisons"] if c["treatment_index"] == 1)
+    assert treatment["treatment"]["exposed_users"] == 1

@@ -7,6 +7,7 @@ import type {
   LiveCupedBlock,
   LiveCupedComparison,
   LiveEventTimingBlock,
+  LiveExclusionBlock,
   LiveGuardrailBlock,
   LiveGuardrailComparison,
   LiveGuardrailMetricResult,
@@ -610,6 +611,29 @@ function IdentityResolutionBlock({
   );
 }
 
+function ExclusionBlock({ exclusions }: { exclusions: LiveExclusionBlock | undefined }) {
+  // Only surface the indicator when the bot / fraud filter actually removed someone; a run with
+  // nothing filtered needs no callout.
+  if (!exclusions || exclusions.status !== "active") {
+    return null;
+  }
+  return (
+    <div className="callout" style={{ display: "grid", gap: "6px" }}>
+      <strong>{t("results.liveStats.exclusionTitle")}</strong>
+      <span className="muted">
+        {t("results.liveStats.exclusionSummary", {
+          total: exclusions.total_filtered ?? 0,
+          manual: exclusions.manual_filtered ?? 0,
+          rateSpike: exclusions.rate_spike_filtered ?? 0
+        })}
+      </span>
+      <span className="muted" style={{ fontSize: "0.85em" }}>
+        {t("results.liveStats.exclusionHint")}
+      </span>
+    </div>
+  );
+}
+
 export default function LiveStatsSection() {
   const analysisResult = useAnalysisStore((state) => state.analysisResult);
   const resultsProjectId = useAnalysisStore((state) => state.resultsProjectId);
@@ -748,6 +772,7 @@ export default function LiveStatsSection() {
 
               <EventTimingBlock eventTiming={stats.event_timing} />
               <IdentityResolutionBlock identityResolution={stats.identity_resolution} />
+              <ExclusionBlock exclusions={stats.exclusions} />
             </>
           )}
 

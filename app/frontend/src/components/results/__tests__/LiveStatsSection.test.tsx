@@ -412,6 +412,51 @@ describe("LiveStatsSection", () => {
     }
   });
 
+  it("surfaces the filtered-participants indicator when the bot/fraud filter is active", async () => {
+    const withExclusions = {
+      ...liveStatsResponse,
+      exclusions: { status: "active", total_filtered: 5, manual_filtered: 2, rate_spike_filtered: 3 }
+    };
+    const fetchMock = vi.fn(async (..._args: unknown[]) => ({ ok: true, json: async () => withExclusions }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const view = await renderIntoDocument(<LiveStatsSection />);
+    try {
+      await flushEffects();
+      await click(findButton(view.container, "Refresh live stats"));
+      await flushEffects();
+      await flushEffects();
+
+      const text = view.container.textContent ?? "";
+      expect(text).toContain("Filtered participants");
+      expect(text).toContain("5 participants filtered");
+      expect(text).toContain("2 deny-list");
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("hides the filtered-participants indicator when nothing is filtered", async () => {
+    const withInactive = {
+      ...liveStatsResponse,
+      exclusions: { status: "inactive", total_filtered: 0 }
+    };
+    const fetchMock = vi.fn(async (..._args: unknown[]) => ({ ok: true, json: async () => withInactive }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const view = await renderIntoDocument(<LiveStatsSection />);
+    try {
+      await flushEffects();
+      await click(findButton(view.container, "Refresh live stats"));
+      await flushEffects();
+      await flushEffects();
+
+      expect(view.container.textContent ?? "").not.toContain("Filtered participants");
+    } finally {
+      await view.unmount();
+    }
+  });
+
   it("renders the anytime-valid (mSPRT) block for a comparison", async () => {
     const fetchMock = vi.fn(async (..._args: unknown[]) => ({ ok: true, json: async () => liveStatsResponse }));
     vi.stubGlobal("fetch", fetchMock);

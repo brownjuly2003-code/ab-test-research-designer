@@ -278,6 +278,15 @@ Decision Readout — one synthesized ship / no-ship / keep-running verdict over 
 live-stats signals (SRM, frequentist effect/CI, Bayesian P(B>A), sequential crossing). No
 new statistics; see services/decision_service.py.
 
+### `POST /api/v1/experiments/{experiment_id}/exclusions`
+
+Ingest Exclusions
+
+Ingest manual deny-list exclusions for the bot / fraud filter (P4.4). First-write-wins per
+user (the first reason sticks); the live-stats rollup drops excluded users — resolved to their
+canonical id — from every aggregate, alongside the automatic rate-spike heuristic. The raw
+events are never deleted, so an exclusion is a reversible read-time filter.
+
 ### `POST /api/v1/experiments/{experiment_id}/exposures`
 
 Ingest Exposures
