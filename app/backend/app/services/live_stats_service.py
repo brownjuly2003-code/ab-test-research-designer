@@ -80,6 +80,7 @@ def build_live_stats(
     guardrail_aggregates: dict[str, Any] | None = None,
     holdout_aggregates: dict[str, Any] | None = None,
     event_timing_summary: dict[str, Any] | None = None,
+    identity_resolution_summary: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Assemble the live-stats payload from a stored experiment design and the current
     per-variation analysis aggregates (``repository.get_experiment_analysis_aggregates``).
@@ -102,7 +103,11 @@ def build_live_stats(
 
     ``event_timing_summary`` (``repository.get_event_timing_summary``) carries the late /
     out-of-order conversion counts on the primary metric (P4.2); ``None`` keeps the event-timing
-    block ``unavailable``. It is informational only — it does not change any comparison or verdict."""
+    block ``unavailable``. It is informational only — it does not change any comparison or verdict.
+
+    ``identity_resolution_summary`` (``repository.get_identity_resolution_summary``) carries the
+    anonymous → canonical link counts (P4.3); ``None`` / no links keeps the block ``inactive``. The
+    resolution itself already happened inside the primary rollup — this block only reports it."""
     metrics = project_payload.get("metrics", {})
     setup = project_payload.get("setup", {})
     constraints = project_payload.get("constraints", {})
@@ -213,6 +218,7 @@ def build_live_stats(
         mixture_variance=design_mixture_variance,
     )
     event_timing = _build_event_timing_block(event_timing_summary)
+    identity_resolution = _build_identity_resolution_block(identity_resolution_summary)
 
     return {
         "experiment_id": experiment_id,
@@ -229,6 +235,7 @@ def build_live_stats(
         "guardrail": guardrail,
         "holdout": holdout,
         "event_timing": event_timing,
+        "identity_resolution": identity_resolution,
     }
 
 
@@ -1662,4 +1669,31 @@ def _build_event_timing_block(
         "late": int(event_timing_summary.get("late", 0)),
         "out_of_order": int(event_timing_summary.get("out_of_order", 0)),
         "total": int(event_timing_summary.get("total", 0)),
+    }
+
+
+def _build_identity_resolution_block(
+    identity_resolution_summary: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Identity-resolution indicator (P4.3).
+
+    Reports how many anonymous → canonical links are active and how much they touched the rollup
+    (``canonicalized_events`` re-attributed, ``merged_users`` whose double-count was prevented). The
+    resolution already happened in the primary rollup; this block only surfaces it. ``inactive`` when
+    no links exist (the common case) — the frontend hides the block then. Purely informational; it
+    never alters a comparison or the decision verdict.
+    """
+    linked = int((identity_resolution_summary or {}).get("linked_identities", 0) or 0)
+    if not identity_resolution_summary or linked <= 0:
+        return {
+            "status": "inactive",
+            "linked_identities": linked,
+            "canonicalized_events": None,
+            "merged_users": None,
+        }
+    return {
+        "status": "active",
+        "linked_identities": linked,
+        "canonicalized_events": int(identity_resolution_summary.get("canonicalized_events", 0) or 0),
+        "merged_users": int(identity_resolution_summary.get("merged_users", 0) or 0),
     }

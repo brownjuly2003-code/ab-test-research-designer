@@ -608,6 +608,48 @@ def test_postgres_backend_event_timing_summary_round_trip(postgres_repository) -
     assert summary["total"] == 3  # holdout conversion excluded
 
 
+def test_postgres_backend_identity_resolution_round_trip(postgres_repository) -> None:
+    # Exercises the P4.3 identity-resolution rollup on a real Postgres: the resolution CTE folds each
+    # user's events onto their canonical id (COALESCE + string `||` order key + MIN first-exposure-wins
+    # + the EXISTS summary subqueries) — the dual-backend SQL paths most prone to SQLite/Postgres
+    # divergence. Not checkable on Windows without a Postgres (the SQLite suite covers the same logic).
+    repo = postgres_repository
+    project = repo.create_project(_payload("Identity PG", "binary"))
+    exp = project["id"]
+
+    def at(day: int) -> datetime:
+        return datetime(2026, 6, day, 12, 0, 0, tzinfo=UTC)
+
+    # 'anon' exposed first (arm 0), re-exposed after login as 'user' (arm 1); a conversion lands under
+    # 'user'. After linking anon → user the person is one canonical unit in their first arm (0).
+    repo.record_exposures(exp, [{"user_id": "anon", "variation_index": 0, "occurred_at": at(1)}])
+    repo.record_exposures(exp, [{"user_id": "user", "variation_index": 1, "occurred_at": at(2)}])
+    repo.record_conversions(exp, [{"user_id": "user", "metric": "purchase", "occurred_at": at(3)}])
+    repo.record_identities(exp, [{"anonymous_id": "anon", "canonical_id": "user"}])
+
+    aggregates = repo.get_experiment_analysis_aggregates(exp, "purchase")
+    assert aggregates is not None
+    by_index = {v["variation_index"]: v for v in aggregates["variations"]}
+    # Collapsed to one canonical user in arm 0 (first-exposure-wins); no SRM inflation.
+    assert sum(v["exposed_users"] for v in aggregates["variations"]) == 1
+    assert by_index[0]["exposed_users"] == 1
+    assert by_index[0]["converted_users"] == 1  # 'user' conversion resolves onto the canonical unit
+
+    summary = repo.get_identity_resolution_summary(exp)
+    assert summary is not None
+    assert summary["linked_identities"] == 1
+    assert summary["canonicalized_events"] == 1  # the 'anon' exposure was re-attributed
+    assert summary["merged_users"] == 1
+
+    # First-write-wins canonical + self-link skip behave the same on Postgres.
+    assert repo.record_identities(exp, [{"anonymous_id": "anon", "canonical_id": "other"}])["recorded"] == 0
+    assert repo.record_identities(exp, [{"anonymous_id": "z", "canonical_id": "z"}]) == {
+        "received": 1,
+        "recorded": 0,
+        "deduplicated": 0,
+    }
+
+
 def test_readyz_uses_postgres_checks_without_sqlite_regression(monkeypatch) -> None:
     monkeypatch.setenv("AB_DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/abtest")
     monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")

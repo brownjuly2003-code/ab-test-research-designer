@@ -2003,3 +2003,81 @@ def test_live_stats_route_reports_event_timing() -> None:
     assert block["late"] == 1
     assert block["out_of_order"] == 1
     assert block["total"] == 3
+
+
+def test_live_stats_identity_resolution_inactive_without_summary() -> None:
+    # No identity-resolution summary supplied -> the block is "inactive" (hidden by the frontend).
+    result = build_live_stats("e", _binary_design(), _aggregates(_arm(0, 100, 10), _arm(1, 100, 12)))
+    assert result["identity_resolution"]["status"] == "inactive"
+    assert result["identity_resolution"]["linked_identities"] == 0
+    assert result["identity_resolution"]["merged_users"] is None
+
+
+def test_live_stats_identity_resolution_block_active() -> None:
+    # A non-empty summary surfaces the active indicator with its counts.
+    result = build_live_stats(
+        "e",
+        _binary_design(),
+        _aggregates(_arm(0, 100, 10), _arm(1, 100, 12)),
+        identity_resolution_summary={
+            "experiment_id": "e",
+            "linked_identities": 3,
+            "canonicalized_events": 5,
+            "merged_users": 2,
+        },
+    )
+    block = result["identity_resolution"]
+    assert block["status"] == "active"
+    assert block["linked_identities"] == 3
+    assert block["canonicalized_events"] == 5
+    assert block["merged_users"] == 2
+
+
+def test_live_stats_route_reports_identity_resolution() -> None:
+    # End-to-end (P4.3): a user exposed under an anonymous id who converts under their canonical id is
+    # attributed to the exposed arm once the link is ingested, and the /live-stats identity_resolution
+    # block reports the active resolution — proving routes/execution wires the resolution + summary.
+    client = TestClient(create_app())
+    project_id = _create_binary_project(client)
+
+    # 'anon' is exposed to the treatment arm; the conversion arrives under the logged-in id 'user'.
+    assert (
+        client.post(
+            f"/api/v1/experiments/{project_id}/exposures",
+            json={"exposures": [{"user_id": "anon", "variation_index": 1}]},
+        ).status_code
+        == 200
+    )
+    assert (
+        client.post(
+            f"/api/v1/experiments/{project_id}/conversions",
+            json={"conversions": [{"user_id": "user", "metric": "purchase"}]},
+        ).status_code
+        == 200
+    )
+
+    # Before the link: the conversion is orphaned and the block is inactive.
+    before = client.get(f"/api/v1/experiments/{project_id}/live-stats").json()
+    assert before["identity_resolution"]["status"] == "inactive"
+
+    assert (
+        client.post(
+            f"/api/v1/experiments/{project_id}/identities",
+            json={"identities": [{"anonymous_id": "anon", "canonical_id": "user"}]},
+        ).status_code
+        == 200
+    )
+
+    after = client.get(f"/api/v1/experiments/{project_id}/live-stats")
+    assert after.status_code == 200, after.text
+    body = after.json()
+    block = body["identity_resolution"]
+    assert block["status"] == "active"
+    assert block["linked_identities"] == 1
+    assert block["canonicalized_events"] == 1  # the anonymous exposure was re-attributed
+    assert block["merged_users"] == 1
+    # The conversion (ingested under the canonical id) is now attributed to the exposed arm — the
+    # treatment comparison reports one converted user (attribution itself is covered in depth by the
+    # repository tests; this proves routes/execution wires the resolution into the live read).
+    treatment = next(c for c in body["comparisons"] if c["treatment_index"] == 1)
+    assert treatment["treatment"]["converted_users"] == 1

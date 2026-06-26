@@ -362,6 +362,56 @@ describe("LiveStatsSection", () => {
     }
   });
 
+  it("surfaces the identity-resolution indicator when links are active", async () => {
+    const withIdentity = {
+      ...liveStatsResponse,
+      identity_resolution: {
+        status: "active",
+        linked_identities: 4,
+        canonicalized_events: 9,
+        merged_users: 3
+      }
+    };
+    const fetchMock = vi.fn(async (..._args: unknown[]) => ({ ok: true, json: async () => withIdentity }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const view = await renderIntoDocument(<LiveStatsSection />);
+    try {
+      await flushEffects();
+      await click(findButton(view.container, "Refresh live stats"));
+      await flushEffects();
+      await flushEffects();
+
+      const text = view.container.textContent ?? "";
+      expect(text).toContain("Identity resolution");
+      expect(text).toContain("4 identities linked");
+      expect(text).toContain("3 users merged");
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("hides the identity-resolution indicator when no links exist", async () => {
+    const withInactive = {
+      ...liveStatsResponse,
+      identity_resolution: { status: "inactive", linked_identities: 0 }
+    };
+    const fetchMock = vi.fn(async (..._args: unknown[]) => ({ ok: true, json: async () => withInactive }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const view = await renderIntoDocument(<LiveStatsSection />);
+    try {
+      await flushEffects();
+      await click(findButton(view.container, "Refresh live stats"));
+      await flushEffects();
+      await flushEffects();
+
+      expect(view.container.textContent ?? "").not.toContain("Identity resolution");
+    } finally {
+      await view.unmount();
+    }
+  });
+
   it("renders the anytime-valid (mSPRT) block for a comparison", async () => {
     const fetchMock = vi.fn(async (..._args: unknown[]) => ({ ok: true, json: async () => liveStatsResponse }));
     vi.stubGlobal("fetch", fetchMock);

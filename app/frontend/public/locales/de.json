@@ -813,7 +813,10 @@
       "holdoutBayesianLine": "P(Behandelt schlägt Holdout) = {{prob}}",
       "eventTimingTitle": "Ereignis-Timing",
       "eventTimingSummary": "{{late}} verspätet · {{outOfOrder}} außer der Reihe von {{total}} Conversions (Attributionsfenster {{horizon}} T)",
-      "eventTimingHint": "Conversions nach dem Attributionsfenster (verspätet) oder vor der Exposition (außer der Reihe), nach Ereigniszeit — ein Datenqualitätssignal; sie ändern das Ergebnis nicht."
+      "eventTimingHint": "Conversions nach dem Attributionsfenster (verspätet) oder vor der Exposition (außer der Reihe), nach Ereigniszeit — ein Datenqualitätssignal; sie ändern das Ergebnis nicht.",
+      "identityTitle": "Identitätsauflösung",
+      "identitySummary": "{{linked}} Identitäten verknüpft · {{merged}} Nutzer zusammengeführt · {{events}} Ereignisse neu zugeordnet",
+      "identityHint": "Anonyme Ereignisse werden auf die kanonische (angemeldete) ID jedes Nutzers gefaltet, sodass eine Person vor und nach der Anmeldung einmal zählt — ohne doppelte Expositionen und Conversions."
     },
     "decision": {
       "title": "Entscheidungs-Readout",

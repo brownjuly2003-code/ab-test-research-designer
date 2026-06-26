@@ -12,6 +12,7 @@ import type {
   LiveGuardrailMetricResult,
   LiveHoldoutArmStat,
   LiveHoldoutBlock,
+  LiveIdentityResolutionBlock,
   LiveStatsResponse,
   LiveStratifiedBlock,
   LiveStratifiedComparison
@@ -582,6 +583,33 @@ function EventTimingBlock({ eventTiming }: { eventTiming: LiveEventTimingBlock |
   );
 }
 
+function IdentityResolutionBlock({
+  identityResolution
+}: {
+  identityResolution: LiveIdentityResolutionBlock | undefined;
+}) {
+  // Only surface the indicator when identity resolution is active (links exist); a run with no
+  // anonymous→canonical links needs no callout.
+  if (!identityResolution || identityResolution.status !== "active") {
+    return null;
+  }
+  return (
+    <div className="callout" style={{ display: "grid", gap: "6px" }}>
+      <strong>{t("results.liveStats.identityTitle")}</strong>
+      <span className="muted">
+        {t("results.liveStats.identitySummary", {
+          linked: identityResolution.linked_identities ?? 0,
+          merged: identityResolution.merged_users ?? 0,
+          events: identityResolution.canonicalized_events ?? 0
+        })}
+      </span>
+      <span className="muted" style={{ fontSize: "0.85em" }}>
+        {t("results.liveStats.identityHint")}
+      </span>
+    </div>
+  );
+}
+
 export default function LiveStatsSection() {
   const analysisResult = useAnalysisStore((state) => state.analysisResult);
   const resultsProjectId = useAnalysisStore((state) => state.resultsProjectId);
@@ -719,6 +747,7 @@ export default function LiveStatsSection() {
               <HoldoutBlock holdout={stats.holdout} metricType={stats.metric_type} />
 
               <EventTimingBlock eventTiming={stats.event_timing} />
+              <IdentityResolutionBlock identityResolution={stats.identity_resolution} />
             </>
           )}
 

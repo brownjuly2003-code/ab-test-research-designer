@@ -9,6 +9,7 @@ from app.backend.app.schemas.api import (
     DecisionReadoutResponse,
     ExposureIngestRequest,
     HoldoutIngestRequest,
+    IdentityIngestRequest,
     IngestionSummaryResponse,
     IngestResultResponse,
     LiveStatsResponse,
@@ -109,6 +110,22 @@ def create_execution_router(
         )
         return IngestResultResponse.model_validate(result)
 
+    @router.post(
+        "/api/v1/experiments/{experiment_id}/identities",
+        response_model=IngestResultResponse,
+        dependencies=[Depends(require_write_auth)],
+    )
+    def ingest_identities(experiment_id: str, payload: IdentityIngestRequest) -> IngestResultResponse:
+        """Ingest anonymous → canonical identity links (P4.3). First-write-wins per anonymous id;
+        the live-stats rollup folds each user's exposures and conversions onto their canonical id, so
+        a person exposed while anonymous and re-exposed / converting after login is counted once
+        instead of inflating SRM and the conversion rate. A self-link is a no-op and is skipped."""
+        result = repository.record_identities(
+            experiment_id,
+            [event.model_dump() for event in payload.identities],
+        )
+        return IngestResultResponse.model_validate(result)
+
     @router.get(
         "/api/v1/experiments/{experiment_id}/ingestion",
         response_model=IngestionSummaryResponse,
@@ -161,6 +178,10 @@ def create_execution_router(
         event_timing_summary = repository.get_event_timing_summary(
             experiment_id, metric_name, ATTRIBUTION_HORIZON_DAYS
         )
+        # Identity resolution (P4.3): counts for the indicator. The resolution itself already happened
+        # inside the primary rollup above (anonymous → canonical fold); this is just the informational
+        # summary of how many links are active and how much they touched the data.
+        identity_resolution_summary = repository.get_identity_resolution_summary(experiment_id)
         return build_live_stats(
             experiment_id,
             project["payload"],
@@ -171,6 +192,7 @@ def create_execution_router(
             guardrail_aggregates,
             holdout_aggregates,
             event_timing_summary,
+            identity_resolution_summary,
         )
 
     @router.get(
