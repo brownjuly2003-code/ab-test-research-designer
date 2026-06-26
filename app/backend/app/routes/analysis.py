@@ -13,6 +13,7 @@ from app.backend.app.llm.adapter import (
     LocalOrchestratorAdapter,
 )
 from app.backend.app.llm.anthropic_adapter import AnthropicAdapter
+from app.backend.app.llm.mistral_adapter import MistralAdapter
 from app.backend.app.llm.openai_adapter import OpenAIAdapter
 from app.backend.app.schemas.api import (
     AnalysisResponse,
@@ -112,20 +113,74 @@ def _build_llm_advice_payload(payload: ExperimentInput, calculation_result: dict
     }
 
 
+AdviceAdapter = LocalOrchestratorAdapter | OpenAIAdapter | AnthropicAdapter | MistralAdapter
+
+
 def pick_adapter(
     request: Request,
     *,
     local_adapter: LocalOrchestratorAdapter,
     openai_adapter: OpenAIAdapter,
     anthropic_adapter: AnthropicAdapter,
-) -> tuple[LocalOrchestratorAdapter | OpenAIAdapter | AnthropicAdapter, str]:
+    mistral_adapter: MistralAdapter | None = None,
+) -> tuple[AdviceAdapter, str]:
     provider = request.headers.get("X-AB-LLM-Provider", "").strip().lower()
     token = request.headers.get("X-AB-LLM-Token", "").strip()
     if provider == "openai" and token:
         return openai_adapter, token
     if provider == "anthropic" and token:
         return anthropic_adapter, token
+    if provider == "mistral" and token and mistral_adapter is not None:
+        return mistral_adapter, token
     return local_adapter, ""
+
+
+def _request_with_insurance(
+    *,
+    adapter: AdviceAdapter,
+    token: str,
+    payload: dict[str, Any],
+    method: str,
+    local_adapter: LocalOrchestratorAdapter,
+    mistral_adapter: MistralAdapter | None,
+    mistral_key: str,
+) -> dict[str, Any]:
+    """Run an advice/hypotheses request, with free Mistral as insurance.
+
+    Mistral only steps in for the *default* local-orchestrator path when that path
+    could not produce a result (e.g. the hosted demo has no local orchestrator, so
+    the call returns ``available: False``). An explicitly chosen provider
+    (openai/anthropic/mistral with a caller token) is left untouched — its errors
+    propagate as before. ``method`` is ``"advice"`` or ``"hypotheses"``.
+    """
+
+    def call(active: AdviceAdapter, active_token: str) -> dict[str, Any]:
+        if method == "hypotheses":
+            return (
+                cast("OpenAIAdapter | AnthropicAdapter | MistralAdapter", active).request_hypotheses(payload, token=active_token)
+                if active_token
+                else active.request_hypotheses(payload)
+            )
+        return (
+            cast("OpenAIAdapter | AnthropicAdapter | MistralAdapter", active).request_advice(payload, token=active_token)
+            if active_token
+            else active.request_advice(payload)
+        )
+
+    result = call(adapter, token)
+    if (
+        adapter is local_adapter
+        and not result.get("available")
+        and mistral_adapter is not None
+        and mistral_key
+    ):
+        try:
+            insured = call(mistral_adapter, mistral_key)
+            if insured.get("available"):
+                return insured
+        except (LLMAuthError, LLMTransientError):
+            pass
+    return result
 
 
 def create_analysis_router(
@@ -155,6 +210,21 @@ def create_analysis_router(
         initial_backoff_seconds=settings.llm_initial_backoff_seconds,
         backoff_multiplier=settings.llm_backoff_multiplier,
     )
+    # Free Mistral insurance: created only when a server-side key is configured.
+    # When set, it backstops the default local path if the orchestrator is absent
+    # (e.g. the hosted demo), so AI advice still works without a paid provider.
+    mistral_adapter = (
+        MistralAdapter(
+            model=settings.mistral_model,
+            timeout_seconds=settings.llm_timeout_seconds,
+            max_attempts=settings.llm_max_attempts,
+            initial_backoff_seconds=settings.llm_initial_backoff_seconds,
+            backoff_multiplier=settings.llm_backoff_multiplier,
+        )
+        if settings.mistral_api_key
+        else None
+    )
+    mistral_key = settings.mistral_api_key or ""
 
     @router.post(
         "/api/v1/calculate",
@@ -358,13 +428,18 @@ def create_analysis_router(
             local_adapter=local_adapter,
             openai_adapter=openai_adapter,
             anthropic_adapter=anthropic_adapter,
+            mistral_adapter=mistral_adapter,
         )
         advice_payload = _build_llm_advice_payload(payload, calculation_result)
         try:
-            advice = (
-                cast("OpenAIAdapter | AnthropicAdapter", adapter).request_advice(advice_payload, token=token)
-                if token
-                else adapter.request_advice(advice_payload)
+            advice = _request_with_insurance(
+                adapter=adapter,
+                token=token,
+                payload=advice_payload,
+                method="advice",
+                local_adapter=local_adapter,
+                mistral_adapter=mistral_adapter,
+                mistral_key=mistral_key,
             )
         except LLMAuthError as exc:
             raise ApiError(str(exc), error_code="llm_auth", status_code=exc.status_code) from exc
@@ -387,13 +462,18 @@ def create_analysis_router(
             local_adapter=local_adapter,
             openai_adapter=openai_adapter,
             anthropic_adapter=anthropic_adapter,
+            mistral_adapter=mistral_adapter,
         )
         advice_payload = payload.model_dump(exclude_none=True)
         try:
-            result = (
-                cast("OpenAIAdapter | AnthropicAdapter", adapter).request_advice(advice_payload, token=token)
-                if token
-                else adapter.request_advice(advice_payload)
+            result = _request_with_insurance(
+                adapter=adapter,
+                token=token,
+                payload=advice_payload,
+                method="advice",
+                local_adapter=local_adapter,
+                mistral_adapter=mistral_adapter,
+                mistral_key=mistral_key,
             )
         except LLMAuthError as exc:
             raise ApiError(str(exc), error_code="llm_auth", status_code=exc.status_code) from exc
@@ -412,13 +492,18 @@ def create_analysis_router(
             local_adapter=local_adapter,
             openai_adapter=openai_adapter,
             anthropic_adapter=anthropic_adapter,
+            mistral_adapter=mistral_adapter,
         )
         ideation_payload = payload.model_dump(exclude_none=True)
         try:
-            result = (
-                cast("OpenAIAdapter | AnthropicAdapter", adapter).request_hypotheses(ideation_payload, token=token)
-                if token
-                else adapter.request_hypotheses(ideation_payload)
+            result = _request_with_insurance(
+                adapter=adapter,
+                token=token,
+                payload=ideation_payload,
+                method="hypotheses",
+                local_adapter=local_adapter,
+                mistral_adapter=mistral_adapter,
+                mistral_key=mistral_key,
             )
         except LLMAuthError as exc:
             raise ApiError(str(exc), error_code="llm_auth", status_code=exc.status_code) from exc
