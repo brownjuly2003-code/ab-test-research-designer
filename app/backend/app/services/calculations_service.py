@@ -55,9 +55,9 @@ def calculate_experiment_metrics(payload: dict[str, Any]) -> dict[str, Any]:
             power=payload["power"],
             variants_count=variants_count,
         )
-    elif metric_type == "continuous":
+    elif metric_type in ("continuous", "ratio"):
         if payload.get("std_dev") is None:
-            raise ValueError("std_dev must be positive for continuous metrics")
+            raise ValueError("std_dev must be positive for continuous and ratio metrics")
         calculation_summary = calculate_continuous_sample_size(
             baseline_mean=payload["baseline_value"],
             std_dev=payload["std_dev"],
@@ -66,6 +66,19 @@ def calculate_experiment_metrics(payload: dict[str, Any]) -> dict[str, Any]:
             power=payload["power"],
             variants_count=variants_count,
         )
+        if metric_type == "ratio":
+            # A ratio metric R = E[Y]/E[X] is sized by the delta method: the per-user linearized value
+            # (numerator - R*denominator) is the continuous analysis unit, with mean R (baseline_value)
+            # and the supplied per-user standard deviation, so the two-sample continuous sample-size
+            # formula applies unchanged. Restamp the metric identity and the lead assumption the
+            # continuous calculator returned.
+            calculation_summary["metric_type"] = "ratio"
+            calculation_summary["assumptions"] = [
+                "Ratio metric sized by the delta method: the per-user value "
+                "(numerator - R x denominator) is the analysis unit, with baseline ratio R and the "
+                "supplied per-user standard deviation.",
+                *calculation_summary["assumptions"][1:],
+            ]
     else:
         raise ValueError(f"Unsupported metric_type: {metric_type}")
 

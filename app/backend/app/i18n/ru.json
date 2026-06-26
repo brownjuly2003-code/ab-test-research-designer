@@ -241,6 +241,8 @@
       "binary_baseline_range": "для бинарной метрики baseline_value должен быть между 0 и 1",
       "continuous_baseline_positive": "для непрерывной метрики baseline_value должен быть положительным",
       "continuous_std_positive": "для непрерывной метрики std_dev должен быть положительным",
+      "ratio_baseline_positive": "для метрики-отношения baseline_value (базовое отношение) должен быть положительным",
+      "ratio_std_positive": "для метрики-отношения std_dev (линеаризованное стандартное отклонение на пользователя) должен быть положительным",
       "bayesian_requires_precision": "в байесовском режиме нужен desired_precision",
       "control_conversions_exceed_users": "control_conversions не может превышать control_users",
       "treatment_conversions_exceed_users": "treatment_conversions не может превышать treatment_users",

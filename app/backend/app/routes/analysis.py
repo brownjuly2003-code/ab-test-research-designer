@@ -59,16 +59,18 @@ if TYPE_CHECKING:
 
 def _build_calculation_payload(payload: ExperimentInput) -> CalculationRequest:
     metric_type = payload.metrics.metric_type
-    if metric_type == "ratio":
-        # Sample-size planning for ratio metrics (delta-method power) is a later sub-phase. A ratio
-        # experiment is analyzed live (stats.ratio over ingested numerator/denominator events), not
-        # through the planning calculator, so reject the planning path with a clear message rather
-        # than feed an unsupported metric_type into the calculator.
+    if metric_type == "ratio" and payload.metrics.std_dev is None:
+        # Ratio sample-size planning uses the delta-method linearization (the per-user value
+        # numerator - R*denominator treated as a continuous metric), which needs the per-user
+        # standard deviation. Without it we cannot plan a sample size — but the live execution stats
+        # still analyze the ratio directly via the delta method. When std_dev is present the planning
+        # path proceeds exactly like a continuous metric (see calculate_experiment_metrics).
         raise HTTPException(
             status_code=422,
             detail=(
-                "Sample-size planning is not available for ratio metrics yet. Run the experiment "
-                "and read its live execution stats (delta method) to analyze a ratio metric."
+                "Ratio sample-size planning needs the metric's per-user standard deviation (std_dev) "
+                "for the delta-method linearization. Add it to the metric, or run the experiment and "
+                "read its live delta-method execution stats."
             ),
         )
     return CalculationRequest(

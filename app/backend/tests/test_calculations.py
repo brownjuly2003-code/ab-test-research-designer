@@ -32,6 +32,46 @@ def test_binary_calculation_returns_required_fields() -> None:
     assert result["results"]["estimated_duration_days"] > 0
 
 
+def test_ratio_calculation_reduces_to_continuous_delta_method() -> None:
+    base = {
+        "baseline_value": 0.05,
+        "std_dev": 0.09,
+        "mde_pct": 5,
+        "alpha": 0.05,
+        "power": 0.8,
+        "expected_daily_traffic": 200000,
+        "audience_share_in_test": 0.5,
+        "traffic_split": [50, 50],
+    }
+    ratio = calculate_experiment_metrics({**base, "metric_type": "ratio"})
+    continuous = calculate_experiment_metrics({**base, "metric_type": "continuous"})
+
+    assert ratio["calculation_summary"]["metric_type"] == "ratio"
+    # Ratio sizing is the continuous (delta-method linearized) sample-size formula with the same
+    # baseline ratio and per-user std, so the planned sample size matches exactly.
+    assert (
+        ratio["results"]["sample_size_per_variant"]
+        == continuous["results"]["sample_size_per_variant"]
+    )
+    assert "delta method" in ratio["assumptions"][0].lower()
+
+
+def test_ratio_calculation_requires_std_dev() -> None:
+    with pytest.raises(ValueError):
+        calculate_experiment_metrics(
+            {
+                "metric_type": "ratio",
+                "baseline_value": 0.05,
+                "mde_pct": 5,
+                "alpha": 0.05,
+                "power": 0.8,
+                "expected_daily_traffic": 200000,
+                "audience_share_in_test": 0.5,
+                "traffic_split": [50, 50],
+            }
+        )
+
+
 def _binary_holdout_payload(**overrides: object) -> dict:
     payload = {
         "metric_type": "binary",

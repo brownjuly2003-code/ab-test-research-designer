@@ -35,6 +35,10 @@ SAMPLE_PROJECTS = (
         "template_id": "onboarding_completion",
         "project_name": "Demo - Onboarding Completion",
     },
+    {
+        "template_id": "ad_ctr_ratio",
+        "project_name": "Demo - Feed Ad Click-Through Ratio",
+    },
 )
 
 

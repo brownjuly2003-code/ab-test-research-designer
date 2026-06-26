@@ -161,7 +161,7 @@ export type BanditSimulationResponse = {
 };
 
 export type CalculationRequest = {
-  metric_type: "binary" | "continuous";
+  metric_type: "binary" | "continuous" | "ratio";
   baseline_value: number;
   std_dev?: number | null;
   cuped_pre_experiment_std?: number | null;

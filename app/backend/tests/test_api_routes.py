@@ -913,6 +913,46 @@ def test_design_endpoint_accepts_holdout_and_mutual_exclusion_constraints() -> N
     assert response.status_code == 200
 
 
+def _ratio_full_payload() -> dict:
+    payload = _full_payload()
+    payload["metrics"] = {
+        "primary_metric_name": "ad_ctr",
+        "metric_type": "ratio",
+        "baseline_value": 0.05,
+        "expected_uplift_pct": 6,
+        "mde_pct": 5,
+        "alpha": 0.05,
+        "power": 0.8,
+        "std_dev": 0.09,
+        "numerator_metric_name": "ad_clicks",
+        "denominator_metric_name": "ad_impressions",
+        "secondary_metrics": [],
+        "guardrail_metrics": [],
+    }
+    return payload
+
+
+def test_design_endpoint_sizes_ratio_metric_by_delta_method() -> None:
+    client = TestClient(create_app())
+
+    response = client.post("/api/v1/design", json=_ratio_full_payload())
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["metrics_plan"]["primary"] == ["ad_ctr"]
+    assert body["calculations"]["sample_size_per_variant"] > 0
+
+
+def test_design_endpoint_rejects_ratio_without_std_dev() -> None:
+    client = TestClient(create_app())
+    payload = _ratio_full_payload()
+    payload["metrics"]["std_dev"] = None
+
+    response = client.post("/api/v1/design", json=payload)
+
+    assert response.status_code == 422
+
+
 def test_analyze_endpoint_honors_holdout_in_constraints(monkeypatch) -> None:
     monkeypatch.setattr(
         LocalOrchestratorAdapter,
@@ -2313,7 +2353,7 @@ def test_project_report_data_export_requires_auth(monkeypatch) -> None:
     get_settings.cache_clear()
 
 
-def test_templates_list_returns_ten_builtins_on_fresh_install(monkeypatch) -> None:
+def test_templates_list_returns_eleven_builtins_on_fresh_install(monkeypatch) -> None:
     temp_dir = Path(__file__).resolve().parent / ".tmp"
     temp_dir.mkdir(exist_ok=True)
     db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
@@ -2327,8 +2367,8 @@ def test_templates_list_returns_ten_builtins_on_fresh_install(monkeypatch) -> No
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["total"] == 10
-    assert len(payload["templates"]) == 10
+    assert payload["total"] == 11
+    assert len(payload["templates"]) == 11
     assert all(template["built_in"] is True for template in payload["templates"])
     get_settings.cache_clear()
 

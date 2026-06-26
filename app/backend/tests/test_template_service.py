@@ -10,8 +10,8 @@ TEMPLATES_DIR = Path(__file__).resolve().parents[1] / "templates"
 TEMPLATE_PATHS = sorted(TEMPLATES_DIR.glob("*.yaml"))
 
 
-def test_built_in_template_gallery_contains_ten_yaml_files() -> None:
-    assert len(TEMPLATE_PATHS) == 10
+def test_built_in_template_gallery_contains_eleven_yaml_files() -> None:
+    assert len(TEMPLATE_PATHS) == 11
 
 
 @pytest.mark.parametrize("template_path", TEMPLATE_PATHS, ids=lambda path: path.stem)
