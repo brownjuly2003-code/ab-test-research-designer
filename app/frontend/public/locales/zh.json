@@ -254,6 +254,12 @@
       "baselineMeanAriaLabel": "护栏基线平均值{{index}}",
       "stdDev": "标准差",
       "stdDevAriaLabel": "护栏标准开发 {{index}}",
+      "direction": "有害方向",
+      "directionAriaLabel": "护栏有害方向 {{index}}",
+      "increaseIsBad": "上升为有害",
+      "decreaseIsBad": "下降为有害",
+      "marginPct": "容忍裕度 %",
+      "marginAriaLabel": "护栏容忍裕度百分比 {{index}}",
       "add": "添加护栏指标"
     },
     "buttons": {
@@ -790,7 +796,16 @@
       "stratifiedEffect": "事后分层效应 {{effect}} · 置信区间 [{{lower}}, {{upper}}] · p {{p}}",
       "stratifiedReduction": "方差降低 {{reduction}}% · 合并 {{n}} 个层",
       "stratifiedStratumLine": "{{stratum}}：{{users}} 名用户 · 效应 {{effect}}",
-      "stratifiedPending": "目前还没有任何层的两个组都拥有足够用户来进行事后分层检验。"
+      "stratifiedPending": "目前还没有任何层的两个组都拥有足够用户来进行事后分层检验。",
+      "guardrailTitle": "护栏指标",
+      "guardrailOk": "正常",
+      "guardrailWarning": "警告",
+      "guardrailBreached": "已触发",
+      "guardrailPending": "护栏指标数据尚不足以进行劣化检验。",
+      "guardrailIncreaseIsBad": "上升为有害",
+      "guardrailDecreaseIsBad": "下降为有害",
+      "guardrailArmLine": "{{exposed}} 次曝光 · {{point}}",
+      "guardrailEffectLine": "损害 {{harm}} · 单侧下界 {{lower}} · p {{p}}"
     },
     "decision": {
       "title": "决策摘要",
@@ -835,10 +850,12 @@
         "significant_loss": "{{arm}} 显著劣于对照组（相对效应 {{effect}}）。",
         "inconclusive_ci": "{{arm}}：置信区间仍包含零——目前没有明确效应。",
         "info_fraction_incomplete": "仅收集了计划样本的 {{fraction}}。",
-        "info_fraction_complete_no_effect": "实验已达到计划规模，但未检测到效应。"
+        "info_fraction_complete_no_effect": "实验已达到计划规模，但未检测到效应。",
+        "guardrail_vetoed": "护栏指标已被触发，因此即使主指标获胜，该结果也不可发布。"
       },
       "blocker": {
-        "srm_mismatch": "样本比例不匹配（p={{p}}）——分流似乎已损坏；在信任任何结果之前请修复随机化或追踪。"
+        "srm_mismatch": "样本比例不匹配（p={{p}}）——分流似乎已损坏；在信任任何结果之前请修复随机化或追踪。",
+        "guardrail_breach": "护栏指标“{{metric}}”显著劣化并超出容忍范围——在弄清该回退之前，发布将被阻止。"
       }
     }
   },

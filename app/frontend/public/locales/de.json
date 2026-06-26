@@ -254,6 +254,12 @@
       "baselineMeanAriaLabel": "Guardrail-Referenzmittelwert {{index}}",
       "stdDev": "Standard-Entw",
       "stdDevAriaLabel": "Guardrail Standard-Entwickler {{index}}",
+      "direction": "Schadensrichtung",
+      "directionAriaLabel": "Guardrail-Schadensrichtung {{index}}",
+      "increaseIsBad": "Anstieg ist schädlich",
+      "decreaseIsBad": "Rückgang ist schädlich",
+      "marginPct": "Toleranzmarge %",
+      "marginAriaLabel": "Guardrail-Toleranzmarge in Prozent {{index}}",
       "add": "Guardrail-Metrik hinzufügen"
     },
     "buttons": {
@@ -790,7 +796,16 @@
       "stratifiedEffect": "Post-stratifizierter Effekt {{effect}} · KI [{{lower}}, {{upper}}] · p {{p}}",
       "stratifiedReduction": "Varianzreduktion {{reduction}}% · kombiniert über {{n}} Strata",
       "stratifiedStratumLine": "{{stratum}}: {{users}} Nutzer · Effekt {{effect}}",
-      "stratifiedPending": "Noch hat kein Stratum beide Gruppen mit genügend Nutzern für einen post-stratifizierten Test."
+      "stratifiedPending": "Noch hat kein Stratum beide Gruppen mit genügend Nutzern für einen post-stratifizierten Test.",
+      "guardrailTitle": "Guardrail-Metriken",
+      "guardrailOk": "OK",
+      "guardrailWarning": "Warnung",
+      "guardrailBreached": "Verletzt",
+      "guardrailPending": "Noch nicht genug Guardrail-Daten für einen Verschlechterungstest.",
+      "guardrailIncreaseIsBad": "Anstieg ist schädlich",
+      "guardrailDecreaseIsBad": "Rückgang ist schädlich",
+      "guardrailArmLine": "{{exposed}} exponiert · {{point}}",
+      "guardrailEffectLine": "Schaden {{harm}} · einseitige Untergrenze {{lower}} · p {{p}}"
     },
     "decision": {
       "title": "Entscheidungs-Readout",
@@ -835,10 +850,12 @@
         "significant_loss": "{{arm}} ist signifikant schlechter als die Kontrolle ({{effect}} relativer Effekt).",
         "inconclusive_ci": "{{arm}}: Das Konfidenzintervall schließt noch die Null ein — noch kein klarer Effekt.",
         "info_fraction_incomplete": "Erst {{fraction}} der geplanten Stichprobe wurde gesammelt.",
-        "info_fraction_complete_no_effect": "Das Experiment hat seinen geplanten Umfang ohne nachweisbaren Effekt erreicht."
+        "info_fraction_complete_no_effect": "Das Experiment hat seinen geplanten Umfang ohne nachweisbaren Effekt erreicht.",
+        "guardrail_vetoed": "Eine Guardrail-Metrik ist verletzt, daher ist das Ergebnis nicht auslieferbar, selbst wenn die primäre Metrik gewinnt."
       },
       "blocker": {
-        "srm_mismatch": "Sample-Ratio-Mismatch (p={{p}}) — die Zuweisung scheint defekt; korrigieren Sie Randomisierung oder Tracking, bevor Sie den Ergebnissen vertrauen."
+        "srm_mismatch": "Sample-Ratio-Mismatch (p={{p}}) — die Zuweisung scheint defekt; korrigieren Sie Randomisierung oder Tracking, bevor Sie den Ergebnissen vertrauen.",
+        "guardrail_breach": "Guardrail „{{metric}}“ ist signifikant über die Toleranz hinaus verschlechtert — die Auslieferung ist blockiert, bis die Regression verstanden ist."
       }
     }
   },

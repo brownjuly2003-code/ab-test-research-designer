@@ -6,6 +6,9 @@ import type {
   LiveComparison,
   LiveCupedBlock,
   LiveCupedComparison,
+  LiveGuardrailBlock,
+  LiveGuardrailComparison,
+  LiveGuardrailMetricResult,
   LiveStatsResponse,
   LiveStratifiedBlock,
   LiveStratifiedComparison
@@ -335,6 +338,147 @@ function StratifiedBlock({
   );
 }
 
+function guardrailStatusPill(status: string): string {
+  if (status === "breached") {
+    return "pill warn";
+  }
+  if (status === "ok") {
+    return "pill accent";
+  }
+  return "pill";
+}
+
+function guardrailStatusLabel(status: string): string {
+  if (status === "breached") {
+    return t("results.liveStats.guardrailBreached");
+  }
+  if (status === "warning") {
+    return t("results.liveStats.guardrailWarning");
+  }
+  if (status === "ok") {
+    return t("results.liveStats.guardrailOk");
+  }
+  return t("results.liveStats.guardrailPending");
+}
+
+function guardrailPoint(metricType: string, point: number | null | undefined): string {
+  if (point == null) {
+    return "—";
+  }
+  return metricType === "binary" ? formatPercent(point) : formatNumber(point, 4);
+}
+
+function GuardrailComparisonLine({
+  comparison,
+  metricType,
+  variantNames
+}: {
+  comparison: LiveGuardrailComparison;
+  metricType: string;
+  variantNames: string[];
+}) {
+  const controlName =
+    variantNames[comparison.control.variation_index] ?? `#${comparison.control.variation_index + 1}`;
+  const treatmentName = variantNames[comparison.treatment_index] ?? `#${comparison.treatment_index + 1}`;
+
+  return (
+    <div style={{ display: "grid", gap: "2px", paddingLeft: "12px" }}>
+      <span className="muted">
+        {controlName}:{" "}
+        {t("results.liveStats.guardrailArmLine", {
+          exposed: comparison.control.exposed_users,
+          point: guardrailPoint(metricType, comparison.control.point_estimate)
+        })}
+      </span>
+      <span className="muted">
+        {treatmentName}:{" "}
+        {t("results.liveStats.guardrailArmLine", {
+          exposed: comparison.treatment.exposed_users,
+          point: guardrailPoint(metricType, comparison.treatment.point_estimate)
+        })}
+      </span>
+      {comparison.status === "insufficient_data" ? (
+        <span className="muted">{comparison.note ?? t("results.liveStats.guardrailPending")}</span>
+      ) : (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "center" }}>
+          <span className={guardrailStatusPill(comparison.status)}>
+            {guardrailStatusLabel(comparison.status)}
+          </span>
+          <span className="muted">
+            {t("results.liveStats.guardrailEffectLine", {
+              harm: formatNumber(comparison.harm, 4),
+              lower: formatNumber(comparison.harm_lower_bound, 4),
+              p: formatNumber(comparison.p_value, 4)
+            })}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GuardrailMetricCard({
+  metric,
+  variantNames
+}: {
+  metric: LiveGuardrailMetricResult;
+  variantNames: string[];
+}) {
+  const directionLabel =
+    metric.direction === "decrease_is_bad"
+      ? t("results.liveStats.guardrailDecreaseIsBad")
+      : t("results.liveStats.guardrailIncreaseIsBad");
+
+  return (
+    <div style={{ display: "grid", gap: "4px", marginTop: "6px" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "center" }}>
+        <strong style={{ fontSize: "0.9em" }}>{metric.name}</strong>
+        <span className={guardrailStatusPill(metric.status)}>{guardrailStatusLabel(metric.status)}</span>
+        <span className="muted" style={{ fontSize: "0.85em" }}>{directionLabel}</span>
+      </div>
+      {(metric.comparisons ?? []).map((comparison) => (
+        <GuardrailComparisonLine
+          key={comparison.treatment_index}
+          comparison={comparison}
+          metricType={metric.metric_type}
+          variantNames={variantNames}
+        />
+      ))}
+    </div>
+  );
+}
+
+function GuardrailBlock({
+  guardrail,
+  variantNames
+}: {
+  guardrail: LiveGuardrailBlock | undefined;
+  variantNames: string[];
+}) {
+  if (!guardrail) {
+    return null;
+  }
+  return (
+    <div className="callout" style={{ display: "grid", gap: "6px" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "center" }}>
+        <strong>{t("results.liveStats.guardrailTitle")}</strong>
+        {guardrail.status !== "unavailable" ? (
+          <span className={guardrailStatusPill(guardrail.status)}>
+            {guardrailStatusLabel(guardrail.status)}
+          </span>
+        ) : null}
+      </div>
+      {guardrail.status === "unavailable" ? (
+        <span className="muted">{guardrail.note}</span>
+      ) : (
+        (guardrail.metrics ?? []).map((metric) => (
+          <GuardrailMetricCard key={metric.name} metric={metric} variantNames={variantNames} />
+        ))
+      )}
+    </div>
+  );
+}
+
 export default function LiveStatsSection() {
   const analysisResult = useAnalysisStore((state) => state.analysisResult);
   const resultsProjectId = useAnalysisStore((state) => state.resultsProjectId);
@@ -466,6 +610,8 @@ export default function LiveStatsSection() {
               <CupedBlock cuped={stats.cuped} variantNames={variantNames} />
 
               <StratifiedBlock stratified={stats.stratified} variantNames={variantNames} />
+
+              <GuardrailBlock guardrail={stats.guardrail} variantNames={variantNames} />
             </>
           )}
 

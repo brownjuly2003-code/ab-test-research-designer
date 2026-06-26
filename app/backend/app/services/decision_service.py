@@ -22,10 +22,10 @@ Rule summary (thresholds in ``constants.py``):
 * **Inconclusive** CI that still straddles 0: ``keep_running`` while information is still
   accruing, or ``no_ship`` once a sequential design has reached its planned size.
 
-Guardrails are intentionally *not* a rule here: guardrail metrics are design-time declarations
-(``report.metrics_plan.guardrail``); the execution-layer MVP does not ingest or measure them on
-live data, so there is nothing to breach yet. Wiring guardrail measurement into ingestion would
-be the natural place to add a guardrail blocker later.
+* **Guardrail breach** -> ship veto: when a declared guardrail metric is significantly degraded
+  beyond its tolerance margin on live data (``live_stats.guardrail``), the verdict is forced to
+  ``no_ship`` even if the primary is a win — the data is trustworthy, but the treatment harms a
+  protected metric. The breach is surfaced as a blocker and the vetoed primary win is still reported.
 """
 
 from __future__ import annotations
@@ -56,6 +56,10 @@ def synthesize_decision(live_stats: dict[str, Any]) -> dict[str, Any]:
     comparisons = live_stats.get("comparisons", [])
     sequential = live_stats.get("sequential", {})
     exposures_total = int(live_stats.get("exposures_total", 0))
+    guardrail = live_stats.get("guardrail", {})
+    guardrail_breaches = [
+        metric for metric in guardrail.get("metrics", []) if metric.get("status") == "breached"
+    ]
 
     blockers: list[dict[str, Any]] = []
     reasons: list[dict[str, Any]] = []
@@ -89,6 +93,24 @@ def synthesize_decision(live_stats: dict[str, Any]) -> dict[str, Any]:
     if blockers:
         reasons.append(_reason("blocked_untrustworthy"))
         return _result(experiment_id, "no_ship", "low", reasons, blockers)
+
+    # --- Guardrail breach vetoes a ship: the data is trustworthy, but the treatment significantly
+    #     degrades a protected metric, so no positive primary result justifies shipping ----------
+    if guardrail_breaches:
+        for breach in guardrail_breaches:
+            blockers.append(_reason("guardrail_breach", metric=breach.get("name", "")))
+        # A vetoed win is still worth surfacing so the operator sees what the guardrail overrode.
+        for win in wins:
+            reasons.append(
+                _reason(
+                    "significant_win",
+                    arm=win["arm"],
+                    effect_relative=win["effect_relative"],
+                    p_value=win["p_value"],
+                )
+            )
+        reasons.append(_reason("guardrail_vetoed"))
+        return _result(experiment_id, "no_ship", "high", reasons, blockers)
 
     # --- Ship: at least one boundary-confirmed positive win -----------------------------------
     if wins:

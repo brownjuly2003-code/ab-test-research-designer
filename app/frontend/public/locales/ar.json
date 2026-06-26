@@ -254,6 +254,12 @@
       "baselineMeanAriaLabel": "خط الأساس للدرابزين يعني {{index}}",
       "stdDev": "التطوير القياسي",
       "stdDevAriaLabel": "الدرابزين المعياري المطور {{index}}",
+      "direction": "اتجاه الضرر",
+      "directionAriaLabel": "اتجاه ضرر الحماية {{index}}",
+      "increaseIsBad": "الزيادة ضارة",
+      "decreaseIsBad": "الانخفاض ضار",
+      "marginPct": "هامش التسامح %",
+      "marginAriaLabel": "هامش تسامح الحماية بالنسبة المئوية {{index}}",
       "add": "أضف مقياس الدرابزين"
     },
     "buttons": {
@@ -790,7 +796,16 @@
       "stratifiedEffect": "الأثر بعد التقسيم الطبقي {{effect}} · فاصل الثقة [{{lower}}، {{upper}}] · p {{p}}",
       "stratifiedReduction": "خفض التباين {{reduction}}% · مجمَّع عبر {{n}} طبقات",
       "stratifiedStratumLine": "{{stratum}}: {{users}} مستخدمًا · الأثر {{effect}}",
-      "stratifiedPending": "لا توجد بعد أي طبقة تضم المجموعتين بعدد كافٍ من المستخدمين لإجراء اختبار بعد التقسيم الطبقي."
+      "stratifiedPending": "لا توجد بعد أي طبقة تضم المجموعتين بعدد كافٍ من المستخدمين لإجراء اختبار بعد التقسيم الطبقي.",
+      "guardrailTitle": "مقاييس الحماية",
+      "guardrailOk": "سليم",
+      "guardrailWarning": "تحذير",
+      "guardrailBreached": "مُنتهَك",
+      "guardrailPending": "لا توجد بعد بيانات كافية لمقياس الحماية لإجراء اختبار التدهور.",
+      "guardrailIncreaseIsBad": "الزيادة ضارة",
+      "guardrailDecreaseIsBad": "الانخفاض ضار",
+      "guardrailArmLine": "{{exposed}} ظهور · {{point}}",
+      "guardrailEffectLine": "الضرر {{harm}} · الحد الأدنى أحادي الجانب {{lower}} · p {{p}}"
     },
     "decision": {
       "title": "ملخص القرار",
@@ -835,10 +850,12 @@
         "significant_loss": "{{arm}} أسوأ بدلالة إحصائية من المجموعة الضابطة (تأثير نسبي {{effect}}).",
         "inconclusive_ci": "{{arm}}: لا يزال فاصل الثقة يشمل الصفر — لا يوجد تأثير واضح بعد.",
         "info_fraction_incomplete": "تم جمع {{fraction}} فقط من العينة المخطط لها.",
-        "info_fraction_complete_no_effect": "بلغت التجربة حجمها المخطط له دون تأثير قابل للاكتشاف."
+        "info_fraction_complete_no_effect": "بلغت التجربة حجمها المخطط له دون تأثير قابل للاكتشاف.",
+        "guardrail_vetoed": "أحد مقاييس الحماية مُنتهَك، لذا لا يمكن إطلاق النتيجة حتى لو فاز المقياس الأساسي."
       },
       "blocker": {
-        "srm_mismatch": "عدم تطابق نسبة العينات (p={{p}}) — يبدو أن التوزيع معطّل؛ أصلح العشوائية أو التتبع قبل الوثوق بأي نتيجة."
+        "srm_mismatch": "عدم تطابق نسبة العينات (p={{p}}) — يبدو أن التوزيع معطّل؛ أصلح العشوائية أو التتبع قبل الوثوق بأي نتيجة.",
+        "guardrail_breach": "مقياس الحماية «{{metric}}» تدهور بدرجة كبيرة تتجاوز حد التسامح — الإطلاق محظور حتى يُفهم هذا التراجع."
       }
     }
   },

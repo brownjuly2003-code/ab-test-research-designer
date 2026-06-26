@@ -173,15 +173,22 @@ export default function WizardDraftStep({
       }
 
       if (key === "metric_type") {
+        // Preserve the harm direction and margin across a metric-type switch (they are independent
+        // of whether the guardrail is binary or continuous).
+        const shared = {
+          name: guardrail.name,
+          direction: guardrail.direction ?? "increase_is_bad",
+          non_inferiority_margin_pct: guardrail.non_inferiority_margin_pct ?? ""
+        };
         return value === "continuous"
           ? {
-              name: guardrail.name,
+              ...shared,
               metric_type: "continuous" as const,
               baseline_mean: guardrail.baseline_mean ?? "",
               std_dev: guardrail.std_dev ?? ""
             }
           : {
-              name: guardrail.name,
+              ...shared,
               metric_type: "binary" as const,
               baseline_rate: guardrail.baseline_rate ?? ""
             };
@@ -202,7 +209,9 @@ export default function WizardDraftStep({
       {
         name: "",
         metric_type: "binary",
-        baseline_rate: ""
+        baseline_rate: "",
+        direction: "increase_is_bad",
+        non_inferiority_margin_pct: ""
       }
     ]);
   }
@@ -722,6 +731,32 @@ export default function WizardDraftStep({
                       </div>
                     </>
                   )}
+                  <div className="field">
+                    <label htmlFor={`guardrail-direction-${index + 1}`}>{t("wizardDraft.guardrails.direction")}</label>
+                    <select
+                      id={`guardrail-direction-${index + 1}`}
+                      aria-label={t("wizardDraft.guardrails.directionAriaLabel", { index: index + 1 })}
+                      value={guardrail.direction ?? "increase_is_bad"}
+                      onChange={(event) => updateGuardrail(index, "direction", event.target.value)}
+                    >
+                      <option value="increase_is_bad">{t("wizardDraft.guardrails.increaseIsBad")}</option>
+                      <option value="decrease_is_bad">{t("wizardDraft.guardrails.decreaseIsBad")}</option>
+                    </select>
+                  </div>
+                  <div className="field">
+                    <label htmlFor={`guardrail-margin-${index + 1}`}>{t("wizardDraft.guardrails.marginPct")}</label>
+                    <input
+                      id={`guardrail-margin-${index + 1}`}
+                      aria-label={t("wizardDraft.guardrails.marginAriaLabel", { index: index + 1 })}
+                      type="number"
+                      step="any"
+                      min="0"
+                      value={String(guardrail.non_inferiority_margin_pct ?? "")}
+                      onChange={(event) =>
+                        updateGuardrail(index, "non_inferiority_margin_pct", readNextNumberValue(event.target.value, ""))
+                      }
+                    />
+                  </div>
                 </div>
               </div>
             ))}

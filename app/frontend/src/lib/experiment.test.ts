@@ -50,7 +50,8 @@ describe("experiment helpers", () => {
       {
         name: "Bounce rate",
         metric_type: "binary",
-        baseline_rate: 40
+        baseline_rate: 40,
+        direction: "increase_is_bad"
       }
     ]);
   });
@@ -141,13 +142,17 @@ describe("experiment helpers", () => {
       {
         name: "Payment error rate",
         metric_type: "binary",
-        baseline_rate: 2.4
+        baseline_rate: 2.4,
+        direction: "increase_is_bad",
+        non_inferiority_margin_pct: ""
       },
       {
         name: "Refund value",
         metric_type: "continuous",
         baseline_mean: 18,
-        std_dev: 6.5
+        std_dev: 6.5,
+        direction: "increase_is_bad",
+        non_inferiority_margin_pct: ""
       }
     ]);
   });

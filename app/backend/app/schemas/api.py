@@ -104,6 +104,13 @@ class GuardrailMetricInput(BaseModel):
     baseline_rate: float | None = Field(default=None, gt=0, lt=100)
     baseline_mean: float | None = None
     std_dev: float | None = Field(default=None, gt=0)
+    # Harm direction for the live breach test: an increase is bad for latency / error rates, a
+    # decrease is bad for revenue / retention. Defaults to increase_is_bad (the classic latency /
+    # error guardrail) so existing designs that predate this field keep validating unchanged.
+    direction: Literal["increase_is_bad", "decrease_is_bad"] = "increase_is_bad"
+    # Largest tolerated degradation as a percent of this guardrail's baseline (non-inferiority
+    # margin). None / 0 means any statistically significant degradation is a breach.
+    non_inferiority_margin_pct: float | None = Field(default=None, ge=0)
 
     @model_validator(mode="after")
     def validate_metric_specific_fields(self) -> "GuardrailMetricInput":
@@ -820,6 +827,47 @@ class LiveStratifiedBlock(BaseModel):
     comparisons: list["LiveStratifiedComparison"] = Field(default_factory=list)
 
 
+class LiveGuardrailArmStat(BaseModel):
+    variation_index: int
+    exposed_users: int
+    point_estimate: float | None = None  # guardrail rate (binary) or mean (continuous) for the arm
+
+
+class LiveGuardrailComparison(BaseModel):
+    # status: "ok" (no harmful move) | "warning" (degrades past the margin but not significantly) |
+    #         "breached" (significant degradation beyond the margin) |
+    #         "insufficient_data" (an arm has <2 exposed users or degenerate variance)
+    treatment_index: int
+    status: str
+    control: LiveGuardrailArmStat
+    treatment: LiveGuardrailArmStat
+    effect: float | None = None  # Δ = treatment − control in the metric's natural units
+    harm: float | None = None  # signed degradation in the harmful direction (+ is worse)
+    harm_lower_bound: float | None = None  # one-sided (1−α) lower confidence bound on the harm
+    margin: float | None = None  # tolerated degradation in natural units (0 ⇒ any significant harm)
+    p_value: float | None = None  # one-sided breach p-value (H1: harm > margin)
+    is_breached: bool | None = None
+    note: str | None = None
+
+
+class LiveGuardrailMetricResult(BaseModel):
+    # status = the worst comparison status across treatments (breached > warning > ok)
+    name: str
+    metric_type: str  # "binary" | "continuous"
+    direction: str  # "increase_is_bad" | "decrease_is_bad"
+    margin_pct: float | None = None  # non-inferiority margin as a percent of the design baseline
+    status: str
+    comparisons: list["LiveGuardrailComparison"] = Field(default_factory=list)
+
+
+class LiveGuardrailBlock(BaseModel):
+    # status: "ok" | "warning" | "breached" | "unavailable" (no guardrails declared, or no data yet)
+    status: str
+    note: str
+    any_breached: bool = False
+    metrics: list["LiveGuardrailMetricResult"] = Field(default_factory=list)
+
+
 class LiveStatsResponse(BaseModel):
     experiment_id: str
     metric_type: str
@@ -832,6 +880,7 @@ class LiveStatsResponse(BaseModel):
     sequential: LiveSequentialBlock
     cuped: LiveCupedBlock
     stratified: LiveStratifiedBlock
+    guardrail: LiveGuardrailBlock
 
 
 class DecisionReason(BaseModel):

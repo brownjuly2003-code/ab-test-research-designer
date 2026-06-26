@@ -201,19 +201,26 @@ export function buildApiPayload(state: FullPayload): ExperimentInputPayload {
           ? Number(cuped_correlation)
           : null,
       secondary_metrics: parseMetricList(secondary_metrics),
-      guardrail_metrics: guardrail_metrics.map((guardrail) => (
-        guardrail.metric_type === "binary"
+      guardrail_metrics: guardrail_metrics.map((guardrail) => {
+        const direction = guardrail.direction ?? "increase_is_bad";
+        const non_inferiority_margin_pct =
+          guardrail.non_inferiority_margin_pct === "" || guardrail.non_inferiority_margin_pct === undefined
+            ? undefined
+            : Number(guardrail.non_inferiority_margin_pct);
+        return guardrail.metric_type === "binary"
           ? {
               name: guardrail.name,
-              metric_type: "binary",
+              metric_type: "binary" as const,
               baseline_rate:
                 guardrail.baseline_rate === "" || guardrail.baseline_rate === undefined
                   ? undefined
-                  : Number(guardrail.baseline_rate)
+                  : Number(guardrail.baseline_rate),
+              direction,
+              non_inferiority_margin_pct
             }
           : {
               name: guardrail.name,
-              metric_type: "continuous",
+              metric_type: "continuous" as const,
               baseline_mean:
                 guardrail.baseline_mean === "" || guardrail.baseline_mean === undefined
                   ? undefined
@@ -221,9 +228,11 @@ export function buildApiPayload(state: FullPayload): ExperimentInputPayload {
               std_dev:
                 guardrail.std_dev === "" || guardrail.std_dev === undefined
                   ? undefined
-                  : Number(guardrail.std_dev)
-            }
-      ))
+                  : Number(guardrail.std_dev),
+              direction,
+              non_inferiority_margin_pct
+            };
+      })
     }
   };
 }
@@ -415,10 +424,19 @@ export function hydrateLoadedPayload(
             if (typeof guardrail === "string") {
               return {
                 name: guardrail,
-                metric_type: "binary"
+                metric_type: "binary",
+                direction: "increase_is_bad",
+                non_inferiority_margin_pct: ""
               };
             }
 
+            const direction = guardrail.direction ?? "increase_is_bad";
+            const non_inferiority_margin_pct =
+              guardrail.non_inferiority_margin_pct === "" ||
+              guardrail.non_inferiority_margin_pct === null ||
+              guardrail.non_inferiority_margin_pct === undefined
+                ? ""
+                : Number(guardrail.non_inferiority_margin_pct);
             return guardrail.metric_type === "binary"
               ? {
                   name: guardrail.name,
@@ -426,7 +444,9 @@ export function hydrateLoadedPayload(
                   baseline_rate:
                     guardrail.baseline_rate === "" || guardrail.baseline_rate === null || guardrail.baseline_rate === undefined
                       ? ""
-                      : Number(guardrail.baseline_rate)
+                      : Number(guardrail.baseline_rate),
+                  direction,
+                  non_inferiority_margin_pct
                 }
               : {
                   name: guardrail.name,
@@ -438,7 +458,9 @@ export function hydrateLoadedPayload(
                   std_dev:
                     guardrail.std_dev === "" || guardrail.std_dev === null || guardrail.std_dev === undefined
                       ? ""
-                      : Number(guardrail.std_dev)
+                      : Number(guardrail.std_dev),
+                  direction,
+                  non_inferiority_margin_pct
                 };
           })
         : []
