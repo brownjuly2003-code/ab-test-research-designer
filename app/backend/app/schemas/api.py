@@ -696,6 +696,22 @@ class IdentityIngestRequest(BaseModel):
     identities: list[IdentityLink] = Field(min_length=1, max_length=MAX_INGEST_BATCH)
 
 
+class ExclusionEvent(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    # A user to drop from every aggregate — a manual deny-list entry for the bot / fraud filter (P4.4).
+    # The reason is free text (e.g. "internal_qa", "fraud_ring", "known_bot") and is kept for audit;
+    # the user's raw events are never deleted, so the exclusion is a reversible read-time filter.
+    user_id: str = Field(min_length=1, max_length=200)
+    exclusion_reason: str = Field(default="manual", min_length=1, max_length=200)
+
+
+class ExclusionIngestRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    exclusions: list[ExclusionEvent] = Field(min_length=1, max_length=MAX_INGEST_BATCH)
+
+
 class IngestResultResponse(BaseModel):
     received: int
     recorded: int
@@ -962,6 +978,17 @@ class LiveIdentityResolutionBlock(BaseModel):
     merged_users: int | None = None
 
 
+class LiveExclusionBlock(BaseModel):
+    # Bot / fraud filter indicator (P4.4). Reports how many exposed users the rollup removed, split by
+    # reason: manual deny-list vs rate-spike (more than the conversion-event threshold). Informational
+    # only — the exclusion already happened in the primary rollup; this block reports it so the filter
+    # is never silent. status: "active" (something filtered) | "inactive" (nothing — block hidden).
+    status: str
+    total_filtered: int | None = None
+    manual_filtered: int | None = None
+    rate_spike_filtered: int | None = None
+
+
 class LiveStatsResponse(BaseModel):
     experiment_id: str
     metric_type: str
@@ -978,6 +1005,7 @@ class LiveStatsResponse(BaseModel):
     holdout: LiveHoldoutBlock
     event_timing: LiveEventTimingBlock
     identity_resolution: LiveIdentityResolutionBlock
+    exclusions: LiveExclusionBlock
 
 
 class DecisionReason(BaseModel):

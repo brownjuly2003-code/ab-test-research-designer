@@ -19,6 +19,7 @@ from psycopg_pool import ConnectionPool
 from pydantic import ValidationError
 
 from app.backend.app.constants import (
+    BOT_CONVERSION_EVENT_THRESHOLD,
     HOLDOUT_VARIATION_INDEX,
     MAX_CUPED_COVARIATES,
     MAX_STRATA,
@@ -80,7 +81,7 @@ class DatabaseBackend(Protocol):
 class SQLiteBackend:
     backend_name = "sqlite"
     supports_snapshots = True
-    schema_version = 13
+    schema_version = 14
     payload_schema_version = 1
     workspace_schema_version = 3
     project_select_columns = """
@@ -530,6 +531,32 @@ class SQLiteBackend:
             """
             CREATE INDEX IF NOT EXISTS idx_identity_map_experiment_anonymous
             ON identity_map (experiment_id, anonymous_id)
+            """
+        )
+        # Bot / fraud filter (P4.4): a deny-list of users excluded from every aggregate. The
+        # UNIQUE(experiment_id, user_id) constraint is the dedup primitive — first-write-wins keeps the
+        # first recorded exclusion reason. ``source`` distinguishes a 'manual' deny-list entry from a
+        # future automated writer; rate-spike exclusions are computed at read time (not stored) so the
+        # raw events are never mutated. The rollup left-anti-joins this list (on the canonical id),
+        # so when it is empty the rollup is unchanged.
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS excluded_users (
+                id TEXT PRIMARY KEY,
+                experiment_id TEXT NOT NULL,
+                user_id TEXT NOT NULL,
+                exclusion_reason TEXT NOT NULL,
+                source TEXT NOT NULL DEFAULT 'manual',
+                created_at TEXT NOT NULL,
+                UNIQUE(experiment_id, user_id),
+                FOREIGN KEY(experiment_id) REFERENCES projects(id) ON DELETE CASCADE
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_excluded_users_experiment
+            ON excluded_users (experiment_id, user_id)
             """
         )
 
@@ -3073,6 +3100,42 @@ class SQLiteBackend:
         received = len(items)
         return {"received": received, "recorded": recorded, "deduplicated": received - recorded - skipped}
 
+    def record_exclusions(self, experiment_id: str, items: list[dict[str, Any]]) -> dict[str, Any]:
+        """Record manual deny-list exclusions for the bot / fraud filter (P4.4).
+
+        First-write-wins per (experiment, user) via the UNIQUE constraint + ``ON CONFLICT DO NOTHING``:
+        the first recorded reason for a user sticks, and a duplicate exclusion is dropped. Excluded
+        users are removed from every aggregate by the rollup's left-anti-join (resolved to their
+        canonical id, so excluding an anonymous id also excludes the person's logged-in events). The
+        raw exposure / conversion rows are never deleted — exclusion is a read-time filter — so an
+        exclusion can be audited and the underlying events stay intact.
+        """
+        timestamp = datetime.now(UTC).isoformat()
+        recorded = 0
+        with self._connect() as connection:
+            self._ensure_project_active(connection, experiment_id)
+            for item in items:
+                cursor = connection.execute(
+                    """
+                    INSERT INTO excluded_users
+                        (id, experiment_id, user_id, exclusion_reason, source, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(experiment_id, user_id) DO NOTHING
+                    """,
+                    (
+                        str(uuid.uuid4()),
+                        experiment_id,
+                        item["user_id"],
+                        str(item.get("exclusion_reason") or "manual"),
+                        "manual",
+                        timestamp,
+                    ),
+                )
+                if cursor.rowcount == 1:
+                    recorded += 1
+        received = len(items)
+        return {"received": received, "recorded": recorded, "deduplicated": received - recorded}
+
     def get_user_exposure(self, experiment_id: str, user_id: str) -> dict[str, Any] | None:
         """The recorded (first-exposure-wins) exposure for one user, or ``None``.
 
@@ -3166,6 +3229,13 @@ class SQLiteBackend:
         collapsed (this is the SRM-inflation fix). When ``identity_map`` has no rows the resolution is
         the identity function and this rollup is byte-identical to the unresolved one (no window
         functions; portable on both backends).
+
+        Bot / fraud filter (P4.4): canonical users on the manual deny-list (``excluded_users``, resolved
+        to canonical) and rate-spike users (more than ``BOT_CONVERSION_EVENT_THRESHOLD`` conversion
+        events on the metric — an automation / instrumentation artifact) are removed from every
+        per-variation count via two ``NOT EXISTS`` anti-joins. When the deny-list is empty and no user
+        trips the threshold the rollup is unchanged. The exclusion is a read-time filter — the raw
+        events are never deleted — and the filtered count is surfaced in the live-stats indicator.
         """
         with self._connect() as connection:
             if not self._project_exists(connection, experiment_id):
@@ -3204,6 +3274,20 @@ class SQLiteBackend:
                         AND im.anonymous_id = c.user_id
                     WHERE c.experiment_id = ? AND c.metric = ?
                 ),
+                spike AS (
+                    SELECT cuser
+                    FROM conv_resolved
+                    GROUP BY cuser
+                    HAVING COUNT(*) > ?
+                ),
+                excluded AS (
+                    SELECT COALESCE(im.canonical_id, x.user_id) AS cuser
+                    FROM excluded_users x
+                    LEFT JOIN identity_map im
+                        ON im.experiment_id = x.experiment_id
+                        AND im.anonymous_id = x.user_id
+                    WHERE x.experiment_id = ?
+                ),
                 user_values AS (
                     SELECT
                         arm.variation_index AS variation_index,
@@ -3212,6 +3296,8 @@ class SQLiteBackend:
                         MAX(CASE WHEN cr.id IS NOT NULL THEN 1 ELSE 0 END) AS converted
                     FROM arm
                     LEFT JOIN conv_resolved cr ON cr.cuser = arm.cuser
+                    WHERE NOT EXISTS (SELECT 1 FROM excluded ex WHERE ex.cuser = arm.cuser)
+                        AND NOT EXISTS (SELECT 1 FROM spike sp WHERE sp.cuser = arm.cuser)
                     GROUP BY arm.variation_index, arm.cuser
                 )
                 SELECT
@@ -3224,7 +3310,7 @@ class SQLiteBackend:
                 GROUP BY variation_index
                 ORDER BY variation_index
                 """,
-                (experiment_id, experiment_id, metric_name),
+                (experiment_id, experiment_id, metric_name, BOT_CONVERSION_EVENT_THRESHOLD, experiment_id),
             ).fetchall()
         variations = [
             {
@@ -3306,6 +3392,80 @@ class SQLiteBackend:
             "linked_identities": int(linked or 0),
             "canonicalized_events": int((canon_exposures or 0) + (canon_conversions or 0)),
             "merged_users": int(merged or 0),
+        }
+
+    def get_exclusion_summary(self, experiment_id: str, metric_name: str) -> dict[str, Any] | None:
+        """Bot / fraud filter counts for the live-stats indicator (P4.4).
+
+        Returns ``None`` if the experiment does not exist. Counts the *exposed* canonical users the
+        rollup removes, split by reason (disjoint, manual takes precedence):
+
+        - ``manual_filtered``     — exposed users on the manual deny-list (resolved to canonical).
+        - ``rate_spike_filtered`` — exposed users over ``BOT_CONVERSION_EVENT_THRESHOLD`` conversion
+          events on ``metric_name`` and not already on the deny-list.
+        - ``total_filtered``      — their sum (distinct exposed users removed).
+
+        Counts only exposed users (the population the rollup analyzes), so a deny-list entry for a user
+        who was never exposed does not inflate the indicator. All zero when nothing is filtered, so the
+        block is hidden in the common case. Purely informational — the exclusion already happened in
+        the rollup; this reports it.
+        """
+        with self._connect() as connection:
+            if not self._project_exists(connection, experiment_id):
+                return None
+            row = connection.execute(
+                """
+                WITH exp_resolved AS (
+                    SELECT DISTINCT COALESCE(im.canonical_id, e.user_id) AS cuser
+                    FROM exposures e
+                    LEFT JOIN identity_map im
+                        ON im.experiment_id = e.experiment_id AND im.anonymous_id = e.user_id
+                    WHERE e.experiment_id = ? AND e.variation_index >= 0
+                ),
+                conv_resolved AS (
+                    SELECT COALESCE(im.canonical_id, c.user_id) AS cuser
+                    FROM conversions c
+                    LEFT JOIN identity_map im
+                        ON im.experiment_id = c.experiment_id AND im.anonymous_id = c.user_id
+                    WHERE c.experiment_id = ? AND c.metric = ?
+                ),
+                spike AS (
+                    SELECT cuser FROM conv_resolved GROUP BY cuser HAVING COUNT(*) > ?
+                ),
+                manual AS (
+                    SELECT DISTINCT COALESCE(im.canonical_id, x.user_id) AS cuser
+                    FROM excluded_users x
+                    LEFT JOIN identity_map im
+                        ON im.experiment_id = x.experiment_id AND im.anonymous_id = x.user_id
+                    WHERE x.experiment_id = ?
+                ),
+                flagged AS (
+                    SELECT
+                        CASE WHEN EXISTS (SELECT 1 FROM manual m WHERE m.cuser = er.cuser)
+                             THEN 1 ELSE 0 END AS is_manual,
+                        CASE WHEN EXISTS (SELECT 1 FROM spike sp WHERE sp.cuser = er.cuser)
+                             THEN 1 ELSE 0 END AS is_spike
+                    FROM exp_resolved er
+                )
+                SELECT
+                    COALESCE(SUM(CASE WHEN is_manual = 1 OR is_spike = 1 THEN 1 ELSE 0 END), 0) AS total_filtered,
+                    COALESCE(SUM(is_manual), 0) AS manual_filtered,
+                    COALESCE(SUM(CASE WHEN is_spike = 1 AND is_manual = 0 THEN 1 ELSE 0 END), 0) AS rate_spike_filtered
+                FROM flagged
+                """,
+                (
+                    experiment_id,
+                    experiment_id,
+                    metric_name,
+                    BOT_CONVERSION_EVENT_THRESHOLD,
+                    experiment_id,
+                ),
+            ).fetchone()
+        return {
+            "experiment_id": experiment_id,
+            "total_filtered": int(row["total_filtered"] or 0),
+            "manual_filtered": int(row["manual_filtered"] or 0),
+            "rate_spike_filtered": int(row["rate_spike_filtered"] or 0),
         }
 
     def get_holdout_aggregates(
@@ -4223,6 +4383,27 @@ class PostgresBackend(SQLiteBackend):
                 """
                 CREATE INDEX IF NOT EXISTS idx_identity_map_experiment_anonymous
                 ON identity_map (experiment_id, anonymous_id)
+                """
+            )
+            # Bot / fraud filter (P4.4) — Postgres mirror of the SQLite ``excluded_users`` table.
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS excluded_users (
+                    id TEXT PRIMARY KEY,
+                    experiment_id TEXT NOT NULL,
+                    user_id TEXT NOT NULL,
+                    exclusion_reason TEXT NOT NULL,
+                    source TEXT NOT NULL DEFAULT 'manual',
+                    created_at TEXT NOT NULL,
+                    UNIQUE(experiment_id, user_id),
+                    FOREIGN KEY(experiment_id) REFERENCES projects(id) ON DELETE CASCADE
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_excluded_users_experiment
+                ON excluded_users (experiment_id, user_id)
                 """
             )
 

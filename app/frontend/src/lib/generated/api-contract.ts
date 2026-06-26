@@ -390,6 +390,15 @@ export type DiagnosticsStorageSummary = {
   latest_project_updated_at?: string | null;
 };
 
+export type ExclusionEvent = {
+  user_id: string;
+  exclusion_reason?: string;
+};
+
+export type ExclusionIngestRequest = {
+  exclusions: ExclusionEvent[];
+};
+
 export type ExperimentAssignmentRequest = {
   user_id: string;
   attributes?: { [key: string]: unknown; } | null;
@@ -688,6 +697,13 @@ export type LiveEventTimingBlock = {
   total?: number | null;
 };
 
+export type LiveExclusionBlock = {
+  status: string;
+  total_filtered?: number | null;
+  manual_filtered?: number | null;
+  rate_spike_filtered?: number | null;
+};
+
 export type LiveGuardrailArmStat = {
   variation_index: number;
   exposed_users: number;
@@ -788,6 +804,7 @@ export type LiveStatsResponse = {
   holdout: LiveHoldoutBlock;
   event_timing: LiveEventTimingBlock;
   identity_resolution: LiveIdentityResolutionBlock;
+  exclusions: LiveExclusionBlock;
 };
 
 export type LiveStratifiedBlock = {

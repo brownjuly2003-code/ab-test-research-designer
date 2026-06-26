@@ -7,6 +7,7 @@ from app.backend.app.constants import ATTRIBUTION_HORIZON_DAYS
 from app.backend.app.schemas.api import (
     ConversionIngestRequest,
     DecisionReadoutResponse,
+    ExclusionIngestRequest,
     ExposureIngestRequest,
     HoldoutIngestRequest,
     IdentityIngestRequest,
@@ -126,6 +127,22 @@ def create_execution_router(
         )
         return IngestResultResponse.model_validate(result)
 
+    @router.post(
+        "/api/v1/experiments/{experiment_id}/exclusions",
+        response_model=IngestResultResponse,
+        dependencies=[Depends(require_write_auth)],
+    )
+    def ingest_exclusions(experiment_id: str, payload: ExclusionIngestRequest) -> IngestResultResponse:
+        """Ingest manual deny-list exclusions for the bot / fraud filter (P4.4). First-write-wins per
+        user (the first reason sticks); the live-stats rollup drops excluded users — resolved to their
+        canonical id — from every aggregate, alongside the automatic rate-spike heuristic. The raw
+        events are never deleted, so an exclusion is a reversible read-time filter."""
+        result = repository.record_exclusions(
+            experiment_id,
+            [event.model_dump() for event in payload.exclusions],
+        )
+        return IngestResultResponse.model_validate(result)
+
     @router.get(
         "/api/v1/experiments/{experiment_id}/ingestion",
         response_model=IngestionSummaryResponse,
@@ -182,6 +199,10 @@ def create_execution_router(
         # inside the primary rollup above (anonymous → canonical fold); this is just the informational
         # summary of how many links are active and how much they touched the data.
         identity_resolution_summary = repository.get_identity_resolution_summary(experiment_id)
+        # Bot / fraud filter (P4.4): counts for the indicator. The exclusion (manual deny-list +
+        # rate-spike) already happened inside the primary rollup above; this is the informational
+        # summary of how many exposed users were filtered, split by reason.
+        exclusion_summary = repository.get_exclusion_summary(experiment_id, metric_name)
         return build_live_stats(
             experiment_id,
             project["payload"],
@@ -193,6 +214,7 @@ def create_execution_router(
             holdout_aggregates,
             event_timing_summary,
             identity_resolution_summary,
+            exclusion_summary,
         )
 
     @router.get(

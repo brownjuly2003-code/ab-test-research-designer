@@ -453,3 +453,115 @@ def test_identity_resolution_summary_counts_and_missing_experiment() -> None:
     assert summary["merged_users"] == 1
 
     assert repo.get_identity_resolution_summary("missing") is None
+
+
+def test_exclusion_empty_is_a_noop() -> None:
+    """With no manual exclusions and no rate-spike user, the rollup is unchanged and the exclusion
+    summary reports an inactive, all-zero state (P4.4) — the filter is invisible by default."""
+    repo = _repo()
+    exp = _project(repo)
+    repo.record_exposures(
+        exp,
+        [{"user_id": "u1", "variation_index": 0}, {"user_id": "u2", "variation_index": 1}],
+    )
+    repo.record_conversions(exp, [{"user_id": "u1", "metric": "purchase"}])
+    aggregates = repo.get_experiment_analysis_aggregates(exp, "purchase")
+    assert aggregates is not None
+    assert {v["variation_index"]: v["exposed_users"] for v in aggregates["variations"]} == {0: 1, 1: 1}
+    assert repo.get_exclusion_summary(exp, "purchase") == {
+        "experiment_id": exp,
+        "total_filtered": 0,
+        "manual_filtered": 0,
+        "rate_spike_filtered": 0,
+    }
+    assert repo.get_exclusion_summary("missing", "purchase") is None
+
+
+def test_exclusion_manual_deny_list_removes_user_from_aggregates() -> None:
+    """A user on the manual deny-list is dropped from every per-variation count, and the underlying
+    events are not deleted (P4.4). First-write-wins keeps the first reason."""
+    repo = _repo()
+    exp = _project(repo)
+    repo.record_exposures(
+        exp,
+        [
+            {"user_id": "good", "variation_index": 1},
+            {"user_id": "bad", "variation_index": 1},
+        ],
+    )
+    repo.record_conversions(exp, [{"user_id": "good", "metric": "purchase"}])
+    repo.record_conversions(exp, [{"user_id": "bad", "metric": "purchase"}])
+
+    result = repo.record_exclusions(exp, [{"user_id": "bad", "exclusion_reason": "fraud_ring"}])
+    assert result["recorded"] == 1
+    # A second exclusion for the same user is dropped (first reason sticks).
+    assert repo.record_exclusions(exp, [{"user_id": "bad", "exclusion_reason": "other"}])["recorded"] == 0
+
+    aggregates = repo.get_experiment_analysis_aggregates(exp, "purchase")
+    assert aggregates is not None
+    arm = next(v for v in aggregates["variations"] if v["variation_index"] == 1)
+    assert arm["exposed_users"] == 1  # 'bad' removed
+    assert arm["converted_users"] == 1  # only 'good'
+    summary = repo.get_exclusion_summary(exp, "purchase")
+    assert summary == {
+        "experiment_id": exp,
+        "total_filtered": 1,
+        "manual_filtered": 1,
+        "rate_spike_filtered": 0,
+    }
+    # The raw events are still present — exclusion is a read-time filter, not a delete.
+    assert repo.get_ingestion_summary(exp)["exposures_total"] == 2
+
+
+def test_exclusion_rate_spike_auto_filters_a_bot() -> None:
+    """A user with more than BOT_CONVERSION_EVENT_THRESHOLD conversion events on the metric is treated
+    as an automation artifact and removed from the rollup (P4.4) — without any manual deny-list entry."""
+    from app.backend.app.constants import BOT_CONVERSION_EVENT_THRESHOLD
+
+    repo = _repo()
+    exp = _project(repo)
+    repo.record_exposures(
+        exp,
+        [{"user_id": "human", "variation_index": 1}, {"user_id": "bot", "variation_index": 1}],
+    )
+    repo.record_conversions(exp, [{"user_id": "human", "metric": "purchase"}])
+    # The bot spams just over the threshold (distinct idempotency keys so all are recorded).
+    repo.record_conversions(
+        exp,
+        [
+            {"user_id": "bot", "metric": "purchase", "idempotency_key": f"k{i}"}
+            for i in range(BOT_CONVERSION_EVENT_THRESHOLD + 1)
+        ],
+    )
+
+    aggregates = repo.get_experiment_analysis_aggregates(exp, "purchase")
+    assert aggregates is not None
+    arm = next(v for v in aggregates["variations"] if v["variation_index"] == 1)
+    assert arm["exposed_users"] == 1  # bot removed, only 'human' counts
+    summary = repo.get_exclusion_summary(exp, "purchase")
+    assert summary["rate_spike_filtered"] == 1
+    assert summary["manual_filtered"] == 0
+    assert summary["total_filtered"] == 1
+
+
+def test_exclusion_manual_and_rate_spike_are_disjoint() -> None:
+    """A user that is both manually excluded and a rate-spike counts once, under manual (P4.4) — the
+    per-reason split stays disjoint so manual + rate_spike == total."""
+    from app.backend.app.constants import BOT_CONVERSION_EVENT_THRESHOLD
+
+    repo = _repo()
+    exp = _project(repo)
+    repo.record_exposures(exp, [{"user_id": "both", "variation_index": 1}, {"user_id": "ok", "variation_index": 1}])
+    repo.record_conversions(
+        exp,
+        [
+            {"user_id": "both", "metric": "purchase", "idempotency_key": f"k{i}"}
+            for i in range(BOT_CONVERSION_EVENT_THRESHOLD + 1)
+        ],
+    )
+    repo.record_exclusions(exp, [{"user_id": "both", "exclusion_reason": "manual_too"}])
+
+    summary = repo.get_exclusion_summary(exp, "purchase")
+    assert summary["manual_filtered"] == 1
+    assert summary["rate_spike_filtered"] == 0  # 'both' is attributed to manual, not double-counted
+    assert summary["total_filtered"] == 1

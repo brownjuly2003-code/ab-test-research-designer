@@ -650,6 +650,47 @@ def test_postgres_backend_identity_resolution_round_trip(postgres_repository) ->
     }
 
 
+def test_postgres_backend_exclusion_filter_round_trip(postgres_repository) -> None:
+    # Exercises the P4.4 bot / fraud filter on a real Postgres: the rollup's two NOT EXISTS anti-joins
+    # (manual deny-list + rate-spike HAVING COUNT) and the exclusion summary's CASE/EXISTS counts — the
+    # dual-backend SQL added on top of the resolution CTE. Not checkable on Windows without a Postgres.
+    from app.backend.app.constants import BOT_CONVERSION_EVENT_THRESHOLD
+
+    repo = postgres_repository
+    project = repo.create_project(_payload("Exclusion PG", "binary"))
+    exp = project["id"]
+
+    repo.record_exposures(
+        exp,
+        [
+            {"user_id": "human", "variation_index": 1},
+            {"user_id": "manual_bad", "variation_index": 1},
+            {"user_id": "bot", "variation_index": 1},
+        ],
+    )
+    repo.record_conversions(exp, [{"user_id": "human", "metric": "purchase"}])
+    repo.record_conversions(
+        exp,
+        [
+            {"user_id": "bot", "metric": "purchase", "idempotency_key": f"k{i}"}
+            for i in range(BOT_CONVERSION_EVENT_THRESHOLD + 1)
+        ],
+    )
+    repo.record_exclusions(exp, [{"user_id": "manual_bad", "exclusion_reason": "fraud"}])
+
+    aggregates = repo.get_experiment_analysis_aggregates(exp, "purchase")
+    assert aggregates is not None
+    arm = next(v for v in aggregates["variations"] if v["variation_index"] == 1)
+    assert arm["exposed_users"] == 1  # only 'human'; 'manual_bad' + 'bot' removed
+    summary = repo.get_exclusion_summary(exp, "purchase")
+    assert summary is not None
+    assert summary["manual_filtered"] == 1
+    assert summary["rate_spike_filtered"] == 1
+    assert summary["total_filtered"] == 2
+    # First-write-wins on the deny-list behaves the same on Postgres.
+    assert repo.record_exclusions(exp, [{"user_id": "manual_bad", "exclusion_reason": "other"}])["recorded"] == 0
+
+
 def test_readyz_uses_postgres_checks_without_sqlite_regression(monkeypatch) -> None:
     monkeypatch.setenv("AB_DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/abtest")
     monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")

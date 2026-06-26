@@ -32,6 +32,13 @@ HOLDOUT_VARIATION_INDEX = -1
 # covers most conversion cycles without attributing stale activity to the experiment.
 ATTRIBUTION_HORIZON_DAYS = 14.0
 
+# Bot / fraud filter (P4.4). A single user contributing more conversion events than this on the
+# analyzed metric is treated as an automated / instrumentation artifact (a real human does not convert
+# hundreds of times) and is excluded from the rollup as a rate-spike, alongside the manual deny-list.
+# The threshold is deliberately high so ordinary traffic never trips it — it catches only egregious
+# spikes; the count is always surfaced in the live-stats indicator so the exclusion is never silent.
+BOT_CONVERSION_EVENT_THRESHOLD = 100
+
 DEFAULT_CORS_METHODS = ("GET", "POST", "PUT", "DELETE", "OPTIONS")
 DEFAULT_CORS_HEADERS = ("Accept", "Content-Type")
 

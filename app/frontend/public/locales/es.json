@@ -816,7 +816,10 @@
       "eventTimingHint": "Conversiones posteriores a la ventana de atribución (tardías) o previas a la exposición (fuera de orden), según la hora del evento: una señal de calidad de datos; no cambian el resultado.",
       "identityTitle": "Resolución de identidad",
       "identitySummary": "{{linked}} identidades vinculadas · {{merged}} usuarios fusionados · {{events}} eventos reatribuidos",
-      "identityHint": "Los eventos anónimos se asignan al id canónico (con sesión iniciada) de cada usuario, de modo que una persona vista antes y después del inicio de sesión se cuenta una vez, evitando exposiciones y conversiones duplicadas."
+      "identityHint": "Los eventos anónimos se asignan al id canónico (con sesión iniciada) de cada usuario, de modo que una persona vista antes y después del inicio de sesión se cuenta una vez, evitando exposiciones y conversiones duplicadas.",
+      "exclusionTitle": "Participantes filtrados",
+      "exclusionSummary": "{{total}} participantes filtrados — {{manual}} lista de bloqueo · {{rateSpike}} pico de actividad",
+      "exclusionHint": "Filtro de bots / fraude: los usuarios en la lista de bloqueo manual y los usuarios con un número inverosímil de conversiones se eliminan de todos los agregados. Los eventos brutos se conservan; solo cambia el análisis."
     },
     "decision": {
       "title": "Lectura de decisión",
