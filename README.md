@@ -44,7 +44,7 @@ It combines:
 
 **Live demo:** https://liovina-ab-test-research-designer.hf.space (hosted on Hugging Face Spaces, free CPU tier — first cold request may take a few seconds)
 
-The hosted demo is seeded with three sample projects (checkout conversion, pricing sensitivity, onboarding completion), each with a completed analysis run and an export on the first one, so the sidebar and history views are populated on first load. For Hugging Face Spaces, set `AB_SEED_DEMO_ON_STARTUP=true` in Space Settings.
+The hosted demo is seeded with four sample projects (checkout conversion, pricing sensitivity, onboarding completion, and feed ad click-through ratio), each with a completed analysis run and seeded live-experiment data (plus an export on the first one), so the sidebar and history views are populated on first load. For Hugging Face Spaces, set `AB_SEED_DEMO_ON_STARTUP=true` in Space Settings.
 
 For persistent hosted state on Hugging Face Spaces, also set:
 
@@ -52,7 +52,7 @@ For persistent hosted state on Hugging Face Spaces, also set:
 - `AB_HF_TOKEN` to a Hugging Face token with dataset write access, stored only as a Space Secret
 - `AB_HF_SNAPSHOT_INTERVAL_SECONDS` to control periodic snapshot uploads; default is `900`, and `0` disables the background loop
 
-With those variables configured, the backend restores the latest `projects.sqlite3` snapshot on startup, skips the demo seed when a snapshot was restored, uploads periodic dataset snapshots while the Space is running, and attempts one final push during shutdown.
+With those variables configured, the backend restores the latest `projects.sqlite3` snapshot on startup, still runs the idempotent demo seed afterwards (so seeded live-experiment data survives a restore that predates it), uploads periodic dataset snapshots while the Space is running, and attempts one final push during shutdown.
 
 [![GHCR](https://img.shields.io/github/v/tag/brownjuly2003-code/ab-test-research-designer?label=ghcr.io&logo=docker)](https://github.com/brownjuly2003-code/ab-test-research-designer/pkgs/container/ab-test-research-designer)
 
