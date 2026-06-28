@@ -531,7 +531,10 @@
         "controlN": "n du contrôle",
         "treatmentMean": "Moyenne du traitement",
         "treatmentStdDev": "Écart-type du traitement",
-        "treatmentN": "n du traitement"
+        "treatmentN": "n du traitement",
+        "controlValues": "Valeurs du contrôle",
+        "treatmentValues": "Valeurs du traitement",
+        "rawValuesPlaceholder": "Une valeur par ligne ou séparées par des virgules"
       },
       "cards": {
         "effect": "Effet",
@@ -545,7 +548,14 @@
         "controlRate": "Taux du contrôle",
         "treatmentRate": "Taux du traitement",
         "significant": "Significatif",
-        "verdict": "Verdict"
+        "verdict": "Verdict",
+        "effectSize": "Taille d'effet"
+      },
+      "testType": {
+        "label": "Test statistique",
+        "parametric": "test t (paramétrique)",
+        "mannWhitney": "Mann–Whitney (non paramétrique)",
+        "hint": "Mann–Whitney compare des distributions entières à partir de valeurs brutes — robuste aux valeurs aberrantes et à l'asymétrie, sans hypothèse de normalité."
       },
       "validation": {
         "fillAllFields": "Remplissez tous les champs de résultats réels avec des valeurs valides avant l'analyse.",

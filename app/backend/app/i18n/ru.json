@@ -250,6 +250,9 @@
       "binary_rejects_continuous_data": "metric_type=binary не принимает continuous-данные",
       "continuous_requires_continuous_data": "для metric_type=continuous нужны данные continuous",
       "continuous_rejects_binary_data": "metric_type=continuous не принимает binary-данные",
+      "ranked_values_finite": "значения выборок должны быть конечными числами",
+      "mann_whitney_requires_ranked_data": "для metric_type=mann_whitney нужны сырые данные выборок (ranked)",
+      "mann_whitney_rejects_other_data": "metric_type=mann_whitney не принимает binary- или continuous-данные",
       "actual_counts_length": "длина actual_counts должна совпадать с variants_count",
       "actual_counts_non_negative": "actual_counts должны быть неотрицательными",
       "actual_counts_positive_sum": "сумма actual_counts должна быть положительной",
@@ -287,7 +290,11 @@
       "binary": "Конверсия варианта {{treatment}}% против контроля {{control}}%. Абсолютный эффект {{effect}} п.п. при {{ciLevel}}% ДИ [{{ciLower}}, {{ciUpper}}] п.п. Двусторонний p-value {{pValue}}; результат {{significance}}.",
       "continuous": "Среднее варианта {{treatmentMean}} против контроля {{controlMean}}. Эффект {{effect}} при {{ciLevel}}% ДИ [{{ciLower}}, {{ciUpper}}]. Двусторонний p-value {{pValue}}.",
       "ratio": "Отношение варианта {{treatmentRatio}} против контроля {{controlRatio}}. Абсолютный эффект {{effect}} при {{ciLevel}}% ДИ [{{ciLower}}, {{ciUpper}}]. Двусторонний p-value {{pValue}} (дельта-метод); результат {{significance}}.",
+      "mann_whitney": "Медиана варианта {{treatmentMedian}} против контроля {{controlMedian}}. Сдвиг Hodges–Lehmann {{shift}} при {{ciLevel}}% ДИ [{{ciLower}}, {{ciUpper}}]. P(вариант > контроль) = {{cles}}%. Mann–Whitney U {{uStatistic}}, двусторонний p-value {{pValue}}; результат {{significance}}.",
       "degenerate": "Наблюдаемые данные вырождены, поэтому тестовая статистика не может быть вычислена."
+    },
+    "effect_size": {
+      "rank_biserial": "ранг-бисериальная корреляция"
     }
   }
 }

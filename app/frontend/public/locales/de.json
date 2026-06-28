@@ -531,7 +531,10 @@
         "controlN": "n der Kontrollgruppe",
         "treatmentMean": "Mittelwert der Testvariante",
         "treatmentStdDev": "Standardabweichung der Testvariante",
-        "treatmentN": "n der Testvariante"
+        "treatmentN": "n der Testvariante",
+        "controlValues": "Kontrollwerte",
+        "treatmentValues": "Werte der Testvariante",
+        "rawValuesPlaceholder": "Ein Wert pro Zeile oder kommagetrennt"
       },
       "cards": {
         "effect": "Wirkung",
@@ -545,7 +548,14 @@
         "controlRate": "Kontrollrate",
         "treatmentRate": "Rate der Testvariante",
         "significant": "Signifikant",
-        "verdict": "Urteil"
+        "verdict": "Urteil",
+        "effectSize": "Effektstärke"
+      },
+      "testType": {
+        "label": "Statistischer Test",
+        "parametric": "t-Test (parametrisch)",
+        "mannWhitney": "Mann–Whitney (nicht-parametrisch)",
+        "hint": "Mann–Whitney vergleicht ganze Verteilungen aus Rohwerten — robust gegenüber Ausreißern und Schiefe, ohne Normalverteilungsannahme."
       },
       "validation": {
         "fillAllFields": "Füllen Sie vor der Analyse alle tatsächlichen Ergebnisfelder mit gültigen Werten aus.",

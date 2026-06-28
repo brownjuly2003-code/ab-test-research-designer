@@ -250,6 +250,9 @@
       "binary_rejects_continuous_data": "لا يقبل النوع المتري الثنائي البيانات المستمرة",
       "continuous_requires_continuous_data": "يتطلب نوع القياس المستمر بيانات مستمرة",
       "continuous_rejects_binary_data": "نوع القياس المستمر لا يقبل البيانات الثنائية",
+      "ranked_values_finite": "يجب أن تكون قيم العينات أعدادًا منتهية",
+      "mann_whitney_requires_ranked_data": "يتطلب نوع القياس mann_whitney بيانات عينات خام (ranked)",
+      "mann_whitney_rejects_other_data": "نوع القياس mann_whitney لا يقبل بيانات ثنائية أو مستمرة",
       "actual_counts_length": "يجب أن يتطابق طول عدد الأعداد الفعلية مع المتغيرات_العددية",
       "actual_counts_non_negative": "يجب أن تكون الأعداد الفعلية غير سالبة",
       "actual_counts_positive_sum": "يجب أن يصل مجموع عدد الأعداد الفعلية إلى إجمالي موجب",
@@ -287,7 +290,11 @@
       "binary": "تحويل مجموعة المعالجة {{treatment}}% مقابل المجموعة الضابطة {{control}}%. الأثر المطلق {{effect}} نقطة مئوية بفاصل ثقة {{ciLevel}}% [{{ciLower}}، {{ciUpper}}] نقطة مئوية. القيمة الاحتمالية الثنائية {{pValue}}؛ النتيجة {{significance}}.",
       "continuous": "متوسط مجموعة المعالجة {{treatmentMean}} مقابل المجموعة الضابطة {{controlMean}}. الأثر {{effect}} بفاصل ثقة {{ciLevel}}% [{{ciLower}}، {{ciUpper}}]. القيمة الاحتمالية الثنائية {{pValue}}.",
       "ratio": "نسبة مجموعة المعالجة {{treatmentRatio}} مقابل المجموعة الضابطة {{controlRatio}}. الأثر المطلق {{effect}} بفاصل ثقة {{ciLevel}}% [{{ciLower}}، {{ciUpper}}]. القيمة الاحتمالية الثنائية {{pValue}} (طريقة دلتا)؛ النتيجة {{significance}}.",
+      "mann_whitney": "وسيط مجموعة المعالجة {{treatmentMedian}} مقابل المجموعة الضابطة {{controlMedian}}. إزاحة Hodges–Lehmann {{shift}} بفاصل ثقة {{ciLevel}}% [{{ciLower}}، {{ciUpper}}]. P(المعالجة > الضابطة) = {{cles}}%. إحصاءة Mann–Whitney U {{uStatistic}}، القيمة الاحتمالية الثنائية {{pValue}}؛ النتيجة {{significance}}.",
       "degenerate": "المدخلات المرصودة متدهورة، لذا لا يمكن حساب إحصاءة الاختبار."
+    },
+    "effect_size": {
+      "rank_biserial": "ارتباط ثنائي التسلسل الرتبي"
     }
   }
 }

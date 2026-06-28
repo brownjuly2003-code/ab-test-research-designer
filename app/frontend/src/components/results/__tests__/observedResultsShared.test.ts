@@ -1,0 +1,63 @@
+import { describe, expect, it } from "vitest";
+
+import {
+  buildActualResultsState,
+  buildResultsRequest,
+  parseSampleValues,
+  type ActualResultsState
+} from "../observedResultsShared";
+
+function emptyState(): ActualResultsState {
+  return buildActualResultsState("continuous", 0.05, null);
+}
+
+describe("parseSampleValues", () => {
+  it("splits on commas, spaces, semicolons and newlines", () => {
+    expect(parseSampleValues("1, 2 3;4\n5")).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it("accepts decimals and negatives", () => {
+    expect(parseSampleValues("-1.5 2.25\n-0")).toEqual([-1.5, 2.25, -0]);
+  });
+
+  it("rejects fewer than two values", () => {
+    expect(parseSampleValues("42")).toBeNull();
+    expect(parseSampleValues("   ")).toBeNull();
+  });
+
+  it("rejects non-numeric tokens", () => {
+    expect(parseSampleValues("1, 2, abc")).toBeNull();
+    expect(parseSampleValues("1 2 NaN")).toBeNull();
+  });
+});
+
+describe("buildResultsRequest (mann_whitney)", () => {
+  it("builds a ranked payload from the two raw-sample fields", () => {
+    const state = emptyState();
+    state.ranked = { control_values: "1 2 3 4", treatment_values: "5,6,7,8", alpha: "0.05" };
+    const payload = buildResultsRequest("mann_whitney", state);
+    expect(payload).toEqual({
+      metric_type: "mann_whitney",
+      ranked: { control_values: [1, 2, 3, 4], treatment_values: [5, 6, 7, 8], alpha: 0.05 }
+    });
+  });
+
+  it("returns null when an arm has fewer than two values", () => {
+    const state = emptyState();
+    state.ranked = { control_values: "1", treatment_values: "5 6 7", alpha: "0.05" };
+    expect(buildResultsRequest("mann_whitney", state)).toBeNull();
+  });
+
+  it("returns null when an arm exceeds the 1000-value cap", () => {
+    const state = emptyState();
+    const tooMany = Array.from({ length: 1001 }, (_, index) => String(index)).join(" ");
+    state.ranked = { control_values: tooMany, treatment_values: "5 6", alpha: "0.05" };
+    expect(buildResultsRequest("mann_whitney", state)).toBeNull();
+  });
+
+  it("returns null when alpha is out of range", () => {
+    const state = emptyState();
+    state.ranked = { control_values: "1 2 3", treatment_values: "4 5 6", alpha: "0.5" };
+    expect(buildResultsRequest("mann_whitney", state)).toBeNull();
+  });
+});

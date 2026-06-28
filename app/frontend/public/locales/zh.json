@@ -531,7 +531,10 @@
         "controlN": "对照组样本量 n",
         "treatmentMean": "实验组均值",
         "treatmentStdDev": "实验组标准差",
-        "treatmentN": "实验组样本量 n"
+        "treatmentN": "实验组样本量 n",
+        "controlValues": "对照组数值",
+        "treatmentValues": "实验组数值",
+        "rawValuesPlaceholder": "每行一个值，或用逗号分隔"
       },
       "cards": {
         "effect": "影响",
@@ -545,7 +548,14 @@
         "controlRate": "对照组转化率",
         "treatmentRate": "实验组转化率",
         "significant": "重要的",
-        "verdict": "判决"
+        "verdict": "判决",
+        "effectSize": "效应量"
+      },
+      "testType": {
+        "label": "统计检验",
+        "parametric": "t 检验（参数）",
+        "mannWhitney": "Mann–Whitney（非参数）",
+        "hint": "Mann–Whitney 基于原始数值比较整个分布——对离群值和偏态稳健，无需正态性假设。"
       },
       "validation": {
         "fillAllFields": "在分析之前，用有效值填充所有实际结果字段。",

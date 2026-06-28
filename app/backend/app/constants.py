@@ -39,6 +39,12 @@ ATTRIBUTION_HORIZON_DAYS = 14.0
 # spikes; the count is always surfaced in the live-stats indicator so the exclusion is never silent.
 BOT_CONVERSION_EVENT_THRESHOLD = 100
 
+# Upper bound on the number of raw per-unit values accepted per arm by the post-hoc Mann–Whitney
+# (rank-sum) analyzer. The Hodges–Lehmann confidence interval materializes all n_c·n_t pairwise
+# differences, so this cap bounds that O(n_c·n_t) work; 1000 per arm (<= 1e6 pairs) is generous for a
+# manual paste-in analyzer, and large live datasets belong to the streaming path, not this endpoint.
+MAX_OBSERVED_SAMPLE_SIZE = 1000
+
 DEFAULT_CORS_METHODS = ("GET", "POST", "PUT", "DELETE", "OPTIONS")
 DEFAULT_CORS_HEADERS = ("Accept", "Content-Type")
 
