@@ -964,6 +964,12 @@ export type ObservedResultsContinuous = {
   alpha?: number;
 };
 
+export type ObservedResultsRanked = {
+  control_values: number[];
+  treatment_values: number[];
+  alpha?: number;
+};
+
 export type PrePeriodEvent = {
   user_id: string;
   value: number;
@@ -1145,9 +1151,10 @@ export type RecommendationsSection = {
 };
 
 export type ResultsRequest = {
-  metric_type: "binary" | "continuous";
+  metric_type: "binary" | "continuous" | "mann_whitney";
   binary?: ObservedResultsBinary | null;
   continuous?: ObservedResultsContinuous | null;
+  ranked?: ObservedResultsRanked | null;
 };
 
 export type ResultsResponse = {
@@ -1165,6 +1172,8 @@ export type ResultsResponse = {
   power_achieved: number;
   verdict: string;
   interpretation: string;
+  effect_size?: number | null;
+  effect_size_label?: string | null;
 };
 
 export type RisksSection = {

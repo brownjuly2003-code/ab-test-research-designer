@@ -2,7 +2,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { useTranslation } from "react-i18next";
 import type { ResultsAnalysisResponse, SavedProject } from "../../../lib/experiment";
 import type { ProjectAnalysisRun } from "../../../lib/experiment";
-import type { ActualResultsState, BinaryResultsForm, ContinuousResultsForm } from "../observedResultsShared";
+import type { ActualResultsState, BinaryResultsForm, ContinuousResultsForm, ObservedMetricType } from "../observedResultsShared";
 import { formatObservedValue } from "../observedResultsShared";
 import ChartErrorBoundary from "../../ChartErrorBoundary";
 import ForestPlot from "../../ForestPlot";
@@ -19,7 +19,10 @@ type FieldConfig<Key extends string> = {
 };
 
 type ObservedResultsViewProps = {
-  analysisMetricType: "binary" | "continuous";
+  analysisMetricType: ObservedMetricType;
+  showTestToggle: boolean;
+  observedTest: "parametric" | "mann_whitney";
+  onSelectTest: (test: "parametric" | "mann_whitney") => void;
   actualResults: ActualResultsState;
   setActualResults: Dispatch<SetStateAction<ActualResultsState>>;
   canMutateBackend: boolean;
@@ -38,6 +41,9 @@ type ObservedResultsViewProps = {
 
 export default function ObservedResultsView({
   analysisMetricType,
+  showTestToggle,
+  observedTest,
+  onSelectTest,
   actualResults,
   setActualResults,
   canMutateBackend,
@@ -72,6 +78,7 @@ export default function ObservedResultsView({
   ] as const;
 
   function renderFieldInputs<Key extends keyof BinaryResultsForm | keyof ContinuousResultsForm>(
+    formKey: "binary" | "continuous",
     fieldConfig: FieldConfig<Key>[],
     fieldState: Record<Key, string>
   ) {
@@ -89,12 +96,16 @@ export default function ObservedResultsView({
           onChange={(event) =>
             setActualResults((current) => ({
               ...current,
-              [analysisMetricType]: { ...current[analysisMetricType], [field.key]: event.target.value }
+              [formKey]: { ...current[formKey], [field.key]: event.target.value }
             }))
           }
         />
       </div>
     ));
+  }
+
+  function updateRanked(key: keyof ActualResultsState["ranked"], value: string) {
+    setActualResults((current) => ({ ...current, ranked: { ...current.ranked, [key]: value } }));
   }
 
   return (
@@ -103,11 +114,44 @@ export default function ObservedResultsView({
       <p className="muted">{t("results.observedResults.description")}</p>
       {selectedHistoryRun ? <div className="callout"><Icon name="info" className="icon icon-inline" /><span>{t("results.observedResults.historicalReadOnly")}</span></div> : null}
       {!canMutateBackend ? <div className="callout"><Icon name="info" className="icon icon-inline" /><span>{backendMutationMessage}</span></div> : null}
-      <div style={{ display: "grid", gap: "var(--space-3)", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", marginTop: "var(--space-4)" }}>
-        {analysisMetricType === "binary"
-          ? renderFieldInputs(binaryFields, actualResults.binary)
-          : renderFieldInputs(continuousFields, actualResults.continuous)}
-      </div>
+      {showTestToggle ? (
+        <div className="field" style={{ marginTop: "var(--space-4)" }}>
+          <span>{t("results.observedResults.testType.label")}</span>
+          <div className="actions" role="group" aria-label={t("results.observedResults.testType.label")} style={{ flexWrap: "wrap", marginTop: "var(--space-2)" }}>
+            <button type="button" className={observedTest === "parametric" ? "btn secondary" : "btn ghost"} aria-pressed={observedTest === "parametric"} onClick={() => onSelectTest("parametric")}>
+              {t("results.observedResults.testType.parametric")}
+            </button>
+            <button type="button" className={observedTest === "mann_whitney" ? "btn secondary" : "btn ghost"} aria-pressed={observedTest === "mann_whitney"} onClick={() => onSelectTest("mann_whitney")}>
+              {t("results.observedResults.testType.mannWhitney")}
+            </button>
+          </div>
+          <p className="muted" style={{ marginTop: "var(--space-2)" }}>{t("results.observedResults.testType.hint")}</p>
+        </div>
+      ) : null}
+      {analysisMetricType === "mann_whitney" ? (
+        <div style={{ display: "grid", gap: "var(--space-3)", marginTop: "var(--space-4)" }}>
+          <div style={{ display: "grid", gap: "var(--space-3)", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
+            <div className="field">
+              <label htmlFor="results-mw-control">{t("results.observedResults.fields.controlValues")}</label>
+              <textarea id="results-mw-control" rows={6} value={actualResults.ranked.control_values} placeholder={t("results.observedResults.fields.rawValuesPlaceholder")} onChange={(event) => updateRanked("control_values", event.target.value)} />
+            </div>
+            <div className="field">
+              <label htmlFor="results-mw-treatment">{t("results.observedResults.fields.treatmentValues")}</label>
+              <textarea id="results-mw-treatment" rows={6} value={actualResults.ranked.treatment_values} placeholder={t("results.observedResults.fields.rawValuesPlaceholder")} onChange={(event) => updateRanked("treatment_values", event.target.value)} />
+            </div>
+          </div>
+          <div className="field" style={{ maxWidth: "200px" }}>
+            <label htmlFor="results-alpha-ranked">{t("results.observedResults.fields.alpha")}</label>
+            <input id="results-alpha-ranked" type="number" min="0.001" max="0.1" step="0.001" value={actualResults.ranked.alpha} onChange={(event) => updateRanked("alpha", event.target.value)} />
+          </div>
+        </div>
+      ) : (
+        <div style={{ display: "grid", gap: "var(--space-3)", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", marginTop: "var(--space-4)" }}>
+          {analysisMetricType === "binary"
+            ? renderFieldInputs("binary", binaryFields, actualResults.binary)
+            : renderFieldInputs("continuous", continuousFields, actualResults.continuous)}
+        </div>
+      )}
       <div className="actions" style={{ marginTop: "var(--space-4)", flexWrap: "wrap" }}>
         <button className="btn secondary" type="button" onClick={onRunAnalysis} disabled={!canMutateBackend || resultsLoading}>{resultsLoading ? t("results.observedResults.analyzing") : t("results.observedResults.analyzeButton")}</button>
         <button className="btn ghost" type="button" onClick={onSave} disabled={!canMutateBackend || !canSaveObservedResults || !resultsAnalysis || resultsSaving}>{resultsSaving ? t("results.observedResults.saving") : t("results.observedResults.saveButton")}</button>
@@ -128,9 +172,12 @@ export default function ObservedResultsView({
             <div className="card"><strong>{t("results.observedResults.cards.testStatistic")}</strong><div style={{ marginTop: "8px" }}>{resultsAnalysis.test_statistic.toFixed(4)}</div></div>
             <div className="card"><strong>{t("results.observedResults.cards.relativeChange")}</strong><div style={{ marginTop: "8px" }}>{resultsAnalysis.observed_effect_relative.toFixed(2)}%</div></div>
             <div className="card"><strong>{t("results.observedResults.cards.powerAchieved")}</strong><div style={{ marginTop: "8px" }}>{resultsAnalysis.power_achieved.toFixed(3)}</div></div>
+            {resultsAnalysis.effect_size != null ? (
+              <div className="card"><strong>{resultsAnalysis.effect_size_label ?? t("results.observedResults.cards.effectSize")}</strong><div style={{ marginTop: "8px" }}>{resultsAnalysis.effect_size.toFixed(4)}</div></div>
+            ) : null}
           </div>
           <div className="two-col">
-            <div className="card"><h3>{t("results.observedResults.cards.forestPlot")}</h3><ChartErrorBoundary data={resultsAnalysis}><ForestPlot effect={resultsAnalysis.observed_effect} ciLower={resultsAnalysis.ci_lower} ciUpper={resultsAnalysis.ci_upper} metricType={analysisMetricType} /></ChartErrorBoundary></div>
+            <div className="card"><h3>{t("results.observedResults.cards.forestPlot")}</h3><ChartErrorBoundary data={resultsAnalysis}><ForestPlot effect={resultsAnalysis.observed_effect} ciLower={resultsAnalysis.ci_lower} ciUpper={resultsAnalysis.ci_upper} metricType={analysisMetricType === "binary" ? "binary" : "continuous"} /></ChartErrorBoundary></div>
             <div className="card"><h3>{t("results.observedResults.cards.observedSummary")}</h3><ul className="list">{analysisMetricType === "binary" ? <><li>{t("results.observedResults.cards.controlRate")}: {resultsAnalysis.control_rate?.toFixed(4) ?? "-"}%</li><li>{t("results.observedResults.cards.treatmentRate")}: {resultsAnalysis.treatment_rate?.toFixed(4) ?? "-"}%</li></> : null}<li>{t("results.observedResults.cards.significant")}: {resultsAnalysis.is_significant ? t("results.observedResults.yes") : t("results.observedResults.no")}</li><li>{t("results.observedResults.cards.verdict")}: {resultsAnalysis.verdict}</li></ul></div>
           </div>
         </div>

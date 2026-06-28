@@ -39,13 +39,19 @@ export type ObservedResultsContinuousPayload = {
   treatment_n: number;
   alpha?: number;
 };
+export type ObservedResultsRankedPayload = {
+  control_values: number[];
+  treatment_values: number[];
+  alpha?: number;
+};
 export type ResultsRequestPayload = {
-  metric_type: "binary" | "continuous";
+  metric_type: "binary" | "continuous" | "mann_whitney";
   binary?: ObservedResultsBinaryPayload | null;
   continuous?: ObservedResultsContinuousPayload | null;
+  ranked?: ObservedResultsRankedPayload | null;
 };
 export type ResultsAnalysisResponse = {
-  metric_type: "binary" | "continuous";
+  metric_type: "binary" | "continuous" | "mann_whitney";
   observed_effect: number;
   observed_effect_relative: number;
   control_rate?: number | null;
@@ -59,6 +65,8 @@ export type ResultsAnalysisResponse = {
   power_achieved: number;
   verdict: string;
   interpretation: string;
+  effect_size?: number | null;
+  effect_size_label?: string | null;
 };
 export type SavedObservedResults = {
   request: ResultsRequestPayload;

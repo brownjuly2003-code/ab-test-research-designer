@@ -250,6 +250,9 @@
       "binary_rejects_continuous_data": "binary metric_type does not accept continuous data",
       "continuous_requires_continuous_data": "continuous metric_type requires continuous data",
       "continuous_rejects_binary_data": "continuous metric_type does not accept binary data",
+      "ranked_values_finite": "Stichprobenwerte müssen endliche Zahlen sein",
+      "mann_whitney_requires_ranked_data": "mann_whitney metric_type erfordert Rohdaten der Stichproben (ranked)",
+      "mann_whitney_rejects_other_data": "mann_whitney metric_type akzeptiert keine binären oder kontinuierlichen Daten",
       "actual_counts_length": "actual_counts length must match variants_count",
       "actual_counts_non_negative": "actual_counts must be non-negative",
       "actual_counts_positive_sum": "actual_counts must sum to a positive total",
@@ -287,7 +290,11 @@
       "binary": "Konversion der Testvariante {{treatment}}% vs. Kontrolle {{control}}%. Absoluter Effekt {{effect}} pp mit {{ciLevel}}% KI [{{ciLower}}, {{ciUpper}}] pp. Zweiseitiger p-Wert {{pValue}}; das Ergebnis ist {{significance}}.",
       "continuous": "Mittelwert der Testvariante {{treatmentMean}} vs. Kontrolle {{controlMean}}. Effekt {{effect}} mit {{ciLevel}}% KI [{{ciLower}}, {{ciUpper}}]. Zweiseitiger p-Wert {{pValue}}.",
       "ratio": "Verhältnis der Testvariante {{treatmentRatio}} vs. Kontrolle {{controlRatio}}. Absoluter Effekt {{effect}} mit {{ciLevel}}% KI [{{ciLower}}, {{ciUpper}}]. Zweiseitiger p-Wert {{pValue}} (Delta-Methode); das Ergebnis ist {{significance}}.",
+      "mann_whitney": "Median der Testvariante {{treatmentMedian}} vs. Kontrolle {{controlMedian}}. Hodges–Lehmann-Verschiebung {{shift}} mit {{ciLevel}}% KI [{{ciLower}}, {{ciUpper}}]. P(Test > Kontrolle) = {{cles}}%. Mann–Whitney U {{uStatistic}}, zweiseitiger p-Wert {{pValue}}; das Ergebnis ist {{significance}}.",
       "degenerate": "Die beobachteten Eingaben sind entartet, daher kann die Teststatistik nicht berechnet werden."
+    },
+    "effect_size": {
+      "rank_biserial": "Rang-biseriale Korrelation"
     }
   }
 }

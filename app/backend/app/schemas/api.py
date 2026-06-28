@@ -1,9 +1,14 @@
 from datetime import datetime
+from math import isfinite
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from app.backend.app.constants import MAX_SUPPORTED_METRICS, MAX_SUPPORTED_VARIANTS
+from app.backend.app.constants import (
+    MAX_OBSERVED_SAMPLE_SIZE,
+    MAX_SUPPORTED_METRICS,
+    MAX_SUPPORTED_VARIANTS,
+)
 from app.backend.app.i18n import translate
 from app.backend.app.schemas.report import ExperimentReport
 
@@ -220,25 +225,54 @@ class ObservedResultsContinuous(BaseModel):
     alpha: float = Field(default=0.05, ge=0.001, le=0.1)
 
 
+class ObservedResultsRanked(BaseModel):
+    """Raw per-unit samples for the non-parametric (Mann–Whitney) analyzer.
+
+    Unlike the binary / continuous observed-results models, which carry only summary statistics, the
+    rank-sum test needs the actual observations: it ranks the pooled sample. Each arm is capped at
+    ``MAX_OBSERVED_SAMPLE_SIZE`` because the Hodges–Lehmann CI materializes all pairwise differences.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    control_values: list[float] = Field(min_length=2, max_length=MAX_OBSERVED_SAMPLE_SIZE)
+    treatment_values: list[float] = Field(min_length=2, max_length=MAX_OBSERVED_SAMPLE_SIZE)
+    alpha: float = Field(default=0.05, ge=0.001, le=0.1)
+
+    @model_validator(mode="after")
+    def validate_values(self) -> "ObservedResultsRanked":
+        if any(not isfinite(value) for value in self.control_values) or any(
+            not isfinite(value) for value in self.treatment_values
+        ):
+            raise ValueError(translate("errors.schemas.ranked_values_finite"))
+        return self
+
+
 class ResultsRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    metric_type: Literal["binary", "continuous"]
+    metric_type: Literal["binary", "continuous", "mann_whitney"]
     binary: ObservedResultsBinary | None = None
     continuous: ObservedResultsContinuous | None = None
+    ranked: ObservedResultsRanked | None = None
 
     @model_validator(mode="after")
     def check_type(self) -> "ResultsRequest":
         if self.metric_type == "binary":
             if self.binary is None:
                 raise ValueError(translate("errors.schemas.binary_requires_binary_data"))
-            if self.continuous is not None:
+            if self.continuous is not None or self.ranked is not None:
                 raise ValueError(translate("errors.schemas.binary_rejects_continuous_data"))
         if self.metric_type == "continuous":
             if self.continuous is None:
                 raise ValueError(translate("errors.schemas.continuous_requires_continuous_data"))
-            if self.binary is not None:
+            if self.binary is not None or self.ranked is not None:
                 raise ValueError(translate("errors.schemas.continuous_rejects_binary_data"))
+        if self.metric_type == "mann_whitney":
+            if self.ranked is None:
+                raise ValueError(translate("errors.schemas.mann_whitney_requires_ranked_data"))
+            if self.binary is not None or self.continuous is not None:
+                raise ValueError(translate("errors.schemas.mann_whitney_rejects_other_data"))
         return self
 
 
@@ -257,6 +291,10 @@ class ResultsResponse(BaseModel):
     power_achieved: float
     verdict: str
     interpretation: str
+    # Populated by the rank-sum analyzer: a distribution-level effect size (rank-biserial
+    # correlation) and its i18n label. ``None`` for the mean-based binary / continuous / ratio paths.
+    effect_size: float | None = None
+    effect_size_label: str | None = None
 
 
 class SavedObservedResults(BaseModel):

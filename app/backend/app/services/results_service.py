@@ -6,10 +6,12 @@ from app.backend.app.i18n import translate
 from app.backend.app.schemas.api import (
     ObservedResultsBinary,
     ObservedResultsContinuous,
+    ObservedResultsRanked,
     ResultsRequest,
     ResultsResponse,
 )
 from app.backend.app.stats.binary import normal_ppf
+from app.backend.app.stats.mann_whitney import mann_whitney_u_test
 from app.backend.app.stats.student_t import t_cdf, t_ppf
 
 _STANDARD_NORMAL = NormalDist()
@@ -18,6 +20,8 @@ _STANDARD_NORMAL = NormalDist()
 def analyze_results(request: ResultsRequest) -> ResultsResponse:
     if request.metric_type == "binary":
         return _analyze_binary(request.binary)
+    if request.metric_type == "mann_whitney":
+        return _analyze_mann_whitney(request.ranked)
     return _analyze_continuous(request.continuous)
 
 
@@ -144,6 +148,61 @@ def _analyze_continuous(obs: ObservedResultsContinuous | None) -> ResultsRespons
                 "pValue": f"{p_value:.6f}",
             },
         ),
+    )
+
+
+def _analyze_mann_whitney(obs: ObservedResultsRanked | None) -> ResultsResponse:
+    if obs is None:
+        raise ValueError("ranked observations are required")
+
+    result = mann_whitney_u_test(obs.control_values, obs.treatment_values, obs.alpha)
+    if result is None:
+        # Every observation tied across both arms (or an empty arm): no rank signal.
+        return _degenerate_response(metric_type="mann_whitney", ci_level=1 - obs.alpha)
+
+    shift = result["hodges_lehmann_shift"]
+    control_median = result["control_median"]
+    relative_effect = (shift / control_median * 100) if control_median != 0 else 0.0
+    is_significant = result["is_significant"]
+
+    return ResultsResponse(
+        metric_type="mann_whitney",
+        observed_effect=round(shift, 4),
+        observed_effect_relative=round(relative_effect, 2),
+        ci_lower=round(result["ci_lower"], 4),
+        ci_upper=round(result["ci_upper"], 4),
+        ci_level=round(result["ci_level"], 4),
+        p_value=round(result["p_value"], 6),
+        test_statistic=round(result["test_statistic"], 4),
+        is_significant=is_significant,
+        power_achieved=round(result["power_achieved"], 3),
+        verdict=_verdict(is_significant, shift, obs.alpha),
+        interpretation=_interpretation_mann_whitney(result),
+        effect_size=round(result["rank_biserial"], 4),
+        effect_size_label=translate("results.effect_size.rank_biserial"),
+    )
+
+
+def _interpretation_mann_whitney(result: dict[str, Any]) -> str:
+    significance_text = translate(
+        "results.significance.significant"
+        if result["is_significant"]
+        else "results.significance.not_significant"
+    )
+    return translate(
+        "results.interpretation.mann_whitney",
+        {
+            "treatmentMedian": f"{result['treatment_median']:.4f}",
+            "controlMedian": f"{result['control_median']:.4f}",
+            "shift": f"{result['hodges_lehmann_shift']:+.4f}",
+            "cles": f"{result['common_language_effect'] * 100:.1f}",
+            "ciLevel": f"{result['ci_level'] * 100:.1f}",
+            "ciLower": f"{result['ci_lower']:.4f}",
+            "ciUpper": f"{result['ci_upper']:.4f}",
+            "uStatistic": f"{result['u_statistic']:.1f}",
+            "pValue": f"{result['p_value']:.6f}",
+            "significance": significance_text,
+        },
     )
 
 

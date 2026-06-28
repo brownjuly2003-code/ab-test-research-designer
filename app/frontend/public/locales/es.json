@@ -531,7 +531,10 @@
         "controlN": "n del control",
         "treatmentMean": "Media del tratamiento",
         "treatmentStdDev": "Desviación estándar del tratamiento",
-        "treatmentN": "n del tratamiento"
+        "treatmentN": "n del tratamiento",
+        "controlValues": "Valores del control",
+        "treatmentValues": "Valores del tratamiento",
+        "rawValuesPlaceholder": "Un valor por línea o separados por comas"
       },
       "cards": {
         "effect": "Efecto",
@@ -545,7 +548,14 @@
         "controlRate": "Tasa de control",
         "treatmentRate": "Tasa de tratamiento",
         "significant": "Significativo",
-        "verdict": "Veredicto"
+        "verdict": "Veredicto",
+        "effectSize": "Tamaño del efecto"
+      },
+      "testType": {
+        "label": "Prueba estadística",
+        "parametric": "prueba t (paramétrica)",
+        "mannWhitney": "Mann–Whitney (no paramétrica)",
+        "hint": "Mann–Whitney compara distribuciones completas a partir de valores sin procesar: robusto ante valores atípicos y asimetría, sin suponer normalidad."
       },
       "validation": {
         "fillAllFields": "Complete todos los campos de resultados reales con valores válidos antes del análisis.",

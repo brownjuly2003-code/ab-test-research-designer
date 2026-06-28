@@ -284,3 +284,111 @@ def test_project_update_can_persist_saved_observed_results() -> None:
 
     assert get_response.status_code == 200
     assert get_response.json()["payload"]["additional_context"]["observed_results"]["request"]["metric_type"] == "binary"
+
+
+# --- Mann–Whitney (non-parametric, raw-sample) endpoint --------------------------------------
+
+
+def test_results_endpoint_mann_whitney_significant() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/results",
+        json={
+            "metric_type": "mann_whitney",
+            "ranked": {
+                "control_values": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+                "treatment_values": [6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["metric_type"] == "mann_whitney"
+    assert payload["is_significant"] is True
+    # Hodges–Lehmann shift of a clean +5 location difference, CI excludes zero.
+    assert payload["observed_effect"] == pytest.approx(5.0, abs=0.5)
+    assert payload["ci_lower"] > 0
+    # Rank-biserial effect size is surfaced with its localized label.
+    assert payload["effect_size"] is not None
+    assert payload["effect_size_label"]
+    assert "Mann" in payload["interpretation"]
+
+
+def test_results_endpoint_mann_whitney_not_significant_ci_crosses_zero() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/results",
+        json={
+            "metric_type": "mann_whitney",
+            "ranked": {
+                "control_values": [4, 5, 6, 5, 4, 6, 5, 4, 6, 5],
+                "treatment_values": [5, 4, 6, 5, 6, 4, 5, 6, 4, 5],
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["is_significant"] is False
+    assert payload["ci_lower"] <= 0 <= payload["ci_upper"]
+
+
+def test_results_endpoint_mann_whitney_localizes_via_accept_language() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/results",
+        headers={"Accept-Language": "ru"},
+        json={
+            "metric_type": "mann_whitney",
+            "ranked": {
+                "control_values": [1, 2, 3, 4, 5],
+                "treatment_values": [7, 8, 9, 10, 11],
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    # Russian interpretation keeps the technical term but localizes the prose.
+    assert "Медиана" in response.json()["interpretation"]
+
+
+def test_results_endpoint_mann_whitney_requires_ranked_data() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/results",
+        json={
+            "metric_type": "mann_whitney",
+            "continuous": {
+                "control_mean": 1.0,
+                "control_std": 1.0,
+                "control_n": 10,
+                "treatment_mean": 2.0,
+                "treatment_std": 1.0,
+                "treatment_n": 10,
+            },
+        },
+    )
+
+    assert response.status_code == 422
+
+
+def test_results_endpoint_mann_whitney_rejects_oversized_sample() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/results",
+        json={
+            "metric_type": "mann_whitney",
+            "ranked": {
+                "control_values": [float(i) for i in range(1001)],
+                "treatment_values": [1.0, 2.0],
+            },
+        },
+    )
+
+    assert response.status_code == 422

@@ -7,7 +7,7 @@ import { useAnalysisStore } from "../../stores/analysisStore";
 import { readDraftBootstrap } from "../../stores/draftStore";
 import { useProjectStore } from "../../stores/projectStore";
 import ObservedResultsView from "./internal/ObservedResultsView";
-import { type ActualResultsState, buildActualResultsState, buildResultsRequest, resolveObservedMetricType } from "./observedResultsShared";
+import { type ActualResultsState, type ObservedMetricType, buildActualResultsState, buildResultsRequest, resolveObservedMetricType } from "./observedResultsShared";
 import { buildApiRequestHeaders, getDisplayedAnalysis } from "./resultsShared";
 
 type ObservedResultsSectionProps = {
@@ -22,7 +22,12 @@ export default function ObservedResultsSection({ onResultsAnalysisChange }: Obse
   const canMutateBackend = useProjectStore((state) => state.canMutateBackend);
   const backendMutationMessage = useProjectStore((state) => state.backendMutationMessage);
   const displayedAnalysis = getDisplayedAnalysis(selectedHistoryRun?.analysis ?? null, analysisResult);
-  const analysisMetricType = displayedAnalysis ? resolveObservedMetricType(displayedAnalysis.calculations.calculation_summary.metric_type) : "binary";
+  const baseMetricType = displayedAnalysis ? resolveObservedMetricType(displayedAnalysis.calculations.calculation_summary.metric_type) : "binary";
+  // Mann–Whitney is offered as a non-parametric alternative to the parametric t-test on continuous
+  // data; for binary plans the choice does not apply. The selection is local UI state.
+  const [observedTest, setObservedTest] = useState<"parametric" | "mann_whitney">("parametric");
+  const effectiveMetricType: ObservedMetricType =
+    baseMetricType === "continuous" && observedTest === "mann_whitney" ? "mann_whitney" : baseMetricType;
   const canSaveObservedResults = Boolean(activeProject && !activeProject.is_archived && !selectedHistoryRun);
   const [actualResults, setActualResults] = useState<ActualResultsState>(() => buildActualResultsState("binary", 0.05, null));
   const [resultsRequest, setResultsRequest] = useState<ResultsRequestPayload | null>(null);
@@ -34,6 +39,7 @@ export default function ObservedResultsSection({ onResultsAnalysisChange }: Obse
 
   useEffect(() => {
     if (!displayedAnalysis?.report) {
+      setObservedTest("parametric");
       setActualResults(buildActualResultsState("binary", 0.05, null));
       setResultsRequest(null);
       setResultsAnalysis(null);
@@ -44,23 +50,32 @@ export default function ObservedResultsSection({ onResultsAnalysisChange }: Obse
       return;
     }
     const persistedObservedResults = selectedHistoryRun ? null : readDraftBootstrap().form.additional_context.observed_results ?? null;
-    const persistedRequest = persistedObservedResults?.request?.metric_type === analysisMetricType ? persistedObservedResults.request : null;
-    const persistedAnalysis = persistedObservedResults?.analysis?.metric_type === analysisMetricType ? persistedObservedResults.analysis : null;
-    setActualResults(buildActualResultsState(analysisMetricType, displayedAnalysis.calculations.calculation_summary.alpha, persistedRequest));
+    const persistedType = persistedObservedResults?.request?.metric_type;
+    const supportedTypes: ObservedMetricType[] = baseMetricType === "continuous" ? ["continuous", "mann_whitney"] : [baseMetricType];
+    const nextTest: "parametric" | "mann_whitney" =
+      persistedType === "mann_whitney" && baseMetricType === "continuous" ? "mann_whitney" : "parametric";
+    const stateMetricType: ObservedMetricType = nextTest === "mann_whitney" ? "mann_whitney" : baseMetricType;
+    const persistedRequest = persistedType && supportedTypes.includes(persistedType) ? persistedObservedResults?.request ?? null : null;
+    const persistedAnalysis =
+      persistedObservedResults?.analysis && supportedTypes.includes(persistedObservedResults.analysis.metric_type)
+        ? persistedObservedResults.analysis
+        : null;
+    setObservedTest(nextTest);
+    setActualResults(buildActualResultsState(stateMetricType, displayedAnalysis.calculations.calculation_summary.alpha, persistedRequest));
     setResultsRequest(persistedRequest);
     setResultsAnalysis(persistedAnalysis);
     setResultsLoading(false);
     setResultsSaving(false);
     setResultsError("");
     setResultsSaveMessage("");
-  }, [analysisMetricType, displayedAnalysis, selectedHistoryRun?.id]);
+  }, [baseMetricType, displayedAnalysis, selectedHistoryRun?.id]);
 
   useEffect(() => {
     onResultsAnalysisChange(resultsAnalysis);
   }, [onResultsAnalysisChange, resultsAnalysis]);
 
   async function runObservedResultsAnalysis() {
-    const payload = buildResultsRequest(analysisMetricType, actualResults);
+    const payload = buildResultsRequest(effectiveMetricType, actualResults);
     if (!payload) {
       setResultsError(t("results.observedResults.validation.fillAllFields"));
       setResultsSaveMessage("");
@@ -116,7 +131,10 @@ export default function ObservedResultsSection({ onResultsAnalysisChange }: Obse
 
   return (
     <ObservedResultsView
-      analysisMetricType={analysisMetricType}
+      analysisMetricType={effectiveMetricType}
+      showTestToggle={baseMetricType === "continuous"}
+      observedTest={observedTest}
+      onSelectTest={setObservedTest}
       actualResults={actualResults}
       setActualResults={setActualResults}
       canMutateBackend={canMutateBackend}

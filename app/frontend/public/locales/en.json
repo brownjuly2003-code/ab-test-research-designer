@@ -531,7 +531,10 @@
         "controlN": "Control n",
         "treatmentMean": "Treatment mean",
         "treatmentStdDev": "Treatment std dev",
-        "treatmentN": "Treatment n"
+        "treatmentN": "Treatment n",
+        "controlValues": "Control values",
+        "treatmentValues": "Treatment values",
+        "rawValuesPlaceholder": "One value per line, or comma-separated"
       },
       "cards": {
         "effect": "Effect",
@@ -545,7 +548,14 @@
         "controlRate": "Control rate",
         "treatmentRate": "Treatment rate",
         "significant": "Significant",
-        "verdict": "Verdict"
+        "verdict": "Verdict",
+        "effectSize": "Effect size"
+      },
+      "testType": {
+        "label": "Statistical test",
+        "parametric": "t-test (parametric)",
+        "mannWhitney": "Mann–Whitney (non-parametric)",
+        "hint": "Mann–Whitney compares whole distributions from raw values — robust to outliers and skew, with no normality assumption."
       },
       "validation": {
         "fillAllFields": "Fill in all actual results fields with valid values before analysis.",
