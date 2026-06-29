@@ -564,7 +564,9 @@
         "fisherExact": "Fisher-Exakt-Test (kleine Stichproben)",
         "fisherHint": "Der Fisher-Exakt-Test bedingt auf beide Randsummen und zählt die hypergeometrische Verteilung aus — ein exakter p-Wert für kleine Stichproben oder seltene Ereignisse, wo die Normalapproximation des z-Tests unzuverlässig ist.",
         "rate": "Rate (Poisson)",
-        "rateHint": "Der Poisson-Ratentest vergleicht Ereignisse über die Exposition (z. B. Fehler pro 1000 Sitzungen) mit einem exakten bedingten Test. Für Ereignisraten mit unabhängigen Ankünften — nicht für geclusterte Zählungen pro Nutzer."
+        "rateHint": "Der Poisson-Ratentest vergleicht Ereignisse über die Exposition (z. B. Fehler pro 1000 Sitzungen) mit einem exakten bedingten Test. Für Ereignisraten mit unabhängigen Ankünften — nicht für geclusterte Zählungen pro Nutzer.",
+        "bootstrap": "Bootstrap / Permutation",
+        "bootstrapHint": "Der Permutationstest vergleicht die Mittelwertdifferenz durch Umordnen der gepoolten Rohwerte — ein verteilungsfreier t-Test — mit einem Perzentil-Bootstrap-KI. Keine Normalverteilungsannahme; kleine Stichproben werden exakt geprüft."
       },
       "validation": {
         "fillAllFields": "Füllen Sie vor der Analyse alle tatsächlichen Ergebnisfelder mit gültigen Werten aus.",

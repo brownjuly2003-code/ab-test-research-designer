@@ -564,7 +564,9 @@
         "fisherExact": "test exact de Fisher (petits échantillons)",
         "fisherHint": "Le test exact de Fisher conditionne sur les deux marges et énumère la distribution hypergéométrique — une valeur p exacte pour les petits échantillons ou les événements rares, là où l'approximation normale du test z n'est pas fiable.",
         "rate": "Taux (Poisson)",
-        "rateHint": "Le test de taux de Poisson compare les événements sur l'exposition (p. ex. erreurs pour 1000 sessions) avec un test conditionnel exact. À utiliser pour des taux d'événements à arrivées indépendantes, pas pour des comptages groupés par utilisateur."
+        "rateHint": "Le test de taux de Poisson compare les événements sur l'exposition (p. ex. erreurs pour 1000 sessions) avec un test conditionnel exact. À utiliser pour des taux d'événements à arrivées indépendantes, pas pour des comptages groupés par utilisateur.",
+        "bootstrap": "Bootstrap / permutation",
+        "bootstrapHint": "Le test de permutation compare la différence des moyennes en réaffectant les étiquettes des valeurs brutes regroupées — un test t sans hypothèse de distribution — avec un IC bootstrap par percentiles. Sans hypothèse de normalité ; les petits échantillons sont testés de façon exacte."
       },
       "validation": {
         "fillAllFields": "Remplissez tous les champs de résultats réels avec des valeurs valides avant l'analyse.",

@@ -394,6 +394,94 @@ def test_results_endpoint_mann_whitney_rejects_oversized_sample() -> None:
     assert response.status_code == 422
 
 
+def test_results_endpoint_bootstrap_significant() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/results",
+        json={
+            "metric_type": "bootstrap",
+            "ranked": {
+                "control_values": [float(i) for i in range(30)],
+                "treatment_values": [float(i) + 6.0 for i in range(30)],
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["metric_type"] == "bootstrap"
+    assert payload["is_significant"] is True
+    # Mean difference of a clean +6 location shift; the percentile bootstrap CI excludes zero.
+    assert payload["observed_effect"] == pytest.approx(6.0, abs=0.5)
+    assert payload["ci_lower"] > 0
+    # Cohen's d effect size is surfaced with its localized label.
+    assert payload["effect_size"] is not None
+    assert payload["effect_size_label"]
+    assert "bootstrap" in payload["interpretation"].lower()
+
+
+def test_results_endpoint_bootstrap_not_significant_ci_crosses_zero() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/results",
+        json={
+            "metric_type": "bootstrap",
+            "ranked": {
+                "control_values": [4, 5, 6, 5, 4, 6, 5, 4, 6, 5],
+                "treatment_values": [5, 4, 6, 5, 6, 4, 5, 6, 4, 5],
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["is_significant"] is False
+    assert payload["ci_lower"] <= 0 <= payload["ci_upper"]
+
+
+def test_results_endpoint_bootstrap_localizes_via_accept_language() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/results",
+        headers={"Accept-Language": "ru"},
+        json={
+            "metric_type": "bootstrap",
+            "ranked": {
+                "control_values": [1, 2, 3, 4, 5],
+                "treatment_values": [7, 8, 9, 10, 11],
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    # Russian interpretation localizes the prose (the mean-difference phrasing).
+    assert "средних" in response.json()["interpretation"]
+
+
+def test_results_endpoint_bootstrap_requires_ranked_data() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/results",
+        json={
+            "metric_type": "bootstrap",
+            "continuous": {
+                "control_mean": 1.0,
+                "control_std": 1.0,
+                "control_n": 10,
+                "treatment_mean": 2.0,
+                "treatment_std": 1.0,
+                "treatment_n": 10,
+            },
+        },
+    )
+
+    assert response.status_code == 422
+
+
 def test_results_endpoint_fisher_exact_significant() -> None:
     client = TestClient(create_app())
 

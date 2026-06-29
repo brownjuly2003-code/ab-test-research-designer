@@ -268,7 +268,7 @@ class ObservedResultsCount(BaseModel):
 class ResultsRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    metric_type: Literal["binary", "continuous", "mann_whitney", "fisher_exact", "count"]
+    metric_type: Literal["binary", "continuous", "mann_whitney", "bootstrap", "fisher_exact", "count"]
     binary: ObservedResultsBinary | None = None
     continuous: ObservedResultsContinuous | None = None
     ranked: ObservedResultsRanked | None = None
@@ -298,6 +298,13 @@ class ResultsRequest(BaseModel):
                 raise ValueError(translate("errors.schemas.mann_whitney_requires_ranked_data"))
             if self.binary is not None or self.continuous is not None:
                 raise ValueError(translate("errors.schemas.mann_whitney_rejects_other_data"))
+        if self.metric_type == "bootstrap":
+            # Bootstrap / permutation reuses the raw per-unit samples (the same ranked input shape as
+            # Mann–Whitney); it is an alternative distribution-free analysis of the same data.
+            if self.ranked is None:
+                raise ValueError(translate("errors.schemas.bootstrap_requires_ranked_data"))
+            if self.binary is not None or self.continuous is not None:
+                raise ValueError(translate("errors.schemas.bootstrap_rejects_other_data"))
         if self.metric_type == "count":
             if self.count is None:
                 raise ValueError(translate("errors.schemas.count_requires_count_data"))

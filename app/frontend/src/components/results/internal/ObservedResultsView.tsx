@@ -22,8 +22,8 @@ type ObservedResultsViewProps = {
   analysisMetricType: ObservedMetricType;
   baseMetricType: "binary" | "continuous";
   showTestToggle: boolean;
-  observedTest: "parametric" | "mann_whitney" | "fisher_exact" | "count";
-  onSelectTest: (test: "parametric" | "mann_whitney" | "fisher_exact" | "count") => void;
+  observedTest: "parametric" | "mann_whitney" | "bootstrap" | "fisher_exact" | "count";
+  onSelectTest: (test: "parametric" | "mann_whitney" | "bootstrap" | "fisher_exact" | "count") => void;
   actualResults: ActualResultsState;
   setActualResults: Dispatch<SetStateAction<ActualResultsState>>;
   canMutateBackend: boolean;
@@ -118,16 +118,21 @@ export default function ObservedResultsView({
     setActualResults((current) => ({ ...current, ranked: { ...current.ranked, [key]: value } }));
   }
 
-  // The toggle offers the default normal-approximation analysis ("parametric"), one alternative test
-  // per base metric type (Mann–Whitney for continuous, Fisher's exact for binary), and a
-  // plan-independent Poisson rate test for event-over-exposure data. The base type comes from the
-  // plan, so it is known even while the count analyzer is active.
+  // The toggle offers the default normal-approximation analysis ("parametric"), the alternative
+  // test(s) per base metric type (Mann–Whitney + bootstrap/permutation for continuous, Fisher's exact
+  // for binary), and a plan-independent Poisson rate test for event-over-exposure data. The base type
+  // comes from the plan, so it is known even while the count analyzer is active.
   const isBinaryBase = baseMetricType === "binary";
   const alternativeTest: "mann_whitney" | "fisher_exact" = isBinaryBase ? "fisher_exact" : "mann_whitney";
   const parametricLabel = isBinaryBase ? t("results.observedResults.testType.zTest") : t("results.observedResults.testType.parametric");
   const alternativeLabel = isBinaryBase ? t("results.observedResults.testType.fisherExact") : t("results.observedResults.testType.mannWhitney");
   const baseHint = isBinaryBase ? t("results.observedResults.testType.fisherHint") : t("results.observedResults.testType.hint");
-  const testTypeHint = observedTest === "count" ? t("results.observedResults.testType.rateHint") : baseHint;
+  const testTypeHint =
+    observedTest === "count"
+      ? t("results.observedResults.testType.rateHint")
+      : observedTest === "bootstrap"
+        ? t("results.observedResults.testType.bootstrapHint")
+        : baseHint;
 
   return (
     <div className="card">
@@ -145,6 +150,11 @@ export default function ObservedResultsView({
             <button type="button" className={observedTest === alternativeTest ? "btn secondary" : "btn ghost"} aria-pressed={observedTest === alternativeTest} onClick={() => onSelectTest(alternativeTest)}>
               {alternativeLabel}
             </button>
+            {!isBinaryBase ? (
+              <button type="button" className={observedTest === "bootstrap" ? "btn secondary" : "btn ghost"} aria-pressed={observedTest === "bootstrap"} onClick={() => onSelectTest("bootstrap")}>
+                {t("results.observedResults.testType.bootstrap")}
+              </button>
+            ) : null}
             <button type="button" className={observedTest === "count" ? "btn secondary" : "btn ghost"} aria-pressed={observedTest === "count"} onClick={() => onSelectTest("count")}>
               {t("results.observedResults.testType.rate")}
             </button>
@@ -152,7 +162,7 @@ export default function ObservedResultsView({
           <p className="muted" style={{ marginTop: "var(--space-2)" }}>{testTypeHint}</p>
         </div>
       ) : null}
-      {analysisMetricType === "mann_whitney" ? (
+      {analysisMetricType === "mann_whitney" || analysisMetricType === "bootstrap" ? (
         <div style={{ display: "grid", gap: "var(--space-3)", marginTop: "var(--space-4)" }}>
           <div style={{ display: "grid", gap: "var(--space-3)", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
             <div className="field">

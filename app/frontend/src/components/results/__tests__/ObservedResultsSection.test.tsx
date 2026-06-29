@@ -215,4 +215,76 @@ describe("ObservedResultsSection", () => {
       await view.unmount();
     }
   });
+
+  it("offers bootstrap / permutation on a continuous plan but not on a binary plan", async () => {
+    const binaryView = await renderIntoDocument(<ObservedResultsSection onResultsAnalysisChange={vi.fn()} />);
+    try {
+      await flushEffects();
+      // The default seeded plan is binary -> the continuous-only resampling test is hidden.
+      expect(binaryView.container.textContent).not.toContain("Bootstrap / permutation");
+    } finally {
+      await binaryView.unmount();
+    }
+
+    seedResultsStores({ analysis: buildAnalysisResult({ metricType: "continuous" }) });
+    const continuousView = await renderIntoDocument(<ObservedResultsSection onResultsAnalysisChange={vi.fn()} />);
+    try {
+      await flushEffects();
+      expect(continuousView.container.textContent).toContain("Bootstrap / permutation");
+    } finally {
+      await continuousView.unmount();
+    }
+  });
+
+  it("runs a bootstrap / permutation analysis from raw samples on a continuous plan", async () => {
+    seedResultsStores({ analysis: buildAnalysisResult({ metricType: "continuous" }) });
+    const response = {
+      metric_type: "bootstrap",
+      observed_effect: 6,
+      observed_effect_relative: 41.38,
+      ci_lower: 1.6,
+      ci_upper: 10.4,
+      ci_level: 0.95,
+      p_value: 0.0095,
+      test_statistic: 2.683,
+      is_significant: true,
+      power_achieved: 0.76,
+      verdict: "Statistically significant uplift at alpha=0.050",
+      interpretation:
+        "Mean difference +6.0000 with 95.0% percentile bootstrap CI [1.6000, 10.4000]. Permutation two-sided p-value 0.009500 over 2000 relabellings; result is statistically significant.",
+      effect_size: 0.98,
+      effect_size_label: "Cohen's d"
+    };
+    const fetchMock = vi.fn(async (..._args: unknown[]) => ({ ok: true, json: async () => response }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const view = await renderIntoDocument(<ObservedResultsSection onResultsAnalysisChange={vi.fn()} />);
+    try {
+      await flushEffects();
+      // Continuous plan -> switch to the resampling test, which reuses the raw-sample textareas.
+      await click(findButton(view.container, "Bootstrap / permutation"));
+      await flushEffects();
+
+      const textareas = view.container.querySelectorAll<HTMLTextAreaElement>("textarea");
+      expect(textareas.length).toBe(2);
+      await changeValue(textareas[0], "1 2 3 4 5 6 7 8 9 10");
+      await changeValue(textareas[1], "7 8 9 10 11 12 13 14 15 16");
+
+      await click(findButton(view.container, "Analyze results"));
+      await flushEffects();
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const [, requestInit] = fetchMock.mock.calls[0] as [string, RequestInit];
+      const body = JSON.parse(String(requestInit.body));
+      expect(body.metric_type).toBe("bootstrap");
+      expect(body.ranked.control_values).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+      expect(body.ranked.treatment_values).toEqual([7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
+
+      // The Cohen's d effect size and the percentile-bootstrap prose are surfaced.
+      expect(view.container.textContent).toContain("Cohen's d");
+      expect(view.container.textContent).toContain("percentile bootstrap CI");
+    } finally {
+      await view.unmount();
+    }
+  });
 });

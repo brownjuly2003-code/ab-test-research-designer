@@ -1,9 +1,9 @@
 import type { ResultsRequestPayload } from "../../lib/experiment";
 
 // The observed-results form supports the two planned metric types plus alternative tests offered on
-// the same data — Mann–Whitney (non-parametric) for continuous, Fisher's exact for binary — and a
-// plan-independent Poisson rate test ("count") for event-over-exposure metrics.
-export type ObservedMetricType = "binary" | "continuous" | "mann_whitney" | "fisher_exact" | "count";
+// the same data — Mann–Whitney (non-parametric) and bootstrap/permutation for continuous, Fisher's
+// exact for binary — and a plan-independent Poisson rate test ("count") for event-over-exposure data.
+export type ObservedMetricType = "binary" | "continuous" | "mann_whitney" | "bootstrap" | "fisher_exact" | "count";
 
 export type BinaryResultsForm = {
   control_conversions: string;
@@ -93,6 +93,9 @@ export function buildActualResultsState(
   // Fisher's exact shares the binary 2x2 input, so both metric types read from request.binary.
   const requestUsesBinaryForm =
     request?.metric_type === "binary" || request?.metric_type === "fisher_exact";
+  // Mann–Whitney and bootstrap/permutation share the ranked raw-sample input.
+  const requestUsesRankedForm =
+    request?.metric_type === "mann_whitney" || request?.metric_type === "bootstrap";
   const matchingAlpha =
     request?.metric_type === metricType
       ? metricType === "binary" || metricType === "fisher_exact"
@@ -134,10 +137,10 @@ export function buildActualResultsState(
     },
     ranked: {
       control_values:
-        request?.metric_type === "mann_whitney" ? (request.ranked?.control_values ?? []).join("\n") : "",
+        requestUsesRankedForm ? (request?.ranked?.control_values ?? []).join("\n") : "",
       treatment_values:
-        request?.metric_type === "mann_whitney" ? (request.ranked?.treatment_values ?? []).join("\n") : "",
-      alpha: request?.metric_type === "mann_whitney" ? toFieldValue(request.ranked?.alpha ?? alpha) : defaultAlpha
+        requestUsesRankedForm ? (request?.ranked?.treatment_values ?? []).join("\n") : "",
+      alpha: requestUsesRankedForm ? toFieldValue(request?.ranked?.alpha ?? alpha) : defaultAlpha
     },
     count: {
       control_events: request?.metric_type === "count" ? toFieldValue(request.count?.control_events) : "",
@@ -153,7 +156,9 @@ export function buildResultsRequest(
   metricType: ObservedMetricType,
   form: ActualResultsState
 ): ResultsRequestPayload | null {
-  if (metricType === "mann_whitney") {
+  // Mann–Whitney and bootstrap/permutation both consume the raw per-unit samples (ranked input) and
+  // share the same parse + bounds validation; only the metric_type tag differs.
+  if (metricType === "mann_whitney" || metricType === "bootstrap") {
     if (form.ranked.alpha.trim() === "") {
       return null;
     }
@@ -170,7 +175,7 @@ export function buildResultsRequest(
       return null;
     }
     return {
-      metric_type: "mann_whitney",
+      metric_type: metricType,
       ranked: { control_values, treatment_values, alpha }
     };
   }

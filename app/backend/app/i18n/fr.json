@@ -275,7 +275,9 @@
       "fisher_exact_table_too_large": "fisher_exact est conçu pour les petits échantillons ; ce tableau est trop grand — utilisez le test binaire (approximation normale)",
       "count_requires_count_data": "le metric_type count nécessite des données de comptage (événements sur exposition)",
       "count_rejects_other_data": "le metric_type count n'accepte pas de données binaires, continues ou d'échantillons bruts (ranked)",
-      "count_events_too_large": "count : trop d'événements au total pour le test exact ; à cette échelle l'approximation normale est exacte"
+      "count_events_too_large": "count : trop d'événements au total pour le test exact ; à cette échelle l'approximation normale est exacte",
+      "bootstrap_requires_ranked_data": "le metric_type bootstrap nécessite des données d'échantillons brutes (ranked)",
+      "bootstrap_rejects_other_data": "le metric_type bootstrap n'accepte pas de données binaires ou continues"
     },
     "srm_detected": "SRM détecté - vérifiez votre mise en œuvre de randomisation ou de suivi",
     "srm_not_detected": "Aucun SRM détecté"
@@ -299,12 +301,14 @@
       "mann_whitney": "Médiane du traitement {{treatmentMedian}} contre contrôle {{controlMedian}}. Décalage de Hodges–Lehmann {{shift}} avec IC à {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. P(traitement > contrôle) = {{cles}}%. Mann–Whitney U {{uStatistic}}, valeur p bilatérale {{pValue}} ; le résultat est {{significance}}.",
       "degenerate": "Les données observées sont dégénérées ; la statistique de test ne peut donc pas être calculée.",
       "fisher_exact": "Conversion du traitement {{treatment}}% contre contrôle {{control}}%. Effet absolu {{effect}} pp. Rapport des cotes {{oddsRatio}}. Valeur p bilatérale exacte de Fisher {{pValue}} ; le résultat est {{significance}}.",
-      "count": "Taux du traitement {{treatmentRate}} contre contrôle {{controlRate}}. Rapport de taux {{rateRatio}}. Différence de taux {{rateDifference}} avec IC à {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. Valeur p bilatérale exacte de Poisson {{pValue}} ; le résultat est {{significance}}."
+      "count": "Taux du traitement {{treatmentRate}} contre contrôle {{controlRate}}. Rapport de taux {{rateRatio}}. Différence de taux {{rateDifference}} avec IC à {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. Valeur p bilatérale exacte de Poisson {{pValue}} ; le résultat est {{significance}}.",
+      "bootstrap": "Moyenne du traitement {{treatmentMean}} contre contrôle {{controlMean}}. Différence des moyennes {{effect}} avec IC bootstrap par percentiles à {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. Valeur p bilatérale de permutation {{pValue}} sur {{permutations}} réaffectations ; le résultat est {{significance}}."
     },
     "effect_size": {
       "rank_biserial": "corrélation bisériale de rang",
       "odds_ratio": "rapport des cotes (odds ratio)",
-      "rate_ratio": "rapport de taux (rate ratio)"
+      "rate_ratio": "rapport de taux (rate ratio)",
+      "cohens_d": "d de Cohen"
     },
     "fisher_exact": {
       "odds_ratio_undefined": "non défini (une cellule nulle)"
