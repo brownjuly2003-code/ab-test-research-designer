@@ -535,6 +535,7 @@
         "controlValues": "Valeurs du contrôle",
         "treatmentValues": "Valeurs du traitement",
         "rawValuesPlaceholder": "Une valeur par ligne ou séparées par des virgules",
+        "quantile": "Quantile (0–1)",
         "controlEvents": "Événements du contrôle",
         "controlExposure": "Exposition du contrôle",
         "treatmentEvents": "Événements du traitement",
@@ -566,7 +567,9 @@
         "rate": "Taux (Poisson)",
         "rateHint": "Le test de taux de Poisson compare les événements sur l'exposition (p. ex. erreurs pour 1000 sessions) avec un test conditionnel exact. À utiliser pour des taux d'événements à arrivées indépendantes, pas pour des comptages groupés par utilisateur.",
         "bootstrap": "Bootstrap / permutation",
-        "bootstrapHint": "Le test de permutation compare la différence des moyennes en réaffectant les étiquettes des valeurs brutes regroupées — un test t sans hypothèse de distribution — avec un IC bootstrap par percentiles. Sans hypothèse de normalité ; les petits échantillons sont testés de façon exacte."
+        "bootstrapHint": "Le test de permutation compare la différence des moyennes en réaffectant les étiquettes des valeurs brutes regroupées — un test t sans hypothèse de distribution — avec un IC bootstrap par percentiles. Sans hypothèse de normalité ; les petits échantillons sont testés de façon exacte.",
+        "quantile": "Effet sur le quantile",
+        "quantileHint": "L'effet de traitement sur quantile compare un quantile choisi (la médiane par défaut, ou p. ex. p90) entre les groupes avec un test de permutation et un IC bootstrap percentile. À utiliser quand une queue ou la médiane compte plus que la moyenne : revenus asymétriques, percentiles de latence."
       },
       "validation": {
         "fillAllFields": "Remplissez tous les champs de résultats réels avec des valeurs valides avant l'analyse.",

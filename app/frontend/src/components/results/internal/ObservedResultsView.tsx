@@ -22,8 +22,8 @@ type ObservedResultsViewProps = {
   analysisMetricType: ObservedMetricType;
   baseMetricType: "binary" | "continuous";
   showTestToggle: boolean;
-  observedTest: "parametric" | "mann_whitney" | "bootstrap" | "fisher_exact" | "count";
-  onSelectTest: (test: "parametric" | "mann_whitney" | "bootstrap" | "fisher_exact" | "count") => void;
+  observedTest: "parametric" | "mann_whitney" | "bootstrap" | "quantile" | "fisher_exact" | "count";
+  onSelectTest: (test: "parametric" | "mann_whitney" | "bootstrap" | "quantile" | "fisher_exact" | "count") => void;
   actualResults: ActualResultsState;
   setActualResults: Dispatch<SetStateAction<ActualResultsState>>;
   canMutateBackend: boolean;
@@ -132,7 +132,9 @@ export default function ObservedResultsView({
       ? t("results.observedResults.testType.rateHint")
       : observedTest === "bootstrap"
         ? t("results.observedResults.testType.bootstrapHint")
-        : baseHint;
+        : observedTest === "quantile"
+          ? t("results.observedResults.testType.quantileHint")
+          : baseHint;
 
   return (
     <div className="card">
@@ -155,6 +157,11 @@ export default function ObservedResultsView({
                 {t("results.observedResults.testType.bootstrap")}
               </button>
             ) : null}
+            {!isBinaryBase ? (
+              <button type="button" className={observedTest === "quantile" ? "btn secondary" : "btn ghost"} aria-pressed={observedTest === "quantile"} onClick={() => onSelectTest("quantile")}>
+                {t("results.observedResults.testType.quantile")}
+              </button>
+            ) : null}
             <button type="button" className={observedTest === "count" ? "btn secondary" : "btn ghost"} aria-pressed={observedTest === "count"} onClick={() => onSelectTest("count")}>
               {t("results.observedResults.testType.rate")}
             </button>
@@ -162,7 +169,7 @@ export default function ObservedResultsView({
           <p className="muted" style={{ marginTop: "var(--space-2)" }}>{testTypeHint}</p>
         </div>
       ) : null}
-      {analysisMetricType === "mann_whitney" || analysisMetricType === "bootstrap" ? (
+      {analysisMetricType === "mann_whitney" || analysisMetricType === "bootstrap" || analysisMetricType === "quantile" ? (
         <div style={{ display: "grid", gap: "var(--space-3)", marginTop: "var(--space-4)" }}>
           <div style={{ display: "grid", gap: "var(--space-3)", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
             <div className="field">
@@ -174,9 +181,17 @@ export default function ObservedResultsView({
               <textarea id="results-mw-treatment" rows={6} value={actualResults.ranked.treatment_values} placeholder={t("results.observedResults.fields.rawValuesPlaceholder")} onChange={(event) => updateRanked("treatment_values", event.target.value)} />
             </div>
           </div>
-          <div className="field" style={{ maxWidth: "200px" }}>
-            <label htmlFor="results-alpha-ranked">{t("results.observedResults.fields.alpha")}</label>
-            <input id="results-alpha-ranked" type="number" min="0.001" max="0.1" step="0.001" value={actualResults.ranked.alpha} onChange={(event) => updateRanked("alpha", event.target.value)} />
+          <div style={{ display: "grid", gap: "var(--space-3)", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
+            <div className="field" style={{ maxWidth: "200px" }}>
+              <label htmlFor="results-alpha-ranked">{t("results.observedResults.fields.alpha")}</label>
+              <input id="results-alpha-ranked" type="number" min="0.001" max="0.1" step="0.001" value={actualResults.ranked.alpha} onChange={(event) => updateRanked("alpha", event.target.value)} />
+            </div>
+            {analysisMetricType === "quantile" ? (
+              <div className="field" style={{ maxWidth: "200px" }}>
+                <label htmlFor="results-quantile-ranked">{t("results.observedResults.fields.quantile")}</label>
+                <input id="results-quantile-ranked" type="number" min="0.01" max="0.99" step="0.01" value={actualResults.ranked.quantile} onChange={(event) => updateRanked("quantile", event.target.value)} />
+              </div>
+            ) : null}
           </div>
         </div>
       ) : (

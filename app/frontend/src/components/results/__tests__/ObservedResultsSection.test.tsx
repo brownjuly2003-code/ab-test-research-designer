@@ -287,4 +287,79 @@ describe("ObservedResultsSection", () => {
       await view.unmount();
     }
   });
+
+  it("offers the quantile effect on a continuous plan but not on a binary plan", async () => {
+    const binaryView = await renderIntoDocument(<ObservedResultsSection onResultsAnalysisChange={vi.fn()} />);
+    try {
+      await flushEffects();
+      // The default seeded plan is binary -> the continuous-only quantile test is hidden.
+      expect(binaryView.container.textContent).not.toContain("Quantile effect");
+    } finally {
+      await binaryView.unmount();
+    }
+
+    seedResultsStores({ analysis: buildAnalysisResult({ metricType: "continuous" }) });
+    const continuousView = await renderIntoDocument(<ObservedResultsSection onResultsAnalysisChange={vi.fn()} />);
+    try {
+      await flushEffects();
+      expect(continuousView.container.textContent).toContain("Quantile effect");
+    } finally {
+      await continuousView.unmount();
+    }
+  });
+
+  it("runs a quantile analysis from raw samples carrying the chosen quantile", async () => {
+    seedResultsStores({ analysis: buildAnalysisResult({ metricType: "continuous" }) });
+    const response = {
+      metric_type: "quantile",
+      observed_effect: 6,
+      observed_effect_relative: 100,
+      ci_lower: 2.1,
+      ci_upper: 9.8,
+      ci_level: 0.95,
+      p_value: 0.0125,
+      test_statistic: 2.4,
+      is_significant: true,
+      power_achieved: 0.66,
+      verdict: "Statistically significant uplift at alpha=0.050",
+      interpretation:
+        "Treatment P90 quantile 15.0000 vs control 9.0000. Quantile shift +6.0000 with 95.0% percentile bootstrap CI [2.1000, 9.8000]. Permutation two-sided p-value 0.012500 over 2000 relabellings; result is statistically significant."
+    };
+    const fetchMock = vi.fn(async (..._args: unknown[]) => ({ ok: true, json: async () => response }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const view = await renderIntoDocument(<ObservedResultsSection onResultsAnalysisChange={vi.fn()} />);
+    try {
+      await flushEffects();
+      // Continuous plan -> switch to the quantile test, which reuses the raw-sample textareas plus a
+      // quantile input.
+      await click(findButton(view.container, "Quantile effect"));
+      await flushEffects();
+
+      const textareas = view.container.querySelectorAll<HTMLTextAreaElement>("textarea");
+      expect(textareas.length).toBe(2);
+      await changeValue(textareas[0], "1 2 3 4 5 6 7 8 9 10");
+      await changeValue(textareas[1], "7 8 9 10 11 12 13 14 15 16");
+      const quantileInput = view.container.querySelector<HTMLInputElement>("#results-quantile-ranked")!;
+      expect(quantileInput).not.toBeNull();
+      await changeValue(quantileInput, "0.9");
+
+      await click(findButton(view.container, "Analyze results"));
+      await flushEffects();
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const [, requestInit] = fetchMock.mock.calls[0] as [string, RequestInit];
+      const body = JSON.parse(String(requestInit.body));
+      expect(body.metric_type).toBe("quantile");
+      expect(body.ranked.control_values).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+      expect(body.ranked.treatment_values).toEqual([7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
+      expect(body.ranked.quantile).toBe(0.9);
+
+      // The quantile prose is surfaced.
+      expect(view.container.textContent).toContain("quantile");
+      expect(view.container.textContent).toContain("percentile bootstrap CI");
+    } finally {
+      await view.unmount();
+    }
+  });
 });

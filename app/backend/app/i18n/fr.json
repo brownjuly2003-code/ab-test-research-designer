@@ -277,7 +277,9 @@
       "count_rejects_other_data": "le metric_type count n'accepte pas de données binaires, continues ou d'échantillons bruts (ranked)",
       "count_events_too_large": "count : trop d'événements au total pour le test exact ; à cette échelle l'approximation normale est exacte",
       "bootstrap_requires_ranked_data": "le metric_type bootstrap nécessite des données d'échantillons brutes (ranked)",
-      "bootstrap_rejects_other_data": "le metric_type bootstrap n'accepte pas de données binaires ou continues"
+      "bootstrap_rejects_other_data": "le metric_type bootstrap n'accepte pas de données binaires ou continues",
+      "quantile_requires_ranked_data": "le metric_type quantile nécessite des données ranked (échantillons bruts)",
+      "quantile_rejects_other_data": "le metric_type quantile n'accepte pas de données binaires ou continues"
     },
     "srm_detected": "SRM détecté - vérifiez votre mise en œuvre de randomisation ou de suivi",
     "srm_not_detected": "Aucun SRM détecté"
@@ -302,7 +304,8 @@
       "degenerate": "Les données observées sont dégénérées ; la statistique de test ne peut donc pas être calculée.",
       "fisher_exact": "Conversion du traitement {{treatment}}% contre contrôle {{control}}%. Effet absolu {{effect}} pp. Rapport des cotes {{oddsRatio}}. Valeur p bilatérale exacte de Fisher {{pValue}} ; le résultat est {{significance}}.",
       "count": "Taux du traitement {{treatmentRate}} contre contrôle {{controlRate}}. Rapport de taux {{rateRatio}}. Différence de taux {{rateDifference}} avec IC à {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. Valeur p bilatérale exacte de Poisson {{pValue}} ; le résultat est {{significance}}.",
-      "bootstrap": "Moyenne du traitement {{treatmentMean}} contre contrôle {{controlMean}}. Différence des moyennes {{effect}} avec IC bootstrap par percentiles à {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. Valeur p bilatérale de permutation {{pValue}} sur {{permutations}} réaffectations ; le résultat est {{significance}}."
+      "bootstrap": "Moyenne du traitement {{treatmentMean}} contre contrôle {{controlMean}}. Différence des moyennes {{effect}} avec IC bootstrap par percentiles à {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. Valeur p bilatérale de permutation {{pValue}} sur {{permutations}} réaffectations ; le résultat est {{significance}}.",
+      "quantile": "Quantile P{{percentile}} du traitement {{treatmentQuantile}} vs contrôle {{controlQuantile}}. Décalage de quantile {{effect}} avec IC bootstrap percentile à {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. Valeur p bilatérale de permutation {{pValue}} sur {{permutations}} réaffectations ; le résultat est {{significance}}."
     },
     "effect_size": {
       "rank_biserial": "corrélation bisériale de rang",

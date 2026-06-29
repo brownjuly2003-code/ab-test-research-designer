@@ -535,6 +535,7 @@
         "controlValues": "Valores del control",
         "treatmentValues": "Valores del tratamiento",
         "rawValuesPlaceholder": "Un valor por línea o separados por comas",
+        "quantile": "Cuantil (0–1)",
         "controlEvents": "Eventos del control",
         "controlExposure": "Exposición del control",
         "treatmentEvents": "Eventos del tratamiento",
@@ -566,7 +567,9 @@
         "rate": "Tasa (Poisson)",
         "rateHint": "La prueba de tasa de Poisson compara eventos sobre exposición (p. ej. errores por 1000 sesiones) con una prueba condicional exacta. Úsela para datos de tasa de eventos con llegadas independientes, no para conteos agrupados por usuario.",
         "bootstrap": "Bootstrap / permutación",
-        "bootstrapHint": "La prueba de permutación compara la diferencia de medias reasignando las etiquetas de los valores brutos combinados — una prueba t sin distribución — con un IC bootstrap por percentiles. Sin suponer normalidad; las muestras pequeñas se prueban de forma exacta."
+        "bootstrapHint": "La prueba de permutación compara la diferencia de medias reasignando las etiquetas de los valores brutos combinados — una prueba t sin distribución — con un IC bootstrap por percentiles. Sin suponer normalidad; las muestras pequeñas se prueban de forma exacta.",
+        "quantile": "Efecto en cuantil",
+        "quantileHint": "El efecto del tratamiento en cuantiles compara un cuantil elegido (la mediana por defecto, o p. ej. p90) entre grupos con una prueba de permutación y un IC bootstrap percentil. Úsalo cuando importa más una cola o la mediana que la media: ingresos sesgados, percentiles de latencia."
       },
       "validation": {
         "fillAllFields": "Complete todos los campos de resultados reales con valores válidos antes del análisis.",

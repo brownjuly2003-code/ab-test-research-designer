@@ -535,6 +535,7 @@
         "controlValues": "Control values",
         "treatmentValues": "Treatment values",
         "rawValuesPlaceholder": "One value per line, or comma-separated",
+        "quantile": "Quantile (0–1)",
         "controlEvents": "Control events",
         "controlExposure": "Control exposure",
         "treatmentEvents": "Treatment events",
@@ -566,7 +567,9 @@
         "rate": "Rate (Poisson)",
         "rateHint": "The Poisson rate test compares events over exposure (e.g. errors per 1000 sessions) with an exact conditional test. Use it for event-rate data where arrivals are independent — not for clustered per-user counts.",
         "bootstrap": "Bootstrap / permutation",
-        "bootstrapHint": "The permutation test compares the difference in means by relabelling the pooled raw values — a distribution-free t-test — with a percentile bootstrap CI. No normality assumption; small samples are tested exactly."
+        "bootstrapHint": "The permutation test compares the difference in means by relabelling the pooled raw values — a distribution-free t-test — with a percentile bootstrap CI. No normality assumption; small samples are tested exactly.",
+        "quantile": "Quantile effect",
+        "quantileHint": "The quantile treatment effect compares a chosen quantile (median by default, or e.g. p90) between arms with a permutation test and a percentile bootstrap CI. Use it when a tail or the median matters more than the mean — skewed revenue, latency percentiles."
       },
       "validation": {
         "fillAllFields": "Fill in all actual results fields with valid values before analysis.",
