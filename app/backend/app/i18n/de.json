@@ -280,6 +280,8 @@
       "bootstrap_rejects_other_data": "bootstrap metric_type akzeptiert keine binären oder kontinuierlichen Daten",
       "quantile_requires_ranked_data": "quantile metric_type erfordert ranked (Rohdaten-)Daten",
       "quantile_rejects_other_data": "quantile metric_type akzeptiert keine binären oder kontinuierlichen Daten",
+      "trimmed_t_requires_ranked_data": "trimmed_t metric_type erfordert ranked (Rohdaten-)Daten",
+      "trimmed_t_rejects_other_data": "trimmed_t metric_type akzeptiert keine binären oder kontinuierlichen Daten",
       "equivalence_requires_continuous_data": "metric_type equivalence erfordert kontinuierliche Daten (zusammenfassende Statistiken)",
       "equivalence_rejects_other_data": "metric_type equivalence akzeptiert keine binären oder gerankten Daten",
       "equivalence_requires_margin": "metric_type equivalence erfordert ein equivalence_margin größer als null",
@@ -315,6 +317,7 @@
       "count": "Rate der Testvariante {{treatmentRate}} vs. Kontrolle {{controlRate}}. Ratenverhältnis {{rateRatio}}. Ratendifferenz {{rateDifference}} mit {{ciLevel}}% KI [{{ciLower}}, {{ciUpper}}]. Exakter zweiseitiger Poisson-p-Wert {{pValue}}; das Ergebnis ist {{significance}}.",
       "bootstrap": "Mittelwert der Testvariante {{treatmentMean}} vs. Kontrolle {{controlMean}}. Mittelwertdifferenz {{effect}} mit {{ciLevel}}% Perzentil-Bootstrap-KI [{{ciLower}}, {{ciUpper}}]. Zweiseitiger Permutations-p-Wert {{pValue}} über {{permutations}} Umordnungen; das Ergebnis ist {{significance}}.",
       "quantile": "P{{percentile}}-Quantil der Behandlung {{treatmentQuantile}} vs. Kontrolle {{controlQuantile}}. Quantilverschiebung {{effect}} mit {{ciLevel}}%-Perzentil-Bootstrap-KI [{{ciLower}}, {{ciUpper}}]. Zweiseitiger Permutations-p-Wert {{pValue}} über {{permutations}} Umordnungen; Ergebnis ist {{significance}}.",
+      "trimmed_t": "{{trimPct}}%-getrimmter Mittelwert der Testvariante {{treatmentMean}} vs. Kontrolle {{controlMean}} (effektives n {{treatmentEffectiveN}} vs. {{controlEffectiveN}} nach dem Trimmen). Robuste Mittelwertverschiebung {{effect}} mit {{ciLevel}}% KI [{{ciLower}}, {{ciUpper}}]. Zweiseitiger Yuen–Welch-t-p-Wert {{pValue}} bei {{df}} Freiheitsgraden; das Ergebnis ist {{significance}}.",
       "equivalence": "Mittelwert der Behandlung {{treatmentMean}} vs. Kontrolle {{controlMean}}. Effekt {{effect}} gegen eine Äquivalenzgrenze von ±{{margin}} geprüft: {{equivalence}}. Das {{ciLevel}}%-Konfidenzintervall [{{ciLower}}, {{ciUpper}}] ist das TOST-Entscheidungsintervall; p-Wert der zwei einseitigen Tests {{pValue}}.",
       "categorical": "Chi-Quadrat {{chiSquare}} bei {{df}} Freiheitsgraden für eine {{rows}}×{{cols}}-Kontingenztabelle (N = {{n}}). Zweiseitiger p-Wert {{pValue}}; das Ergebnis ist {{significance}}. Cramérs V {{cramersV}} misst die Stärke des Zusammenhangs."
     },

@@ -280,6 +280,8 @@
       "bootstrap_rejects_other_data": "el metric_type bootstrap no acepta datos binarios ni continuos",
       "quantile_requires_ranked_data": "el metric_type quantile requiere datos ranked (muestras en bruto)",
       "quantile_rejects_other_data": "el metric_type quantile no acepta datos binarios ni continuos",
+      "trimmed_t_requires_ranked_data": "el metric_type trimmed_t requiere datos ranked (muestras en bruto)",
+      "trimmed_t_rejects_other_data": "el metric_type trimmed_t no acepta datos binarios ni continuos",
       "equivalence_requires_continuous_data": "el metric_type equivalence requiere datos continuos (estadísticas resumidas)",
       "equivalence_rejects_other_data": "el metric_type equivalence no acepta datos binarios ni de rangos",
       "equivalence_requires_margin": "el metric_type equivalence requiere un equivalence_margin mayor que cero",
@@ -315,6 +317,7 @@
       "count": "Tasa del tratamiento {{treatmentRate}} frente al control {{controlRate}}. Razón de tasas {{rateRatio}}. Diferencia de tasas {{rateDifference}} con IC del {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. Valor p bilateral exacto de Poisson {{pValue}}; el resultado es {{significance}}.",
       "bootstrap": "Media del tratamiento {{treatmentMean}} frente al control {{controlMean}}. Diferencia de medias {{effect}} con IC bootstrap por percentiles del {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. Valor p bilateral de permutación {{pValue}} sobre {{permutations}} reasignaciones; el resultado es {{significance}}.",
       "quantile": "Cuantil P{{percentile}} del tratamiento {{treatmentQuantile}} vs. control {{controlQuantile}}. Desplazamiento del cuantil {{effect}} con IC bootstrap percentil del {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. Valor p bilateral de permutación {{pValue}} sobre {{permutations}} reasignaciones; el resultado es {{significance}}.",
+      "trimmed_t": "Media recortada al {{trimPct}}% del tratamiento {{treatmentMean}} frente al control {{controlMean}} (n efectivo {{treatmentEffectiveN}} frente a {{controlEffectiveN}} tras el recorte). Desplazamiento robusto de la media {{effect}} con IC del {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. Valor p bilateral t de Yuen–Welch {{pValue}} con {{df}} g.l.; el resultado es {{significance}}.",
       "equivalence": "Media del tratamiento {{treatmentMean}} frente al control {{controlMean}}. Efecto {{effect}} contrastado con un margen de equivalencia de ±{{margin}}: {{equivalence}}. El intervalo de confianza del {{ciLevel}}% [{{ciLower}}, {{ciUpper}}] es el intervalo de decisión TOST; valor p de las dos pruebas unilaterales {{pValue}}.",
       "categorical": "Chi-cuadrado {{chiSquare}} con {{df}} grados de libertad para una tabla de contingencia {{rows}}×{{cols}} (N = {{n}}). Valor p bilateral {{pValue}}; el resultado es {{significance}}. La V de Cramér {{cramersV}} mide la fuerza de la asociación."
     },

@@ -280,6 +280,8 @@
       "bootstrap_rejects_other_data": "bootstrap metric_type does not accept binary or continuous data",
       "quantile_requires_ranked_data": "quantile metric_type requires ranked (raw sample) data",
       "quantile_rejects_other_data": "quantile metric_type does not accept binary or continuous data",
+      "trimmed_t_requires_ranked_data": "trimmed_t metric_type requires ranked (raw sample) data",
+      "trimmed_t_rejects_other_data": "trimmed_t metric_type does not accept binary or continuous data",
       "equivalence_requires_continuous_data": "equivalence metric_type requires continuous (summary statistics) data",
       "equivalence_rejects_other_data": "equivalence metric_type does not accept binary or ranked data",
       "equivalence_requires_margin": "equivalence metric_type requires an equivalence_margin greater than zero",
@@ -315,6 +317,7 @@
       "count": "Treatment rate {{treatmentRate}} vs control {{controlRate}}. Rate ratio {{rateRatio}}. Rate difference {{rateDifference}} with {{ciLevel}}% CI [{{ciLower}}, {{ciUpper}}]. Poisson exact two-sided p-value {{pValue}}; result is {{significance}}.",
       "bootstrap": "Treatment mean {{treatmentMean}} vs control {{controlMean}}. Mean difference {{effect}} with {{ciLevel}}% percentile bootstrap CI [{{ciLower}}, {{ciUpper}}]. Permutation two-sided p-value {{pValue}} over {{permutations}} relabellings; result is {{significance}}.",
       "quantile": "Treatment P{{percentile}} quantile {{treatmentQuantile}} vs control {{controlQuantile}}. Quantile shift {{effect}} with {{ciLevel}}% percentile bootstrap CI [{{ciLower}}, {{ciUpper}}]. Permutation two-sided p-value {{pValue}} over {{permutations}} relabellings; result is {{significance}}.",
+      "trimmed_t": "Treatment {{trimPct}}%-trimmed mean {{treatmentMean}} vs control {{controlMean}} (effective n {{treatmentEffectiveN}} vs {{controlEffectiveN}} after trimming). Robust mean shift {{effect}} with {{ciLevel}}% CI [{{ciLower}}, {{ciUpper}}]. Yuen–Welch two-sided t p-value {{pValue}} on {{df}} df; result is {{significance}}.",
       "equivalence": "Treatment mean {{treatmentMean}} vs control {{controlMean}}. Effect {{effect}} tested against an equivalence margin of ±{{margin}}: {{equivalence}}. The {{ciLevel}}% confidence interval [{{ciLower}}, {{ciUpper}}] is the TOST decision interval; two one-sided p-value {{pValue}}.",
       "categorical": "Chi-square {{chiSquare}} on {{df}} degrees of freedom for a {{rows}}×{{cols}} contingency table (N = {{n}}). Two-sided p-value {{pValue}}; result is {{significance}}. Cramér's V {{cramersV}} measures the strength of the association."
     },

@@ -998,6 +998,7 @@ export type ObservedResultsRanked = {
   treatment_values: number[];
   alpha?: number;
   quantile?: number;
+  trim?: number;
 };
 
 export type PrePeriodEvent = {
@@ -1181,7 +1182,7 @@ export type RecommendationsSection = {
 };
 
 export type ResultsRequest = {
-  metric_type: "binary" | "continuous" | "equivalence" | "mann_whitney" | "bootstrap" | "quantile" | "fisher_exact" | "count";
+  metric_type: "binary" | "continuous" | "equivalence" | "mann_whitney" | "bootstrap" | "quantile" | "trimmed_t" | "fisher_exact" | "count";
   binary?: ObservedResultsBinary | null;
   continuous?: ObservedResultsContinuous | null;
   ranked?: ObservedResultsRanked | null;
