@@ -555,7 +555,10 @@
         "label": "Statistical test",
         "parametric": "t-test (parametric)",
         "mannWhitney": "Mann–Whitney (non-parametric)",
-        "hint": "Mann–Whitney compares whole distributions from raw values — robust to outliers and skew, with no normality assumption."
+        "hint": "Mann–Whitney compares whole distributions from raw values — robust to outliers and skew, with no normality assumption.",
+        "zTest": "z-test (normal approximation)",
+        "fisherExact": "Fisher's exact (small samples)",
+        "fisherHint": "Fisher's exact conditions on both margins and enumerates the hypergeometric distribution — an exact p-value for small samples or rare events, where the z-test's normal approximation is unreliable."
       },
       "validation": {
         "fillAllFields": "Fill in all actual results fields with valid values before analysis.",

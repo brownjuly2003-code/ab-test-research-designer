@@ -21,8 +21,8 @@ type FieldConfig<Key extends string> = {
 type ObservedResultsViewProps = {
   analysisMetricType: ObservedMetricType;
   showTestToggle: boolean;
-  observedTest: "parametric" | "mann_whitney";
-  onSelectTest: (test: "parametric" | "mann_whitney") => void;
+  observedTest: "parametric" | "mann_whitney" | "fisher_exact";
+  onSelectTest: (test: "parametric" | "mann_whitney" | "fisher_exact") => void;
   actualResults: ActualResultsState;
   setActualResults: Dispatch<SetStateAction<ActualResultsState>>;
   canMutateBackend: boolean;
@@ -108,6 +108,14 @@ export default function ObservedResultsView({
     setActualResults((current) => ({ ...current, ranked: { ...current.ranked, [key]: value } }));
   }
 
+  // The toggle offers the default normal-approximation analysis ("parametric") and one alternative
+  // test per base metric type: Mann–Whitney for continuous, Fisher's exact for binary.
+  const isBinaryBase = analysisMetricType === "binary" || analysisMetricType === "fisher_exact";
+  const alternativeTest: "mann_whitney" | "fisher_exact" = isBinaryBase ? "fisher_exact" : "mann_whitney";
+  const parametricLabel = isBinaryBase ? t("results.observedResults.testType.zTest") : t("results.observedResults.testType.parametric");
+  const alternativeLabel = isBinaryBase ? t("results.observedResults.testType.fisherExact") : t("results.observedResults.testType.mannWhitney");
+  const testTypeHint = isBinaryBase ? t("results.observedResults.testType.fisherHint") : t("results.observedResults.testType.hint");
+
   return (
     <div className="card">
       <h3>{t("results.observedResults.title")}</h3>
@@ -119,13 +127,13 @@ export default function ObservedResultsView({
           <span>{t("results.observedResults.testType.label")}</span>
           <div className="actions" role="group" aria-label={t("results.observedResults.testType.label")} style={{ flexWrap: "wrap", marginTop: "var(--space-2)" }}>
             <button type="button" className={observedTest === "parametric" ? "btn secondary" : "btn ghost"} aria-pressed={observedTest === "parametric"} onClick={() => onSelectTest("parametric")}>
-              {t("results.observedResults.testType.parametric")}
+              {parametricLabel}
             </button>
-            <button type="button" className={observedTest === "mann_whitney" ? "btn secondary" : "btn ghost"} aria-pressed={observedTest === "mann_whitney"} onClick={() => onSelectTest("mann_whitney")}>
-              {t("results.observedResults.testType.mannWhitney")}
+            <button type="button" className={observedTest === alternativeTest ? "btn secondary" : "btn ghost"} aria-pressed={observedTest === alternativeTest} onClick={() => onSelectTest(alternativeTest)}>
+              {alternativeLabel}
             </button>
           </div>
-          <p className="muted" style={{ marginTop: "var(--space-2)" }}>{t("results.observedResults.testType.hint")}</p>
+          <p className="muted" style={{ marginTop: "var(--space-2)" }}>{testTypeHint}</p>
         </div>
       ) : null}
       {analysisMetricType === "mann_whitney" ? (
@@ -147,7 +155,7 @@ export default function ObservedResultsView({
         </div>
       ) : (
         <div style={{ display: "grid", gap: "var(--space-3)", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", marginTop: "var(--space-4)" }}>
-          {analysisMetricType === "binary"
+          {analysisMetricType === "binary" || analysisMetricType === "fisher_exact"
             ? renderFieldInputs("binary", binaryFields, actualResults.binary)
             : renderFieldInputs("continuous", continuousFields, actualResults.continuous)}
         </div>
@@ -177,8 +185,8 @@ export default function ObservedResultsView({
             ) : null}
           </div>
           <div className="two-col">
-            <div className="card"><h3>{t("results.observedResults.cards.forestPlot")}</h3><ChartErrorBoundary data={resultsAnalysis}><ForestPlot effect={resultsAnalysis.observed_effect} ciLower={resultsAnalysis.ci_lower} ciUpper={resultsAnalysis.ci_upper} metricType={analysisMetricType === "binary" ? "binary" : "continuous"} /></ChartErrorBoundary></div>
-            <div className="card"><h3>{t("results.observedResults.cards.observedSummary")}</h3><ul className="list">{analysisMetricType === "binary" ? <><li>{t("results.observedResults.cards.controlRate")}: {resultsAnalysis.control_rate?.toFixed(4) ?? "-"}%</li><li>{t("results.observedResults.cards.treatmentRate")}: {resultsAnalysis.treatment_rate?.toFixed(4) ?? "-"}%</li></> : null}<li>{t("results.observedResults.cards.significant")}: {resultsAnalysis.is_significant ? t("results.observedResults.yes") : t("results.observedResults.no")}</li><li>{t("results.observedResults.cards.verdict")}: {resultsAnalysis.verdict}</li></ul></div>
+            <div className="card"><h3>{t("results.observedResults.cards.forestPlot")}</h3><ChartErrorBoundary data={resultsAnalysis}><ForestPlot effect={resultsAnalysis.observed_effect} ciLower={resultsAnalysis.ci_lower} ciUpper={resultsAnalysis.ci_upper} metricType={analysisMetricType === "binary" || analysisMetricType === "fisher_exact" ? "binary" : "continuous"} /></ChartErrorBoundary></div>
+            <div className="card"><h3>{t("results.observedResults.cards.observedSummary")}</h3><ul className="list">{analysisMetricType === "binary" || analysisMetricType === "fisher_exact" ? <><li>{t("results.observedResults.cards.controlRate")}: {resultsAnalysis.control_rate?.toFixed(4) ?? "-"}%</li><li>{t("results.observedResults.cards.treatmentRate")}: {resultsAnalysis.treatment_rate?.toFixed(4) ?? "-"}%</li></> : null}<li>{t("results.observedResults.cards.significant")}: {resultsAnalysis.is_significant ? t("results.observedResults.yes") : t("results.observedResults.no")}</li><li>{t("results.observedResults.cards.verdict")}: {resultsAnalysis.verdict}</li></ul></div>
           </div>
         </div>
       ) : null}

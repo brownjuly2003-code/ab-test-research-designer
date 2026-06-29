@@ -555,7 +555,10 @@
         "label": "统计检验",
         "parametric": "t 检验（参数）",
         "mannWhitney": "Mann–Whitney（非参数）",
-        "hint": "Mann–Whitney 基于原始数值比较整个分布——对离群值和偏态稳健，无需正态性假设。"
+        "hint": "Mann–Whitney 基于原始数值比较整个分布——对离群值和偏态稳健，无需正态性假设。",
+        "zTest": "z 检验（正态近似）",
+        "fisherExact": "Fisher 精确检验（小样本）",
+        "fisherHint": "Fisher 精确检验固定两个边际并枚举超几何分布——为小样本或稀有事件给出精确 p 值，此时 z 检验的正态近似不可靠。"
       },
       "validation": {
         "fillAllFields": "在分析之前，用有效值填充所有实际结果字段。",

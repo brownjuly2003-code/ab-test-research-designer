@@ -555,7 +555,10 @@
         "label": "Statistischer Test",
         "parametric": "t-Test (parametrisch)",
         "mannWhitney": "Mann–Whitney (nicht-parametrisch)",
-        "hint": "Mann–Whitney vergleicht ganze Verteilungen aus Rohwerten — robust gegenüber Ausreißern und Schiefe, ohne Normalverteilungsannahme."
+        "hint": "Mann–Whitney vergleicht ganze Verteilungen aus Rohwerten — robust gegenüber Ausreißern und Schiefe, ohne Normalverteilungsannahme.",
+        "zTest": "z-Test (Normalapproximation)",
+        "fisherExact": "Fisher-Exakt-Test (kleine Stichproben)",
+        "fisherHint": "Der Fisher-Exakt-Test bedingt auf beide Randsummen und zählt die hypergeometrische Verteilung aus — ein exakter p-Wert für kleine Stichproben oder seltene Ereignisse, wo die Normalapproximation des z-Tests unzuverlässig ist."
       },
       "validation": {
         "fillAllFields": "Füllen Sie vor der Analyse alle tatsächlichen Ergebnisfelder mit gültigen Werten aus.",

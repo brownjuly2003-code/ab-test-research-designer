@@ -61,3 +61,39 @@ describe("buildResultsRequest (mann_whitney)", () => {
     expect(buildResultsRequest("mann_whitney", state)).toBeNull();
   });
 });
+
+describe("buildResultsRequest (fisher_exact)", () => {
+  it("reuses the binary 2x2 input and tags the payload as fisher_exact", () => {
+    const state = emptyState();
+    state.binary = {
+      control_conversions: "8",
+      control_users: "10",
+      treatment_conversions: "1",
+      treatment_users: "6",
+      alpha: "0.05"
+    };
+    const payload = buildResultsRequest("fisher_exact", state);
+    expect(payload).toEqual({
+      metric_type: "fisher_exact",
+      binary: {
+        control_conversions: 8,
+        control_users: 10,
+        treatment_conversions: 1,
+        treatment_users: 6,
+        alpha: 0.05
+      }
+    });
+  });
+
+  it("applies the same binary validation (conversions cannot exceed users)", () => {
+    const state = emptyState();
+    state.binary = {
+      control_conversions: "11",
+      control_users: "10",
+      treatment_conversions: "1",
+      treatment_users: "6",
+      alpha: "0.05"
+    };
+    expect(buildResultsRequest("fisher_exact", state)).toBeNull();
+  });
+});

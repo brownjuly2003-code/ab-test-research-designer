@@ -1,8 +1,9 @@
 import type { ResultsRequestPayload } from "../../lib/experiment";
 
-// The observed-results form supports the two planned metric types plus a non-parametric test
-// (Mann–Whitney) offered as an alternative analysis of continuous-style data.
-export type ObservedMetricType = "binary" | "continuous" | "mann_whitney";
+// The observed-results form supports the two planned metric types plus two alternative tests
+// offered on the same data: Mann–Whitney (non-parametric) for continuous, and Fisher's exact
+// (exact small-sample) for binary. Fisher's exact reuses the binary 2x2 input shape.
+export type ObservedMetricType = "binary" | "continuous" | "mann_whitney" | "fisher_exact";
 
 export type BinaryResultsForm = {
   control_conversions: string;
@@ -46,7 +47,8 @@ export function formatObservedValue(
   options: { signed?: boolean; withUnit?: boolean } = {}
 ): string {
   const signedPrefix = options.signed && value > 0 ? "+" : "";
-  const unit = options.withUnit ? (metricType === "binary" ? " pp" : "") : "";
+  const usesPercentagePoints = metricType === "binary" || metricType === "fisher_exact";
+  const unit = options.withUnit ? (usesPercentagePoints ? " pp" : "") : "";
   return `${signedPrefix}${value.toFixed(4)}${unit}`;
 }
 
@@ -78,9 +80,12 @@ export function buildActualResultsState(
   alpha: number,
   request: ResultsRequestPayload | null
 ): ActualResultsState {
+  // Fisher's exact shares the binary 2x2 input, so both metric types read from request.binary.
+  const requestUsesBinaryForm =
+    request?.metric_type === "binary" || request?.metric_type === "fisher_exact";
   const matchingAlpha =
     request?.metric_type === metricType
-      ? metricType === "binary"
+      ? metricType === "binary" || metricType === "fisher_exact"
         ? request.binary?.alpha
         : metricType === "continuous"
           ? request.continuous?.alpha
@@ -91,14 +96,14 @@ export function buildActualResultsState(
   return {
     binary: {
       control_conversions:
-        request?.metric_type === "binary" ? toFieldValue(request.binary?.control_conversions) : "",
+        requestUsesBinaryForm ? toFieldValue(request?.binary?.control_conversions) : "",
       control_users:
-        request?.metric_type === "binary" ? toFieldValue(request.binary?.control_users) : "",
+        requestUsesBinaryForm ? toFieldValue(request?.binary?.control_users) : "",
       treatment_conversions:
-        request?.metric_type === "binary" ? toFieldValue(request.binary?.treatment_conversions) : "",
+        requestUsesBinaryForm ? toFieldValue(request?.binary?.treatment_conversions) : "",
       treatment_users:
-        request?.metric_type === "binary" ? toFieldValue(request.binary?.treatment_users) : "",
-      alpha: request?.metric_type === "binary" ? toFieldValue(request.binary?.alpha ?? alpha) : defaultAlpha
+        requestUsesBinaryForm ? toFieldValue(request?.binary?.treatment_users) : "",
+      alpha: requestUsesBinaryForm ? toFieldValue(request?.binary?.alpha ?? alpha) : defaultAlpha
     },
     continuous: {
       control_mean:
@@ -151,7 +156,8 @@ export function buildResultsRequest(
     };
   }
 
-  if (metricType === "binary") {
+  // Fisher's exact reuses the binary 2x2 input and validation; only the metric_type tag differs.
+  if (metricType === "binary" || metricType === "fisher_exact") {
     if (
       form.binary.control_conversions.trim() === "" ||
       form.binary.control_users.trim() === "" ||
@@ -187,7 +193,7 @@ export function buildResultsRequest(
     }
 
     return {
-      metric_type: "binary",
+      metric_type: metricType,
       binary
     };
   }

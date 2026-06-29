@@ -45,13 +45,14 @@ export type ObservedResultsRankedPayload = {
   alpha?: number;
 };
 export type ResultsRequestPayload = {
-  metric_type: "binary" | "continuous" | "mann_whitney";
+  // "fisher_exact" reuses the binary 2x2 input as an exact small-sample alternative to the z-test.
+  metric_type: "binary" | "continuous" | "mann_whitney" | "fisher_exact";
   binary?: ObservedResultsBinaryPayload | null;
   continuous?: ObservedResultsContinuousPayload | null;
   ranked?: ObservedResultsRankedPayload | null;
 };
 export type ResultsAnalysisResponse = {
-  metric_type: "binary" | "continuous" | "mann_whitney";
+  metric_type: "binary" | "continuous" | "mann_whitney" | "fisher_exact";
   observed_effect: number;
   observed_effect_relative: number;
   control_rate?: number | null;

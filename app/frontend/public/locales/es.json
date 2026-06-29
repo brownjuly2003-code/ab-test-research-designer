@@ -555,7 +555,10 @@
         "label": "Prueba estadística",
         "parametric": "prueba t (paramétrica)",
         "mannWhitney": "Mann–Whitney (no paramétrica)",
-        "hint": "Mann–Whitney compara distribuciones completas a partir de valores sin procesar: robusto ante valores atípicos y asimetría, sin suponer normalidad."
+        "hint": "Mann–Whitney compara distribuciones completas a partir de valores sin procesar: robusto ante valores atípicos y asimetría, sin suponer normalidad.",
+        "zTest": "prueba z (aproximación normal)",
+        "fisherExact": "prueba exacta de Fisher (muestras pequeñas)",
+        "fisherHint": "La prueba exacta de Fisher condiciona en ambos márgenes y enumera la distribución hipergeométrica: un valor p exacto para muestras pequeñas o eventos raros, donde la aproximación normal de la prueba z no es fiable."
       },
       "validation": {
         "fillAllFields": "Complete todos los campos de resultados reales con valores válidos antes del análisis.",

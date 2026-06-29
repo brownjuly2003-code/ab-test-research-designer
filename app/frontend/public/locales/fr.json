@@ -555,7 +555,10 @@
         "label": "Test statistique",
         "parametric": "test t (paramétrique)",
         "mannWhitney": "Mann–Whitney (non paramétrique)",
-        "hint": "Mann–Whitney compare des distributions entières à partir de valeurs brutes — robuste aux valeurs aberrantes et à l'asymétrie, sans hypothèse de normalité."
+        "hint": "Mann–Whitney compare des distributions entières à partir de valeurs brutes — robuste aux valeurs aberrantes et à l'asymétrie, sans hypothèse de normalité.",
+        "zTest": "test z (approximation normale)",
+        "fisherExact": "test exact de Fisher (petits échantillons)",
+        "fisherHint": "Le test exact de Fisher conditionne sur les deux marges et énumère la distribution hypergéométrique — une valeur p exacte pour les petits échantillons ou les événements rares, là où l'approximation normale du test z n'est pas fiable."
       },
       "validation": {
         "fillAllFields": "Remplissez tous les champs de résultats réels avec des valeurs valides avant l'analyse.",
