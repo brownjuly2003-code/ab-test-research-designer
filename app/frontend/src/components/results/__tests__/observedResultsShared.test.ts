@@ -97,3 +97,41 @@ describe("buildResultsRequest (fisher_exact)", () => {
     expect(buildResultsRequest("fisher_exact", state)).toBeNull();
   });
 });
+
+describe("buildResultsRequest (count)", () => {
+  it("builds a count payload from events and exposure per arm", () => {
+    const state = emptyState();
+    state.count = {
+      control_events: "10",
+      control_exposure: "100",
+      treatment_events: "25",
+      treatment_exposure: "100",
+      alpha: "0.05"
+    };
+    const payload = buildResultsRequest("count", state);
+    expect(payload).toEqual({
+      metric_type: "count",
+      count: {
+        control_events: 10,
+        control_exposure: 100,
+        treatment_events: 25,
+        treatment_exposure: 100,
+        alpha: 0.05
+      }
+    });
+  });
+
+  it("rejects non-integer event counts and non-positive exposure", () => {
+    const state = emptyState();
+    state.count = {
+      control_events: "10.5",
+      control_exposure: "100",
+      treatment_events: "25",
+      treatment_exposure: "100",
+      alpha: "0.05"
+    };
+    expect(buildResultsRequest("count", state)).toBeNull();
+    state.count = { ...state.count, control_events: "10", control_exposure: "0" };
+    expect(buildResultsRequest("count", state)).toBeNull();
+  });
+});

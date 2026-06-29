@@ -534,7 +534,11 @@
         "treatmentN": "实验组样本量 n",
         "controlValues": "对照组数值",
         "treatmentValues": "实验组数值",
-        "rawValuesPlaceholder": "每行一个值，或用逗号分隔"
+        "rawValuesPlaceholder": "每行一个值，或用逗号分隔",
+        "controlEvents": "对照组事件数",
+        "controlExposure": "对照组暴露",
+        "treatmentEvents": "实验组事件数",
+        "treatmentExposure": "实验组暴露"
       },
       "cards": {
         "effect": "影响",
@@ -558,7 +562,9 @@
         "hint": "Mann–Whitney 基于原始数值比较整个分布——对离群值和偏态稳健，无需正态性假设。",
         "zTest": "z 检验（正态近似）",
         "fisherExact": "Fisher 精确检验（小样本）",
-        "fisherHint": "Fisher 精确检验固定两个边际并枚举超几何分布——为小样本或稀有事件给出精确 p 值，此时 z 检验的正态近似不可靠。"
+        "fisherHint": "Fisher 精确检验固定两个边际并枚举超几何分布——为小样本或稀有事件给出精确 p 值，此时 z 检验的正态近似不可靠。",
+        "rate": "速率（Poisson）",
+        "rateHint": "Poisson 速率检验用精确条件检验比较暴露上的事件（如每 1000 次会话的错误数）。适用于到达相互独立的事件速率数据，不适用于按用户聚集的计数。"
       },
       "validation": {
         "fillAllFields": "在分析之前，用有效值填充所有实际结果字段。",

@@ -534,7 +534,11 @@
         "treatmentN": "n del tratamiento",
         "controlValues": "Valores del control",
         "treatmentValues": "Valores del tratamiento",
-        "rawValuesPlaceholder": "Un valor por línea o separados por comas"
+        "rawValuesPlaceholder": "Un valor por línea o separados por comas",
+        "controlEvents": "Eventos del control",
+        "controlExposure": "Exposición del control",
+        "treatmentEvents": "Eventos del tratamiento",
+        "treatmentExposure": "Exposición del tratamiento"
       },
       "cards": {
         "effect": "Efecto",
@@ -558,7 +562,9 @@
         "hint": "Mann–Whitney compara distribuciones completas a partir de valores sin procesar: robusto ante valores atípicos y asimetría, sin suponer normalidad.",
         "zTest": "prueba z (aproximación normal)",
         "fisherExact": "prueba exacta de Fisher (muestras pequeñas)",
-        "fisherHint": "La prueba exacta de Fisher condiciona en ambos márgenes y enumera la distribución hipergeométrica: un valor p exacto para muestras pequeñas o eventos raros, donde la aproximación normal de la prueba z no es fiable."
+        "fisherHint": "La prueba exacta de Fisher condiciona en ambos márgenes y enumera la distribución hipergeométrica: un valor p exacto para muestras pequeñas o eventos raros, donde la aproximación normal de la prueba z no es fiable.",
+        "rate": "Tasa (Poisson)",
+        "rateHint": "La prueba de tasa de Poisson compara eventos sobre exposición (p. ej. errores por 1000 sesiones) con una prueba condicional exacta. Úsela para datos de tasa de eventos con llegadas independientes, no para conteos agrupados por usuario."
       },
       "validation": {
         "fillAllFields": "Complete todos los campos de resultados reales con valores válidos antes del análisis.",

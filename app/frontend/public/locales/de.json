@@ -534,7 +534,11 @@
         "treatmentN": "n der Testvariante",
         "controlValues": "Kontrollwerte",
         "treatmentValues": "Werte der Testvariante",
-        "rawValuesPlaceholder": "Ein Wert pro Zeile oder kommagetrennt"
+        "rawValuesPlaceholder": "Ein Wert pro Zeile oder kommagetrennt",
+        "controlEvents": "Kontrollereignisse",
+        "controlExposure": "Kontrollexposition",
+        "treatmentEvents": "Testvarianten-Ereignisse",
+        "treatmentExposure": "Testvarianten-Exposition"
       },
       "cards": {
         "effect": "Wirkung",
@@ -558,7 +562,9 @@
         "hint": "Mann–Whitney vergleicht ganze Verteilungen aus Rohwerten — robust gegenüber Ausreißern und Schiefe, ohne Normalverteilungsannahme.",
         "zTest": "z-Test (Normalapproximation)",
         "fisherExact": "Fisher-Exakt-Test (kleine Stichproben)",
-        "fisherHint": "Der Fisher-Exakt-Test bedingt auf beide Randsummen und zählt die hypergeometrische Verteilung aus — ein exakter p-Wert für kleine Stichproben oder seltene Ereignisse, wo die Normalapproximation des z-Tests unzuverlässig ist."
+        "fisherHint": "Der Fisher-Exakt-Test bedingt auf beide Randsummen und zählt die hypergeometrische Verteilung aus — ein exakter p-Wert für kleine Stichproben oder seltene Ereignisse, wo die Normalapproximation des z-Tests unzuverlässig ist.",
+        "rate": "Rate (Poisson)",
+        "rateHint": "Der Poisson-Ratentest vergleicht Ereignisse über die Exposition (z. B. Fehler pro 1000 Sitzungen) mit einem exakten bedingten Test. Für Ereignisraten mit unabhängigen Ankünften — nicht für geclusterte Zählungen pro Nutzer."
       },
       "validation": {
         "fillAllFields": "Füllen Sie vor der Analyse alle tatsächlichen Ergebnisfelder mit gültigen Werten aus.",

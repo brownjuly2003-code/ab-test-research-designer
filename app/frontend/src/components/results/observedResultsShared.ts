@@ -1,9 +1,9 @@
 import type { ResultsRequestPayload } from "../../lib/experiment";
 
-// The observed-results form supports the two planned metric types plus two alternative tests
-// offered on the same data: Mann–Whitney (non-parametric) for continuous, and Fisher's exact
-// (exact small-sample) for binary. Fisher's exact reuses the binary 2x2 input shape.
-export type ObservedMetricType = "binary" | "continuous" | "mann_whitney" | "fisher_exact";
+// The observed-results form supports the two planned metric types plus alternative tests offered on
+// the same data — Mann–Whitney (non-parametric) for continuous, Fisher's exact for binary — and a
+// plan-independent Poisson rate test ("count") for event-over-exposure metrics.
+export type ObservedMetricType = "binary" | "continuous" | "mann_whitney" | "fisher_exact" | "count";
 
 export type BinaryResultsForm = {
   control_conversions: string;
@@ -31,10 +31,20 @@ export type RankedResultsForm = {
   alpha: string;
 };
 
+// Counts of events accrued over an amount of exposure, for the Poisson rate test.
+export type CountResultsForm = {
+  control_events: string;
+  control_exposure: string;
+  treatment_events: string;
+  treatment_exposure: string;
+  alpha: string;
+};
+
 export type ActualResultsState = {
   binary: BinaryResultsForm;
   continuous: ContinuousResultsForm;
   ranked: RankedResultsForm;
+  count: CountResultsForm;
 };
 
 export function resolveObservedMetricType(metricType: string): "binary" | "continuous" {
@@ -89,7 +99,9 @@ export function buildActualResultsState(
         ? request.binary?.alpha
         : metricType === "continuous"
           ? request.continuous?.alpha
-          : request.ranked?.alpha
+          : metricType === "count"
+            ? request.count?.alpha
+            : request.ranked?.alpha
       : undefined;
   const defaultAlpha = String(matchingAlpha ?? alpha);
 
@@ -126,6 +138,13 @@ export function buildActualResultsState(
       treatment_values:
         request?.metric_type === "mann_whitney" ? (request.ranked?.treatment_values ?? []).join("\n") : "",
       alpha: request?.metric_type === "mann_whitney" ? toFieldValue(request.ranked?.alpha ?? alpha) : defaultAlpha
+    },
+    count: {
+      control_events: request?.metric_type === "count" ? toFieldValue(request.count?.control_events) : "",
+      control_exposure: request?.metric_type === "count" ? toFieldValue(request.count?.control_exposure) : "",
+      treatment_events: request?.metric_type === "count" ? toFieldValue(request.count?.treatment_events) : "",
+      treatment_exposure: request?.metric_type === "count" ? toFieldValue(request.count?.treatment_exposure) : "",
+      alpha: request?.metric_type === "count" ? toFieldValue(request.count?.alpha ?? alpha) : defaultAlpha
     }
   };
 }
@@ -157,6 +176,45 @@ export function buildResultsRequest(
   }
 
   // Fisher's exact reuses the binary 2x2 input and validation; only the metric_type tag differs.
+  if (metricType === "count") {
+    if (
+      form.count.control_events.trim() === "" ||
+      form.count.control_exposure.trim() === "" ||
+      form.count.treatment_events.trim() === "" ||
+      form.count.treatment_exposure.trim() === "" ||
+      form.count.alpha.trim() === ""
+    ) {
+      return null;
+    }
+
+    const count = {
+      control_events: Number(form.count.control_events),
+      control_exposure: Number(form.count.control_exposure),
+      treatment_events: Number(form.count.treatment_events),
+      treatment_exposure: Number(form.count.treatment_exposure),
+      alpha: Number(form.count.alpha)
+    };
+
+    if (
+      !Number.isInteger(count.control_events) ||
+      !Number.isInteger(count.treatment_events) ||
+      count.control_events < 0 ||
+      count.treatment_events < 0 ||
+      !(count.control_exposure > 0) ||
+      !(count.treatment_exposure > 0) ||
+      !Number.isFinite(count.control_exposure) ||
+      !Number.isFinite(count.treatment_exposure) ||
+      !(count.alpha >= 0.001 && count.alpha <= 0.1)
+    ) {
+      return null;
+    }
+
+    return {
+      metric_type: "count",
+      count
+    };
+  }
+
   if (metricType === "binary" || metricType === "fisher_exact") {
     if (
       form.binary.control_conversions.trim() === "" ||

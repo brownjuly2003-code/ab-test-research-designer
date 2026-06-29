@@ -160,4 +160,59 @@ describe("ObservedResultsSection", () => {
       await view.unmount();
     }
   });
+
+  it("runs a Poisson rate analysis from events over exposure on any plan", async () => {
+    const response = {
+      metric_type: "count",
+      observed_effect: 0.15,
+      observed_effect_relative: 150,
+      ci_lower: 0.034,
+      ci_upper: 0.266,
+      ci_level: 0.95,
+      p_value: 0.016674,
+      test_statistic: 2.5,
+      is_significant: true,
+      power_achieved: 0.7,
+      verdict: "Statistically significant change at alpha=0.050",
+      interpretation: "Rate ratio 2.5000. Poisson exact two-sided p-value 0.016674; result is statistically significant.",
+      effect_size: 2.5,
+      effect_size_label: "rate ratio"
+    };
+    const fetchMock = vi.fn(async (..._args: unknown[]) => ({ ok: true, json: async () => response }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const view = await renderIntoDocument(<ObservedResultsSection onResultsAnalysisChange={vi.fn()} />);
+    try {
+      await flushEffects();
+      // The Poisson rate test is plan-independent: offered even on the default binary plan.
+      await click(findButton(view.container, "Rate (Poisson)"));
+      await flushEffects();
+
+      const byId = (id: string) => view.container.querySelector<HTMLInputElement>(`#${id}`)!;
+      await changeValue(byId("results-control-events"), "10");
+      await changeValue(byId("results-control-exposure"), "100");
+      await changeValue(byId("results-treatment-events"), "25");
+      await changeValue(byId("results-treatment-exposure"), "100");
+
+      await click(findButton(view.container, "Analyze results"));
+      await flushEffects();
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const [, requestInit] = fetchMock.mock.calls[0] as [string, RequestInit];
+      const body = JSON.parse(String(requestInit.body));
+      expect(body.metric_type).toBe("count");
+      expect(body.count).toEqual({
+        control_events: 10,
+        control_exposure: 100,
+        treatment_events: 25,
+        treatment_exposure: 100,
+        alpha: 0.05
+      });
+
+      expect(view.container.textContent).toContain("rate ratio");
+      expect(view.container.textContent).toContain("Poisson exact two-sided p-value");
+    } finally {
+      await view.unmount();
+    }
+  });
 });
