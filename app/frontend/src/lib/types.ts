@@ -38,6 +38,9 @@ export type ObservedResultsContinuousPayload = {
   treatment_std: number;
   treatment_n: number;
   alpha?: number;
+  // Only consumed by the TOST equivalence analyzer ("equivalence"); the difference t-test ignores
+  // it. The arms are declared equivalent when the mean difference stays within ±equivalence_margin.
+  equivalence_margin?: number | null;
 };
 export type ObservedResultsRankedPayload = {
   control_values: number[];
@@ -55,16 +58,16 @@ export type ObservedResultsCountPayload = {
   alpha?: number;
 };
 export type ResultsRequestPayload = {
-  // "fisher_exact" reuses the binary 2x2 input; "bootstrap" and "quantile" reuse the ranked raw
-  // samples; "count" is a plan-independent Poisson rate test.
-  metric_type: "binary" | "continuous" | "mann_whitney" | "bootstrap" | "quantile" | "fisher_exact" | "count";
+  // "fisher_exact" reuses the binary 2x2 input; "bootstrap", "quantile" and "equivalence" reuse the
+  // continuous / ranked inputs of the same data; "count" is a plan-independent Poisson rate test.
+  metric_type: "binary" | "continuous" | "equivalence" | "mann_whitney" | "bootstrap" | "quantile" | "fisher_exact" | "count";
   binary?: ObservedResultsBinaryPayload | null;
   continuous?: ObservedResultsContinuousPayload | null;
   ranked?: ObservedResultsRankedPayload | null;
   count?: ObservedResultsCountPayload | null;
 };
 export type ResultsAnalysisResponse = {
-  metric_type: "binary" | "continuous" | "mann_whitney" | "bootstrap" | "quantile" | "fisher_exact" | "count";
+  metric_type: "binary" | "continuous" | "equivalence" | "mann_whitney" | "bootstrap" | "quantile" | "fisher_exact" | "count";
   observed_effect: number;
   observed_effect_relative: number;
   control_rate?: number | null;

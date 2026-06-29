@@ -207,3 +207,77 @@ describe("buildResultsRequest (count)", () => {
     expect(buildResultsRequest("count", state)).toBeNull();
   });
 });
+
+describe("buildResultsRequest (equivalence)", () => {
+  const continuousForm = {
+    control_mean: "10",
+    control_std: "2",
+    control_n: "100",
+    treatment_mean: "10.1",
+    treatment_std: "2",
+    treatment_n: "100",
+    alpha: "0.05",
+    equivalence_margin: "0.5"
+  };
+
+  it("reuses the continuous summary input and carries the equivalence margin", () => {
+    const state = emptyState();
+    state.continuous = { ...continuousForm };
+    const payload = buildResultsRequest("equivalence", state);
+    expect(payload).toEqual({
+      metric_type: "equivalence",
+      continuous: {
+        control_mean: 10,
+        control_std: 2,
+        control_n: 100,
+        treatment_mean: 10.1,
+        treatment_std: 2,
+        treatment_n: 100,
+        alpha: 0.05,
+        equivalence_margin: 0.5
+      }
+    });
+  });
+
+  it("returns null when the margin is blank or not positive", () => {
+    const state = emptyState();
+    state.continuous = { ...continuousForm, equivalence_margin: "" };
+    expect(buildResultsRequest("equivalence", state)).toBeNull();
+    state.continuous = { ...continuousForm, equivalence_margin: "0" };
+    expect(buildResultsRequest("equivalence", state)).toBeNull();
+    state.continuous = { ...continuousForm, equivalence_margin: "-1" };
+    expect(buildResultsRequest("equivalence", state)).toBeNull();
+  });
+
+  it("applies the same continuous validation (std must be positive)", () => {
+    const state = emptyState();
+    state.continuous = { ...continuousForm, control_std: "0" };
+    expect(buildResultsRequest("equivalence", state)).toBeNull();
+  });
+
+  it("restores a saved equivalence request into the continuous form with its margin", () => {
+    const restored = buildActualResultsState("equivalence", 0.05, {
+      metric_type: "equivalence",
+      continuous: {
+        control_mean: 1,
+        control_std: 1,
+        control_n: 50,
+        treatment_mean: 1.2,
+        treatment_std: 1.1,
+        treatment_n: 60,
+        alpha: 0.01,
+        equivalence_margin: 0.5
+      }
+    });
+    expect(restored.continuous).toEqual({
+      control_mean: "1",
+      control_std: "1",
+      control_n: "50",
+      treatment_mean: "1.2",
+      treatment_std: "1.1",
+      treatment_n: "60",
+      alpha: "0.01",
+      equivalence_margin: "0.5"
+    });
+  });
+});

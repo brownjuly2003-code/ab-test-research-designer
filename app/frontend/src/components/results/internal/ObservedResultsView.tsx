@@ -2,7 +2,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { useTranslation } from "react-i18next";
 import type { ResultsAnalysisResponse, SavedProject } from "../../../lib/experiment";
 import type { ProjectAnalysisRun } from "../../../lib/experiment";
-import type { ActualResultsState, BinaryResultsForm, ContinuousResultsForm, CountResultsForm, ObservedMetricType } from "../observedResultsShared";
+import type { ActualResultsState, BinaryResultsForm, ContinuousResultsForm, CountResultsForm, ObservedMetricType, ObservedTestSelection } from "../observedResultsShared";
 import { formatObservedValue } from "../observedResultsShared";
 import ChartErrorBoundary from "../../ChartErrorBoundary";
 import ForestPlot from "../../ForestPlot";
@@ -22,8 +22,8 @@ type ObservedResultsViewProps = {
   analysisMetricType: ObservedMetricType;
   baseMetricType: "binary" | "continuous";
   showTestToggle: boolean;
-  observedTest: "parametric" | "mann_whitney" | "bootstrap" | "quantile" | "fisher_exact" | "count";
-  onSelectTest: (test: "parametric" | "mann_whitney" | "bootstrap" | "quantile" | "fisher_exact" | "count") => void;
+  observedTest: ObservedTestSelection;
+  onSelectTest: (test: ObservedTestSelection) => void;
   actualResults: ActualResultsState;
   setActualResults: Dispatch<SetStateAction<ActualResultsState>>;
   canMutateBackend: boolean;
@@ -78,6 +78,13 @@ export default function ObservedResultsView({
     { id: "results-treatment-n", label: t("results.observedResults.fields.treatmentN"), key: "treatment_n", min: "1", step: "1", inputMode: "numeric" },
     { id: "results-alpha-continuous", label: t("results.observedResults.fields.alpha"), key: "alpha", min: "0.001", max: "0.1", step: "0.001" }
   ] as const;
+
+  // The TOST equivalence test reuses the continuous summary fields and adds the equivalence margin
+  // (the tolerated mean difference, ±margin).
+  const equivalenceFields: FieldConfig<keyof ContinuousResultsForm>[] = [
+    ...continuousFields,
+    { id: "results-equivalence-margin", label: t("results.observedResults.fields.equivalenceMargin"), key: "equivalence_margin", min: "0.0001", step: "any" }
+  ];
 
   const countFields: FieldConfig<keyof CountResultsForm>[] = [
     { id: "results-control-events", label: t("results.observedResults.fields.controlEvents"), key: "control_events", min: "0", step: "1", inputMode: "numeric" },
@@ -134,7 +141,9 @@ export default function ObservedResultsView({
         ? t("results.observedResults.testType.bootstrapHint")
         : observedTest === "quantile"
           ? t("results.observedResults.testType.quantileHint")
-          : baseHint;
+          : observedTest === "equivalence"
+            ? t("results.observedResults.testType.equivalenceHint")
+            : baseHint;
 
   return (
     <div className="card">
@@ -160,6 +169,11 @@ export default function ObservedResultsView({
             {!isBinaryBase ? (
               <button type="button" className={observedTest === "quantile" ? "btn secondary" : "btn ghost"} aria-pressed={observedTest === "quantile"} onClick={() => onSelectTest("quantile")}>
                 {t("results.observedResults.testType.quantile")}
+              </button>
+            ) : null}
+            {!isBinaryBase ? (
+              <button type="button" className={observedTest === "equivalence" ? "btn secondary" : "btn ghost"} aria-pressed={observedTest === "equivalence"} onClick={() => onSelectTest("equivalence")}>
+                {t("results.observedResults.testType.equivalence")}
               </button>
             ) : null}
             <button type="button" className={observedTest === "count" ? "btn secondary" : "btn ghost"} aria-pressed={observedTest === "count"} onClick={() => onSelectTest("count")}>
@@ -200,7 +214,9 @@ export default function ObservedResultsView({
             ? renderFieldInputs("binary", binaryFields, actualResults.binary)
             : analysisMetricType === "count"
               ? renderFieldInputs("count", countFields, actualResults.count)
-              : renderFieldInputs("continuous", continuousFields, actualResults.continuous)}
+              : analysisMetricType === "equivalence"
+                ? renderFieldInputs("continuous", equivalenceFields, actualResults.continuous)
+                : renderFieldInputs("continuous", continuousFields, actualResults.continuous)}
         </div>
       )}
       <div className="actions" style={{ marginTop: "var(--space-4)", flexWrap: "wrap" }}>

@@ -279,7 +279,10 @@
       "bootstrap_requires_ranked_data": "bootstrap metric_type 需要原始样本数据（ranked）",
       "bootstrap_rejects_other_data": "bootstrap metric_type 不接受二进制或连续数据",
       "quantile_requires_ranked_data": "quantile 指标类型需要 ranked（原始样本）数据",
-      "quantile_rejects_other_data": "quantile 指标类型不接受 binary 或 continuous 数据"
+      "quantile_rejects_other_data": "quantile 指标类型不接受 binary 或 continuous 数据",
+      "equivalence_requires_continuous_data": "equivalence 指标类型需要连续型数据（汇总统计量）",
+      "equivalence_rejects_other_data": "equivalence 指标类型不接受二元或秩次数据",
+      "equivalence_requires_margin": "equivalence 指标类型需要大于零的 equivalence_margin"
     },
     "srm_detected": "检测到 SRM - 检查您的随机化或跟踪实施",
     "srm_not_detected": "未检测到 SRM"
@@ -290,7 +293,9 @@
       "uplift": "在 alpha={{alpha}} 下有统计显著提升",
       "decline": "在 alpha={{alpha}} 下有统计显著下降",
       "significant": "在 alpha={{alpha}} 下结果具有统计显著性",
-      "degenerate": "无法计算：标准误为零"
+      "degenerate": "无法计算：标准误为零",
+      "equivalent": "在 ±{{margin}} 范围内等效（alpha={{alpha}}）",
+      "not_equivalent": "未能在 ±{{margin}} 范围内证明等效（alpha={{alpha}}）"
     },
     "significance": {
       "significant": "具有统计显著性",
@@ -305,7 +310,8 @@
       "fisher_exact": "实验组转化率 {{treatment}}% 对照组 {{control}}%。绝对效应 {{effect}} 个百分点。优势比 {{oddsRatio}}。Fisher 精确双侧 p 值 {{pValue}}；结果{{significance}}。",
       "count": "实验组速率 {{treatmentRate}} 对照组 {{controlRate}}。率比 {{rateRatio}}。速率差 {{rateDifference}}，{{ciLevel}}% 置信区间 [{{ciLower}}, {{ciUpper}}]。Poisson 精确双侧 p 值 {{pValue}}；结果{{significance}}。",
       "bootstrap": "实验组均值 {{treatmentMean}} 对照组 {{controlMean}}。均值差 {{effect}}，{{ciLevel}}% 百分位 bootstrap 置信区间 [{{ciLower}}, {{ciUpper}}]。置换双侧 p 值 {{pValue}}，基于 {{permutations}} 次重排；结果{{significance}}。",
-      "quantile": "处理组 P{{percentile}} 分位数 {{treatmentQuantile}} 对比对照组 {{controlQuantile}}。分位数偏移 {{effect}}，{{ciLevel}}% 百分位自助 CI [{{ciLower}}, {{ciUpper}}]。置换双侧 p 值 {{pValue}}，基于 {{permutations}} 次重排；结果为{{significance}}。"
+      "quantile": "处理组 P{{percentile}} 分位数 {{treatmentQuantile}} 对比对照组 {{controlQuantile}}。分位数偏移 {{effect}}，{{ciLevel}}% 百分位自助 CI [{{ciLower}}, {{ciUpper}}]。置换双侧 p 值 {{pValue}}，基于 {{permutations}} 次重排；结果为{{significance}}。",
+      "equivalence": "实验组均值 {{treatmentMean}} 对比对照组 {{controlMean}}。效应 {{effect}}，对照等效边界 ±{{margin}}：{{equivalence}}。{{ciLevel}}% 置信区间 [{{ciLower}}, {{ciUpper}}] 即 TOST 决策区间；双单侧检验 p 值为 {{pValue}}。"
     },
     "effect_size": {
       "rank_biserial": "秩二列相关",
@@ -322,6 +328,10 @@
     },
     "count": {
       "rate_ratio_undefined": "未定义（对照组无事件）"
+    },
+    "equivalence": {
+      "demonstrated": "已证明等效",
+      "not_demonstrated": "未证明等效"
     }
   }
 }

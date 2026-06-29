@@ -223,6 +223,10 @@ class ObservedResultsContinuous(BaseModel):
     treatment_std: float = Field(gt=0)
     treatment_n: int = Field(ge=2)
     alpha: float = Field(default=0.05, ge=0.001, le=0.1)
+    # Equivalence margin in the natural units of the mean difference, consumed only by the TOST
+    # equivalence analyzer (``metric_type="equivalence"``); the difference t-test ignores it. The
+    # two arms are declared equivalent when the mean difference stays within ``±equivalence_margin``.
+    equivalence_margin: float | None = Field(default=None, gt=0)
 
 
 class ObservedResultsRanked(BaseModel):
@@ -273,7 +277,14 @@ class ResultsRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     metric_type: Literal[
-        "binary", "continuous", "mann_whitney", "bootstrap", "quantile", "fisher_exact", "count"
+        "binary",
+        "continuous",
+        "equivalence",
+        "mann_whitney",
+        "bootstrap",
+        "quantile",
+        "fisher_exact",
+        "count",
     ]
     binary: ObservedResultsBinary | None = None
     continuous: ObservedResultsContinuous | None = None
@@ -299,6 +310,15 @@ class ResultsRequest(BaseModel):
                 raise ValueError(translate("errors.schemas.continuous_requires_continuous_data"))
             if self.binary is not None or self.ranked is not None:
                 raise ValueError(translate("errors.schemas.continuous_rejects_binary_data"))
+        if self.metric_type == "equivalence":
+            # TOST equivalence reuses the continuous summary-statistics shape; it is an alternative
+            # analysis of the same data plus an equivalence margin that the difference test ignores.
+            if self.continuous is None:
+                raise ValueError(translate("errors.schemas.equivalence_requires_continuous_data"))
+            if self.binary is not None or self.ranked is not None:
+                raise ValueError(translate("errors.schemas.equivalence_rejects_other_data"))
+            if self.continuous.equivalence_margin is None:
+                raise ValueError(translate("errors.schemas.equivalence_requires_margin"))
         if self.metric_type == "mann_whitney":
             if self.ranked is None:
                 raise ValueError(translate("errors.schemas.mann_whitney_requires_ranked_data"))

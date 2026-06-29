@@ -1,10 +1,14 @@
 import type { ResultsRequestPayload } from "../../lib/experiment";
 
 // The observed-results form supports the two planned metric types plus alternative tests offered on
-// the same data — Mann–Whitney (non-parametric), bootstrap/permutation and quantile treatment effect
-// for continuous, Fisher's exact for binary — and a plan-independent Poisson rate test ("count") for
-// event-over-exposure data.
-export type ObservedMetricType = "binary" | "continuous" | "mann_whitney" | "bootstrap" | "quantile" | "fisher_exact" | "count";
+// the same data — Mann–Whitney (non-parametric), bootstrap/permutation, quantile treatment effect
+// and TOST equivalence for continuous, Fisher's exact for binary — and a plan-independent Poisson
+// rate test ("count") for event-over-exposure data.
+export type ObservedMetricType = "binary" | "continuous" | "equivalence" | "mann_whitney" | "bootstrap" | "quantile" | "fisher_exact" | "count";
+
+// The local toggle selection: "parametric" is the default analysis (t-test / z-test); the rest are
+// the alternative tests offered on the same data per base metric type.
+export type ObservedTestSelection = "parametric" | "mann_whitney" | "bootstrap" | "quantile" | "equivalence" | "fisher_exact" | "count";
 
 export type BinaryResultsForm = {
   control_conversions: string;
@@ -22,6 +26,9 @@ export type ContinuousResultsForm = {
   treatment_std: string;
   treatment_n: string;
   alpha: string;
+  // Only used by the TOST equivalence test (the tolerated mean difference, ±margin); the difference
+  // t-test and the non-parametric tests ignore it.
+  equivalence_margin: string;
 };
 
 // Raw per-unit samples are entered as free text (one value per line, or comma/space separated) and
@@ -102,11 +109,14 @@ export function buildActualResultsState(
     request?.metric_type === "mann_whitney" ||
     request?.metric_type === "bootstrap" ||
     request?.metric_type === "quantile";
+  // The difference t-test and the TOST equivalence test both read the continuous summary statistics.
+  const requestUsesContinuousForm =
+    request?.metric_type === "continuous" || request?.metric_type === "equivalence";
   const matchingAlpha =
     request?.metric_type === metricType
       ? metricType === "binary" || metricType === "fisher_exact"
         ? request.binary?.alpha
-        : metricType === "continuous"
+        : metricType === "continuous" || metricType === "equivalence"
           ? request.continuous?.alpha
           : metricType === "count"
             ? request.count?.alpha
@@ -128,18 +138,22 @@ export function buildActualResultsState(
     },
     continuous: {
       control_mean:
-        request?.metric_type === "continuous" ? toFieldValue(request.continuous?.control_mean) : "",
+        requestUsesContinuousForm ? toFieldValue(request?.continuous?.control_mean) : "",
       control_std:
-        request?.metric_type === "continuous" ? toFieldValue(request.continuous?.control_std) : "",
+        requestUsesContinuousForm ? toFieldValue(request?.continuous?.control_std) : "",
       control_n:
-        request?.metric_type === "continuous" ? toFieldValue(request.continuous?.control_n) : "",
+        requestUsesContinuousForm ? toFieldValue(request?.continuous?.control_n) : "",
       treatment_mean:
-        request?.metric_type === "continuous" ? toFieldValue(request.continuous?.treatment_mean) : "",
+        requestUsesContinuousForm ? toFieldValue(request?.continuous?.treatment_mean) : "",
       treatment_std:
-        request?.metric_type === "continuous" ? toFieldValue(request.continuous?.treatment_std) : "",
+        requestUsesContinuousForm ? toFieldValue(request?.continuous?.treatment_std) : "",
       treatment_n:
-        request?.metric_type === "continuous" ? toFieldValue(request.continuous?.treatment_n) : "",
-      alpha: request?.metric_type === "continuous" ? toFieldValue(request.continuous?.alpha ?? alpha) : defaultAlpha
+        requestUsesContinuousForm ? toFieldValue(request?.continuous?.treatment_n) : "",
+      alpha: requestUsesContinuousForm ? toFieldValue(request?.continuous?.alpha ?? alpha) : defaultAlpha,
+      equivalence_margin:
+        request?.metric_type === "equivalence"
+          ? toFieldValue(request?.continuous?.equivalence_margin ?? undefined)
+          : ""
     },
     ranked: {
       control_values:
@@ -158,6 +172,48 @@ export function buildActualResultsState(
       alpha: request?.metric_type === "count" ? toFieldValue(request.count?.alpha ?? alpha) : defaultAlpha
     }
   };
+}
+
+// Parse and validate the shared continuous summary-statistics form (used by the difference t-test
+// and the TOST equivalence test). Returns null when any field is blank or out of range, mirroring
+// the backend ObservedResultsContinuous bounds.
+function parseContinuousForm(
+  form: ContinuousResultsForm
+): { control_mean: number; control_std: number; control_n: number; treatment_mean: number; treatment_std: number; treatment_n: number; alpha: number } | null {
+  if (
+    form.control_mean.trim() === "" ||
+    form.control_std.trim() === "" ||
+    form.control_n.trim() === "" ||
+    form.treatment_mean.trim() === "" ||
+    form.treatment_std.trim() === "" ||
+    form.treatment_n.trim() === "" ||
+    form.alpha.trim() === ""
+  ) {
+    return null;
+  }
+  const continuous = {
+    control_mean: Number(form.control_mean),
+    control_std: Number(form.control_std),
+    control_n: Number(form.control_n),
+    treatment_mean: Number(form.treatment_mean),
+    treatment_std: Number(form.treatment_std),
+    treatment_n: Number(form.treatment_n),
+    alpha: Number(form.alpha)
+  };
+  if (
+    !Number.isFinite(continuous.control_mean) ||
+    !(continuous.control_std > 0) ||
+    !Number.isInteger(continuous.control_n) ||
+    !Number.isFinite(continuous.treatment_mean) ||
+    !(continuous.treatment_std > 0) ||
+    !Number.isInteger(continuous.treatment_n) ||
+    continuous.control_n < 1 ||
+    continuous.treatment_n < 1 ||
+    !(continuous.alpha >= 0.001 && continuous.alpha <= 0.1)
+  ) {
+    return null;
+  }
+  return continuous;
 }
 
 export function buildResultsRequest(
@@ -280,39 +336,26 @@ export function buildResultsRequest(
     };
   }
 
-  if (
-    form.continuous.control_mean.trim() === "" ||
-    form.continuous.control_std.trim() === "" ||
-    form.continuous.control_n.trim() === "" ||
-    form.continuous.treatment_mean.trim() === "" ||
-    form.continuous.treatment_std.trim() === "" ||
-    form.continuous.treatment_n.trim() === "" ||
-    form.continuous.alpha.trim() === ""
-  ) {
-    return null;
+  // TOST equivalence reuses the continuous summary statistics plus a positive equivalence margin.
+  if (metricType === "equivalence") {
+    const continuous = parseContinuousForm(form.continuous);
+    const equivalence_margin = Number(form.continuous.equivalence_margin);
+    if (
+      continuous === null ||
+      form.continuous.equivalence_margin.trim() === "" ||
+      !Number.isFinite(equivalence_margin) ||
+      !(equivalence_margin > 0)
+    ) {
+      return null;
+    }
+    return {
+      metric_type: "equivalence",
+      continuous: { ...continuous, equivalence_margin }
+    };
   }
 
-  const continuous = {
-    control_mean: Number(form.continuous.control_mean),
-    control_std: Number(form.continuous.control_std),
-    control_n: Number(form.continuous.control_n),
-    treatment_mean: Number(form.continuous.treatment_mean),
-    treatment_std: Number(form.continuous.treatment_std),
-    treatment_n: Number(form.continuous.treatment_n),
-    alpha: Number(form.continuous.alpha)
-  };
-
-  if (
-    !Number.isFinite(continuous.control_mean) ||
-    !(continuous.control_std > 0) ||
-    !Number.isInteger(continuous.control_n) ||
-    !Number.isFinite(continuous.treatment_mean) ||
-    !(continuous.treatment_std > 0) ||
-    !Number.isInteger(continuous.treatment_n) ||
-    continuous.control_n < 1 ||
-    continuous.treatment_n < 1 ||
-    !(continuous.alpha >= 0.001 && continuous.alpha <= 0.1)
-  ) {
+  const continuous = parseContinuousForm(form.continuous);
+  if (continuous === null) {
     return null;
   }
 

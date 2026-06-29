@@ -279,7 +279,10 @@
       "bootstrap_requires_ranked_data": "bootstrap metric_type requires ranked (raw sample) data",
       "bootstrap_rejects_other_data": "bootstrap metric_type does not accept binary or continuous data",
       "quantile_requires_ranked_data": "quantile metric_type requires ranked (raw sample) data",
-      "quantile_rejects_other_data": "quantile metric_type does not accept binary or continuous data"
+      "quantile_rejects_other_data": "quantile metric_type does not accept binary or continuous data",
+      "equivalence_requires_continuous_data": "equivalence metric_type requires continuous (summary statistics) data",
+      "equivalence_rejects_other_data": "equivalence metric_type does not accept binary or ranked data",
+      "equivalence_requires_margin": "equivalence metric_type requires an equivalence_margin greater than zero"
     },
     "srm_detected": "SRM detected - check your randomization or tracking implementation",
     "srm_not_detected": "No SRM detected"
@@ -290,7 +293,9 @@
       "uplift": "Statistically significant uplift at alpha={{alpha}}",
       "decline": "Statistically significant decline at alpha={{alpha}}",
       "significant": "Statistically significant result at alpha={{alpha}}",
-      "degenerate": "Cannot compute: zero standard error"
+      "degenerate": "Cannot compute: zero standard error",
+      "equivalent": "Equivalent within ±{{margin}} at alpha={{alpha}}",
+      "not_equivalent": "Equivalence not demonstrated within ±{{margin}} at alpha={{alpha}}"
     },
     "significance": {
       "significant": "statistically significant",
@@ -305,7 +310,8 @@
       "fisher_exact": "Treatment conversion {{treatment}}% vs control {{control}}%. Absolute effect {{effect}} pp. Odds ratio {{oddsRatio}}. Fisher's exact two-sided p-value {{pValue}}; result is {{significance}}.",
       "count": "Treatment rate {{treatmentRate}} vs control {{controlRate}}. Rate ratio {{rateRatio}}. Rate difference {{rateDifference}} with {{ciLevel}}% CI [{{ciLower}}, {{ciUpper}}]. Poisson exact two-sided p-value {{pValue}}; result is {{significance}}.",
       "bootstrap": "Treatment mean {{treatmentMean}} vs control {{controlMean}}. Mean difference {{effect}} with {{ciLevel}}% percentile bootstrap CI [{{ciLower}}, {{ciUpper}}]. Permutation two-sided p-value {{pValue}} over {{permutations}} relabellings; result is {{significance}}.",
-      "quantile": "Treatment P{{percentile}} quantile {{treatmentQuantile}} vs control {{controlQuantile}}. Quantile shift {{effect}} with {{ciLevel}}% percentile bootstrap CI [{{ciLower}}, {{ciUpper}}]. Permutation two-sided p-value {{pValue}} over {{permutations}} relabellings; result is {{significance}}."
+      "quantile": "Treatment P{{percentile}} quantile {{treatmentQuantile}} vs control {{controlQuantile}}. Quantile shift {{effect}} with {{ciLevel}}% percentile bootstrap CI [{{ciLower}}, {{ciUpper}}]. Permutation two-sided p-value {{pValue}} over {{permutations}} relabellings; result is {{significance}}.",
+      "equivalence": "Treatment mean {{treatmentMean}} vs control {{controlMean}}. Effect {{effect}} tested against an equivalence margin of ±{{margin}}: {{equivalence}}. The {{ciLevel}}% confidence interval [{{ciLower}}, {{ciUpper}}] is the TOST decision interval; two one-sided p-value {{pValue}}."
     },
     "effect_size": {
       "rank_biserial": "rank-biserial correlation",
@@ -322,6 +328,10 @@
     },
     "count": {
       "rate_ratio_undefined": "undefined (no control events)"
+    },
+    "equivalence": {
+      "demonstrated": "equivalence demonstrated",
+      "not_demonstrated": "equivalence not demonstrated"
     }
   }
 }

@@ -362,4 +362,84 @@ describe("ObservedResultsSection", () => {
       await view.unmount();
     }
   });
+
+  it("offers the TOST equivalence test on a continuous plan but not on a binary plan", async () => {
+    const binaryView = await renderIntoDocument(<ObservedResultsSection onResultsAnalysisChange={vi.fn()} />);
+    try {
+      await flushEffects();
+      // The default seeded plan is binary -> the continuous-only equivalence test is hidden.
+      expect(binaryView.container.textContent).not.toContain("Equivalence (TOST)");
+    } finally {
+      await binaryView.unmount();
+    }
+
+    seedResultsStores({ analysis: buildAnalysisResult({ metricType: "continuous" }) });
+    const continuousView = await renderIntoDocument(<ObservedResultsSection onResultsAnalysisChange={vi.fn()} />);
+    try {
+      await flushEffects();
+      expect(continuousView.container.textContent).toContain("Equivalence (TOST)");
+    } finally {
+      await continuousView.unmount();
+    }
+  });
+
+  it("runs a TOST equivalence analysis from summary statistics plus a margin", async () => {
+    seedResultsStores({ analysis: buildAnalysisResult({ metricType: "continuous" }) });
+    const response = {
+      metric_type: "equivalence",
+      observed_effect: 0.1,
+      observed_effect_relative: 1,
+      ci_lower: -0.13,
+      ci_upper: 0.33,
+      ci_level: 0.9,
+      p_value: 0.0026,
+      test_statistic: -2.83,
+      is_significant: true,
+      power_achieved: 0.56,
+      verdict: "Equivalent within ±0.5000 at alpha=0.050",
+      interpretation:
+        "Treatment mean 10.1000 vs control 10.0000. Effect +0.1000 tested against an equivalence margin of ±0.5000: equivalence demonstrated. The 90.0% confidence interval [-0.1300, 0.3300] is the TOST decision interval; two one-sided p-value 0.002600."
+    };
+    const fetchMock = vi.fn(async (..._args: unknown[]) => ({ ok: true, json: async () => response }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const view = await renderIntoDocument(<ObservedResultsSection onResultsAnalysisChange={vi.fn()} />);
+    try {
+      await flushEffects();
+      // Continuous plan -> switch to the equivalence test, which reuses the continuous summary inputs
+      // plus an equivalence-margin field.
+      await click(findButton(view.container, "Equivalence (TOST)"));
+      await flushEffects();
+
+      const setNumber = async (id: string, value: string) => {
+        const input = view.container.querySelector<HTMLInputElement>(id)!;
+        expect(input).not.toBeNull();
+        await changeValue(input, value);
+      };
+      await setNumber("#results-control-mean", "10");
+      await setNumber("#results-control-std", "2");
+      await setNumber("#results-control-n", "100");
+      await setNumber("#results-treatment-mean", "10.1");
+      await setNumber("#results-treatment-std", "2");
+      await setNumber("#results-treatment-n", "100");
+      await setNumber("#results-equivalence-margin", "0.5");
+
+      await click(findButton(view.container, "Analyze results"));
+      await flushEffects();
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const [, requestInit] = fetchMock.mock.calls[0] as [string, RequestInit];
+      const body = JSON.parse(String(requestInit.body));
+      expect(body.metric_type).toBe("equivalence");
+      expect(body.continuous.equivalence_margin).toBe(0.5);
+      expect(body.continuous.control_mean).toBe(10);
+      expect(body.continuous.treatment_mean).toBe(10.1);
+
+      // The equivalence prose is surfaced.
+      expect(view.container.textContent).toContain("equivalence demonstrated");
+      expect(view.container.textContent).toContain("TOST decision interval");
+    } finally {
+      await view.unmount();
+    }
+  });
 });

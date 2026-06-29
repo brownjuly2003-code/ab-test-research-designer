@@ -279,7 +279,10 @@
       "bootstrap_requires_ranked_data": "يتطلب نوع القياس bootstrap بيانات عينات خام (ranked)",
       "bootstrap_rejects_other_data": "نوع القياس bootstrap لا يقبل بيانات ثنائية أو مستمرة",
       "quantile_requires_ranked_data": "يتطلب نوع المقياس quantile بيانات ranked (عينات خام)",
-      "quantile_rejects_other_data": "لا يقبل نوع المقياس quantile بيانات ثنائية أو مستمرة"
+      "quantile_rejects_other_data": "لا يقبل نوع المقياس quantile بيانات ثنائية أو مستمرة",
+      "equivalence_requires_continuous_data": "يتطلب metric_type المساواة (equivalence) بيانات مستمرة (إحصاءات موجزة)",
+      "equivalence_rejects_other_data": "لا يقبل metric_type المساواة (equivalence) بيانات ثنائية أو مرتبة",
+      "equivalence_requires_margin": "يتطلب metric_type المساواة (equivalence) قيمة equivalence_margin أكبر من صفر"
     },
     "srm_detected": "تم اكتشاف SRM - تحقق من التوزيع العشوائي أو تنفيذ التتبع",
     "srm_not_detected": "لم يتم اكتشاف SRM"
@@ -290,7 +293,9 @@
       "uplift": "زيادة ذات دلالة إحصائية عند alpha={{alpha}}",
       "decline": "انخفاض ذو دلالة إحصائية عند alpha={{alpha}}",
       "significant": "نتيجة ذات دلالة إحصائية عند alpha={{alpha}}",
-      "degenerate": "تعذّر الحساب: الخطأ المعياري يساوي صفرًا"
+      "degenerate": "تعذّر الحساب: الخطأ المعياري يساوي صفرًا",
+      "equivalent": "متكافئ ضمن ±{{margin}} عند alpha={{alpha}}",
+      "not_equivalent": "لم تثبت المساواة ضمن ±{{margin}} عند alpha={{alpha}}"
     },
     "significance": {
       "significant": "ذو دلالة إحصائية",
@@ -305,7 +310,8 @@
       "fisher_exact": "تحويل مجموعة المعالجة {{treatment}}% مقابل المجموعة الضابطة {{control}}%. الأثر المطلق {{effect}} نقطة مئوية. نسبة الأرجحية {{oddsRatio}}. القيمة الاحتمالية الثنائية الدقيقة لاختبار Fisher {{pValue}}؛ النتيجة {{significance}}.",
       "count": "معدّل مجموعة المعالجة {{treatmentRate}} مقابل المجموعة الضابطة {{controlRate}}. نسبة المعدّلات {{rateRatio}}. فرق المعدّلات {{rateDifference}} بفاصل ثقة {{ciLevel}}% [{{ciLower}}، {{ciUpper}}]. القيمة الاحتمالية الثنائية الدقيقة لبواسون {{pValue}}؛ النتيجة {{significance}}.",
       "bootstrap": "متوسط مجموعة المعالجة {{treatmentMean}} مقابل المجموعة الضابطة {{controlMean}}. فرق المتوسطات {{effect}} بفاصل ثقة bootstrap المئيني {{ciLevel}}% [{{ciLower}}، {{ciUpper}}]. القيمة الاحتمالية الثنائية للتبديل {{pValue}} عبر {{permutations}} إعادة ترتيب؛ النتيجة {{significance}}.",
-      "quantile": "كمّي P{{percentile}} للمعالجة {{treatmentQuantile}} مقابل الضبط {{controlQuantile}}. إزاحة الكمّي {{effect}} مع فاصل ثقة bootstrap مئيني {{ciLevel}}% [{{ciLower}}، {{ciUpper}}]. قيمة p للتبديل ثنائية الجانب {{pValue}} عبر {{permutations}} إعادة ترتيب؛ النتيجة {{significance}}."
+      "quantile": "كمّي P{{percentile}} للمعالجة {{treatmentQuantile}} مقابل الضبط {{controlQuantile}}. إزاحة الكمّي {{effect}} مع فاصل ثقة bootstrap مئيني {{ciLevel}}% [{{ciLower}}، {{ciUpper}}]. قيمة p للتبديل ثنائية الجانب {{pValue}} عبر {{permutations}} إعادة ترتيب؛ النتيجة {{significance}}.",
+      "equivalence": "متوسط المعالجة {{treatmentMean}} مقابل الضبط {{controlMean}}. الأثر {{effect}} مُختبَر مقابل هامش مساواة قدره ±{{margin}}: {{equivalence}}. فاصل الثقة {{ciLevel}}% [{{ciLower}}, {{ciUpper}}] هو فاصل قرار TOST؛ القيمة الاحتمالية للاختبارين أحاديي الجانب {{pValue}}."
     },
     "effect_size": {
       "rank_biserial": "ارتباط ثنائي التسلسل الرتبي",
@@ -322,6 +328,10 @@
     },
     "count": {
       "rate_ratio_undefined": "غير معرّفة (لا أحداث في المجموعة الضابطة)"
+    },
+    "equivalence": {
+      "demonstrated": "ثبتت المساواة",
+      "not_demonstrated": "لم تثبت المساواة"
     }
   }
 }

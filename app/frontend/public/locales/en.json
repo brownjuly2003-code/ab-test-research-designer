@@ -539,7 +539,8 @@
         "controlEvents": "Control events",
         "controlExposure": "Control exposure",
         "treatmentEvents": "Treatment events",
-        "treatmentExposure": "Treatment exposure"
+        "treatmentExposure": "Treatment exposure",
+        "equivalenceMargin": "Equivalence margin (±)"
       },
       "cards": {
         "effect": "Effect",
@@ -569,7 +570,9 @@
         "bootstrap": "Bootstrap / permutation",
         "bootstrapHint": "The permutation test compares the difference in means by relabelling the pooled raw values — a distribution-free t-test — with a percentile bootstrap CI. No normality assumption; small samples are tested exactly.",
         "quantile": "Quantile effect",
-        "quantileHint": "The quantile treatment effect compares a chosen quantile (median by default, or e.g. p90) between arms with a permutation test and a percentile bootstrap CI. Use it when a tail or the median matters more than the mean — skewed revenue, latency percentiles."
+        "quantileHint": "The quantile treatment effect compares a chosen quantile (median by default, or e.g. p90) between arms with a permutation test and a percentile bootstrap CI. Use it when a tail or the median matters more than the mean — skewed revenue, latency percentiles.",
+        "equivalence": "Equivalence (TOST)",
+        "equivalenceHint": "The TOST equivalence test asks whether the difference stays within a tolerance ±margin in both directions — two one-sided t-tests. Use it to confirm no meaningful change (a refactor or migration that must not move the metric), where a non-significant difference test alone is not evidence of equivalence."
       },
       "validation": {
         "fillAllFields": "Fill in all actual results fields with valid values before analysis.",

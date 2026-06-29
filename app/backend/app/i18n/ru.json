@@ -279,7 +279,10 @@
       "bootstrap_requires_ranked_data": "для metric_type=bootstrap нужны сырые данные выборок (ranked)",
       "bootstrap_rejects_other_data": "metric_type=bootstrap не принимает binary- или continuous-данные",
       "quantile_requires_ranked_data": "для metric_type=quantile нужны сырые данные выборок (ranked)",
-      "quantile_rejects_other_data": "metric_type=quantile не принимает binary- или continuous-данные"
+      "quantile_rejects_other_data": "metric_type=quantile не принимает binary- или continuous-данные",
+      "equivalence_requires_continuous_data": "metric_type equivalence требует непрерывные данные (сводные статистики)",
+      "equivalence_rejects_other_data": "metric_type equivalence не принимает бинарные или ранжированные данные",
+      "equivalence_requires_margin": "metric_type equivalence требует equivalence_margin больше нуля"
     },
     "srm_detected": "Обнаружен SRM — проверьте рандомизацию и реализацию трекинга",
     "srm_not_detected": "SRM не обнаружен"
@@ -290,7 +293,9 @@
       "uplift": "Статистически значимый прирост при alpha={{alpha}}",
       "decline": "Статистически значимое снижение при alpha={{alpha}}",
       "significant": "Статистически значимый результат при alpha={{alpha}}",
-      "degenerate": "Невозможно вычислить: нулевая стандартная ошибка"
+      "degenerate": "Невозможно вычислить: нулевая стандартная ошибка",
+      "equivalent": "Эквивалентно в пределах ±{{margin}} при alpha={{alpha}}",
+      "not_equivalent": "Эквивалентность не доказана в пределах ±{{margin}} при alpha={{alpha}}"
     },
     "significance": {
       "significant": "статистически значим",
@@ -305,7 +310,8 @@
       "fisher_exact": "Конверсия варианта {{treatment}}% против контроля {{control}}%. Абсолютный эффект {{effect}} п.п. Отношение шансов {{oddsRatio}}. Точный двусторонний p-value Фишера {{pValue}}; результат {{significance}}.",
       "count": "Интенсивность варианта {{treatmentRate}} против контроля {{controlRate}}. Отношение интенсивностей {{rateRatio}}. Разность интенсивностей {{rateDifference}} при {{ciLevel}}% ДИ [{{ciLower}}, {{ciUpper}}]. Точный двусторонний p-value Пуассона {{pValue}}; результат {{significance}}.",
       "bootstrap": "Среднее варианта {{treatmentMean}} против контроля {{controlMean}}. Разница средних {{effect}} при {{ciLevel}}% перцентильном bootstrap-ДИ [{{ciLower}}, {{ciUpper}}]. Перестановочный двусторонний p-value {{pValue}} по {{permutations}} перестановкам; результат {{significance}}.",
-      "quantile": "Квантиль P{{percentile}} варианта {{treatmentQuantile}} против контроля {{controlQuantile}}. Сдвиг квантиля {{effect}} при {{ciLevel}}% перцентильном bootstrap-ДИ [{{ciLower}}, {{ciUpper}}]. Перестановочный двусторонний p-value {{pValue}} по {{permutations}} перестановкам; результат {{significance}}."
+      "quantile": "Квантиль P{{percentile}} варианта {{treatmentQuantile}} против контроля {{controlQuantile}}. Сдвиг квантиля {{effect}} при {{ciLevel}}% перцентильном bootstrap-ДИ [{{ciLower}}, {{ciUpper}}]. Перестановочный двусторонний p-value {{pValue}} по {{permutations}} перестановкам; результат {{significance}}.",
+      "equivalence": "Среднее в тесте {{treatmentMean}} против контроля {{controlMean}}. Эффект {{effect}} проверен против границы эквивалентности ±{{margin}}: {{equivalence}}. {{ciLevel}}% доверительный интервал [{{ciLower}}, {{ciUpper}}] — решающий интервал TOST; p-value двух односторонних тестов {{pValue}}."
     },
     "effect_size": {
       "rank_biserial": "ранг-бисериальная корреляция",
@@ -322,6 +328,10 @@
     },
     "count": {
       "rate_ratio_undefined": "не определено (нет событий в контроле)"
+    },
+    "equivalence": {
+      "demonstrated": "эквивалентность доказана",
+      "not_demonstrated": "эквивалентность не доказана"
     }
   }
 }

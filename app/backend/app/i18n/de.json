@@ -279,7 +279,10 @@
       "bootstrap_requires_ranked_data": "bootstrap metric_type erfordert Rohdaten der Stichproben (ranked)",
       "bootstrap_rejects_other_data": "bootstrap metric_type akzeptiert keine binären oder kontinuierlichen Daten",
       "quantile_requires_ranked_data": "quantile metric_type erfordert ranked (Rohdaten-)Daten",
-      "quantile_rejects_other_data": "quantile metric_type akzeptiert keine binären oder kontinuierlichen Daten"
+      "quantile_rejects_other_data": "quantile metric_type akzeptiert keine binären oder kontinuierlichen Daten",
+      "equivalence_requires_continuous_data": "metric_type equivalence erfordert kontinuierliche Daten (zusammenfassende Statistiken)",
+      "equivalence_rejects_other_data": "metric_type equivalence akzeptiert keine binären oder gerankten Daten",
+      "equivalence_requires_margin": "metric_type equivalence erfordert ein equivalence_margin größer als null"
     },
     "srm_detected": "SRM erkannt — prüfen Sie Ihre Randomisierung oder Tracking-Implementierung",
     "srm_not_detected": "Keine SRM erkannt"
@@ -290,7 +293,9 @@
       "uplift": "Statistisch signifikanter Anstieg bei alpha={{alpha}}",
       "decline": "Statistisch signifikanter Rückgang bei alpha={{alpha}}",
       "significant": "Statistisch signifikantes Ergebnis bei alpha={{alpha}}",
-      "degenerate": "Berechnung nicht möglich: Standardfehler ist null"
+      "degenerate": "Berechnung nicht möglich: Standardfehler ist null",
+      "equivalent": "Äquivalent innerhalb ±{{margin}} bei alpha={{alpha}}",
+      "not_equivalent": "Äquivalenz innerhalb ±{{margin}} bei alpha={{alpha}} nicht nachgewiesen"
     },
     "significance": {
       "significant": "statistisch signifikant",
@@ -305,7 +310,8 @@
       "fisher_exact": "Konversion der Testvariante {{treatment}}% vs. Kontrolle {{control}}%. Absoluter Effekt {{effect}} pp. Quotenverhältnis {{oddsRatio}}. Exakter zweiseitiger p-Wert nach Fisher {{pValue}}; das Ergebnis ist {{significance}}.",
       "count": "Rate der Testvariante {{treatmentRate}} vs. Kontrolle {{controlRate}}. Ratenverhältnis {{rateRatio}}. Ratendifferenz {{rateDifference}} mit {{ciLevel}}% KI [{{ciLower}}, {{ciUpper}}]. Exakter zweiseitiger Poisson-p-Wert {{pValue}}; das Ergebnis ist {{significance}}.",
       "bootstrap": "Mittelwert der Testvariante {{treatmentMean}} vs. Kontrolle {{controlMean}}. Mittelwertdifferenz {{effect}} mit {{ciLevel}}% Perzentil-Bootstrap-KI [{{ciLower}}, {{ciUpper}}]. Zweiseitiger Permutations-p-Wert {{pValue}} über {{permutations}} Umordnungen; das Ergebnis ist {{significance}}.",
-      "quantile": "P{{percentile}}-Quantil der Behandlung {{treatmentQuantile}} vs. Kontrolle {{controlQuantile}}. Quantilverschiebung {{effect}} mit {{ciLevel}}%-Perzentil-Bootstrap-KI [{{ciLower}}, {{ciUpper}}]. Zweiseitiger Permutations-p-Wert {{pValue}} über {{permutations}} Umordnungen; Ergebnis ist {{significance}}."
+      "quantile": "P{{percentile}}-Quantil der Behandlung {{treatmentQuantile}} vs. Kontrolle {{controlQuantile}}. Quantilverschiebung {{effect}} mit {{ciLevel}}%-Perzentil-Bootstrap-KI [{{ciLower}}, {{ciUpper}}]. Zweiseitiger Permutations-p-Wert {{pValue}} über {{permutations}} Umordnungen; Ergebnis ist {{significance}}.",
+      "equivalence": "Mittelwert der Behandlung {{treatmentMean}} vs. Kontrolle {{controlMean}}. Effekt {{effect}} gegen eine Äquivalenzgrenze von ±{{margin}} geprüft: {{equivalence}}. Das {{ciLevel}}%-Konfidenzintervall [{{ciLower}}, {{ciUpper}}] ist das TOST-Entscheidungsintervall; p-Wert der zwei einseitigen Tests {{pValue}}."
     },
     "effect_size": {
       "rank_biserial": "Rang-biseriale Korrelation",
@@ -322,6 +328,10 @@
     },
     "count": {
       "rate_ratio_undefined": "nicht definiert (keine Kontrollereignisse)"
+    },
+    "equivalence": {
+      "demonstrated": "Äquivalenz nachgewiesen",
+      "not_demonstrated": "Äquivalenz nicht nachgewiesen"
     }
   }
 }

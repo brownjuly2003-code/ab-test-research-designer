@@ -13,6 +13,7 @@ from app.backend.app.schemas.api import (
 )
 from app.backend.app.stats.binary import normal_ppf
 from app.backend.app.stats.bootstrap_permutation import bootstrap_permutation_test
+from app.backend.app.stats.equivalence import tost_equivalence_test
 from app.backend.app.stats.fisher_exact import MAX_FISHER_EXACT_TOTAL, fisher_exact_test
 from app.backend.app.stats.mann_whitney import mann_whitney_u_test
 from app.backend.app.stats.poisson_rate import MAX_POISSON_EVENTS, poisson_rate_test
@@ -35,6 +36,8 @@ def analyze_results(request: ResultsRequest) -> ResultsResponse:
         return _analyze_quantile(request.ranked)
     if request.metric_type == "count":
         return _analyze_count(request.count)
+    if request.metric_type == "equivalence":
+        return _analyze_equivalence(request.continuous)
     return _analyze_continuous(request.continuous)
 
 
@@ -329,6 +332,82 @@ def _analyze_continuous(obs: ObservedResultsContinuous | None) -> ResultsRespons
                 "pValue": f"{p_value:.6f}",
             },
         ),
+    )
+
+
+def _analyze_equivalence(obs: ObservedResultsContinuous | None) -> ResultsResponse:
+    if obs is None:
+        raise ValueError("continuous observations are required")
+    if obs.equivalence_margin is None:
+        raise ValueError("equivalence margin is required")
+
+    result = tost_equivalence_test(
+        control_mean=obs.control_mean,
+        control_std=obs.control_std,
+        control_n=obs.control_n,
+        treatment_mean=obs.treatment_mean,
+        treatment_std=obs.treatment_std,
+        treatment_n=obs.treatment_n,
+        margin=obs.equivalence_margin,
+        alpha=obs.alpha,
+    )
+    if result is None:
+        # Zero standard error in both arms: the TOST statistic is undefined.
+        return _degenerate_response(metric_type="equivalence", ci_level=1 - 2 * obs.alpha)
+
+    effect = result["effect"]
+    relative_effect = (effect / obs.control_mean * 100) if obs.control_mean != 0 else 0.0
+    is_equivalent = result["is_equivalent"]
+    cohens_d = result.get("cohens_d")
+
+    return ResultsResponse(
+        metric_type="equivalence",
+        observed_effect=round(effect, 4),
+        observed_effect_relative=round(relative_effect, 2),
+        ci_lower=round(result["ci_lower"], 4),
+        ci_upper=round(result["ci_upper"], 4),
+        ci_level=round(result["ci_level"], 4),
+        p_value=round(_bounded_probability(result["p_value"]), 6),
+        test_statistic=round(result["test_statistic"], 4),
+        # For an equivalence test a "positive" result means equivalence was demonstrated; the verdict
+        # and interpretation carry the equivalence wording so this flag is not read as a difference.
+        is_significant=is_equivalent,
+        power_achieved=round(_bounded_probability(result["power_achieved"]), 3),
+        verdict=_equivalence_verdict(is_equivalent, result["margin"], obs.alpha),
+        interpretation=_interpretation_equivalence(result, obs.alpha),
+        effect_size=round(cohens_d, 4) if cohens_d is not None else None,
+        effect_size_label=(
+            translate("results.effect_size.cohens_d") if cohens_d is not None else None
+        ),
+    )
+
+
+def _equivalence_verdict(is_equivalent: bool, margin: float, alpha: float) -> str:
+    placeholders = {"margin": f"{margin:.4f}", "alpha": f"{alpha:.3f}"}
+    if is_equivalent:
+        return translate("results.verdict.equivalent", placeholders)
+    return translate("results.verdict.not_equivalent", placeholders)
+
+
+def _interpretation_equivalence(result: dict[str, Any], alpha: float) -> str:
+    equivalence_text = translate(
+        "results.equivalence.demonstrated"
+        if result["is_equivalent"]
+        else "results.equivalence.not_demonstrated"
+    )
+    return translate(
+        "results.interpretation.equivalence",
+        {
+            "treatmentMean": f"{result['treatment_mean']:.4f}",
+            "controlMean": f"{result['control_mean']:.4f}",
+            "effect": f"{result['effect']:+.4f}",
+            "margin": f"{result['margin']:.4f}",
+            "ciLevel": f"{result['ci_level'] * 100:.1f}",
+            "ciLower": f"{result['ci_lower']:.4f}",
+            "ciUpper": f"{result['ci_upper']:.4f}",
+            "pValue": f"{result['p_value']:.6f}",
+            "equivalence": equivalence_text,
+        },
     )
 
 

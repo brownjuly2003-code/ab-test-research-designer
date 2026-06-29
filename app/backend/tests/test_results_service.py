@@ -868,3 +868,123 @@ def test_results_endpoint_count_requires_count_data() -> None:
     )
 
     assert response.status_code == 422
+
+
+def test_results_endpoint_equivalence_demonstrated() -> None:
+    client = TestClient(create_app())
+
+    # Means 0.1 apart with tight, well-powered arms inside a margin of 0.5: equivalence is concluded.
+    response = client.post(
+        "/api/v1/results",
+        json={
+            "metric_type": "equivalence",
+            "continuous": {
+                "control_mean": 0.0,
+                "control_std": 1.0,
+                "control_n": 100,
+                "treatment_mean": 0.1,
+                "treatment_std": 1.0,
+                "treatment_n": 100,
+                "equivalence_margin": 0.5,
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["metric_type"] == "equivalence"
+    assert payload["is_significant"] is True  # "significant" == equivalence demonstrated here
+    assert payload["observed_effect"] == pytest.approx(0.1, abs=1e-6)
+    # The reported interval is the 90% (1 - 2*alpha) TOST decision interval, fully inside ±0.5.
+    assert payload["ci_level"] == pytest.approx(0.90, abs=1e-9)
+    assert -0.5 < payload["ci_lower"] and payload["ci_upper"] < 0.5
+    assert "equivalence" in payload["interpretation"].lower()
+
+
+def test_results_endpoint_equivalence_not_demonstrated_when_effect_exceeds_margin() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/results",
+        json={
+            "metric_type": "equivalence",
+            "continuous": {
+                "control_mean": 10.0,
+                "control_std": 2.0,
+                "control_n": 50,
+                "treatment_mean": 12.0,
+                "treatment_std": 2.1,
+                "treatment_n": 50,
+                "equivalence_margin": 1.0,
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["metric_type"] == "equivalence"
+    assert payload["is_significant"] is False
+    assert payload["p_value"] == pytest.approx(0.991719, abs=1e-5)
+
+
+def test_results_endpoint_equivalence_localizes_via_accept_language() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/results",
+        headers={"Accept-Language": "ru"},
+        json={
+            "metric_type": "equivalence",
+            "continuous": {
+                "control_mean": 0.0,
+                "control_std": 1.0,
+                "control_n": 80,
+                "treatment_mean": 0.05,
+                "treatment_std": 1.0,
+                "treatment_n": 80,
+                "equivalence_margin": 0.5,
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    assert "эквивалентность" in response.json()["interpretation"].lower()
+
+
+def test_results_endpoint_equivalence_requires_margin() -> None:
+    client = TestClient(create_app())
+
+    # The equivalence margin is mandatory for the TOST analysis.
+    response = client.post(
+        "/api/v1/results",
+        json={
+            "metric_type": "equivalence",
+            "continuous": {
+                "control_mean": 0.0,
+                "control_std": 1.0,
+                "control_n": 10,
+                "treatment_mean": 0.1,
+                "treatment_std": 1.0,
+                "treatment_n": 10,
+            },
+        },
+    )
+
+    assert response.status_code == 422
+
+
+def test_results_endpoint_equivalence_requires_continuous_data() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/results",
+        json={
+            "metric_type": "equivalence",
+            "ranked": {
+                "control_values": [1.0, 2.0, 3.0],
+                "treatment_values": [4.0, 5.0, 6.0],
+            },
+        },
+    )
+
+    assert response.status_code == 422
