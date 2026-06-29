@@ -535,6 +535,7 @@
         "controlValues": "对照组数值",
         "treatmentValues": "实验组数值",
         "rawValuesPlaceholder": "每行一个值，或用逗号分隔",
+        "quantile": "分位数 (0–1)",
         "controlEvents": "对照组事件数",
         "controlExposure": "对照组暴露",
         "treatmentEvents": "实验组事件数",
@@ -566,7 +567,9 @@
         "rate": "速率（Poisson）",
         "rateHint": "Poisson 速率检验用精确条件检验比较暴露上的事件（如每 1000 次会话的错误数）。适用于到达相互独立的事件速率数据，不适用于按用户聚集的计数。",
         "bootstrap": "Bootstrap / 置换",
-        "bootstrapHint": "置换检验通过重排合并后的原始数值标签来比较均值差——一种无分布的 t 检验——并给出百分位 bootstrap 置信区间。无需正态性假设；小样本进行精确检验。"
+        "bootstrapHint": "置换检验通过重排合并后的原始数值标签来比较均值差——一种无分布的 t 检验——并给出百分位 bootstrap 置信区间。无需正态性假设；小样本进行精确检验。",
+        "quantile": "分位数效应",
+        "quantileHint": "分位数处理效应用置换检验和百分位自助置信区间比较两组中选定的分位数（默认中位数，或如 p90）。当尾部或中位数比均值更重要时使用——偏态收入、延迟百分位。"
       },
       "validation": {
         "fillAllFields": "在分析之前，用有效值填充所有实际结果字段。",

@@ -482,6 +482,155 @@ def test_results_endpoint_bootstrap_requires_ranked_data() -> None:
     assert response.status_code == 422
 
 
+def test_results_endpoint_quantile_significant() -> None:
+    client = TestClient(create_app())
+
+    # Two tight clusters a constant apart: the median shift is unambiguous.
+    response = client.post(
+        "/api/v1/results",
+        json={
+            "metric_type": "quantile",
+            "ranked": {
+                "control_values": [1.0] * 15 + [2.0] * 15,
+                "treatment_values": [11.0] * 15 + [12.0] * 15,
+                "quantile": 0.5,
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["metric_type"] == "quantile"
+    assert payload["is_significant"] is True
+    assert payload["observed_effect"] == pytest.approx(10.0, abs=0.5)
+    assert payload["ci_lower"] > 0
+    # The chosen quantile is surfaced in the localized interpretation as a percentile.
+    assert "P50" in payload["interpretation"]
+    assert "quantile" in payload["interpretation"].lower()
+
+
+def test_results_endpoint_quantile_p90_targets_upper_tail() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/results",
+        json={
+            "metric_type": "quantile",
+            "ranked": {
+                "control_values": [float(i) for i in range(1, 101)],
+                "treatment_values": [float(i) + 10.0 for i in range(1, 101)],
+                "quantile": 0.9,
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["metric_type"] == "quantile"
+    assert payload["observed_effect"] == pytest.approx(10.0, abs=1.0)
+    assert "P90" in payload["interpretation"]
+
+
+def test_results_endpoint_quantile_not_significant_ci_crosses_zero() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/results",
+        json={
+            "metric_type": "quantile",
+            "ranked": {
+                "control_values": [4, 5, 6, 5, 4, 6, 5, 4, 6, 5],
+                "treatment_values": [5, 4, 6, 5, 6, 4, 5, 6, 4, 5],
+                "quantile": 0.5,
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["is_significant"] is False
+    assert payload["ci_lower"] <= 0 <= payload["ci_upper"]
+
+
+def test_results_endpoint_quantile_defaults_to_median() -> None:
+    client = TestClient(create_app())
+
+    # With the quantile omitted the schema default (0.5 = median) applies.
+    response = client.post(
+        "/api/v1/results",
+        json={
+            "metric_type": "quantile",
+            "ranked": {
+                "control_values": [1.0, 2.0, 3.0, 4.0],
+                "treatment_values": [5.0, 6.0, 7.0, 8.0],
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    assert "P50" in response.json()["interpretation"]
+
+
+def test_results_endpoint_quantile_localizes_via_accept_language() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/results",
+        headers={"Accept-Language": "ru"},
+        json={
+            "metric_type": "quantile",
+            "ranked": {
+                "control_values": [1, 2, 3, 4, 5],
+                "treatment_values": [7, 8, 9, 10, 11],
+                "quantile": 0.5,
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    # Russian interpretation localizes the prose (the quantile phrasing).
+    assert "квантил" in response.json()["interpretation"]
+
+
+def test_results_endpoint_quantile_requires_ranked_data() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/results",
+        json={
+            "metric_type": "quantile",
+            "continuous": {
+                "control_mean": 1.0,
+                "control_std": 1.0,
+                "control_n": 10,
+                "treatment_mean": 2.0,
+                "treatment_std": 1.0,
+                "treatment_n": 10,
+            },
+        },
+    )
+
+    assert response.status_code == 422
+
+
+def test_results_endpoint_quantile_rejects_out_of_range_quantile() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/results",
+        json={
+            "metric_type": "quantile",
+            "ranked": {
+                "control_values": [1.0, 2.0, 3.0],
+                "treatment_values": [4.0, 5.0, 6.0],
+                "quantile": 1.5,
+            },
+        },
+    )
+
+    assert response.status_code == 422
+
+
 def test_results_endpoint_fisher_exact_significant() -> None:
     client = TestClient(create_app())
 

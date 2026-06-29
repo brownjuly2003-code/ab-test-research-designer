@@ -535,6 +535,7 @@
         "controlValues": "Kontrollwerte",
         "treatmentValues": "Werte der Testvariante",
         "rawValuesPlaceholder": "Ein Wert pro Zeile oder kommagetrennt",
+        "quantile": "Quantil (0–1)",
         "controlEvents": "Kontrollereignisse",
         "controlExposure": "Kontrollexposition",
         "treatmentEvents": "Testvarianten-Ereignisse",
@@ -566,7 +567,9 @@
         "rate": "Rate (Poisson)",
         "rateHint": "Der Poisson-Ratentest vergleicht Ereignisse über die Exposition (z. B. Fehler pro 1000 Sitzungen) mit einem exakten bedingten Test. Für Ereignisraten mit unabhängigen Ankünften — nicht für geclusterte Zählungen pro Nutzer.",
         "bootstrap": "Bootstrap / Permutation",
-        "bootstrapHint": "Der Permutationstest vergleicht die Mittelwertdifferenz durch Umordnen der gepoolten Rohwerte — ein verteilungsfreier t-Test — mit einem Perzentil-Bootstrap-KI. Keine Normalverteilungsannahme; kleine Stichproben werden exakt geprüft."
+        "bootstrapHint": "Der Permutationstest vergleicht die Mittelwertdifferenz durch Umordnen der gepoolten Rohwerte — ein verteilungsfreier t-Test — mit einem Perzentil-Bootstrap-KI. Keine Normalverteilungsannahme; kleine Stichproben werden exakt geprüft.",
+        "quantile": "Quantilseffekt",
+        "quantileHint": "Der Quantils-Behandlungseffekt vergleicht ein gewähltes Quantil (standardmäßig den Median, oder z. B. p90) zwischen den Gruppen mit einem Permutationstest und einem Perzentil-Bootstrap-KI. Nutzen Sie ihn, wenn ein Tail oder der Median wichtiger ist als der Mittelwert – schiefe Umsätze, Latenzperzentile."
       },
       "validation": {
         "fillAllFields": "Füllen Sie vor der Analyse alle tatsächlichen Ergebnisfelder mit gültigen Werten aus.",

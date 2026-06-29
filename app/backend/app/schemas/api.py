@@ -226,11 +226,14 @@ class ObservedResultsContinuous(BaseModel):
 
 
 class ObservedResultsRanked(BaseModel):
-    """Raw per-unit samples for the non-parametric (Mann–Whitney) analyzer.
+    """Raw per-unit samples for the distribution-free analyzers (Mann–Whitney, bootstrap/permutation,
+    quantile treatment effect).
 
-    Unlike the binary / continuous observed-results models, which carry only summary statistics, the
-    rank-sum test needs the actual observations: it ranks the pooled sample. Each arm is capped at
+    Unlike the binary / continuous observed-results models, which carry only summary statistics, these
+    tests need the actual observations: they rank or resample the pooled sample. Each arm is capped at
     ``MAX_OBSERVED_SAMPLE_SIZE`` because the Hodges–Lehmann CI materializes all pairwise differences.
+    ``quantile`` is consumed only by the quantile treatment-effect analyzer (which quantile to compare,
+    median by default); the Mann–Whitney and bootstrap analyzers ignore it.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -238,6 +241,7 @@ class ObservedResultsRanked(BaseModel):
     control_values: list[float] = Field(min_length=2, max_length=MAX_OBSERVED_SAMPLE_SIZE)
     treatment_values: list[float] = Field(min_length=2, max_length=MAX_OBSERVED_SAMPLE_SIZE)
     alpha: float = Field(default=0.05, ge=0.001, le=0.1)
+    quantile: float = Field(default=0.5, gt=0.0, lt=1.0)
 
     @model_validator(mode="after")
     def validate_values(self) -> "ObservedResultsRanked":
@@ -268,7 +272,9 @@ class ObservedResultsCount(BaseModel):
 class ResultsRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    metric_type: Literal["binary", "continuous", "mann_whitney", "bootstrap", "fisher_exact", "count"]
+    metric_type: Literal[
+        "binary", "continuous", "mann_whitney", "bootstrap", "quantile", "fisher_exact", "count"
+    ]
     binary: ObservedResultsBinary | None = None
     continuous: ObservedResultsContinuous | None = None
     ranked: ObservedResultsRanked | None = None
@@ -305,6 +311,13 @@ class ResultsRequest(BaseModel):
                 raise ValueError(translate("errors.schemas.bootstrap_requires_ranked_data"))
             if self.binary is not None or self.continuous is not None:
                 raise ValueError(translate("errors.schemas.bootstrap_rejects_other_data"))
+        if self.metric_type == "quantile":
+            # Quantile treatment effect reuses the raw per-unit samples (the same ranked input shape as
+            # Mann–Whitney / bootstrap); the ranked.quantile field picks which quantile to compare.
+            if self.ranked is None:
+                raise ValueError(translate("errors.schemas.quantile_requires_ranked_data"))
+            if self.binary is not None or self.continuous is not None:
+                raise ValueError(translate("errors.schemas.quantile_rejects_other_data"))
         if self.metric_type == "count":
             if self.count is None:
                 raise ValueError(translate("errors.schemas.count_requires_count_data"))
