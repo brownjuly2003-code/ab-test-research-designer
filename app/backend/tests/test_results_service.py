@@ -502,3 +502,90 @@ def test_results_endpoint_fisher_exact_rejects_oversized_table() -> None:
     # Exact enumeration is capped: the table exceeds MAX_FISHER_EXACT_TOTAL and is rejected with a
     # clear message (a service-level ValueError -> 400) directing the caller to the binary test.
     assert response.status_code == 400
+
+
+def test_results_endpoint_count_significant() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/results",
+        json={
+            "metric_type": "count",
+            "count": {
+                "control_events": 10,
+                "control_exposure": 100,
+                "treatment_events": 25,
+                "treatment_exposure": 100,
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["metric_type"] == "count"
+    assert payload["is_significant"] is True
+    # Conditional binomial exact p for (10 vs 25, equal exposure) and the rate ratio surfaced.
+    assert payload["p_value"] == pytest.approx(0.016674, abs=1e-5)
+    assert payload["effect_size"] == pytest.approx(2.5)
+    assert payload["effect_size_label"]
+    assert "Poisson" in payload["interpretation"]
+
+
+def test_results_endpoint_count_localizes_via_accept_language() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/results",
+        headers={"Accept-Language": "ru"},
+        json={
+            "metric_type": "count",
+            "count": {
+                "control_events": 10,
+                "control_exposure": 100,
+                "treatment_events": 25,
+                "treatment_exposure": 100,
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    assert "Пуассона" in response.json()["interpretation"]
+
+
+def test_results_endpoint_count_degenerate_when_no_events() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/results",
+        json={
+            "metric_type": "count",
+            "count": {
+                "control_events": 0,
+                "control_exposure": 100,
+                "treatment_events": 0,
+                "treatment_exposure": 100,
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["is_significant"] is False
+
+
+def test_results_endpoint_count_requires_count_data() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/results",
+        json={
+            "metric_type": "count",
+            "binary": {
+                "control_conversions": 1,
+                "control_users": 10,
+                "treatment_conversions": 2,
+                "treatment_users": 10,
+            },
+        },
+    )
+
+    assert response.status_code == 422

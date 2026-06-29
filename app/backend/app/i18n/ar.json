@@ -272,7 +272,10 @@
       "targeting_numeric_requires_number": "تتطلب عوامل الاستهداف الرقمية قيمة رقمية",
       "fisher_exact_requires_binary_data": "يتطلب نوع القياس fisher_exact بيانات ثنائية (تكرارات 2×2)",
       "fisher_exact_rejects_other_data": "نوع القياس fisher_exact لا يقبل بيانات مستمرة أو عينات خام (ranked)",
-      "fisher_exact_table_too_large": "fisher_exact مخصص للعينات الصغيرة؛ هذا الجدول كبير جدًا — استخدم الاختبار الثنائي (التقريب الطبيعي)"
+      "fisher_exact_table_too_large": "fisher_exact مخصص للعينات الصغيرة؛ هذا الجدول كبير جدًا — استخدم الاختبار الثنائي (التقريب الطبيعي)",
+      "count_requires_count_data": "يتطلب نوع القياس count بيانات عدّ (أحداث على التعرّض)",
+      "count_rejects_other_data": "نوع القياس count لا يقبل بيانات ثنائية أو مستمرة أو عينات خام (ranked)",
+      "count_events_too_large": "count: عدد الأحداث الإجمالي كبير جدًا للاختبار الدقيق — عند هذا الحجم يكون التقريب الطبيعي دقيقًا"
     },
     "srm_detected": "تم اكتشاف SRM - تحقق من التوزيع العشوائي أو تنفيذ التتبع",
     "srm_not_detected": "لم يتم اكتشاف SRM"
@@ -295,14 +298,19 @@
       "ratio": "نسبة مجموعة المعالجة {{treatmentRatio}} مقابل المجموعة الضابطة {{controlRatio}}. الأثر المطلق {{effect}} بفاصل ثقة {{ciLevel}}% [{{ciLower}}، {{ciUpper}}]. القيمة الاحتمالية الثنائية {{pValue}} (طريقة دلتا)؛ النتيجة {{significance}}.",
       "mann_whitney": "وسيط مجموعة المعالجة {{treatmentMedian}} مقابل المجموعة الضابطة {{controlMedian}}. إزاحة Hodges–Lehmann {{shift}} بفاصل ثقة {{ciLevel}}% [{{ciLower}}، {{ciUpper}}]. P(المعالجة > الضابطة) = {{cles}}%. إحصاءة Mann–Whitney U {{uStatistic}}، القيمة الاحتمالية الثنائية {{pValue}}؛ النتيجة {{significance}}.",
       "degenerate": "المدخلات المرصودة متدهورة، لذا لا يمكن حساب إحصاءة الاختبار.",
-      "fisher_exact": "تحويل مجموعة المعالجة {{treatment}}% مقابل المجموعة الضابطة {{control}}%. الأثر المطلق {{effect}} نقطة مئوية. نسبة الأرجحية {{oddsRatio}}. القيمة الاحتمالية الثنائية الدقيقة لاختبار Fisher {{pValue}}؛ النتيجة {{significance}}."
+      "fisher_exact": "تحويل مجموعة المعالجة {{treatment}}% مقابل المجموعة الضابطة {{control}}%. الأثر المطلق {{effect}} نقطة مئوية. نسبة الأرجحية {{oddsRatio}}. القيمة الاحتمالية الثنائية الدقيقة لاختبار Fisher {{pValue}}؛ النتيجة {{significance}}.",
+      "count": "معدّل مجموعة المعالجة {{treatmentRate}} مقابل المجموعة الضابطة {{controlRate}}. نسبة المعدّلات {{rateRatio}}. فرق المعدّلات {{rateDifference}} بفاصل ثقة {{ciLevel}}% [{{ciLower}}، {{ciUpper}}]. القيمة الاحتمالية الثنائية الدقيقة لبواسون {{pValue}}؛ النتيجة {{significance}}."
     },
     "effect_size": {
       "rank_biserial": "ارتباط ثنائي التسلسل الرتبي",
-      "odds_ratio": "نسبة الأرجحية (odds ratio)"
+      "odds_ratio": "نسبة الأرجحية (odds ratio)",
+      "rate_ratio": "نسبة المعدّلات (rate ratio)"
     },
     "fisher_exact": {
       "odds_ratio_undefined": "غير معرّفة (خلية صفرية)"
+    },
+    "count": {
+      "rate_ratio_undefined": "غير معرّفة (لا أحداث في المجموعة الضابطة)"
     }
   }
 }

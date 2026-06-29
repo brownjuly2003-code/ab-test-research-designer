@@ -248,13 +248,31 @@ class ObservedResultsRanked(BaseModel):
         return self
 
 
+class ObservedResultsCount(BaseModel):
+    """Event counts over exposure, for the Poisson rate test.
+
+    A rate metric is a count of events accrued over an amount of exposure (time, sessions, users —
+    any common denominator). The two arms may have different exposures; the test compares the rates
+    ``events / exposure``, not the raw counts.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    control_events: int = Field(ge=0)
+    control_exposure: float = Field(gt=0)
+    treatment_events: int = Field(ge=0)
+    treatment_exposure: float = Field(gt=0)
+    alpha: float = Field(default=0.05, ge=0.001, le=0.1)
+
+
 class ResultsRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    metric_type: Literal["binary", "continuous", "mann_whitney", "fisher_exact"]
+    metric_type: Literal["binary", "continuous", "mann_whitney", "fisher_exact", "count"]
     binary: ObservedResultsBinary | None = None
     continuous: ObservedResultsContinuous | None = None
     ranked: ObservedResultsRanked | None = None
+    count: ObservedResultsCount | None = None
 
     @model_validator(mode="after")
     def check_type(self) -> "ResultsRequest":
@@ -280,6 +298,11 @@ class ResultsRequest(BaseModel):
                 raise ValueError(translate("errors.schemas.mann_whitney_requires_ranked_data"))
             if self.binary is not None or self.continuous is not None:
                 raise ValueError(translate("errors.schemas.mann_whitney_rejects_other_data"))
+        if self.metric_type == "count":
+            if self.count is None:
+                raise ValueError(translate("errors.schemas.count_requires_count_data"))
+            if self.binary is not None or self.continuous is not None or self.ranked is not None:
+                raise ValueError(translate("errors.schemas.count_rejects_other_data"))
         return self
 
 

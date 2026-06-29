@@ -272,7 +272,10 @@
       "targeting_numeric_requires_number": "numeric targeting operators require a numeric value",
       "fisher_exact_requires_binary_data": "fisher_exact metric_type requires binary (2x2 count) data",
       "fisher_exact_rejects_other_data": "fisher_exact metric_type does not accept continuous or ranked data",
-      "fisher_exact_table_too_large": "fisher_exact is intended for small samples; this table is too large — use the binary (normal-approximation) test"
+      "fisher_exact_table_too_large": "fisher_exact is intended for small samples; this table is too large — use the binary (normal-approximation) test",
+      "count_requires_count_data": "count metric_type requires count (events over exposure) data",
+      "count_rejects_other_data": "count metric_type does not accept binary, continuous or ranked data",
+      "count_events_too_large": "count: too many total events for the exact test — the normal approximation is exact at this scale"
     },
     "srm_detected": "SRM detected - check your randomization or tracking implementation",
     "srm_not_detected": "No SRM detected"
@@ -295,14 +298,19 @@
       "ratio": "Treatment ratio {{treatmentRatio}} vs control {{controlRatio}}. Absolute effect {{effect}} with {{ciLevel}}% CI [{{ciLower}}, {{ciUpper}}]. Two-sided p-value {{pValue}} (delta method); result is {{significance}}.",
       "mann_whitney": "Treatment median {{treatmentMedian}} vs control {{controlMedian}}. Hodges–Lehmann shift {{shift}} with {{ciLevel}}% CI [{{ciLower}}, {{ciUpper}}]. P(treatment > control) = {{cles}}%. Mann–Whitney U {{uStatistic}}, two-sided p-value {{pValue}}; result is {{significance}}.",
       "degenerate": "Observed inputs are degenerate, so the test statistic cannot be computed.",
-      "fisher_exact": "Treatment conversion {{treatment}}% vs control {{control}}%. Absolute effect {{effect}} pp. Odds ratio {{oddsRatio}}. Fisher's exact two-sided p-value {{pValue}}; result is {{significance}}."
+      "fisher_exact": "Treatment conversion {{treatment}}% vs control {{control}}%. Absolute effect {{effect}} pp. Odds ratio {{oddsRatio}}. Fisher's exact two-sided p-value {{pValue}}; result is {{significance}}.",
+      "count": "Treatment rate {{treatmentRate}} vs control {{controlRate}}. Rate ratio {{rateRatio}}. Rate difference {{rateDifference}} with {{ciLevel}}% CI [{{ciLower}}, {{ciUpper}}]. Poisson exact two-sided p-value {{pValue}}; result is {{significance}}."
     },
     "effect_size": {
       "rank_biserial": "rank-biserial correlation",
-      "odds_ratio": "odds ratio"
+      "odds_ratio": "odds ratio",
+      "rate_ratio": "rate ratio"
     },
     "fisher_exact": {
       "odds_ratio_undefined": "undefined (a zero cell)"
+    },
+    "count": {
+      "rate_ratio_undefined": "undefined (no control events)"
     }
   }
 }

@@ -272,7 +272,10 @@
       "targeting_numeric_requires_number": "los operadores numéricos de segmentación requieren un valor numérico",
       "fisher_exact_requires_binary_data": "el metric_type fisher_exact requiere datos binarios (recuentos 2×2)",
       "fisher_exact_rejects_other_data": "el metric_type fisher_exact no acepta datos continuos ni de muestras sin procesar (ranked)",
-      "fisher_exact_table_too_large": "fisher_exact está pensado para muestras pequeñas; esta tabla es demasiado grande — utilice la prueba binaria (aproximación normal)"
+      "fisher_exact_table_too_large": "fisher_exact está pensado para muestras pequeñas; esta tabla es demasiado grande — utilice la prueba binaria (aproximación normal)",
+      "count_requires_count_data": "el metric_type count requiere datos de conteo (eventos sobre exposición)",
+      "count_rejects_other_data": "el metric_type count no acepta datos binarios, continuos ni de muestras sin procesar (ranked)",
+      "count_events_too_large": "count: demasiados eventos totales para la prueba exacta; a esta escala la aproximación normal es exacta"
     },
     "srm_detected": "SRM detectado — verifique su aleatorización o implementación de seguimiento",
     "srm_not_detected": "No se detectó SRM"
@@ -295,14 +298,19 @@
       "ratio": "Ratio del tratamiento {{treatmentRatio}} frente al control {{controlRatio}}. Efecto absoluto {{effect}} con IC del {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. Valor p bilateral {{pValue}} (método delta); el resultado es {{significance}}.",
       "mann_whitney": "Mediana del tratamiento {{treatmentMedian}} frente al control {{controlMedian}}. Desplazamiento de Hodges–Lehmann {{shift}} con IC del {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. P(tratamiento > control) = {{cles}}%. Mann–Whitney U {{uStatistic}}, valor p bilateral {{pValue}}; el resultado es {{significance}}.",
       "degenerate": "Las entradas observadas son degeneradas, por lo que no se puede calcular el estadístico de prueba.",
-      "fisher_exact": "Conversión del tratamiento {{treatment}}% frente al control {{control}}%. Efecto absoluto {{effect}} pp. Razón de momios {{oddsRatio}}. Valor p bilateral exacto de Fisher {{pValue}}; el resultado es {{significance}}."
+      "fisher_exact": "Conversión del tratamiento {{treatment}}% frente al control {{control}}%. Efecto absoluto {{effect}} pp. Razón de momios {{oddsRatio}}. Valor p bilateral exacto de Fisher {{pValue}}; el resultado es {{significance}}.",
+      "count": "Tasa del tratamiento {{treatmentRate}} frente al control {{controlRate}}. Razón de tasas {{rateRatio}}. Diferencia de tasas {{rateDifference}} con IC del {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. Valor p bilateral exacto de Poisson {{pValue}}; el resultado es {{significance}}."
     },
     "effect_size": {
       "rank_biserial": "correlación biserial por rangos",
-      "odds_ratio": "razón de momios (odds ratio)"
+      "odds_ratio": "razón de momios (odds ratio)",
+      "rate_ratio": "razón de tasas (rate ratio)"
     },
     "fisher_exact": {
       "odds_ratio_undefined": "no definida (una celda en cero)"
+    },
+    "count": {
+      "rate_ratio_undefined": "no definida (sin eventos en el control)"
     }
   }
 }
