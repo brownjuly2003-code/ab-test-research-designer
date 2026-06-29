@@ -710,7 +710,8 @@
         "bandit": "Bandit vs fixe",
         "assignment": "Affectation d'utilisateur",
         "liveStats": "Expérience en direct",
-        "decision": "Synthèse de décision"
+        "decision": "Synthèse de décision",
+        "categoricalResults": "Résultat catégoriel (khi-deux)"
       },
       "badges": {
         "loaded": "Chargé",
@@ -897,6 +898,36 @@
       "blocker": {
         "srm_mismatch": "Discordance du ratio d'échantillons (p={{p}}) — l'affectation semble cassée ; corrigez la randomisation ou le suivi avant de faire confiance aux résultats.",
         "guardrail_breach": "Le garde-fou « {{metric}} » est dégradé de façon significative au-delà de sa tolérance — la livraison est bloquée jusqu'à comprendre la régression."
+      }
+    },
+    "categoricalResults": {
+      "title": "Résultat catégoriel (khi-deux)",
+      "description": "Vérifiez si la distribution d'un résultat catégoriel diffère entre les groupes à l'aide d'un test d'indépendance du khi-deux sur un tableau de contingence r×c.",
+      "tableLabel": "Tableau de contingence",
+      "tablePlaceholder": "30, 70\n50, 50",
+      "tableHelp": "Un groupe par ligne (lignes) ; effectifs par niveau de résultat séparés par des virgules ou des espaces (colonnes).",
+      "alphaLabel": "Seuil de signification (alpha)",
+      "analyzeButton": "Lancer le test du khi-deux",
+      "analyzing": "Analyse…",
+      "results": {
+        "chiSquare": "Khi-deux",
+        "degreesOfFreedom": "Degrés de liberté",
+        "pValue": "Valeur p",
+        "cramersV": "V de Cramér",
+        "sampleSize": "N total",
+        "shape": "Format du tableau"
+      },
+      "lowExpectedWarning": "Certains effectifs attendus sont inférieurs à 5, l'approximation du khi-deux peut donc être peu fiable. Envisagez le test exact de Fisher pour un tableau petit ou clairsemé.",
+      "validation": {
+        "empty": "Saisissez un tableau de contingence (un groupe par ligne).",
+        "parseError": "Chaque ligne doit contenir le même nombre d'entiers non négatifs, avec au moins deux lignes et deux colonnes.",
+        "analysisUnavailable": "L'analyse n'est pas disponible. Vérifiez le tableau et réessayez."
+      },
+      "magnitude": {
+        "negligible": "négligeable",
+        "small": "faible",
+        "medium": "moyenne",
+        "large": "forte"
       }
     }
   },

@@ -282,7 +282,11 @@
       "quantile_rejects_other_data": "metric_type=quantile не принимает binary- или continuous-данные",
       "equivalence_requires_continuous_data": "metric_type equivalence требует непрерывные данные (сводные статистики)",
       "equivalence_rejects_other_data": "metric_type equivalence не принимает бинарные или ранжированные данные",
-      "equivalence_requires_margin": "metric_type equivalence требует equivalence_margin больше нуля"
+      "equivalence_requires_margin": "metric_type equivalence требует equivalence_margin больше нуля",
+      "categorical_min_columns": "таблица сопряжённости должна содержать не менее двух столбцов",
+      "categorical_max_columns": "в таблице сопряжённости слишком много столбцов",
+      "categorical_rectangular": "таблица сопряжённости должна быть прямоугольной (во всех строках одинаковое число столбцов)",
+      "categorical_non_negative": "значения в таблице сопряжённости не могут быть отрицательными"
     },
     "srm_detected": "Обнаружен SRM — проверьте рандомизацию и реализацию трекинга",
     "srm_not_detected": "SRM не обнаружен"
@@ -311,7 +315,8 @@
       "count": "Интенсивность варианта {{treatmentRate}} против контроля {{controlRate}}. Отношение интенсивностей {{rateRatio}}. Разность интенсивностей {{rateDifference}} при {{ciLevel}}% ДИ [{{ciLower}}, {{ciUpper}}]. Точный двусторонний p-value Пуассона {{pValue}}; результат {{significance}}.",
       "bootstrap": "Среднее варианта {{treatmentMean}} против контроля {{controlMean}}. Разница средних {{effect}} при {{ciLevel}}% перцентильном bootstrap-ДИ [{{ciLower}}, {{ciUpper}}]. Перестановочный двусторонний p-value {{pValue}} по {{permutations}} перестановкам; результат {{significance}}.",
       "quantile": "Квантиль P{{percentile}} варианта {{treatmentQuantile}} против контроля {{controlQuantile}}. Сдвиг квантиля {{effect}} при {{ciLevel}}% перцентильном bootstrap-ДИ [{{ciLower}}, {{ciUpper}}]. Перестановочный двусторонний p-value {{pValue}} по {{permutations}} перестановкам; результат {{significance}}.",
-      "equivalence": "Среднее в тесте {{treatmentMean}} против контроля {{controlMean}}. Эффект {{effect}} проверен против границы эквивалентности ±{{margin}}: {{equivalence}}. {{ciLevel}}% доверительный интервал [{{ciLower}}, {{ciUpper}}] — решающий интервал TOST; p-value двух односторонних тестов {{pValue}}."
+      "equivalence": "Среднее в тесте {{treatmentMean}} против контроля {{controlMean}}. Эффект {{effect}} проверен против границы эквивалентности ±{{margin}}: {{equivalence}}. {{ciLevel}}% доверительный интервал [{{ciLower}}, {{ciUpper}}] — решающий интервал TOST; p-value двух односторонних тестов {{pValue}}.",
+      "categorical": "Хи-квадрат {{chiSquare}} при {{df}} степенях свободы для таблицы сопряжённости {{rows}}×{{cols}} (N = {{n}}). Двусторонний p-value {{pValue}}; результат {{significance}}. Силу связи измеряет V Крамера {{cramersV}}."
     },
     "effect_size": {
       "rank_biserial": "ранг-бисериальная корреляция",
@@ -332,6 +337,10 @@
     "equivalence": {
       "demonstrated": "эквивалентность доказана",
       "not_demonstrated": "эквивалентность не доказана"
+    },
+    "categorical": {
+      "verdict_associated": "Связь обнаружена",
+      "verdict_independent": "Значимой связи нет"
     }
   }
 }

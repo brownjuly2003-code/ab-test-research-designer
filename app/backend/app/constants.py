@@ -45,6 +45,12 @@ BOT_CONVERSION_EVENT_THRESHOLD = 100
 # manual paste-in analyzer, and large live datasets belong to the streaming path, not this endpoint.
 MAX_OBSERVED_SAMPLE_SIZE = 1000
 
+# Upper bound on each dimension (rows = groups, columns = outcome levels) of the contingency table
+# accepted by the post-hoc chi-square test of independence. The statistic is O(r·c); a real
+# categorical breakdown has a handful of groups and levels, so 50 per side is generous while bounding
+# request size and compute. The grand total is capped separately in the stats module.
+MAX_CONTINGENCY_DIM = 50
+
 DEFAULT_CORS_METHODS = ("GET", "POST", "PUT", "DELETE", "OPTIONS")
 DEFAULT_CORS_HEADERS = ("Accept", "Content-Type")
 

@@ -282,7 +282,11 @@
       "quantile_rejects_other_data": "le metric_type quantile n'accepte pas de données binaires ou continues",
       "equivalence_requires_continuous_data": "le metric_type equivalence nécessite des données continues (statistiques résumées)",
       "equivalence_rejects_other_data": "le metric_type equivalence n'accepte pas de données binaires ou de rangs",
-      "equivalence_requires_margin": "le metric_type equivalence nécessite un equivalence_margin supérieur à zéro"
+      "equivalence_requires_margin": "le metric_type equivalence nécessite un equivalence_margin supérieur à zéro",
+      "categorical_min_columns": "le tableau de contingence doit comporter au moins deux colonnes",
+      "categorical_max_columns": "le tableau de contingence comporte trop de colonnes",
+      "categorical_rectangular": "le tableau de contingence doit être rectangulaire (chaque ligne doit avoir le même nombre de colonnes)",
+      "categorical_non_negative": "les effectifs du tableau de contingence ne peuvent pas être négatifs"
     },
     "srm_detected": "SRM détecté - vérifiez votre mise en œuvre de randomisation ou de suivi",
     "srm_not_detected": "Aucun SRM détecté"
@@ -311,7 +315,8 @@
       "count": "Taux du traitement {{treatmentRate}} contre contrôle {{controlRate}}. Rapport de taux {{rateRatio}}. Différence de taux {{rateDifference}} avec IC à {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. Valeur p bilatérale exacte de Poisson {{pValue}} ; le résultat est {{significance}}.",
       "bootstrap": "Moyenne du traitement {{treatmentMean}} contre contrôle {{controlMean}}. Différence des moyennes {{effect}} avec IC bootstrap par percentiles à {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. Valeur p bilatérale de permutation {{pValue}} sur {{permutations}} réaffectations ; le résultat est {{significance}}.",
       "quantile": "Quantile P{{percentile}} du traitement {{treatmentQuantile}} vs contrôle {{controlQuantile}}. Décalage de quantile {{effect}} avec IC bootstrap percentile à {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. Valeur p bilatérale de permutation {{pValue}} sur {{permutations}} réaffectations ; le résultat est {{significance}}.",
-      "equivalence": "Moyenne du traitement {{treatmentMean}} vs contrôle {{controlMean}}. Effet {{effect}} testé contre une marge d'équivalence de ±{{margin}} : {{equivalence}}. L'intervalle de confiance à {{ciLevel}}% [{{ciLower}}, {{ciUpper}}] est l'intervalle de décision TOST ; valeur p des deux tests unilatéraux {{pValue}}."
+      "equivalence": "Moyenne du traitement {{treatmentMean}} vs contrôle {{controlMean}}. Effet {{effect}} testé contre une marge d'équivalence de ±{{margin}} : {{equivalence}}. L'intervalle de confiance à {{ciLevel}}% [{{ciLower}}, {{ciUpper}}] est l'intervalle de décision TOST ; valeur p des deux tests unilatéraux {{pValue}}.",
+      "categorical": "Khi-deux {{chiSquare}} à {{df}} degrés de liberté pour un tableau de contingence {{rows}}×{{cols}} (N = {{n}}). Valeur p bilatérale {{pValue}} ; le résultat est {{significance}}. Le V de Cramér {{cramersV}} mesure la force de l'association."
     },
     "effect_size": {
       "rank_biserial": "corrélation bisériale de rang",
@@ -332,6 +337,10 @@
     "equivalence": {
       "demonstrated": "équivalence démontrée",
       "not_demonstrated": "équivalence non démontrée"
+    },
+    "categorical": {
+      "verdict_associated": "Association détectée",
+      "verdict_independent": "Aucune association significative"
     }
   }
 }

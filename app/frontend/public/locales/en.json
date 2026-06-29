@@ -710,7 +710,8 @@
         "bandit": "Bandit vs fixed",
         "assignment": "User assignment",
         "liveStats": "Live experiment",
-        "decision": "Decision readout"
+        "decision": "Decision readout",
+        "categoricalResults": "Categorical outcome (chi-square)"
       },
       "badges": {
         "loaded": "Loaded",
@@ -897,6 +898,36 @@
       "blocker": {
         "srm_mismatch": "Sample-ratio mismatch (p={{p}}) — assignment looks broken; fix randomization or tracking before trusting any result.",
         "guardrail_breach": "Guardrail \"{{metric}}\" is significantly degraded beyond its tolerance — shipping is blocked until the regression is understood."
+      }
+    },
+    "categoricalResults": {
+      "title": "Categorical outcome (chi-square)",
+      "description": "Test whether a categorical outcome's distribution differs across groups with a chi-square test of independence on an r×c contingency table.",
+      "tableLabel": "Contingency table",
+      "tablePlaceholder": "30, 70\n50, 50",
+      "tableHelp": "One group per line (rows); counts per outcome level separated by commas or spaces (columns).",
+      "alphaLabel": "Significance level (alpha)",
+      "analyzeButton": "Run chi-square test",
+      "analyzing": "Analyzing…",
+      "results": {
+        "chiSquare": "Chi-square",
+        "degreesOfFreedom": "Degrees of freedom",
+        "pValue": "p-value",
+        "cramersV": "Cramér's V",
+        "sampleSize": "Total N",
+        "shape": "Table shape"
+      },
+      "lowExpectedWarning": "Some expected cell counts are below 5, so the chi-square approximation may be unreliable. Consider Fisher's exact test for a small or sparse table.",
+      "validation": {
+        "empty": "Enter a contingency table (one group per line).",
+        "parseError": "Each row must contain the same number of non-negative whole numbers, with at least two rows and two columns.",
+        "analysisUnavailable": "Analysis is unavailable. Check the table and try again."
+      },
+      "magnitude": {
+        "negligible": "negligible",
+        "small": "small",
+        "medium": "medium",
+        "large": "large"
       }
     }
   },

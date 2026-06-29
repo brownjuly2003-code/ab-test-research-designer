@@ -4,6 +4,8 @@ from typing import Any
 
 from app.backend.app.i18n import translate
 from app.backend.app.schemas.api import (
+    CategoricalResultsRequest,
+    CategoricalResultsResponse,
     ObservedResultsBinary,
     ObservedResultsContinuous,
     ObservedResultsCount,
@@ -13,6 +15,7 @@ from app.backend.app.schemas.api import (
 )
 from app.backend.app.stats.binary import normal_ppf
 from app.backend.app.stats.bootstrap_permutation import bootstrap_permutation_test
+from app.backend.app.stats.chi_square_independence import chi_square_independence_test
 from app.backend.app.stats.equivalence import tost_equivalence_test
 from app.backend.app.stats.fisher_exact import MAX_FISHER_EXACT_TOTAL, fisher_exact_test
 from app.backend.app.stats.mann_whitney import mann_whitney_u_test
@@ -39,6 +42,57 @@ def analyze_results(request: ResultsRequest) -> ResultsResponse:
     if request.metric_type == "equivalence":
         return _analyze_equivalence(request.continuous)
     return _analyze_continuous(request.continuous)
+
+
+def analyze_categorical_results(request: CategoricalResultsRequest) -> CategoricalResultsResponse:
+    """Chi-square test of independence on an r×c contingency table.
+
+    Separate from ``analyze_results`` because the outcome is omnibus — a chi-square statistic with
+    degrees of freedom and Cramér's V, not the scalar effect + confidence interval that
+    ``ResultsResponse`` carries. A degenerate table raises ``ValueError`` from the stats layer, which
+    the global handler maps to HTTP 400.
+    """
+    result = chi_square_independence_test(request.table, request.alpha)
+    is_significant = result["is_significant"]
+    return CategoricalResultsResponse(
+        chi_square=round(result["chi_square"], 4),
+        degrees_of_freedom=result["degrees_of_freedom"],
+        p_value=round(result["p_value"], 6),
+        is_significant=is_significant,
+        cramers_v=round(result["cramers_v"], 4),
+        n_total=result["n_total"],
+        num_rows=result["num_rows"],
+        num_cols=result["num_cols"],
+        min_expected_count=round(result["min_expected_count"], 4),
+        low_expected_warning=result["low_expected_warning"],
+        verdict=translate(
+            "results.categorical.verdict_associated"
+            if is_significant
+            else "results.categorical.verdict_independent"
+        ),
+        interpretation=_interpretation_categorical(result),
+    )
+
+
+def _interpretation_categorical(result: dict[str, Any]) -> str:
+    significance_text = translate(
+        "results.significance.significant"
+        if result["is_significant"]
+        else "results.significance.not_significant"
+    )
+    return translate(
+        "results.interpretation.categorical",
+        {
+            "chiSquare": f"{result['chi_square']:.4f}",
+            "df": str(result["degrees_of_freedom"]),
+            "rows": str(result["num_rows"]),
+            "cols": str(result["num_cols"]),
+            "n": str(result["n_total"]),
+            "pValue": f"{result['p_value']:.6f}",
+            "cramersV": f"{result['cramers_v']:.4f}",
+            "significance": significance_text,
+        },
+    )
 
 
 def _analyze_binary(obs: ObservedResultsBinary | None) -> ResultsResponse:

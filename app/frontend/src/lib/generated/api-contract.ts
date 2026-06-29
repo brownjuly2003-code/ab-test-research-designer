@@ -230,6 +230,26 @@ export type CalculationsSection = {
   assumptions: string[];
 };
 
+export type CategoricalResultsRequest = {
+  table: number[][];
+  alpha?: number;
+};
+
+export type CategoricalResultsResponse = {
+  chi_square: number;
+  degrees_of_freedom: number;
+  p_value: number;
+  is_significant: boolean;
+  cramers_v: number;
+  n_total: number;
+  num_rows: number;
+  num_cols: number;
+  min_expected_count: number;
+  low_expected_warning: boolean;
+  verdict: string;
+  interpretation: string;
+};
+
 export type ComparisonExportRequest = {
   project_ids: string[];
   format: "pdf" | "markdown";

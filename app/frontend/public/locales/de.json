@@ -710,7 +710,8 @@
         "bandit": "Bandit vs. fest",
         "assignment": "Nutzerzuweisung",
         "liveStats": "Live-Experiment",
-        "decision": "Entscheidungs-Readout"
+        "decision": "Entscheidungs-Readout",
+        "categoricalResults": "Kategoriales Ergebnis (Chi-Quadrat)"
       },
       "badges": {
         "loaded": "Geladen",
@@ -897,6 +898,36 @@
       "blocker": {
         "srm_mismatch": "Sample-Ratio-Mismatch (p={{p}}) — die Zuweisung scheint defekt; korrigieren Sie Randomisierung oder Tracking, bevor Sie den Ergebnissen vertrauen.",
         "guardrail_breach": "Guardrail „{{metric}}“ ist signifikant über die Toleranz hinaus verschlechtert — die Auslieferung ist blockiert, bis die Regression verstanden ist."
+      }
+    },
+    "categoricalResults": {
+      "title": "Kategoriales Ergebnis (Chi-Quadrat)",
+      "description": "Prüfen Sie mit einem Chi-Quadrat-Unabhängigkeitstest auf einer r×c-Kontingenztabelle, ob sich die Verteilung eines kategorialen Ergebnisses zwischen Gruppen unterscheidet.",
+      "tableLabel": "Kontingenztabelle",
+      "tablePlaceholder": "30, 70\n50, 50",
+      "tableHelp": "Eine Gruppe pro Zeile (Zeilen); Häufigkeiten je Ergebnisstufe durch Komma oder Leerzeichen getrennt (Spalten).",
+      "alphaLabel": "Signifikanzniveau (Alpha)",
+      "analyzeButton": "Chi-Quadrat-Test ausführen",
+      "analyzing": "Auswertung…",
+      "results": {
+        "chiSquare": "Chi-Quadrat",
+        "degreesOfFreedom": "Freiheitsgrade",
+        "pValue": "p-Wert",
+        "cramersV": "Cramérs V",
+        "sampleSize": "Gesamt-N",
+        "shape": "Tabellenformat"
+      },
+      "lowExpectedWarning": "Einige erwartete Zellhäufigkeiten liegen unter 5, daher kann die Chi-Quadrat-Näherung unzuverlässig sein. Erwägen Sie für eine kleine oder dünn besetzte Tabelle den exakten Test nach Fisher.",
+      "validation": {
+        "empty": "Geben Sie eine Kontingenztabelle ein (eine Gruppe pro Zeile).",
+        "parseError": "Jede Zeile muss gleich viele nicht-negative ganze Zahlen enthalten, mit mindestens zwei Zeilen und zwei Spalten.",
+        "analysisUnavailable": "Auswertung nicht verfügbar. Prüfen Sie die Tabelle und versuchen Sie es erneut."
+      },
+      "magnitude": {
+        "negligible": "vernachlässigbar",
+        "small": "klein",
+        "medium": "mittel",
+        "large": "groß"
       }
     }
   },

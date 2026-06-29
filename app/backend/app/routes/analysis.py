@@ -23,6 +23,8 @@ from app.backend.app.schemas.api import (
     BanditSimulationResponse,
     CalculationRequest,
     CalculationResponse,
+    CategoricalResultsRequest,
+    CategoricalResultsResponse,
     ExperimentAssignmentRequest,
     ExperimentAssignmentResponse,
     ExperimentInput,
@@ -45,7 +47,10 @@ from app.backend.app.schemas.api import (
 from app.backend.app.services.calculations_service import calculate_experiment_metrics
 from app.backend.app.services.design_service import build_experiment_report
 from app.backend.app.services.monte_carlo_service import simulate_thompson_sampling
-from app.backend.app.services.results_service import analyze_results
+from app.backend.app.services.results_service import (
+    analyze_categorical_results,
+    analyze_results,
+)
 from app.backend.app.stats.binary import calculate_binary_sample_size
 from app.backend.app.stats.continuous import calculate_continuous_sample_size
 from app.backend.app.stats.duration import estimate_experiment_duration_days
@@ -349,6 +354,14 @@ def create_analysis_router(
     )
     def results(payload: ResultsRequest) -> ResultsResponse:
         return analyze_results(payload)
+
+    @router.post(
+        "/api/v1/results/categorical",
+        response_model=CategoricalResultsResponse,
+        dependencies=[Depends(require_write_auth)],
+    )
+    def categorical_results(payload: CategoricalResultsRequest) -> CategoricalResultsResponse:
+        return analyze_categorical_results(payload)
 
     @router.post(
         "/api/v1/simulate/bandit",

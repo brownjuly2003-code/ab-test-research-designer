@@ -5,6 +5,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.backend.app.constants import (
+    MAX_CONTINGENCY_DIM,
     MAX_OBSERVED_SAMPLE_SIZE,
     MAX_SUPPORTED_METRICS,
     MAX_SUPPORTED_VARIANTS,
@@ -365,6 +366,51 @@ class ResultsResponse(BaseModel):
     # correlation) and its i18n label. ``None`` for the mean-based binary / continuous / ratio paths.
     effect_size: float | None = None
     effect_size_label: str | None = None
+
+
+class CategoricalResultsRequest(BaseModel):
+    """An r×c contingency table for the chi-square test of independence.
+
+    ``table`` is a list of rows (the groups, e.g. experiment arms), each a list of non-negative
+    integer cell counts (the categorical outcome levels). The table is omnibus — it does not reduce to
+    a single scalar effect with a confidence interval, so it has its own request/response shapes
+    rather than reusing ``ResultsRequest`` / ``ResultsResponse``.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    table: list[list[int]] = Field(min_length=2, max_length=MAX_CONTINGENCY_DIM)
+    alpha: float = Field(default=0.05, ge=0.001, le=0.1)
+
+    @model_validator(mode="after")
+    def validate_table(self) -> "CategoricalResultsRequest":
+        num_cols = len(self.table[0])
+        if num_cols < 2:
+            raise ValueError(translate("errors.schemas.categorical_min_columns"))
+        if num_cols > MAX_CONTINGENCY_DIM:
+            raise ValueError(translate("errors.schemas.categorical_max_columns"))
+        if any(len(row) != num_cols for row in self.table):
+            raise ValueError(translate("errors.schemas.categorical_rectangular"))
+        if any(count < 0 for row in self.table for count in row):
+            raise ValueError(translate("errors.schemas.categorical_non_negative"))
+        return self
+
+
+class CategoricalResultsResponse(BaseModel):
+    """Outcome of the chi-square test of independence — an omnibus statistic, not a scalar effect."""
+
+    chi_square: float
+    degrees_of_freedom: int
+    p_value: float
+    is_significant: bool
+    cramers_v: float
+    n_total: int
+    num_rows: int
+    num_cols: int
+    min_expected_count: float
+    low_expected_warning: bool
+    verdict: str
+    interpretation: str
 
 
 class SavedObservedResults(BaseModel):

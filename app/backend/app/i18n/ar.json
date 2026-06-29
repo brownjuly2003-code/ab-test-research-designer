@@ -282,7 +282,11 @@
       "quantile_rejects_other_data": "لا يقبل نوع المقياس quantile بيانات ثنائية أو مستمرة",
       "equivalence_requires_continuous_data": "يتطلب metric_type المساواة (equivalence) بيانات مستمرة (إحصاءات موجزة)",
       "equivalence_rejects_other_data": "لا يقبل metric_type المساواة (equivalence) بيانات ثنائية أو مرتبة",
-      "equivalence_requires_margin": "يتطلب metric_type المساواة (equivalence) قيمة equivalence_margin أكبر من صفر"
+      "equivalence_requires_margin": "يتطلب metric_type المساواة (equivalence) قيمة equivalence_margin أكبر من صفر",
+      "categorical_min_columns": "يحتاج جدول التوافق إلى عمودين على الأقل",
+      "categorical_max_columns": "يحتوي جدول التوافق على عدد كبير جدًا من الأعمدة",
+      "categorical_rectangular": "يجب أن يكون جدول التوافق مستطيلاً (كل صف يحتاج إلى العدد نفسه من الأعمدة)",
+      "categorical_non_negative": "يجب ألا تكون القيم في جدول التوافق سالبة"
     },
     "srm_detected": "تم اكتشاف SRM - تحقق من التوزيع العشوائي أو تنفيذ التتبع",
     "srm_not_detected": "لم يتم اكتشاف SRM"
@@ -311,7 +315,8 @@
       "count": "معدّل مجموعة المعالجة {{treatmentRate}} مقابل المجموعة الضابطة {{controlRate}}. نسبة المعدّلات {{rateRatio}}. فرق المعدّلات {{rateDifference}} بفاصل ثقة {{ciLevel}}% [{{ciLower}}، {{ciUpper}}]. القيمة الاحتمالية الثنائية الدقيقة لبواسون {{pValue}}؛ النتيجة {{significance}}.",
       "bootstrap": "متوسط مجموعة المعالجة {{treatmentMean}} مقابل المجموعة الضابطة {{controlMean}}. فرق المتوسطات {{effect}} بفاصل ثقة bootstrap المئيني {{ciLevel}}% [{{ciLower}}، {{ciUpper}}]. القيمة الاحتمالية الثنائية للتبديل {{pValue}} عبر {{permutations}} إعادة ترتيب؛ النتيجة {{significance}}.",
       "quantile": "كمّي P{{percentile}} للمعالجة {{treatmentQuantile}} مقابل الضبط {{controlQuantile}}. إزاحة الكمّي {{effect}} مع فاصل ثقة bootstrap مئيني {{ciLevel}}% [{{ciLower}}، {{ciUpper}}]. قيمة p للتبديل ثنائية الجانب {{pValue}} عبر {{permutations}} إعادة ترتيب؛ النتيجة {{significance}}.",
-      "equivalence": "متوسط المعالجة {{treatmentMean}} مقابل الضبط {{controlMean}}. الأثر {{effect}} مُختبَر مقابل هامش مساواة قدره ±{{margin}}: {{equivalence}}. فاصل الثقة {{ciLevel}}% [{{ciLower}}, {{ciUpper}}] هو فاصل قرار TOST؛ القيمة الاحتمالية للاختبارين أحاديي الجانب {{pValue}}."
+      "equivalence": "متوسط المعالجة {{treatmentMean}} مقابل الضبط {{controlMean}}. الأثر {{effect}} مُختبَر مقابل هامش مساواة قدره ±{{margin}}: {{equivalence}}. فاصل الثقة {{ciLevel}}% [{{ciLower}}, {{ciUpper}}] هو فاصل قرار TOST؛ القيمة الاحتمالية للاختبارين أحاديي الجانب {{pValue}}.",
+      "categorical": "مربع كاي {{chiSquare}} بدرجات حرية {{df}} لجدول توافق {{rows}}×{{cols}} (N = {{n}}). قيمة p ثنائية الجانب {{pValue}}؛ النتيجة {{significance}}. يقيس V لكرامر {{cramersV}} قوة الارتباط."
     },
     "effect_size": {
       "rank_biserial": "ارتباط ثنائي التسلسل الرتبي",
@@ -332,6 +337,10 @@
     "equivalence": {
       "demonstrated": "ثبتت المساواة",
       "not_demonstrated": "لم تثبت المساواة"
+    },
+    "categorical": {
+      "verdict_associated": "تم اكتشاف ارتباط",
+      "verdict_independent": "لا يوجد ارتباط ذو دلالة"
     }
   }
 }

@@ -372,6 +372,10 @@ Get Project Report Xlsx
 
 Results
 
+### `POST /api/v1/results/categorical`
+
+Categorical Results
+
 ### `POST /api/v1/sensitivity`
 
 Sensitivity
