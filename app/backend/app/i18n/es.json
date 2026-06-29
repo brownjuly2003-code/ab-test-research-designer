@@ -300,7 +300,7 @@
       "binary": "Conversión del tratamiento {{treatment}}% frente al control {{control}}%. Efecto absoluto {{effect}} pp con IC del {{ciLevel}}% [{{ciLower}}, {{ciUpper}}] pp. Valor p bilateral {{pValue}}; el resultado es {{significance}}.",
       "continuous": "Media del tratamiento {{treatmentMean}} frente al control {{controlMean}}. Efecto {{effect}} con IC del {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. Valor p bilateral {{pValue}}.",
       "ratio": "Ratio del tratamiento {{treatmentRatio}} frente al control {{controlRatio}}. Efecto absoluto {{effect}} con IC del {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. Valor p bilateral {{pValue}} (método delta); el resultado es {{significance}}.",
-      "mann_whitney": "Mediana del tratamiento {{treatmentMedian}} frente al control {{controlMedian}}. Desplazamiento de Hodges–Lehmann {{shift}} con IC del {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. P(tratamiento > control) = {{cles}}%. Mann–Whitney U {{uStatistic}}, valor p bilateral {{pValue}}; el resultado es {{significance}}.",
+      "mann_whitney": "Mediana del tratamiento {{treatmentMedian}} frente al control {{controlMedian}}. Desplazamiento de Hodges–Lehmann {{shift}} con IC del {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. P(tratamiento > control) = {{cles}}%. Mann–Whitney U {{uStatistic}}, valor p bilateral {{pValue}} ({{method}}); el resultado es {{significance}}.",
       "degenerate": "Las entradas observadas son degeneradas, por lo que no se puede calcular el estadístico de prueba.",
       "fisher_exact": "Conversión del tratamiento {{treatment}}% frente al control {{control}}%. Efecto absoluto {{effect}} pp. Razón de momios {{oddsRatio}}. Valor p bilateral exacto de Fisher {{pValue}}; el resultado es {{significance}}.",
       "count": "Tasa del tratamiento {{treatmentRate}} frente al control {{controlRate}}. Razón de tasas {{rateRatio}}. Diferencia de tasas {{rateDifference}} con IC del {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. Valor p bilateral exacto de Poisson {{pValue}}; el resultado es {{significance}}.",
@@ -312,6 +312,10 @@
       "odds_ratio": "razón de momios (odds ratio)",
       "rate_ratio": "razón de tasas (rate ratio)",
       "cohens_d": "d de Cohen"
+    },
+    "mann_whitney": {
+      "method_exact": "exacta",
+      "method_asymptotic": "aproximación normal"
     },
     "fisher_exact": {
       "odds_ratio_undefined": "no definida (una celda en cero)"

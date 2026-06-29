@@ -370,6 +370,11 @@ def _interpretation_mann_whitney(result: dict[str, Any]) -> str:
         if result["is_significant"]
         else "results.significance.not_significant"
     )
+    method_text = translate(
+        "results.mann_whitney.method_exact"
+        if result["method"] == "exact"
+        else "results.mann_whitney.method_asymptotic"
+    )
     return translate(
         "results.interpretation.mann_whitney",
         {
@@ -382,6 +387,7 @@ def _interpretation_mann_whitney(result: dict[str, Any]) -> str:
             "ciUpper": f"{result['ci_upper']:.4f}",
             "uStatistic": f"{result['u_statistic']:.1f}",
             "pValue": f"{result['p_value']:.6f}",
+            "method": method_text,
             "significance": significance_text,
         },
     )

@@ -300,7 +300,7 @@
       "binary": "Treatment conversion {{treatment}}% vs control {{control}}%. Absolute effect {{effect}} pp with {{ciLevel}}% CI [{{ciLower}}, {{ciUpper}}] pp. Two-sided p-value {{pValue}}; result is {{significance}}.",
       "continuous": "Treatment mean {{treatmentMean}} vs control {{controlMean}}. Effect {{effect}} with {{ciLevel}}% CI [{{ciLower}}, {{ciUpper}}]. Two-sided p-value {{pValue}}.",
       "ratio": "Treatment ratio {{treatmentRatio}} vs control {{controlRatio}}. Absolute effect {{effect}} with {{ciLevel}}% CI [{{ciLower}}, {{ciUpper}}]. Two-sided p-value {{pValue}} (delta method); result is {{significance}}.",
-      "mann_whitney": "Treatment median {{treatmentMedian}} vs control {{controlMedian}}. Hodges–Lehmann shift {{shift}} with {{ciLevel}}% CI [{{ciLower}}, {{ciUpper}}]. P(treatment > control) = {{cles}}%. Mann–Whitney U {{uStatistic}}, two-sided p-value {{pValue}}; result is {{significance}}.",
+      "mann_whitney": "Treatment median {{treatmentMedian}} vs control {{controlMedian}}. Hodges–Lehmann shift {{shift}} with {{ciLevel}}% CI [{{ciLower}}, {{ciUpper}}]. P(treatment > control) = {{cles}}%. Mann–Whitney U {{uStatistic}}, two-sided p-value {{pValue}} ({{method}}); result is {{significance}}.",
       "degenerate": "Observed inputs are degenerate, so the test statistic cannot be computed.",
       "fisher_exact": "Treatment conversion {{treatment}}% vs control {{control}}%. Absolute effect {{effect}} pp. Odds ratio {{oddsRatio}}. Fisher's exact two-sided p-value {{pValue}}; result is {{significance}}.",
       "count": "Treatment rate {{treatmentRate}} vs control {{controlRate}}. Rate ratio {{rateRatio}}. Rate difference {{rateDifference}} with {{ciLevel}}% CI [{{ciLower}}, {{ciUpper}}]. Poisson exact two-sided p-value {{pValue}}; result is {{significance}}.",
@@ -312,6 +312,10 @@
       "odds_ratio": "odds ratio",
       "rate_ratio": "rate ratio",
       "cohens_d": "Cohen's d"
+    },
+    "mann_whitney": {
+      "method_exact": "exact",
+      "method_asymptotic": "normal approximation"
     },
     "fisher_exact": {
       "odds_ratio_undefined": "undefined (a zero cell)"

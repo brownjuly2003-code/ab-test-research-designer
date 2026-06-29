@@ -356,6 +356,48 @@ def test_results_endpoint_mann_whitney_localizes_via_accept_language() -> None:
     assert "Медиана" in response.json()["interpretation"]
 
 
+def test_results_endpoint_mann_whitney_exact_for_small_tie_free_sample() -> None:
+    client = TestClient(create_app())
+
+    # Small, tie-free (disjoint) arms -> the exact p-value path; the interpretation names the method.
+    response = client.post(
+        "/api/v1/results",
+        json={
+            "metric_type": "mann_whitney",
+            "ranked": {
+                "control_values": [1, 2, 3, 4],
+                "treatment_values": [5, 6, 7, 8],
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["is_significant"] is True
+    # Exact two-sided p for complete separation of 4 vs 4 is 2 / C(8,4) = 2/70.
+    assert payload["p_value"] == pytest.approx(2 / 70, abs=1e-6)
+    assert "(exact)" in payload["interpretation"]
+
+
+def test_results_endpoint_mann_whitney_asymptotic_when_ties_present() -> None:
+    client = TestClient(create_app())
+
+    # Overlapping arms share values -> ties -> the corrected normal approximation, named as such.
+    response = client.post(
+        "/api/v1/results",
+        json={
+            "metric_type": "mann_whitney",
+            "ranked": {
+                "control_values": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+                "treatment_values": [6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    assert "(normal approximation)" in response.json()["interpretation"]
+
+
 def test_results_endpoint_mann_whitney_requires_ranked_data() -> None:
     client = TestClient(create_app())
 

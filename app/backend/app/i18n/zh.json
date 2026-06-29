@@ -300,7 +300,7 @@
       "binary": "实验组转化率 {{treatment}}% 对照组 {{control}}%。绝对效应 {{effect}} 个百分点，{{ciLevel}}% 置信区间 [{{ciLower}}, {{ciUpper}}] 个百分点。双侧 p 值 {{pValue}}；结果{{significance}}。",
       "continuous": "实验组均值 {{treatmentMean}} 对照组 {{controlMean}}。效应 {{effect}}，{{ciLevel}}% 置信区间 [{{ciLower}}, {{ciUpper}}]。双侧 p 值 {{pValue}}。",
       "ratio": "实验组比率 {{treatmentRatio}} 对照组 {{controlRatio}}。绝对效应 {{effect}}，{{ciLevel}}% 置信区间 [{{ciLower}}, {{ciUpper}}]。双侧 p 值 {{pValue}}（delta 方法）；结果{{significance}}。",
-      "mann_whitney": "实验组中位数 {{treatmentMedian}} 对照组 {{controlMedian}}。Hodges–Lehmann 位移 {{shift}}，{{ciLevel}}% 置信区间 [{{ciLower}}, {{ciUpper}}]。P(实验组 > 对照组) = {{cles}}%。Mann–Whitney U {{uStatistic}}，双侧 p 值 {{pValue}}；结果{{significance}}。",
+      "mann_whitney": "实验组中位数 {{treatmentMedian}} 对照组 {{controlMedian}}。Hodges–Lehmann 位移 {{shift}}，{{ciLevel}}% 置信区间 [{{ciLower}}, {{ciUpper}}]。P(实验组 > 对照组) = {{cles}}%。Mann–Whitney U {{uStatistic}}，双侧 p 值 {{pValue}} ({{method}})；结果{{significance}}。",
       "degenerate": "观测输入退化，无法计算检验统计量。",
       "fisher_exact": "实验组转化率 {{treatment}}% 对照组 {{control}}%。绝对效应 {{effect}} 个百分点。优势比 {{oddsRatio}}。Fisher 精确双侧 p 值 {{pValue}}；结果{{significance}}。",
       "count": "实验组速率 {{treatmentRate}} 对照组 {{controlRate}}。率比 {{rateRatio}}。速率差 {{rateDifference}}，{{ciLevel}}% 置信区间 [{{ciLower}}, {{ciUpper}}]。Poisson 精确双侧 p 值 {{pValue}}；结果{{significance}}。",
@@ -312,6 +312,10 @@
       "odds_ratio": "优势比（odds ratio）",
       "rate_ratio": "率比（rate ratio）",
       "cohens_d": "科恩 d"
+    },
+    "mann_whitney": {
+      "method_exact": "精确",
+      "method_asymptotic": "正态近似"
     },
     "fisher_exact": {
       "odds_ratio_undefined": "未定义（存在零单元格）"

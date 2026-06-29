@@ -300,7 +300,7 @@
       "binary": "Conversion du traitement {{treatment}}% contre contrôle {{control}}%. Effet absolu {{effect}} pp avec IC à {{ciLevel}}% [{{ciLower}}, {{ciUpper}}] pp. Valeur p bilatérale {{pValue}} ; le résultat est {{significance}}.",
       "continuous": "Moyenne du traitement {{treatmentMean}} contre contrôle {{controlMean}}. Effet {{effect}} avec IC à {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. Valeur p bilatérale {{pValue}}.",
       "ratio": "Ratio du traitement {{treatmentRatio}} contre contrôle {{controlRatio}}. Effet absolu {{effect}} avec IC à {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. Valeur p bilatérale {{pValue}} (méthode delta) ; le résultat est {{significance}}.",
-      "mann_whitney": "Médiane du traitement {{treatmentMedian}} contre contrôle {{controlMedian}}. Décalage de Hodges–Lehmann {{shift}} avec IC à {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. P(traitement > contrôle) = {{cles}}%. Mann–Whitney U {{uStatistic}}, valeur p bilatérale {{pValue}} ; le résultat est {{significance}}.",
+      "mann_whitney": "Médiane du traitement {{treatmentMedian}} contre contrôle {{controlMedian}}. Décalage de Hodges–Lehmann {{shift}} avec IC à {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. P(traitement > contrôle) = {{cles}}%. Mann–Whitney U {{uStatistic}}, valeur p bilatérale {{pValue}} ({{method}}) ; le résultat est {{significance}}.",
       "degenerate": "Les données observées sont dégénérées ; la statistique de test ne peut donc pas être calculée.",
       "fisher_exact": "Conversion du traitement {{treatment}}% contre contrôle {{control}}%. Effet absolu {{effect}} pp. Rapport des cotes {{oddsRatio}}. Valeur p bilatérale exacte de Fisher {{pValue}} ; le résultat est {{significance}}.",
       "count": "Taux du traitement {{treatmentRate}} contre contrôle {{controlRate}}. Rapport de taux {{rateRatio}}. Différence de taux {{rateDifference}} avec IC à {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. Valeur p bilatérale exacte de Poisson {{pValue}} ; le résultat est {{significance}}.",
@@ -312,6 +312,10 @@
       "odds_ratio": "rapport des cotes (odds ratio)",
       "rate_ratio": "rapport de taux (rate ratio)",
       "cohens_d": "d de Cohen"
+    },
+    "mann_whitney": {
+      "method_exact": "exacte",
+      "method_asymptotic": "approximation normale"
     },
     "fisher_exact": {
       "odds_ratio_undefined": "non défini (une cellule nulle)"

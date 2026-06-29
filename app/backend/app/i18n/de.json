@@ -300,7 +300,7 @@
       "binary": "Konversion der Testvariante {{treatment}}% vs. Kontrolle {{control}}%. Absoluter Effekt {{effect}} pp mit {{ciLevel}}% KI [{{ciLower}}, {{ciUpper}}] pp. Zweiseitiger p-Wert {{pValue}}; das Ergebnis ist {{significance}}.",
       "continuous": "Mittelwert der Testvariante {{treatmentMean}} vs. Kontrolle {{controlMean}}. Effekt {{effect}} mit {{ciLevel}}% KI [{{ciLower}}, {{ciUpper}}]. Zweiseitiger p-Wert {{pValue}}.",
       "ratio": "Verhältnis der Testvariante {{treatmentRatio}} vs. Kontrolle {{controlRatio}}. Absoluter Effekt {{effect}} mit {{ciLevel}}% KI [{{ciLower}}, {{ciUpper}}]. Zweiseitiger p-Wert {{pValue}} (Delta-Methode); das Ergebnis ist {{significance}}.",
-      "mann_whitney": "Median der Testvariante {{treatmentMedian}} vs. Kontrolle {{controlMedian}}. Hodges–Lehmann-Verschiebung {{shift}} mit {{ciLevel}}% KI [{{ciLower}}, {{ciUpper}}]. P(Test > Kontrolle) = {{cles}}%. Mann–Whitney U {{uStatistic}}, zweiseitiger p-Wert {{pValue}}; das Ergebnis ist {{significance}}.",
+      "mann_whitney": "Median der Testvariante {{treatmentMedian}} vs. Kontrolle {{controlMedian}}. Hodges–Lehmann-Verschiebung {{shift}} mit {{ciLevel}}% KI [{{ciLower}}, {{ciUpper}}]. P(Test > Kontrolle) = {{cles}}%. Mann–Whitney U {{uStatistic}}, zweiseitiger p-Wert {{pValue}} ({{method}}); das Ergebnis ist {{significance}}.",
       "degenerate": "Die beobachteten Eingaben sind entartet, daher kann die Teststatistik nicht berechnet werden.",
       "fisher_exact": "Konversion der Testvariante {{treatment}}% vs. Kontrolle {{control}}%. Absoluter Effekt {{effect}} pp. Quotenverhältnis {{oddsRatio}}. Exakter zweiseitiger p-Wert nach Fisher {{pValue}}; das Ergebnis ist {{significance}}.",
       "count": "Rate der Testvariante {{treatmentRate}} vs. Kontrolle {{controlRate}}. Ratenverhältnis {{rateRatio}}. Ratendifferenz {{rateDifference}} mit {{ciLevel}}% KI [{{ciLower}}, {{ciUpper}}]. Exakter zweiseitiger Poisson-p-Wert {{pValue}}; das Ergebnis ist {{significance}}.",
@@ -312,6 +312,10 @@
       "odds_ratio": "Quotenverhältnis (odds ratio)",
       "rate_ratio": "Ratenverhältnis (rate ratio)",
       "cohens_d": "Cohens d"
+    },
+    "mann_whitney": {
+      "method_exact": "exakt",
+      "method_asymptotic": "Normalapproximation"
     },
     "fisher_exact": {
       "odds_ratio_undefined": "nicht definiert (eine Nullzelle)"
