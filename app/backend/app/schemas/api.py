@@ -251,7 +251,7 @@ class ObservedResultsRanked(BaseModel):
 class ResultsRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    metric_type: Literal["binary", "continuous", "mann_whitney"]
+    metric_type: Literal["binary", "continuous", "mann_whitney", "fisher_exact"]
     binary: ObservedResultsBinary | None = None
     continuous: ObservedResultsContinuous | None = None
     ranked: ObservedResultsRanked | None = None
@@ -263,6 +263,13 @@ class ResultsRequest(BaseModel):
                 raise ValueError(translate("errors.schemas.binary_requires_binary_data"))
             if self.continuous is not None or self.ranked is not None:
                 raise ValueError(translate("errors.schemas.binary_rejects_continuous_data"))
+        if self.metric_type == "fisher_exact":
+            # Fisher's exact reuses the 2x2 binary observed-results shape (counts per arm); it is an
+            # exact alternative analysis of the same data, not a new input model.
+            if self.binary is None:
+                raise ValueError(translate("errors.schemas.fisher_exact_requires_binary_data"))
+            if self.continuous is not None or self.ranked is not None:
+                raise ValueError(translate("errors.schemas.fisher_exact_rejects_other_data"))
         if self.metric_type == "continuous":
             if self.continuous is None:
                 raise ValueError(translate("errors.schemas.continuous_requires_continuous_data"))

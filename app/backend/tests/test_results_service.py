@@ -392,3 +392,113 @@ def test_results_endpoint_mann_whitney_rejects_oversized_sample() -> None:
     )
 
     assert response.status_code == 422
+
+
+def test_results_endpoint_fisher_exact_significant() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/results",
+        json={
+            "metric_type": "fisher_exact",
+            "binary": {
+                "control_conversions": 8,
+                "control_users": 10,
+                "treatment_conversions": 1,
+                "treatment_users": 6,
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["metric_type"] == "fisher_exact"
+    assert payload["is_significant"] is True
+    # Exact two-sided p-value for [[8,2],[1,5]] (== scipy) and the sample odds ratio surfaced.
+    assert payload["p_value"] == pytest.approx(0.034965, abs=1e-5)
+    assert payload["effect_size"] == pytest.approx(20.0)
+    assert payload["effect_size_label"]
+    assert "Fisher" in payload["interpretation"]
+
+
+def test_results_endpoint_fisher_exact_localizes_via_accept_language() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/results",
+        headers={"Accept-Language": "ru"},
+        json={
+            "metric_type": "fisher_exact",
+            "binary": {
+                "control_conversions": 8,
+                "control_users": 10,
+                "treatment_conversions": 1,
+                "treatment_users": 6,
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    # Russian interpretation keeps the technical term but localizes the prose.
+    assert "Фишера" in response.json()["interpretation"]
+
+
+def test_results_endpoint_fisher_exact_undefined_odds_ratio_still_ok() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/results",
+        json={
+            "metric_type": "fisher_exact",
+            "binary": {
+                "control_conversions": 10,
+                "control_users": 10,
+                "treatment_conversions": 3,
+                "treatment_users": 8,
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    # A zero off-diagonal cell makes the odds ratio undefined, but the exact p-value is defined.
+    assert payload["effect_size"] is None
+    assert 0.0 <= payload["p_value"] <= 1.0
+
+
+def test_results_endpoint_fisher_exact_requires_binary_data() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/results",
+        json={
+            "metric_type": "fisher_exact",
+            "ranked": {
+                "control_values": [1, 2, 3],
+                "treatment_values": [4, 5, 6],
+            },
+        },
+    )
+
+    assert response.status_code == 422
+
+
+def test_results_endpoint_fisher_exact_rejects_oversized_table() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/results",
+        json={
+            "metric_type": "fisher_exact",
+            "binary": {
+                "control_conversions": 150_000,
+                "control_users": 300_000,
+                "treatment_conversions": 160_000,
+                "treatment_users": 300_000,
+            },
+        },
+    )
+
+    # Exact enumeration is capped: the table exceeds MAX_FISHER_EXACT_TOTAL and is rejected with a
+    # clear message (a service-level ValueError -> 400) directing the caller to the binary test.
+    assert response.status_code == 400

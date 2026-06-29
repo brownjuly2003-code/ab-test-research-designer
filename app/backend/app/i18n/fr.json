@@ -269,7 +269,10 @@
       "bandit_arm_rates_range": "Les taux de conversion de chaque variante doivent être compris entre 0 et 1.",
       "namespace_range_order": "range_start de l'espace de noms doit être inférieur à range_end",
       "targeting_in_requires_list": "l'opérateur de ciblage 'in' nécessite une valeur de liste",
-      "targeting_numeric_requires_number": "les opérateurs de ciblage numériques nécessitent une valeur numérique"
+      "targeting_numeric_requires_number": "les opérateurs de ciblage numériques nécessitent une valeur numérique",
+      "fisher_exact_requires_binary_data": "le metric_type fisher_exact nécessite des données binaires (effectifs 2×2)",
+      "fisher_exact_rejects_other_data": "le metric_type fisher_exact n'accepte pas de données continues ou d'échantillons bruts (ranked)",
+      "fisher_exact_table_too_large": "fisher_exact est conçu pour les petits échantillons ; ce tableau est trop grand — utilisez le test binaire (approximation normale)"
     },
     "srm_detected": "SRM détecté - vérifiez votre mise en œuvre de randomisation ou de suivi",
     "srm_not_detected": "Aucun SRM détecté"
@@ -291,10 +294,15 @@
       "continuous": "Moyenne du traitement {{treatmentMean}} contre contrôle {{controlMean}}. Effet {{effect}} avec IC à {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. Valeur p bilatérale {{pValue}}.",
       "ratio": "Ratio du traitement {{treatmentRatio}} contre contrôle {{controlRatio}}. Effet absolu {{effect}} avec IC à {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. Valeur p bilatérale {{pValue}} (méthode delta) ; le résultat est {{significance}}.",
       "mann_whitney": "Médiane du traitement {{treatmentMedian}} contre contrôle {{controlMedian}}. Décalage de Hodges–Lehmann {{shift}} avec IC à {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. P(traitement > contrôle) = {{cles}}%. Mann–Whitney U {{uStatistic}}, valeur p bilatérale {{pValue}} ; le résultat est {{significance}}.",
-      "degenerate": "Les données observées sont dégénérées ; la statistique de test ne peut donc pas être calculée."
+      "degenerate": "Les données observées sont dégénérées ; la statistique de test ne peut donc pas être calculée.",
+      "fisher_exact": "Conversion du traitement {{treatment}}% contre contrôle {{control}}%. Effet absolu {{effect}} pp. Rapport des cotes {{oddsRatio}}. Valeur p bilatérale exacte de Fisher {{pValue}} ; le résultat est {{significance}}."
     },
     "effect_size": {
-      "rank_biserial": "corrélation bisériale de rang"
+      "rank_biserial": "corrélation bisériale de rang",
+      "odds_ratio": "rapport des cotes (odds ratio)"
+    },
+    "fisher_exact": {
+      "odds_ratio_undefined": "non défini (une cellule nulle)"
     }
   }
 }

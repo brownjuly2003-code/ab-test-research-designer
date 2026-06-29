@@ -269,7 +269,10 @@
       "bandit_arm_rates_range": "يجب أن تكون معدلات تحويل كل تباين بين 0 و1.",
       "namespace_range_order": "يجب أن يكون range_start لمساحة الأسماء أقل من range_end",
       "targeting_in_requires_list": "يتطلب عامل الاستهداف 'in' قيمة قائمة",
-      "targeting_numeric_requires_number": "تتطلب عوامل الاستهداف الرقمية قيمة رقمية"
+      "targeting_numeric_requires_number": "تتطلب عوامل الاستهداف الرقمية قيمة رقمية",
+      "fisher_exact_requires_binary_data": "يتطلب نوع القياس fisher_exact بيانات ثنائية (تكرارات 2×2)",
+      "fisher_exact_rejects_other_data": "نوع القياس fisher_exact لا يقبل بيانات مستمرة أو عينات خام (ranked)",
+      "fisher_exact_table_too_large": "fisher_exact مخصص للعينات الصغيرة؛ هذا الجدول كبير جدًا — استخدم الاختبار الثنائي (التقريب الطبيعي)"
     },
     "srm_detected": "تم اكتشاف SRM - تحقق من التوزيع العشوائي أو تنفيذ التتبع",
     "srm_not_detected": "لم يتم اكتشاف SRM"
@@ -291,10 +294,15 @@
       "continuous": "متوسط مجموعة المعالجة {{treatmentMean}} مقابل المجموعة الضابطة {{controlMean}}. الأثر {{effect}} بفاصل ثقة {{ciLevel}}% [{{ciLower}}، {{ciUpper}}]. القيمة الاحتمالية الثنائية {{pValue}}.",
       "ratio": "نسبة مجموعة المعالجة {{treatmentRatio}} مقابل المجموعة الضابطة {{controlRatio}}. الأثر المطلق {{effect}} بفاصل ثقة {{ciLevel}}% [{{ciLower}}، {{ciUpper}}]. القيمة الاحتمالية الثنائية {{pValue}} (طريقة دلتا)؛ النتيجة {{significance}}.",
       "mann_whitney": "وسيط مجموعة المعالجة {{treatmentMedian}} مقابل المجموعة الضابطة {{controlMedian}}. إزاحة Hodges–Lehmann {{shift}} بفاصل ثقة {{ciLevel}}% [{{ciLower}}، {{ciUpper}}]. P(المعالجة > الضابطة) = {{cles}}%. إحصاءة Mann–Whitney U {{uStatistic}}، القيمة الاحتمالية الثنائية {{pValue}}؛ النتيجة {{significance}}.",
-      "degenerate": "المدخلات المرصودة متدهورة، لذا لا يمكن حساب إحصاءة الاختبار."
+      "degenerate": "المدخلات المرصودة متدهورة، لذا لا يمكن حساب إحصاءة الاختبار.",
+      "fisher_exact": "تحويل مجموعة المعالجة {{treatment}}% مقابل المجموعة الضابطة {{control}}%. الأثر المطلق {{effect}} نقطة مئوية. نسبة الأرجحية {{oddsRatio}}. القيمة الاحتمالية الثنائية الدقيقة لاختبار Fisher {{pValue}}؛ النتيجة {{significance}}."
     },
     "effect_size": {
-      "rank_biserial": "ارتباط ثنائي التسلسل الرتبي"
+      "rank_biserial": "ارتباط ثنائي التسلسل الرتبي",
+      "odds_ratio": "نسبة الأرجحية (odds ratio)"
+    },
+    "fisher_exact": {
+      "odds_ratio_undefined": "غير معرّفة (خلية صفرية)"
     }
   }
 }

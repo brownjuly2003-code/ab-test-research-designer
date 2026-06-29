@@ -269,7 +269,10 @@
       "bandit_arm_rates_range": "Die Konversionsraten der Varianten müssen jeweils zwischen 0 und 1 liegen.",
       "namespace_range_order": "namespace range_start muss kleiner als range_end sein",
       "targeting_in_requires_list": "Targeting-Operator 'in' erfordert einen Listenwert",
-      "targeting_numeric_requires_number": "numerische Targeting-Operatoren erfordern einen numerischen Wert"
+      "targeting_numeric_requires_number": "numerische Targeting-Operatoren erfordern einen numerischen Wert",
+      "fisher_exact_requires_binary_data": "fisher_exact metric_type erfordert binäre Daten (2×2-Zählungen)",
+      "fisher_exact_rejects_other_data": "fisher_exact metric_type akzeptiert keine kontinuierlichen oder Rang-Daten (ranked)",
+      "fisher_exact_table_too_large": "fisher_exact ist für kleine Stichproben gedacht; diese Tabelle ist zu groß — verwenden Sie den binären Test (Normalapproximation)"
     },
     "srm_detected": "SRM erkannt — prüfen Sie Ihre Randomisierung oder Tracking-Implementierung",
     "srm_not_detected": "Keine SRM erkannt"
@@ -291,10 +294,15 @@
       "continuous": "Mittelwert der Testvariante {{treatmentMean}} vs. Kontrolle {{controlMean}}. Effekt {{effect}} mit {{ciLevel}}% KI [{{ciLower}}, {{ciUpper}}]. Zweiseitiger p-Wert {{pValue}}.",
       "ratio": "Verhältnis der Testvariante {{treatmentRatio}} vs. Kontrolle {{controlRatio}}. Absoluter Effekt {{effect}} mit {{ciLevel}}% KI [{{ciLower}}, {{ciUpper}}]. Zweiseitiger p-Wert {{pValue}} (Delta-Methode); das Ergebnis ist {{significance}}.",
       "mann_whitney": "Median der Testvariante {{treatmentMedian}} vs. Kontrolle {{controlMedian}}. Hodges–Lehmann-Verschiebung {{shift}} mit {{ciLevel}}% KI [{{ciLower}}, {{ciUpper}}]. P(Test > Kontrolle) = {{cles}}%. Mann–Whitney U {{uStatistic}}, zweiseitiger p-Wert {{pValue}}; das Ergebnis ist {{significance}}.",
-      "degenerate": "Die beobachteten Eingaben sind entartet, daher kann die Teststatistik nicht berechnet werden."
+      "degenerate": "Die beobachteten Eingaben sind entartet, daher kann die Teststatistik nicht berechnet werden.",
+      "fisher_exact": "Konversion der Testvariante {{treatment}}% vs. Kontrolle {{control}}%. Absoluter Effekt {{effect}} pp. Quotenverhältnis {{oddsRatio}}. Exakter zweiseitiger p-Wert nach Fisher {{pValue}}; das Ergebnis ist {{significance}}."
     },
     "effect_size": {
-      "rank_biserial": "Rang-biseriale Korrelation"
+      "rank_biserial": "Rang-biseriale Korrelation",
+      "odds_ratio": "Quotenverhältnis (odds ratio)"
+    },
+    "fisher_exact": {
+      "odds_ratio_undefined": "nicht definiert (eine Nullzelle)"
     }
   }
 }
