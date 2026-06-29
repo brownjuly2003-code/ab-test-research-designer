@@ -22,6 +22,7 @@ from app.backend.app.stats.mann_whitney import mann_whitney_u_test
 from app.backend.app.stats.poisson_rate import MAX_POISSON_EVENTS, poisson_rate_test
 from app.backend.app.stats.quantile_te import quantile_treatment_effect_test
 from app.backend.app.stats.student_t import t_cdf, t_ppf
+from app.backend.app.stats.trimmed_t import trimmed_means_t_test
 
 _STANDARD_NORMAL = NormalDist()
 
@@ -37,6 +38,8 @@ def analyze_results(request: ResultsRequest) -> ResultsResponse:
         return _analyze_bootstrap(request.ranked)
     if request.metric_type == "quantile":
         return _analyze_quantile(request.ranked)
+    if request.metric_type == "trimmed_t":
+        return _analyze_trimmed_t(request.ranked)
     if request.metric_type == "count":
         return _analyze_count(request.count)
     if request.metric_type == "equivalence":
@@ -633,6 +636,62 @@ def _interpretation_quantile(result: dict[str, Any]) -> str:
             "ciUpper": f"{result['ci_upper']:.4f}",
             "pValue": f"{result['p_value']:.6f}",
             "permutations": str(result["n_resamples"]),
+            "significance": significance_text,
+        },
+    )
+
+
+def _analyze_trimmed_t(obs: ObservedResultsRanked | None) -> ResultsResponse:
+    if obs is None:
+        raise ValueError("ranked observations are required")
+
+    result = trimmed_means_t_test(obs.control_values, obs.treatment_values, obs.trim, obs.alpha)
+    if result is None:
+        # An effective per-arm size below 2, or zero Winsorized variance (constant arms): the
+        # parametric trimmed-mean test has no standard error and is not evaluable.
+        return _degenerate_response(metric_type="trimmed_t", ci_level=1 - obs.alpha)
+
+    effect = result["observed_diff"]
+    control_trimmed_mean = result["control_trimmed_mean"]
+    relative_effect = (effect / control_trimmed_mean * 100) if control_trimmed_mean != 0 else 0.0
+    is_significant = result["is_significant"]
+
+    return ResultsResponse(
+        metric_type="trimmed_t",
+        observed_effect=round(effect, 4),
+        observed_effect_relative=round(relative_effect, 2),
+        ci_lower=round(result["ci_lower"], 4),
+        ci_upper=round(result["ci_upper"], 4),
+        ci_level=round(result["ci_level"], 4),
+        p_value=round(result["p_value"], 6),
+        test_statistic=round(result["test_statistic"], 4),
+        is_significant=is_significant,
+        power_achieved=round(result["power_achieved"], 3),
+        verdict=_verdict(is_significant, effect, obs.alpha),
+        interpretation=_interpretation_trimmed_t(result),
+    )
+
+
+def _interpretation_trimmed_t(result: dict[str, Any]) -> str:
+    significance_text = translate(
+        "results.significance.significant"
+        if result["is_significant"]
+        else "results.significance.not_significant"
+    )
+    return translate(
+        "results.interpretation.trimmed_t",
+        {
+            "trimPct": f"{result['trim'] * 100:g}",
+            "treatmentMean": f"{result['treatment_trimmed_mean']:.4f}",
+            "controlMean": f"{result['control_trimmed_mean']:.4f}",
+            "effect": f"{result['observed_diff']:+.4f}",
+            "ciLevel": f"{result['ci_level'] * 100:.1f}",
+            "ciLower": f"{result['ci_lower']:.4f}",
+            "ciUpper": f"{result['ci_upper']:.4f}",
+            "pValue": f"{result['p_value']:.6f}",
+            "controlEffectiveN": str(result["control_effective_n"]),
+            "treatmentEffectiveN": str(result["treatment_effective_n"]),
+            "df": f"{result['degrees_of_freedom']:.1f}",
             "significance": significance_text,
         },
     )

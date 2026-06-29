@@ -280,6 +280,8 @@
       "bootstrap_rejects_other_data": "metric_type=bootstrap не принимает binary- или continuous-данные",
       "quantile_requires_ranked_data": "для metric_type=quantile нужны сырые данные выборок (ranked)",
       "quantile_rejects_other_data": "metric_type=quantile не принимает binary- или continuous-данные",
+      "trimmed_t_requires_ranked_data": "для metric_type=trimmed_t нужны сырые данные выборок (ranked)",
+      "trimmed_t_rejects_other_data": "metric_type=trimmed_t не принимает binary- или continuous-данные",
       "equivalence_requires_continuous_data": "metric_type equivalence требует непрерывные данные (сводные статистики)",
       "equivalence_rejects_other_data": "metric_type equivalence не принимает бинарные или ранжированные данные",
       "equivalence_requires_margin": "metric_type equivalence требует equivalence_margin больше нуля",
@@ -315,6 +317,7 @@
       "count": "Интенсивность варианта {{treatmentRate}} против контроля {{controlRate}}. Отношение интенсивностей {{rateRatio}}. Разность интенсивностей {{rateDifference}} при {{ciLevel}}% ДИ [{{ciLower}}, {{ciUpper}}]. Точный двусторонний p-value Пуассона {{pValue}}; результат {{significance}}.",
       "bootstrap": "Среднее варианта {{treatmentMean}} против контроля {{controlMean}}. Разница средних {{effect}} при {{ciLevel}}% перцентильном bootstrap-ДИ [{{ciLower}}, {{ciUpper}}]. Перестановочный двусторонний p-value {{pValue}} по {{permutations}} перестановкам; результат {{significance}}.",
       "quantile": "Квантиль P{{percentile}} варианта {{treatmentQuantile}} против контроля {{controlQuantile}}. Сдвиг квантиля {{effect}} при {{ciLevel}}% перцентильном bootstrap-ДИ [{{ciLower}}, {{ciUpper}}]. Перестановочный двусторонний p-value {{pValue}} по {{permutations}} перестановкам; результат {{significance}}.",
+      "trimmed_t": "Усечённое среднее ({{trimPct}}%) варианта {{treatmentMean}} против контроля {{controlMean}} (эффективное n {{treatmentEffectiveN}} против {{controlEffectiveN}} после усечения). Робастный сдвиг среднего {{effect}} при {{ciLevel}}% ДИ [{{ciLower}}, {{ciUpper}}]. Двусторонний t-критерий Юэна–Уэлча, p-value {{pValue}} при {{df}} ст. св.; результат {{significance}}.",
       "equivalence": "Среднее в тесте {{treatmentMean}} против контроля {{controlMean}}. Эффект {{effect}} проверен против границы эквивалентности ±{{margin}}: {{equivalence}}. {{ciLevel}}% доверительный интервал [{{ciLower}}, {{ciUpper}}] — решающий интервал TOST; p-value двух односторонних тестов {{pValue}}.",
       "categorical": "Хи-квадрат {{chiSquare}} при {{df}} степенях свободы для таблицы сопряжённости {{rows}}×{{cols}} (N = {{n}}). Двусторонний p-value {{pValue}}; результат {{significance}}. Силу связи измеряет V Крамера {{cramersV}}."
     },

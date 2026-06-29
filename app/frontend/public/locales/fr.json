@@ -536,6 +536,7 @@
         "treatmentValues": "Valeurs du traitement",
         "rawValuesPlaceholder": "Une valeur par ligne ou séparées par des virgules",
         "quantile": "Quantile (0–1)",
+        "trim": "Fraction de troncature (0–0.5)",
         "controlEvents": "Événements du contrôle",
         "controlExposure": "Exposition du contrôle",
         "treatmentEvents": "Événements du traitement",
@@ -571,6 +572,8 @@
         "bootstrapHint": "Le test de permutation compare la différence des moyennes en réaffectant les étiquettes des valeurs brutes regroupées — un test t sans hypothèse de distribution — avec un IC bootstrap par percentiles. Sans hypothèse de normalité ; les petits échantillons sont testés de façon exacte.",
         "quantile": "Effet sur le quantile",
         "quantileHint": "L'effet de traitement sur quantile compare un quantile choisi (la médiane par défaut, ou p. ex. p90) entre les groupes avec un test de permutation et un IC bootstrap percentile. À utiliser quand une queue ou la médiane compte plus que la moyenne : revenus asymétriques, percentiles de latence.",
+        "trimmedT": "t tronquée (robuste)",
+        "trimmedTHint": "Le test t tronqué de Yuen–Welch compare les moyennes après troncature d'une fraction fixe à chaque extrémité, puis utilise une erreur type fondée sur la variance winsorisée et des degrés de liberté de Welch. À utiliser quand des queues lourdes ou des valeurs aberrantes — revenu, valeur de commande, durée de session — tirent la moyenne ordinaire et gonflent sa variance. À trim = 0, il se réduit au t de Welch.",
         "equivalence": "Équivalence (TOST)",
         "equivalenceHint": "Le test d'équivalence TOST vérifie si la différence reste dans une tolérance ±margin dans les deux sens — deux tests t unilatéraux. Utilisez-le pour confirmer l'absence de changement significatif (un refactoring ou une migration qui ne doit pas déplacer la métrique) ; un test de différence non significatif ne prouve pas à lui seul l'équivalence."
       },

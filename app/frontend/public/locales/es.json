@@ -536,6 +536,7 @@
         "treatmentValues": "Valores del tratamiento",
         "rawValuesPlaceholder": "Un valor por línea o separados por comas",
         "quantile": "Cuantil (0–1)",
+        "trim": "Fracción de recorte (0–0.5)",
         "controlEvents": "Eventos del control",
         "controlExposure": "Exposición del control",
         "treatmentEvents": "Eventos del tratamiento",
@@ -571,6 +572,8 @@
         "bootstrapHint": "La prueba de permutación compara la diferencia de medias reasignando las etiquetas de los valores brutos combinados — una prueba t sin distribución — con un IC bootstrap por percentiles. Sin suponer normalidad; las muestras pequeñas se prueban de forma exacta.",
         "quantile": "Efecto en cuantil",
         "quantileHint": "El efecto del tratamiento en cuantiles compara un cuantil elegido (la mediana por defecto, o p. ej. p90) entre grupos con una prueba de permutación y un IC bootstrap percentil. Úsalo cuando importa más una cola o la mediana que la media: ingresos sesgados, percentiles de latencia.",
+        "trimmedT": "t recortada (robusta)",
+        "trimmedTHint": "La prueba t recortada de Yuen–Welch compara medias tras recortar una fracción fija de cada cola, y usa un error estándar con varianza winsorizada y grados de libertad de Welch. Úsala cuando colas pesadas o valores atípicos — ingresos, valor del pedido, duración de sesión — arrastren la media ordinaria e inflen su varianza. Con trim = 0 se reduce a la t de Welch.",
         "equivalence": "Equivalencia (TOST)",
         "equivalenceHint": "La prueba de equivalencia TOST comprueba si la diferencia se mantiene dentro de una tolerancia ±margin en ambas direcciones — dos pruebas t unilaterales. Úsela para confirmar que no hay un cambio relevante (una refactorización o migración que no debe mover la métrica); una prueba de diferencia no significativa por sí sola no demuestra equivalencia."
       },

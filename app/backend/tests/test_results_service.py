@@ -673,6 +673,116 @@ def test_results_endpoint_quantile_rejects_out_of_range_quantile() -> None:
     assert response.status_code == 422
 
 
+def test_results_endpoint_trimmed_t_robust_to_outlier() -> None:
+    client = TestClient(create_app())
+
+    # A tight +3 shift, but one extreme outlier in the treatment arm that would drag the ordinary
+    # mean test to a null (even negative) effect. The 20%-trimmed test removes the tail and recovers
+    # the real, significant shift.
+    control = [round(10 + i * 0.1, 4) for i in range(30)]
+    treatment = [round(value + 3.0, 4) for value in control]
+    treatment[0] = -500.0
+    response = client.post(
+        "/api/v1/results",
+        json={
+            "metric_type": "trimmed_t",
+            "ranked": {
+                "control_values": control,
+                "treatment_values": treatment,
+                "trim": 0.2,
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["metric_type"] == "trimmed_t"
+    assert payload["is_significant"] is True
+    assert payload["observed_effect"] == pytest.approx(3.0, abs=0.5)
+    assert payload["ci_lower"] > 0
+    assert "20%" in payload["interpretation"]
+
+
+def test_results_endpoint_trimmed_t_defaults_to_twenty_percent() -> None:
+    client = TestClient(create_app())
+
+    # With trim omitted the schema default (0.2 = 20% per tail) applies.
+    response = client.post(
+        "/api/v1/results",
+        json={
+            "metric_type": "trimmed_t",
+            "ranked": {
+                "control_values": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+                "treatment_values": [3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0],
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["metric_type"] == "trimmed_t"
+    assert "20%" in payload["interpretation"]
+
+
+def test_results_endpoint_trimmed_t_requires_ranked_data() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/results",
+        json={
+            "metric_type": "trimmed_t",
+            "continuous": {
+                "control_mean": 1.0,
+                "control_std": 1.0,
+                "control_n": 10,
+                "treatment_mean": 2.0,
+                "treatment_std": 1.0,
+                "treatment_n": 10,
+            },
+        },
+    )
+
+    assert response.status_code == 422
+
+
+def test_results_endpoint_trimmed_t_rejects_out_of_range_trim() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/results",
+        json={
+            "metric_type": "trimmed_t",
+            "ranked": {
+                "control_values": [1.0, 2.0, 3.0],
+                "treatment_values": [4.0, 5.0, 6.0],
+                "trim": 0.5,
+            },
+        },
+    )
+
+    assert response.status_code == 422
+
+
+def test_results_endpoint_trimmed_t_localizes_via_accept_language() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/results",
+        headers={"Accept-Language": "ru"},
+        json={
+            "metric_type": "trimmed_t",
+            "ranked": {
+                "control_values": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0],
+                "treatment_values": [4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0],
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    # Russian interpretation localizes the prose (the Yuen–Welch trimmed-mean phrasing).
+    assert "Юэна" in response.json()["interpretation"]
+
+
 def test_results_endpoint_fisher_exact_significant() -> None:
     client = TestClient(create_app())
 

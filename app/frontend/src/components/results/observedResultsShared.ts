@@ -1,14 +1,14 @@
 import type { ResultsRequestPayload } from "../../lib/experiment";
 
 // The observed-results form supports the two planned metric types plus alternative tests offered on
-// the same data — Mann–Whitney (non-parametric), bootstrap/permutation, quantile treatment effect
-// and TOST equivalence for continuous, Fisher's exact for binary — and a plan-independent Poisson
-// rate test ("count") for event-over-exposure data.
-export type ObservedMetricType = "binary" | "continuous" | "equivalence" | "mann_whitney" | "bootstrap" | "quantile" | "fisher_exact" | "count";
+// the same data — Mann–Whitney (non-parametric), bootstrap/permutation, quantile treatment effect,
+// Yuen–Welch trimmed-means (robust) and TOST equivalence for continuous, Fisher's exact for binary —
+// and a plan-independent Poisson rate test ("count") for event-over-exposure data.
+export type ObservedMetricType = "binary" | "continuous" | "equivalence" | "mann_whitney" | "bootstrap" | "quantile" | "trimmed_t" | "fisher_exact" | "count";
 
 // The local toggle selection: "parametric" is the default analysis (t-test / z-test); the rest are
 // the alternative tests offered on the same data per base metric type.
-export type ObservedTestSelection = "parametric" | "mann_whitney" | "bootstrap" | "quantile" | "equivalence" | "fisher_exact" | "count";
+export type ObservedTestSelection = "parametric" | "mann_whitney" | "bootstrap" | "quantile" | "trimmed_t" | "equivalence" | "fisher_exact" | "count";
 
 export type BinaryResultsForm = {
   control_conversions: string;
@@ -33,12 +33,14 @@ export type ContinuousResultsForm = {
 
 // Raw per-unit samples are entered as free text (one value per line, or comma/space separated) and
 // parsed at submit time; the rank-sum test needs the observations, not summary statistics. The
-// quantile field is only used by the quantile treatment-effect test (which quantile to compare).
+// quantile field is only used by the quantile treatment-effect test (which quantile to compare) and
+// the trim field only by the Yuen–Welch trimmed-means test (the tail fraction trimmed from each end).
 export type RankedResultsForm = {
   control_values: string;
   treatment_values: string;
   alpha: string;
   quantile: string;
+  trim: string;
 };
 
 // Counts of events accrued over an amount of exposure, for the Poisson rate test.
@@ -103,12 +105,13 @@ export function buildActualResultsState(
   // Fisher's exact shares the binary 2x2 input, so both metric types read from request.binary.
   const requestUsesBinaryForm =
     request?.metric_type === "binary" || request?.metric_type === "fisher_exact";
-  // Mann–Whitney, bootstrap/permutation and the quantile treatment effect share the ranked
-  // raw-sample input.
+  // Mann–Whitney, bootstrap/permutation, the quantile treatment effect and the Yuen–Welch
+  // trimmed-means test all share the ranked raw-sample input.
   const requestUsesRankedForm =
     request?.metric_type === "mann_whitney" ||
     request?.metric_type === "bootstrap" ||
-    request?.metric_type === "quantile";
+    request?.metric_type === "quantile" ||
+    request?.metric_type === "trimmed_t";
   // The difference t-test and the TOST equivalence test both read the continuous summary statistics.
   const requestUsesContinuousForm =
     request?.metric_type === "continuous" || request?.metric_type === "equivalence";
@@ -162,7 +165,9 @@ export function buildActualResultsState(
         requestUsesRankedForm ? (request?.ranked?.treatment_values ?? []).join("\n") : "",
       alpha: requestUsesRankedForm ? toFieldValue(request?.ranked?.alpha ?? alpha) : defaultAlpha,
       quantile:
-        request?.metric_type === "quantile" ? toFieldValue(request?.ranked?.quantile ?? 0.5) : "0.5"
+        request?.metric_type === "quantile" ? toFieldValue(request?.ranked?.quantile ?? 0.5) : "0.5",
+      trim:
+        request?.metric_type === "trimmed_t" ? toFieldValue(request?.ranked?.trim ?? 0.2) : "0.2"
     },
     count: {
       control_events: request?.metric_type === "count" ? toFieldValue(request.count?.control_events) : "",
@@ -220,10 +225,11 @@ export function buildResultsRequest(
   metricType: ObservedMetricType,
   form: ActualResultsState
 ): ResultsRequestPayload | null {
-  // Mann–Whitney, bootstrap/permutation and the quantile treatment effect all consume the raw
-  // per-unit samples (ranked input) and share the same parse + bounds validation; only the
-  // metric_type tag differs. The quantile test additionally carries which quantile to compare.
-  if (metricType === "mann_whitney" || metricType === "bootstrap" || metricType === "quantile") {
+  // Mann–Whitney, bootstrap/permutation, the quantile treatment effect and the Yuen–Welch
+  // trimmed-means test all consume the raw per-unit samples (ranked input) and share the same parse +
+  // bounds validation; only the metric_type tag differs. The quantile test additionally carries which
+  // quantile to compare, and the trimmed-means test the tail fraction to trim.
+  if (metricType === "mann_whitney" || metricType === "bootstrap" || metricType === "quantile" || metricType === "trimmed_t") {
     if (form.ranked.alpha.trim() === "") {
       return null;
     }
@@ -247,6 +253,16 @@ export function buildResultsRequest(
       return {
         metric_type: "quantile",
         ranked: { control_values, treatment_values, alpha, quantile }
+      };
+    }
+    if (metricType === "trimmed_t") {
+      const trim = Number(form.ranked.trim);
+      if (form.ranked.trim.trim() === "" || !(trim >= 0 && trim < 0.5)) {
+        return null;
+      }
+      return {
+        metric_type: "trimmed_t",
+        ranked: { control_values, treatment_values, alpha, trim }
       };
     }
     return {

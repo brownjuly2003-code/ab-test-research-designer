@@ -536,6 +536,7 @@
         "treatmentValues": "实验组数值",
         "rawValuesPlaceholder": "每行一个值，或用逗号分隔",
         "quantile": "分位数 (0–1)",
+        "trim": "截尾比例 (0–0.5)",
         "controlEvents": "对照组事件数",
         "controlExposure": "对照组暴露",
         "treatmentEvents": "实验组事件数",
@@ -571,6 +572,8 @@
         "bootstrapHint": "置换检验通过重排合并后的原始数值标签来比较均值差——一种无分布的 t 检验——并给出百分位 bootstrap 置信区间。无需正态性假设；小样本进行精确检验。",
         "quantile": "分位数效应",
         "quantileHint": "分位数处理效应用置换检验和百分位自助置信区间比较两组中选定的分位数（默认中位数，或如 p90）。当尾部或中位数比均值更重要时使用——偏态收入、延迟百分位。",
+        "trimmedT": "截尾 t（稳健）",
+        "trimmedTHint": "Yuen–Welch 截尾 t 检验在从每个尾部截去固定比例后比较均值，并采用 Winsorize 方差的标准误与 Welch 自由度。当重尾或离群值（收入、订单金额、会话时长）会拖拽普通均值并放大其方差时使用。trim = 0 时退化为 Welch 的 t 检验。",
         "equivalence": "等效检验 (TOST)",
         "equivalenceHint": "TOST 等效检验通过两次单侧 t 检验，判断差异是否在两个方向上都保持在容差 ±margin 之内。用于确认没有实质性变化（例如重构或迁移不应改动指标）；仅靠不显著的差异检验并不能证明等效。"
       },

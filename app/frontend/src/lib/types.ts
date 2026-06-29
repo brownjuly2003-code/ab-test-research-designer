@@ -49,6 +49,9 @@ export type ObservedResultsRankedPayload = {
   // Only consumed by the quantile treatment-effect analyzer (which quantile to compare, median by
   // default); Mann–Whitney and bootstrap ignore it.
   quantile?: number;
+  // Only consumed by the Yuen–Welch trimmed-means analyzer (the fraction trimmed from each tail,
+  // default 0.2); the other ranked analyzers ignore it.
+  trim?: number;
 };
 export type ObservedResultsCountPayload = {
   control_events: number;
@@ -58,16 +61,17 @@ export type ObservedResultsCountPayload = {
   alpha?: number;
 };
 export type ResultsRequestPayload = {
-  // "fisher_exact" reuses the binary 2x2 input; "bootstrap", "quantile" and "equivalence" reuse the
-  // continuous / ranked inputs of the same data; "count" is a plan-independent Poisson rate test.
-  metric_type: "binary" | "continuous" | "equivalence" | "mann_whitney" | "bootstrap" | "quantile" | "fisher_exact" | "count";
+  // "fisher_exact" reuses the binary 2x2 input; "bootstrap", "quantile", "trimmed_t" and
+  // "equivalence" reuse the continuous / ranked inputs of the same data; "count" is a
+  // plan-independent Poisson rate test.
+  metric_type: "binary" | "continuous" | "equivalence" | "mann_whitney" | "bootstrap" | "quantile" | "trimmed_t" | "fisher_exact" | "count";
   binary?: ObservedResultsBinaryPayload | null;
   continuous?: ObservedResultsContinuousPayload | null;
   ranked?: ObservedResultsRankedPayload | null;
   count?: ObservedResultsCountPayload | null;
 };
 export type ResultsAnalysisResponse = {
-  metric_type: "binary" | "continuous" | "equivalence" | "mann_whitney" | "bootstrap" | "quantile" | "fisher_exact" | "count";
+  metric_type: "binary" | "continuous" | "equivalence" | "mann_whitney" | "bootstrap" | "quantile" | "trimmed_t" | "fisher_exact" | "count";
   observed_effect: number;
   observed_effect_relative: number;
   control_rate?: number | null;

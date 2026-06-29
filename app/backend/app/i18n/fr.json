@@ -280,6 +280,8 @@
       "bootstrap_rejects_other_data": "le metric_type bootstrap n'accepte pas de données binaires ou continues",
       "quantile_requires_ranked_data": "le metric_type quantile nécessite des données ranked (échantillons bruts)",
       "quantile_rejects_other_data": "le metric_type quantile n'accepte pas de données binaires ou continues",
+      "trimmed_t_requires_ranked_data": "le metric_type trimmed_t nécessite des données ranked (échantillons bruts)",
+      "trimmed_t_rejects_other_data": "le metric_type trimmed_t n'accepte pas de données binaires ou continues",
       "equivalence_requires_continuous_data": "le metric_type equivalence nécessite des données continues (statistiques résumées)",
       "equivalence_rejects_other_data": "le metric_type equivalence n'accepte pas de données binaires ou de rangs",
       "equivalence_requires_margin": "le metric_type equivalence nécessite un equivalence_margin supérieur à zéro",
@@ -315,6 +317,7 @@
       "count": "Taux du traitement {{treatmentRate}} contre contrôle {{controlRate}}. Rapport de taux {{rateRatio}}. Différence de taux {{rateDifference}} avec IC à {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. Valeur p bilatérale exacte de Poisson {{pValue}} ; le résultat est {{significance}}.",
       "bootstrap": "Moyenne du traitement {{treatmentMean}} contre contrôle {{controlMean}}. Différence des moyennes {{effect}} avec IC bootstrap par percentiles à {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. Valeur p bilatérale de permutation {{pValue}} sur {{permutations}} réaffectations ; le résultat est {{significance}}.",
       "quantile": "Quantile P{{percentile}} du traitement {{treatmentQuantile}} vs contrôle {{controlQuantile}}. Décalage de quantile {{effect}} avec IC bootstrap percentile à {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. Valeur p bilatérale de permutation {{pValue}} sur {{permutations}} réaffectations ; le résultat est {{significance}}.",
+      "trimmed_t": "Moyenne tronquée à {{trimPct}}% du traitement {{treatmentMean}} contre contrôle {{controlMean}} (n effectif {{treatmentEffectiveN}} contre {{controlEffectiveN}} après troncature). Décalage robuste de la moyenne {{effect}} avec IC à {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. Valeur p bilatérale du t de Yuen–Welch {{pValue}} à {{df}} ddl ; le résultat est {{significance}}.",
       "equivalence": "Moyenne du traitement {{treatmentMean}} vs contrôle {{controlMean}}. Effet {{effect}} testé contre une marge d'équivalence de ±{{margin}} : {{equivalence}}. L'intervalle de confiance à {{ciLevel}}% [{{ciLower}}, {{ciUpper}}] est l'intervalle de décision TOST ; valeur p des deux tests unilatéraux {{pValue}}.",
       "categorical": "Khi-deux {{chiSquare}} à {{df}} degrés de liberté pour un tableau de contingence {{rows}}×{{cols}} (N = {{n}}). Valeur p bilatérale {{pValue}} ; le résultat est {{significance}}. Le V de Cramér {{cramersV}} mesure la force de l'association."
     },

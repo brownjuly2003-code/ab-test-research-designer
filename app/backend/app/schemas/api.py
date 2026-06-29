@@ -232,13 +232,14 @@ class ObservedResultsContinuous(BaseModel):
 
 class ObservedResultsRanked(BaseModel):
     """Raw per-unit samples for the distribution-free analyzers (Mann–Whitney, bootstrap/permutation,
-    quantile treatment effect).
+    quantile treatment effect, Yuen–Welch trimmed means).
 
     Unlike the binary / continuous observed-results models, which carry only summary statistics, these
     tests need the actual observations: they rank or resample the pooled sample. Each arm is capped at
     ``MAX_OBSERVED_SAMPLE_SIZE`` because the Hodges–Lehmann CI materializes all pairwise differences.
     ``quantile`` is consumed only by the quantile treatment-effect analyzer (which quantile to compare,
-    median by default); the Mann–Whitney and bootstrap analyzers ignore it.
+    median by default) and ``trim`` only by the Yuen–Welch trimmed-means analyzer (the fraction
+    trimmed from each tail before the robust mean test); the other analyzers ignore them.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -247,6 +248,7 @@ class ObservedResultsRanked(BaseModel):
     treatment_values: list[float] = Field(min_length=2, max_length=MAX_OBSERVED_SAMPLE_SIZE)
     alpha: float = Field(default=0.05, ge=0.001, le=0.1)
     quantile: float = Field(default=0.5, gt=0.0, lt=1.0)
+    trim: float = Field(default=0.2, ge=0.0, lt=0.5)
 
     @model_validator(mode="after")
     def validate_values(self) -> "ObservedResultsRanked":
@@ -284,6 +286,7 @@ class ResultsRequest(BaseModel):
         "mann_whitney",
         "bootstrap",
         "quantile",
+        "trimmed_t",
         "fisher_exact",
         "count",
     ]
@@ -339,6 +342,13 @@ class ResultsRequest(BaseModel):
                 raise ValueError(translate("errors.schemas.quantile_requires_ranked_data"))
             if self.binary is not None or self.continuous is not None:
                 raise ValueError(translate("errors.schemas.quantile_rejects_other_data"))
+        if self.metric_type == "trimmed_t":
+            # Yuen–Welch trimmed-means t-test reuses the raw per-unit samples (the same ranked input
+            # shape as Mann–Whitney / bootstrap); the ranked.trim field sets the tail fraction trimmed.
+            if self.ranked is None:
+                raise ValueError(translate("errors.schemas.trimmed_t_requires_ranked_data"))
+            if self.binary is not None or self.continuous is not None:
+                raise ValueError(translate("errors.schemas.trimmed_t_rejects_other_data"))
         if self.metric_type == "count":
             if self.count is None:
                 raise ValueError(translate("errors.schemas.count_requires_count_data"))
