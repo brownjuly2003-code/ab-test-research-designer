@@ -12,7 +12,9 @@ export default defineConfig({
         manualChunks: {
           "vendor-react": ["react", "react-dom"],
           "vendor-i18n": ["i18next", "react-i18next", "i18next-browser-languagedetector"],
-          "vendor-state": ["zustand"]
+          "vendor-state": ["zustand"],
+          "vendor-icons": ["lucide-react"],
+          "vendor-floating": ["@floating-ui/react-dom"]
         }
       }
     },

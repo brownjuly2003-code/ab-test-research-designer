@@ -964,6 +964,14 @@ export type ObservedResultsContinuous = {
   alpha?: number;
 };
 
+export type ObservedResultsCount = {
+  control_events: number;
+  control_exposure: number;
+  treatment_events: number;
+  treatment_exposure: number;
+  alpha?: number;
+};
+
 export type ObservedResultsRanked = {
   control_values: number[];
   treatment_values: number[];
@@ -1151,10 +1159,11 @@ export type RecommendationsSection = {
 };
 
 export type ResultsRequest = {
-  metric_type: "binary" | "continuous" | "mann_whitney";
+  metric_type: "binary" | "continuous" | "mann_whitney" | "fisher_exact" | "count";
   binary?: ObservedResultsBinary | null;
   continuous?: ObservedResultsContinuous | null;
   ranked?: ObservedResultsRanked | null;
+  count?: ObservedResultsCount | null;
 };
 
 export type ResultsResponse = {

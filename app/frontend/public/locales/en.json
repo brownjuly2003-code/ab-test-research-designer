@@ -534,7 +534,11 @@
         "treatmentN": "Treatment n",
         "controlValues": "Control values",
         "treatmentValues": "Treatment values",
-        "rawValuesPlaceholder": "One value per line, or comma-separated"
+        "rawValuesPlaceholder": "One value per line, or comma-separated",
+        "controlEvents": "Control events",
+        "controlExposure": "Control exposure",
+        "treatmentEvents": "Treatment events",
+        "treatmentExposure": "Treatment exposure"
       },
       "cards": {
         "effect": "Effect",
@@ -555,7 +559,12 @@
         "label": "Statistical test",
         "parametric": "t-test (parametric)",
         "mannWhitney": "Mann–Whitney (non-parametric)",
-        "hint": "Mann–Whitney compares whole distributions from raw values — robust to outliers and skew, with no normality assumption."
+        "hint": "Mann–Whitney compares whole distributions from raw values — robust to outliers and skew, with no normality assumption.",
+        "zTest": "z-test (normal approximation)",
+        "fisherExact": "Fisher's exact (small samples)",
+        "fisherHint": "Fisher's exact conditions on both margins and enumerates the hypergeometric distribution — an exact p-value for small samples or rare events, where the z-test's normal approximation is unreliable.",
+        "rate": "Rate (Poisson)",
+        "rateHint": "The Poisson rate test compares events over exposure (e.g. errors per 1000 sessions) with an exact conditional test. Use it for event-rate data where arrivals are independent — not for clustered per-user counts."
       },
       "validation": {
         "fillAllFields": "Fill in all actual results fields with valid values before analysis.",

@@ -6,12 +6,15 @@ from app.backend.app.i18n import translate
 from app.backend.app.schemas.api import (
     ObservedResultsBinary,
     ObservedResultsContinuous,
+    ObservedResultsCount,
     ObservedResultsRanked,
     ResultsRequest,
     ResultsResponse,
 )
 from app.backend.app.stats.binary import normal_ppf
+from app.backend.app.stats.fisher_exact import MAX_FISHER_EXACT_TOTAL, fisher_exact_test
 from app.backend.app.stats.mann_whitney import mann_whitney_u_test
+from app.backend.app.stats.poisson_rate import MAX_POISSON_EVENTS, poisson_rate_test
 from app.backend.app.stats.student_t import t_cdf, t_ppf
 
 _STANDARD_NORMAL = NormalDist()
@@ -20,8 +23,12 @@ _STANDARD_NORMAL = NormalDist()
 def analyze_results(request: ResultsRequest) -> ResultsResponse:
     if request.metric_type == "binary":
         return _analyze_binary(request.binary)
+    if request.metric_type == "fisher_exact":
+        return _analyze_fisher_exact(request.binary)
     if request.metric_type == "mann_whitney":
         return _analyze_mann_whitney(request.ranked)
+    if request.metric_type == "count":
+        return _analyze_count(request.count)
     return _analyze_continuous(request.continuous)
 
 
@@ -94,6 +101,174 @@ def _analyze_binary(obs: ObservedResultsBinary | None) -> ResultsResponse:
             p_value=p_value,
             is_significant=is_significant,
         ),
+    )
+
+
+def _analyze_fisher_exact(obs: ObservedResultsBinary | None) -> ResultsResponse:
+    if obs is None:
+        raise ValueError("binary observations are required")
+    if obs.control_users + obs.treatment_users > MAX_FISHER_EXACT_TOTAL:
+        # The exact enumeration is only worthwhile on small tables; beyond the cap the
+        # normal-approximation binary test is accurate and far cheaper.
+        raise ValueError(translate("errors.schemas.fisher_exact_table_too_large"))
+
+    result = fisher_exact_test(
+        obs.control_conversions,
+        obs.control_users,
+        obs.treatment_conversions,
+        obs.treatment_users,
+    )
+    p1 = result["control_rate"]
+    p2 = result["treatment_rate"]
+    effect = result["risk_difference"]
+    p_value = result["p_value"]
+    is_significant = p_value < obs.alpha
+    odds_ratio = result["odds_ratio"]
+
+    # The p-value is exact; the interval and achieved power are the large-sample normal
+    # approximation on the risk difference, reported for continuity with the binary view and
+    # clearly framed as descriptive (an exact 2x2 CI is a separate, heavier construction).
+    z_critical = normal_ppf(1 - obs.alpha / 2)
+    ci_standard_error = math.sqrt(
+        max((p1 * (1 - p1) / obs.control_users) + (p2 * (1 - p2) / obs.treatment_users), 0.0)
+    )
+    if ci_standard_error == 0:
+        ci_lower = ci_upper = effect
+        power_achieved = 0.0
+    else:
+        ci_lower = effect - z_critical * ci_standard_error
+        ci_upper = effect + z_critical * ci_standard_error
+        standardized = abs(effect) / ci_standard_error
+        power_achieved = standard_normal_cdf(
+            standardized - z_critical
+        ) + standard_normal_cdf(-z_critical - standardized)
+
+    return ResultsResponse(
+        metric_type="fisher_exact",
+        observed_effect=round(effect * 100, 4),
+        observed_effect_relative=round(result["relative_risk_difference"] * 100, 2),
+        control_rate=round(p1 * 100, 4),
+        treatment_rate=round(p2 * 100, 4),
+        ci_lower=round(ci_lower * 100, 4),
+        ci_upper=round(ci_upper * 100, 4),
+        ci_level=round(1 - obs.alpha, 4),
+        p_value=round(_bounded_probability(p_value), 6),
+        test_statistic=round(odds_ratio, 4) if odds_ratio is not None else 0.0,
+        is_significant=is_significant,
+        power_achieved=round(_bounded_probability(power_achieved), 3),
+        verdict=_verdict(is_significant, effect, obs.alpha),
+        interpretation=_interpretation_fisher_exact(
+            p1=p1,
+            p2=p2,
+            effect=effect,
+            odds_ratio=odds_ratio,
+            p_value=p_value,
+            is_significant=is_significant,
+        ),
+        effect_size=round(odds_ratio, 4) if odds_ratio is not None else None,
+        effect_size_label=translate("results.effect_size.odds_ratio"),
+    )
+
+
+def _interpretation_fisher_exact(
+    *,
+    p1: float,
+    p2: float,
+    effect: float,
+    odds_ratio: float | None,
+    p_value: float,
+    is_significant: bool,
+) -> str:
+    significance_text = translate(
+        "results.significance.significant"
+        if is_significant
+        else "results.significance.not_significant"
+    )
+    odds_ratio_text = (
+        f"{odds_ratio:.4f}"
+        if odds_ratio is not None
+        else translate("results.fisher_exact.odds_ratio_undefined")
+    )
+    return translate(
+        "results.interpretation.fisher_exact",
+        {
+            "treatment": f"{p2 * 100:.4f}",
+            "control": f"{p1 * 100:.4f}",
+            "effect": f"{effect * 100:+.4f}",
+            "oddsRatio": odds_ratio_text,
+            "pValue": f"{p_value:.6f}",
+            "significance": significance_text,
+        },
+    )
+
+
+def _analyze_count(obs: ObservedResultsCount | None) -> ResultsResponse:
+    if obs is None:
+        raise ValueError("count observations are required")
+    if obs.control_events + obs.treatment_events > MAX_POISSON_EVENTS:
+        # The exact binomial enumeration is only worthwhile up to the cap; beyond it the normal
+        # approximation is exact and far cheaper.
+        raise ValueError(translate("errors.schemas.count_events_too_large"))
+
+    result = poisson_rate_test(
+        obs.control_events,
+        obs.control_exposure,
+        obs.treatment_events,
+        obs.treatment_exposure,
+        obs.alpha,
+    )
+    if result is None:
+        # No events in either arm: the rate test carries no signal.
+        return _degenerate_response(metric_type="count", ci_level=1 - obs.alpha)
+
+    rate_difference = result["rate_difference"]
+    rate_ratio = result["rate_ratio"]
+    is_significant = result["is_significant"]
+
+    return ResultsResponse(
+        metric_type="count",
+        observed_effect=round(rate_difference, 6),
+        observed_effect_relative=round(result["relative_effect"], 2),
+        control_rate=None,
+        treatment_rate=None,
+        ci_lower=round(result["ci_lower"], 6),
+        ci_upper=round(result["ci_upper"], 6),
+        ci_level=round(result["ci_level"], 4),
+        p_value=round(result["p_value"], 6),
+        test_statistic=round(rate_ratio, 4) if rate_ratio is not None else 0.0,
+        is_significant=is_significant,
+        power_achieved=round(result["power_achieved"], 3),
+        verdict=_verdict(is_significant, rate_difference, obs.alpha),
+        interpretation=_interpretation_count(result, is_significant),
+        effect_size=round(rate_ratio, 4) if rate_ratio is not None else None,
+        effect_size_label=translate("results.effect_size.rate_ratio"),
+    )
+
+
+def _interpretation_count(result: dict[str, Any], is_significant: bool) -> str:
+    significance_text = translate(
+        "results.significance.significant"
+        if is_significant
+        else "results.significance.not_significant"
+    )
+    rate_ratio_text = (
+        f"{result['rate_ratio']:.4f}"
+        if result["rate_ratio"] is not None
+        else translate("results.count.rate_ratio_undefined")
+    )
+    return translate(
+        "results.interpretation.count",
+        {
+            "treatmentRate": f"{result['treatment_rate']:.6f}",
+            "controlRate": f"{result['control_rate']:.6f}",
+            "rateRatio": rate_ratio_text,
+            "rateDifference": f"{result['rate_difference']:+.6f}",
+            "ciLevel": f"{result['ci_level'] * 100:.1f}",
+            "ciLower": f"{result['ci_lower']:.6f}",
+            "ciUpper": f"{result['ci_upper']:.6f}",
+            "pValue": f"{result['p_value']:.6f}",
+            "significance": significance_text,
+        },
     )
 
 

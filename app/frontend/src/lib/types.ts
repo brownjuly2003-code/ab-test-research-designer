@@ -44,14 +44,23 @@ export type ObservedResultsRankedPayload = {
   treatment_values: number[];
   alpha?: number;
 };
+export type ObservedResultsCountPayload = {
+  control_events: number;
+  control_exposure: number;
+  treatment_events: number;
+  treatment_exposure: number;
+  alpha?: number;
+};
 export type ResultsRequestPayload = {
-  metric_type: "binary" | "continuous" | "mann_whitney";
+  // "fisher_exact" reuses the binary 2x2 input; "count" is a plan-independent Poisson rate test.
+  metric_type: "binary" | "continuous" | "mann_whitney" | "fisher_exact" | "count";
   binary?: ObservedResultsBinaryPayload | null;
   continuous?: ObservedResultsContinuousPayload | null;
   ranked?: ObservedResultsRankedPayload | null;
+  count?: ObservedResultsCountPayload | null;
 };
 export type ResultsAnalysisResponse = {
-  metric_type: "binary" | "continuous" | "mann_whitney";
+  metric_type: "binary" | "continuous" | "mann_whitney" | "fisher_exact" | "count";
   observed_effect: number;
   observed_effect_relative: number;
   control_rate?: number | null;

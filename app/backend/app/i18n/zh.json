@@ -269,7 +269,13 @@
       "bandit_arm_rates_range": "各变体的转化率必须介于 0 和 1 之间。",
       "namespace_range_order": "命名空间的 range_start 必须小于 range_end",
       "targeting_in_requires_list": "定向运算符 'in' 需要列表值",
-      "targeting_numeric_requires_number": "数值定向运算符需要数值"
+      "targeting_numeric_requires_number": "数值定向运算符需要数值",
+      "fisher_exact_requires_binary_data": "fisher_exact metric_type 需要二元数据（2×2 计数）",
+      "fisher_exact_rejects_other_data": "fisher_exact metric_type 不接受连续或原始样本数据（ranked）",
+      "fisher_exact_table_too_large": "fisher_exact 适用于小样本；该表过大——请改用二元检验（正态近似）",
+      "count_requires_count_data": "count metric_type 需要计数数据（暴露上的事件数）",
+      "count_rejects_other_data": "count metric_type 不接受二元、连续或原始样本数据（ranked）",
+      "count_events_too_large": "count：事件总数过多，无法进行精确检验——在此规模下正态近似即为精确"
     },
     "srm_detected": "检测到 SRM - 检查您的随机化或跟踪实施",
     "srm_not_detected": "未检测到 SRM"
@@ -291,10 +297,20 @@
       "continuous": "实验组均值 {{treatmentMean}} 对照组 {{controlMean}}。效应 {{effect}}，{{ciLevel}}% 置信区间 [{{ciLower}}, {{ciUpper}}]。双侧 p 值 {{pValue}}。",
       "ratio": "实验组比率 {{treatmentRatio}} 对照组 {{controlRatio}}。绝对效应 {{effect}}，{{ciLevel}}% 置信区间 [{{ciLower}}, {{ciUpper}}]。双侧 p 值 {{pValue}}（delta 方法）；结果{{significance}}。",
       "mann_whitney": "实验组中位数 {{treatmentMedian}} 对照组 {{controlMedian}}。Hodges–Lehmann 位移 {{shift}}，{{ciLevel}}% 置信区间 [{{ciLower}}, {{ciUpper}}]。P(实验组 > 对照组) = {{cles}}%。Mann–Whitney U {{uStatistic}}，双侧 p 值 {{pValue}}；结果{{significance}}。",
-      "degenerate": "观测输入退化，无法计算检验统计量。"
+      "degenerate": "观测输入退化，无法计算检验统计量。",
+      "fisher_exact": "实验组转化率 {{treatment}}% 对照组 {{control}}%。绝对效应 {{effect}} 个百分点。优势比 {{oddsRatio}}。Fisher 精确双侧 p 值 {{pValue}}；结果{{significance}}。",
+      "count": "实验组速率 {{treatmentRate}} 对照组 {{controlRate}}。率比 {{rateRatio}}。速率差 {{rateDifference}}，{{ciLevel}}% 置信区间 [{{ciLower}}, {{ciUpper}}]。Poisson 精确双侧 p 值 {{pValue}}；结果{{significance}}。"
     },
     "effect_size": {
-      "rank_biserial": "秩二列相关"
+      "rank_biserial": "秩二列相关",
+      "odds_ratio": "优势比（odds ratio）",
+      "rate_ratio": "率比（rate ratio）"
+    },
+    "fisher_exact": {
+      "odds_ratio_undefined": "未定义（存在零单元格）"
+    },
+    "count": {
+      "rate_ratio_undefined": "未定义（对照组无事件）"
     }
   }
 }

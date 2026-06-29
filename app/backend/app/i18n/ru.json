@@ -269,7 +269,13 @@
       "bandit_arm_rates_range": "Конверсии вариантов должны быть в диапазоне от 0 до 1.",
       "namespace_range_order": "range_start неймспейса должен быть меньше range_end",
       "targeting_in_requires_list": "оператор таргетинга 'in' требует значение-список",
-      "targeting_numeric_requires_number": "числовые операторы таргетинга требуют числовое значение"
+      "targeting_numeric_requires_number": "числовые операторы таргетинга требуют числовое значение",
+      "fisher_exact_requires_binary_data": "для metric_type=fisher_exact нужны binary-данные (2×2 счётчики)",
+      "fisher_exact_rejects_other_data": "metric_type=fisher_exact не принимает continuous- или ranked-данные",
+      "fisher_exact_table_too_large": "fisher_exact предназначен для малых выборок; эта таблица слишком велика — используйте binary-тест (нормальная аппроксимация)",
+      "count_requires_count_data": "для metric_type=count нужны count-данные (события на экспозицию)",
+      "count_rejects_other_data": "metric_type=count не принимает binary-, continuous- или ranked-данные",
+      "count_events_too_large": "count: слишком много суммарных событий для точного теста — на таком масштабе нормальная аппроксимация точна"
     },
     "srm_detected": "Обнаружен SRM — проверьте рандомизацию и реализацию трекинга",
     "srm_not_detected": "SRM не обнаружен"
@@ -291,10 +297,20 @@
       "continuous": "Среднее варианта {{treatmentMean}} против контроля {{controlMean}}. Эффект {{effect}} при {{ciLevel}}% ДИ [{{ciLower}}, {{ciUpper}}]. Двусторонний p-value {{pValue}}.",
       "ratio": "Отношение варианта {{treatmentRatio}} против контроля {{controlRatio}}. Абсолютный эффект {{effect}} при {{ciLevel}}% ДИ [{{ciLower}}, {{ciUpper}}]. Двусторонний p-value {{pValue}} (дельта-метод); результат {{significance}}.",
       "mann_whitney": "Медиана варианта {{treatmentMedian}} против контроля {{controlMedian}}. Сдвиг Hodges–Lehmann {{shift}} при {{ciLevel}}% ДИ [{{ciLower}}, {{ciUpper}}]. P(вариант > контроль) = {{cles}}%. Mann–Whitney U {{uStatistic}}, двусторонний p-value {{pValue}}; результат {{significance}}.",
-      "degenerate": "Наблюдаемые данные вырождены, поэтому тестовая статистика не может быть вычислена."
+      "degenerate": "Наблюдаемые данные вырождены, поэтому тестовая статистика не может быть вычислена.",
+      "fisher_exact": "Конверсия варианта {{treatment}}% против контроля {{control}}%. Абсолютный эффект {{effect}} п.п. Отношение шансов {{oddsRatio}}. Точный двусторонний p-value Фишера {{pValue}}; результат {{significance}}.",
+      "count": "Интенсивность варианта {{treatmentRate}} против контроля {{controlRate}}. Отношение интенсивностей {{rateRatio}}. Разность интенсивностей {{rateDifference}} при {{ciLevel}}% ДИ [{{ciLower}}, {{ciUpper}}]. Точный двусторонний p-value Пуассона {{pValue}}; результат {{significance}}."
     },
     "effect_size": {
-      "rank_biserial": "ранг-бисериальная корреляция"
+      "rank_biserial": "ранг-бисериальная корреляция",
+      "odds_ratio": "отношение шансов (odds ratio)",
+      "rate_ratio": "отношение интенсивностей (rate ratio)"
+    },
+    "fisher_exact": {
+      "odds_ratio_undefined": "не определено (нулевая ячейка)"
+    },
+    "count": {
+      "rate_ratio_undefined": "не определено (нет событий в контроле)"
     }
   }
 }
