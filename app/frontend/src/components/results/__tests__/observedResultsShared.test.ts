@@ -34,7 +34,7 @@ describe("parseSampleValues", () => {
 describe("buildResultsRequest (mann_whitney)", () => {
   it("builds a ranked payload from the two raw-sample fields", () => {
     const state = emptyState();
-    state.ranked = { control_values: "1 2 3 4", treatment_values: "5,6,7,8", alpha: "0.05", quantile: "0.5" };
+    state.ranked = { control_values: "1 2 3 4", treatment_values: "5,6,7,8", alpha: "0.05", quantile: "0.5", trim: "0.2" };
     const payload = buildResultsRequest("mann_whitney", state);
     expect(payload).toEqual({
       metric_type: "mann_whitney",
@@ -44,20 +44,20 @@ describe("buildResultsRequest (mann_whitney)", () => {
 
   it("returns null when an arm has fewer than two values", () => {
     const state = emptyState();
-    state.ranked = { control_values: "1", treatment_values: "5 6 7", alpha: "0.05", quantile: "0.5" };
+    state.ranked = { control_values: "1", treatment_values: "5 6 7", alpha: "0.05", quantile: "0.5", trim: "0.2" };
     expect(buildResultsRequest("mann_whitney", state)).toBeNull();
   });
 
   it("returns null when an arm exceeds the 1000-value cap", () => {
     const state = emptyState();
     const tooMany = Array.from({ length: 1001 }, (_, index) => String(index)).join(" ");
-    state.ranked = { control_values: tooMany, treatment_values: "5 6", alpha: "0.05", quantile: "0.5" };
+    state.ranked = { control_values: tooMany, treatment_values: "5 6", alpha: "0.05", quantile: "0.5", trim: "0.2" };
     expect(buildResultsRequest("mann_whitney", state)).toBeNull();
   });
 
   it("returns null when alpha is out of range", () => {
     const state = emptyState();
-    state.ranked = { control_values: "1 2 3", treatment_values: "4 5 6", alpha: "0.5", quantile: "0.5" };
+    state.ranked = { control_values: "1 2 3", treatment_values: "4 5 6", alpha: "0.5", quantile: "0.5", trim: "0.2" };
     expect(buildResultsRequest("mann_whitney", state)).toBeNull();
   });
 });
@@ -65,7 +65,7 @@ describe("buildResultsRequest (mann_whitney)", () => {
 describe("buildResultsRequest (bootstrap)", () => {
   it("reuses the ranked raw-sample input and tags the payload as bootstrap", () => {
     const state = emptyState();
-    state.ranked = { control_values: "1 2 3 4", treatment_values: "5,6,7,8", alpha: "0.05", quantile: "0.5" };
+    state.ranked = { control_values: "1 2 3 4", treatment_values: "5,6,7,8", alpha: "0.05", quantile: "0.5", trim: "0.2" };
     const payload = buildResultsRequest("bootstrap", state);
     expect(payload).toEqual({
       metric_type: "bootstrap",
@@ -75,7 +75,7 @@ describe("buildResultsRequest (bootstrap)", () => {
 
   it("applies the same ranked validation as mann_whitney (min two values per arm)", () => {
     const state = emptyState();
-    state.ranked = { control_values: "1", treatment_values: "5 6 7", alpha: "0.05", quantile: "0.5" };
+    state.ranked = { control_values: "1", treatment_values: "5 6 7", alpha: "0.05", quantile: "0.5", trim: "0.2" };
     expect(buildResultsRequest("bootstrap", state)).toBeNull();
   });
 
@@ -88,7 +88,8 @@ describe("buildResultsRequest (bootstrap)", () => {
       control_values: "1\n2\n3",
       treatment_values: "4\n5\n6",
       alpha: "0.01",
-      quantile: "0.5"
+      quantile: "0.5",
+      trim: "0.2"
     });
   });
 });
@@ -96,7 +97,7 @@ describe("buildResultsRequest (bootstrap)", () => {
 describe("buildResultsRequest (quantile)", () => {
   it("reuses the ranked raw-sample input and carries the chosen quantile", () => {
     const state = emptyState();
-    state.ranked = { control_values: "1 2 3 4", treatment_values: "5,6,7,8", alpha: "0.05", quantile: "0.9" };
+    state.ranked = { control_values: "1 2 3 4", treatment_values: "5,6,7,8", alpha: "0.05", quantile: "0.9", trim: "0.2" };
     const payload = buildResultsRequest("quantile", state);
     expect(payload).toEqual({
       metric_type: "quantile",
@@ -106,7 +107,7 @@ describe("buildResultsRequest (quantile)", () => {
 
   it("returns null when the quantile is out of the open (0, 1) range", () => {
     const state = emptyState();
-    state.ranked = { control_values: "1 2 3", treatment_values: "4 5 6", alpha: "0.05", quantile: "1" };
+    state.ranked = { control_values: "1 2 3", treatment_values: "4 5 6", alpha: "0.05", quantile: "1", trim: "0.2" };
     expect(buildResultsRequest("quantile", state)).toBeNull();
     state.ranked = { ...state.ranked, quantile: "0" };
     expect(buildResultsRequest("quantile", state)).toBeNull();
@@ -116,7 +117,7 @@ describe("buildResultsRequest (quantile)", () => {
 
   it("applies the same ranked validation as mann_whitney (min two values per arm)", () => {
     const state = emptyState();
-    state.ranked = { control_values: "1", treatment_values: "5 6 7", alpha: "0.05", quantile: "0.5" };
+    state.ranked = { control_values: "1", treatment_values: "5 6 7", alpha: "0.05", quantile: "0.5", trim: "0.2" };
     expect(buildResultsRequest("quantile", state)).toBeNull();
   });
 
@@ -129,7 +130,60 @@ describe("buildResultsRequest (quantile)", () => {
       control_values: "1\n2\n3",
       treatment_values: "4\n5\n6",
       alpha: "0.01",
-      quantile: "0.9"
+      quantile: "0.9",
+      trim: "0.2"
+    });
+  });
+});
+
+describe("buildResultsRequest (trimmed_t)", () => {
+  it("reuses the ranked raw-sample input and carries the trim fraction", () => {
+    const state = emptyState();
+    state.ranked = { control_values: "1 2 3 4", treatment_values: "5,6,7,8", alpha: "0.05", quantile: "0.5", trim: "0.1" };
+    const payload = buildResultsRequest("trimmed_t", state);
+    expect(payload).toEqual({
+      metric_type: "trimmed_t",
+      ranked: { control_values: [1, 2, 3, 4], treatment_values: [5, 6, 7, 8], alpha: 0.05, trim: 0.1 }
+    });
+  });
+
+  it("accepts a trim of zero (reduces to Welch's t)", () => {
+    const state = emptyState();
+    state.ranked = { control_values: "1 2 3 4", treatment_values: "5 6 7 8", alpha: "0.05", quantile: "0.5", trim: "0" };
+    const payload = buildResultsRequest("trimmed_t", state);
+    expect(payload).toEqual({
+      metric_type: "trimmed_t",
+      ranked: { control_values: [1, 2, 3, 4], treatment_values: [5, 6, 7, 8], alpha: 0.05, trim: 0 }
+    });
+  });
+
+  it("returns null when the trim is out of the [0, 0.5) range or blank", () => {
+    const state = emptyState();
+    state.ranked = { control_values: "1 2 3", treatment_values: "4 5 6", alpha: "0.05", quantile: "0.5", trim: "0.5" };
+    expect(buildResultsRequest("trimmed_t", state)).toBeNull();
+    state.ranked = { ...state.ranked, trim: "-0.1" };
+    expect(buildResultsRequest("trimmed_t", state)).toBeNull();
+    state.ranked = { ...state.ranked, trim: "" };
+    expect(buildResultsRequest("trimmed_t", state)).toBeNull();
+  });
+
+  it("applies the same ranked validation as mann_whitney (min two values per arm)", () => {
+    const state = emptyState();
+    state.ranked = { control_values: "1", treatment_values: "5 6 7", alpha: "0.05", quantile: "0.5", trim: "0.2" };
+    expect(buildResultsRequest("trimmed_t", state)).toBeNull();
+  });
+
+  it("restores a saved trimmed_t request into the ranked form with its trim", () => {
+    const restored = buildActualResultsState("trimmed_t", 0.05, {
+      metric_type: "trimmed_t",
+      ranked: { control_values: [1, 2, 3], treatment_values: [4, 5, 6], alpha: 0.01, trim: 0.1 }
+    });
+    expect(restored.ranked).toEqual({
+      control_values: "1\n2\n3",
+      treatment_values: "4\n5\n6",
+      alpha: "0.01",
+      quantile: "0.5",
+      trim: "0.1"
     });
   });
 });

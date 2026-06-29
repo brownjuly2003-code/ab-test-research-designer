@@ -36,11 +36,13 @@ export default function ObservedResultsSection({ onResultsAnalysisChange }: Obse
           ? "bootstrap"
           : baseMetricType === "continuous" && observedTest === "quantile"
             ? "quantile"
-            : baseMetricType === "continuous" && observedTest === "equivalence"
-              ? "equivalence"
-              : baseMetricType === "binary" && observedTest === "fisher_exact"
-                ? "fisher_exact"
-                : baseMetricType;
+            : baseMetricType === "continuous" && observedTest === "trimmed_t"
+              ? "trimmed_t"
+              : baseMetricType === "continuous" && observedTest === "equivalence"
+                ? "equivalence"
+                : baseMetricType === "binary" && observedTest === "fisher_exact"
+                  ? "fisher_exact"
+                  : baseMetricType;
   const canSaveObservedResults = Boolean(activeProject && !activeProject.is_archived && !selectedHistoryRun);
   const [actualResults, setActualResults] = useState<ActualResultsState>(() => buildActualResultsState("binary", 0.05, null));
   const [resultsRequest, setResultsRequest] = useState<ResultsRequestPayload | null>(null);
@@ -67,7 +69,7 @@ export default function ObservedResultsSection({ onResultsAnalysisChange }: Obse
     // The Poisson rate test ("count") is plan-independent, so it is always a supported restore target.
     const supportedTypes: ObservedMetricType[] =
       baseMetricType === "continuous"
-        ? ["continuous", "mann_whitney", "bootstrap", "quantile", "equivalence", "count"]
+        ? ["continuous", "mann_whitney", "bootstrap", "quantile", "trimmed_t", "equivalence", "count"]
         : baseMetricType === "binary"
           ? ["binary", "fisher_exact", "count"]
           : [baseMetricType, "count"];
@@ -80,11 +82,13 @@ export default function ObservedResultsSection({ onResultsAnalysisChange }: Obse
             ? "bootstrap"
             : persistedType === "quantile" && baseMetricType === "continuous"
               ? "quantile"
-              : persistedType === "equivalence" && baseMetricType === "continuous"
-                ? "equivalence"
-                : persistedType === "fisher_exact" && baseMetricType === "binary"
-                  ? "fisher_exact"
-                  : "parametric";
+              : persistedType === "trimmed_t" && baseMetricType === "continuous"
+                ? "trimmed_t"
+                : persistedType === "equivalence" && baseMetricType === "continuous"
+                  ? "equivalence"
+                  : persistedType === "fisher_exact" && baseMetricType === "binary"
+                    ? "fisher_exact"
+                    : "parametric";
     const stateMetricType: ObservedMetricType =
       nextTest === "mann_whitney"
         ? "mann_whitney"
@@ -92,13 +96,15 @@ export default function ObservedResultsSection({ onResultsAnalysisChange }: Obse
           ? "bootstrap"
           : nextTest === "quantile"
             ? "quantile"
-            : nextTest === "equivalence"
-              ? "equivalence"
-              : nextTest === "fisher_exact"
-                ? "fisher_exact"
-                : nextTest === "count"
-                  ? "count"
-                  : baseMetricType;
+            : nextTest === "trimmed_t"
+              ? "trimmed_t"
+              : nextTest === "equivalence"
+                ? "equivalence"
+                : nextTest === "fisher_exact"
+                  ? "fisher_exact"
+                  : nextTest === "count"
+                    ? "count"
+                    : baseMetricType;
     const persistedRequest = persistedType && supportedTypes.includes(persistedType) ? persistedObservedResults?.request ?? null : null;
     const persistedAnalysis =
       persistedObservedResults?.analysis && supportedTypes.includes(persistedObservedResults.analysis.metric_type)

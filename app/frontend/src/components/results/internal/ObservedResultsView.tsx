@@ -141,9 +141,11 @@ export default function ObservedResultsView({
         ? t("results.observedResults.testType.bootstrapHint")
         : observedTest === "quantile"
           ? t("results.observedResults.testType.quantileHint")
-          : observedTest === "equivalence"
-            ? t("results.observedResults.testType.equivalenceHint")
-            : baseHint;
+          : observedTest === "trimmed_t"
+            ? t("results.observedResults.testType.trimmedTHint")
+            : observedTest === "equivalence"
+              ? t("results.observedResults.testType.equivalenceHint")
+              : baseHint;
 
   return (
     <div className="card">
@@ -172,6 +174,11 @@ export default function ObservedResultsView({
               </button>
             ) : null}
             {!isBinaryBase ? (
+              <button type="button" className={observedTest === "trimmed_t" ? "btn secondary" : "btn ghost"} aria-pressed={observedTest === "trimmed_t"} onClick={() => onSelectTest("trimmed_t")}>
+                {t("results.observedResults.testType.trimmedT")}
+              </button>
+            ) : null}
+            {!isBinaryBase ? (
               <button type="button" className={observedTest === "equivalence" ? "btn secondary" : "btn ghost"} aria-pressed={observedTest === "equivalence"} onClick={() => onSelectTest("equivalence")}>
                 {t("results.observedResults.testType.equivalence")}
               </button>
@@ -183,7 +190,7 @@ export default function ObservedResultsView({
           <p className="muted" style={{ marginTop: "var(--space-2)" }}>{testTypeHint}</p>
         </div>
       ) : null}
-      {analysisMetricType === "mann_whitney" || analysisMetricType === "bootstrap" || analysisMetricType === "quantile" ? (
+      {analysisMetricType === "mann_whitney" || analysisMetricType === "bootstrap" || analysisMetricType === "quantile" || analysisMetricType === "trimmed_t" ? (
         <div style={{ display: "grid", gap: "var(--space-3)", marginTop: "var(--space-4)" }}>
           <div style={{ display: "grid", gap: "var(--space-3)", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
             <div className="field">
@@ -204,6 +211,12 @@ export default function ObservedResultsView({
               <div className="field" style={{ maxWidth: "200px" }}>
                 <label htmlFor="results-quantile-ranked">{t("results.observedResults.fields.quantile")}</label>
                 <input id="results-quantile-ranked" type="number" min="0.01" max="0.99" step="0.01" value={actualResults.ranked.quantile} onChange={(event) => updateRanked("quantile", event.target.value)} />
+              </div>
+            ) : null}
+            {analysisMetricType === "trimmed_t" ? (
+              <div className="field" style={{ maxWidth: "200px" }}>
+                <label htmlFor="results-trim-ranked">{t("results.observedResults.fields.trim")}</label>
+                <input id="results-trim-ranked" type="number" min="0" max="0.49" step="0.05" value={actualResults.ranked.trim} onChange={(event) => updateRanked("trim", event.target.value)} />
               </div>
             ) : null}
           </div>

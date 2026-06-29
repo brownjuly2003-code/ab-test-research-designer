@@ -363,6 +363,80 @@ describe("ObservedResultsSection", () => {
     }
   });
 
+  it("offers the trimmed t-test on a continuous plan but not on a binary plan", async () => {
+    const binaryView = await renderIntoDocument(<ObservedResultsSection onResultsAnalysisChange={vi.fn()} />);
+    try {
+      await flushEffects();
+      // The default seeded plan is binary -> the continuous-only trimmed t-test is hidden.
+      expect(binaryView.container.textContent).not.toContain("Trimmed t (robust)");
+    } finally {
+      await binaryView.unmount();
+    }
+
+    seedResultsStores({ analysis: buildAnalysisResult({ metricType: "continuous" }) });
+    const continuousView = await renderIntoDocument(<ObservedResultsSection onResultsAnalysisChange={vi.fn()} />);
+    try {
+      await flushEffects();
+      expect(continuousView.container.textContent).toContain("Trimmed t (robust)");
+    } finally {
+      await continuousView.unmount();
+    }
+  });
+
+  it("runs a trimmed-means analysis from raw samples carrying the trim fraction", async () => {
+    seedResultsStores({ analysis: buildAnalysisResult({ metricType: "continuous" }) });
+    const response = {
+      metric_type: "trimmed_t",
+      observed_effect: 3,
+      observed_effect_relative: 30,
+      ci_lower: 2.4,
+      ci_upper: 3.6,
+      ci_level: 0.95,
+      p_value: 0.000001,
+      test_statistic: 10.1,
+      is_significant: true,
+      power_achieved: 0.99,
+      verdict: "Statistically significant uplift at alpha=0.050",
+      interpretation:
+        "Treatment 20%-trimmed mean 13.0000 vs control 10.0000 (effective n 6 vs 6 after trimming). Robust mean shift +3.0000 with 95.0% CI [2.4000, 3.6000]. Yuen–Welch two-sided t p-value 0.000001 on 10.0 df; result is statistically significant."
+    };
+    const fetchMock = vi.fn(async (..._args: unknown[]) => ({ ok: true, json: async () => response }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const view = await renderIntoDocument(<ObservedResultsSection onResultsAnalysisChange={vi.fn()} />);
+    try {
+      await flushEffects();
+      // Continuous plan -> switch to the trimmed t-test, which reuses the raw-sample textareas plus a
+      // trim input.
+      await click(findButton(view.container, "Trimmed t (robust)"));
+      await flushEffects();
+
+      const textareas = view.container.querySelectorAll<HTMLTextAreaElement>("textarea");
+      expect(textareas.length).toBe(2);
+      await changeValue(textareas[0], "1 2 3 4 5 6 7 8 9 10");
+      await changeValue(textareas[1], "4 5 6 7 8 9 10 11 12 13");
+      const trimInput = view.container.querySelector<HTMLInputElement>("#results-trim-ranked")!;
+      expect(trimInput).not.toBeNull();
+      await changeValue(trimInput, "0.1");
+
+      await click(findButton(view.container, "Analyze results"));
+      await flushEffects();
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const [, requestInit] = fetchMock.mock.calls[0] as [string, RequestInit];
+      const body = JSON.parse(String(requestInit.body));
+      expect(body.metric_type).toBe("trimmed_t");
+      expect(body.ranked.control_values).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+      expect(body.ranked.treatment_values).toEqual([4, 5, 6, 7, 8, 9, 10, 11, 12, 13]);
+      expect(body.ranked.trim).toBe(0.1);
+
+      // The trimmed-mean prose is surfaced.
+      expect(view.container.textContent).toContain("trimmed mean");
+    } finally {
+      await view.unmount();
+    }
+  });
+
   it("offers the TOST equivalence test on a continuous plan but not on a binary plan", async () => {
     const binaryView = await renderIntoDocument(<ObservedResultsSection onResultsAnalysisChange={vi.fn()} />);
     try {

@@ -536,6 +536,7 @@
         "treatmentValues": "Werte der Testvariante",
         "rawValuesPlaceholder": "Ein Wert pro Zeile oder kommagetrennt",
         "quantile": "Quantil (0–1)",
+        "trim": "Trimm-Anteil (0–0.5)",
         "controlEvents": "Kontrollereignisse",
         "controlExposure": "Kontrollexposition",
         "treatmentEvents": "Testvarianten-Ereignisse",
@@ -571,6 +572,8 @@
         "bootstrapHint": "Der Permutationstest vergleicht die Mittelwertdifferenz durch Umordnen der gepoolten Rohwerte — ein verteilungsfreier t-Test — mit einem Perzentil-Bootstrap-KI. Keine Normalverteilungsannahme; kleine Stichproben werden exakt geprüft.",
         "quantile": "Quantilseffekt",
         "quantileHint": "Der Quantils-Behandlungseffekt vergleicht ein gewähltes Quantil (standardmäßig den Median, oder z. B. p90) zwischen den Gruppen mit einem Permutationstest und einem Perzentil-Bootstrap-KI. Nutzen Sie ihn, wenn ein Tail oder der Median wichtiger ist als der Mittelwert – schiefe Umsätze, Latenzperzentile.",
+        "trimmedT": "Getrimmtes t (robust)",
+        "trimmedTHint": "Der getrimmte t-Test nach Yuen–Welch vergleicht Mittelwerte, nachdem ein fester Anteil von jedem Ende getrimmt wurde, und nutzt dann einen Standardfehler auf Basis der winsorisierten Varianz und Welch-Freiheitsgrade. Geeignet, wenn schwere Ränder oder Ausreißer — Umsatz, Bestellwert, Sitzungsdauer — den gewöhnlichen Mittelwert verzerren und seine Varianz aufblähen. Bei trim = 0 entspricht er Welchs t.",
         "equivalence": "Äquivalenz (TOST)",
         "equivalenceHint": "Der TOST-Äquivalenztest prüft, ob die Differenz in beide Richtungen innerhalb einer Toleranz ±margin bleibt — zwei einseitige t-Tests. Verwenden Sie ihn, um zu bestätigen, dass keine bedeutsame Änderung vorliegt (ein Refactoring oder eine Migration, die die Metrik nicht verschieben darf); ein nicht signifikanter Differenztest allein ist kein Nachweis der Äquivalenz."
       },
