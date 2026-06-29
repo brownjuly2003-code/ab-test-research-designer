@@ -275,7 +275,9 @@
       "fisher_exact_table_too_large": "fisher_exact предназначен для малых выборок; эта таблица слишком велика — используйте binary-тест (нормальная аппроксимация)",
       "count_requires_count_data": "для metric_type=count нужны count-данные (события на экспозицию)",
       "count_rejects_other_data": "metric_type=count не принимает binary-, continuous- или ranked-данные",
-      "count_events_too_large": "count: слишком много суммарных событий для точного теста — на таком масштабе нормальная аппроксимация точна"
+      "count_events_too_large": "count: слишком много суммарных событий для точного теста — на таком масштабе нормальная аппроксимация точна",
+      "bootstrap_requires_ranked_data": "для metric_type=bootstrap нужны сырые данные выборок (ranked)",
+      "bootstrap_rejects_other_data": "metric_type=bootstrap не принимает binary- или continuous-данные"
     },
     "srm_detected": "Обнаружен SRM — проверьте рандомизацию и реализацию трекинга",
     "srm_not_detected": "SRM не обнаружен"
@@ -299,12 +301,14 @@
       "mann_whitney": "Медиана варианта {{treatmentMedian}} против контроля {{controlMedian}}. Сдвиг Hodges–Lehmann {{shift}} при {{ciLevel}}% ДИ [{{ciLower}}, {{ciUpper}}]. P(вариант > контроль) = {{cles}}%. Mann–Whitney U {{uStatistic}}, двусторонний p-value {{pValue}}; результат {{significance}}.",
       "degenerate": "Наблюдаемые данные вырождены, поэтому тестовая статистика не может быть вычислена.",
       "fisher_exact": "Конверсия варианта {{treatment}}% против контроля {{control}}%. Абсолютный эффект {{effect}} п.п. Отношение шансов {{oddsRatio}}. Точный двусторонний p-value Фишера {{pValue}}; результат {{significance}}.",
-      "count": "Интенсивность варианта {{treatmentRate}} против контроля {{controlRate}}. Отношение интенсивностей {{rateRatio}}. Разность интенсивностей {{rateDifference}} при {{ciLevel}}% ДИ [{{ciLower}}, {{ciUpper}}]. Точный двусторонний p-value Пуассона {{pValue}}; результат {{significance}}."
+      "count": "Интенсивность варианта {{treatmentRate}} против контроля {{controlRate}}. Отношение интенсивностей {{rateRatio}}. Разность интенсивностей {{rateDifference}} при {{ciLevel}}% ДИ [{{ciLower}}, {{ciUpper}}]. Точный двусторонний p-value Пуассона {{pValue}}; результат {{significance}}.",
+      "bootstrap": "Среднее варианта {{treatmentMean}} против контроля {{controlMean}}. Разница средних {{effect}} при {{ciLevel}}% перцентильном bootstrap-ДИ [{{ciLower}}, {{ciUpper}}]. Перестановочный двусторонний p-value {{pValue}} по {{permutations}} перестановкам; результат {{significance}}."
     },
     "effect_size": {
       "rank_biserial": "ранг-бисериальная корреляция",
       "odds_ratio": "отношение шансов (odds ratio)",
-      "rate_ratio": "отношение интенсивностей (rate ratio)"
+      "rate_ratio": "отношение интенсивностей (rate ratio)",
+      "cohens_d": "d Коэна"
     },
     "fisher_exact": {
       "odds_ratio_undefined": "не определено (нулевая ячейка)"

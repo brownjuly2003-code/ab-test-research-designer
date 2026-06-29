@@ -62,6 +62,36 @@ describe("buildResultsRequest (mann_whitney)", () => {
   });
 });
 
+describe("buildResultsRequest (bootstrap)", () => {
+  it("reuses the ranked raw-sample input and tags the payload as bootstrap", () => {
+    const state = emptyState();
+    state.ranked = { control_values: "1 2 3 4", treatment_values: "5,6,7,8", alpha: "0.05" };
+    const payload = buildResultsRequest("bootstrap", state);
+    expect(payload).toEqual({
+      metric_type: "bootstrap",
+      ranked: { control_values: [1, 2, 3, 4], treatment_values: [5, 6, 7, 8], alpha: 0.05 }
+    });
+  });
+
+  it("applies the same ranked validation as mann_whitney (min two values per arm)", () => {
+    const state = emptyState();
+    state.ranked = { control_values: "1", treatment_values: "5 6 7", alpha: "0.05" };
+    expect(buildResultsRequest("bootstrap", state)).toBeNull();
+  });
+
+  it("restores a saved bootstrap request into the ranked form", () => {
+    const restored = buildActualResultsState("bootstrap", 0.05, {
+      metric_type: "bootstrap",
+      ranked: { control_values: [1, 2, 3], treatment_values: [4, 5, 6], alpha: 0.01 }
+    });
+    expect(restored.ranked).toEqual({
+      control_values: "1\n2\n3",
+      treatment_values: "4\n5\n6",
+      alpha: "0.01"
+    });
+  });
+});
+
 describe("buildResultsRequest (fisher_exact)", () => {
   it("reuses the binary 2x2 input and tags the payload as fisher_exact", () => {
     const state = emptyState();

@@ -275,7 +275,9 @@
       "fisher_exact_table_too_large": "fisher_exact 适用于小样本；该表过大——请改用二元检验（正态近似）",
       "count_requires_count_data": "count metric_type 需要计数数据（暴露上的事件数）",
       "count_rejects_other_data": "count metric_type 不接受二元、连续或原始样本数据（ranked）",
-      "count_events_too_large": "count：事件总数过多，无法进行精确检验——在此规模下正态近似即为精确"
+      "count_events_too_large": "count：事件总数过多，无法进行精确检验——在此规模下正态近似即为精确",
+      "bootstrap_requires_ranked_data": "bootstrap metric_type 需要原始样本数据（ranked）",
+      "bootstrap_rejects_other_data": "bootstrap metric_type 不接受二进制或连续数据"
     },
     "srm_detected": "检测到 SRM - 检查您的随机化或跟踪实施",
     "srm_not_detected": "未检测到 SRM"
@@ -299,12 +301,14 @@
       "mann_whitney": "实验组中位数 {{treatmentMedian}} 对照组 {{controlMedian}}。Hodges–Lehmann 位移 {{shift}}，{{ciLevel}}% 置信区间 [{{ciLower}}, {{ciUpper}}]。P(实验组 > 对照组) = {{cles}}%。Mann–Whitney U {{uStatistic}}，双侧 p 值 {{pValue}}；结果{{significance}}。",
       "degenerate": "观测输入退化，无法计算检验统计量。",
       "fisher_exact": "实验组转化率 {{treatment}}% 对照组 {{control}}%。绝对效应 {{effect}} 个百分点。优势比 {{oddsRatio}}。Fisher 精确双侧 p 值 {{pValue}}；结果{{significance}}。",
-      "count": "实验组速率 {{treatmentRate}} 对照组 {{controlRate}}。率比 {{rateRatio}}。速率差 {{rateDifference}}，{{ciLevel}}% 置信区间 [{{ciLower}}, {{ciUpper}}]。Poisson 精确双侧 p 值 {{pValue}}；结果{{significance}}。"
+      "count": "实验组速率 {{treatmentRate}} 对照组 {{controlRate}}。率比 {{rateRatio}}。速率差 {{rateDifference}}，{{ciLevel}}% 置信区间 [{{ciLower}}, {{ciUpper}}]。Poisson 精确双侧 p 值 {{pValue}}；结果{{significance}}。",
+      "bootstrap": "实验组均值 {{treatmentMean}} 对照组 {{controlMean}}。均值差 {{effect}}，{{ciLevel}}% 百分位 bootstrap 置信区间 [{{ciLower}}, {{ciUpper}}]。置换双侧 p 值 {{pValue}}，基于 {{permutations}} 次重排；结果{{significance}}。"
     },
     "effect_size": {
       "rank_biserial": "秩二列相关",
       "odds_ratio": "优势比（odds ratio）",
-      "rate_ratio": "率比（rate ratio）"
+      "rate_ratio": "率比（rate ratio）",
+      "cohens_d": "科恩 d"
     },
     "fisher_exact": {
       "odds_ratio_undefined": "未定义（存在零单元格）"

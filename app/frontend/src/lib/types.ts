@@ -52,15 +52,16 @@ export type ObservedResultsCountPayload = {
   alpha?: number;
 };
 export type ResultsRequestPayload = {
-  // "fisher_exact" reuses the binary 2x2 input; "count" is a plan-independent Poisson rate test.
-  metric_type: "binary" | "continuous" | "mann_whitney" | "fisher_exact" | "count";
+  // "fisher_exact" reuses the binary 2x2 input; "bootstrap" reuses the ranked raw samples; "count"
+  // is a plan-independent Poisson rate test.
+  metric_type: "binary" | "continuous" | "mann_whitney" | "bootstrap" | "fisher_exact" | "count";
   binary?: ObservedResultsBinaryPayload | null;
   continuous?: ObservedResultsContinuousPayload | null;
   ranked?: ObservedResultsRankedPayload | null;
   count?: ObservedResultsCountPayload | null;
 };
 export type ResultsAnalysisResponse = {
-  metric_type: "binary" | "continuous" | "mann_whitney" | "fisher_exact" | "count";
+  metric_type: "binary" | "continuous" | "mann_whitney" | "bootstrap" | "fisher_exact" | "count";
   observed_effect: number;
   observed_effect_relative: number;
   control_rate?: number | null;

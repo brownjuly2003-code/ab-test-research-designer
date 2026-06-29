@@ -564,7 +564,9 @@
         "fisherExact": "Fisher's exact (small samples)",
         "fisherHint": "Fisher's exact conditions on both margins and enumerates the hypergeometric distribution — an exact p-value for small samples or rare events, where the z-test's normal approximation is unreliable.",
         "rate": "Rate (Poisson)",
-        "rateHint": "The Poisson rate test compares events over exposure (e.g. errors per 1000 sessions) with an exact conditional test. Use it for event-rate data where arrivals are independent — not for clustered per-user counts."
+        "rateHint": "The Poisson rate test compares events over exposure (e.g. errors per 1000 sessions) with an exact conditional test. Use it for event-rate data where arrivals are independent — not for clustered per-user counts.",
+        "bootstrap": "Bootstrap / permutation",
+        "bootstrapHint": "The permutation test compares the difference in means by relabelling the pooled raw values — a distribution-free t-test — with a percentile bootstrap CI. No normality assumption; small samples are tested exactly."
       },
       "validation": {
         "fillAllFields": "Fill in all actual results fields with valid values before analysis.",

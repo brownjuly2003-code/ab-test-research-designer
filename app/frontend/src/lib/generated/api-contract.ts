@@ -1159,7 +1159,7 @@ export type RecommendationsSection = {
 };
 
 export type ResultsRequest = {
-  metric_type: "binary" | "continuous" | "mann_whitney" | "fisher_exact" | "count";
+  metric_type: "binary" | "continuous" | "mann_whitney" | "bootstrap" | "fisher_exact" | "count";
   binary?: ObservedResultsBinary | null;
   continuous?: ObservedResultsContinuous | null;
   ranked?: ObservedResultsRanked | null;
