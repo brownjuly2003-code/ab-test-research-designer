@@ -539,7 +539,8 @@
         "controlEvents": "对照组事件数",
         "controlExposure": "对照组暴露",
         "treatmentEvents": "实验组事件数",
-        "treatmentExposure": "实验组暴露"
+        "treatmentExposure": "实验组暴露",
+        "equivalenceMargin": "等效边界 (±)"
       },
       "cards": {
         "effect": "影响",
@@ -569,7 +570,9 @@
         "bootstrap": "Bootstrap / 置换",
         "bootstrapHint": "置换检验通过重排合并后的原始数值标签来比较均值差——一种无分布的 t 检验——并给出百分位 bootstrap 置信区间。无需正态性假设；小样本进行精确检验。",
         "quantile": "分位数效应",
-        "quantileHint": "分位数处理效应用置换检验和百分位自助置信区间比较两组中选定的分位数（默认中位数，或如 p90）。当尾部或中位数比均值更重要时使用——偏态收入、延迟百分位。"
+        "quantileHint": "分位数处理效应用置换检验和百分位自助置信区间比较两组中选定的分位数（默认中位数，或如 p90）。当尾部或中位数比均值更重要时使用——偏态收入、延迟百分位。",
+        "equivalence": "等效检验 (TOST)",
+        "equivalenceHint": "TOST 等效检验通过两次单侧 t 检验，判断差异是否在两个方向上都保持在容差 ±margin 之内。用于确认没有实质性变化（例如重构或迁移不应改动指标）；仅靠不显著的差异检验并不能证明等效。"
       },
       "validation": {
         "fillAllFields": "在分析之前，用有效值填充所有实际结果字段。",

@@ -539,7 +539,8 @@
         "controlEvents": "Eventos del control",
         "controlExposure": "Exposición del control",
         "treatmentEvents": "Eventos del tratamiento",
-        "treatmentExposure": "Exposición del tratamiento"
+        "treatmentExposure": "Exposición del tratamiento",
+        "equivalenceMargin": "Margen de equivalencia (±)"
       },
       "cards": {
         "effect": "Efecto",
@@ -569,7 +570,9 @@
         "bootstrap": "Bootstrap / permutación",
         "bootstrapHint": "La prueba de permutación compara la diferencia de medias reasignando las etiquetas de los valores brutos combinados — una prueba t sin distribución — con un IC bootstrap por percentiles. Sin suponer normalidad; las muestras pequeñas se prueban de forma exacta.",
         "quantile": "Efecto en cuantil",
-        "quantileHint": "El efecto del tratamiento en cuantiles compara un cuantil elegido (la mediana por defecto, o p. ej. p90) entre grupos con una prueba de permutación y un IC bootstrap percentil. Úsalo cuando importa más una cola o la mediana que la media: ingresos sesgados, percentiles de latencia."
+        "quantileHint": "El efecto del tratamiento en cuantiles compara un cuantil elegido (la mediana por defecto, o p. ej. p90) entre grupos con una prueba de permutación y un IC bootstrap percentil. Úsalo cuando importa más una cola o la mediana que la media: ingresos sesgados, percentiles de latencia.",
+        "equivalence": "Equivalencia (TOST)",
+        "equivalenceHint": "La prueba de equivalencia TOST comprueba si la diferencia se mantiene dentro de una tolerancia ±margin en ambas direcciones — dos pruebas t unilaterales. Úsela para confirmar que no hay un cambio relevante (una refactorización o migración que no debe mover la métrica); una prueba de diferencia no significativa por sí sola no demuestra equivalencia."
       },
       "validation": {
         "fillAllFields": "Complete todos los campos de resultados reales con valores válidos antes del análisis.",

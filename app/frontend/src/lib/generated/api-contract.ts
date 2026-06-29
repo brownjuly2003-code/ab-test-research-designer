@@ -962,6 +962,7 @@ export type ObservedResultsContinuous = {
   treatment_std: number;
   treatment_n: number;
   alpha?: number;
+  equivalence_margin?: number | null;
 };
 
 export type ObservedResultsCount = {
@@ -1160,7 +1161,7 @@ export type RecommendationsSection = {
 };
 
 export type ResultsRequest = {
-  metric_type: "binary" | "continuous" | "mann_whitney" | "bootstrap" | "quantile" | "fisher_exact" | "count";
+  metric_type: "binary" | "continuous" | "equivalence" | "mann_whitney" | "bootstrap" | "quantile" | "fisher_exact" | "count";
   binary?: ObservedResultsBinary | null;
   continuous?: ObservedResultsContinuous | null;
   ranked?: ObservedResultsRanked | null;

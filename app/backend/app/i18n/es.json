@@ -279,7 +279,10 @@
       "bootstrap_requires_ranked_data": "el metric_type bootstrap requiere datos de muestras sin procesar (ranked)",
       "bootstrap_rejects_other_data": "el metric_type bootstrap no acepta datos binarios ni continuos",
       "quantile_requires_ranked_data": "el metric_type quantile requiere datos ranked (muestras en bruto)",
-      "quantile_rejects_other_data": "el metric_type quantile no acepta datos binarios ni continuos"
+      "quantile_rejects_other_data": "el metric_type quantile no acepta datos binarios ni continuos",
+      "equivalence_requires_continuous_data": "el metric_type equivalence requiere datos continuos (estadísticas resumidas)",
+      "equivalence_rejects_other_data": "el metric_type equivalence no acepta datos binarios ni de rangos",
+      "equivalence_requires_margin": "el metric_type equivalence requiere un equivalence_margin mayor que cero"
     },
     "srm_detected": "SRM detectado — verifique su aleatorización o implementación de seguimiento",
     "srm_not_detected": "No se detectó SRM"
@@ -290,7 +293,9 @@
       "uplift": "Aumento estadísticamente significativo con alpha={{alpha}}",
       "decline": "Disminución estadísticamente significativa con alpha={{alpha}}",
       "significant": "Resultado estadísticamente significativo con alpha={{alpha}}",
-      "degenerate": "No se puede calcular: error estándar cero"
+      "degenerate": "No se puede calcular: error estándar cero",
+      "equivalent": "Equivalente dentro de ±{{margin}} con alpha={{alpha}}",
+      "not_equivalent": "Equivalencia no demostrada dentro de ±{{margin}} con alpha={{alpha}}"
     },
     "significance": {
       "significant": "estadísticamente significativo",
@@ -305,7 +310,8 @@
       "fisher_exact": "Conversión del tratamiento {{treatment}}% frente al control {{control}}%. Efecto absoluto {{effect}} pp. Razón de momios {{oddsRatio}}. Valor p bilateral exacto de Fisher {{pValue}}; el resultado es {{significance}}.",
       "count": "Tasa del tratamiento {{treatmentRate}} frente al control {{controlRate}}. Razón de tasas {{rateRatio}}. Diferencia de tasas {{rateDifference}} con IC del {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. Valor p bilateral exacto de Poisson {{pValue}}; el resultado es {{significance}}.",
       "bootstrap": "Media del tratamiento {{treatmentMean}} frente al control {{controlMean}}. Diferencia de medias {{effect}} con IC bootstrap por percentiles del {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. Valor p bilateral de permutación {{pValue}} sobre {{permutations}} reasignaciones; el resultado es {{significance}}.",
-      "quantile": "Cuantil P{{percentile}} del tratamiento {{treatmentQuantile}} vs. control {{controlQuantile}}. Desplazamiento del cuantil {{effect}} con IC bootstrap percentil del {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. Valor p bilateral de permutación {{pValue}} sobre {{permutations}} reasignaciones; el resultado es {{significance}}."
+      "quantile": "Cuantil P{{percentile}} del tratamiento {{treatmentQuantile}} vs. control {{controlQuantile}}. Desplazamiento del cuantil {{effect}} con IC bootstrap percentil del {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. Valor p bilateral de permutación {{pValue}} sobre {{permutations}} reasignaciones; el resultado es {{significance}}.",
+      "equivalence": "Media del tratamiento {{treatmentMean}} frente al control {{controlMean}}. Efecto {{effect}} contrastado con un margen de equivalencia de ±{{margin}}: {{equivalence}}. El intervalo de confianza del {{ciLevel}}% [{{ciLower}}, {{ciUpper}}] es el intervalo de decisión TOST; valor p de las dos pruebas unilaterales {{pValue}}."
     },
     "effect_size": {
       "rank_biserial": "correlación biserial por rangos",
@@ -322,6 +328,10 @@
     },
     "count": {
       "rate_ratio_undefined": "no definida (sin eventos en el control)"
+    },
+    "equivalence": {
+      "demonstrated": "equivalencia demostrada",
+      "not_demonstrated": "equivalencia no demostrada"
     }
   }
 }

@@ -539,7 +539,8 @@
         "controlEvents": "Kontrollereignisse",
         "controlExposure": "Kontrollexposition",
         "treatmentEvents": "Testvarianten-Ereignisse",
-        "treatmentExposure": "Testvarianten-Exposition"
+        "treatmentExposure": "Testvarianten-Exposition",
+        "equivalenceMargin": "Äquivalenzgrenze (±)"
       },
       "cards": {
         "effect": "Wirkung",
@@ -569,7 +570,9 @@
         "bootstrap": "Bootstrap / Permutation",
         "bootstrapHint": "Der Permutationstest vergleicht die Mittelwertdifferenz durch Umordnen der gepoolten Rohwerte — ein verteilungsfreier t-Test — mit einem Perzentil-Bootstrap-KI. Keine Normalverteilungsannahme; kleine Stichproben werden exakt geprüft.",
         "quantile": "Quantilseffekt",
-        "quantileHint": "Der Quantils-Behandlungseffekt vergleicht ein gewähltes Quantil (standardmäßig den Median, oder z. B. p90) zwischen den Gruppen mit einem Permutationstest und einem Perzentil-Bootstrap-KI. Nutzen Sie ihn, wenn ein Tail oder der Median wichtiger ist als der Mittelwert – schiefe Umsätze, Latenzperzentile."
+        "quantileHint": "Der Quantils-Behandlungseffekt vergleicht ein gewähltes Quantil (standardmäßig den Median, oder z. B. p90) zwischen den Gruppen mit einem Permutationstest und einem Perzentil-Bootstrap-KI. Nutzen Sie ihn, wenn ein Tail oder der Median wichtiger ist als der Mittelwert – schiefe Umsätze, Latenzperzentile.",
+        "equivalence": "Äquivalenz (TOST)",
+        "equivalenceHint": "Der TOST-Äquivalenztest prüft, ob die Differenz in beide Richtungen innerhalb einer Toleranz ±margin bleibt — zwei einseitige t-Tests. Verwenden Sie ihn, um zu bestätigen, dass keine bedeutsame Änderung vorliegt (ein Refactoring oder eine Migration, die die Metrik nicht verschieben darf); ein nicht signifikanter Differenztest allein ist kein Nachweis der Äquivalenz."
       },
       "validation": {
         "fillAllFields": "Füllen Sie vor der Analyse alle tatsächlichen Ergebnisfelder mit gültigen Werten aus.",

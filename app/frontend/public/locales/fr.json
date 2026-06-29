@@ -539,7 +539,8 @@
         "controlEvents": "Événements du contrôle",
         "controlExposure": "Exposition du contrôle",
         "treatmentEvents": "Événements du traitement",
-        "treatmentExposure": "Exposition du traitement"
+        "treatmentExposure": "Exposition du traitement",
+        "equivalenceMargin": "Marge d'équivalence (±)"
       },
       "cards": {
         "effect": "Effet",
@@ -569,7 +570,9 @@
         "bootstrap": "Bootstrap / permutation",
         "bootstrapHint": "Le test de permutation compare la différence des moyennes en réaffectant les étiquettes des valeurs brutes regroupées — un test t sans hypothèse de distribution — avec un IC bootstrap par percentiles. Sans hypothèse de normalité ; les petits échantillons sont testés de façon exacte.",
         "quantile": "Effet sur le quantile",
-        "quantileHint": "L'effet de traitement sur quantile compare un quantile choisi (la médiane par défaut, ou p. ex. p90) entre les groupes avec un test de permutation et un IC bootstrap percentile. À utiliser quand une queue ou la médiane compte plus que la moyenne : revenus asymétriques, percentiles de latence."
+        "quantileHint": "L'effet de traitement sur quantile compare un quantile choisi (la médiane par défaut, ou p. ex. p90) entre les groupes avec un test de permutation et un IC bootstrap percentile. À utiliser quand une queue ou la médiane compte plus que la moyenne : revenus asymétriques, percentiles de latence.",
+        "equivalence": "Équivalence (TOST)",
+        "equivalenceHint": "Le test d'équivalence TOST vérifie si la différence reste dans une tolérance ±margin dans les deux sens — deux tests t unilatéraux. Utilisez-le pour confirmer l'absence de changement significatif (un refactoring ou une migration qui ne doit pas déplacer la métrique) ; un test de différence non significatif ne prouve pas à lui seul l'équivalence."
       },
       "validation": {
         "fillAllFields": "Remplissez tous les champs de résultats réels avec des valeurs valides avant l'analyse.",
