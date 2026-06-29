@@ -710,7 +710,8 @@
         "bandit": "Bandit vs. fijo",
         "assignment": "Asignación de usuario",
         "liveStats": "Experimento en vivo",
-        "decision": "Lectura de decisión"
+        "decision": "Lectura de decisión",
+        "categoricalResults": "Resultado categórico (chi-cuadrado)"
       },
       "badges": {
         "loaded": "Cargado",
@@ -897,6 +898,36 @@
       "blocker": {
         "srm_mismatch": "Desajuste en la proporción de muestras (p={{p}}): la asignación parece rota; corrige la aleatorización o el seguimiento antes de confiar en cualquier resultado.",
         "guardrail_breach": "La métrica de protección «{{metric}}» se ha deteriorado significativamente más allá de su tolerancia: el despliegue está bloqueado hasta entender la regresión."
+      }
+    },
+    "categoricalResults": {
+      "title": "Resultado categórico (chi-cuadrado)",
+      "description": "Comprueba si la distribución de un resultado categórico difiere entre grupos con una prueba de independencia chi-cuadrado sobre una tabla de contingencia r×c.",
+      "tableLabel": "Tabla de contingencia",
+      "tablePlaceholder": "30, 70\n50, 50",
+      "tableHelp": "Un grupo por línea (filas); recuentos por nivel de resultado separados por comas o espacios (columnas).",
+      "alphaLabel": "Nivel de significación (alfa)",
+      "analyzeButton": "Ejecutar prueba chi-cuadrado",
+      "analyzing": "Analizando…",
+      "results": {
+        "chiSquare": "Chi-cuadrado",
+        "degreesOfFreedom": "Grados de libertad",
+        "pValue": "Valor p",
+        "cramersV": "V de Cramér",
+        "sampleSize": "N total",
+        "shape": "Forma de la tabla"
+      },
+      "lowExpectedWarning": "Algunos recuentos esperados son inferiores a 5, por lo que la aproximación chi-cuadrado puede no ser fiable. Considera la prueba exacta de Fisher para una tabla pequeña o dispersa.",
+      "validation": {
+        "empty": "Introduce una tabla de contingencia (un grupo por línea).",
+        "parseError": "Cada fila debe contener el mismo número de enteros no negativos, con al menos dos filas y dos columnas.",
+        "analysisUnavailable": "El análisis no está disponible. Revisa la tabla e inténtalo de nuevo."
+      },
+      "magnitude": {
+        "negligible": "insignificante",
+        "small": "pequeña",
+        "medium": "media",
+        "large": "grande"
       }
     }
   },

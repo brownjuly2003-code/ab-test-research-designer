@@ -282,7 +282,11 @@
       "quantile_rejects_other_data": "quantile 指标类型不接受 binary 或 continuous 数据",
       "equivalence_requires_continuous_data": "equivalence 指标类型需要连续型数据（汇总统计量）",
       "equivalence_rejects_other_data": "equivalence 指标类型不接受二元或秩次数据",
-      "equivalence_requires_margin": "equivalence 指标类型需要大于零的 equivalence_margin"
+      "equivalence_requires_margin": "equivalence 指标类型需要大于零的 equivalence_margin",
+      "categorical_min_columns": "列联表至少需要两列",
+      "categorical_max_columns": "列联表的列数过多",
+      "categorical_rectangular": "列联表必须为矩形（每行的列数相同）",
+      "categorical_non_negative": "列联表中的计数必须为非负数"
     },
     "srm_detected": "检测到 SRM - 检查您的随机化或跟踪实施",
     "srm_not_detected": "未检测到 SRM"
@@ -311,7 +315,8 @@
       "count": "实验组速率 {{treatmentRate}} 对照组 {{controlRate}}。率比 {{rateRatio}}。速率差 {{rateDifference}}，{{ciLevel}}% 置信区间 [{{ciLower}}, {{ciUpper}}]。Poisson 精确双侧 p 值 {{pValue}}；结果{{significance}}。",
       "bootstrap": "实验组均值 {{treatmentMean}} 对照组 {{controlMean}}。均值差 {{effect}}，{{ciLevel}}% 百分位 bootstrap 置信区间 [{{ciLower}}, {{ciUpper}}]。置换双侧 p 值 {{pValue}}，基于 {{permutations}} 次重排；结果{{significance}}。",
       "quantile": "处理组 P{{percentile}} 分位数 {{treatmentQuantile}} 对比对照组 {{controlQuantile}}。分位数偏移 {{effect}}，{{ciLevel}}% 百分位自助 CI [{{ciLower}}, {{ciUpper}}]。置换双侧 p 值 {{pValue}}，基于 {{permutations}} 次重排；结果为{{significance}}。",
-      "equivalence": "实验组均值 {{treatmentMean}} 对比对照组 {{controlMean}}。效应 {{effect}}，对照等效边界 ±{{margin}}：{{equivalence}}。{{ciLevel}}% 置信区间 [{{ciLower}}, {{ciUpper}}] 即 TOST 决策区间；双单侧检验 p 值为 {{pValue}}。"
+      "equivalence": "实验组均值 {{treatmentMean}} 对比对照组 {{controlMean}}。效应 {{effect}}，对照等效边界 ±{{margin}}：{{equivalence}}。{{ciLevel}}% 置信区间 [{{ciLower}}, {{ciUpper}}] 即 TOST 决策区间；双单侧检验 p 值为 {{pValue}}。",
+      "categorical": "在 {{df}} 个自由度下，{{rows}}×{{cols}} 列联表（N = {{n}}）的卡方值为 {{chiSquare}}。双侧 p 值 {{pValue}}；结果{{significance}}。Cramér's V {{cramersV}} 衡量关联强度。"
     },
     "effect_size": {
       "rank_biserial": "秩二列相关",
@@ -332,6 +337,10 @@
     "equivalence": {
       "demonstrated": "已证明等效",
       "not_demonstrated": "未证明等效"
+    },
+    "categorical": {
+      "verdict_associated": "检测到关联",
+      "verdict_independent": "无显著关联"
     }
   }
 }

@@ -282,7 +282,11 @@
       "quantile_rejects_other_data": "quantile metric_type akzeptiert keine binären oder kontinuierlichen Daten",
       "equivalence_requires_continuous_data": "metric_type equivalence erfordert kontinuierliche Daten (zusammenfassende Statistiken)",
       "equivalence_rejects_other_data": "metric_type equivalence akzeptiert keine binären oder gerankten Daten",
-      "equivalence_requires_margin": "metric_type equivalence erfordert ein equivalence_margin größer als null"
+      "equivalence_requires_margin": "metric_type equivalence erfordert ein equivalence_margin größer als null",
+      "categorical_min_columns": "Kontingenztabelle benötigt mindestens zwei Spalten",
+      "categorical_max_columns": "Kontingenztabelle hat zu viele Spalten",
+      "categorical_rectangular": "Kontingenztabelle muss rechteckig sein (jede Zeile braucht gleich viele Spalten)",
+      "categorical_non_negative": "Häufigkeiten in der Kontingenztabelle dürfen nicht negativ sein"
     },
     "srm_detected": "SRM erkannt — prüfen Sie Ihre Randomisierung oder Tracking-Implementierung",
     "srm_not_detected": "Keine SRM erkannt"
@@ -311,7 +315,8 @@
       "count": "Rate der Testvariante {{treatmentRate}} vs. Kontrolle {{controlRate}}. Ratenverhältnis {{rateRatio}}. Ratendifferenz {{rateDifference}} mit {{ciLevel}}% KI [{{ciLower}}, {{ciUpper}}]. Exakter zweiseitiger Poisson-p-Wert {{pValue}}; das Ergebnis ist {{significance}}.",
       "bootstrap": "Mittelwert der Testvariante {{treatmentMean}} vs. Kontrolle {{controlMean}}. Mittelwertdifferenz {{effect}} mit {{ciLevel}}% Perzentil-Bootstrap-KI [{{ciLower}}, {{ciUpper}}]. Zweiseitiger Permutations-p-Wert {{pValue}} über {{permutations}} Umordnungen; das Ergebnis ist {{significance}}.",
       "quantile": "P{{percentile}}-Quantil der Behandlung {{treatmentQuantile}} vs. Kontrolle {{controlQuantile}}. Quantilverschiebung {{effect}} mit {{ciLevel}}%-Perzentil-Bootstrap-KI [{{ciLower}}, {{ciUpper}}]. Zweiseitiger Permutations-p-Wert {{pValue}} über {{permutations}} Umordnungen; Ergebnis ist {{significance}}.",
-      "equivalence": "Mittelwert der Behandlung {{treatmentMean}} vs. Kontrolle {{controlMean}}. Effekt {{effect}} gegen eine Äquivalenzgrenze von ±{{margin}} geprüft: {{equivalence}}. Das {{ciLevel}}%-Konfidenzintervall [{{ciLower}}, {{ciUpper}}] ist das TOST-Entscheidungsintervall; p-Wert der zwei einseitigen Tests {{pValue}}."
+      "equivalence": "Mittelwert der Behandlung {{treatmentMean}} vs. Kontrolle {{controlMean}}. Effekt {{effect}} gegen eine Äquivalenzgrenze von ±{{margin}} geprüft: {{equivalence}}. Das {{ciLevel}}%-Konfidenzintervall [{{ciLower}}, {{ciUpper}}] ist das TOST-Entscheidungsintervall; p-Wert der zwei einseitigen Tests {{pValue}}.",
+      "categorical": "Chi-Quadrat {{chiSquare}} bei {{df}} Freiheitsgraden für eine {{rows}}×{{cols}}-Kontingenztabelle (N = {{n}}). Zweiseitiger p-Wert {{pValue}}; das Ergebnis ist {{significance}}. Cramérs V {{cramersV}} misst die Stärke des Zusammenhangs."
     },
     "effect_size": {
       "rank_biserial": "Rang-biseriale Korrelation",
@@ -332,6 +337,10 @@
     "equivalence": {
       "demonstrated": "Äquivalenz nachgewiesen",
       "not_demonstrated": "Äquivalenz nicht nachgewiesen"
+    },
+    "categorical": {
+      "verdict_associated": "Zusammenhang erkannt",
+      "verdict_independent": "Kein signifikanter Zusammenhang"
     }
   }
 }

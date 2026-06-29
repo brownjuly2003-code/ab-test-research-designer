@@ -282,7 +282,11 @@
       "quantile_rejects_other_data": "el metric_type quantile no acepta datos binarios ni continuos",
       "equivalence_requires_continuous_data": "el metric_type equivalence requiere datos continuos (estadísticas resumidas)",
       "equivalence_rejects_other_data": "el metric_type equivalence no acepta datos binarios ni de rangos",
-      "equivalence_requires_margin": "el metric_type equivalence requiere un equivalence_margin mayor que cero"
+      "equivalence_requires_margin": "el metric_type equivalence requiere un equivalence_margin mayor que cero",
+      "categorical_min_columns": "la tabla de contingencia necesita al menos dos columnas",
+      "categorical_max_columns": "la tabla de contingencia tiene demasiadas columnas",
+      "categorical_rectangular": "la tabla de contingencia debe ser rectangular (cada fila necesita el mismo número de columnas)",
+      "categorical_non_negative": "los recuentos de la tabla de contingencia no pueden ser negativos"
     },
     "srm_detected": "SRM detectado — verifique su aleatorización o implementación de seguimiento",
     "srm_not_detected": "No se detectó SRM"
@@ -311,7 +315,8 @@
       "count": "Tasa del tratamiento {{treatmentRate}} frente al control {{controlRate}}. Razón de tasas {{rateRatio}}. Diferencia de tasas {{rateDifference}} con IC del {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. Valor p bilateral exacto de Poisson {{pValue}}; el resultado es {{significance}}.",
       "bootstrap": "Media del tratamiento {{treatmentMean}} frente al control {{controlMean}}. Diferencia de medias {{effect}} con IC bootstrap por percentiles del {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. Valor p bilateral de permutación {{pValue}} sobre {{permutations}} reasignaciones; el resultado es {{significance}}.",
       "quantile": "Cuantil P{{percentile}} del tratamiento {{treatmentQuantile}} vs. control {{controlQuantile}}. Desplazamiento del cuantil {{effect}} con IC bootstrap percentil del {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. Valor p bilateral de permutación {{pValue}} sobre {{permutations}} reasignaciones; el resultado es {{significance}}.",
-      "equivalence": "Media del tratamiento {{treatmentMean}} frente al control {{controlMean}}. Efecto {{effect}} contrastado con un margen de equivalencia de ±{{margin}}: {{equivalence}}. El intervalo de confianza del {{ciLevel}}% [{{ciLower}}, {{ciUpper}}] es el intervalo de decisión TOST; valor p de las dos pruebas unilaterales {{pValue}}."
+      "equivalence": "Media del tratamiento {{treatmentMean}} frente al control {{controlMean}}. Efecto {{effect}} contrastado con un margen de equivalencia de ±{{margin}}: {{equivalence}}. El intervalo de confianza del {{ciLevel}}% [{{ciLower}}, {{ciUpper}}] es el intervalo de decisión TOST; valor p de las dos pruebas unilaterales {{pValue}}.",
+      "categorical": "Chi-cuadrado {{chiSquare}} con {{df}} grados de libertad para una tabla de contingencia {{rows}}×{{cols}} (N = {{n}}). Valor p bilateral {{pValue}}; el resultado es {{significance}}. La V de Cramér {{cramersV}} mide la fuerza de la asociación."
     },
     "effect_size": {
       "rank_biserial": "correlación biserial por rangos",
@@ -332,6 +337,10 @@
     "equivalence": {
       "demonstrated": "equivalencia demostrada",
       "not_demonstrated": "equivalencia no demostrada"
+    },
+    "categorical": {
+      "verdict_associated": "Asociación detectada",
+      "verdict_independent": "Sin asociación significativa"
     }
   }
 }

@@ -282,7 +282,11 @@
       "quantile_rejects_other_data": "quantile metric_type does not accept binary or continuous data",
       "equivalence_requires_continuous_data": "equivalence metric_type requires continuous (summary statistics) data",
       "equivalence_rejects_other_data": "equivalence metric_type does not accept binary or ranked data",
-      "equivalence_requires_margin": "equivalence metric_type requires an equivalence_margin greater than zero"
+      "equivalence_requires_margin": "equivalence metric_type requires an equivalence_margin greater than zero",
+      "categorical_min_columns": "contingency table needs at least two columns",
+      "categorical_max_columns": "contingency table has too many columns",
+      "categorical_rectangular": "contingency table must be rectangular (every row needs the same number of columns)",
+      "categorical_non_negative": "contingency table counts must be non-negative"
     },
     "srm_detected": "SRM detected - check your randomization or tracking implementation",
     "srm_not_detected": "No SRM detected"
@@ -311,7 +315,8 @@
       "count": "Treatment rate {{treatmentRate}} vs control {{controlRate}}. Rate ratio {{rateRatio}}. Rate difference {{rateDifference}} with {{ciLevel}}% CI [{{ciLower}}, {{ciUpper}}]. Poisson exact two-sided p-value {{pValue}}; result is {{significance}}.",
       "bootstrap": "Treatment mean {{treatmentMean}} vs control {{controlMean}}. Mean difference {{effect}} with {{ciLevel}}% percentile bootstrap CI [{{ciLower}}, {{ciUpper}}]. Permutation two-sided p-value {{pValue}} over {{permutations}} relabellings; result is {{significance}}.",
       "quantile": "Treatment P{{percentile}} quantile {{treatmentQuantile}} vs control {{controlQuantile}}. Quantile shift {{effect}} with {{ciLevel}}% percentile bootstrap CI [{{ciLower}}, {{ciUpper}}]. Permutation two-sided p-value {{pValue}} over {{permutations}} relabellings; result is {{significance}}.",
-      "equivalence": "Treatment mean {{treatmentMean}} vs control {{controlMean}}. Effect {{effect}} tested against an equivalence margin of ±{{margin}}: {{equivalence}}. The {{ciLevel}}% confidence interval [{{ciLower}}, {{ciUpper}}] is the TOST decision interval; two one-sided p-value {{pValue}}."
+      "equivalence": "Treatment mean {{treatmentMean}} vs control {{controlMean}}. Effect {{effect}} tested against an equivalence margin of ±{{margin}}: {{equivalence}}. The {{ciLevel}}% confidence interval [{{ciLower}}, {{ciUpper}}] is the TOST decision interval; two one-sided p-value {{pValue}}.",
+      "categorical": "Chi-square {{chiSquare}} on {{df}} degrees of freedom for a {{rows}}×{{cols}} contingency table (N = {{n}}). Two-sided p-value {{pValue}}; result is {{significance}}. Cramér's V {{cramersV}} measures the strength of the association."
     },
     "effect_size": {
       "rank_biserial": "rank-biserial correlation",
@@ -332,6 +337,10 @@
     "equivalence": {
       "demonstrated": "equivalence demonstrated",
       "not_demonstrated": "equivalence not demonstrated"
+    },
+    "categorical": {
+      "verdict_associated": "Association detected",
+      "verdict_independent": "No significant association"
     }
   }
 }

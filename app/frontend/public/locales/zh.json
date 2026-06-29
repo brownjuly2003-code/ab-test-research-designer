@@ -710,7 +710,8 @@
         "bandit": "老虎机 vs 固定",
         "assignment": "用户分配",
         "liveStats": "实时实验",
-        "decision": "决策摘要"
+        "decision": "决策摘要",
+        "categoricalResults": "分类结果（卡方）"
       },
       "badges": {
         "loaded": "已加载",
@@ -897,6 +898,36 @@
       "blocker": {
         "srm_mismatch": "样本比例不匹配（p={{p}}）——分流似乎已损坏；在信任任何结果之前请修复随机化或追踪。",
         "guardrail_breach": "护栏指标“{{metric}}”显著劣化并超出容忍范围——在弄清该回退之前，发布将被阻止。"
+      }
+    },
+    "categoricalResults": {
+      "title": "分类结果（卡方）",
+      "description": "使用 r×c 列联表的卡方独立性检验，判断分类结果的分布是否在各组之间存在差异。",
+      "tableLabel": "列联表",
+      "tablePlaceholder": "30, 70\n50, 50",
+      "tableHelp": "每行一个组（行）；每个结果水平的计数用逗号或空格分隔（列）。",
+      "alphaLabel": "显著性水平（alpha）",
+      "analyzeButton": "运行卡方检验",
+      "analyzing": "分析中…",
+      "results": {
+        "chiSquare": "卡方",
+        "degreesOfFreedom": "自由度",
+        "pValue": "p 值",
+        "cramersV": "Cramér's V",
+        "sampleSize": "总 N",
+        "shape": "表格形状"
+      },
+      "lowExpectedWarning": "部分期望频数低于 5，卡方近似可能不可靠。对于小型或稀疏的表格，请考虑使用 Fisher 精确检验。",
+      "validation": {
+        "empty": "请输入列联表（每行一个组）。",
+        "parseError": "每行必须包含相同数量的非负整数，且至少有两行两列。",
+        "analysisUnavailable": "分析不可用。请检查表格后重试。"
+      },
+      "magnitude": {
+        "negligible": "可忽略",
+        "small": "弱",
+        "medium": "中等",
+        "large": "强"
       }
     }
   },
