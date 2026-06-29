@@ -13,7 +13,10 @@ import random
 
 import pytest
 
-from app.backend.app.stats.mann_whitney import mann_whitney_u_test
+from app.backend.app.stats.mann_whitney import (
+    MAX_EXACT_MANN_WHITNEY_TOTAL,
+    mann_whitney_u_test,
+)
 
 
 # --- closed form vs hand computation (cross-checked against scipy asymptotic) ---------------
@@ -22,14 +25,18 @@ from app.backend.app.stats.mann_whitney import mann_whitney_u_test
 def test_complete_separation_matches_hand_computation() -> None:
     # control=[1,2,3,4], treatment=[5,6,7,8]: pooled ranks 1..8, R_t=26, U_t=26-10=16=n_c·n_t,
     # so treatment beats control in every pair. μ_U=8, σ²_U=4·4·9/12=12, σ_U=√12.
-    # z=(16-8-0.5)/√12=2.16506, two-sided p=0.030383 (== scipy). CLES=16/16=1, r=2·1-1=1.
-    # Pairwise t−c differences have median 4 -> Hodges–Lehmann shift = 4.
+    # z=(16-8-0.5)/√12=2.16506 (asymptotic, reported descriptively). CLES=16/16=1, r=2·1-1=1.
+    # Pairwise t−c differences have median 4 -> Hodges–Lehmann shift = 4. The sample is small and
+    # tie-free, so the p-value is the *exact* one: only the two extreme splits (all-high / all-low)
+    # are as extreme as the observed U=16, so two-sided p = 2 / C(8,4) = 2/70 = 0.0285714 (the
+    # asymptotic normal approximation would give 0.030383; == scipy method="exact").
     result = mann_whitney_u_test([1, 2, 3, 4], [5, 6, 7, 8])
     assert result is not None
+    assert result["method"] == "exact"
     assert result["u_statistic"] == pytest.approx(16.0)
     assert result["u_control"] == pytest.approx(0.0)
     assert result["test_statistic"] == pytest.approx(2.16506, abs=1e-4)
-    assert result["p_value"] == pytest.approx(0.030383, abs=1e-5)
+    assert result["p_value"] == pytest.approx(2 / 70, abs=1e-9)
     assert result["common_language_effect"] == pytest.approx(1.0)
     assert result["rank_biserial"] == pytest.approx(1.0)
     assert result["hodges_lehmann_shift"] == pytest.approx(4.0)
@@ -78,6 +85,89 @@ def test_common_language_effect_and_rank_biserial_consistent() -> None:
     assert result["rank_biserial"] == pytest.approx(
         2.0 * result["common_language_effect"] - 1.0
     )
+
+
+# --- exact small-sample p-value (tie-free) -------------------------------------------------
+
+
+def _brute_force_exact_two_sided_p(control: list[float], treatment: list[float]) -> float:
+    """Independent exact two-sided Mann–Whitney p by enumerating every n_t-subset of the pooled
+    sample (no DP, no scipy) — the gold-standard reference for the module's exact path."""
+    from itertools import combinations
+
+    pooled = control + treatment
+    total = len(pooled)
+    n_treatment = len(treatment)
+
+    def u_of(treatment_indices: tuple[int, ...]) -> float:
+        chosen = set(treatment_indices)
+        t_values = [pooled[i] for i in treatment_indices]
+        c_values = [pooled[i] for i in range(total) if i not in chosen]
+        wins = sum(1 for a in t_values for b in c_values if a > b)
+        ties = sum(1 for a in t_values for b in c_values if a == b)
+        return wins + 0.5 * ties
+
+    u_observed = u_of(tuple(range(len(control), total)))
+    statistics = [u_of(combo) for combo in combinations(range(total), n_treatment)]
+    total_count = len(statistics)
+    lower = sum(1 for u in statistics if u <= u_observed + 1e-9)
+    upper = sum(1 for u in statistics if u >= u_observed - 1e-9)
+    return min(1.0, 2.0 * min(lower, upper) / total_count)
+
+
+def test_exact_p_matches_brute_force_enumeration() -> None:
+    # Several small tie-free samples; the module's exact p must equal an independent full enumeration
+    # of all C(N, n_t) relabellings to the last digit.
+    cases = [
+        ([1, 2, 5, 8], [3, 4, 9, 11]),
+        ([1, 2, 3, 4], [5, 6, 7, 8]),
+        ([2, 4, 6], [1, 3, 5, 7, 9]),
+        ([10, 20, 30, 40, 50], [15, 25, 35]),
+        ([1.5, 2.5, 9.5], [3.5, 4.5, 5.5, 6.5]),
+    ]
+    for control, treatment in cases:
+        result = mann_whitney_u_test(control, treatment)
+        assert result is not None
+        assert result["method"] == "exact"
+        assert result["p_value"] == pytest.approx(
+            _brute_force_exact_two_sided_p(control, treatment), abs=1e-12
+        ), (control, treatment)
+
+
+def test_exact_below_cap_and_asymptotic_above() -> None:
+    # Tie-free samples: exact at and below the cap on total N, asymptotic once the pooled sample
+    # exceeds it. Disjoint even/odd integers keep both arms tie-free at any size.
+    half = MAX_EXACT_MANN_WHITNEY_TOTAL // 2
+    control = [float(2 * i) for i in range(half)]  # evens
+    treatment = [float(2 * i + 1) for i in range(half)]  # odds, interleaved -> tie-free
+    at_cap = mann_whitney_u_test(control, treatment)
+    assert at_cap is not None and at_cap["method"] == "exact"
+
+    bigger_control = control + [float(2 * half)]
+    bigger_treatment = treatment + [float(2 * half + 1), float(2 * half + 3)]
+    over_cap = mann_whitney_u_test(bigger_control, bigger_treatment)
+    assert over_cap is not None
+    assert len(bigger_control) + len(bigger_treatment) > MAX_EXACT_MANN_WHITNEY_TOTAL
+    assert over_cap["method"] == "asymptotic"
+
+
+def test_ties_force_asymptotic_even_when_small() -> None:
+    # A tiny sample, but a value shared across the arms breaks the tie-free assumption, so the exact
+    # recurrence does not apply and the test falls back to the corrected normal approximation.
+    result = mann_whitney_u_test([1, 2, 3, 4], [4, 5, 6, 7])
+    assert result is not None
+    assert result["ties_present"] is True
+    assert result["method"] == "asymptotic"
+
+
+def test_exact_two_sided_symmetric_under_arm_swap() -> None:
+    control = [1.0, 3.0, 5.0, 12.0]
+    treatment = [2.0, 4.0, 9.0, 11.0, 14.0]
+    forward = mann_whitney_u_test(control, treatment)
+    reverse = mann_whitney_u_test(treatment, control)
+    assert forward is not None and reverse is not None
+    assert forward["method"] == "exact" and reverse["method"] == "exact"
+    assert forward["p_value"] == pytest.approx(reverse["p_value"], abs=1e-12)
 
 
 # --- distribution-level properties ---------------------------------------------------------

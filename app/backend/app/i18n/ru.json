@@ -300,7 +300,7 @@
       "binary": "Конверсия варианта {{treatment}}% против контроля {{control}}%. Абсолютный эффект {{effect}} п.п. при {{ciLevel}}% ДИ [{{ciLower}}, {{ciUpper}}] п.п. Двусторонний p-value {{pValue}}; результат {{significance}}.",
       "continuous": "Среднее варианта {{treatmentMean}} против контроля {{controlMean}}. Эффект {{effect}} при {{ciLevel}}% ДИ [{{ciLower}}, {{ciUpper}}]. Двусторонний p-value {{pValue}}.",
       "ratio": "Отношение варианта {{treatmentRatio}} против контроля {{controlRatio}}. Абсолютный эффект {{effect}} при {{ciLevel}}% ДИ [{{ciLower}}, {{ciUpper}}]. Двусторонний p-value {{pValue}} (дельта-метод); результат {{significance}}.",
-      "mann_whitney": "Медиана варианта {{treatmentMedian}} против контроля {{controlMedian}}. Сдвиг Hodges–Lehmann {{shift}} при {{ciLevel}}% ДИ [{{ciLower}}, {{ciUpper}}]. P(вариант > контроль) = {{cles}}%. Mann–Whitney U {{uStatistic}}, двусторонний p-value {{pValue}}; результат {{significance}}.",
+      "mann_whitney": "Медиана варианта {{treatmentMedian}} против контроля {{controlMedian}}. Сдвиг Hodges–Lehmann {{shift}} при {{ciLevel}}% ДИ [{{ciLower}}, {{ciUpper}}]. P(вариант > контроль) = {{cles}}%. Mann–Whitney U {{uStatistic}}, двусторонний p-value {{pValue}} ({{method}}); результат {{significance}}.",
       "degenerate": "Наблюдаемые данные вырождены, поэтому тестовая статистика не может быть вычислена.",
       "fisher_exact": "Конверсия варианта {{treatment}}% против контроля {{control}}%. Абсолютный эффект {{effect}} п.п. Отношение шансов {{oddsRatio}}. Точный двусторонний p-value Фишера {{pValue}}; результат {{significance}}.",
       "count": "Интенсивность варианта {{treatmentRate}} против контроля {{controlRate}}. Отношение интенсивностей {{rateRatio}}. Разность интенсивностей {{rateDifference}} при {{ciLevel}}% ДИ [{{ciLower}}, {{ciUpper}}]. Точный двусторонний p-value Пуассона {{pValue}}; результат {{significance}}.",
@@ -312,6 +312,10 @@
       "odds_ratio": "отношение шансов (odds ratio)",
       "rate_ratio": "отношение интенсивностей (rate ratio)",
       "cohens_d": "d Коэна"
+    },
+    "mann_whitney": {
+      "method_exact": "точный",
+      "method_asymptotic": "нормальная аппроксимация"
     },
     "fisher_exact": {
       "odds_ratio_undefined": "не определено (нулевая ячейка)"

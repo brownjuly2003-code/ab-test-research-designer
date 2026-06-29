@@ -29,20 +29,73 @@ distribution-free confidence interval); Hodges & Lehmann (1963). Definitions use
     ``t_j − c_i``; its distribution-free CI takes the order statistics of those differences at ranks
     derived from the same normal approximation (``K = ⌊M/2 − z_{α/2}·σ_U⌋``, symmetric upper rank).
 
-This is the large-sample (asymptotic) test, matching ``scipy.stats.mannwhitneyu(method="asymptotic")``;
-the exact small-sample permutation distribution is a future refinement. The module is stdlib-only and
-holds pure functions; assembling the response shape lives in the service layer.
+The p-value is **exact** for a small, tie-free sample and the tie-corrected large-sample
+(asymptotic) normal approximation otherwise. The exact path enumerates the null distribution of U —
+under H0 the treatment arm's ranks are a uniformly random ``n_t``-subset of ``{1..N}``, so the
+distribution of the rank sum (hence ``U = R_t − n_t(n_t+1)/2``) is obtained by counting subsets by
+their sum (a 0/1-knapsack DP). The two-sided p doubles the smaller tail, clipped at 1 — matching
+``scipy.stats.mannwhitneyu(method="exact")``. With ties the tie-free recurrence does not apply, and
+above the size cap the asymptotic test is accurate, so both fall back to the corrected normal z
+(matching ``method="asymptotic"``). The z statistic and the Hodges–Lehmann CI stay large-sample in
+both regimes (the exact refinement is the headline p-value, as in the Fisher's-exact path). The
+module is stdlib-only and holds pure functions; assembling the response shape lives in the service
+layer.
 """
 
-from math import floor, isfinite, sqrt
+from math import comb, floor, isfinite, sqrt
 from statistics import NormalDist, median
 from typing import Any
 
 _STANDARD_NORMAL = NormalDist()
 
+# Use the exact U null distribution when the pooled sample is this small (and tie-free). The
+# subset-sum DP is O(N · n_t · maxRankSum) with maxRankSum ≤ N(N+1)/2, which stays cheap at this
+# bound; above it the tie-corrected normal approximation is accurate.
+MAX_EXACT_MANN_WHITNEY_TOTAL = 30
+
 
 def _bounded_probability(value: float) -> float:
     return min(1.0, max(0.0, value))
+
+
+def _exact_two_sided_p(n_control: int, n_treatment: int, u_treatment: float) -> float:
+    """Exact two-sided Mann–Whitney p-value under the tie-free null.
+
+    Under H0 the treatment arm's ranks are a uniformly random ``n_treatment``-subset of ``{1..N}``,
+    so the null distribution of the rank sum ``R_t`` — and hence ``U_t = R_t − n_t(n_t+1)/2`` — is
+    the count of such subsets by their sum (a 0/1-knapsack DP over the ranks). The two-sided p doubles
+    the smaller of ``P(U ≤ u_obs)`` and ``P(U ≥ u_obs)`` (both tails include the observed point),
+    clipped at 1 — matching ``scipy.stats.mannwhitneyu(method="exact", alternative="two-sided")``.
+    Assumes a tie-free sample (the caller guards on it); ``u_treatment`` is integer-valued there.
+    """
+    total = n_control + n_treatment
+    max_rank_sum = total * (total + 1) // 2
+    # subset_counts[size][s] = number of size-subsets of {1..N} whose ranks sum to s.
+    subset_counts = [[0] * (max_rank_sum + 1) for _ in range(n_treatment + 1)]
+    subset_counts[0][0] = 1
+    for rank in range(1, total + 1):
+        for size in range(min(rank, n_treatment), 0, -1):
+            below = subset_counts[size - 1]
+            row = subset_counts[size]
+            for current_sum in range(max_rank_sum, rank - 1, -1):
+                addend = below[current_sum - rank]
+                if addend:
+                    row[current_sum] += addend
+    rank_sum_counts = subset_counts[n_treatment]
+    total_count = comb(total, n_treatment)
+    u_offset = n_treatment * (n_treatment + 1) // 2
+    u_observed = round(u_treatment)
+    lower_tail = 0
+    upper_tail = 0
+    for rank_sum, count in enumerate(rank_sum_counts):
+        if not count:
+            continue
+        u_value = rank_sum - u_offset
+        if u_value <= u_observed:
+            lower_tail += count
+        if u_value >= u_observed:
+            upper_tail += count
+    return min(1.0, 2.0 * min(lower_tail, upper_tail) / total_count)
 
 
 def _pooled_rank_sum_and_ties(
@@ -112,10 +165,12 @@ def _hodges_lehmann_shift(
 def mann_whitney_u_test(
     control: list[float], treatment: list[float], alpha: float = 0.05
 ) -> dict[str, Any] | None:
-    """Two-sided Mann–Whitney U test on raw per-unit samples (asymptotic, tie-corrected).
+    """Two-sided Mann–Whitney U test on raw per-unit samples (exact for small tie-free samples,
+    tie-corrected asymptotic otherwise).
 
     ``control`` / ``treatment`` are the raw observed values per arm. Returns the U statistic, the
-    tie- and continuity-corrected z, the two-sided p-value, the common-language effect size
+    tie- and continuity-corrected z, the two-sided p-value (with ``method`` ∈ {"exact",
+    "asymptotic"}), the common-language effect size
     (``P(treatment > control)``) and rank-biserial correlation, the Hodges–Lehmann shift with its
     distribution-free CI, the per-arm medians, the significance verdict and an asymptotic achieved
     power. Returns ``None`` when the test is undefined: an empty arm, or a degenerate pooled sample
@@ -158,7 +213,18 @@ def mann_whitney_u_test(
     else:
         corrected = 0.0
     test_statistic = corrected / standard_deviation_u
-    p_value = 2.0 * (1.0 - _STANDARD_NORMAL.cdf(abs(test_statistic)))
+    asymptotic_p = 2.0 * (1.0 - _STANDARD_NORMAL.cdf(abs(test_statistic)))
+
+    # Exact p for a small, tie-free sample (the textbook-correct value in the small-n regime); the
+    # tie-corrected normal approximation otherwise. The z statistic and the Hodges–Lehmann CI below
+    # stay large-sample in both regimes — the exact refinement is the headline p-value.
+    ties_present = any(size > 1 for size in tie_sizes)
+    if not ties_present and total <= MAX_EXACT_MANN_WHITNEY_TOTAL:
+        p_value = _exact_two_sided_p(n_control, n_treatment, u_treatment)
+        method = "exact"
+    else:
+        p_value = asymptotic_p
+        method = "asymptotic"
 
     common_language_effect = u_treatment / pair_count
     rank_biserial = 2.0 * common_language_effect - 1.0
@@ -190,5 +256,6 @@ def mann_whitney_u_test(
         "treatment_median": median(treatment),
         "is_significant": p_value < alpha,
         "power_achieved": _bounded_probability(power_achieved),
-        "ties_present": any(size > 1 for size in tie_sizes),
+        "ties_present": ties_present,
+        "method": method,
     }

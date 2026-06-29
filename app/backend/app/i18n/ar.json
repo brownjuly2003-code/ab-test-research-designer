@@ -300,7 +300,7 @@
       "binary": "تحويل مجموعة المعالجة {{treatment}}% مقابل المجموعة الضابطة {{control}}%. الأثر المطلق {{effect}} نقطة مئوية بفاصل ثقة {{ciLevel}}% [{{ciLower}}، {{ciUpper}}] نقطة مئوية. القيمة الاحتمالية الثنائية {{pValue}}؛ النتيجة {{significance}}.",
       "continuous": "متوسط مجموعة المعالجة {{treatmentMean}} مقابل المجموعة الضابطة {{controlMean}}. الأثر {{effect}} بفاصل ثقة {{ciLevel}}% [{{ciLower}}، {{ciUpper}}]. القيمة الاحتمالية الثنائية {{pValue}}.",
       "ratio": "نسبة مجموعة المعالجة {{treatmentRatio}} مقابل المجموعة الضابطة {{controlRatio}}. الأثر المطلق {{effect}} بفاصل ثقة {{ciLevel}}% [{{ciLower}}، {{ciUpper}}]. القيمة الاحتمالية الثنائية {{pValue}} (طريقة دلتا)؛ النتيجة {{significance}}.",
-      "mann_whitney": "وسيط مجموعة المعالجة {{treatmentMedian}} مقابل المجموعة الضابطة {{controlMedian}}. إزاحة Hodges–Lehmann {{shift}} بفاصل ثقة {{ciLevel}}% [{{ciLower}}، {{ciUpper}}]. P(المعالجة > الضابطة) = {{cles}}%. إحصاءة Mann–Whitney U {{uStatistic}}، القيمة الاحتمالية الثنائية {{pValue}}؛ النتيجة {{significance}}.",
+      "mann_whitney": "وسيط مجموعة المعالجة {{treatmentMedian}} مقابل المجموعة الضابطة {{controlMedian}}. إزاحة Hodges–Lehmann {{shift}} بفاصل ثقة {{ciLevel}}% [{{ciLower}}، {{ciUpper}}]. P(المعالجة > الضابطة) = {{cles}}%. إحصاءة Mann–Whitney U {{uStatistic}}، القيمة الاحتمالية الثنائية {{pValue}} ({{method}})؛ النتيجة {{significance}}.",
       "degenerate": "المدخلات المرصودة متدهورة، لذا لا يمكن حساب إحصاءة الاختبار.",
       "fisher_exact": "تحويل مجموعة المعالجة {{treatment}}% مقابل المجموعة الضابطة {{control}}%. الأثر المطلق {{effect}} نقطة مئوية. نسبة الأرجحية {{oddsRatio}}. القيمة الاحتمالية الثنائية الدقيقة لاختبار Fisher {{pValue}}؛ النتيجة {{significance}}.",
       "count": "معدّل مجموعة المعالجة {{treatmentRate}} مقابل المجموعة الضابطة {{controlRate}}. نسبة المعدّلات {{rateRatio}}. فرق المعدّلات {{rateDifference}} بفاصل ثقة {{ciLevel}}% [{{ciLower}}، {{ciUpper}}]. القيمة الاحتمالية الثنائية الدقيقة لبواسون {{pValue}}؛ النتيجة {{significance}}.",
@@ -312,6 +312,10 @@
       "odds_ratio": "نسبة الأرجحية (odds ratio)",
       "rate_ratio": "نسبة المعدّلات (rate ratio)",
       "cohens_d": "d لكوهين"
+    },
+    "mann_whitney": {
+      "method_exact": "دقيقة",
+      "method_asymptotic": "تقريب طبيعي"
     },
     "fisher_exact": {
       "odds_ratio_undefined": "غير معرّفة (خلية صفرية)"
