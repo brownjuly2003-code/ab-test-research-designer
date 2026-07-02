@@ -655,10 +655,30 @@ def _build_sequential_block(
     comparisons: list[dict[str, Any]],
 ) -> dict[str, Any]:
     if n_looks <= 1:
+        # A fixed-horizon design has no boundary to place, but the planned sample size still
+        # matters: it tells the decision readout whether the current read *is* the planned single
+        # read or an early peek (see services.decision_service). Sizing can be unavailable for a
+        # design (e.g. a legacy ratio design without std_dev) — then the fraction stays None and
+        # the decision falls back to treating the read as the planned one.
+        planned_per_variant: int | None = None
+        information_fraction: float | None = None
+        try:
+            calculation = calculate_experiment_metrics(_calc_payload_from_design(project_payload))
+            planned_per_variant = (
+                int((calculation.get("results") or {}).get("sample_size_per_variant") or 0) or None
+            )
+        except (ValueError, KeyError):
+            planned_per_variant = None
+        if planned_per_variant is not None:
+            information_fraction = round(
+                min(1.0, total_exposed / (planned_per_variant * variants_count)), 4
+            )
         return {
             "status": "fixed_horizon",
             "n_looks": n_looks,
+            "planned_sample_size_per_variant": planned_per_variant,
             "total_exposed": total_exposed,
+            "information_fraction": information_fraction,
             "note": (
                 "Fixed-horizon design (n_looks=1): read the frequentist p-value only once at the "
                 "planned sample size — peeking early inflates the false-positive rate."

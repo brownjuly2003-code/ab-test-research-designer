@@ -963,6 +963,9 @@ class LiveSequentialBlock(BaseModel):
     # status: "fixed_horizon" (n_looks==1) | "active" | "insufficient_data"
     status: str
     n_looks: int
+    # Planned size and information fraction are populated for both "active" (O'Brien-Fleming
+    # boundary placement) and "fixed_horizon" (planned-read progress feeding the decision
+    # readout's peeking guard); None when sizing is unavailable for the stored design.
     planned_sample_size_per_variant: int | None = None
     total_exposed: int = 0
     information_fraction: float | None = None

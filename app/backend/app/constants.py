@@ -65,3 +65,10 @@ DECISION_STRONG_PROBABILITY = 0.99
 # accrued its planned sample size, so a still-inconclusive result reads as "no detectable effect"
 # rather than "keep collecting").
 DECISION_INFO_FRACTION_COMPLETE = 1.0
+# A fixed-horizon (n_looks=1) design promises a single read at the planned sample size; a decision
+# synthesized before that point is peeking, so the frequentist significance alone may not confirm a
+# win/loss — only the anytime-valid (mSPRT) view can. The read counts as "the planned read" from
+# this fraction of the planned sample onward: read-time filters (dedup, identity resolution,
+# bot/fraud exclusions) legitimately shave a few percent off the ingested exposures, so demanding
+# exactly 1.0 would misclassify honest at-plan reads as peeking.
+DECISION_FIXED_HORIZON_READ_FRACTION = 0.95

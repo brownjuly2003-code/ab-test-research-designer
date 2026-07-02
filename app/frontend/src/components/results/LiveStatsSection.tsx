@@ -758,7 +758,17 @@ export default function LiveStatsSection() {
                     })}
                   </span>
                 ) : (
-                  <span className="muted">{stats.sequential.note}</span>
+                  <>
+                    {stats.sequential.status === "fixed_horizon" && stats.sequential.information_fraction != null ? (
+                      <span className="muted">
+                        {t("results.liveStats.fixedHorizonProgress", {
+                          fraction: formatPercent(stats.sequential.information_fraction),
+                          planned: stats.sequential.planned_sample_size_per_variant ?? "—"
+                        })}
+                      </span>
+                    ) : null}
+                    <span className="muted">{stats.sequential.note}</span>
+                  </>
                 )}
               </div>
 

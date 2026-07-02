@@ -18,13 +18,18 @@ from app.backend.app.services.live_stats_service import build_live_stats
 # --- builders -------------------------------------------------------------------------
 
 
-def _binary_design(*, n_looks: int = 1, variants_count: int = 2, traffic_split=None) -> dict:
+def _binary_design(
+    *, n_looks: int = 1, variants_count: int = 2, traffic_split=None, mde_pct: float = 5
+) -> dict:
+    # mde_pct drives the planned sample size and therefore the fixed-horizon information fraction:
+    # baseline 0.10 with mde 5% plans ~57.8k/arm (so 5k/arm reads as an early peek), while mde 20%
+    # plans ~3.8k/arm (so 5k/arm reads as the planned single read).
     return {
         "metrics": {
             "primary_metric_name": "purchase",
             "metric_type": "binary",
             "baseline_value": 0.10,
-            "mde_pct": 5,
+            "mde_pct": mde_pct,
             "alpha": 0.05,
             "power": 0.8,
             "std_dev": None,
@@ -102,7 +107,8 @@ def test_srm_mismatch_is_a_blocker_forcing_no_ship() -> None:
 
 def test_clear_positive_result_ships_with_high_confidence() -> None:
     # 10% control vs 12% treatment at n=5000/arm: significant, P(B>A) ~ 1.0, balanced split.
-    decision = _decide(_binary_design(), _arm(0, 5000, 500), _arm(1, 5000, 600))
+    # mde 20% plans ~3.8k/arm, so 5k/arm is the planned fixed-horizon read (no peeking guard).
+    decision = _decide(_binary_design(mde_pct=20), _arm(0, 5000, 500), _arm(1, 5000, 600))
     assert decision["verdict"] == "ship"
     assert decision["confidence"] == "high"
     codes = _codes(decision["reasons"])
@@ -115,7 +121,8 @@ def test_clear_positive_result_ships_with_high_confidence() -> None:
 
 
 def test_ship_reports_a_losing_arm_alongside_the_winner() -> None:
-    design = _binary_design(variants_count=3, traffic_split=[34, 33, 33])
+    # mde 20% keeps this a planned read (~4.7k/arm planned at the Bonferroni-adjusted alpha).
+    design = _binary_design(variants_count=3, traffic_split=[34, 33, 33], mde_pct=20)
     decision = _decide(
         design,
         _arm(0, 5000, 500),  # control 10%
@@ -134,8 +141,8 @@ def test_ship_reports_a_losing_arm_alongside_the_winner() -> None:
 
 
 def test_significant_negative_result_does_not_ship() -> None:
-    # Treatment 8% is significantly worse than control 12% at n=5000/arm.
-    decision = _decide(_binary_design(), _arm(0, 5000, 600), _arm(1, 5000, 400))
+    # Treatment 8% is significantly worse than control 12% at n=5000/arm (a planned read: mde 20%).
+    decision = _decide(_binary_design(mde_pct=20), _arm(0, 5000, 600), _arm(1, 5000, 400))
     assert decision["verdict"] == "no_ship"
     assert decision["confidence"] == "high"
     assert "significant_loss" in _codes(decision["reasons"])
@@ -159,6 +166,75 @@ def test_sequential_significant_but_boundary_not_crossed_keeps_running() -> None
     decision = _decide(_binary_design(n_looks=3), _arm(0, 5000, 500), _arm(1, 5000, 600))
     assert decision["verdict"] == "keep_running"
     assert "sequential_not_crossed" in _codes(decision["reasons"])
+
+
+# --- fixed-horizon peeking guard (audit 2026-07-02 finding A) ---------------------------
+
+
+def test_fixed_horizon_early_read_does_not_ship_on_z_alone() -> None:
+    # Same significant 10% -> 12% readout as the ship test, but the design plans ~57.8k/arm
+    # (mde 5%), so 5k/arm is an early peek at ~8.7% of the planned sample. The z-test alone
+    # carries no alpha guarantee there and the anytime-valid view does not confirm the win.
+    decision = _decide(_binary_design(), _arm(0, 5000, 500), _arm(1, 5000, 600))
+    assert decision["verdict"] == "keep_running"
+    assert decision["confidence"] == "low"
+    codes = _codes(decision["reasons"])
+    assert "fixed_horizon_before_planned_read" in codes
+    assert "significant_win" not in codes
+    gated = next(r for r in decision["reasons"] if r["code"] == "fixed_horizon_before_planned_read")
+    assert 0.0 < gated["params"]["information_fraction"] < 0.95
+    fraction = next(r for r in decision["reasons"] if r["code"] == "info_fraction_incomplete")
+    assert fraction["params"]["information_fraction"] == gated["params"]["information_fraction"]
+
+
+def test_fixed_horizon_early_read_ships_when_anytime_valid_confirms() -> None:
+    # 10% -> 13% at 5k/arm: still an early read of the mde-5% plan, but the mSPRT confidence
+    # sequence already excludes zero, so acting now is exactly what anytime-valid inference is for.
+    # Confidence is capped at medium: the sign is confirmed, the early effect size is inflated.
+    decision = _decide(_binary_design(), _arm(0, 5000, 500), _arm(1, 5000, 650))
+    assert decision["verdict"] == "ship"
+    assert decision["confidence"] == "medium"
+    codes = _codes(decision["reasons"])
+    assert "significant_win" in codes
+    assert "anytime_valid_confirmed" in codes
+
+
+def test_fixed_horizon_early_confirmed_loss_is_no_ship() -> None:
+    # The mirror image: 13% -> 10% is an anytime-valid-confirmed degradation on an early read.
+    decision = _decide(_binary_design(), _arm(0, 5000, 650), _arm(1, 5000, 500))
+    assert decision["verdict"] == "no_ship"
+    assert decision["confidence"] == "medium"
+    codes = _codes(decision["reasons"])
+    assert "significant_loss" in codes
+    assert "anytime_valid_confirmed" in codes
+
+
+def test_fixed_horizon_demo_peek_scenario_keeps_running() -> None:
+    # The audit's live-demo finding, verbatim: the stock checkout design plans ~146.6k/arm
+    # (baseline 4.2%, mde 5%), the seeded read carries ~2k/arm (~1.4% of plan) with a z-significant
+    # 4.3% -> 6.2% uplift while the anytime-valid view still includes zero. The old readout said
+    # "ship / high" here; the honest verdict is keep_running.
+    design = _binary_design()
+    design["metrics"]["baseline_value"] = 0.042
+    decision = _decide(design, _arm(0, 2000, 86), _arm(1, 2000, 124))
+    assert decision["verdict"] == "keep_running"
+    codes = _codes(decision["reasons"])
+    assert "fixed_horizon_before_planned_read" in codes
+    gated = next(r for r in decision["reasons"] if r["code"] == "fixed_horizon_before_planned_read")
+    assert gated["params"]["information_fraction"] < 0.02
+
+
+def test_fixed_horizon_without_planned_size_is_not_gated() -> None:
+    # A stored design whose sizing is unavailable carries no information fraction; the read is
+    # then treated as the planned one (the pre-guard behavior) rather than gated blindly.
+    decision = synthesize_decision(
+        _live_stats(
+            comparisons=[_ok_comparison(arm=1, effect=0.02, significant=True, prob=0.99, seq_sig=None)],
+            sequential={"status": "fixed_horizon", "n_looks": 1, "information_fraction": None},
+        )
+    )
+    assert decision["verdict"] == "ship"
+    assert "fixed_horizon_before_planned_read" not in _codes(decision["reasons"])
 
 
 # --- sequential branches via a hand-built live-stats payload --------------------------
@@ -276,7 +352,8 @@ def _decide_with_guardrail(
 def test_guardrail_breach_vetoes_a_primary_win() -> None:
     # The primary is a clear win (10% -> 12%), but the error-rate guardrail breaches (2% -> 8%): the
     # data is trustworthy, yet the treatment harms a protected metric, so the win is vetoed.
-    design = _binary_design()
+    # mde 20% keeps the primary read at the planned size so the win is not peeking-gated.
+    design = _binary_design(mde_pct=20)
     design["metrics"]["guardrail_metrics"] = [_guardrail("error_rate", baseline_rate=5.0)]
     decision = _decide_with_guardrail(
         design,
@@ -297,7 +374,7 @@ def test_guardrail_breach_vetoes_a_primary_win() -> None:
 def test_guardrail_warning_does_not_veto_a_win() -> None:
     # A guardrail that only warns (degrades but not significantly) is not a breach: the primary win
     # still ships. Only a breach vetoes.
-    design = _binary_design()
+    design = _binary_design(mde_pct=20)
     design["metrics"]["guardrail_metrics"] = [_guardrail("error_rate", baseline_rate=5.0)]
     decision = _decide_with_guardrail(
         design,

@@ -330,6 +330,37 @@ describe("LiveStatsSection", () => {
     }
   });
 
+  it("shows the planned-read progress for a fixed-horizon design", async () => {
+    const fixedHorizon = {
+      ...liveStatsResponse,
+      sequential: {
+        status: "fixed_horizon",
+        n_looks: 1,
+        planned_sample_size_per_variant: 146642,
+        total_exposed: 4000,
+        information_fraction: 0.0136,
+        note: "Fixed-horizon design (n_looks=1): read the frequentist p-value only once at the planned sample size."
+      }
+    };
+    const fetchMock = vi.fn(async (..._args: unknown[]) => ({ ok: true, json: async () => fixedHorizon }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const view = await renderIntoDocument(<LiveStatsSection />);
+    try {
+      await flushEffects();
+      await click(findButton(view.container, "Refresh live stats"));
+      await flushEffects();
+      await flushEffects();
+
+      const text = view.container.textContent ?? "";
+      expect(text).toContain("Fixed-horizon plan");
+      expect(text).toContain("146642/variant");
+      expect(text).toContain("1.36%"); // share of the planned sample collected
+    } finally {
+      await view.unmount();
+    }
+  });
+
   it("surfaces the event-timing indicator when conversions are late or out-of-order", async () => {
     const withTiming = {
       ...liveStatsResponse,

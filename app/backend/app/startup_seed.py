@@ -22,14 +22,26 @@ from app.backend.app.services.template_service import (
 logger = logging.getLogger(__name__)
 
 DEMO_PROJECT_PREFIX = "Demo - "
-SAMPLE_PROJECTS = (
+# ``metrics_overrides`` retune a demo *instance* without touching the user-facing template. The
+# seeded execution data is far smaller than the stock templates' planned samples, and the decision
+# readout now refuses to confirm a fixed-horizon result read before the planned sample (the
+# peeking guard) — so the demos that are meant to showcase a "ship" verdict are sized for the
+# effect their seeded data actually demonstrates, making the demo read the *planned* read:
+# - Checkout seeds ~2,000 users/arm with a deliberately large (~+44%) uplift; the stock 5% MDE
+#   plans ~147k/arm (the demo read would sit at ~1.4% of plan). A 50% MDE plans ~1,770/arm.
+# - Pricing seeds 400/arm; the stock 4.5% MDE plans ~552/arm. A 5.5% MDE plans ~370/arm.
+# The ratio demo is left early on purpose: its anytime-valid view is significant, so it showcases
+# the legitimate early-ship path; the onboarding demo stays honestly inconclusive.
+SAMPLE_PROJECTS: tuple[dict[str, Any], ...] = (
     {
         "template_id": "checkout_conversion",
         "project_name": "Demo - Checkout Conversion",
+        "metrics_overrides": {"mde_pct": 50, "expected_uplift_pct": 45},
     },
     {
         "template_id": "pricing_sensitivity",
         "project_name": "Demo - Pricing Sensitivity",
+        "metrics_overrides": {"mde_pct": 5.5},
     },
     {
         "template_id": "onboarding_completion",
@@ -62,7 +74,11 @@ def _demo_advice_payload() -> dict[str, Any]:
     }
 
 
-def _build_seed_payload(template_payload: dict[str, Any], project_name: str) -> dict[str, Any]:
+def _build_seed_payload(
+    template_payload: dict[str, Any],
+    project_name: str,
+    metrics_overrides: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     payload = copy.deepcopy(template_payload)
     payload["project"]["project_name"] = project_name
     payload["project"]["project_description"] = (
@@ -71,6 +87,8 @@ def _build_seed_payload(template_payload: dict[str, Any], project_name: str) -> 
     payload["additional_context"]["llm_context"] = (
         f"{payload['additional_context'].get('llm_context', '').strip()} Seeded demo sample."
     ).strip()
+    for key, value in (metrics_overrides or {}).items():
+        payload["metrics"][key] = value
     return payload
 
 
@@ -129,7 +147,13 @@ def seed_demo_workspace(settings: Settings, repository: ProjectRepository) -> Se
             existing = existing_by_name.get(sample["project_name"])
             if existing is None:
                 template = templates_by_id[sample["template_id"]]
-                project = repository.create_project(_build_seed_payload(template["payload"], sample["project_name"]))
+                project = repository.create_project(
+                    _build_seed_payload(
+                        template["payload"],
+                        sample["project_name"],
+                        sample.get("metrics_overrides"),
+                    )
+                )
                 result.created_projects += 1
             else:
                 project = repository.get_project(existing["id"], include_archived=True)
