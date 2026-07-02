@@ -3243,11 +3243,14 @@ class SQLiteBackend:
         functions; portable on both backends).
 
         Bot / fraud filter (P4.4): canonical users on the manual deny-list (``excluded_users``, resolved
-        to canonical) and rate-spike users (more than ``BOT_CONVERSION_EVENT_THRESHOLD`` conversion
-        events on the metric — an automation / instrumentation artifact) are removed from every
-        per-variation count via two ``NOT EXISTS`` anti-joins. When the deny-list is empty and no user
-        trips the threshold the rollup is unchanged. The exclusion is a read-time filter — the raw
-        events are never deleted — and the filtered count is surfaced in the live-stats indicator.
+        to canonical) are removed via a ``NOT EXISTS``-style anti-join. Rate-spike users — more than
+        ``BOT_CONVERSION_EVENT_THRESHOLD`` conversion events — are computed **once across all of the
+        experiment's metrics**, not just ``metric_name``: a bot is a property of the user, not of one
+        metric's event stream, so this call and every other metric's call to this same function (a
+        guardrail, for instance) exclude exactly the same set of users and report the same
+        ``exposed_users`` for a given arm. When the deny-list is empty and no user trips the threshold
+        on any metric the rollup is unchanged. The exclusion is a read-time filter — the raw events are
+        never deleted — and the filtered count is surfaced in the live-stats indicator.
         """
         with self._connect() as connection:
             if not self._project_exists(connection, experiment_id):
@@ -3289,11 +3292,25 @@ class SQLiteBackend:
                     -- Collapse the per-event conversions to one row per canonical user *before* the
                     -- join to the arms. Joining the per-event ``conv_resolved`` directly made SQLite
                     -- scan it once per arm user (an O(users * conversions) blow-up); pre-aggregating
-                    -- gives a one-row-per-user table the planner can hash-join. ``n_events`` carries
-                    -- the rate-spike signal, so the separate ``spike`` aggregation is no longer needed.
-                    SELECT cuser, SUM(value) AS user_value, COUNT(*) AS n_events
+                    -- gives a one-row-per-user table the planner can hash-join.
+                    SELECT cuser, SUM(value) AS user_value
                     FROM conv_resolved
                     GROUP BY cuser
+                ),
+                conv_all_resolved AS (
+                    -- Rate-spike detection reads across *every* metric, not just ``metric_name`` — a
+                    -- bot spamming only one metric must still be excluded from every other metric's
+                    -- rollup (guardrails included), or the same arm reports a different N depending on
+                    -- which metric happens to have caught the spike.
+                    SELECT COALESCE(im.canonical_id, c.user_id) AS cuser
+                    FROM conversions c
+                    LEFT JOIN identity_map im
+                        ON im.experiment_id = c.experiment_id
+                        AND im.anonymous_id = c.user_id
+                    WHERE c.experiment_id = ?
+                ),
+                spike AS (
+                    SELECT cuser FROM conv_all_resolved GROUP BY cuser HAVING COUNT(*) > ?
                 ),
                 excluded AS (
                     SELECT DISTINCT COALESCE(im.canonical_id, x.user_id) AS cuser
@@ -3304,10 +3321,10 @@ class SQLiteBackend:
                     WHERE x.experiment_id = ?
                 ),
                 user_values AS (
-                    -- Deny-list users are removed with a LEFT JOIN ... IS NULL anti-join, and rate-spike
-                    -- users (more than the threshold conversion events) by ``n_events`` from the
-                    -- per-user rollup — both materialized once. ``converted`` is 1 when the user has any
-                    -- conversion (``conv_per_user`` row present); a non-converter contributes value 0.
+                    -- Deny-list and rate-spike users are both removed with a LEFT JOIN ... IS NULL
+                    -- anti-join, materialized once each. ``converted`` is 1 when the user has any
+                    -- conversion on *this* metric (``conv_per_user`` row present); a non-converter
+                    -- contributes value 0.
                     SELECT
                         arm.variation_index AS variation_index,
                         arm.cuser AS cuser,
@@ -3316,8 +3333,8 @@ class SQLiteBackend:
                     FROM arm
                     LEFT JOIN conv_per_user cpu ON cpu.cuser = arm.cuser
                     LEFT JOIN excluded ex ON ex.cuser = arm.cuser
-                    WHERE ex.cuser IS NULL
-                        AND (cpu.cuser IS NULL OR cpu.n_events <= ?)
+                    LEFT JOIN spike sp ON sp.cuser = arm.cuser
+                    WHERE ex.cuser IS NULL AND sp.cuser IS NULL
                 )
                 SELECT
                     variation_index,
@@ -3329,7 +3346,14 @@ class SQLiteBackend:
                 GROUP BY variation_index
                 ORDER BY variation_index
                 """,
-                (experiment_id, experiment_id, metric_name, experiment_id, BOT_CONVERSION_EVENT_THRESHOLD),
+                (
+                    experiment_id,
+                    experiment_id,
+                    metric_name,
+                    experiment_id,
+                    BOT_CONVERSION_EVENT_THRESHOLD,
+                    experiment_id,
+                ),
             ).fetchall()
         variations = [
             {
@@ -3413,7 +3437,7 @@ class SQLiteBackend:
             "merged_users": int(merged or 0),
         }
 
-    def get_exclusion_summary(self, experiment_id: str, metric_name: str) -> dict[str, Any] | None:
+    def get_exclusion_summary(self, experiment_id: str, _metric_name: str) -> dict[str, Any] | None:
         """Bot / fraud filter counts for the live-stats indicator (P4.4).
 
         Returns ``None`` if the experiment does not exist. Counts the *exposed* canonical users the
@@ -3421,8 +3445,12 @@ class SQLiteBackend:
 
         - ``manual_filtered``     — exposed users on the manual deny-list (resolved to canonical).
         - ``rate_spike_filtered`` — exposed users over ``BOT_CONVERSION_EVENT_THRESHOLD`` conversion
-          events on ``metric_name`` and not already on the deny-list.
+          events across *all* of the experiment's metrics (not scoped to one metric — see
+          ``get_experiment_analysis_aggregates``) and not already on the deny-list.
         - ``total_filtered``      — their sum (distinct exposed users removed).
+
+        ``_metric_name`` is unused now that rate-spike is experiment-global; kept so the call site
+        (one summary per live-stats read, alongside the per-metric rollups) doesn't need to change.
 
         Counts only exposed users (the population the rollup analyzes), so a deny-list entry for a user
         who was never exposed does not inflate the indicator. All zero when nothing is filtered, so the
@@ -3442,11 +3470,14 @@ class SQLiteBackend:
                     WHERE e.experiment_id = ? AND e.variation_index >= 0
                 ),
                 conv_resolved AS (
+                    -- Every metric, not just ``metric_name`` — a bot is a property of the user, so
+                    -- the same set of rate-spike users must be reported regardless of which metric's
+                    -- indicator is being read (mirrors ``get_experiment_analysis_aggregates``).
                     SELECT COALESCE(im.canonical_id, c.user_id) AS cuser
                     FROM conversions c
                     LEFT JOIN identity_map im
                         ON im.experiment_id = c.experiment_id AND im.anonymous_id = c.user_id
-                    WHERE c.experiment_id = ? AND c.metric = ?
+                    WHERE c.experiment_id = ?
                 ),
                 spike AS (
                     SELECT cuser FROM conv_resolved GROUP BY cuser HAVING COUNT(*) > ?
@@ -3475,7 +3506,6 @@ class SQLiteBackend:
                 (
                     experiment_id,
                     experiment_id,
-                    metric_name,
                     BOT_CONVERSION_EVENT_THRESHOLD,
                     experiment_id,
                 ),
@@ -3609,13 +3639,18 @@ class SQLiteBackend:
         """Per-(stratum, variation) analysis rollup for post-stratification (F3b).
 
         Returns ``None`` if the experiment does not exist. Mirrors
-        ``get_experiment_analysis_aggregates`` but inner-joins each exposed user onto their recorded
-        ``user_strata`` row and groups by (stratum, variation): users without a stratum are excluded
-        (they cannot be placed in a stratum), and the holdout tail (``variation_index = -1``) is
-        excluded. Per (stratum, variation) it returns the same shape the main rollup yields per
-        variation — ``exposed_users``, ``converted_users``, ``value_sum``, ``value_sq_sum`` — so the
-        service can reuse the binary / continuous moment helpers. ``too_many_strata`` flags the
-        pathological case of more than ``MAX_STRATA`` distinct strata (the rollup is then skipped).
+        ``get_experiment_analysis_aggregates`` in full — identity resolution (anonymous→canonical
+        fold, first-exposure-wins), the manual deny-list, and the experiment-global rate-spike filter
+        — then additionally inner-joins each resolved exposed user onto their recorded ``user_strata``
+        row (also identity-resolved) and groups by (stratum, variation): users without a stratum are
+        excluded (they cannot be placed in a stratum), and the holdout tail (``variation_index = -1``)
+        is excluded. Applying the same resolution and exclusion as the primary rollup keeps
+        ``stratified_users_total`` a subset of ``exposed_users_total`` by construction — the gap is
+        only ever "no stratum recorded," which is what the live-stats copy says. Per (stratum,
+        variation) it returns the same shape the main rollup yields per variation — ``exposed_users``,
+        ``converted_users``, ``value_sum``, ``value_sq_sum`` — so the service can reuse the binary /
+        continuous moment helpers. ``too_many_strata`` flags the pathological case of more than
+        ``MAX_STRATA`` distinct strata (the rollup is then skipped).
         """
         with self._connect() as connection:
             if not self._project_exists(connection, experiment_id):
@@ -3640,22 +3675,84 @@ class SQLiteBackend:
                 }
             rows = connection.execute(
                 """
-                WITH user_values AS (
+                WITH exp_resolved AS (
                     SELECT
-                        s.stratum AS stratum,
                         e.variation_index AS variation_index,
-                        e.user_id AS user_id,
-                        COALESCE(SUM(c.value), 0) AS user_value,
-                        MAX(CASE WHEN c.id IS NOT NULL THEN 1 ELSE 0 END) AS converted
+                        COALESCE(im.canonical_id, e.user_id) AS cuser,
+                        (e.occurred_at || '|' || e.created_at || '|' || e.id) AS order_key
                     FROM exposures e
-                    JOIN user_strata s
-                        ON s.experiment_id = e.experiment_id AND s.user_id = e.user_id
-                    LEFT JOIN conversions c
-                        ON c.experiment_id = e.experiment_id
-                        AND c.user_id = e.user_id
-                        AND c.metric = ?
+                    LEFT JOIN identity_map im
+                        ON im.experiment_id = e.experiment_id
+                        AND im.anonymous_id = e.user_id
                     WHERE e.experiment_id = ? AND e.variation_index >= 0
-                    GROUP BY s.stratum, e.variation_index, e.user_id
+                ),
+                exp_first AS (
+                    SELECT cuser, MIN(order_key) AS order_key
+                    FROM exp_resolved
+                    GROUP BY cuser
+                ),
+                arm AS (
+                    SELECT er.cuser AS cuser, er.variation_index AS variation_index
+                    FROM exp_resolved er
+                    JOIN exp_first f ON f.cuser = er.cuser AND f.order_key = er.order_key
+                ),
+                strata_resolved AS (
+                    SELECT DISTINCT
+                        COALESCE(im.canonical_id, s.user_id) AS cuser,
+                        s.stratum AS stratum
+                    FROM user_strata s
+                    LEFT JOIN identity_map im
+                        ON im.experiment_id = s.experiment_id
+                        AND im.anonymous_id = s.user_id
+                    WHERE s.experiment_id = ?
+                ),
+                conv_resolved AS (
+                    SELECT
+                        COALESCE(im.canonical_id, c.user_id) AS cuser,
+                        c.value AS value
+                    FROM conversions c
+                    LEFT JOIN identity_map im
+                        ON im.experiment_id = c.experiment_id
+                        AND im.anonymous_id = c.user_id
+                    WHERE c.experiment_id = ? AND c.metric = ?
+                ),
+                conv_per_user AS (
+                    SELECT cuser, SUM(value) AS user_value
+                    FROM conv_resolved
+                    GROUP BY cuser
+                ),
+                conv_all_resolved AS (
+                    SELECT COALESCE(im.canonical_id, c.user_id) AS cuser
+                    FROM conversions c
+                    LEFT JOIN identity_map im
+                        ON im.experiment_id = c.experiment_id
+                        AND im.anonymous_id = c.user_id
+                    WHERE c.experiment_id = ?
+                ),
+                spike AS (
+                    SELECT cuser FROM conv_all_resolved GROUP BY cuser HAVING COUNT(*) > ?
+                ),
+                excluded AS (
+                    SELECT DISTINCT COALESCE(im.canonical_id, x.user_id) AS cuser
+                    FROM excluded_users x
+                    LEFT JOIN identity_map im
+                        ON im.experiment_id = x.experiment_id
+                        AND im.anonymous_id = x.user_id
+                    WHERE x.experiment_id = ?
+                ),
+                user_values AS (
+                    SELECT
+                        sr.stratum AS stratum,
+                        arm.variation_index AS variation_index,
+                        arm.cuser AS cuser,
+                        COALESCE(cpu.user_value, 0) AS user_value,
+                        CASE WHEN cpu.cuser IS NOT NULL THEN 1 ELSE 0 END AS converted
+                    FROM arm
+                    JOIN strata_resolved sr ON sr.cuser = arm.cuser
+                    LEFT JOIN conv_per_user cpu ON cpu.cuser = arm.cuser
+                    LEFT JOIN excluded ex ON ex.cuser = arm.cuser
+                    LEFT JOIN spike sp ON sp.cuser = arm.cuser
+                    WHERE ex.cuser IS NULL AND sp.cuser IS NULL
                 )
                 SELECT
                     stratum,
@@ -3668,7 +3765,15 @@ class SQLiteBackend:
                 GROUP BY stratum, variation_index
                 ORDER BY stratum, variation_index
                 """,
-                (metric_name, experiment_id),
+                (
+                    experiment_id,
+                    experiment_id,
+                    experiment_id,
+                    metric_name,
+                    experiment_id,
+                    BOT_CONVERSION_EVENT_THRESHOLD,
+                    experiment_id,
+                ),
             ).fetchall()
         by_stratum: dict[str, list[dict[str, Any]]] = {}
         for row in rows:

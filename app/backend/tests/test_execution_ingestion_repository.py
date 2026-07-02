@@ -544,6 +544,42 @@ def test_exclusion_rate_spike_auto_filters_a_bot() -> None:
     assert summary["total_filtered"] == 1
 
 
+def test_exclusion_rate_spike_is_global_across_metrics() -> None:
+    """A user who only spams the primary metric must still be excluded from a guardrail metric's own
+    rollup (P1.2 fix, audit finding D) — otherwise the primary and guardrail blocks report a different
+    ``exposed_users`` for the same arm, because a metric-scoped rate-spike check only ever sees the
+    bot's events on the metric it happens to spam. Bot detection is a property of the user, so it is
+    computed once across every metric in the experiment and reused by every metric's rollup."""
+    from app.backend.app.constants import BOT_CONVERSION_EVENT_THRESHOLD
+
+    repo = _repo()
+    exp = _project(repo)
+    repo.record_exposures(
+        exp,
+        [{"user_id": "human", "variation_index": 1}, {"user_id": "bot", "variation_index": 1}],
+    )
+    # The bot spams only the primary metric — never touches the guardrail metric at all.
+    repo.record_conversions(exp, [{"user_id": "human", "metric": "purchase"}])
+    repo.record_conversions(exp, [{"user_id": "human", "metric": "error_rate"}])
+    repo.record_conversions(
+        exp,
+        [
+            {"user_id": "bot", "metric": "purchase", "idempotency_key": f"k{i}"}
+            for i in range(BOT_CONVERSION_EVENT_THRESHOLD + 1)
+        ],
+    )
+
+    primary = repo.get_experiment_analysis_aggregates(exp, "purchase")
+    guardrail = repo.get_experiment_analysis_aggregates(exp, "error_rate")
+    assert primary is not None and guardrail is not None
+    primary_arm = next(v for v in primary["variations"] if v["variation_index"] == 1)
+    guardrail_arm = next(v for v in guardrail["variations"] if v["variation_index"] == 1)
+    assert primary_arm["exposed_users"] == 1  # bot removed from the metric it spammed
+    # Bot removed from the guardrail too, even though it has zero events on that metric.
+    assert guardrail_arm["exposed_users"] == 1
+    assert guardrail_arm["exposed_users"] == primary_arm["exposed_users"]
+
+
 def test_exclusion_manual_and_rate_spike_are_disjoint() -> None:
     """A user that is both manually excluded and a rate-spike counts once, under manual (P4.4) — the
     per-reason split stays disjoint so manual + rate_spike == total."""

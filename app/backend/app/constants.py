@@ -32,11 +32,15 @@ HOLDOUT_VARIATION_INDEX = -1
 # covers most conversion cycles without attributing stale activity to the experiment.
 ATTRIBUTION_HORIZON_DAYS = 14.0
 
-# Bot / fraud filter (P4.4). A single user contributing more conversion events than this on the
-# analyzed metric is treated as an automated / instrumentation artifact (a real human does not convert
-# hundreds of times) and is excluded from the rollup as a rate-spike, alongside the manual deny-list.
-# The threshold is deliberately high so ordinary traffic never trips it — it catches only egregious
-# spikes; the count is always surfaced in the live-stats indicator so the exclusion is never silent.
+# Bot / fraud filter (P4.4). A single user contributing more conversion events than this across
+# *all* of the experiment's metrics combined is treated as an automated / instrumentation artifact
+# (a real human does not convert hundreds of times) and is excluded from every rollup — primary,
+# guardrails, and stratification alike — as a rate-spike, alongside the manual deny-list. Counting
+# across all metrics (not just the one being analyzed) keeps the exposed-user denominator identical
+# no matter which metric's rollup is read; a bot that only spams one metric would otherwise vanish
+# from that metric's count but reappear in every other one. The threshold is deliberately high so
+# ordinary traffic never trips it — it catches only egregious spikes; the count is always surfaced
+# in the live-stats indicator so the exclusion is never silent.
 BOT_CONVERSION_EVENT_THRESHOLD = 100
 
 # Upper bound on the number of raw per-unit values accepted per arm by the post-hoc Mann–Whitney
