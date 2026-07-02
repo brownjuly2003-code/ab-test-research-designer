@@ -1461,6 +1461,61 @@ def test_stratified_aggregates_group_by_stratum_and_exclude_holdout_and_unstrati
     assert total_users == 4  # u5 (no stratum) and uH (holdout) never appear
 
 
+def test_stratified_aggregates_resolves_identity_and_excludes_filtered_users() -> None:
+    """Post-stratification (F3b) applies the same identity fold and manual/rate-spike exclusion as
+    the primary rollup (P1.2 fix, audit finding D) — without this, a user the primary rollup has
+    already dropped can still surface in the stratified count, letting ``stratified_users_total``
+    exceed ``exposed_users_total`` on the page (the audit's "4000 of 3992")."""
+    from app.backend.app.constants import BOT_CONVERSION_EVENT_THRESHOLD
+
+    repo = _repo()
+    exp = _project(repo)
+    repo.record_exposures(
+        exp,
+        [
+            {"user_id": "u1", "variation_index": 0},
+            {"user_id": "excluded_user", "variation_index": 0},
+            {"user_id": "bot", "variation_index": 1},
+            # An earlier anonymous exposure for u2, resolved onto its canonical id below.
+            {"user_id": "anon2", "variation_index": 1, "occurred_at": "2026-01-01T00:00:00+00:00"},
+            {"user_id": "u2", "variation_index": 1, "occurred_at": "2026-01-01T01:00:00+00:00"},
+        ],
+    )
+    repo.record_identities(exp, [{"anonymous_id": "anon2", "canonical_id": "u2"}])
+    repo.record_strata(
+        exp,
+        [
+            {"user_id": "u1", "stratum": "ios"},
+            {"user_id": "excluded_user", "stratum": "ios"},
+            {"user_id": "bot", "stratum": "android"},
+            {"user_id": "u2", "stratum": "android"},
+        ],
+    )
+    repo.record_exclusions(exp, [{"user_id": "excluded_user", "exclusion_reason": "internal_qa"}])
+    repo.record_conversions(
+        exp,
+        [
+            {"user_id": "bot", "metric": "purchase", "idempotency_key": f"k{i}"}
+            for i in range(BOT_CONVERSION_EVENT_THRESHOLD + 1)
+        ],
+    )
+
+    exposed = repo.get_experiment_analysis_aggregates(exp, "purchase")
+    stratified = repo.get_stratified_aggregates(exp, "purchase")
+    assert exposed is not None and stratified is not None
+    exposed_total = sum(v["exposed_users"] for v in exposed["variations"])
+    stratified_total = sum(arm["exposed_users"] for s in stratified["strata"] for arm in s["variations"])
+    # u1 (control) + u2 (treatment, resolved from its anonymous exposure) survive in both rollups;
+    # 'excluded_user' (manual deny-list) and 'bot' (rate-spike) are dropped from both alike.
+    assert exposed_total == 2
+    assert stratified_total == 2
+    assert stratified_total <= exposed_total
+
+    android = next(s for s in stratified["strata"] if s["stratum"] == "android")
+    arm1 = next(arm for arm in android["variations"] if arm["variation_index"] == 1)
+    assert arm1["exposed_users"] == 1  # u2 counted once, not twice via its anonymous exposure
+
+
 def test_stratified_aggregates_none_for_unknown_experiment() -> None:
     repo = _repo()
     assert repo.get_stratified_aggregates("missing", "purchase") is None
