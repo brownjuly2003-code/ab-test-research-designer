@@ -615,7 +615,32 @@ def test_live_stats_sequential_fixed_horizon_when_single_look() -> None:
     result = build_live_stats(
         "e", _binary_design(n_looks=1), _aggregates(_arm(0, 5000, 500), _arm(1, 5000, 600))
     )
-    assert result["sequential"]["status"] == "fixed_horizon"
+    sequential = result["sequential"]
+    assert sequential["status"] == "fixed_horizon"
+    # The fixed-horizon block still carries the planned size and the share of it collected so far,
+    # so the decision readout can tell the planned single read from an early peek.
+    assert sequential["planned_sample_size_per_variant"] > 0
+    assert 0.0 < sequential["information_fraction"] <= 1.0
+
+
+def test_live_stats_fixed_horizon_fraction_is_none_when_sizing_unavailable() -> None:
+    # A design whose sizing cannot be computed (continuous metric stored without std_dev) keeps the
+    # fixed-horizon block usable — planned size and fraction just stay None instead of crashing.
+    design = _binary_design(n_looks=1)
+    design["metrics"]["metric_type"] = "continuous"
+    design["metrics"]["std_dev"] = None
+    result = build_live_stats(
+        "e",
+        design,
+        _aggregates(
+            {"variation_index": 0, "exposed_users": 50, "converted_users": 50, "value_sum": 500.0, "value_sq_sum": 5500.0},
+            {"variation_index": 1, "exposed_users": 50, "converted_users": 50, "value_sum": 550.0, "value_sq_sum": 6600.0},
+        ),
+    )
+    sequential = result["sequential"]
+    assert sequential["status"] == "fixed_horizon"
+    assert sequential["planned_sample_size_per_variant"] is None
+    assert sequential["information_fraction"] is None
 
 
 def test_live_stats_sequential_active_with_boundary_when_multiple_looks() -> None:
@@ -659,7 +684,10 @@ def test_live_stats_cuped_unavailable_for_continuous_without_covariate() -> None
 # --- route ----------------------------------------------------------------------------
 
 
-def _create_binary_project(client: TestClient) -> str:
+def _create_binary_project(client: TestClient, *, mde_pct: float = 5) -> str:
+    # mde_pct sets the planned sample size and therefore whether a read at a few hundred users is
+    # the planned fixed-horizon read (large mde -> small plan) or an early peek (default plan is
+    # ~57.8k/arm, so every small ingest below is "early" unless a test opts out).
     payload = {
         "project": {
             "project_name": "Live route exp",
@@ -692,7 +720,7 @@ def _create_binary_project(client: TestClient) -> str:
             "metric_type": "binary",
             "baseline_value": 0.10,
             "expected_uplift_pct": 8,
-            "mde_pct": 5,
+            "mde_pct": mde_pct,
             "alpha": 0.05,
             "power": 0.8,
             "std_dev": None,
@@ -765,7 +793,8 @@ def test_decision_route_returns_404_for_unknown_experiment() -> None:
 
 def test_decision_route_ships_on_a_clear_win() -> None:
     client = TestClient(create_app())
-    project_id = _create_binary_project(client)
+    # mde 100% plans ~199/arm, so the 200/arm ingest below is the planned fixed-horizon read.
+    project_id = _create_binary_project(client, mde_pct=100)
 
     exposures = [{"user_id": f"c{i}", "variation_index": 0} for i in range(200)]
     exposures += [{"user_id": f"t{i}", "variation_index": 1} for i in range(200)]

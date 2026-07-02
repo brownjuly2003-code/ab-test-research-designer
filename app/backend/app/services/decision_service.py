@@ -19,6 +19,15 @@ Rule summary (thresholds in ``constants.py``):
   O'Brien-Fleming boundary (the peeking guard).
 * **Loss** (=> no_ship): a treatment is significant with a negative effect (boundary-confirmed
   when sequential).
+* **Fixed-horizon peeking guard**: a fixed-horizon design promises a single read at the planned
+  sample size, so before ``DECISION_FIXED_HORIZON_READ_FRACTION`` of that sample is collected the
+  plain z-significance carries no alpha guarantee. On such an early read a win/loss only counts
+  when the anytime-valid (mSPRT) view — which stays valid under continuous monitoring — confirms
+  it; otherwise the readout is ``keep_running`` with a ``fixed_horizon_before_planned_read``
+  reason. Confidence on an early (anytime-valid-confirmed) call is capped at ``medium`` because
+  the effect *size* read early is still winner's-curse-inflated even when its sign is certain.
+  When the payload carries no planned size (older designs without sizing), the read is treated as
+  the planned one — the pre-guard behavior.
 * **Inconclusive** CI that still straddles 0: ``keep_running`` while information is still
   accruing, or ``no_ship`` once a sequential design has reached its planned size.
 
@@ -33,6 +42,7 @@ from __future__ import annotations
 from typing import Any
 
 from app.backend.app.constants import (
+    DECISION_FIXED_HORIZON_READ_FRACTION,
     DECISION_INFO_FRACTION_COMPLETE,
     DECISION_SHIP_PROBABILITY,
     DECISION_STRONG_PROBABILITY,
@@ -75,8 +85,22 @@ def synthesize_decision(live_stats: dict[str, Any]) -> dict[str, Any]:
         and info_fraction is not None
         and info_fraction >= DECISION_INFO_FRACTION_COMPLETE
     )
+    # Fixed-horizon peeking guard: before the planned single read, z-significance alone confirms
+    # nothing — only the anytime-valid view may. An unknown planned size (fraction None) is treated
+    # as the planned read, matching designs stored before sizing carried through to live stats.
+    fixed_horizon_fraction = (
+        sequential.get("information_fraction")
+        if sequential.get("status") == "fixed_horizon"
+        else None
+    )
+    early_fixed_horizon_read = (
+        fixed_horizon_fraction is not None
+        and fixed_horizon_fraction < DECISION_FIXED_HORIZON_READ_FRACTION
+    )
 
-    wins, losses, inconclusive, evaluable = _classify(comparisons, sequential_active)
+    wins, losses, inconclusive, evaluable = _classify(
+        comparisons, sequential_active, early_fixed_horizon_read
+    )
 
     # --- No usable data yet -------------------------------------------------------------------
     if not evaluable:
@@ -130,12 +154,19 @@ def synthesize_decision(live_stats: dict[str, Any]) -> dict[str, Any]:
                 reasons.append(_reason("bayesian_win", arm=win["arm"], probability=win["prob"]))
             if sequential_active:
                 reasons.append(_reason("sequential_crossed", arm=win["arm"]))
+            elif early_fixed_horizon_read:
+                reasons.append(_reason("anytime_valid_confirmed", arm=win["arm"]))
         # A losing arm alongside a winner is still worth surfacing.
         for loss in losses:
             reasons.append(
                 _reason("significant_loss", arm=loss["arm"], effect_relative=loss["effect_relative"])
             )
-        return _result(experiment_id, "ship", "high" if strong else "medium", reasons, blockers)
+        confidence = "high" if strong else "medium"
+        if early_fixed_horizon_read:
+            # Anytime-valid confirms the sign, but an effect size read this early is still
+            # winner's-curse-inflated — never report an early ship as "high" confidence.
+            confidence = "medium"
+        return _result(experiment_id, "ship", confidence, reasons, blockers)
 
     # --- No ship: every evaluable arm is a confirmed loss -------------------------------------
     if losses and not inconclusive:
@@ -147,7 +178,12 @@ def synthesize_decision(live_stats: dict[str, Any]) -> dict[str, Any]:
             reasons.append(
                 _reason("significant_loss", arm=loss["arm"], effect_relative=loss["effect_relative"])
             )
-        return _result(experiment_id, "no_ship", "high" if strong else "medium", reasons, blockers)
+            if early_fixed_horizon_read:
+                reasons.append(_reason("anytime_valid_confirmed", arm=loss["arm"]))
+        confidence = "high" if strong else "medium"
+        if early_fixed_horizon_read:
+            confidence = "medium"
+        return _result(experiment_id, "no_ship", confidence, reasons, blockers)
 
     # --- Mixed losses + inconclusive, or purely inconclusive ----------------------------------
     for loss in losses:
@@ -159,6 +195,21 @@ def synthesize_decision(live_stats: dict[str, Any]) -> dict[str, Any]:
             # Frequentist-significant but the sequential boundary is not crossed yet: the classic
             # "do not peek" case — keep running rather than acting on an unconfirmed crossing.
             reasons.append(_reason("sequential_not_crossed", arm=item["arm"]))
+        elif (
+            item["frequentist_significant"]
+            and early_fixed_horizon_read
+            and item["always_valid_significant"] is not True
+        ):
+            # The fixed-horizon twin of the case above: the z-test looks significant, but this is
+            # an early read of a single-look design and the anytime-valid view does not back it —
+            # acting now would be exactly the peeking the design warns about.
+            reasons.append(
+                _reason(
+                    "fixed_horizon_before_planned_read",
+                    arm=item["arm"],
+                    information_fraction=fixed_horizon_fraction,
+                )
+            )
         else:
             reasons.append(_reason("inconclusive_ci", arm=item["arm"]))
 
@@ -169,11 +220,17 @@ def synthesize_decision(live_stats: dict[str, Any]) -> dict[str, Any]:
 
     if sequential_active and info_fraction is not None:
         reasons.append(_reason("info_fraction_incomplete", information_fraction=info_fraction))
+    elif early_fixed_horizon_read:
+        reasons.append(
+            _reason("info_fraction_incomplete", information_fraction=fixed_horizon_fraction)
+        )
     return _result(experiment_id, "keep_running", "low", reasons, blockers)
 
 
 def _classify(
-    comparisons: list[dict[str, Any]], sequential_active: bool
+    comparisons: list[dict[str, Any]],
+    sequential_active: bool,
+    early_fixed_horizon_read: bool,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], bool]:
     """Bucket each control-vs-treatment comparison into win / loss / inconclusive.
 
@@ -193,10 +250,18 @@ def _classify(
         significant = bool(analysis.get("is_significant"))
         prob = comparison.get("probability_treatment_beats_control")
         sequential_significant = comparison.get("sequential_significant")
+        always_valid_significant = (comparison.get("always_valid") or {}).get("is_significant")
 
-        # Sequential designs only "confirm" a result once the boundary is crossed; fixed-horizon
-        # designs have no such gate (read once at the planned size).
-        boundary_ok = (sequential_significant is True) if sequential_active else True
+        # Sequential designs only "confirm" a result once the boundary is crossed. A fixed-horizon
+        # design confirms at its planned single read; *before* that point the z-test carries no
+        # alpha guarantee, so only the anytime-valid (mSPRT) view — valid under continuous
+        # monitoring — may confirm an early result.
+        if sequential_active:
+            boundary_ok = sequential_significant is True
+        elif early_fixed_horizon_read:
+            boundary_ok = always_valid_significant is True
+        else:
+            boundary_ok = True
         bayesian_ok = prob is None or prob >= DECISION_SHIP_PROBABILITY
 
         record = {
@@ -206,6 +271,7 @@ def _classify(
             "prob": prob,
             "frequentist_significant": significant,
             "sequential_significant": sequential_significant,
+            "always_valid_significant": always_valid_significant,
         }
 
         if significant and effect > 0 and boundary_ok and bayesian_ok:

@@ -105,7 +105,11 @@ def test_startup_seed_populates_live_execution_blocks(monkeypatch, temp_db_path)
         live = client.get(f"/api/v1/experiments/{checkout['id']}/live-stats").json()
         decision = client.get(f"/api/v1/experiments/{checkout['id']}/decision").json()
         assert live["srm"]["status"] == "ok"
+        # The demo design is sized for the effect its seeded data demonstrates, so this ship is a
+        # *planned* fixed-horizon read — not a peek the decision guard would (rightly) refuse.
+        assert live["sequential"]["information_fraction"] == 1.0
         assert decision["verdict"] == "ship"
+        assert decision["confidence"] == "high"
         assert live["guardrail"]["status"] == "ok"
         assert live["holdout"]["status"] == "ok"
         assert live["stratified"]["status"] == "available"
@@ -140,6 +144,12 @@ def test_startup_seed_populates_live_execution_blocks(monkeypatch, temp_db_path)
         assert comparison["treatment"]["ratio"] > comparison["control"]["ratio"]
         assert comparison["analysis"]["is_significant"] is True
         assert comparison["always_valid"]["is_significant"] is True
+        # This demo deliberately stays an *early* read: the ship verdict flows through the
+        # anytime-valid path (confidence capped at medium), showcasing the legitimate early stop.
+        decision = client.get(f"/api/v1/experiments/{ctr['id']}/decision").json()
+        assert decision["verdict"] == "ship"
+        assert decision["confidence"] == "medium"
+        assert any(reason["code"] == "anytime_valid_confirmed" for reason in decision["reasons"])
 
 
 def test_startup_seed_disabled_does_not_create_projects(monkeypatch, temp_db_path) -> None:
