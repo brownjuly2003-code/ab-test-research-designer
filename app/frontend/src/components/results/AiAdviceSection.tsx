@@ -69,6 +69,11 @@ export default function AiAdviceSection() {
             </div>
           </div>
         </>
+      ) : displayedAnalysis.advice.error_code === "seed_demo_disabled_llm" ? (
+        <div className="callout">
+          <Icon name="info" className="icon icon-inline" />
+          <span>{t("results.aiAdvice.seededDemo")}</span>
+        </div>
       ) : (
         <div className="callout">
           <Icon name="info" className="icon icon-inline" />

@@ -350,7 +350,8 @@
       "metricRecommendations": "Recomendaciones de métricas",
       "interpretationPitfalls": "Errores de interpretación",
       "additionalChecks": "Controles adicionales",
-      "unavailable": "Consejos de IA no disponibles. La salida determinista central todavía funciona."
+      "unavailable": "Consejos de IA no disponibles. La salida determinista central todavía funciona.",
+      "seededDemo": "No se generan consejos de IA para este proyecto de demostración con datos precargados. Ejecuta tu propio experimento para ver recomendaciones en vivo."
     },
     "comparison": {
       "empty": "Cargue una comparación de proyectos guardados desde la barra lateral de Proyectos para revisar instantáneas de la línea base y de los candidatos.",

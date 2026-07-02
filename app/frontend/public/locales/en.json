@@ -350,7 +350,8 @@
       "metricRecommendations": "Metric recommendations",
       "interpretationPitfalls": "Interpretation pitfalls",
       "additionalChecks": "Additional checks",
-      "unavailable": "AI advice unavailable. Core deterministic output still works."
+      "unavailable": "AI advice unavailable. Core deterministic output still works.",
+      "seededDemo": "AI advice is not generated for this seeded demo project. Run your own experiment to see live recommendations."
     },
     "comparison": {
       "empty": "Load a saved project comparison from the Projects sidebar to review baseline versus candidate snapshots.",

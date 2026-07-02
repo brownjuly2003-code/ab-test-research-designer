@@ -350,7 +350,8 @@
       "metricRecommendations": "Metrikempfehlungen",
       "interpretationPitfalls": "Interpretationsfallen",
       "additionalChecks": "Zusätzliche Kontrollen",
-      "unavailable": "KI-Ratschläge nicht verfügbar. Die kerndeterministische Ausgabe funktioniert weiterhin."
+      "unavailable": "KI-Ratschläge nicht verfügbar. Die kerndeterministische Ausgabe funktioniert weiterhin.",
+      "seededDemo": "Für dieses vorab befüllte Demo-Projekt werden keine KI-Ratschläge erzeugt. Starten Sie ein eigenes Experiment, um Live-Empfehlungen zu sehen."
     },
     "comparison": {
       "empty": "Laden Sie einen gespeicherten Projektvergleich aus der Seitenleiste „Projekte“, um Referenz- und Kandidaten-Snapshots zu überprüfen.",

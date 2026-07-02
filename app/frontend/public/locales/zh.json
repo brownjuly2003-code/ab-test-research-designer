@@ -350,7 +350,8 @@
       "metricRecommendations": "指标建议",
       "interpretationPitfalls": "解释陷阱",
       "additionalChecks": "额外检查",
-      "unavailable": "人工智能建议不可用。核心确定性输出仍然有效。"
+      "unavailable": "人工智能建议不可用。核心确定性输出仍然有效。",
+      "seededDemo": "此预置演示项目不会生成人工智能建议。请运行您自己的实验以查看实时建议。"
     },
     "comparison": {
       "empty": "从项目侧边栏加载已保存的项目比较，以查看基线与候选快照。",
