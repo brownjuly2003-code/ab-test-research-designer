@@ -37,6 +37,7 @@ export function resetResultsStores() {
 
 export function buildAnalysisResult(options: {
   adviceAvailable?: boolean;
+  adviceErrorCode?: string;
   metricType?: "binary" | "continuous";
 } = {}): AnalysisResponsePayload {
   const metricType = options.metricType ?? "binary";
@@ -161,7 +162,7 @@ export function buildAnalysisResult(options: {
         : null,
       raw_text: null,
       error: options.adviceAvailable ?? true ? null : "offline",
-      error_code: options.adviceAvailable ?? true ? null : "request_error"
+      error_code: options.adviceAvailable ?? true ? null : (options.adviceErrorCode ?? "request_error")
     }
   };
 }

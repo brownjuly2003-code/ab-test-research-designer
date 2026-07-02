@@ -350,7 +350,8 @@
       "metricRecommendations": "Recommandations métriques",
       "interpretationPitfalls": "Pièges d’interprétation",
       "additionalChecks": "Contrôles supplémentaires",
-      "unavailable": "Conseils IA indisponibles. La sortie déterministe de base fonctionne toujours."
+      "unavailable": "Conseils IA indisponibles. La sortie déterministe de base fonctionne toujours.",
+      "seededDemo": "Les conseils IA ne sont pas générés pour ce projet de démonstration pré-rempli. Lancez votre propre expérience pour voir des recommandations en direct."
     },
     "comparison": {
       "empty": "Chargez une comparaison de projet enregistrée à partir de la barre latérale Projets pour examiner la référence par rapport aux instantanés candidats.",
