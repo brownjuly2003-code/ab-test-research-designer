@@ -292,7 +292,12 @@
       "categorical_rectangular": "列联表必须为矩形（每行的列数相同）",
       "categorical_non_negative": "列联表中的计数必须为非负数",
       "planned_test_metric_mismatch": "planned_test 不适用于此 metric_type",
-      "tost_margin_required": "TOST 等效性方案需要 equivalence_margin_pct"
+      "tost_margin_required": "TOST 等效性方案需要 equivalence_margin_pct",
+      "paired_length_mismatch": "配对样本的对照组与处理组取值数量必须相同",
+      "paired_values_finite": "配对样本的取值必须是有限数值",
+      "paired_mcnemar_binary": "McNemar 检验需要配对的二元取值（每个取值必须为 0 或 1）",
+      "paired_t_degenerate": "配对 t 检验无定义：至少需要两对且差值方差不为零",
+      "wilcoxon_degenerate": "Wilcoxon 符号秩检验无定义：至少需要两个非零差值，且它们的绝对值不能全部相同"
     },
     "srm_detected": "检测到 SRM - 检查您的随机化或跟踪实施",
     "srm_not_detected": "未检测到 SRM"
@@ -323,13 +328,17 @@
       "quantile": "处理组 P{{percentile}} 分位数 {{treatmentQuantile}} 对比对照组 {{controlQuantile}}。分位数偏移 {{effect}}，{{ciLevel}}% 百分位自助 CI [{{ciLower}}, {{ciUpper}}]。置换双侧 p 值 {{pValue}}，基于 {{permutations}} 次重排；结果为{{significance}}。",
       "trimmed_t": "实验组 {{trimPct}}% 截尾均值 {{treatmentMean}} 对照组 {{controlMean}}（截尾后有效样本量 {{treatmentEffectiveN}} 对 {{controlEffectiveN}}）。稳健均值差 {{effect}}，{{ciLevel}}% 置信区间 [{{ciLower}}, {{ciUpper}}]。Yuen–Welch 双侧 t 检验 p 值 {{pValue}}，自由度 {{df}}；结果{{significance}}。",
       "equivalence": "实验组均值 {{treatmentMean}} 对比对照组 {{controlMean}}。效应 {{effect}}，对照等效边界 ±{{margin}}：{{equivalence}}。{{ciLevel}}% 置信区间 [{{ciLower}}, {{ciUpper}}] 即 TOST 决策区间；双单侧检验 p 值为 {{pValue}}。",
-      "categorical": "在 {{df}} 个自由度下，{{rows}}×{{cols}} 列联表（N = {{n}}）的卡方值为 {{chiSquare}}。双侧 p 值 {{pValue}}；结果{{significance}}。Cramér's V {{cramersV}} 衡量关联强度。"
+      "categorical": "在 {{df}} 个自由度下，{{rows}}×{{cols}} 列联表（N = {{n}}）的卡方值为 {{chiSquare}}。双侧 p 值 {{pValue}}；结果{{significance}}。Cramér's V {{cramersV}} 衡量关联强度。",
+      "paired_t": "处理组均值 {{treatmentMean}} 对照组 {{controlMean}}。配对差值均值 {{meanDiff}}，{{ciLevel}}% 置信区间 [{{ciLower}}, {{ciUpper}}]。配对 t {{tStat}}，自由度 {{df}}，双侧 p 值 {{pValue}}；结果{{significance}}。科恩 dz {{cohenDz}}。",
+      "wilcoxon": "配对差值的 Hodges–Lehmann 伪中位数 {{pseudomedian}}，{{ciLevel}}% 置信区间 [{{ciLower}}, {{ciUpper}}]。符号秩统计量 {{wStat}}，基于 {{nNonzero}} 个非零差值（舍弃 {{nZero}} 个零差值），双侧 p 值 {{pValue}}；结果{{significance}}。秩二列相关 {{rankBiserial}}。",
+      "mcnemar": "不一致对：{{b}} 个转为成功，{{c}} 个转为失败（共 {{nDiscordant}} 个）。边际比例差 {{proportionDiff}} 个百分点，不一致优势比 {{oddsRatio}}。双侧 p 值 {{pValue}}（{{method}}）；结果{{significance}}。"
     },
     "effect_size": {
       "rank_biserial": "秩二列相关",
       "odds_ratio": "优势比（odds ratio）",
       "rate_ratio": "率比（rate ratio）",
-      "cohens_d": "科恩 d"
+      "cohens_d": "科恩 d",
+      "cohens_dz": "科恩 dz"
     },
     "mann_whitney": {
       "method_exact": "精确",
@@ -348,6 +357,18 @@
     "categorical": {
       "verdict_associated": "检测到关联",
       "verdict_independent": "无显著关联"
+    },
+    "paired": {
+      "effect": {
+        "mean_difference": "均值差",
+        "pseudomedian": "Hodges–Lehmann 伪中位数",
+        "proportion_difference": "边际比例差"
+      }
+    },
+    "mcnemar": {
+      "method_exact": "精确二项检验",
+      "method_chi_square": "连续性校正卡方",
+      "odds_ratio_undefined": "无定义"
     }
   }
 }

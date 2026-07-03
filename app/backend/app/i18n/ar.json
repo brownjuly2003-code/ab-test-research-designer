@@ -292,7 +292,12 @@
       "categorical_rectangular": "يجب أن يكون جدول التوافق مستطيلاً (كل صف يحتاج إلى العدد نفسه من الأعمدة)",
       "categorical_non_negative": "يجب ألا تكون القيم في جدول التوافق سالبة",
       "planned_test_metric_mismatch": "planned_test غير متاح لهذا metric_type",
-      "tost_margin_required": "equivalence_margin_pct مطلوب لخطة التكافؤ TOST"
+      "tost_margin_required": "equivalence_margin_pct مطلوب لخطة التكافؤ TOST",
+      "paired_length_mismatch": "يجب أن تحتوي العينات المزدوجة على العدد نفسه من قيم المجموعة الضابطة والمعالَجة",
+      "paired_values_finite": "يجب أن تكون قيم العينات المزدوجة أعدادًا منتهية",
+      "paired_mcnemar_binary": "يتطلب اختبار مكنمار قيمًا ثنائية مزدوجة (كل قيمة يجب أن تكون 0 أو 1)",
+      "paired_t_degenerate": "اختبار t المزدوج غير معرَّف: يحتاج إلى زوجين على الأقل بتباين فروق غير صفري",
+      "wilcoxon_degenerate": "اختبار ويلكوكسون للرتب الإشارية غير معرَّف: يحتاج إلى فرقين غير صفريين على الأقل لا تتساوى مقاديرهما جميعًا"
     },
     "srm_detected": "تم اكتشاف SRM - تحقق من التوزيع العشوائي أو تنفيذ التتبع",
     "srm_not_detected": "لم يتم اكتشاف SRM"
@@ -323,13 +328,17 @@
       "quantile": "كمّي P{{percentile}} للمعالجة {{treatmentQuantile}} مقابل الضبط {{controlQuantile}}. إزاحة الكمّي {{effect}} مع فاصل ثقة bootstrap مئيني {{ciLevel}}% [{{ciLower}}، {{ciUpper}}]. قيمة p للتبديل ثنائية الجانب {{pValue}} عبر {{permutations}} إعادة ترتيب؛ النتيجة {{significance}}.",
       "trimmed_t": "المتوسط المقصوص بنسبة {{trimPct}}% لمجموعة المعالجة {{treatmentMean}} مقابل المجموعة الضابطة {{controlMean}} (حجم العينة الفعّال {{treatmentEffectiveN}} مقابل {{controlEffectiveN}} بعد القص). إزاحة قوية للمتوسط {{effect}} بفاصل ثقة {{ciLevel}}% [{{ciLower}}، {{ciUpper}}]. القيمة الاحتمالية الثنائية لاختبار t حسب Yuen–Welch {{pValue}} عند {{df}} درجة حرية؛ النتيجة {{significance}}.",
       "equivalence": "متوسط المعالجة {{treatmentMean}} مقابل الضبط {{controlMean}}. الأثر {{effect}} مُختبَر مقابل هامش مساواة قدره ±{{margin}}: {{equivalence}}. فاصل الثقة {{ciLevel}}% [{{ciLower}}, {{ciUpper}}] هو فاصل قرار TOST؛ القيمة الاحتمالية للاختبارين أحاديي الجانب {{pValue}}.",
-      "categorical": "مربع كاي {{chiSquare}} بدرجات حرية {{df}} لجدول توافق {{rows}}×{{cols}} (N = {{n}}). قيمة p ثنائية الجانب {{pValue}}؛ النتيجة {{significance}}. يقيس V لكرامر {{cramersV}} قوة الارتباط."
+      "categorical": "مربع كاي {{chiSquare}} بدرجات حرية {{df}} لجدول توافق {{rows}}×{{cols}} (N = {{n}}). قيمة p ثنائية الجانب {{pValue}}؛ النتيجة {{significance}}. يقيس V لكرامر {{cramersV}} قوة الارتباط.",
+      "paired_t": "متوسط المعالجة {{treatmentMean}} مقابل الضابطة {{controlMean}}. متوسط الفرق المزدوج {{meanDiff}} بفاصل ثقة {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. t المزدوج {{tStat}} بدرجات حرية {{df}}، قيمة p ثنائية الجانب {{pValue}}؛ النتيجة {{significance}}. dz لكوهين {{cohenDz}}.",
+      "wilcoxon": "الوسيط الزائف لهودجز–ليمان للفروق المزدوجة {{pseudomedian}} بفاصل ثقة {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. إحصاءة الرتب الإشارية {{wStat}} على {{nNonzero}} فرقًا غير صفري (استُبعد {{nZero}} فرقًا صفريًا)، قيمة p ثنائية الجانب {{pValue}}؛ النتيجة {{significance}}. الارتباط ثنائي التسلسل الرتبي {{rankBiserial}}.",
+      "mcnemar": "الأزواج غير المتوافقة: {{b}} تحوّلت إلى نجاح، {{c}} تحوّلت عنه (المجموع {{nDiscordant}}). فرق النسب الهامشية {{proportionDiff}} نقطة مئوية، نسبة أرجحية عدم التوافق {{oddsRatio}}. قيمة p ثنائية الجانب {{pValue}} ({{method}})؛ النتيجة {{significance}}."
     },
     "effect_size": {
       "rank_biserial": "ارتباط ثنائي التسلسل الرتبي",
       "odds_ratio": "نسبة الأرجحية (odds ratio)",
       "rate_ratio": "نسبة المعدّلات (rate ratio)",
-      "cohens_d": "d لكوهين"
+      "cohens_d": "d لكوهين",
+      "cohens_dz": "dz لكوهين"
     },
     "mann_whitney": {
       "method_exact": "دقيقة",
@@ -348,6 +357,18 @@
     "categorical": {
       "verdict_associated": "تم اكتشاف ارتباط",
       "verdict_independent": "لا يوجد ارتباط ذو دلالة"
+    },
+    "paired": {
+      "effect": {
+        "mean_difference": "متوسط الفرق",
+        "pseudomedian": "الوسيط الزائف لهودجز–ليمان",
+        "proportion_difference": "فرق النسب الهامشية"
+      }
+    },
+    "mcnemar": {
+      "method_exact": "ذات الحدين الدقيق",
+      "method_chi_square": "مربع كاي مع تصحيح الاستمرارية",
+      "odds_ratio_undefined": "غير معرَّف"
     }
   }
 }

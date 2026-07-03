@@ -36,6 +36,8 @@ from app.backend.app.schemas.api import (
     MultipleTestingMetricResult,
     MultipleTestingRequest,
     MultipleTestingResponse,
+    PairedResultsRequest,
+    PairedResultsResponse,
     ResultsRequest,
     ResultsResponse,
     SensitivityCell,
@@ -49,6 +51,7 @@ from app.backend.app.services.design_service import build_experiment_report
 from app.backend.app.services.monte_carlo_service import simulate_thompson_sampling
 from app.backend.app.services.results_service import (
     analyze_categorical_results,
+    analyze_paired_results,
     analyze_results,
 )
 from app.backend.app.stats.binary import calculate_binary_sample_size
@@ -368,6 +371,14 @@ def create_analysis_router(
     )
     def categorical_results(payload: CategoricalResultsRequest) -> CategoricalResultsResponse:
         return analyze_categorical_results(payload)
+
+    @router.post(
+        "/api/v1/results/paired",
+        response_model=PairedResultsResponse,
+        dependencies=[Depends(require_write_auth)],
+    )
+    def paired_results(payload: PairedResultsRequest) -> PairedResultsResponse:
+        return analyze_paired_results(payload)
 
     @router.post(
         "/api/v1/simulate/bandit",

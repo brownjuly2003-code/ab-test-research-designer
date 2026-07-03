@@ -292,7 +292,12 @@
       "categorical_rectangular": "la tabla de contingencia debe ser rectangular (cada fila necesita el mismo número de columnas)",
       "categorical_non_negative": "los recuentos de la tabla de contingencia no pueden ser negativos",
       "planned_test_metric_mismatch": "planned_test no está disponible para este metric_type",
-      "tost_margin_required": "equivalence_margin_pct es obligatorio para un plan de equivalencia TOST"
+      "tost_margin_required": "equivalence_margin_pct es obligatorio para un plan de equivalencia TOST",
+      "paired_length_mismatch": "las muestras pareadas deben tener el mismo número de valores de control y de tratamiento",
+      "paired_values_finite": "los valores de las muestras pareadas deben ser números finitos",
+      "paired_mcnemar_binary": "la prueba de McNemar requiere valores binarios pareados (cada valor debe ser 0 o 1)",
+      "paired_t_degenerate": "la prueba t pareada no está definida: necesita al menos dos pares con una varianza de las diferencias distinta de cero",
+      "wilcoxon_degenerate": "la prueba de Wilcoxon de los rangos con signo no está definida: necesita al menos dos diferencias distintas de cero que no sean todas de igual magnitud"
     },
     "srm_detected": "SRM detectado — verifique su aleatorización o implementación de seguimiento",
     "srm_not_detected": "No se detectó SRM"
@@ -323,13 +328,17 @@
       "quantile": "Cuantil P{{percentile}} del tratamiento {{treatmentQuantile}} vs. control {{controlQuantile}}. Desplazamiento del cuantil {{effect}} con IC bootstrap percentil del {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. Valor p bilateral de permutación {{pValue}} sobre {{permutations}} reasignaciones; el resultado es {{significance}}.",
       "trimmed_t": "Media recortada al {{trimPct}}% del tratamiento {{treatmentMean}} frente al control {{controlMean}} (n efectivo {{treatmentEffectiveN}} frente a {{controlEffectiveN}} tras el recorte). Desplazamiento robusto de la media {{effect}} con IC del {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. Valor p bilateral t de Yuen–Welch {{pValue}} con {{df}} g.l.; el resultado es {{significance}}.",
       "equivalence": "Media del tratamiento {{treatmentMean}} frente al control {{controlMean}}. Efecto {{effect}} contrastado con un margen de equivalencia de ±{{margin}}: {{equivalence}}. El intervalo de confianza del {{ciLevel}}% [{{ciLower}}, {{ciUpper}}] es el intervalo de decisión TOST; valor p de las dos pruebas unilaterales {{pValue}}.",
-      "categorical": "Chi-cuadrado {{chiSquare}} con {{df}} grados de libertad para una tabla de contingencia {{rows}}×{{cols}} (N = {{n}}). Valor p bilateral {{pValue}}; el resultado es {{significance}}. La V de Cramér {{cramersV}} mide la fuerza de la asociación."
+      "categorical": "Chi-cuadrado {{chiSquare}} con {{df}} grados de libertad para una tabla de contingencia {{rows}}×{{cols}} (N = {{n}}). Valor p bilateral {{pValue}}; el resultado es {{significance}}. La V de Cramér {{cramersV}} mide la fuerza de la asociación.",
+      "paired_t": "Media del tratamiento {{treatmentMean}} vs control {{controlMean}}. Diferencia pareada media {{meanDiff}} con IC del {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. t pareada {{tStat}} con {{df}} grados de libertad, valor p bilateral {{pValue}}; el resultado es {{significance}}. dz de Cohen {{cohenDz}}.",
+      "wilcoxon": "Pseudomediana de Hodges–Lehmann de las diferencias pareadas {{pseudomedian}} con IC del {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. Estadístico de rangos con signo {{wStat}} sobre {{nNonzero}} diferencias distintas de cero ({{nZero}} diferencias nulas descartadas), valor p bilateral {{pValue}}; el resultado es {{significance}}. Correlación biserial por rangos {{rankBiserial}}.",
+      "mcnemar": "Pares discordantes: {{b}} pasaron a éxito, {{c}} lo dejaron ({{nDiscordant}} en total). Diferencia de proporciones marginales {{proportionDiff}} pp, razón de momios de discordancia {{oddsRatio}}. Valor p bilateral {{pValue}} ({{method}}); el resultado es {{significance}}."
     },
     "effect_size": {
       "rank_biserial": "correlación biserial por rangos",
       "odds_ratio": "razón de momios (odds ratio)",
       "rate_ratio": "razón de tasas (rate ratio)",
-      "cohens_d": "d de Cohen"
+      "cohens_d": "d de Cohen",
+      "cohens_dz": "dz de Cohen"
     },
     "mann_whitney": {
       "method_exact": "exacta",
@@ -348,6 +357,18 @@
     "categorical": {
       "verdict_associated": "Asociación detectada",
       "verdict_independent": "Sin asociación significativa"
+    },
+    "paired": {
+      "effect": {
+        "mean_difference": "diferencia media",
+        "pseudomedian": "pseudomediana de Hodges–Lehmann",
+        "proportion_difference": "diferencia de proporciones marginales"
+      }
+    },
+    "mcnemar": {
+      "method_exact": "binomial exacta",
+      "method_chi_square": "chi-cuadrado con corrección por continuidad",
+      "odds_ratio_undefined": "no definido"
     }
   }
 }

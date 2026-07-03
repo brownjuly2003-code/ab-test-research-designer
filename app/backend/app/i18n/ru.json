@@ -292,7 +292,12 @@
       "categorical_rectangular": "таблица сопряжённости должна быть прямоугольной (во всех строках одинаковое число столбцов)",
       "categorical_non_negative": "значения в таблице сопряжённости не могут быть отрицательными",
       "planned_test_metric_mismatch": "planned_test недоступен для этого metric_type",
-      "tost_margin_required": "Для плана эквивалентности TOST требуется equivalence_margin_pct"
+      "tost_margin_required": "Для плана эквивалентности TOST требуется equivalence_margin_pct",
+      "paired_length_mismatch": "парные выборки должны содержать одинаковое число значений контроля и варианта",
+      "paired_values_finite": "значения парных выборок должны быть конечными числами",
+      "paired_mcnemar_binary": "тест Макнемара требует парных бинарных значений (каждое значение — 0 или 1)",
+      "paired_t_degenerate": "парный t-тест не определён: нужны минимум две пары с ненулевой дисперсией разностей",
+      "wilcoxon_degenerate": "критерий Уилкоксона (знаково-ранговый) не определён: нужны минимум две ненулевые разности, не все равные по модулю"
     },
     "srm_detected": "Обнаружен SRM — проверьте рандомизацию и реализацию трекинга",
     "srm_not_detected": "SRM не обнаружен"
@@ -323,13 +328,17 @@
       "quantile": "Квантиль P{{percentile}} варианта {{treatmentQuantile}} против контроля {{controlQuantile}}. Сдвиг квантиля {{effect}} при {{ciLevel}}% перцентильном bootstrap-ДИ [{{ciLower}}, {{ciUpper}}]. Перестановочный двусторонний p-value {{pValue}} по {{permutations}} перестановкам; результат {{significance}}.",
       "trimmed_t": "Усечённое среднее ({{trimPct}}%) варианта {{treatmentMean}} против контроля {{controlMean}} (эффективное n {{treatmentEffectiveN}} против {{controlEffectiveN}} после усечения). Робастный сдвиг среднего {{effect}} при {{ciLevel}}% ДИ [{{ciLower}}, {{ciUpper}}]. Двусторонний t-критерий Юэна–Уэлча, p-value {{pValue}} при {{df}} ст. св.; результат {{significance}}.",
       "equivalence": "Среднее в тесте {{treatmentMean}} против контроля {{controlMean}}. Эффект {{effect}} проверен против границы эквивалентности ±{{margin}}: {{equivalence}}. {{ciLevel}}% доверительный интервал [{{ciLower}}, {{ciUpper}}] — решающий интервал TOST; p-value двух односторонних тестов {{pValue}}.",
-      "categorical": "Хи-квадрат {{chiSquare}} при {{df}} степенях свободы для таблицы сопряжённости {{rows}}×{{cols}} (N = {{n}}). Двусторонний p-value {{pValue}}; результат {{significance}}. Силу связи измеряет V Крамера {{cramersV}}."
+      "categorical": "Хи-квадрат {{chiSquare}} при {{df}} степенях свободы для таблицы сопряжённости {{rows}}×{{cols}} (N = {{n}}). Двусторонний p-value {{pValue}}; результат {{significance}}. Силу связи измеряет V Крамера {{cramersV}}.",
+      "paired_t": "Среднее варианта {{treatmentMean}} против контроля {{controlMean}}. Средняя парная разность {{meanDiff}} при {{ciLevel}}% ДИ [{{ciLower}}, {{ciUpper}}]. Парный t {{tStat}} при {{df}} степенях свободы, двусторонний p-value {{pValue}}; результат {{significance}}. d Коэна (dz) {{cohenDz}}.",
+      "wilcoxon": "Псевдомедиана Hodges–Lehmann парных разностей {{pseudomedian}} при {{ciLevel}}% ДИ [{{ciLower}}, {{ciUpper}}]. Знаково-ранговая статистика {{wStat}} по {{nNonzero}} ненулевым разностям (отброшено нулевых: {{nZero}}), двусторонний p-value {{pValue}}; результат {{significance}}. Ранг-бисериальная корреляция {{rankBiserial}}.",
+      "mcnemar": "Дискордантные пары: {{b}} перешли к успеху, {{c}} — от успеха (всего {{nDiscordant}}). Разность маргинальных долей {{proportionDiff}} п.п., отношение шансов дискордантности {{oddsRatio}}. Двусторонний p-value {{pValue}} ({{method}}); результат {{significance}}."
     },
     "effect_size": {
       "rank_biserial": "ранг-бисериальная корреляция",
       "odds_ratio": "отношение шансов (odds ratio)",
       "rate_ratio": "отношение интенсивностей (rate ratio)",
-      "cohens_d": "d Коэна"
+      "cohens_d": "d Коэна",
+      "cohens_dz": "d Коэна (dz)"
     },
     "mann_whitney": {
       "method_exact": "точный",
@@ -348,6 +357,18 @@
     "categorical": {
       "verdict_associated": "Связь обнаружена",
       "verdict_independent": "Значимой связи нет"
+    },
+    "paired": {
+      "effect": {
+        "mean_difference": "средняя разность",
+        "pseudomedian": "псевдомедиана Hodges–Lehmann",
+        "proportion_difference": "разность маргинальных долей"
+      }
+    },
+    "mcnemar": {
+      "method_exact": "точный биномиальный",
+      "method_chi_square": "хи-квадрат с поправкой на непрерывность",
+      "odds_ratio_undefined": "не определено"
     }
   }
 }

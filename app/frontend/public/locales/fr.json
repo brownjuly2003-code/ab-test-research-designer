@@ -728,7 +728,8 @@
         "assignment": "Affectation d'utilisateur",
         "liveStats": "Expérience en direct",
         "decision": "Synthèse de décision",
-        "categoricalResults": "Résultat catégoriel (khi-deux)"
+        "categoricalResults": "Résultat catégoriel (khi-deux)",
+        "pairedResults": "Échantillons appariés"
       },
       "badges": {
         "loaded": "Chargé",
@@ -948,6 +949,36 @@
         "small": "faible",
         "medium": "moyenne",
         "large": "forte"
+      }
+    },
+    "pairedResults": {
+      "title": "Échantillons appariés (intra-sujet)",
+      "description": "Comparer deux mesures des mêmes unités — test t apparié, test de Wilcoxon des rangs signés ou McNemar pour des issues binaires appariées.",
+      "testTypeLabel": "Test",
+      "testType": {
+        "paired_t": "Test t apparié",
+        "wilcoxon": "Wilcoxon des rangs signés",
+        "mcnemar": "McNemar (binaire apparié)"
+      },
+      "controlLabel": "Témoin / avant",
+      "treatmentLabel": "Traitement / après",
+      "valuesPlaceholder": "10\n12\n9\n15",
+      "valuesHelp": "Une valeur par ligne (ou séparées par virgule / espace). Les deux groupes doivent avoir le même nombre de valeurs, appariées par position.",
+      "mcnemarHelp": "Une valeur par paire, 0 ou 1 (p. ex. converti ou non). Les deux groupes doivent avoir le même nombre de valeurs, appariées par position.",
+      "alphaLabel": "Seuil de signification (alpha)",
+      "analyzeButton": "Lancer le test apparié",
+      "analyzing": "Analyse…",
+      "validation": {
+        "parseError": "Saisissez au moins deux valeurs numériques par groupe (une par ligne ou séparées par virgule/espace).",
+        "lengthMismatch": "Les deux groupes doivent avoir le même nombre de valeurs appariées.",
+        "analysisUnavailable": "Analyse indisponible. Vérifiez les valeurs et réessayez."
+      },
+      "results": {
+        "pValue": "valeur p",
+        "testStatistic": "Statistique de test",
+        "pairs": "Paires",
+        "zeroDifferences": "Différences nulles",
+        "discordant": "Discordantes (+/−)"
       }
     }
   },
