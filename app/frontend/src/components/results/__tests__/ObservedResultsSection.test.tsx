@@ -216,6 +216,83 @@ describe("ObservedResultsSection", () => {
     }
   });
 
+  it("shows a ratio disclaimer instead of silently rendering the binary conversions form", async () => {
+    seedResultsStores({ analysis: buildAnalysisResult({ metricType: "ratio" }) });
+    const view = await renderIntoDocument(<ObservedResultsSection onResultsAnalysisChange={vi.fn()} />);
+    try {
+      await flushEffects();
+      // The old bug: a ratio plan silently fell back to the binary 2x2-conversions form.
+      expect(view.container.textContent).not.toContain("Control conversions");
+      expect(view.container.textContent).not.toContain("Control users");
+      // Instead a disclaimer explains ratio has no dedicated post-hoc test here.
+      expect(view.container.textContent).toContain("This plan's metric is a ratio.");
+      // No Fisher's exact / Mann–Whitney alternative — neither applies to an unresolved ratio.
+      expect(view.container.textContent).not.toContain("Fisher's exact (small samples)");
+      expect(view.container.textContent).not.toContain("Mann–Whitney (non-parametric)");
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("defaults a ratio plan to the conscious continuous approximation and offers Rate (Poisson) alongside it", async () => {
+    seedResultsStores({ analysis: buildAnalysisResult({ metricType: "ratio" }) });
+    const view = await renderIntoDocument(<ObservedResultsSection onResultsAnalysisChange={vi.fn()} />);
+    try {
+      await flushEffects();
+      expect(view.container.textContent).toContain("Continuous (approximate)");
+      expect(view.container.textContent).toContain("Rate (Poisson)");
+      // Default selection renders the continuous summary-statistics fields, not the binary form.
+      expect(view.container.textContent).toContain("Control mean");
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("runs a Poisson rate analysis on a ratio plan after consciously switching off the continuous default", async () => {
+    seedResultsStores({ analysis: buildAnalysisResult({ metricType: "ratio" }) });
+    const response = {
+      metric_type: "count",
+      observed_effect: 0.15,
+      observed_effect_relative: 150,
+      ci_lower: 0.034,
+      ci_upper: 0.266,
+      ci_level: 0.95,
+      p_value: 0.016674,
+      test_statistic: 2.5,
+      is_significant: true,
+      power_achieved: 0.7,
+      verdict: "Statistically significant change at alpha=0.050",
+      interpretation: "Rate ratio 2.5000. Poisson exact two-sided p-value 0.016674; result is statistically significant.",
+      effect_size: 2.5,
+      effect_size_label: "rate ratio"
+    };
+    const fetchMock = vi.fn(async (..._args: unknown[]) => ({ ok: true, json: async () => response }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const view = await renderIntoDocument(<ObservedResultsSection onResultsAnalysisChange={vi.fn()} />);
+    try {
+      await flushEffects();
+      await click(findButton(view.container, "Rate (Poisson)"));
+      await flushEffects();
+
+      const byId = (id: string) => view.container.querySelector<HTMLInputElement>(`#${id}`)!;
+      await changeValue(byId("results-control-events"), "10");
+      await changeValue(byId("results-control-exposure"), "100");
+      await changeValue(byId("results-treatment-events"), "25");
+      await changeValue(byId("results-treatment-exposure"), "100");
+
+      await click(findButton(view.container, "Analyze results"));
+      await flushEffects();
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const [, requestInit] = fetchMock.mock.calls[0] as [string, RequestInit];
+      const body = JSON.parse(String(requestInit.body));
+      expect(body.metric_type).toBe("count");
+    } finally {
+      await view.unmount();
+    }
+  });
+
   it("offers bootstrap / permutation on a continuous plan but not on a binary plan", async () => {
     const binaryView = await renderIntoDocument(<ObservedResultsSection onResultsAnalysisChange={vi.fn()} />);
     try {

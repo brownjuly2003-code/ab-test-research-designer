@@ -521,6 +521,7 @@
       "saving": "Économie...",
       "yes": "Oui",
       "no": "Non",
+      "ratioDisclaimer": "La métrique de ce plan est un ratio. Il n'existe pas de test post-hoc dédié pour elle ici — le ratio lui-même est analysé automatiquement par la méthode delta dans « Résultats de l'expérience en direct ». Pour l'analyser manuellement, choisissez consciemment une approximation ci-dessous : un test continu sur une valeur de ratio précalculée par utilisateur, ou un test de taux de Poisson sur les événements bruts du numérateur et l'exposition du dénominateur.",
       "fields": {
         "controlConversions": "Conversions du contrôle",
         "controlUsers": "Utilisateurs du contrôle",
@@ -576,7 +577,9 @@
         "trimmedT": "t tronquée (robuste)",
         "trimmedTHint": "Le test t tronqué de Yuen–Welch compare les moyennes après troncature d'une fraction fixe à chaque extrémité, puis utilise une erreur type fondée sur la variance winsorisée et des degrés de liberté de Welch. À utiliser quand des queues lourdes ou des valeurs aberrantes — revenu, valeur de commande, durée de session — tirent la moyenne ordinaire et gonflent sa variance. À trim = 0, il se réduit au t de Welch.",
         "equivalence": "Équivalence (TOST)",
-        "equivalenceHint": "Le test d'équivalence TOST vérifie si la différence reste dans une tolérance ±margin dans les deux sens — deux tests t unilatéraux. Utilisez-le pour confirmer l'absence de changement significatif (un refactoring ou une migration qui ne doit pas déplacer la métrique) ; un test de différence non significatif ne prouve pas à lui seul l'équivalence."
+        "equivalenceHint": "Le test d'équivalence TOST vérifie si la différence reste dans une tolérance ±margin dans les deux sens — deux tests t unilatéraux. Utilisez-le pour confirmer l'absence de changement significatif (un refactoring ou une migration qui ne doit pas déplacer la métrique) ; un test de différence non significatif ne prouve pas à lui seul l'équivalence.",
+        "continuousApprox": "test continu (approximatif)",
+        "ratioContinuousHint": "Traite le ratio comme une valeur continue par utilisateur (numérateur ÷ dénominateur précalculé) et lui applique le test t de différence habituel — une approximation, pas le test par méthode delta appliqué automatiquement dans les Résultats de l'expérience en direct."
       },
       "validation": {
         "fillAllFields": "Remplissez tous les champs de résultats réels avec des valeurs valides avant l'analyse.",

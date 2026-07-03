@@ -38,10 +38,12 @@ export function resetResultsStores() {
 export function buildAnalysisResult(options: {
   adviceAvailable?: boolean;
   adviceErrorCode?: string;
-  metricType?: "binary" | "continuous";
+  metricType?: "binary" | "continuous" | "ratio";
 } = {}): AnalysisResponsePayload {
   const metricType = options.metricType ?? "binary";
-  const isContinuous = metricType === "continuous";
+  // Ratio sizing is delta-method-on-continuous under the hood (WS2), so it shares the continuous
+  // calculation_summary shape here too.
+  const isContinuous = metricType === "continuous" || metricType === "ratio";
 
   return {
     calculations: {

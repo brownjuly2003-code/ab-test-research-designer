@@ -20,7 +20,7 @@ type FieldConfig<Key extends string> = {
 
 type ObservedResultsViewProps = {
   analysisMetricType: ObservedMetricType;
-  baseMetricType: "binary" | "continuous";
+  baseMetricType: "binary" | "continuous" | "ratio";
   showTestToggle: boolean;
   observedTest: ObservedTestSelection;
   onSelectTest: (test: ObservedTestSelection) => void;
@@ -130,10 +130,22 @@ export default function ObservedResultsView({
   // for binary), and a plan-independent Poisson rate test for event-over-exposure data. The base type
   // comes from the plan, so it is known even while the count analyzer is active.
   const isBinaryBase = baseMetricType === "binary";
+  // Ratio plans have no dedicated post-hoc analyzer (only the live-stats delta method handles ratio
+  // directly); the toggle offers just the two conscious approximations, continuous and count — no
+  // Mann–Whitney/Fisher/bootstrap/etc. alternative, since those assume a real binary or continuous plan.
+  const isRatioBase = baseMetricType === "ratio";
   const alternativeTest: "mann_whitney" | "fisher_exact" = isBinaryBase ? "fisher_exact" : "mann_whitney";
-  const parametricLabel = isBinaryBase ? t("results.observedResults.testType.zTest") : t("results.observedResults.testType.parametric");
+  const parametricLabel = isRatioBase
+    ? t("results.observedResults.testType.continuousApprox")
+    : isBinaryBase
+      ? t("results.observedResults.testType.zTest")
+      : t("results.observedResults.testType.parametric");
   const alternativeLabel = isBinaryBase ? t("results.observedResults.testType.fisherExact") : t("results.observedResults.testType.mannWhitney");
-  const baseHint = isBinaryBase ? t("results.observedResults.testType.fisherHint") : t("results.observedResults.testType.hint");
+  const baseHint = isRatioBase
+    ? t("results.observedResults.testType.ratioContinuousHint")
+    : isBinaryBase
+      ? t("results.observedResults.testType.fisherHint")
+      : t("results.observedResults.testType.hint");
   const testTypeHint =
     observedTest === "count"
       ? t("results.observedResults.testType.rateHint")
@@ -153,6 +165,7 @@ export default function ObservedResultsView({
       <p className="muted">{t("results.observedResults.description")}</p>
       {selectedHistoryRun ? <div className="callout"><Icon name="info" className="icon icon-inline" /><span>{t("results.observedResults.historicalReadOnly")}</span></div> : null}
       {!canMutateBackend ? <div className="callout"><Icon name="info" className="icon icon-inline" /><span>{backendMutationMessage}</span></div> : null}
+      {isRatioBase ? <div className="callout"><Icon name="info" className="icon icon-inline" /><span>{t("results.observedResults.ratioDisclaimer")}</span></div> : null}
       {showTestToggle ? (
         <div className="field" style={{ marginTop: "var(--space-4)" }}>
           <span>{t("results.observedResults.testType.label")}</span>
@@ -160,25 +173,27 @@ export default function ObservedResultsView({
             <button type="button" className={observedTest === "parametric" ? "btn secondary" : "btn ghost"} aria-pressed={observedTest === "parametric"} onClick={() => onSelectTest("parametric")}>
               {parametricLabel}
             </button>
-            <button type="button" className={observedTest === alternativeTest ? "btn secondary" : "btn ghost"} aria-pressed={observedTest === alternativeTest} onClick={() => onSelectTest(alternativeTest)}>
-              {alternativeLabel}
-            </button>
-            {!isBinaryBase ? (
+            {!isRatioBase ? (
+              <button type="button" className={observedTest === alternativeTest ? "btn secondary" : "btn ghost"} aria-pressed={observedTest === alternativeTest} onClick={() => onSelectTest(alternativeTest)}>
+                {alternativeLabel}
+              </button>
+            ) : null}
+            {baseMetricType === "continuous" ? (
               <button type="button" className={observedTest === "bootstrap" ? "btn secondary" : "btn ghost"} aria-pressed={observedTest === "bootstrap"} onClick={() => onSelectTest("bootstrap")}>
                 {t("results.observedResults.testType.bootstrap")}
               </button>
             ) : null}
-            {!isBinaryBase ? (
+            {baseMetricType === "continuous" ? (
               <button type="button" className={observedTest === "quantile" ? "btn secondary" : "btn ghost"} aria-pressed={observedTest === "quantile"} onClick={() => onSelectTest("quantile")}>
                 {t("results.observedResults.testType.quantile")}
               </button>
             ) : null}
-            {!isBinaryBase ? (
+            {baseMetricType === "continuous" ? (
               <button type="button" className={observedTest === "trimmed_t" ? "btn secondary" : "btn ghost"} aria-pressed={observedTest === "trimmed_t"} onClick={() => onSelectTest("trimmed_t")}>
                 {t("results.observedResults.testType.trimmedT")}
               </button>
             ) : null}
-            {!isBinaryBase ? (
+            {baseMetricType === "continuous" ? (
               <button type="button" className={observedTest === "equivalence" ? "btn secondary" : "btn ghost"} aria-pressed={observedTest === "equivalence"} onClick={() => onSelectTest("equivalence")}>
                 {t("results.observedResults.testType.equivalence")}
               </button>

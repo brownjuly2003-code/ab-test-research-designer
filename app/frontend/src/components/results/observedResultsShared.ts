@@ -59,8 +59,14 @@ export type ActualResultsState = {
   count: CountResultsForm;
 };
 
-export function resolveObservedMetricType(metricType: string): "binary" | "continuous" {
-  return metricType === "continuous" ? "continuous" : "binary";
+// Ratio plans (metric_type "ratio") have no dedicated post-hoc analyzer — they are only analyzed via
+// the live-stats delta method. Surfacing "ratio" here (instead of silently folding it into "binary")
+// lets the caller show a disclaimer and offer a conscious approximation (continuous or count) rather
+// than rendering the wrong 2x2-conversions form without warning.
+export function resolveObservedMetricType(metricType: string): "binary" | "continuous" | "ratio" {
+  if (metricType === "continuous") return "continuous";
+  if (metricType === "ratio") return "ratio";
+  return "binary";
 }
 
 export function formatObservedValue(

@@ -521,6 +521,7 @@
       "saving": "保存...",
       "yes": "是的",
       "no": "不",
+      "ratioDisclaimer": "此方案的指标是比率（ratio）。这里没有专门的事后检验——比率本身会在“实时实验结果”中通过delta方法自动分析。若要手动分析，请在下方有意识地选择一种近似方法：对预先计算的每用户比率值做连续检验，或对分子的原始事件数与分母的暴露量做Poisson速率检验。",
       "fields": {
         "controlConversions": "对照组转化数",
         "controlUsers": "对照组用户数",
@@ -576,7 +577,9 @@
         "trimmedT": "截尾 t（稳健）",
         "trimmedTHint": "Yuen–Welch 截尾 t 检验在从每个尾部截去固定比例后比较均值，并采用 Winsorize 方差的标准误与 Welch 自由度。当重尾或离群值（收入、订单金额、会话时长）会拖拽普通均值并放大其方差时使用。trim = 0 时退化为 Welch 的 t 检验。",
         "equivalence": "等效检验 (TOST)",
-        "equivalenceHint": "TOST 等效检验通过两次单侧 t 检验，判断差异是否在两个方向上都保持在容差 ±margin 之内。用于确认没有实质性变化（例如重构或迁移不应改动指标）；仅靠不显著的差异检验并不能证明等效。"
+        "equivalenceHint": "TOST 等效检验通过两次单侧 t 检验，判断差异是否在两个方向上都保持在容差 ±margin 之内。用于确认没有实质性变化（例如重构或迁移不应改动指标）；仅靠不显著的差异检验并不能证明等效。",
+        "continuousApprox": "连续检验（近似）",
+        "ratioContinuousHint": "把比率当作每用户的连续值（预先计算的分子÷分母），并对其运行普通的差异t检验——这是一种近似，并非“实时实验结果”中自动应用的delta方法检验。"
       },
       "validation": {
         "fillAllFields": "在分析之前，用有效值填充所有实际结果字段。",

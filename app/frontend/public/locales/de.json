@@ -521,6 +521,7 @@
       "saving": "Speichern...",
       "yes": "Ja",
       "no": "Nein",
+      "ratioDisclaimer": "Die Metrik dieses Plans ist ein Ratio. Dafür gibt es hier keinen eigenen Post-hoc-Test — das Ratio selbst wird automatisch per Delta-Methode in „Live-Experimentergebnisse\" analysiert. Um es manuell zu analysieren, wählen Sie bewusst eine Näherung unten: einen stetigen Test auf einem vorab berechneten Ratio-Wert pro Nutzer, oder einen Poisson-Ratentest auf den rohen Zähler-Ereignissen über die Nenner-Exposition.",
       "fields": {
         "controlConversions": "Konversionen der Kontrollgruppe",
         "controlUsers": "Nutzer der Kontrollgruppe",
@@ -576,7 +577,9 @@
         "trimmedT": "Getrimmtes t (robust)",
         "trimmedTHint": "Der getrimmte t-Test nach Yuen–Welch vergleicht Mittelwerte, nachdem ein fester Anteil von jedem Ende getrimmt wurde, und nutzt dann einen Standardfehler auf Basis der winsorisierten Varianz und Welch-Freiheitsgrade. Geeignet, wenn schwere Ränder oder Ausreißer — Umsatz, Bestellwert, Sitzungsdauer — den gewöhnlichen Mittelwert verzerren und seine Varianz aufblähen. Bei trim = 0 entspricht er Welchs t.",
         "equivalence": "Äquivalenz (TOST)",
-        "equivalenceHint": "Der TOST-Äquivalenztest prüft, ob die Differenz in beide Richtungen innerhalb einer Toleranz ±margin bleibt — zwei einseitige t-Tests. Verwenden Sie ihn, um zu bestätigen, dass keine bedeutsame Änderung vorliegt (ein Refactoring oder eine Migration, die die Metrik nicht verschieben darf); ein nicht signifikanter Differenztest allein ist kein Nachweis der Äquivalenz."
+        "equivalenceHint": "Der TOST-Äquivalenztest prüft, ob die Differenz in beide Richtungen innerhalb einer Toleranz ±margin bleibt — zwei einseitige t-Tests. Verwenden Sie ihn, um zu bestätigen, dass keine bedeutsame Änderung vorliegt (ein Refactoring oder eine Migration, die die Metrik nicht verschieben darf); ein nicht signifikanter Differenztest allein ist kein Nachweis der Äquivalenz.",
+        "continuousApprox": "Stetiger Test (Näherung)",
+        "ratioContinuousHint": "Behandelt das Ratio als stetigen Wert pro Nutzer (vorab berechneter Zähler ÷ Nenner) und wendet darauf den gewöhnlichen Differenz-t-Test an — eine Näherung, nicht den Delta-Methode-Test, der automatisch in den Live-Experimentergebnissen angewendet wird."
       },
       "validation": {
         "fillAllFields": "Füllen Sie vor der Analyse alle tatsächlichen Ergebnisfelder mit gültigen Werten aus.",
