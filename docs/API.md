@@ -376,6 +376,10 @@ Results
 
 Categorical Results
 
+### `POST /api/v1/results/omnibus`
+
+Omnibus Results
+
 ### `POST /api/v1/results/paired`
 
 Paired Results

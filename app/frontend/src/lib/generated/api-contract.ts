@@ -1010,6 +1010,36 @@ export type ObservedResultsRanked = {
   trim?: number;
 };
 
+export type OmnibusGroupSummary = {
+  n: number;
+  mean?: number | null;
+  std?: number | null;
+  median?: number | null;
+  mean_rank?: number | null;
+};
+
+export type OmnibusResultsRequest = {
+  test_type: "welch_anova" | "kruskal_wallis";
+  groups: number[][];
+  alpha?: number;
+};
+
+export type OmnibusResultsResponse = {
+  test_type: string;
+  test_statistic: number;
+  df_numerator: number;
+  df_denominator?: number | null;
+  p_value: number;
+  is_significant: boolean;
+  effect_size: number;
+  effect_size_label: string;
+  num_groups: number;
+  n_total: number;
+  group_summaries: OmnibusGroupSummary[];
+  verdict: string;
+  interpretation: string;
+};
+
 export type PairedResultsRequest = {
   test_type: "paired_t" | "wilcoxon" | "mcnemar";
   control_values: number[];

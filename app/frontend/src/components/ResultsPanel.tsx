@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { ExportFormat, ResultsAnalysisResponse } from "../lib/experiment";
@@ -33,6 +33,10 @@ import { buildApiRequestHeaders } from "./results/resultsShared";
 import { buildSensitivityPayload, fetchSensitivityData, isAbortError } from "./results/sensitivityShared";
 
 type ResultsPanelProps = { onExportReport?: (format: ExportFormat) => void; readonly [key: string]: unknown };
+
+// Code-split the omnibus analyzer into its own async chunk (like ComparisonDashboard / PosteriorPlot)
+// so it stays out of the main bundle, keeping index.js under the 500 kB chunkSizeWarningLimit.
+const OmnibusResultsSection = lazy(() => import("./results/OmnibusResultsSection"));
 
 export default function ResultsPanel(_props: ResultsPanelProps) {
   const { t } = useTranslation();
@@ -155,6 +159,7 @@ export default function ResultsPanel(_props: ResultsPanelProps) {
         <Accordion title={t("results.panel.accordion.observedResults")} badge={resultsAnalysis ? (resultsAnalysis.is_significant ? t("results.panel.badges.significant") : t("results.panel.badges.review")) : t("results.panel.badges.postTest")} badgeColor={resultsAnalysis ? (resultsAnalysis.is_significant ? "accent" : "warn") : "accent"} defaultOpen><ObservedResultsSection onResultsAnalysisChange={setResultsAnalysis} /></Accordion>
         <Accordion title={t("results.panel.accordion.categoricalResults")} badge={t("results.panel.badges.manual")}><CategoricalResultsSection /></Accordion>
         <Accordion title={t("results.panel.accordion.pairedResults")} badge={t("results.panel.badges.manual")}><PairedResultsSection /></Accordion>
+        <Accordion title={t("results.panel.accordion.omnibusResults")} badge={t("results.panel.badges.manual")}><Suspense fallback={<div className="status" aria-busy={true} />}><OmnibusResultsSection /></Suspense></Accordion>
         <Accordion title={t("results.panel.accordion.warningsAndRisks")} badge={t("results.panel.warningsCount", { count: warnings.length })} badgeColor={warningBadgeColor} defaultOpen={warnings.length > 0}><WarningsSection /></Accordion>
         <Accordion title={t("results.panel.accordion.experimentDesign")} badge={t("results.panel.variantsCount", { count: displayedAnalysis.report.experiment_design?.variants.length ?? 0 })}><ExperimentDesignSection /></Accordion>
         <Accordion title={t("results.panel.accordion.metricsPlan")} badge={t("results.panel.metricsCount", { count: (displayedAnalysis.report.metrics_plan?.primary?.length ?? 0) + (displayedAnalysis.report.metrics_plan?.secondary?.length ?? 0) + (displayedAnalysis.report.metrics_plan?.guardrail?.length ?? 0) + (displayedAnalysis.report.metrics_plan?.diagnostic?.length ?? 0) })}><MetricsPlanSection /></Accordion>

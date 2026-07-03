@@ -729,7 +729,8 @@
         "liveStats": "Expérience en direct",
         "decision": "Synthèse de décision",
         "categoricalResults": "Résultat catégoriel (khi-deux)",
-        "pairedResults": "Échantillons appariés"
+        "pairedResults": "Échantillons appariés",
+        "omnibusResults": "Plusieurs groupes (omnibus)"
       },
       "badges": {
         "loaded": "Chargé",
@@ -979,6 +980,44 @@
         "pairs": "Paires",
         "zeroDifferences": "Différences nulles",
         "discordant": "Discordantes (+/−)"
+      }
+    },
+    "omnibusResults": {
+      "title": "Plusieurs groupes (omnibus)",
+      "description": "Comparez une métrique continue sur plus de deux groupes (A/B/C/…) avec un test omnibus — ANOVA de Welch (moyennes, robuste aux variances inégales) ou Kruskal–Wallis (rangs, sans hypothèse de distribution) — avant d'examiner les contrastes deux à deux.",
+      "testTypeLabel": "Test",
+      "testType": {
+        "welch_anova": "ANOVA de Welch (moyennes)",
+        "kruskal_wallis": "Kruskal–Wallis (rangs)"
+      },
+      "groupsLabel": "Groupes",
+      "groupsPlaceholder": "5.1 4.8 6.2 5.5\n6.5 7.1 6.8 7.4\n5.9 6.3 6.7 5.5",
+      "groupsHelp": "Un groupe par ligne (au moins deux groupes) ; valeurs d'un groupe séparées par des virgules ou des espaces (au moins deux par groupe).",
+      "alphaLabel": "Niveau de signification (alpha)",
+      "analyzeButton": "Lancer le test omnibus",
+      "analyzing": "Analyse…",
+      "validation": {
+        "parseError": "Saisissez au moins deux groupes, un par ligne, chacun avec au moins deux valeurs numériques (séparées par des virgules ou des espaces).",
+        "analysisUnavailable": "Analyse indisponible. Vérifiez les valeurs et réessayez."
+      },
+      "statistic": {
+        "welch_anova": "Statistique F",
+        "kruskal_wallis": "Statistique H"
+      },
+      "results": {
+        "pValue": "valeur p",
+        "degreesOfFreedom": "Degrés de liberté",
+        "groups": "Groupes",
+        "sampleSize": "N total"
+      },
+      "groupSummary": {
+        "header": "Résumé par groupe",
+        "group": "Groupe",
+        "n": "n",
+        "mean": "Moyenne",
+        "std": "ÉT",
+        "median": "Médiane",
+        "meanRank": "Rang moyen"
       }
     }
   },

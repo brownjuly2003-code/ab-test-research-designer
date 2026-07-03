@@ -729,7 +729,8 @@
         "liveStats": "实时实验",
         "decision": "决策摘要",
         "categoricalResults": "分类结果（卡方）",
-        "pairedResults": "配对样本"
+        "pairedResults": "配对样本",
+        "omnibusResults": "多组比较（综合检验）"
       },
       "badges": {
         "loaded": "已加载",
@@ -979,6 +980,44 @@
         "pairs": "对数",
         "zeroDifferences": "零差值",
         "discordant": "不一致（+/−）"
+      }
+    },
+    "omnibusResults": {
+      "title": "多组比较（综合检验）",
+      "description": "在深入两两对比之前，用综合检验比较两组以上（A/B/C/…）的连续指标——Welch 方差分析（均值，对方差不齐稳健）或 Kruskal–Wallis（基于秩，无分布假设）。",
+      "testTypeLabel": "检验",
+      "testType": {
+        "welch_anova": "Welch 方差分析（均值）",
+        "kruskal_wallis": "Kruskal–Wallis（秩）"
+      },
+      "groupsLabel": "分组",
+      "groupsPlaceholder": "5.1 4.8 6.2 5.5\n6.5 7.1 6.8 7.4\n5.9 6.3 6.7 5.5",
+      "groupsHelp": "每行一组（至少两组）；组内数值以逗号或空格分隔（每组至少两个）。",
+      "alphaLabel": "显著性水平（alpha）",
+      "analyzeButton": "运行综合检验",
+      "analyzing": "分析中…",
+      "validation": {
+        "parseError": "请输入至少两组，每行一组，每组至少两个数值（以逗号或空格分隔）。",
+        "analysisUnavailable": "分析不可用。请检查数值后重试。"
+      },
+      "statistic": {
+        "welch_anova": "F 统计量",
+        "kruskal_wallis": "H 统计量"
+      },
+      "results": {
+        "pValue": "p 值",
+        "degreesOfFreedom": "自由度",
+        "groups": "组数",
+        "sampleSize": "总 N"
+      },
+      "groupSummary": {
+        "header": "各组摘要",
+        "group": "组",
+        "n": "n",
+        "mean": "均值",
+        "std": "标准差",
+        "median": "中位数",
+        "meanRank": "平均秩"
       }
     }
   },

@@ -103,6 +103,25 @@ def t_cdf(value: float, df: float) -> float:
     return 1.0 - half if value >= 0 else half
 
 
+def f_sf(f_value: float, df1: float, df2: float) -> float:
+    """Survival function P(F > f_value) for the F distribution with ``(df1, df2)`` degrees of freedom.
+
+    The upper tail of the F CDF via the regularized-incomplete-beta identity
+    ``P(F > f) = I_{df2/(df1·f + df2)}(df2/2, df1/2)`` (Abramowitz & Stegun 26.6.2), reusing the same
+    continued-fraction ``_betainc_regularized`` the Student-t CDF uses — no new special function. Used
+    by Welch's heteroscedastic one-way ANOVA, whose reference distribution is an F with a fractional
+    denominator df. Returns 1.0 for ``f_value <= 0`` (all the mass lies above a non-positive F).
+    Matches ``scipy.stats.f.sf`` to ~1e-7 (the incomplete-beta continued-fraction tolerance) for the
+    df ranges Welch produces.
+    """
+    if not (math.isfinite(df1) and math.isfinite(df2)) or df1 <= 0 or df2 <= 0:
+        raise ValueError("F degrees of freedom must be positive and finite")
+    if f_value <= 0:
+        return 1.0
+    x = df2 / (df1 * f_value + df2)
+    return _betainc_regularized(df2 / 2.0, df1 / 2.0, x)
+
+
 def t_ppf(probability: float, df: float) -> float:
     """Inverse Student-t CDF via bisection on `t_cdf`.
 
