@@ -42,7 +42,11 @@ export default function ObservedResultsSection({ onResultsAnalysisChange }: Obse
                 ? "equivalence"
                 : baseMetricType === "binary" && observedTest === "fisher_exact"
                   ? "fisher_exact"
-                  : baseMetricType;
+                  // Ratio has no dedicated analyzer; "parametric" is the conscious continuous
+                  // approximation offered for it (see ObservedResultsView's ratio disclaimer).
+                  : baseMetricType === "ratio"
+                    ? "continuous"
+                    : baseMetricType;
   const canSaveObservedResults = Boolean(activeProject && !activeProject.is_archived && !selectedHistoryRun);
   const [actualResults, setActualResults] = useState<ActualResultsState>(() => buildActualResultsState("binary", 0.05, null));
   const [resultsRequest, setResultsRequest] = useState<ResultsRequestPayload | null>(null);
@@ -72,7 +76,8 @@ export default function ObservedResultsSection({ onResultsAnalysisChange }: Obse
         ? ["continuous", "mann_whitney", "bootstrap", "quantile", "trimmed_t", "equivalence", "count"]
         : baseMetricType === "binary"
           ? ["binary", "fisher_exact", "count"]
-          : [baseMetricType, "count"];
+          // Ratio has no dedicated analyzer: only the two conscious approximations restore.
+          : ["continuous", "count"];
     const nextTest: ObservedTestSelection =
       persistedType === "count"
         ? "count"
@@ -104,7 +109,9 @@ export default function ObservedResultsSection({ onResultsAnalysisChange }: Obse
                   ? "fisher_exact"
                   : nextTest === "count"
                     ? "count"
-                    : baseMetricType;
+                    : baseMetricType === "ratio"
+                      ? "continuous"
+                      : baseMetricType;
     const persistedRequest = persistedType && supportedTypes.includes(persistedType) ? persistedObservedResults?.request ?? null : null;
     const persistedAnalysis =
       persistedObservedResults?.analysis && supportedTypes.includes(persistedObservedResults.analysis.metric_type)
@@ -183,7 +190,7 @@ export default function ObservedResultsSection({ onResultsAnalysisChange }: Obse
     <ObservedResultsView
       analysisMetricType={effectiveMetricType}
       baseMetricType={baseMetricType}
-      showTestToggle={baseMetricType === "continuous" || baseMetricType === "binary"}
+      showTestToggle={baseMetricType === "continuous" || baseMetricType === "binary" || baseMetricType === "ratio"}
       observedTest={observedTest}
       onSelectTest={setObservedTest}
       actualResults={actualResults}

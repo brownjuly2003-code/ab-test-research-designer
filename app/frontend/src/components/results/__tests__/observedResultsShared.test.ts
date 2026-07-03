@@ -4,12 +4,28 @@ import {
   buildActualResultsState,
   buildResultsRequest,
   parseSampleValues,
+  resolveObservedMetricType,
   type ActualResultsState
 } from "../observedResultsShared";
 
 function emptyState(): ActualResultsState {
   return buildActualResultsState("continuous", 0.05, null);
 }
+
+describe("resolveObservedMetricType", () => {
+  it("passes continuous plans through unchanged", () => {
+    expect(resolveObservedMetricType("continuous")).toBe("continuous");
+  });
+
+  it("surfaces ratio plans as ratio, not a silent binary fallback", () => {
+    expect(resolveObservedMetricType("ratio")).toBe("ratio");
+  });
+
+  it("defaults anything else (including binary) to binary", () => {
+    expect(resolveObservedMetricType("binary")).toBe("binary");
+    expect(resolveObservedMetricType("categorical")).toBe("binary");
+  });
+});
 
 describe("parseSampleValues", () => {
   it("splits on commas, spaces, semicolons and newlines", () => {

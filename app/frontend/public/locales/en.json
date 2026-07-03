@@ -521,6 +521,7 @@
       "saving": "Saving...",
       "yes": "yes",
       "no": "no",
+      "ratioDisclaimer": "This plan's metric is a ratio. There is no dedicated post-hoc test for it here — the ratio itself is analyzed automatically via the delta method in \"Live experiment results\". To analyze it manually, consciously choose an approximation below: a continuous test on a precomputed per-user ratio value, or a Poisson rate test on the raw numerator events over denominator exposure.",
       "fields": {
         "controlConversions": "Control conversions",
         "controlUsers": "Control users",
@@ -576,7 +577,9 @@
         "trimmedT": "Trimmed t (robust)",
         "trimmedTHint": "The Yuen–Welch trimmed t-test compares means after trimming a fixed fraction from each tail, then uses a Winsorized-variance standard error and Welch degrees of freedom. Use it when heavy tails or outliers — revenue, order value, session length — would drag the ordinary mean and inflate its variance. trim = 0 reduces to Welch's t.",
         "equivalence": "Equivalence (TOST)",
-        "equivalenceHint": "The TOST equivalence test asks whether the difference stays within a tolerance ±margin in both directions — two one-sided t-tests. Use it to confirm no meaningful change (a refactor or migration that must not move the metric), where a non-significant difference test alone is not evidence of equivalence."
+        "equivalenceHint": "The TOST equivalence test asks whether the difference stays within a tolerance ±margin in both directions — two one-sided t-tests. Use it to confirm no meaningful change (a refactor or migration that must not move the metric), where a non-significant difference test alone is not evidence of equivalence.",
+        "continuousApprox": "Continuous (approximate)",
+        "ratioContinuousHint": "Treats the ratio as a continuous per-user value (a precomputed numerator ÷ denominator) and runs the ordinary difference t-test on it — an approximation, not the delta-method test applied automatically in \"Live experiment results\"."
       },
       "validation": {
         "fillAllFields": "Fill in all actual results fields with valid values before analysis.",

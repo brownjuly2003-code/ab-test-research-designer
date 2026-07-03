@@ -521,6 +521,7 @@
       "saving": "Guardando...",
       "yes": "Sí",
       "no": "No",
+      "ratioDisclaimer": "La métrica de este plan es un ratio. No hay una prueba post-hoc dedicada para ella aquí: el propio ratio se analiza automáticamente mediante el método delta en «Resultados del experimento en vivo». Para analizarlo manualmente, elija conscientemente una aproximación a continuación: una prueba continua sobre un valor de ratio precalculado por usuario, o una prueba de tasa de Poisson sobre los eventos brutos del numerador y la exposición del denominador.",
       "fields": {
         "controlConversions": "Conversiones del control",
         "controlUsers": "Usuarios del control",
@@ -576,7 +577,9 @@
         "trimmedT": "t recortada (robusta)",
         "trimmedTHint": "La prueba t recortada de Yuen–Welch compara medias tras recortar una fracción fija de cada cola, y usa un error estándar con varianza winsorizada y grados de libertad de Welch. Úsala cuando colas pesadas o valores atípicos — ingresos, valor del pedido, duración de sesión — arrastren la media ordinaria e inflen su varianza. Con trim = 0 se reduce a la t de Welch.",
         "equivalence": "Equivalencia (TOST)",
-        "equivalenceHint": "La prueba de equivalencia TOST comprueba si la diferencia se mantiene dentro de una tolerancia ±margin en ambas direcciones — dos pruebas t unilaterales. Úsela para confirmar que no hay un cambio relevante (una refactorización o migración que no debe mover la métrica); una prueba de diferencia no significativa por sí sola no demuestra equivalencia."
+        "equivalenceHint": "La prueba de equivalencia TOST comprueba si la diferencia se mantiene dentro de una tolerancia ±margin en ambas direcciones — dos pruebas t unilaterales. Úsela para confirmar que no hay un cambio relevante (una refactorización o migración que no debe mover la métrica); una prueba de diferencia no significativa por sí sola no demuestra equivalencia.",
+        "continuousApprox": "prueba continua (aproximada)",
+        "ratioContinuousHint": "Trata el ratio como un valor continuo por usuario (numerador ÷ denominador precalculado) y le aplica la prueba t de diferencia habitual — una aproximación, no la prueba de método delta aplicada automáticamente en «Resultados del experimento en vivo»."
       },
       "validation": {
         "fillAllFields": "Complete todos los campos de resultados reales con valores válidos antes del análisis.",
