@@ -354,7 +354,8 @@
       "method_asymptotic": "تقريب طبيعي"
     },
     "fisher_exact": {
-      "odds_ratio_undefined": "غير معرّفة (خلية صفرية)"
+      "odds_ratio_undefined": "غير معرّفة (خلية صفرية)",
+      "odds_ratio_midp_ci": "نسبة الأرجحية، mid-p {{ciLevel}}% [{{lower}}، {{upper}}]."
     },
     "count": {
       "rate_ratio_undefined": "غير معرّفة (لا أحداث في المجموعة الضابطة)"

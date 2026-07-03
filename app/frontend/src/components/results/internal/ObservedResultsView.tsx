@@ -268,7 +268,7 @@ export default function ObservedResultsView({
             <div className="card"><strong>{t("results.observedResults.cards.relativeChange")}</strong><div style={{ marginTop: "8px" }}>{resultsAnalysis.observed_effect_relative.toFixed(2)}%</div></div>
             <div className="card"><strong>{t("results.observedResults.cards.powerAchieved")}</strong><div style={{ marginTop: "8px" }}>{resultsAnalysis.power_achieved.toFixed(3)}</div></div>
             {resultsAnalysis.effect_size != null ? (
-              <div className="card"><strong>{resultsAnalysis.effect_size_label ?? t("results.observedResults.cards.effectSize")}</strong><div style={{ marginTop: "8px" }}>{resultsAnalysis.effect_size.toFixed(4)}</div></div>
+              <div className="card"><strong>{resultsAnalysis.effect_size_label ?? t("results.observedResults.cards.effectSize")}</strong><div style={{ marginTop: "8px" }}>{resultsAnalysis.effect_size.toFixed(4)}</div>{resultsAnalysis.effect_size_ci_lower != null ? (<div style={{ marginTop: "4px", fontSize: "0.85em", opacity: 0.75 }}>{t("results.observedResults.cards.ciLabel", { percent: Math.round(resultsAnalysis.ci_level * 100) })}: [{resultsAnalysis.effect_size_ci_lower.toFixed(4)}, {resultsAnalysis.effect_size_ci_upper != null ? resultsAnalysis.effect_size_ci_upper.toFixed(4) : "∞"}]</div>) : null}</div>
             ) : null}
           </div>
           <div className="two-col">

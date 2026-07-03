@@ -408,6 +408,11 @@ class ResultsResponse(BaseModel):
     # correlation) and its i18n label. ``None`` for the mean-based binary / continuous / ratio paths.
     effect_size: float | None = None
     effect_size_label: str | None = None
+    # Fisher's exact only: the mid-p conditional exact confidence interval for the odds ratio (the
+    # ``effect_size``). ``effect_size_ci_upper`` is ``None`` when the interval is unbounded above (+∞);
+    # both are ``None`` for every other analyzer and when no estimable interval exists.
+    effect_size_ci_lower: float | None = None
+    effect_size_ci_upper: float | None = None
 
 
 class CategoricalResultsRequest(BaseModel):

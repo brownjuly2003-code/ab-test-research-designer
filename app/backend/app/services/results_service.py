@@ -18,11 +18,18 @@ from app.backend.app.schemas.api import (
     ResultsRequest,
     ResultsResponse,
 )
-from app.backend.app.stats.binary import normal_ppf
+from app.backend.app.stats.binary import (
+    newcombe_difference_interval,
+    normal_ppf,
+)
 from app.backend.app.stats.bootstrap_permutation import bootstrap_permutation_test
 from app.backend.app.stats.chi_square_independence import chi_square_independence_test
 from app.backend.app.stats.equivalence import tost_equivalence_test
-from app.backend.app.stats.fisher_exact import MAX_FISHER_EXACT_TOTAL, fisher_exact_test
+from app.backend.app.stats.fisher_exact import (
+    MAX_FISHER_EXACT_TOTAL,
+    fisher_exact_odds_ratio_midp_ci,
+    fisher_exact_test,
+)
 from app.backend.app.stats.mann_whitney import mann_whitney_u_test
 from app.backend.app.stats.omnibus import kruskal_wallis_test, welch_anova_test
 from app.backend.app.stats.paired import (
@@ -403,15 +410,17 @@ def _analyze_binary(obs: ObservedResultsBinary | None) -> ResultsResponse:
 
     test_statistic = effect / standard_error
     p_value = 2 * (1 - standard_normal_cdf(abs(test_statistic)))
-    ci_standard_error = math.sqrt(
-        max(
-            (p1 * (1 - p1) / obs.control_users) + (p2 * (1 - p2) / obs.treatment_users),
-            0.0,
-        )
-    )
     z_critical = normal_ppf(1 - obs.alpha / 2)
-    ci_lower = effect - z_critical * ci_standard_error
-    ci_upper = effect + z_critical * ci_standard_error
+    # Newcombe (1998) hybrid-score interval for the risk difference, replacing the Wald interval that
+    # mis-covers at small n or extreme rates. The p-value / verdict stay on the pooled z-test — only
+    # the reported interval estimate changes to the better-calibrated score construction.
+    ci_lower, ci_upper = newcombe_difference_interval(
+        obs.treatment_conversions,
+        obs.treatment_users,
+        obs.control_conversions,
+        obs.control_users,
+        obs.alpha,
+    )
     relative_effect = (effect / p1 * 100) if p1 > 0 else 0.0
     is_significant = p_value < obs.alpha
     power_achieved = standard_normal_cdf(
@@ -466,23 +475,45 @@ def _analyze_fisher_exact(obs: ObservedResultsBinary | None) -> ResultsResponse:
     is_significant = p_value < obs.alpha
     odds_ratio = result["odds_ratio"]
 
-    # The p-value is exact; the interval and achieved power are the large-sample normal
-    # approximation on the risk difference, reported for continuity with the binary view and
-    # clearly framed as descriptive (an exact 2x2 CI is a separate, heavier construction).
+    # The p-value is exact. The risk-difference interval uses Newcombe's hybrid-score method (accurate
+    # in exactly the small-n / rare-event regime where Fisher's test is the right analyzer). Achieved
+    # power stays the large-sample normal approximation on the risk difference, framed as descriptive.
     z_critical = normal_ppf(1 - obs.alpha / 2)
+    ci_lower, ci_upper = newcombe_difference_interval(
+        obs.treatment_conversions,
+        obs.treatment_users,
+        obs.control_conversions,
+        obs.control_users,
+        obs.alpha,
+    )
     ci_standard_error = math.sqrt(
         max((p1 * (1 - p1) / obs.control_users) + (p2 * (1 - p2) / obs.treatment_users), 0.0)
     )
     if ci_standard_error == 0:
-        ci_lower = ci_upper = effect
         power_achieved = 0.0
     else:
-        ci_lower = effect - z_critical * ci_standard_error
-        ci_upper = effect + z_critical * ci_standard_error
         standardized = abs(effect) / ci_standard_error
         power_achieved = standard_normal_cdf(
             standardized - z_critical
         ) + standard_normal_cdf(-z_critical - standardized)
+
+    # Mid-p conditional exact CI for the odds ratio — the honest completion of the exact family.
+    # ``None`` when the margins are degenerate or the conditional support is too wide (large-sample
+    # regime); a ``None`` upper limit means the interval is unbounded above (+∞).
+    odds_ratio_ci = fisher_exact_odds_ratio_midp_ci(
+        obs.control_conversions,
+        obs.control_users,
+        obs.treatment_conversions,
+        obs.treatment_users,
+        obs.alpha,
+    )
+    if odds_ratio_ci is None:
+        effect_size_ci_lower: float | None = None
+        effect_size_ci_upper: float | None = None
+    else:
+        or_lower, or_upper = odds_ratio_ci
+        effect_size_ci_lower = round(or_lower, 4)
+        effect_size_ci_upper = None if or_upper is None else round(or_upper, 4)
 
     return ResultsResponse(
         metric_type="fisher_exact",
@@ -505,9 +536,13 @@ def _analyze_fisher_exact(obs: ObservedResultsBinary | None) -> ResultsResponse:
             odds_ratio=odds_ratio,
             p_value=p_value,
             is_significant=is_significant,
+            odds_ratio_ci=odds_ratio_ci,
+            ci_level=1 - obs.alpha,
         ),
         effect_size=round(odds_ratio, 4) if odds_ratio is not None else None,
         effect_size_label=translate("results.effect_size.odds_ratio"),
+        effect_size_ci_lower=effect_size_ci_lower,
+        effect_size_ci_upper=effect_size_ci_upper,
     )
 
 
@@ -519,6 +554,8 @@ def _interpretation_fisher_exact(
     odds_ratio: float | None,
     p_value: float,
     is_significant: bool,
+    odds_ratio_ci: tuple[float, float | None] | None = None,
+    ci_level: float,
 ) -> str:
     significance_text = translate(
         "results.significance.significant"
@@ -530,7 +567,7 @@ def _interpretation_fisher_exact(
         if odds_ratio is not None
         else translate("results.fisher_exact.odds_ratio_undefined")
     )
-    return translate(
+    interpretation = translate(
         "results.interpretation.fisher_exact",
         {
             "treatment": f"{p2 * 100:.4f}",
@@ -541,6 +578,17 @@ def _interpretation_fisher_exact(
             "significance": significance_text,
         },
     )
+    if odds_ratio_ci is not None:
+        or_lower, or_upper = odds_ratio_ci
+        interpretation += " " + translate(
+            "results.fisher_exact.odds_ratio_midp_ci",
+            {
+                "ciLevel": f"{ci_level * 100:.1f}",
+                "lower": f"{or_lower:.4f}",
+                "upper": "∞" if or_upper is None else f"{or_upper:.4f}",
+            },
+        )
+    return interpretation
 
 
 def _analyze_count(obs: ObservedResultsCount | None) -> ResultsResponse:

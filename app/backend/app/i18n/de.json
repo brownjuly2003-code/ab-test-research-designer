@@ -354,7 +354,8 @@
       "method_asymptotic": "Normalapproximation"
     },
     "fisher_exact": {
-      "odds_ratio_undefined": "nicht definiert (eine Nullzelle)"
+      "odds_ratio_undefined": "nicht definiert (eine Nullzelle)",
+      "odds_ratio_midp_ci": "Quotenverhältnis, mid-p {{ciLevel}}% KI [{{lower}}, {{upper}}]."
     },
     "count": {
       "rate_ratio_undefined": "nicht definiert (keine Kontrollereignisse)"

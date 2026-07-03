@@ -167,6 +167,35 @@ def test_results_endpoint_binary_not_significant_and_ci_crosses_zero() -> None:
     assert payload["ci_lower"] <= 0 <= payload["ci_upper"]
 
 
+def test_results_endpoint_binary_reports_newcombe_interval() -> None:
+    # The binary risk-difference interval is Newcombe's hybrid-score method, not the Wald interval.
+    # Frozen 95% CI for treatment 130/1000 vs control 100/1000 (statsmodels method="newcomb"):
+    # (0.0020023, 0.0580705) on the proportion scale -> (0.2002, 5.8070) percentage points. The
+    # interval is asymmetric about the +3.00 pp point effect, which the symmetric Wald interval is not.
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/results",
+        json={
+            "metric_type": "binary",
+            "binary": {
+                "control_conversions": 100,
+                "control_users": 1000,
+                "treatment_conversions": 130,
+                "treatment_users": 1000,
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["observed_effect"] == pytest.approx(3.0, abs=1e-4)
+    assert payload["ci_lower"] == pytest.approx(0.2002, abs=1e-3)
+    assert payload["ci_upper"] == pytest.approx(5.8070, abs=1e-3)
+    # The Wald interval would put the lower limit at ~0.2067 pp (0.03 ± z·SE); Newcombe's 0.2002 pp is
+    # distinct, confirming the score construction is the one wired through, not the normal approximation.
+
+
 def test_results_endpoint_continuous_significant() -> None:
     client = TestClient(create_app())
 
@@ -808,6 +837,12 @@ def test_results_endpoint_fisher_exact_significant() -> None:
     assert payload["effect_size"] == pytest.approx(20.0)
     assert payload["effect_size_label"]
     assert "Fisher" in payload["interpretation"]
+    # Mid-p conditional exact CI for the odds ratio (frozen vs scipy.nchypergeom_fisher). It brackets
+    # the sample odds ratio 20 and is reported in the interpretation prose.
+    assert payload["effect_size_ci_lower"] == pytest.approx(1.342, rel=1e-3)
+    assert payload["effect_size_ci_upper"] == pytest.approx(526.3952, rel=1e-3)
+    assert payload["effect_size_ci_lower"] < 20.0 < payload["effect_size_ci_upper"]
+    assert "mid-p" in payload["interpretation"]
 
 
 def test_results_endpoint_fisher_exact_localizes_via_accept_language() -> None:
@@ -850,9 +885,14 @@ def test_results_endpoint_fisher_exact_undefined_odds_ratio_still_ok() -> None:
 
     assert response.status_code == 200
     payload = response.json()
-    # A zero off-diagonal cell makes the odds ratio undefined, but the exact p-value is defined.
+    # A zero off-diagonal cell makes the sample odds ratio undefined, but the exact p-value is defined
+    # and so is the mid-p interval — with the observed cell at the top of its support the upper limit
+    # is unbounded (+∞ -> null) while the lower limit stays finite.
     assert payload["effect_size"] is None
     assert 0.0 <= payload["p_value"] <= 1.0
+    assert payload["effect_size_ci_lower"] == pytest.approx(2.358171, rel=1e-3)
+    assert payload["effect_size_ci_upper"] is None
+    assert "∞" in payload["interpretation"]
 
 
 def test_results_endpoint_fisher_exact_requires_binary_data() -> None:
