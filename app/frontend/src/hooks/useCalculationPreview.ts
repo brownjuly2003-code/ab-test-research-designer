@@ -169,5 +169,16 @@ function canCompute(draft: FullPayload): boolean {
     return baselineValue > 0 && stdDev > 0;
   }
 
+  if (draft.metrics.metric_type === "count") {
+    // Count / rate is sized by the Poisson rate plan from a positive baseline event rate. Exposure
+    // per user is optional (empty defaults to 1.0 = the user is the exposure unit); if supplied it
+    // must be positive.
+    const exposurePerUser = draft.metrics.exposure_per_user;
+    if (exposurePerUser !== "" && !(Number(exposurePerUser) > 0)) {
+      return false;
+    }
+    return baselineValue > 0;
+  }
+
   return false;
 }

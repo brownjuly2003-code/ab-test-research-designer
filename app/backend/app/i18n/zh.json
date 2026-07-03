@@ -242,6 +242,7 @@
       "continuous_baseline_positive": "对于连续指标，baseline_value 必须为正值",
       "continuous_std_positive": "对于连续指标，std_dev 必须为正",
       "ratio_baseline_positive": "对于比率指标，baseline_value（基准比率）必须为正",
+      "count_baseline_positive": "对于计数指标，baseline_value（基准事件率）必须为正",
       "ratio_std_positive": "对于比率指标，std_dev（每用户线性化标准差）必须为正",
       "bayesian_requires_precision": "贝叶斯模式需要desired_ precision",
       "control_conversions_exceed_users": "control_conversions 不能超过 control_users",

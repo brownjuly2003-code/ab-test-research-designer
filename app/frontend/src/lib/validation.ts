@@ -105,6 +105,11 @@ export function validateForm(state: FullPayload): string[] {
   const stdDevRaw = state.metrics.std_dev;
   const stdDev =
     stdDevRaw === "" || stdDevRaw === null || stdDevRaw === undefined ? null : Number(stdDevRaw);
+  const exposurePerUserRaw = state.metrics.exposure_per_user;
+  const exposurePerUser =
+    exposurePerUserRaw === "" || exposurePerUserRaw === null || exposurePerUserRaw === undefined
+      ? null
+      : Number(exposurePerUserRaw);
   const cupedEnabled = state.metrics.cuped_enabled ?? false;
   const cupedPreExperimentStdRaw = state.metrics.cuped_pre_experiment_std;
   const cupedPreExperimentStd =
@@ -189,8 +194,26 @@ export function validateForm(state: FullPayload): string[] {
         issues.push("CUPED correlation must be between -1 and 1.");
       }
     }
+  } else if (metricType === "ratio") {
+    // Ratio sizing reduces to the continuous delta-method formula: a positive baseline ratio and a
+    // positive per-user linearized std dev are enough to plan.
+    if (!(baselineValue > 0)) {
+      issues.push("Ratio baseline value must be greater than 0.");
+    }
+    if (stdDev === null || !(stdDev > 0)) {
+      issues.push("Ratio metrics require a positive std dev.");
+    }
+  } else if (metricType === "count") {
+    // Count / rate is sized by the Poisson rate plan from a positive baseline event rate; exposure
+    // per user is optional (empty = the user is the exposure unit) but must be positive when set.
+    if (!(baselineValue > 0)) {
+      issues.push("Count baseline value must be greater than 0.");
+    }
+    if (exposurePerUser !== null && !(exposurePerUser > 0)) {
+      issues.push("Exposure per user must be greater than 0.");
+    }
   } else {
-    issues.push("Metric type must be either binary or continuous.");
+    issues.push("Metric type must be binary, continuous, ratio, or count.");
   }
 
   if (guardrailMetrics.length > 3) {

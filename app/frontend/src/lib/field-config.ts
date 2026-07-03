@@ -18,7 +18,9 @@ export const FIELD_TOOLTIPS: Record<string, string> = {
   variants_count:
     "Total number of variants including control. 2 = a classic A/B test, while 3+ variants increase sample needs.",
   baseline_value:
-    "Current baseline metric. For binary metrics use 0.042 for 4.2%; for continuous metrics use the current mean, such as 45.20; for ratio metrics use the baseline ratio R, such as 0.05 for a 5% click-through rate.",
+    "Current baseline metric. For binary metrics use 0.042 for 4.2%; for continuous metrics use the current mean, such as 45.20; for ratio metrics use the baseline ratio R, such as 0.05 for a 5% click-through rate; for count / rate metrics use the baseline event rate per exposure unit, such as 0.30 for 0.3 events per user.",
+  exposure_per_user:
+    "Count / rate metrics only: how much exposure one user contributes over the experiment (sessions, device-days, ...). Leave empty or use 1 when the user itself is the exposure unit; the required sample size scales inversely with this.",
   expected_uplift_pct:
     "Expected relative improvement versus baseline. Example: 8 means the treatment is expected to improve the metric by 8%. This is planning context only and does not change the required sample size.",
   mde_pct:
@@ -136,7 +138,8 @@ export const sections: SectionConfig[] = [
         options: [
           { label: "Binary", value: "binary" },
           { label: "Continuous", value: "continuous" },
-          { label: "Ratio", value: "ratio" }
+          { label: "Ratio", value: "ratio" },
+          { label: "Count / rate", value: "count" }
         ]
       },
       {
@@ -144,6 +147,14 @@ export const sections: SectionConfig[] = [
         key: "baseline_value",
         kind: "number",
         helpText: FIELD_TOOLTIPS.baseline_value
+      },
+      {
+        label: "Exposure per user",
+        key: "exposure_per_user",
+        kind: "number",
+        emptyValue: "",
+        visibleWhen: (state) => state.metrics.metric_type === "count",
+        helpText: FIELD_TOOLTIPS.exposure_per_user
       },
       {
         label: "Expected uplift %",

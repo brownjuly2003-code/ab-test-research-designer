@@ -143,10 +143,14 @@ class MetricsConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     primary_metric_name: str
-    metric_type: Literal["binary", "continuous", "ratio"]
+    metric_type: Literal["binary", "continuous", "ratio", "count"]
     baseline_value: float
     expected_uplift_pct: float | None = None
     mde_pct: float = Field(gt=0)
+    # Count / rate metrics: how much exposure one user contributes over the experiment (sessions,
+    # device-days, ...). 1.0 (the default when omitted) means the user itself is the exposure unit.
+    # Consumed only when metric_type == "count"; ignored otherwise.
+    exposure_per_user: float | None = Field(default=None, gt=0)
     # Planned analysis method for sample sizing (see CalculationRequest.planned_test); None keeps
     # the historical normal-approximation plan. equivalence_margin_pct is required for "tost".
     planned_test: Literal["z_test", "fisher_exact", "mann_whitney", "tost"] | None = None
@@ -182,6 +186,8 @@ class MetricsConfig(BaseModel):
                 raise ValueError(
                     "numerator_metric_name and denominator_metric_name must be different"
                 )
+        if self.metric_type == "count" and self.baseline_value <= 0:
+            raise ValueError(translate("errors.schemas.count_baseline_positive"))
         return self
 
     @model_validator(mode="after")
@@ -477,9 +483,11 @@ class ExperimentInput(BaseModel):
 class CalculationRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    metric_type: Literal["binary", "continuous", "ratio"]
+    metric_type: Literal["binary", "continuous", "ratio", "count"]
     baseline_value: float
     std_dev: float | None = None
+    # Count / rate exposure per user (see MetricsConfig.exposure_per_user); None → 1.0 at the service.
+    exposure_per_user: float | None = Field(default=None, gt=0)
     cuped_pre_experiment_std: float | None = Field(default=None, gt=0)
     cuped_correlation: float | None = Field(default=None, gt=-1.0, lt=1.0)
     mde_pct: float = Field(gt=0)
@@ -533,6 +541,9 @@ class CalculationRequest(BaseModel):
                 raise ValueError(translate("errors.schemas.ratio_baseline_positive"))
             if self.std_dev is None or self.std_dev <= 0:
                 raise ValueError(translate("errors.schemas.ratio_std_positive"))
+        # Count / rate: baseline_value is the baseline event rate per exposure unit (must be positive).
+        if self.metric_type == "count" and self.baseline_value <= 0:
+            raise ValueError(translate("errors.schemas.count_baseline_positive"))
         return self
 
     @model_validator(mode="after")
