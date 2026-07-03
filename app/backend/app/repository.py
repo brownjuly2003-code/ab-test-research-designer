@@ -1036,7 +1036,7 @@ class SQLiteBackend:
         offset = max(0, int(offset))
         normalized_query = q.strip().lower() if isinstance(q, str) else ""
         normalized_status = status if status in {"active", "archived", "all"} else "active"
-        normalized_metric_type = metric_type if metric_type in {"binary", "continuous", "all"} else "all"
+        normalized_metric_type = metric_type if metric_type in {"binary", "continuous", "ratio", "all"} else "all"
         normalized_sort_by = sort_by if sort_by in {"created_at", "updated_at", "name", "duration_days"} else "updated_at"
         normalized_sort_dir = "ASC" if str(sort_dir).lower() == "asc" else "DESC"
         where_clauses: list[str] = []
@@ -4605,7 +4605,7 @@ class PostgresBackend(SQLiteBackend):
         offset = max(0, int(offset))
         normalized_query = q.strip().lower() if isinstance(q, str) else ""
         normalized_status = status if status in {"active", "archived", "all"} else "active"
-        normalized_metric_type = metric_type if metric_type in {"binary", "continuous", "all"} else "all"
+        normalized_metric_type = metric_type if metric_type in {"binary", "continuous", "ratio", "all"} else "all"
         normalized_sort_by = sort_by if sort_by in {"created_at", "updated_at", "name", "duration_days"} else "updated_at"
         normalized_sort_dir = "ASC" if str(sort_dir).lower() == "asc" else "DESC"
         metric_expr = self._json_extract_expression("projects.payload_json", "metrics", "metric_type")

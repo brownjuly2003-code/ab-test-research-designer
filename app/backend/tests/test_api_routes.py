@@ -2061,6 +2061,34 @@ def test_projects_list_endpoint_filters_and_sorts_by_name(monkeypatch) -> None:
     get_settings.cache_clear()
 
 
+def test_projects_list_endpoint_filters_by_ratio_metric_type(monkeypatch) -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
+
+    monkeypatch.setenv("AB_DB_PATH", str(db_path))
+    monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")
+    get_settings.cache_clear()
+
+    binary_payload = _full_payload()
+    binary_payload["project"]["project_name"] = "Checkout conversion"
+
+    ratio_payload = _ratio_full_payload()
+    ratio_payload["project"]["project_name"] = "Feed ad CTR"
+
+    with TestClient(create_app()) as client:
+        assert client.post("/api/v1/projects", json=binary_payload).status_code == 200
+        assert client.post("/api/v1/projects", json=ratio_payload).status_code == 200
+
+        response = client.get("/api/v1/projects", params={"metric_type": "ratio"})
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["total"] == 1
+    assert payload["projects"][0]["project_name"] == "Feed ad CTR"
+    get_settings.cache_clear()
+
+
 def test_projects_list_endpoint_sorts_by_duration_days(monkeypatch) -> None:
     temp_dir = Path(__file__).resolve().parent / ".tmp"
     temp_dir.mkdir(exist_ok=True)

@@ -1027,7 +1027,8 @@
     "metricType": {
       "all": "Все",
       "binary": "Бинарная",
-      "continuous": "Непрерывная"
+      "continuous": "Непрерывная",
+      "ratio": "Ratio"
     },
     "sortLabel": "Сортировка",
     "sort": {

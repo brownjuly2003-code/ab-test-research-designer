@@ -153,7 +153,7 @@ const SidebarPanel = memo(function SidebarPanel() {
   const [isAdmin] = useState(isAdminMode);
   const [projectQuery, setProjectQuery] = useState("");
   const [projectStatus, setProjectStatus] = useState<"active" | "archived" | "all">("active");
-  const [projectMetricType, setProjectMetricType] = useState<"all" | "binary" | "continuous">("all");
+  const [projectMetricType, setProjectMetricType] = useState<"all" | "binary" | "continuous" | "ratio">("all");
   const [projectSortBy, setProjectSortBy] = useState<"updated_desc" | "name_asc" | "duration_asc">("updated_desc");
   const [selectedComparisonProjectIds, setSelectedComparisonProjectIds] = useState<string[]>([]);
   const [auditEntries, setAuditEntries] = useState<AuditLogEntry[]>([]);
@@ -431,6 +431,9 @@ const SidebarPanel = memo(function SidebarPanel() {
     }
     if (metricType === "continuous") {
       return t("projectListFilters.metricType.continuous");
+    }
+    if (metricType === "ratio") {
+      return t("projectListFilters.metricType.ratio");
     }
     return metricType;
   };
