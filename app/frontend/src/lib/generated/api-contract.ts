@@ -161,9 +161,10 @@ export type BanditSimulationResponse = {
 };
 
 export type CalculationRequest = {
-  metric_type: "binary" | "continuous" | "ratio";
+  metric_type: "binary" | "continuous" | "ratio" | "count";
   baseline_value: number;
   std_dev?: number | null;
+  exposure_per_user?: number | null;
   cuped_pre_experiment_std?: number | null;
   cuped_correlation?: number | null;
   mde_pct: number;
@@ -895,10 +896,11 @@ export type MetricPValue = {
 
 export type MetricsConfig = {
   primary_metric_name: string;
-  metric_type: "binary" | "continuous" | "ratio";
+  metric_type: "binary" | "continuous" | "ratio" | "count";
   baseline_value: number;
   expected_uplift_pct?: number | null;
   mde_pct: number;
+  exposure_per_user?: number | null;
   planned_test?: ("z_test" | "fisher_exact" | "mann_whitney" | "tost") | null;
   equivalence_margin_pct?: number | null;
   alpha: number;

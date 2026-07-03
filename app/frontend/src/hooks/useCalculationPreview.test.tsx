@@ -279,6 +279,34 @@ describe("useCalculationPreview", () => {
     }
   });
 
+  it("sizes a count / rate metric from the baseline event rate and per-user exposure", async () => {
+    vi.useFakeTimers();
+    vi.mocked(requestCalculation).mockResolvedValueOnce(buildPreview(1437, 1));
+
+    const draft = cloneInitialState();
+    draft.metrics.metric_type = "count";
+    draft.metrics.baseline_value = 0.3;
+    draft.metrics.exposure_per_user = 2;
+
+    const view = await renderIntoDocument(<PreviewProbe draft={draft} enabled={true} />);
+    try {
+      await flushEffects();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(300);
+      });
+      await flushEffects();
+
+      expect(requestCalculation).toHaveBeenCalledTimes(1);
+      expect(vi.mocked(requestCalculation).mock.calls[0]?.[0]).toMatchObject({
+        metric_type: "count",
+        baseline_value: 0.3,
+        exposure_per_user: 2
+      });
+    } finally {
+      await view.unmount();
+    }
+  });
+
   it("waits for the equivalence margin before previewing a TOST plan", async () => {
     vi.useFakeTimers();
     vi.mocked(requestCalculation).mockResolvedValueOnce(buildPreview(1713, 30));

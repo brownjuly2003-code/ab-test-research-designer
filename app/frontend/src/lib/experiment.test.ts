@@ -307,4 +307,55 @@ describe("experiment helpers", () => {
   it("accepts the default initial state as valid", () => {
     expect(validateForm(cloneInitialState())).toEqual([]);
   });
+
+  it("plans a count / rate metric end to end through the calculation payload", () => {
+    const state = cloneInitialState();
+    state.metrics.metric_type = "count";
+    state.metrics.baseline_value = 0.3;
+    state.metrics.exposure_per_user = 2;
+
+    const payload = buildCalculationPayload(state);
+
+    expect(payload.metric_type).toBe("count");
+    expect(payload.baseline_value).toBe(0.3);
+    expect(payload.exposure_per_user).toBe(2);
+    // Count has no explicit planned test; the service resolves it to the Poisson rate plan.
+    expect(payload.std_dev).toBeNull();
+  });
+
+  it("treats an empty exposure per user as the user-is-the-exposure-unit default", () => {
+    const state = cloneInitialState();
+    state.metrics.metric_type = "count";
+    state.metrics.baseline_value = 0.3;
+    state.metrics.exposure_per_user = "";
+
+    expect(buildApiPayload(state).metrics.exposure_per_user).toBeNull();
+    expect(validateForm(state)).toEqual([]);
+  });
+
+  it("clears std dev and CUPED when switching to a count metric", () => {
+    const state = cloneInitialState();
+    state.metrics.metric_type = "continuous";
+    state.metrics.std_dev = 12.5;
+    state.metrics.cuped_enabled = true;
+    state.metrics.cuped_pre_experiment_std = 11;
+
+    const next = setSectionFieldValue(state, "metrics", "metric_type", "count");
+
+    expect(next.metrics.std_dev).toBe("");
+    expect(next.metrics.cuped_enabled).toBe(false);
+    expect(next.metrics.planned_test).toBe("z_test");
+  });
+
+  it("rejects a non-positive count baseline and a non-positive exposure", () => {
+    const state = cloneInitialState();
+    state.metrics.metric_type = "count";
+    state.metrics.baseline_value = 0;
+    state.metrics.exposure_per_user = -1;
+
+    const errors = validateForm(state);
+
+    expect(errors).toContain("Count baseline value must be greater than 0.");
+    expect(errors).toContain("Exposure per user must be greater than 0.");
+  });
 });

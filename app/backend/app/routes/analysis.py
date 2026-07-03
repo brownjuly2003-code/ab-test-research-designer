@@ -83,6 +83,7 @@ def _build_calculation_payload(payload: ExperimentInput) -> CalculationRequest:
         metric_type=metric_type,
         baseline_value=payload.metrics.baseline_value,
         std_dev=payload.metrics.std_dev,
+        exposure_per_user=payload.metrics.exposure_per_user,
         cuped_pre_experiment_std=payload.metrics.cuped_pre_experiment_std,
         cuped_correlation=payload.metrics.cuped_correlation,
         planned_test=payload.metrics.planned_test,

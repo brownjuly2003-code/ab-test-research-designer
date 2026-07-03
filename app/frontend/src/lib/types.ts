@@ -141,6 +141,7 @@ export type PlannedTest = NonNullable<MetricsPayloadSection["planned_test"]>;
 export type MetricsDraftSection = Omit<
   MetricsPayloadSection,
   | "std_dev"
+  | "exposure_per_user"
   | "cuped_pre_experiment_std"
   | "cuped_correlation"
   | "secondary_metrics"
@@ -149,6 +150,7 @@ export type MetricsDraftSection = Omit<
   | "equivalence_margin_pct"
 > & {
   std_dev: number | "";
+  exposure_per_user: number | "";
   cuped_pre_experiment_std: number | "";
   cuped_correlation: number | "";
   cuped_enabled: boolean;
@@ -171,6 +173,7 @@ export type LoadedPayload = Omit<HydratableExperimentInput, "setup" | "metrics" 
   metrics: Omit<
     MetricsDraftSection,
     | "std_dev"
+    | "exposure_per_user"
     | "cuped_pre_experiment_std"
     | "cuped_correlation"
     | "cuped_enabled"
@@ -180,6 +183,7 @@ export type LoadedPayload = Omit<HydratableExperimentInput, "setup" | "metrics" 
     | "guardrail_metrics"
   > & {
     std_dev: number | "" | null;
+    exposure_per_user?: number | "" | null;
     cuped_pre_experiment_std: number | "" | null;
     cuped_correlation: number | "" | null;
     cuped_enabled?: boolean;

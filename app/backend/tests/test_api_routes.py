@@ -377,6 +377,57 @@ def test_calculate_endpoint_returns_cuped_fields_for_continuous_metric() -> None
     assert payload["cuped_duration_days"] <= payload["results"]["estimated_duration_days"]
 
 
+def _count_calculate_body(exposure_per_user: float) -> dict:
+    return {
+        "metric_type": "count",
+        "baseline_value": 0.3,
+        "mde_pct": 20,
+        "alpha": 0.05,
+        "power": 0.8,
+        "exposure_per_user": exposure_per_user,
+        "expected_daily_traffic": 12000,
+        "audience_share_in_test": 1.0,
+        "traffic_split": [50, 50],
+        "variants_count": 2,
+    }
+
+
+def test_calculate_endpoint_plans_count_metric_via_poisson() -> None:
+    client = TestClient(create_app())
+
+    response = client.post("/api/v1/calculate", json=_count_calculate_body(1.0))
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["calculation_summary"]["metric_type"] == "count"
+    # Count has one implicit plan: the conditional Poisson rate test resolved at the service.
+    assert payload["calculation_summary"]["planned_test"] == "poisson_rate"
+    assert payload["results"]["sample_size_per_variant"] > 0
+    assert payload["results"]["estimated_duration_days"] > 0
+
+
+def test_calculate_endpoint_count_exposure_per_user_scales_sample_size() -> None:
+    client = TestClient(create_app())
+
+    unit = client.post("/api/v1/calculate", json=_count_calculate_body(1.0)).json()
+    doubled = client.post("/api/v1/calculate", json=_count_calculate_body(2.0)).json()
+
+    # Twice the exposure per user halves the required users per variant (same event budget).
+    unit_n = unit["results"]["sample_size_per_variant"]
+    doubled_n = doubled["results"]["sample_size_per_variant"]
+    assert doubled_n == pytest.approx(unit_n / 2, abs=1)
+
+
+def test_calculate_endpoint_rejects_non_positive_count_baseline() -> None:
+    client = TestClient(create_app())
+    body = _count_calculate_body(1.0)
+    body["baseline_value"] = 0
+
+    response = client.post("/api/v1/calculate", json=body)
+
+    assert response.status_code == 422
+
+
 def test_compare_multi_two_projects() -> None:
     client = TestClient(create_app())
     first_project = _create_saved_project(
@@ -947,6 +998,45 @@ def test_design_endpoint_rejects_ratio_without_std_dev() -> None:
     client = TestClient(create_app())
     payload = _ratio_full_payload()
     payload["metrics"]["std_dev"] = None
+
+    response = client.post("/api/v1/design", json=payload)
+
+    assert response.status_code == 422
+
+
+def _count_full_payload() -> dict:
+    payload = _full_payload()
+    payload["metrics"] = {
+        "primary_metric_name": "errors_per_session",
+        "metric_type": "count",
+        "baseline_value": 0.3,
+        "expected_uplift_pct": 20,
+        "mde_pct": 20,
+        "alpha": 0.05,
+        "power": 0.8,
+        "exposure_per_user": 2.0,
+        "secondary_metrics": [],
+        "guardrail_metrics": [],
+    }
+    return payload
+
+
+def test_design_endpoint_plans_count_metric_end_to_end() -> None:
+    client = TestClient(create_app())
+
+    response = client.post("/api/v1/design", json=_count_full_payload())
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["metrics_plan"]["primary"] == ["errors_per_session"]
+    assert body["calculations"]["sample_size_per_variant"] > 0
+    assert body["calculations"]["estimated_duration_days"] > 0
+
+
+def test_design_endpoint_rejects_non_positive_count_baseline() -> None:
+    client = TestClient(create_app())
+    payload = _count_full_payload()
+    payload["metrics"]["baseline_value"] = 0
 
     response = client.post("/api/v1/design", json=payload)
 

@@ -242,6 +242,7 @@
       "continuous_baseline_positive": "يجب أن تكون قيمة baseline_value موجبة للمقاييس المستمرة",
       "continuous_std_positive": "يجب أن يكون std_dev موجبًا للمقاييس المستمرة",
       "ratio_baseline_positive": "يجب أن تكون قيمة baseline_value (النسبة الأساسية) موجبة لمقاييس النسبة",
+      "count_baseline_positive": "يجب أن تكون قيمة baseline_value (معدل الأحداث الأساسي) موجبة لمقاييس العدد",
       "ratio_std_positive": "يجب أن يكون std_dev (الانحراف المعياري المخطّط لكل مستخدم) موجبًا لمقاييس النسبة",
       "bayesian_requires_precision": "يتطلب الوضع الافتراضي الدقة المطلوبة",
       "control_conversions_exceed_users": "لا يمكن أن تتجاوز تحويلات control_users",

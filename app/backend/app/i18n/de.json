@@ -242,6 +242,7 @@
       "continuous_baseline_positive": "baseline_value must be positive for continuous metrics",
       "continuous_std_positive": "std_dev must be positive for continuous metrics",
       "ratio_baseline_positive": "baseline_value (Basisverhältnis) muss für Ratio-Metriken positiv sein",
+      "count_baseline_positive": "baseline_value (Basis-Ereignisrate) muss für Count-Metriken positiv sein",
       "ratio_std_positive": "std_dev (linearisierte Standardabweichung pro Nutzer) muss für Ratio-Metriken positiv sein",
       "bayesian_requires_precision": "Bayesian mode requires desired_precision",
       "control_conversions_exceed_users": "control_conversions cannot exceed control_users",

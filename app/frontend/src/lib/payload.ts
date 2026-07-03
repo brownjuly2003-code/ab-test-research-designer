@@ -64,6 +64,7 @@ export const initialState: FullPayload = {
     numerator_metric_name: "",
     denominator_metric_name: "",
     std_dev: "",
+    exposure_per_user: "",
     cuped_pre_experiment_std: "",
     cuped_correlation: "",
     cuped_enabled: false,
@@ -138,10 +139,14 @@ export function setSectionFieldValue(
 
   if (section === "metrics" && key === "metric_type") {
     // The planned analysis method is metric-type specific (z/Fisher for binary, z/MW/TOST for
-    // continuous), so switching the metric type falls back to the default z plan.
+    // continuous), so switching the metric type falls back to the default z plan. The per-user
+    // exposure only means something for count metrics, so it resets on every metric-type change.
     nextState.metrics.planned_test = "z_test";
     nextState.metrics.equivalence_margin_pct = "";
-    if (value === "binary") {
+    nextState.metrics.exposure_per_user = "";
+    // Binary and count metrics have no std dev / CUPED companion, so those fields are cleared when
+    // switching to either.
+    if (value === "binary" || value === "count") {
       return {
         ...nextState,
         metrics: {
@@ -183,6 +188,7 @@ export function parseMetricList(raw: unknown): string[] {
 export function buildApiPayload(state: FullPayload): ExperimentInputPayload {
   const {
     std_dev,
+    exposure_per_user,
     cuped_pre_experiment_std,
     cuped_correlation,
     cuped_enabled,
@@ -201,6 +207,9 @@ export function buildApiPayload(state: FullPayload): ExperimentInputPayload {
     metrics: {
       ...metrics,
       std_dev: std_dev === "" ? null : Number(std_dev),
+      // Per-user exposure only sizes count metrics; an empty field means "the user is the exposure
+      // unit" (the backend defaults it to 1.0).
+      exposure_per_user: exposure_per_user === "" ? null : Number(exposure_per_user),
       // The margin only means something for a TOST equivalence plan; a stale value left over from
       // a previous selection must not leak into the payload.
       equivalence_margin_pct:
@@ -268,6 +277,7 @@ export function buildCalculationPayload(state: FullPayload): CalculateRequest {
     metric_type: metricType,
     baseline_value: payload.metrics.baseline_value,
     std_dev: payload.metrics.std_dev,
+    exposure_per_user: payload.metrics.exposure_per_user,
     cuped_pre_experiment_std: payload.metrics.cuped_pre_experiment_std,
     cuped_correlation: payload.metrics.cuped_correlation,
     planned_test: payload.metrics.planned_test,
@@ -429,6 +439,12 @@ export function hydrateLoadedPayload(
         payload.metrics.std_dev === "" || payload.metrics.std_dev === null || payload.metrics.std_dev === undefined
           ? ""
           : Number(payload.metrics.std_dev),
+      exposure_per_user:
+        payload.metrics.exposure_per_user === "" ||
+        payload.metrics.exposure_per_user === null ||
+        payload.metrics.exposure_per_user === undefined
+          ? ""
+          : Number(payload.metrics.exposure_per_user),
       cuped_pre_experiment_std: cupedPreExperimentStd,
       cuped_correlation: cupedCorrelation,
       cuped_enabled: cupedPreExperimentStd !== "" || cupedCorrelation !== "",
