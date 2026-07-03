@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from app.backend.app.constants import (
     MAX_CONTINGENCY_DIM,
     MAX_OBSERVED_SAMPLE_SIZE,
+    MAX_OMNIBUS_GROUPS,
     MAX_SUPPORTED_METRICS,
     MAX_SUPPORTED_VARIANTS,
 )
@@ -517,6 +518,73 @@ class PairedResultsResponse(BaseModel):
     n_discordant: int | None = None
     discordant_positive: int | None = None
     discordant_negative: int | None = None
+    verdict: str
+    interpretation: str
+
+
+class OmnibusResultsRequest(BaseModel):
+    """Per-group value arrays for an omnibus comparison across more than two groups.
+
+    ``groups`` is a list of arms (e.g. an A/B/C/… experiment), each a list of the metric's raw per-unit
+    values. One input form feeds two analyzers via ``test_type``: Welch's heteroscedastic one-way ANOVA
+    (parametric, on the group means) and the Kruskal–Wallis H test (distribution-free, on ranks). Both
+    need at least two groups with at least two observations each. Separate from ``ResultsRequest``
+    (which holds two-arm summaries / samples) because the outcome is omnibus — a single statistic over
+    all groups, not a scalar effect with a confidence interval — so it has its own request / response
+    shapes, exactly as the categorical (chi-square) analyzer does.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    test_type: Literal["welch_anova", "kruskal_wallis"]
+    groups: list[list[float]] = Field(min_length=2, max_length=MAX_OMNIBUS_GROUPS)
+    alpha: float = Field(default=0.05, ge=0.001, le=0.1)
+
+    @model_validator(mode="after")
+    def validate_groups(self) -> "OmnibusResultsRequest":
+        if any(len(group) < 2 for group in self.groups):
+            raise ValueError(translate("errors.schemas.omnibus_min_group_size"))
+        if any(len(group) > MAX_OBSERVED_SAMPLE_SIZE for group in self.groups):
+            raise ValueError(translate("errors.schemas.omnibus_group_too_large"))
+        if any(not isfinite(value) for group in self.groups for value in group):
+            raise ValueError(translate("errors.schemas.omnibus_values_finite"))
+        return self
+
+
+class OmnibusGroupSummary(BaseModel):
+    """Per-group descriptive summary so the omnibus verdict is actionable (which arm differs).
+
+    ``mean`` / ``std`` are populated by Welch's ANOVA (the mean-based path); ``median`` / ``mean_rank``
+    by Kruskal–Wallis (the rank-based path). The fields for the other path are left ``None``.
+    """
+
+    n: int
+    mean: float | None = None
+    std: float | None = None
+    median: float | None = None
+    mean_rank: float | None = None
+
+
+class OmnibusResultsResponse(BaseModel):
+    """Outcome of an omnibus test across more than two groups — a single statistic, not a scalar effect.
+
+    ``test_statistic`` is Welch's F or the Kruskal–Wallis H; ``df_numerator`` is ``k − 1`` for both,
+    while ``df_denominator`` carries Welch's fractional denominator df and is ``None`` for the
+    chi-square-referred Kruskal–Wallis. ``effect_size`` / ``effect_size_label`` carry η² (Welch) or ε²
+    (Kruskal–Wallis). ``group_summaries`` lists the per-arm descriptives.
+    """
+
+    test_type: str
+    test_statistic: float
+    df_numerator: float
+    df_denominator: float | None = None
+    p_value: float
+    is_significant: bool
+    effect_size: float
+    effect_size_label: str
+    num_groups: int
+    n_total: int
+    group_summaries: list[OmnibusGroupSummary]
     verdict: str
     interpretation: str
 

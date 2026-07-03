@@ -55,6 +55,12 @@ MAX_OBSERVED_SAMPLE_SIZE = 1000
 # request size and compute. The grand total is capped separately in the stats module.
 MAX_CONTINGENCY_DIM = 50
 
+# Upper bound on the number of groups (experiment arms) accepted by the post-hoc omnibus analyzers
+# (Welch's ANOVA / Kruskal–Wallis). A real multi-variant test has a handful of arms; 50 is generous
+# while bounding request size. Per-arm value counts reuse MAX_OBSERVED_SAMPLE_SIZE and the grand
+# total is capped separately in the stats module.
+MAX_OMNIBUS_GROUPS = 50
+
 DEFAULT_CORS_METHODS = ("GET", "POST", "PUT", "DELETE", "OPTIONS")
 DEFAULT_CORS_HEADERS = ("Accept", "Content-Type")
 

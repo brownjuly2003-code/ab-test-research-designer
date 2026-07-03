@@ -36,6 +36,8 @@ from app.backend.app.schemas.api import (
     MultipleTestingMetricResult,
     MultipleTestingRequest,
     MultipleTestingResponse,
+    OmnibusResultsRequest,
+    OmnibusResultsResponse,
     PairedResultsRequest,
     PairedResultsResponse,
     ResultsRequest,
@@ -51,6 +53,7 @@ from app.backend.app.services.design_service import build_experiment_report
 from app.backend.app.services.monte_carlo_service import simulate_thompson_sampling
 from app.backend.app.services.results_service import (
     analyze_categorical_results,
+    analyze_omnibus_results,
     analyze_paired_results,
     analyze_results,
 )
@@ -379,6 +382,14 @@ def create_analysis_router(
     )
     def paired_results(payload: PairedResultsRequest) -> PairedResultsResponse:
         return analyze_paired_results(payload)
+
+    @router.post(
+        "/api/v1/results/omnibus",
+        response_model=OmnibusResultsResponse,
+        dependencies=[Depends(require_write_auth)],
+    )
+    def omnibus_results(payload: OmnibusResultsRequest) -> OmnibusResultsResponse:
+        return analyze_omnibus_results(payload)
 
     @router.post(
         "/api/v1/simulate/bandit",

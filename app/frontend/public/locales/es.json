@@ -729,7 +729,8 @@
         "liveStats": "Experimento en vivo",
         "decision": "Lectura de decisión",
         "categoricalResults": "Resultado categórico (chi-cuadrado)",
-        "pairedResults": "Muestras pareadas"
+        "pairedResults": "Muestras pareadas",
+        "omnibusResults": "Varios grupos (ómnibus)"
       },
       "badges": {
         "loaded": "Cargado",
@@ -979,6 +980,44 @@
         "pairs": "Pares",
         "zeroDifferences": "Diferencias nulas",
         "discordant": "Discordantes (+/−)"
+      }
+    },
+    "omnibusResults": {
+      "title": "Varios grupos (ómnibus)",
+      "description": "Compare una métrica continua entre más de dos grupos (A/B/C/…) con una prueba ómnibus — ANOVA de Welch (medias, robusto ante varianzas desiguales) o Kruskal–Wallis (rangos, sin supuestos de distribución) — antes de analizar los contrastes por pares.",
+      "testTypeLabel": "Prueba",
+      "testType": {
+        "welch_anova": "ANOVA de Welch (medias)",
+        "kruskal_wallis": "Kruskal–Wallis (rangos)"
+      },
+      "groupsLabel": "Grupos",
+      "groupsPlaceholder": "5.1 4.8 6.2 5.5\n6.5 7.1 6.8 7.4\n5.9 6.3 6.7 5.5",
+      "groupsHelp": "Un grupo por línea (al menos dos grupos); valores de un grupo separados por comas o espacios (al menos dos por grupo).",
+      "alphaLabel": "Nivel de significación (alfa)",
+      "analyzeButton": "Ejecutar prueba ómnibus",
+      "analyzing": "Analizando…",
+      "validation": {
+        "parseError": "Introduzca al menos dos grupos, uno por línea, cada uno con al menos dos valores numéricos (separados por comas o espacios).",
+        "analysisUnavailable": "El análisis no está disponible. Compruebe los valores e inténtelo de nuevo."
+      },
+      "statistic": {
+        "welch_anova": "Estadístico F",
+        "kruskal_wallis": "Estadístico H"
+      },
+      "results": {
+        "pValue": "valor p",
+        "degreesOfFreedom": "Grados de libertad",
+        "groups": "Grupos",
+        "sampleSize": "N total"
+      },
+      "groupSummary": {
+        "header": "Resumen por grupo",
+        "group": "Grupo",
+        "n": "n",
+        "mean": "Media",
+        "std": "DE",
+        "median": "Mediana",
+        "meanRank": "Rango medio"
       }
     }
   },

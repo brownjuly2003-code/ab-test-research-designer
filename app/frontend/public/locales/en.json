@@ -729,7 +729,8 @@
         "liveStats": "Live experiment",
         "decision": "Decision readout",
         "categoricalResults": "Categorical outcome (chi-square)",
-        "pairedResults": "Paired samples"
+        "pairedResults": "Paired samples",
+        "omnibusResults": "Multiple groups (omnibus)"
       },
       "badges": {
         "loaded": "Loaded",
@@ -979,6 +980,44 @@
         "pairs": "Pairs",
         "zeroDifferences": "Zero differences",
         "discordant": "Discordant (+/−)"
+      }
+    },
+    "omnibusResults": {
+      "title": "Multiple groups (omnibus)",
+      "description": "Compare a continuous metric across more than two groups (A/B/C/…) with an omnibus test — Welch's ANOVA (means, robust to unequal variances) or Kruskal–Wallis (distribution-free ranks) — before drilling into pairwise contrasts.",
+      "testTypeLabel": "Test",
+      "testType": {
+        "welch_anova": "Welch's ANOVA (means)",
+        "kruskal_wallis": "Kruskal–Wallis (ranks)"
+      },
+      "groupsLabel": "Groups",
+      "groupsPlaceholder": "5.1 4.8 6.2 5.5\n6.5 7.1 6.8 7.4\n5.9 6.3 6.7 5.5",
+      "groupsHelp": "One group per line (at least two groups); values within a group separated by commas or spaces (at least two per group).",
+      "alphaLabel": "Significance level (alpha)",
+      "analyzeButton": "Run omnibus test",
+      "analyzing": "Analyzing…",
+      "validation": {
+        "parseError": "Enter at least two groups, one per line, each with at least two numeric values (comma or space separated).",
+        "analysisUnavailable": "Analysis is unavailable. Check the values and try again."
+      },
+      "statistic": {
+        "welch_anova": "F statistic",
+        "kruskal_wallis": "H statistic"
+      },
+      "results": {
+        "pValue": "p-value",
+        "degreesOfFreedom": "Degrees of freedom",
+        "groups": "Groups",
+        "sampleSize": "Total N"
+      },
+      "groupSummary": {
+        "header": "Per-group summary",
+        "group": "Group",
+        "n": "n",
+        "mean": "Mean",
+        "std": "SD",
+        "median": "Median",
+        "meanRank": "Mean rank"
       }
     }
   },

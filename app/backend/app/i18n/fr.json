@@ -297,7 +297,12 @@
       "paired_values_finite": "les valeurs des échantillons appariés doivent être des nombres finis",
       "paired_mcnemar_binary": "le test de McNemar requiert des valeurs binaires appariées (chaque valeur doit être 0 ou 1)",
       "paired_t_degenerate": "le test t apparié n'est pas défini : il faut au moins deux paires avec une variance des différences non nulle",
-      "wilcoxon_degenerate": "le test de Wilcoxon des rangs signés n'est pas défini : il faut au moins deux différences non nulles qui ne sont pas toutes de même magnitude"
+      "wilcoxon_degenerate": "le test de Wilcoxon des rangs signés n'est pas défini : il faut au moins deux différences non nulles qui ne sont pas toutes de même magnitude",
+      "omnibus_min_group_size": "chaque groupe doit comporter au moins deux observations",
+      "omnibus_group_too_large": "un groupe comporte trop d'observations",
+      "omnibus_values_finite": "les valeurs de l'omnibus doivent être des nombres finis",
+      "welch_anova_degenerate": "l'ANOVA de Welch n'est pas définie : chaque groupe doit comporter au moins deux observations et une variance intra-groupe non nulle",
+      "kruskal_wallis_degenerate": "le test de Kruskal–Wallis n'est pas défini : les observations ne présentent aucune variation de rang (toutes les valeurs sont identiques)"
     },
     "srm_detected": "SRM détecté - vérifiez votre mise en œuvre de randomisation ou de suivi",
     "srm_not_detected": "Aucun SRM détecté"
@@ -331,14 +336,18 @@
       "categorical": "Khi-deux {{chiSquare}} à {{df}} degrés de liberté pour un tableau de contingence {{rows}}×{{cols}} (N = {{n}}). Valeur p bilatérale {{pValue}} ; le résultat est {{significance}}. Le V de Cramér {{cramersV}} mesure la force de l'association.",
       "paired_t": "Moyenne du traitement {{treatmentMean}} vs témoin {{controlMean}}. Différence appariée moyenne {{meanDiff}} avec IC à {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. t apparié {{tStat}} à {{df}} degrés de liberté, valeur p bilatérale {{pValue}} ; le résultat est {{significance}}. dz de Cohen {{cohenDz}}.",
       "wilcoxon": "Pseudomédiane de Hodges–Lehmann des différences appariées {{pseudomedian}} avec IC à {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. Statistique des rangs signés {{wStat}} sur {{nNonzero}} différences non nulles ({{nZero}} différences nulles écartées), valeur p bilatérale {{pValue}} ; le résultat est {{significance}}. Corrélation bisériale de rang {{rankBiserial}}.",
-      "mcnemar": "Paires discordantes : {{b}} passées au succès, {{c}} à l'échec ({{nDiscordant}} au total). Différence des proportions marginales {{proportionDiff}} pp, rapport des cotes de discordance {{oddsRatio}}. Valeur p bilatérale {{pValue}} ({{method}}) ; le résultat est {{significance}}."
+      "mcnemar": "Paires discordantes : {{b}} passées au succès, {{c}} à l'échec ({{nDiscordant}} au total). Différence des proportions marginales {{proportionDiff}} pp, rapport des cotes de discordance {{oddsRatio}}. Valeur p bilatérale {{pValue}} ({{method}}) ; le résultat est {{significance}}.",
+      "welch_anova": "F de l'ANOVA de Welch {{fStatistic}} à {{dfNum}} et {{dfDen}} degrés de liberté sur {{groups}} groupes (N = {{n}}). Valeur p bilatérale {{pValue}} ; le résultat est {{significance}}. η² {{etaSquared}} de la variance est expliquée par l'appartenance au groupe.",
+      "kruskal_wallis": "H de Kruskal–Wallis {{hStatistic}} à {{df}} degrés de liberté sur {{groups}} groupes (N = {{n}}). Valeur p du khi-deux {{pValue}} ; le résultat est {{significance}}. ε² {{epsilonSquared}} mesure la variation de rang expliquée par l'appartenance au groupe."
     },
     "effect_size": {
       "rank_biserial": "corrélation bisériale de rang",
       "odds_ratio": "rapport des cotes (odds ratio)",
       "rate_ratio": "rapport de taux (rate ratio)",
       "cohens_d": "d de Cohen",
-      "cohens_dz": "dz de Cohen"
+      "cohens_dz": "dz de Cohen",
+      "eta_squared": "êta carré (η²)",
+      "epsilon_squared": "epsilon carré (ε²)"
     },
     "mann_whitney": {
       "method_exact": "exacte",
@@ -369,6 +378,10 @@
       "method_exact": "binomial exact",
       "method_chi_square": "khi-deux avec correction de continuité",
       "odds_ratio_undefined": "non défini"
+    },
+    "omnibus": {
+      "verdict_difference": "Au moins un groupe diffère à alpha={{alpha}}",
+      "verdict_no_difference": "Aucune différence significative entre les groupes à alpha={{alpha}}"
     }
   }
 }
