@@ -1010,6 +1010,35 @@ export type ObservedResultsRanked = {
   trim?: number;
 };
 
+export type PairedResultsRequest = {
+  test_type: "paired_t" | "wilcoxon" | "mcnemar";
+  control_values: number[];
+  treatment_values: number[];
+  alpha?: number;
+};
+
+export type PairedResultsResponse = {
+  test_type: string;
+  n_pairs: number;
+  effect: number;
+  effect_label: string;
+  ci_lower: number;
+  ci_upper: number;
+  ci_level: number;
+  p_value: number;
+  test_statistic: number;
+  is_significant: boolean;
+  effect_size?: number | null;
+  effect_size_label?: string | null;
+  method?: string | null;
+  n_zero_differences?: number | null;
+  n_discordant?: number | null;
+  discordant_positive?: number | null;
+  discordant_negative?: number | null;
+  verdict: string;
+  interpretation: string;
+};
+
 export type PrePeriodEvent = {
   user_id: string;
   value: number;

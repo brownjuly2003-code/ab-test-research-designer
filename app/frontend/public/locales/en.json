@@ -728,7 +728,8 @@
         "assignment": "User assignment",
         "liveStats": "Live experiment",
         "decision": "Decision readout",
-        "categoricalResults": "Categorical outcome (chi-square)"
+        "categoricalResults": "Categorical outcome (chi-square)",
+        "pairedResults": "Paired samples"
       },
       "badges": {
         "loaded": "Loaded",
@@ -948,6 +949,36 @@
         "small": "small",
         "medium": "medium",
         "large": "large"
+      }
+    },
+    "pairedResults": {
+      "title": "Paired samples (within-subject)",
+      "description": "Compare two measurements of the same units — paired t-test, Wilcoxon signed-rank, or McNemar for paired binary outcomes.",
+      "testTypeLabel": "Test",
+      "testType": {
+        "paired_t": "Paired t-test",
+        "wilcoxon": "Wilcoxon signed-rank",
+        "mcnemar": "McNemar (paired binary)"
+      },
+      "controlLabel": "Control / before",
+      "treatmentLabel": "Treatment / after",
+      "valuesPlaceholder": "10\n12\n9\n15",
+      "valuesHelp": "One value per line (or comma / space separated). Both arms must have the same number of values, paired by position.",
+      "mcnemarHelp": "One value per pair, 0 or 1 (e.g. converted or not). Both arms must have the same number of values, paired by position.",
+      "alphaLabel": "Significance level (alpha)",
+      "analyzeButton": "Run paired test",
+      "analyzing": "Analyzing…",
+      "validation": {
+        "parseError": "Enter at least two numeric values per arm (one per line or comma/space separated).",
+        "lengthMismatch": "Both arms must have the same number of paired values.",
+        "analysisUnavailable": "Analysis is unavailable. Check the values and try again."
+      },
+      "results": {
+        "pValue": "p-value",
+        "testStatistic": "Test statistic",
+        "pairs": "Pairs",
+        "zeroDifferences": "Zero differences",
+        "discordant": "Discordant (+/−)"
       }
     }
   },

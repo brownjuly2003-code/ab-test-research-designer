@@ -728,7 +728,8 @@
         "assignment": "用户分配",
         "liveStats": "实时实验",
         "decision": "决策摘要",
-        "categoricalResults": "分类结果（卡方）"
+        "categoricalResults": "分类结果（卡方）",
+        "pairedResults": "配对样本"
       },
       "badges": {
         "loaded": "已加载",
@@ -948,6 +949,36 @@
         "small": "弱",
         "medium": "中等",
         "large": "强"
+      }
+    },
+    "pairedResults": {
+      "title": "配对样本（受试者内）",
+      "description": "比较同一批单位的两次测量——配对 t 检验、Wilcoxon 符号秩检验，或用于配对二元结局的 McNemar 检验。",
+      "testTypeLabel": "检验",
+      "testType": {
+        "paired_t": "配对 t 检验",
+        "wilcoxon": "Wilcoxon 符号秩检验",
+        "mcnemar": "McNemar（配对二元）"
+      },
+      "controlLabel": "对照 / 之前",
+      "treatmentLabel": "处理 / 之后",
+      "valuesPlaceholder": "10\n12\n9\n15",
+      "valuesHelp": "每行一个数值（或用逗号/空格分隔）。两组数值数量必须相同，按位置配对。",
+      "mcnemarHelp": "每对一个数值，0 或 1（例如是否转化）。两组数值数量必须相同，按位置配对。",
+      "alphaLabel": "显著性水平（alpha）",
+      "analyzeButton": "运行配对检验",
+      "analyzing": "分析中…",
+      "validation": {
+        "parseError": "每组至少输入两个数值（每行一个或用逗号/空格分隔）。",
+        "lengthMismatch": "两组的配对数值数量必须相同。",
+        "analysisUnavailable": "分析不可用。请检查数值后重试。"
+      },
+      "results": {
+        "pValue": "p 值",
+        "testStatistic": "检验统计量",
+        "pairs": "对数",
+        "zeroDifferences": "零差值",
+        "discordant": "不一致（+/−）"
       }
     }
   },

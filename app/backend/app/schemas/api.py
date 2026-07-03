@@ -454,6 +454,73 @@ class CategoricalResultsResponse(BaseModel):
     interpretation: str
 
 
+class PairedResultsRequest(BaseModel):
+    """Two equal-length arrays of paired (within-subject) observations for the paired-test family.
+
+    ``control_values`` and ``treatment_values`` are two measurements of the *same units* (before/after,
+    control/treatment on the same user), paired by index — hence they must be the same length. One
+    input form feeds three analyzers via ``test_type``: the paired t-test and the Wilcoxon signed-rank
+    test consume the per-pair differences of arbitrary real values, while McNemar's test needs paired
+    **binary** data, so every value must be 0 or 1 there. Separate from ``ResultsRequest`` (which holds
+    independent-arm summaries / samples) because the observations are paired and the outcome shape
+    differs per test.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    test_type: Literal["paired_t", "wilcoxon", "mcnemar"]
+    control_values: list[float] = Field(min_length=2, max_length=MAX_OBSERVED_SAMPLE_SIZE)
+    treatment_values: list[float] = Field(min_length=2, max_length=MAX_OBSERVED_SAMPLE_SIZE)
+    alpha: float = Field(default=0.05, ge=0.001, le=0.1)
+
+    @model_validator(mode="after")
+    def validate_pairs(self) -> "PairedResultsRequest":
+        if len(self.control_values) != len(self.treatment_values):
+            raise ValueError(translate("errors.schemas.paired_length_mismatch"))
+        if any(not isfinite(value) for value in self.control_values) or any(
+            not isfinite(value) for value in self.treatment_values
+        ):
+            raise ValueError(translate("errors.schemas.paired_values_finite"))
+        if self.test_type == "mcnemar":
+            if any(value not in (0.0, 1.0) for value in self.control_values) or any(
+                value not in (0.0, 1.0) for value in self.treatment_values
+            ):
+                raise ValueError(translate("errors.schemas.paired_mcnemar_binary"))
+        return self
+
+
+class PairedResultsResponse(BaseModel):
+    """Outcome of a paired-family test: a scalar effect on the paired difference plus a CI.
+
+    ``effect`` is the mean difference (paired t), the Hodges–Lehmann pseudomedian (Wilcoxon) or the
+    marginal proportion difference (McNemar); ``effect_size`` / ``effect_size_label`` carry Cohen's
+    d_z, the rank-biserial correlation or the discordance odds ratio respectively (odds ratio is
+    ``None`` when no ``1 → 0`` pairs exist). ``n_zero_differences`` is populated only for Wilcoxon,
+    the discordant counts only for McNemar; ``method`` records the McNemar branch (exact vs
+    chi-square). The mean-based paths leave the paired-specific fields ``None``.
+    """
+
+    test_type: str
+    n_pairs: int
+    effect: float
+    effect_label: str
+    ci_lower: float
+    ci_upper: float
+    ci_level: float
+    p_value: float
+    test_statistic: float
+    is_significant: bool
+    effect_size: float | None = None
+    effect_size_label: str | None = None
+    method: str | None = None
+    n_zero_differences: int | None = None
+    n_discordant: int | None = None
+    discordant_positive: int | None = None
+    discordant_negative: int | None = None
+    verdict: str
+    interpretation: str
+
+
 class SavedObservedResults(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

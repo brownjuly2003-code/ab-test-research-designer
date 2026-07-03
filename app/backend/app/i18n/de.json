@@ -292,7 +292,12 @@
       "categorical_rectangular": "Kontingenztabelle muss rechteckig sein (jede Zeile braucht gleich viele Spalten)",
       "categorical_non_negative": "Häufigkeiten in der Kontingenztabelle dürfen nicht negativ sein",
       "planned_test_metric_mismatch": "planned_test ist für diesen metric_type nicht verfügbar",
-      "tost_margin_required": "equivalence_margin_pct ist für einen TOST-Äquivalenzplan erforderlich"
+      "tost_margin_required": "equivalence_margin_pct ist für einen TOST-Äquivalenzplan erforderlich",
+      "paired_length_mismatch": "gepaarte Stichproben müssen gleich viele Kontroll- und Behandlungswerte enthalten",
+      "paired_values_finite": "Werte gepaarter Stichproben müssen endliche Zahlen sein",
+      "paired_mcnemar_binary": "McNemars Test erfordert gepaarte binäre Werte (jeder Wert muss 0 oder 1 sein)",
+      "paired_t_degenerate": "der gepaarte t-Test ist nicht definiert: er benötigt mindestens zwei Paare mit einer von null verschiedenen Differenzvarianz",
+      "wilcoxon_degenerate": "der Wilcoxon-Vorzeichen-Rang-Test ist nicht definiert: er benötigt mindestens zwei von null verschiedene Differenzen, die nicht alle betragsgleich sind"
     },
     "srm_detected": "SRM erkannt — prüfen Sie Ihre Randomisierung oder Tracking-Implementierung",
     "srm_not_detected": "Keine SRM erkannt"
@@ -323,13 +328,17 @@
       "quantile": "P{{percentile}}-Quantil der Behandlung {{treatmentQuantile}} vs. Kontrolle {{controlQuantile}}. Quantilverschiebung {{effect}} mit {{ciLevel}}%-Perzentil-Bootstrap-KI [{{ciLower}}, {{ciUpper}}]. Zweiseitiger Permutations-p-Wert {{pValue}} über {{permutations}} Umordnungen; Ergebnis ist {{significance}}.",
       "trimmed_t": "{{trimPct}}%-getrimmter Mittelwert der Testvariante {{treatmentMean}} vs. Kontrolle {{controlMean}} (effektives n {{treatmentEffectiveN}} vs. {{controlEffectiveN}} nach dem Trimmen). Robuste Mittelwertverschiebung {{effect}} mit {{ciLevel}}% KI [{{ciLower}}, {{ciUpper}}]. Zweiseitiger Yuen–Welch-t-p-Wert {{pValue}} bei {{df}} Freiheitsgraden; das Ergebnis ist {{significance}}.",
       "equivalence": "Mittelwert der Behandlung {{treatmentMean}} vs. Kontrolle {{controlMean}}. Effekt {{effect}} gegen eine Äquivalenzgrenze von ±{{margin}} geprüft: {{equivalence}}. Das {{ciLevel}}%-Konfidenzintervall [{{ciLower}}, {{ciUpper}}] ist das TOST-Entscheidungsintervall; p-Wert der zwei einseitigen Tests {{pValue}}.",
-      "categorical": "Chi-Quadrat {{chiSquare}} bei {{df}} Freiheitsgraden für eine {{rows}}×{{cols}}-Kontingenztabelle (N = {{n}}). Zweiseitiger p-Wert {{pValue}}; das Ergebnis ist {{significance}}. Cramérs V {{cramersV}} misst die Stärke des Zusammenhangs."
+      "categorical": "Chi-Quadrat {{chiSquare}} bei {{df}} Freiheitsgraden für eine {{rows}}×{{cols}}-Kontingenztabelle (N = {{n}}). Zweiseitiger p-Wert {{pValue}}; das Ergebnis ist {{significance}}. Cramérs V {{cramersV}} misst die Stärke des Zusammenhangs.",
+      "paired_t": "Behandlungsmittel {{treatmentMean}} vs. Kontrolle {{controlMean}}. Mittlere gepaarte Differenz {{meanDiff}} mit {{ciLevel}}%-KI [{{ciLower}}, {{ciUpper}}]. Gepaartes t {{tStat}} bei {{df}} Freiheitsgraden, zweiseitiger p-Wert {{pValue}}; das Ergebnis ist {{significance}}. Cohens dz {{cohenDz}}.",
+      "wilcoxon": "Hodges–Lehmann-Pseudomedian der gepaarten Differenzen {{pseudomedian}} mit {{ciLevel}}%-KI [{{ciLower}}, {{ciUpper}}]. Vorzeichen-Rang-Statistik {{wStat}} über {{nNonzero}} von null verschiedene Differenzen ({{nZero}} Nulldifferenzen verworfen), zweiseitiger p-Wert {{pValue}}; das Ergebnis ist {{significance}}. Rang-biseriale Korrelation {{rankBiserial}}.",
+      "mcnemar": "Diskordante Paare: {{b}} wechselten zum Erfolg, {{c}} weg ({{nDiscordant}} gesamt). Differenz der Randanteile {{proportionDiff}} Pp, Quotenverhältnis der Diskordanz {{oddsRatio}}. Zweiseitiger p-Wert {{pValue}} ({{method}}); das Ergebnis ist {{significance}}."
     },
     "effect_size": {
       "rank_biserial": "Rang-biseriale Korrelation",
       "odds_ratio": "Quotenverhältnis (odds ratio)",
       "rate_ratio": "Ratenverhältnis (rate ratio)",
-      "cohens_d": "Cohens d"
+      "cohens_d": "Cohens d",
+      "cohens_dz": "Cohens dz"
     },
     "mann_whitney": {
       "method_exact": "exakt",
@@ -348,6 +357,18 @@
     "categorical": {
       "verdict_associated": "Zusammenhang erkannt",
       "verdict_independent": "Kein signifikanter Zusammenhang"
+    },
+    "paired": {
+      "effect": {
+        "mean_difference": "mittlere Differenz",
+        "pseudomedian": "Hodges–Lehmann-Pseudomedian",
+        "proportion_difference": "Differenz der Randanteile"
+      }
+    },
+    "mcnemar": {
+      "method_exact": "exakter Binomialtest",
+      "method_chi_square": "Chi-Quadrat mit Stetigkeitskorrektur",
+      "odds_ratio_undefined": "nicht definiert"
     }
   }
 }

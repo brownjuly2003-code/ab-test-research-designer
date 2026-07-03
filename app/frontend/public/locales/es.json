@@ -728,7 +728,8 @@
         "assignment": "Asignación de usuario",
         "liveStats": "Experimento en vivo",
         "decision": "Lectura de decisión",
-        "categoricalResults": "Resultado categórico (chi-cuadrado)"
+        "categoricalResults": "Resultado categórico (chi-cuadrado)",
+        "pairedResults": "Muestras pareadas"
       },
       "badges": {
         "loaded": "Cargado",
@@ -948,6 +949,36 @@
         "small": "pequeña",
         "medium": "media",
         "large": "grande"
+      }
+    },
+    "pairedResults": {
+      "title": "Muestras pareadas (intrasujeto)",
+      "description": "Comparar dos mediciones de las mismas unidades: prueba t pareada, prueba de Wilcoxon de rangos con signo o McNemar para resultados binarios pareados.",
+      "testTypeLabel": "Prueba",
+      "testType": {
+        "paired_t": "Prueba t pareada",
+        "wilcoxon": "Wilcoxon de rangos con signo",
+        "mcnemar": "McNemar (binaria pareada)"
+      },
+      "controlLabel": "Control / antes",
+      "treatmentLabel": "Tratamiento / después",
+      "valuesPlaceholder": "10\n12\n9\n15",
+      "valuesHelp": "Un valor por línea (o separados por coma / espacio). Ambos grupos deben tener el mismo número de valores, pareados por posición.",
+      "mcnemarHelp": "Un valor por par, 0 o 1 (p. ej., convirtió o no). Ambos grupos deben tener el mismo número de valores, pareados por posición.",
+      "alphaLabel": "Nivel de significación (alfa)",
+      "analyzeButton": "Ejecutar prueba pareada",
+      "analyzing": "Analizando…",
+      "validation": {
+        "parseError": "Introduzca al menos dos valores numéricos por grupo (uno por línea o separados por coma/espacio).",
+        "lengthMismatch": "Ambos grupos deben tener el mismo número de valores pareados.",
+        "analysisUnavailable": "El análisis no está disponible. Revise los valores e inténtelo de nuevo."
+      },
+      "results": {
+        "pValue": "valor p",
+        "testStatistic": "Estadístico de prueba",
+        "pairs": "Pares",
+        "zeroDifferences": "Diferencias nulas",
+        "discordant": "Discordantes (+/−)"
       }
     }
   },
