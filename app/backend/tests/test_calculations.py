@@ -436,3 +436,128 @@ def test_calculation_rejects_zero_daily_traffic() -> None:
                 "variants_count": 2,
             }
         )
+
+
+# --- planned_test routing (P2.1 sizing parity) -----------------------------------------------
+
+
+_BINARY_BASE = {
+    "metric_type": "binary",
+    "baseline_value": 0.20,
+    "mde_pct": 100.0,
+    "alpha": 0.05,
+    "power": 0.8,
+    "expected_daily_traffic": 1000,
+    "audience_share_in_test": 1.0,
+    "traffic_split": [50, 50],
+}
+
+_CONTINUOUS_BASE = {
+    "metric_type": "continuous",
+    "baseline_value": 100.0,
+    "std_dev": 20.0,
+    "mde_pct": 5.0,
+    "alpha": 0.05,
+    "power": 0.8,
+    "expected_daily_traffic": 1000,
+    "audience_share_in_test": 1.0,
+    "traffic_split": [50, 50],
+}
+
+
+def test_default_planned_test_is_z_test() -> None:
+    result = calculate_experiment_metrics(dict(_BINARY_BASE))
+    assert result["calculation_summary"]["planned_test"] == "z_test"
+    assert result["calculation_summary"]["equivalence_margin_pct"] is None
+
+
+def test_binary_fisher_exact_plan_exceeds_z_plan() -> None:
+    z_plan = calculate_experiment_metrics(dict(_BINARY_BASE))
+    exact_plan = calculate_experiment_metrics({**_BINARY_BASE, "planned_test": "fisher_exact"})
+    # Frozen P2.1 references: z 82, exact 90 for p 0.20 -> 0.40 at alpha 0.05 / power 0.80.
+    assert z_plan["results"]["sample_size_per_variant"] == 82
+    assert exact_plan["results"]["sample_size_per_variant"] == 90
+    assert exact_plan["calculation_summary"]["planned_test"] == "fisher_exact"
+
+
+def test_continuous_mann_whitney_plan_inflates_by_are() -> None:
+    z_plan = calculate_experiment_metrics(dict(_CONTINUOUS_BASE))
+    mw_plan = calculate_experiment_metrics({**_CONTINUOUS_BASE, "planned_test": "mann_whitney"})
+    assert z_plan["results"]["sample_size_per_variant"] == 252
+    assert mw_plan["results"]["sample_size_per_variant"] == 264
+    assert mw_plan["calculation_summary"]["planned_test"] == "mann_whitney"
+
+
+def test_continuous_tost_plan_uses_margin_and_echoes_it() -> None:
+    result = calculate_experiment_metrics(
+        {**_CONTINUOUS_BASE, "planned_test": "tost", "equivalence_margin_pct": 2.0}
+    )
+    assert result["results"]["sample_size_per_variant"] == 1713
+    assert result["calculation_summary"]["planned_test"] == "tost"
+    assert result["calculation_summary"]["equivalence_margin_pct"] == pytest.approx(2.0)
+    assert result["calculation_summary"]["equivalence_margin_absolute"] == pytest.approx(2.0)
+    # The user's MDE is echoed untouched even though the margin drives the plan.
+    assert result["calculation_summary"]["mde_pct"] == pytest.approx(5.0)
+
+
+def test_tost_plan_requires_margin() -> None:
+    with pytest.raises(ValueError):
+        calculate_experiment_metrics({**_CONTINUOUS_BASE, "planned_test": "tost"})
+
+
+def test_planned_test_metric_mismatch_raises() -> None:
+    with pytest.raises(ValueError):
+        calculate_experiment_metrics({**_BINARY_BASE, "planned_test": "mann_whitney"})
+    with pytest.raises(ValueError):
+        calculate_experiment_metrics({**_CONTINUOUS_BASE, "planned_test": "fisher_exact"})
+    with pytest.raises(ValueError):
+        calculate_experiment_metrics(
+            {**_CONTINUOUS_BASE, "metric_type": "ratio", "planned_test": "tost"}
+        )
+
+
+def test_count_metric_routes_to_poisson_rate_sizing() -> None:
+    result = calculate_experiment_metrics(
+        {
+            "metric_type": "count",
+            "baseline_value": 0.30,
+            "mde_pct": 20.0,
+            "alpha": 0.05,
+            "power": 0.8,
+            "expected_daily_traffic": 5000,
+            "audience_share_in_test": 1.0,
+            "traffic_split": [50, 50],
+        }
+    )
+    # Frozen P2.1 reference: 948 total events -> 1437 users per variant at unit exposure.
+    assert result["results"]["sample_size_per_variant"] == 1437
+    assert result["calculation_summary"]["metric_type"] == "count"
+    assert result["calculation_summary"]["planned_test"] == "poisson_rate"
+    assert result["results"]["estimated_duration_days"] > 0
+
+
+def test_count_metric_honors_exposure_per_user() -> None:
+    result = calculate_experiment_metrics(
+        {
+            "metric_type": "count",
+            "baseline_value": 0.30,
+            "mde_pct": 20.0,
+            "alpha": 0.05,
+            "power": 0.8,
+            "exposure_per_user": 2.0,
+            "expected_daily_traffic": 5000,
+            "audience_share_in_test": 1.0,
+            "traffic_split": [50, 50],
+        }
+    )
+    assert result["results"]["sample_size_per_variant"] == 719
+
+
+def test_cuped_companion_only_on_the_default_plan() -> None:
+    cuped_inputs = {"cuped_pre_experiment_std": 18.0, "cuped_correlation": 0.6}
+    default_plan = calculate_experiment_metrics({**_CONTINUOUS_BASE, **cuped_inputs})
+    mw_plan = calculate_experiment_metrics(
+        {**_CONTINUOUS_BASE, **cuped_inputs, "planned_test": "mann_whitney"}
+    )
+    assert default_plan["cuped_sample_size_per_variant"] is not None
+    assert mw_plan["cuped_sample_size_per_variant"] is None

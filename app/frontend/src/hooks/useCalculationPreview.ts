@@ -145,6 +145,14 @@ function canCompute(draft: FullPayload): boolean {
       return false;
     }
 
+    // A TOST equivalence plan is sized by the margin; without it the backend rejects the request.
+    if (draft.metrics.planned_test === "tost") {
+      const equivalenceMarginPct = Number(draft.metrics.equivalence_margin_pct);
+      if (!(equivalenceMarginPct > 0)) {
+        return false;
+      }
+    }
+
     if (!draft.metrics.cuped_enabled) {
       return true;
     }

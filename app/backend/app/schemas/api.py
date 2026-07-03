@@ -128,6 +128,17 @@ class GuardrailMetricInput(BaseModel):
         return self
 
 
+# Which planned analysis methods can size which metric type. "z_test" is the historical
+# normal-approximation plan; the alternatives were added by the P2.1 sizing-parity increment
+# (fisher_exact = exact small-n binary power, mann_whitney = rank-test ARE inflation,
+# tost = two-one-sided-tests equivalence power). Shared by MetricsConfig and CalculationRequest.
+PLANNED_TESTS_BY_METRIC_TYPE: dict[str, set[str]] = {
+    "binary": {"z_test", "fisher_exact"},
+    "continuous": {"z_test", "mann_whitney", "tost"},
+    "ratio": {"z_test"},
+}
+
+
 class MetricsConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -136,6 +147,10 @@ class MetricsConfig(BaseModel):
     baseline_value: float
     expected_uplift_pct: float | None = None
     mde_pct: float = Field(gt=0)
+    # Planned analysis method for sample sizing (see CalculationRequest.planned_test); None keeps
+    # the historical normal-approximation plan. equivalence_margin_pct is required for "tost".
+    planned_test: Literal["z_test", "fisher_exact", "mann_whitney", "tost"] | None = None
+    equivalence_margin_pct: float | None = Field(default=None, gt=0)
     alpha: float = Field(gt=0, lt=1)
     power: float = Field(gt=0, lt=1)
     std_dev: float | None = None
@@ -167,6 +182,16 @@ class MetricsConfig(BaseModel):
                 raise ValueError(
                     "numerator_metric_name and denominator_metric_name must be different"
                 )
+        return self
+
+    @model_validator(mode="after")
+    def validate_planned_test(self) -> "MetricsConfig":
+        if self.planned_test is not None and self.planned_test not in PLANNED_TESTS_BY_METRIC_TYPE.get(
+            self.metric_type, set()
+        ):
+            raise ValueError(translate("errors.schemas.planned_test_metric_mismatch"))
+        if self.planned_test == "tost" and self.equivalence_margin_pct is None:
+            raise ValueError(translate("errors.schemas.tost_margin_required"))
         return self
 
 
@@ -458,6 +483,15 @@ class CalculationRequest(BaseModel):
     cuped_pre_experiment_std: float | None = Field(default=None, gt=0)
     cuped_correlation: float | None = Field(default=None, gt=-1.0, lt=1.0)
     mde_pct: float = Field(gt=0)
+    # Planned analysis method the sample size is computed for. None resolves to the historical
+    # normal-approximation plan ("z_test"). "fisher_exact" pairs with binary metrics (exact power,
+    # small n); "mann_whitney" and "tost" pair with continuous metrics (rank-test ARE inflation and
+    # two-one-sided-tests equivalence power respectively) — see stats/{fisher_exact,mann_whitney,
+    # equivalence}.py for the sizing math and sources.
+    planned_test: Literal["z_test", "fisher_exact", "mann_whitney", "tost"] | None = None
+    # Symmetric equivalence margin, relative to the baseline like mde_pct. Required for a TOST
+    # plan (it is what drives the sample size there); ignored by every other planned test.
+    equivalence_margin_pct: float | None = Field(default=None, gt=0)
     alpha: float = Field(gt=0, lt=1)
     power: float = Field(gt=0, lt=1)
     expected_daily_traffic: int = Field(gt=0)
@@ -499,6 +533,16 @@ class CalculationRequest(BaseModel):
                 raise ValueError(translate("errors.schemas.ratio_baseline_positive"))
             if self.std_dev is None or self.std_dev <= 0:
                 raise ValueError(translate("errors.schemas.ratio_std_positive"))
+        return self
+
+    @model_validator(mode="after")
+    def validate_planned_test(self) -> "CalculationRequest":
+        if self.planned_test is not None and self.planned_test not in PLANNED_TESTS_BY_METRIC_TYPE.get(
+            self.metric_type, set()
+        ):
+            raise ValueError(translate("errors.schemas.planned_test_metric_mismatch"))
+        if self.planned_test == "tost" and self.equivalence_margin_pct is None:
+            raise ValueError(translate("errors.schemas.tost_margin_required"))
         return self
 
     @model_validator(mode="after")
@@ -1213,6 +1257,11 @@ class CalculationSummaryResponse(BaseModel):
     mde_absolute: float
     alpha: float
     power: float
+    # Resolved planned analysis method the sample size was computed for ("z_test" when the request
+    # did not name one). The margin echoes are populated only for a TOST equivalence plan.
+    planned_test: str | None = None
+    equivalence_margin_pct: float | None = None
+    equivalence_margin_absolute: float | None = None
 
 
 class CalculationResultsResponse(BaseModel):

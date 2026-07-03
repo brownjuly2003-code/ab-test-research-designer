@@ -151,7 +151,9 @@
         "secondary_metrics": "Métriques secondaires",
         "guardrail_metrics": "Métriques de garde-corps",
         "alpha": "Alpha",
-        "power": "Pouvoir"
+        "power": "Pouvoir",
+        "planned_test": "Analyse prévue",
+        "equivalence_margin_pct": "Marge d'équivalence %"
       },
       "constraints": {
         "seasonality_present": "Saisonnalité présente",
@@ -186,7 +188,9 @@
       "std_dev": "Écart type de la métrique continue. Obligatoire uniquement pour les métriques continues ; exemple : 12,5 pour la valeur moyenne de la commande.",
       "interference_risk": "Risque que les utilisateurs ou les unités puissent s’influencer mutuellement à travers les variantes et rompre l’isolement.",
       "holdout_fraction": "Holdout global : part du trafic exclue de toutes les expériences comme contrôle propre. Laissez vide s'il n'y en a pas, ou saisissez 0,1 pour un holdout de 10 %. Réduit le trafic reçu par ce test, ce qui allonge la durée tandis que la taille d'échantillon reste inchangée.",
-      "mutually_exclusive_experiments": "Nombre d'expériences mutuellement exclusives partageant le même trafic. Laissez vide pour 1. Avec N, ce test reçoit 1/N du trafic, ce qui allonge la durée en conséquence."
+      "mutually_exclusive_experiments": "Nombre d'expériences mutuellement exclusives partageant le même trafic. Laissez vide pour 1. Avec N, ce test reçoit 1/N du trafic, ce qui allonge la durée en conséquence.",
+      "planned_test": "Méthode d'analyse pour laquelle la taille d'échantillon est planifiée. Le test z est le choix classique par défaut ; le test exact de Fisher demande un peu plus d'utilisateurs sur les petits échantillons ; Mann-Whitney (test de rangs pour les métriques asymétriques) augmente le plan d'environ 5 % ; l'équivalence (TOST) vise à CONFIRMER que les variantes sont identiques dans une marge donnée plutôt qu'à détecter une différence.",
+      "equivalence_margin_pct": "Marge d'équivalence symétrique en pourcentage de la valeur de référence : le plus grand écart encore considéré comme « pratiquement identique ». C'est elle qui détermine la taille d'échantillon TOST (le MDE ne s'applique pas à un plan d'équivalence)."
     },
     "options": {
       "setup": {
@@ -201,6 +205,12 @@
         "metric_type": {
           "binary": "Binaire",
           "continuous": "Continu"
+        },
+        "planned_test": {
+          "z_test": "Test z (par défaut)",
+          "fisher_exact": "Test exact de Fisher (petits échantillons)",
+          "mann_whitney": "Mann-Whitney (test de rangs)",
+          "tost": "Équivalence (TOST)"
         }
       },
       "constraints": {

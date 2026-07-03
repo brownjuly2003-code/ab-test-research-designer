@@ -2578,3 +2578,130 @@ def test_multiple_testing_endpoint_rejects_invalid_input(body: dict[str, object]
     client = TestClient(create_app())
     response = client.post("/api/v1/multiple-testing", json=body)
     assert response.status_code == 422
+
+
+# --- planned_test sizing parity (P2.1) --------------------------------------------------------
+
+
+def _sizing_calculate_payload(**overrides: object) -> dict[str, object]:
+    payload: dict[str, object] = {
+        "metric_type": "continuous",
+        "baseline_value": 100.0,
+        "std_dev": 20.0,
+        "mde_pct": 5.0,
+        "alpha": 0.05,
+        "power": 0.8,
+        "expected_daily_traffic": 10000,
+        "audience_share_in_test": 1.0,
+        "traffic_split": [50, 50],
+        "variants_count": 2,
+    }
+    payload.update(overrides)
+    return payload
+
+
+def test_calculate_endpoint_sizes_mann_whitney_plan() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/calculate", json=_sizing_calculate_payload(planned_test="mann_whitney")
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    # Frozen P2.1 references: parametric 252 -> ARE-inflated 264.
+    assert payload["results"]["sample_size_per_variant"] == 264
+    assert payload["calculation_summary"]["planned_test"] == "mann_whitney"
+    assert any("3/pi" in assumption for assumption in payload["assumptions"])
+
+
+def test_calculate_endpoint_sizes_tost_plan_with_margin() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/calculate",
+        json=_sizing_calculate_payload(planned_test="tost", equivalence_margin_pct=2.0),
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["results"]["sample_size_per_variant"] == 1713
+    assert payload["calculation_summary"]["planned_test"] == "tost"
+    assert payload["calculation_summary"]["equivalence_margin_pct"] == pytest.approx(2.0)
+    assert payload["calculation_summary"]["equivalence_margin_absolute"] == pytest.approx(2.0)
+
+
+def test_calculate_endpoint_sizes_fisher_exact_plan() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/calculate",
+        json=_sizing_calculate_payload(
+            metric_type="binary",
+            baseline_value=0.20,
+            std_dev=None,
+            mde_pct=100.0,
+            planned_test="fisher_exact",
+        ),
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    # Frozen P2.1 references: z-approx 82 -> exact 90.
+    assert payload["results"]["sample_size_per_variant"] == 90
+    assert payload["calculation_summary"]["planned_test"] == "fisher_exact"
+
+
+def test_calculate_endpoint_defaults_planned_test_to_z_test() -> None:
+    client = TestClient(create_app())
+
+    response = client.post("/api/v1/calculate", json=_sizing_calculate_payload())
+
+    assert response.status_code == 200
+    assert response.json()["calculation_summary"]["planned_test"] == "z_test"
+
+
+def test_calculate_endpoint_rejects_tost_without_margin() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/calculate", json=_sizing_calculate_payload(planned_test="tost")
+    )
+
+    assert response.status_code == 422
+    assert "equivalence_margin_pct" in response.text
+
+
+def test_calculate_endpoint_rejects_planned_test_metric_mismatch() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/calculate",
+        json=_sizing_calculate_payload(
+            metric_type="binary", baseline_value=0.2, std_dev=None, planned_test="mann_whitney"
+        ),
+    )
+
+    assert response.status_code == 422
+    assert "planned_test" in response.text
+
+
+def test_design_endpoint_carries_planned_test_into_the_report() -> None:
+    client = TestClient(create_app())
+    payload = _continuous_full_payload()
+    payload["metrics"]["baseline_value"] = 100.0
+    payload["metrics"]["std_dev"] = 20.0
+    payload["metrics"]["mde_pct"] = 5.0
+    payload["metrics"]["planned_test"] = "mann_whitney"
+    # The CUPED companion is defined for the default mean-based plan only (see
+    # calculations_service); drop the CUPED inputs so the rank plan is exercised cleanly.
+    payload["metrics"]["cuped_pre_experiment_std"] = None
+    payload["metrics"]["cuped_correlation"] = None
+
+    response = client.post("/api/v1/design", json=payload)
+
+    assert response.status_code == 200
+    calculations = response.json()["calculations"]
+    # Frozen P2.1 reference: the full design path sizes exactly like /calculate (264, not 252).
+    assert calculations["sample_size_per_variant"] == 264
+    assert any("3/pi" in assumption for assumption in calculations["assumptions"])

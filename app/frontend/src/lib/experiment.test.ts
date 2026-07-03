@@ -12,6 +12,7 @@ import {
   parseImportedDraft,
   parseMetricList,
   parseTrafficSplit,
+  setSectionFieldValue,
   validateField,
   validateForm
 } from "./experiment";
@@ -117,6 +118,55 @@ describe("experiment helpers", () => {
     expect("cuped_enabled" in payload.metrics).toBe(false);
     expect(calculationPayload.cuped_pre_experiment_std).toBe(11.8);
     expect(calculationPayload.cuped_correlation).toBe(0.5);
+  });
+
+  it("defaults the planned test to z_test in both payloads", () => {
+    const payload = buildApiPayload(cloneInitialState());
+    const calculationPayload = buildCalculationPayload(cloneInitialState());
+
+    expect(payload.metrics.planned_test).toBe("z_test");
+    expect(payload.metrics.equivalence_margin_pct).toBeNull();
+    expect(calculationPayload.planned_test).toBe("z_test");
+    expect(calculationPayload.equivalence_margin_pct).toBeNull();
+  });
+
+  it("carries the equivalence margin only for a TOST plan", () => {
+    const state = cloneInitialState();
+    state.metrics.metric_type = "continuous";
+    state.metrics.baseline_value = 100;
+    state.metrics.std_dev = 20;
+    state.metrics.planned_test = "tost";
+    state.metrics.equivalence_margin_pct = 2;
+
+    const tostPayload = buildCalculationPayload(state);
+    expect(tostPayload.planned_test).toBe("tost");
+    expect(tostPayload.equivalence_margin_pct).toBe(2);
+
+    // A stale margin left over from a previous TOST selection must not leak into the payload.
+    state.metrics.planned_test = "mann_whitney";
+    const rankPayload = buildCalculationPayload(state);
+    expect(rankPayload.planned_test).toBe("mann_whitney");
+    expect(rankPayload.equivalence_margin_pct).toBeNull();
+  });
+
+  it("resets the planned test when the metric type changes", () => {
+    const state = cloneInitialState();
+    state.metrics.metric_type = "continuous";
+    state.metrics.planned_test = "mann_whitney";
+    state.metrics.equivalence_margin_pct = 2;
+
+    const next = setSectionFieldValue(state, "metrics", "metric_type", "binary");
+
+    expect(next.metrics.planned_test).toBe("z_test");
+    expect(next.metrics.equivalence_margin_pct).toBe("");
+  });
+
+  it("hydrates legacy payloads without a planned test to the z_test default", () => {
+    // The bundled sample project predates planned_test, so importing it exercises the legacy path.
+    const hydrated = parseImportedDraft(JSON.stringify(sampleProject));
+
+    expect(hydrated.metrics.planned_test).toBe("z_test");
+    expect(hydrated.metrics.equivalence_margin_pct).toBe("");
   });
 
   it("builds a normalized draft transfer file", () => {

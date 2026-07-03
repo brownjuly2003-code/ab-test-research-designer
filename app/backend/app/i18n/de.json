@@ -288,7 +288,9 @@
       "categorical_min_columns": "Kontingenztabelle benötigt mindestens zwei Spalten",
       "categorical_max_columns": "Kontingenztabelle hat zu viele Spalten",
       "categorical_rectangular": "Kontingenztabelle muss rechteckig sein (jede Zeile braucht gleich viele Spalten)",
-      "categorical_non_negative": "Häufigkeiten in der Kontingenztabelle dürfen nicht negativ sein"
+      "categorical_non_negative": "Häufigkeiten in der Kontingenztabelle dürfen nicht negativ sein",
+      "planned_test_metric_mismatch": "planned_test ist für diesen metric_type nicht verfügbar",
+      "tost_margin_required": "equivalence_margin_pct ist für einen TOST-Äquivalenzplan erforderlich"
     },
     "srm_detected": "SRM erkannt — prüfen Sie Ihre Randomisierung oder Tracking-Implementierung",
     "srm_not_detected": "Keine SRM erkannt"

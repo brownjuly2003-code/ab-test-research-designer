@@ -288,7 +288,9 @@
       "categorical_min_columns": "列联表至少需要两列",
       "categorical_max_columns": "列联表的列数过多",
       "categorical_rectangular": "列联表必须为矩形（每行的列数相同）",
-      "categorical_non_negative": "列联表中的计数必须为非负数"
+      "categorical_non_negative": "列联表中的计数必须为非负数",
+      "planned_test_metric_mismatch": "planned_test 不适用于此 metric_type",
+      "tost_margin_required": "TOST 等效性方案需要 equivalence_margin_pct"
     },
     "srm_detected": "检测到 SRM - 检查您的随机化或跟踪实施",
     "srm_not_detected": "未检测到 SRM"

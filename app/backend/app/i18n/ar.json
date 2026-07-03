@@ -288,7 +288,9 @@
       "categorical_min_columns": "يحتاج جدول التوافق إلى عمودين على الأقل",
       "categorical_max_columns": "يحتوي جدول التوافق على عدد كبير جدًا من الأعمدة",
       "categorical_rectangular": "يجب أن يكون جدول التوافق مستطيلاً (كل صف يحتاج إلى العدد نفسه من الأعمدة)",
-      "categorical_non_negative": "يجب ألا تكون القيم في جدول التوافق سالبة"
+      "categorical_non_negative": "يجب ألا تكون القيم في جدول التوافق سالبة",
+      "planned_test_metric_mismatch": "planned_test غير متاح لهذا metric_type",
+      "tost_margin_required": "equivalence_margin_pct مطلوب لخطة التكافؤ TOST"
     },
     "srm_detected": "تم اكتشاف SRM - تحقق من التوزيع العشوائي أو تنفيذ التتبع",
     "srm_not_detected": "لم يتم اكتشاف SRM"

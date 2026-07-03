@@ -154,3 +154,75 @@ def test_type_one_error_under_boundary_truth() -> None:
         if result is not None and result["is_equivalent"]:
             false_equivalent += 1
     assert false_equivalent / trials <= 2 * alpha
+
+
+# --- sizing (calculate_tost_sample_size) -----------------------------------------------------
+# Frozen references from the P2.1 verification run (scratchpad verify_sizing_vs_scipy.py):
+# the classic Chow-Shao-Wang equivalence-of-means example sigma 0.10 / margin 0.05 / alpha 0.05 /
+# power 0.80 gives n = 69 (closed form 68.51; Monte-Carlo Welch-TOST power 0.802); the second case
+# sigma 20 / margin 2.0 gives n = 1713 (analytic power 0.8001, n-1 -> 0.7998).
+
+from app.backend.app.stats.equivalence import calculate_tost_sample_size, tost_power  # noqa: E402
+
+
+def test_sizing_matches_chow_shao_wang_example() -> None:
+    plan = calculate_tost_sample_size(
+        baseline_mean=1.0, std_dev=0.10, equivalence_margin_pct=5.0, alpha=0.05, power=0.80
+    )
+    assert plan["sample_size_per_variant"] == 69
+    assert plan["equivalence_margin_absolute"] == pytest.approx(0.05)
+
+
+def test_sizing_second_frozen_case() -> None:
+    plan = calculate_tost_sample_size(
+        baseline_mean=100.0, std_dev=20.0, equivalence_margin_pct=2.0, alpha=0.05, power=0.80
+    )
+    assert plan["sample_size_per_variant"] == 1713
+
+
+def test_sizing_returns_minimal_n() -> None:
+    plan = calculate_tost_sample_size(
+        baseline_mean=1.0, std_dev=0.10, equivalence_margin_pct=5.0, alpha=0.05, power=0.80
+    )
+    n = plan["sample_size_per_variant"]
+    assert tost_power(n, 0.10, 0.05, 0.05) >= 0.80
+    assert tost_power(n - 1, 0.10, 0.05, 0.05) < 0.80
+
+
+def test_sizing_power_uses_level_alpha_not_half() -> None:
+    # TOST is a level-alpha procedure: each one-sided test runs at alpha (Berger & Hsu 1996).
+    # If the implementation wrongly split alpha/2 the required n would be visibly larger.
+    at_alpha = calculate_tost_sample_size(1.0, 0.10, 5.0, 0.05, 0.80)
+    at_half = calculate_tost_sample_size(1.0, 0.10, 5.0, 0.025, 0.80)
+    assert at_alpha["sample_size_per_variant"] < at_half["sample_size_per_variant"]
+
+
+def test_sizing_margin_monotonicity() -> None:
+    wide = calculate_tost_sample_size(1.0, 0.10, 10.0, 0.05, 0.80)
+    narrow = calculate_tost_sample_size(1.0, 0.10, 2.5, 0.05, 0.80)
+    assert narrow["sample_size_per_variant"] > wide["sample_size_per_variant"]
+
+
+def test_sizing_assumptions_state_margin_drive_and_zero_difference() -> None:
+    plan = calculate_tost_sample_size(1.0, 0.10, 5.0, 0.05, 0.80)
+    text = " ".join(plan["assumptions"])
+    assert "margin" in text
+    assert "MDE" in text
+    assert "ZERO" in text
+
+
+def test_sizing_multivariant_applies_bonferroni() -> None:
+    three = calculate_tost_sample_size(1.0, 0.10, 5.0, 0.05, 0.80, variants_count=3)
+    assert three["adjusted_alpha"] == pytest.approx(0.025)
+    assert three["sample_size_per_variant"] > 69
+
+
+def test_sizing_invalid_inputs_raise() -> None:
+    with pytest.raises(ValueError):
+        calculate_tost_sample_size(0.0, 0.10, 5.0, 0.05, 0.80)
+    with pytest.raises(ValueError):
+        calculate_tost_sample_size(1.0, 0.0, 5.0, 0.05, 0.80)
+    with pytest.raises(ValueError):
+        calculate_tost_sample_size(1.0, 0.10, 0.0, 0.05, 0.80)
+    with pytest.raises(ValueError):
+        calculate_tost_sample_size(1.0, 0.10, 5.0, 1.5, 0.80)

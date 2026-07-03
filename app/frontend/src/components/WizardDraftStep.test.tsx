@@ -227,6 +227,62 @@ describe("WizardDraftStep", () => {
     }
   });
 
+  it("offers metric-specific planned tests and reveals the TOST margin input", async () => {
+    vi.mocked(useCalculationPreview).mockReturnValue({
+      result: null,
+      isLoading: false,
+      error: null
+    });
+
+    const view = await renderIntoDocument(<WizardDraftStepHarness />);
+    try {
+      await flushEffects();
+
+      // Binary default: z-test + Fisher's exact, no margin input.
+      const binaryPlannedTest = view.container.querySelector("#metrics-planned_test");
+      if (!(binaryPlannedTest instanceof HTMLSelectElement)) {
+        throw new Error("Planned test select was not rendered for the binary metric");
+      }
+      const binaryOptions = Array.from(binaryPlannedTest.options).map((option) => option.value);
+      expect(binaryOptions).toEqual(["z_test", "fisher_exact"]);
+      expect(view.container.querySelector("#metrics-equivalence_margin_pct")).toBeNull();
+
+      const metricType = view.container.querySelector("#metrics-metric_type");
+      if (!(metricType instanceof HTMLSelectElement)) {
+        throw new Error("Metric type select was not rendered");
+      }
+      await changeValue(metricType, "continuous");
+      await flushEffects();
+
+      const continuousPlannedTest = view.container.querySelector("#metrics-planned_test");
+      if (!(continuousPlannedTest instanceof HTMLSelectElement)) {
+        throw new Error("Planned test select was not rendered for the continuous metric");
+      }
+      const continuousOptions = Array.from(continuousPlannedTest.options).map(
+        (option) => option.value
+      );
+      expect(continuousOptions).toEqual(["z_test", "mann_whitney", "tost"]);
+
+      // The equivalence margin appears only once TOST is chosen.
+      expect(view.container.querySelector("#metrics-equivalence_margin_pct")).toBeNull();
+      await changeValue(continuousPlannedTest, "tost");
+      await flushEffects();
+      expect(view.container.querySelector("#metrics-equivalence_margin_pct")).not.toBeNull();
+
+      // Switching the metric type falls back to the default z plan (no stale rank/TOST choice).
+      await changeValue(metricType, "binary");
+      await flushEffects();
+      const resetPlannedTest = view.container.querySelector("#metrics-planned_test");
+      if (!(resetPlannedTest instanceof HTMLSelectElement)) {
+        throw new Error("Planned test select disappeared after switching back to binary");
+      }
+      expect(resetPlannedTest.value).toBe("z_test");
+      expect(view.container.querySelector("#metrics-equivalence_margin_pct")).toBeNull();
+    } finally {
+      await view.unmount();
+    }
+  });
+
   it("edits the guardrail harm-direction and tolerance-margin and persists them", async () => {
     vi.mocked(useCalculationPreview).mockReturnValue({
       result: null,

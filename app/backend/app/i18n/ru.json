@@ -288,7 +288,9 @@
       "categorical_min_columns": "таблица сопряжённости должна содержать не менее двух столбцов",
       "categorical_max_columns": "в таблице сопряжённости слишком много столбцов",
       "categorical_rectangular": "таблица сопряжённости должна быть прямоугольной (во всех строках одинаковое число столбцов)",
-      "categorical_non_negative": "значения в таблице сопряжённости не могут быть отрицательными"
+      "categorical_non_negative": "значения в таблице сопряжённости не могут быть отрицательными",
+      "planned_test_metric_mismatch": "planned_test недоступен для этого metric_type",
+      "tost_margin_required": "Для плана эквивалентности TOST требуется equivalence_margin_pct"
     },
     "srm_detected": "Обнаружен SRM — проверьте рандомизацию и реализацию трекинга",
     "srm_not_detected": "SRM не обнаружен"

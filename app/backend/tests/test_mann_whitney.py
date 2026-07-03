@@ -304,3 +304,74 @@ def test_power_and_pvalue_bounded() -> None:
     assert 0.0 <= result["p_value"] <= 1.0
     assert 0.0 <= result["power_achieved"] <= 1.0
     assert math.isfinite(result["test_statistic"])
+
+
+# --- sizing (calculate_mann_whitney_sample_size) --------------------------------------------
+# Frozen references from the P2.1 verification run (scratchpad verify_sizing_vs_scipy.py, seed
+# 20260703): parametric z-n 252 (statsmodels TTestIndPower 252.1) -> MW plan 264; Monte-Carlo
+# power of scipy.stats.mannwhitneyu at 264 under the normal shift = 0.802, at the uninflated 252
+# only 0.775. scipy/statsmodels are cross-checked locally, not committed dependencies.
+
+from app.backend.app.stats.mann_whitney import (  # noqa: E402
+    MANN_WHITNEY_ARE_LOWER_BOUND,
+    MANN_WHITNEY_ARE_NORMAL,
+    calculate_mann_whitney_sample_size,
+)
+
+
+def test_sizing_matches_frozen_reference() -> None:
+    plan = calculate_mann_whitney_sample_size(
+        baseline_mean=100, std_dev=20, mde_pct=5, alpha=0.05, power=0.8
+    )
+    assert plan["sample_size_per_variant"] == 264
+    assert plan["total_sample_size"] == 528
+    assert plan["metric_type"] == "continuous"
+    assert plan["mde_absolute"] == pytest.approx(5.0)
+
+
+def test_sizing_is_are_inflation_of_parametric_n() -> None:
+    from app.backend.app.stats.continuous import calculate_continuous_sample_size
+
+    parametric = calculate_continuous_sample_size(
+        baseline_mean=100, std_dev=20, mde_pct=5, alpha=0.05, power=0.8
+    )
+    plan = calculate_mann_whitney_sample_size(
+        baseline_mean=100, std_dev=20, mde_pct=5, alpha=0.05, power=0.8
+    )
+    assert plan["sample_size_per_variant"] == math.ceil(
+        parametric["sample_size_per_variant"] / MANN_WHITNEY_ARE_NORMAL
+    )
+    assert plan["sample_size_per_variant"] > parametric["sample_size_per_variant"]
+
+
+def test_sizing_assumptions_state_are_basis_and_worst_case() -> None:
+    plan = calculate_mann_whitney_sample_size(
+        baseline_mean=100, std_dev=20, mde_pct=5, alpha=0.05, power=0.8
+    )
+    text = " ".join(plan["assumptions"])
+    assert "3/pi" in text
+    assert str(MANN_WHITNEY_ARE_LOWER_BOUND) in text
+    # ceil(252 / 0.864) = 292 - the honest worst-case bound must be spelled out.
+    assert "292" in text
+
+
+def test_sizing_multivariant_applies_bonferroni() -> None:
+    two = calculate_mann_whitney_sample_size(
+        baseline_mean=100, std_dev=20, mde_pct=5, alpha=0.05, power=0.8, variants_count=2
+    )
+    three = calculate_mann_whitney_sample_size(
+        baseline_mean=100, std_dev=20, mde_pct=5, alpha=0.05, power=0.8, variants_count=3
+    )
+    assert three["adjusted_alpha"] == pytest.approx(0.025)
+    assert three["sample_size_per_variant"] > two["sample_size_per_variant"]
+
+
+def test_sizing_invalid_inputs_raise() -> None:
+    with pytest.raises(ValueError):
+        calculate_mann_whitney_sample_size(0, 20, 5, 0.05, 0.8)
+    with pytest.raises(ValueError):
+        calculate_mann_whitney_sample_size(100, 0, 5, 0.05, 0.8)
+    with pytest.raises(ValueError):
+        calculate_mann_whitney_sample_size(100, 20, -1, 0.05, 0.8)
+    with pytest.raises(ValueError):
+        calculate_mann_whitney_sample_size(100, 20, 5, 0.05, 0.8, variants_count=1)

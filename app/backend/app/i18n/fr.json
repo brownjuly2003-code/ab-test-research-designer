@@ -288,7 +288,9 @@
       "categorical_min_columns": "le tableau de contingence doit comporter au moins deux colonnes",
       "categorical_max_columns": "le tableau de contingence comporte trop de colonnes",
       "categorical_rectangular": "le tableau de contingence doit être rectangulaire (chaque ligne doit avoir le même nombre de colonnes)",
-      "categorical_non_negative": "les effectifs du tableau de contingence ne peuvent pas être négatifs"
+      "categorical_non_negative": "les effectifs du tableau de contingence ne peuvent pas être négatifs",
+      "planned_test_metric_mismatch": "planned_test n'est pas disponible pour ce metric_type",
+      "tost_margin_required": "equivalence_margin_pct est requis pour un plan d'équivalence TOST"
     },
     "srm_detected": "SRM détecté - vérifiez votre mise en œuvre de randomisation ou de suivi",
     "srm_not_detected": "Aucun SRM détecté"

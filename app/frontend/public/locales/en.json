@@ -151,7 +151,9 @@
         "secondary_metrics": "Secondary metrics",
         "guardrail_metrics": "Guardrail metrics",
         "alpha": "Alpha",
-        "power": "Power"
+        "power": "Power",
+        "planned_test": "Planned analysis",
+        "equivalence_margin_pct": "Equivalence margin %"
       },
       "constraints": {
         "seasonality_present": "Seasonality present",
@@ -186,7 +188,9 @@
       "std_dev": "Standard deviation of the continuous metric. Required only for continuous metrics; example: 12.5 for average order value.",
       "interference_risk": "Risk that users or units can influence one another across variants and break isolation.",
       "holdout_fraction": "Global holdout: the share of traffic kept out of every experiment as a clean control. Leave empty for none, or enter 0.1 for a 10% holdout. It reduces the traffic this test receives, so the duration grows while the sample size stays the same.",
-      "mutually_exclusive_experiments": "Number of mutually-exclusive experiments sharing the same traffic. Leave empty for 1. With N, this test receives 1/N of the traffic, extending the duration accordingly."
+      "mutually_exclusive_experiments": "Number of mutually-exclusive experiments sharing the same traffic. Leave empty for 1. With N, this test receives 1/N of the traffic, extending the duration accordingly.",
+      "planned_test": "Analysis method the sample size is planned for. The z-test plan is the classic default; Fisher's exact needs slightly more users on small samples; Mann-Whitney (rank test, for skewed metrics) inflates the plan by ~5%; equivalence (TOST) plans to CONFIRM the arms are the same within a margin instead of detecting a difference.",
+      "equivalence_margin_pct": "Symmetric equivalence margin as a percent of baseline: the largest difference still treated as 'practically the same'. Drives the TOST sample size (the MDE does not apply to an equivalence plan)."
     },
     "options": {
       "setup": {
@@ -201,6 +205,12 @@
         "metric_type": {
           "binary": "Binary",
           "continuous": "Continuous"
+        },
+        "planned_test": {
+          "z_test": "z-test (default)",
+          "fisher_exact": "Fisher's exact (small samples)",
+          "mann_whitney": "Mann-Whitney (rank test)",
+          "tost": "Equivalence (TOST)"
         }
       },
       "constraints": {
