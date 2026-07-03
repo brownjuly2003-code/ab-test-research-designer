@@ -259,6 +259,7 @@
       "actual_counts_positive_sum": "actual_counts doit totaliser un total positif",
       "baseline_rate_range": "baseline_rate doit être compris entre 0 et 100 pour les métriques binaires",
       "baseline_mean_positive": "baseline_mean doit être positif pour les métriques continues",
+      "ratio_baseline_mean_positive": "baseline_mean (ratio de référence) doit être positif pour les métriques de ratio",
       "mde_values_positive": "mde_values ​​doit contenir des valeurs positives",
       "power_values_range": "power_values ​​doit contenir des valeurs comprises entre 0 et 1",
       "traffic_split_variants": "La longueur de traffic_split doit correspondre aux variantes",

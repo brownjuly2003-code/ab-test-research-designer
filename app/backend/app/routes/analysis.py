@@ -263,7 +263,10 @@ def create_analysis_router(
                         variants_count=payload.variants,
                     )
                 else:
-                    # validate_metric_specific_fields guarantees baseline_mean and std_dev are set for continuous metrics.
+                    # validate_metric_specific_fields guarantees baseline_mean and std_dev are set for
+                    # continuous and ratio metrics alike — ratio sizing reuses this same delta-method-
+                    # linearized continuous formula (baseline_mean carries the baseline ratio R), matching
+                    # calculate_experiment_metrics's "continuous" / "ratio" branch in calculations_service.py.
                     baseline_mean = float(cast("float", payload.baseline_mean))
                     calculation = calculate_continuous_sample_size(
                         baseline_mean=baseline_mean,

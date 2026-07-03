@@ -259,6 +259,7 @@
       "actual_counts_positive_sum": "actual_counts must sum to a positive total",
       "baseline_rate_range": "baseline_rate must be between 0 and 100 for binary metrics",
       "baseline_mean_positive": "baseline_mean must be positive for continuous metrics",
+      "ratio_baseline_mean_positive": "baseline_mean (baseline ratio) must be positive for ratio metrics",
       "mde_values_positive": "mde_values must contain positive values",
       "power_values_range": "power_values must contain values between 0 and 1",
       "traffic_split_variants": "traffic_split length must match variants",

@@ -655,6 +655,53 @@ def test_sensitivity_binary() -> None:
     assert all("sample_size_per_variant" in cell for cell in data["cells"])
 
 
+def test_sensitivity_ratio() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/sensitivity",
+        json={
+            "metric_type": "ratio",
+            "baseline_mean": 2.5,
+            "std_dev": 4.0,
+            "mde_values": [0.1, 0.25],
+            "power_values": [0.8, 0.9],
+            "daily_traffic": 10000,
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["cells"]) == 4
+    assert all("sample_size_per_variant" in cell for cell in data["cells"])
+    # Ratio sizing reuses the delta-method-linearized continuous formula, so a larger MDE (in the
+    # same absolute ratio units) should never need a larger sample than a smaller one at equal power.
+    by_mde = {cell["mde"]: cell["sample_size_per_variant"] for cell in data["cells"] if cell["power"] == 0.8}
+    assert by_mde[0.25] < by_mde[0.1]
+
+
+def test_sensitivity_ratio_requires_positive_baseline_mean() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/sensitivity",
+        json={"metric_type": "ratio", "baseline_mean": 0, "std_dev": 4.0},
+    )
+
+    assert response.status_code == 422
+
+
+def test_sensitivity_ratio_requires_positive_std_dev() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/sensitivity",
+        json={"metric_type": "ratio", "baseline_mean": 2.5, "std_dev": 0},
+    )
+
+    assert response.status_code == 422
+
+
 def test_simulate_bandit_endpoint_returns_allocation_and_regret_curve() -> None:
     client = TestClient(create_app())
 

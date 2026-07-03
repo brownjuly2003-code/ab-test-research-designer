@@ -580,7 +580,7 @@ class CalculationRequest(BaseModel):
 class SensitivityRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    metric_type: Literal["binary", "continuous"]
+    metric_type: Literal["binary", "continuous", "ratio"]
     baseline_rate: float | None = None
     baseline_mean: float | None = None
     std_dev: float | None = None
@@ -602,6 +602,14 @@ class SensitivityRequest(BaseModel):
                 raise ValueError(translate("errors.schemas.baseline_mean_positive"))
             if self.std_dev is None or self.std_dev <= 0:
                 raise ValueError(translate("errors.schemas.continuous_std_positive"))
+        # Ratio sensitivity reuses the delta-method-linearized continuous formula (same as
+        # CalculationRequest/MetricsConfig sizing), so it needs the same two fields as continuous —
+        # baseline_mean here carries the baseline ratio R, std_dev the per-user linearized std.
+        if self.metric_type == "ratio":
+            if self.baseline_mean is None or self.baseline_mean <= 0:
+                raise ValueError(translate("errors.schemas.ratio_baseline_mean_positive"))
+            if self.std_dev is None or self.std_dev <= 0:
+                raise ValueError(translate("errors.schemas.ratio_std_positive"))
         if any(value <= 0 for value in self.mde_values):
             raise ValueError(translate("errors.schemas.mde_values_positive"))
         if any(value <= 0 or value >= 1 for value in self.power_values):
