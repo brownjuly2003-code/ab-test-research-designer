@@ -1015,7 +1015,8 @@
     "metricType": {
       "all": "All",
       "binary": "Binary",
-      "continuous": "Continuous"
+      "continuous": "Continuous",
+      "ratio": "Ratio"
     },
     "sortLabel": "Sort",
     "sort": {

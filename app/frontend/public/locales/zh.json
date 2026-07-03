@@ -1015,7 +1015,8 @@
     "metricType": {
       "all": "全部",
       "binary": "二进制",
-      "continuous": "连续的"
+      "continuous": "连续的",
+      "ratio": "比率"
     },
     "sortLabel": "种类",
     "sort": {

@@ -266,12 +266,16 @@ def test_postgres_backend_query_filters_and_pagination(postgres_repository) -> N
     binary_a = repo.create_project(_payload("Filter binary A", "binary"))
     binary_b = repo.create_project(_payload("Filter binary B", "binary"))
     repo.create_project(_payload("Filter continuous", "continuous"))
+    ratio_project = repo.create_project(_payload("Filter ratio", "ratio"))
     repo.archive_project(binary_b["id"])
 
     only_binary = repo.query_projects(metric_type="binary", status="active")
     binary_ids = {p["id"] for p in only_binary["projects"]}
     assert binary_a["id"] in binary_ids
     assert binary_b["id"] not in binary_ids
+
+    only_ratio = repo.query_projects(metric_type="ratio", status="active")
+    assert {p["id"] for p in only_ratio["projects"]} == {ratio_project["id"]}
 
     archived = repo.query_projects(status="archived")
     assert binary_b["id"] in {p["id"] for p in archived["projects"]}

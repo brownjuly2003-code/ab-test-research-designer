@@ -220,7 +220,7 @@ export type ProjectListRequestOptions = {
   includeArchived?: boolean;
   q?: string;
   status?: "active" | "archived" | "all";
-  metricType?: "binary" | "continuous" | "all";
+  metricType?: "binary" | "continuous" | "ratio" | "all";
   sortBy?: "created_at" | "updated_at" | "name" | "duration_days";
   sortDir?: "asc" | "desc";
   limit?: number;

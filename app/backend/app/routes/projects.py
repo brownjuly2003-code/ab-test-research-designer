@@ -80,7 +80,7 @@ def create_projects_router(
         include_archived: bool | None = Query(default=None),
         q: str | None = Query(default=None),
         status: Literal["active", "archived", "all"] = "active",
-        metric_type: Literal["binary", "continuous", "all"] = "all",
+        metric_type: Literal["binary", "continuous", "ratio", "all"] = "all",
         sort_by: Literal["created_at", "updated_at", "name", "duration_days"] = "updated_at",
         sort_dir: Literal["asc", "desc"] = "desc",
         limit: int = Query(default=50, ge=1, le=200),

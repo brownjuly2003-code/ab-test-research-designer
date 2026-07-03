@@ -4,11 +4,11 @@ import { useTranslation } from "react-i18next";
 type ProjectListFiltersProps = {
   query: string;
   status: "active" | "archived" | "all";
-  metricType: "all" | "binary" | "continuous";
+  metricType: "all" | "binary" | "continuous" | "ratio";
   sortBy: "updated_desc" | "name_asc" | "duration_asc";
   onQueryChange: (value: string) => void;
   onStatusChange: (value: "active" | "archived" | "all") => void;
-  onMetricTypeChange: (value: "all" | "binary" | "continuous") => void;
+  onMetricTypeChange: (value: "all" | "binary" | "continuous" | "ratio") => void;
   onSortByChange: (value: "updated_desc" | "name_asc" | "duration_asc") => void;
   onClearFilters: () => void;
 };
@@ -103,11 +103,12 @@ export default function ProjectListFilters({
           <select
             id="saved-projects-metric-type"
             value={metricType}
-            onChange={(event) => onMetricTypeChange(event.target.value as "all" | "binary" | "continuous")}
+            onChange={(event) => onMetricTypeChange(event.target.value as "all" | "binary" | "continuous" | "ratio")}
           >
             <option value="all">{t("projectListFilters.metricType.all")}</option>
             <option value="binary">{t("projectListFilters.metricType.binary")}</option>
             <option value="continuous">{t("projectListFilters.metricType.continuous")}</option>
+            <option value="ratio">{t("projectListFilters.metricType.ratio")}</option>
           </select>
         </div>
         <div className="field">

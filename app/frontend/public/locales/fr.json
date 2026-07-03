@@ -1015,7 +1015,8 @@
     "metricType": {
       "all": "Tous",
       "binary": "Binaire",
-      "continuous": "Continu"
+      "continuous": "Continu",
+      "ratio": "Ratio"
     },
     "sortLabel": "Trier",
     "sort": {
