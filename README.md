@@ -135,7 +135,7 @@ Post-v1.1.0 Tier 2/3 roadmap items are all landed as of 2026-04-25.
 
 - wizard-based experiment input with review step
 - deterministic calculations for binary and continuous metrics
-- ten-analyzer post-hoc results engine spanning binary, continuous, count, and categorical metrics (two-proportion z, Fisher's exact, Welch's t, TOST equivalence, Mann–Whitney U, bootstrap/permutation, quantile treatment effect, Yuen–Welch trimmed t-test, Poisson rate, chi-square r×c + Cramér's V) — see [Statistical repertoire](#statistical-repertoire)
+- fifteen-analyzer post-hoc results engine spanning independent two-sample, paired within-subject, and omnibus (>2 group) designs across binary, continuous, count, and categorical metrics (two-proportion z, Fisher's exact, Welch's t, TOST equivalence, Mann–Whitney U, bootstrap/permutation, quantile treatment effect, Yuen–Welch trimmed t-test, Poisson rate, chi-square r×c + Cramér's V, paired t, Wilcoxon signed-rank, McNemar, Welch's ANOVA, Kruskal–Wallis) — see [Statistical repertoire](#statistical-repertoire)
 - live-experiment monitoring: SRM detection, sequential (O'Brien–Fleming) and always-valid boundaries, Bayesian P(B>A), multi-covariate CUPED, post-stratification, guardrail metrics with non-inferiority margins, holdout cumulative read, ratio delta-method, identity resolution, late/out-of-order event detection, and a bot/fraud filter
 - Bonferroni-aware multivariant sizing notes
 - warning engine for traffic, duration, seasonality, campaigns, and design quality
@@ -153,7 +153,7 @@ Post-v1.1.0 Tier 2/3 roadmap items are all landed as of 2026-04-25.
 
 ## Statistical repertoire
 
-Post-hoc analysis (`POST /api/v1/results`, plus a dedicated `/api/v1/results/categorical` endpoint) covers ten analyzers across four metric types. Each request declares a `metric_type`; the backend validates the matching data shape and rejects mismatches.
+Post-hoc analysis (`POST /api/v1/results`, plus dedicated `/api/v1/results/categorical`, `/api/v1/results/paired` and `/api/v1/results/omnibus` endpoints) covers fifteen analyzers across independent two-sample, paired within-subject, and omnibus (more-than-two-group) designs. Each request declares a `metric_type` (or a `test_type` on the dedicated endpoints); the backend validates the matching data shape and rejects mismatches.
 
 | Analyzer | Binary | Continuous | Count | Categorical | `metric_type` / endpoint | Notes |
 | --- | :---: | :---: | :---: | :---: | --- | --- |
@@ -167,6 +167,13 @@ Post-hoc analysis (`POST /api/v1/results`, plus a dedicated `/api/v1/results/cat
 | Yuen–Welch trimmed t-test | | ✓ | | | `trimmed_t` | Robust mean comparison with tail trimming |
 | Poisson rate | | | ✓ | | `count` | Event-rate comparison via a conditional binomial test; capped at 1M events |
 | Chi-square r×c + Cramér's V | | | | ✓ | `/results/categorical` | Independence test across more than two arms/categories; includes a Cochran low-expected-count warning |
+| Paired t-test | | ✓ | | | `/results/paired` (`paired_t`) | Paired (within-subject) mean comparison on per-pair differences; reports Cohen's dz |
+| Wilcoxon signed-rank | | ✓ | | | `/results/paired` (`wilcoxon`) | Distribution-free paired test; Hodges–Lehmann pseudomedian and rank-biserial effect size |
+| McNemar | ✓ | | | | `/results/paired` (`mcnemar`) | Paired binary test on discordant pairs; exact binomial or continuity-corrected chi-square |
+| Welch's ANOVA | | ✓ | | | `/results/omnibus` (`welch_anova`) | Omnibus mean comparison across more than two groups, robust to unequal variances; reports η² |
+| Kruskal–Wallis | | ✓ | | | `/results/omnibus` (`kruskal_wallis`) | Distribution-free omnibus across more than two groups; reports ε² |
+
+The paired and omnibus rows are within-subject and multi-group designs respectively (each with its own dedicated endpoint and `test_type`); the metric-type columns above indicate the underlying measurement shape.
 
 Ratio metrics (e.g. clicks per impression) are not yet covered by a post-hoc analyzer here — they are analyzed through the live-experiment delta-method path (`/live-stats`) instead.
 
