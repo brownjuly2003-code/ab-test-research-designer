@@ -11,8 +11,11 @@ export function isAbortError(error: unknown): boolean {
   return error instanceof DOMException && error.name === "AbortError";
 }
 
+// Display-only grouping (MDE formatting: percentage points vs. plain units). Ratio metrics are
+// sized and displayed like continuous ones (delta-method-linearized), so they fall into the
+// "continuous" bucket here — only binary is percentage-point-shaped.
 export function resolveMetricType(metricType: string): "binary" | "continuous" {
-  return metricType === "continuous" ? "continuous" : "binary";
+  return metricType === "binary" ? "binary" : "continuous";
 }
 
 // Trims binary floating-point noise (e.g. 0.0021000000000000003 -> 0.0021) for display.
@@ -64,13 +67,12 @@ export function buildSensitivityPayload(analysis: AnalysisResponsePayload): Sens
   const currentMde = resolveCurrentMde(analysis);
   const mdeValues = buildSensitivityScale(defaultMdeValues, currentMde, 5);
   const powerValues = buildSensitivityScale(defaultPowerValues, summary.power, 4);
-  const metricType = resolveMetricType(summary.metric_type);
 
   if (variants < 2 || trafficSplit.length !== variants) {
     return null;
   }
 
-  if (metricType === "binary") {
+  if (summary.metric_type === "binary") {
     return {
       metric_type: "binary",
       baseline_rate: summary.baseline_value * 100,
@@ -84,13 +86,21 @@ export function buildSensitivityPayload(analysis: AnalysisResponsePayload): Sens
     };
   }
 
+  // Continuous and ratio metrics both size through the delta-method-linearized continuous formula
+  // (see calculations_service.py) — same shape, different metric_type on the wire. Ratio's baseline
+  // is the baseline ratio R and its std_dev the per-user linearized standard deviation.
+  if (summary.metric_type !== "continuous" && summary.metric_type !== "ratio") {
+    return null;
+  }
+  const requestMetricType = summary.metric_type === "ratio" ? "ratio" : "continuous";
+
   const persistedDraft = buildApiPayload(readDraftBootstrap().form);
-  if (persistedDraft.metrics.metric_type !== "continuous" || persistedDraft.metrics.std_dev === null) {
+  if (persistedDraft.metrics.metric_type !== requestMetricType || persistedDraft.metrics.std_dev === null) {
     return null;
   }
 
   return {
-    metric_type: "continuous",
+    metric_type: requestMetricType,
     baseline_mean: summary.baseline_value,
     std_dev: persistedDraft.metrics.std_dev,
     variants,

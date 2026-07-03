@@ -259,6 +259,7 @@
       "actual_counts_positive_sum": "实际计数总和必须为正数",
       "baseline_rate_range": "对于二进制指标，baseline_rate 必须介于 0 到 100 之间",
       "baseline_mean_positive": "对于连续指标，baseline_mean 必须为正",
+      "ratio_baseline_mean_positive": "对于比率指标，baseline_mean（基准比率）必须为正",
       "mde_values_positive": "mde_values 必须包含正值",
       "power_values_range": "power_values 必须包含 0 到 1 之间的值",
       "traffic_split_variants": "Traffic_split 长度必须匹配变体",

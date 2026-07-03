@@ -259,6 +259,7 @@
       "actual_counts_positive_sum": "يجب أن يصل مجموع عدد الأعداد الفعلية إلى إجمالي موجب",
       "baseline_rate_range": "يجب أن تتراوح قيمة baseline_rate بين 0 و100 للمقاييس الثنائية",
       "baseline_mean_positive": "يجب أن يكون baseline_mean موجبًا للمقاييس المستمرة",
+      "ratio_baseline_mean_positive": "يجب أن تكون قيمة baseline_mean (النسبة الأساسية) موجبة لمقاييس النسبة",
       "mde_values_positive": "يجب أن تحتوي قيم mde_values ​​على قيم موجبة",
       "power_values_range": "يجب أن تحتوي قيم power_values ​​على قيم بين 0 و1",
       "traffic_split_variants": "يجب أن يتطابق طول Traffic_split مع المتغيرات",

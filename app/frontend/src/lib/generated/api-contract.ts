@@ -1244,7 +1244,7 @@ export type SensitivityCell = {
 };
 
 export type SensitivityRequest = {
-  metric_type: "binary" | "continuous";
+  metric_type: "binary" | "continuous" | "ratio";
   baseline_rate?: number | null;
   baseline_mean?: number | null;
   std_dev?: number | null;
