@@ -2,7 +2,7 @@
   "tests": {
     "schemaVersion": 1,
     "label": "tests",
-    "message": "950 passed",
+    "message": "994 passed",
     "color": "green"
   },
   "coverage": {
