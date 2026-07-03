@@ -151,7 +151,9 @@
         "secondary_metrics": "Métricas secundarias",
         "guardrail_metrics": "Métricas guardrail",
         "alpha": "Alfa",
-        "power": "Potencia"
+        "power": "Potencia",
+        "planned_test": "Análisis previsto",
+        "equivalence_margin_pct": "Margen de equivalencia %"
       },
       "constraints": {
         "seasonality_present": "Estacionalidad presente",
@@ -186,7 +188,9 @@
       "std_dev": "Desviación estándar de la métrica continua. Requerido solo para métricas continuas; Ejemplo: 12,5 para el valor medio del pedido.",
       "interference_risk": "Riesgo de que los usuarios o unidades puedan influirse entre sí a través de variantes y romper el aislamiento.",
       "holdout_fraction": "Holdout global: proporción del tráfico que se mantiene fuera de todos los experimentos como control limpio. Déjelo vacío si no hay, o introduzca 0.1 para un holdout del 10 %. Reduce el tráfico que recibe esta prueba, por lo que la duración aumenta mientras el tamaño de muestra no cambia.",
-      "mutually_exclusive_experiments": "Número de experimentos mutuamente excluyentes que comparten el mismo tráfico. Déjelo vacío para 1. Con N, esta prueba recibe 1/N del tráfico, extendiendo la duración en consecuencia."
+      "mutually_exclusive_experiments": "Número de experimentos mutuamente excluyentes que comparten el mismo tráfico. Déjelo vacío para 1. Con N, esta prueba recibe 1/N del tráfico, extendiendo la duración en consecuencia.",
+      "planned_test": "Método de análisis para el que se planifica el tamaño de muestra. El test z es el estándar clásico; el test exacto de Fisher necesita algo más de usuarios en muestras pequeñas; Mann-Whitney (test de rangos para métricas sesgadas) aumenta el plan en ~5 %; la equivalencia (TOST) planifica para CONFIRMAR que las variantes son iguales dentro de un margen en lugar de detectar una diferencia.",
+      "equivalence_margin_pct": "Margen de equivalencia simétrico como porcentaje del valor base: la mayor diferencia que aún se considera 'prácticamente igual'. Determina el tamaño de muestra TOST (el MDE no aplica a un plan de equivalencia)."
     },
     "options": {
       "setup": {
@@ -201,6 +205,12 @@
         "metric_type": {
           "binary": "Binario",
           "continuous": "Continuo"
+        },
+        "planned_test": {
+          "z_test": "Test z (predeterminado)",
+          "fisher_exact": "Test exacto de Fisher (muestras pequeñas)",
+          "mann_whitney": "Mann-Whitney (test de rangos)",
+          "tost": "Equivalencia (TOST)"
         }
       },
       "constraints": {

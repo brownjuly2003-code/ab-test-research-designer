@@ -85,6 +85,8 @@ def _build_calculation_payload(payload: ExperimentInput) -> CalculationRequest:
         std_dev=payload.metrics.std_dev,
         cuped_pre_experiment_std=payload.metrics.cuped_pre_experiment_std,
         cuped_correlation=payload.metrics.cuped_correlation,
+        planned_test=payload.metrics.planned_test,
+        equivalence_margin_pct=payload.metrics.equivalence_margin_pct,
         mde_pct=payload.metrics.mde_pct,
         alpha=payload.metrics.alpha,
         power=payload.metrics.power,

@@ -170,3 +170,80 @@ def test_all_zero_conversions_is_degenerate_but_defined() -> None:
     assert result["p_value"] == pytest.approx(1.0)
     assert result["odds_ratio"] is None
     assert not math.isnan(result["p_value"])
+
+
+# --- sizing (calculate_fisher_exact_sample_size / fisher_exact_power) ------------------------
+# Frozen references from the P2.1 verification run (scratchpad verify_sizing_vs_scipy.py, seed
+# 20260703): p0 0.20 -> p1 0.40 at alpha 0.05 / power 0.80 needs z-approx 82 but exact 90 (exact
+# power 0.8017 at 90, 0.7956 at 89; simulated power via scipy.stats.fisher_exact = 0.800); p0 0.10
+# -> p1 0.30 needs exact 69 (power 0.8073). scipy is cross-checked locally, not a dependency.
+
+from app.backend.app.stats.fisher_exact import (  # noqa: E402
+    MAX_FISHER_EXACT_SIZING_PER_ARM,
+    calculate_fisher_exact_sample_size,
+    fisher_exact_power,
+)
+
+
+def test_exact_power_matches_frozen_enumeration() -> None:
+    assert fisher_exact_power(0.20, 0.40, 90, 0.05) == pytest.approx(0.8017, abs=2e-4)
+    assert fisher_exact_power(0.20, 0.40, 89, 0.05) == pytest.approx(0.7956, abs=2e-4)
+
+
+def test_sizing_matches_frozen_reference() -> None:
+    plan = calculate_fisher_exact_sample_size(
+        baseline_rate=0.20, mde_pct=100.0, alpha=0.05, power=0.80
+    )
+    assert plan["sample_size_per_variant"] == 90
+    assert plan["metric_type"] == "binary"
+    assert plan["mde_absolute"] == pytest.approx(0.20)
+
+
+def test_sizing_second_frozen_case() -> None:
+    plan = calculate_fisher_exact_sample_size(
+        baseline_rate=0.10, mde_pct=200.0, alpha=0.05, power=0.80
+    )
+    assert plan["sample_size_per_variant"] == 69
+
+
+def test_sizing_exceeds_z_approximation() -> None:
+    # Fisher's conservatism: the exact plan must need MORE users than the z formula (82 here).
+    plan = calculate_fisher_exact_sample_size(0.20, 100.0, 0.05, 0.80)
+    assert plan["sample_size_per_variant"] > 82
+    assert "82" in " ".join(plan["assumptions"])
+
+
+def test_sizing_falls_back_to_cps_above_cap() -> None:
+    # p0 0.05, +20% -> delta 0.01: the z seed is in the thousands, far above the enumeration cap,
+    # so the Casagrande-Pike-Smith continuity-corrected formula must kick in and say so.
+    plan = calculate_fisher_exact_sample_size(0.05, 20.0, 0.05, 0.80)
+    assert plan["sample_size_per_variant"] > MAX_FISHER_EXACT_SIZING_PER_ARM
+    assert "Casagrande" in " ".join(plan["assumptions"])
+
+
+def test_cps_fallback_is_close_to_exact_at_the_boundary() -> None:
+    # Near the cap the exact answer and the CPS approximation must agree closely - this is what
+    # justifies the fallback. Frozen check at a small case: exact 90 vs CPS 92 (within ~3%).
+    exact = calculate_fisher_exact_sample_size(0.20, 100.0, 0.05, 0.80)["sample_size_per_variant"]
+    n_z = 82
+    delta = 0.20
+    cps = math.ceil(n_z / 4 * (1 + math.sqrt(1 + 4 / (n_z * delta))) ** 2)
+    assert abs(cps - exact) / exact < 0.05
+
+
+def test_sizing_multivariant_applies_bonferroni() -> None:
+    two = calculate_fisher_exact_sample_size(0.20, 100.0, 0.05, 0.80, variants_count=2)
+    three = calculate_fisher_exact_sample_size(0.20, 100.0, 0.05, 0.80, variants_count=3)
+    assert three["adjusted_alpha"] == pytest.approx(0.025)
+    assert three["sample_size_per_variant"] > two["sample_size_per_variant"]
+
+
+def test_sizing_invalid_inputs_raise() -> None:
+    with pytest.raises(ValueError):
+        calculate_fisher_exact_sample_size(0.0, 100.0, 0.05, 0.80)
+    with pytest.raises(ValueError):
+        calculate_fisher_exact_sample_size(0.20, -5.0, 0.05, 0.80)
+    with pytest.raises(ValueError):
+        calculate_fisher_exact_sample_size(0.60, 100.0, 0.05, 0.80)  # implied variant rate >= 1
+    with pytest.raises(ValueError):
+        fisher_exact_power(0.20, 0.40, 1, 0.05)

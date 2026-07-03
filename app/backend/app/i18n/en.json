@@ -288,7 +288,9 @@
       "categorical_min_columns": "contingency table needs at least two columns",
       "categorical_max_columns": "contingency table has too many columns",
       "categorical_rectangular": "contingency table must be rectangular (every row needs the same number of columns)",
-      "categorical_non_negative": "contingency table counts must be non-negative"
+      "categorical_non_negative": "contingency table counts must be non-negative",
+      "planned_test_metric_mismatch": "planned_test is not available for this metric_type",
+      "tost_margin_required": "equivalence_margin_pct is required for a TOST equivalence plan"
     },
     "srm_detected": "SRM detected - check your randomization or tracking implementation",
     "srm_not_detected": "No SRM detected"

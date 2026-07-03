@@ -172,3 +172,71 @@ def test_non_positive_exposure_raises() -> None:
 def test_negative_events_raise() -> None:
     with pytest.raises(ValueError):
         poisson_rate_test(-1, 10, 5, 10)
+
+
+# --- sizing (calculate_poisson_rate_sample_size) ---------------------------------------------
+# Frozen references from the P2.1 verification run (scratchpad verify_sizing_vs_scipy.py, seed
+# 20260703): lambda_c 0.30 / +20% / alpha 0.05 / power 0.80 -> 948 total events, per-arm exposure
+# 1436.4 -> 1437 users at unit exposure; Monte-Carlo power of the conditional binomial test at
+# that exposure = 0.799. scipy is cross-checked locally, not a dependency.
+
+from app.backend.app.stats.poisson_rate import calculate_poisson_rate_sample_size  # noqa: E402
+
+
+def test_sizing_matches_frozen_reference() -> None:
+    plan = calculate_poisson_rate_sample_size(
+        baseline_rate=0.30, mde_pct=20.0, alpha=0.05, power=0.80
+    )
+    assert plan["expected_total_events"] == 948
+    assert plan["sample_size_per_variant"] == 1437
+    assert plan["required_exposure_per_variant"] == pytest.approx(1436.4, abs=0.1)
+    assert plan["metric_type"] == "count"
+
+
+def test_sizing_scales_with_exposure_per_user() -> None:
+    unit = calculate_poisson_rate_sample_size(0.30, 20.0, 0.05, 0.80, exposure_per_user=1.0)
+    double = calculate_poisson_rate_sample_size(0.30, 20.0, 0.05, 0.80, exposure_per_user=2.0)
+    assert double["sample_size_per_variant"] == 719
+    # Twice the exposure per user needs (up to rounding) half the users for the same events.
+    assert double["expected_total_events"] == unit["expected_total_events"]
+
+
+def test_sizing_event_budget_is_rate_scale_invariant() -> None:
+    # The conditional framing depends only on the rate RATIO, so the required event count must not
+    # change when both rates are scaled; the required exposure shrinks proportionally.
+    low = calculate_poisson_rate_sample_size(0.03, 20.0, 0.05, 0.80)
+    high = calculate_poisson_rate_sample_size(0.30, 20.0, 0.05, 0.80)
+    assert low["expected_total_events"] == high["expected_total_events"]
+    assert low["sample_size_per_variant"] > high["sample_size_per_variant"]
+
+
+def test_sizing_mde_monotonicity() -> None:
+    small = calculate_poisson_rate_sample_size(0.30, 10.0, 0.05, 0.80)
+    large = calculate_poisson_rate_sample_size(0.30, 40.0, 0.05, 0.80)
+    assert small["sample_size_per_variant"] > large["sample_size_per_variant"]
+
+
+def test_sizing_assumptions_state_poisson_and_conditional_framing() -> None:
+    plan = calculate_poisson_rate_sample_size(0.30, 20.0, 0.05, 0.80)
+    text = " ".join(plan["assumptions"])
+    assert "Poisson" in text
+    assert "overdispersion" in text
+    assert "conditional" in text
+
+
+def test_sizing_multivariant_applies_bonferroni() -> None:
+    two = calculate_poisson_rate_sample_size(0.30, 20.0, 0.05, 0.80, variants_count=2)
+    three = calculate_poisson_rate_sample_size(0.30, 20.0, 0.05, 0.80, variants_count=3)
+    assert three["adjusted_alpha"] == pytest.approx(0.025)
+    assert three["sample_size_per_variant"] > two["sample_size_per_variant"]
+
+
+def test_sizing_invalid_inputs_raise() -> None:
+    with pytest.raises(ValueError):
+        calculate_poisson_rate_sample_size(0.0, 20.0, 0.05, 0.80)
+    with pytest.raises(ValueError):
+        calculate_poisson_rate_sample_size(0.30, 0.0, 0.05, 0.80)
+    with pytest.raises(ValueError):
+        calculate_poisson_rate_sample_size(0.30, 20.0, 0.05, 0.80, exposure_per_user=0.0)
+    with pytest.raises(ValueError):
+        calculate_poisson_rate_sample_size(0.30, 20.0, 0.05, 0.80, variants_count=99)

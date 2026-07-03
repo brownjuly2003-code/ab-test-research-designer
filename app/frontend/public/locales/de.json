@@ -151,7 +151,9 @@
         "secondary_metrics": "Sekundäre Metriken",
         "guardrail_metrics": "Guardrail-Metriken",
         "alpha": "Alpha",
-        "power": "Power"
+        "power": "Power",
+        "planned_test": "Geplante Analyse",
+        "equivalence_margin_pct": "Äquivalenzmarge %"
       },
       "constraints": {
         "seasonality_present": "Saisonalität vorhanden",
@@ -186,7 +188,9 @@
       "std_dev": "Standardabweichung der kontinuierlichen Metrik. Nur für kontinuierliche Metriken erforderlich; Beispiel: 12,5 für den durchschnittlichen Bestellwert.",
       "interference_risk": "Risiko, dass Benutzer oder Einheiten sich variantenübergreifend gegenseitig beeinflussen und die Isolation durchbrechen können.",
       "holdout_fraction": "Globaler Holdout: Anteil des Traffics, der als saubere Kontrolle aus allen Experimenten herausgehalten wird. Leer lassen für keinen, oder 0,1 für einen Holdout von 10 % eingeben. Reduziert den Traffic für diesen Test, sodass die Dauer steigt, während die Stichprobengröße gleich bleibt.",
-      "mutually_exclusive_experiments": "Anzahl sich gegenseitig ausschließender Experimente, die sich denselben Traffic teilen. Leer lassen für 1. Bei N erhält dieser Test 1/N des Traffics, was die Dauer entsprechend verlängert."
+      "mutually_exclusive_experiments": "Anzahl sich gegenseitig ausschließender Experimente, die sich denselben Traffic teilen. Leer lassen für 1. Bei N erhält dieser Test 1/N des Traffics, was die Dauer entsprechend verlängert.",
+      "planned_test": "Analysemethode, für die die Stichprobengröße geplant wird. Der z-Test ist der klassische Standard; Fishers exakter Test braucht bei kleinen Stichproben etwas mehr Nutzer; Mann-Whitney (Rangtest für schiefe Metriken) erhöht den Plan um ca. 5 %; Äquivalenz (TOST) plant, die Gleichheit der Varianten innerhalb einer Marge zu BESTÄTIGEN statt einen Unterschied zu entdecken.",
+      "equivalence_margin_pct": "Symmetrische Äquivalenzmarge in Prozent des Basiswerts: der größte Unterschied, der noch als 'praktisch gleich' gilt. Sie bestimmt die TOST-Stichprobengröße (der MDE gilt nicht für einen Äquivalenzplan)."
     },
     "options": {
       "setup": {
@@ -201,6 +205,12 @@
         "metric_type": {
           "binary": "Binär",
           "continuous": "Kontinuierlich"
+        },
+        "planned_test": {
+          "z_test": "z-Test (Standard)",
+          "fisher_exact": "Fishers exakter Test (kleine Stichproben)",
+          "mann_whitney": "Mann-Whitney (Rangtest)",
+          "tost": "Äquivalenz (TOST)"
         }
       },
       "constraints": {

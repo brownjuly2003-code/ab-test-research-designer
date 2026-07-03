@@ -136,14 +136,24 @@ export type SetupDraftSection = Omit<SetupPayloadSection, "traffic_split"> & {
   traffic_split: string;
 };
 
+export type PlannedTest = NonNullable<MetricsPayloadSection["planned_test"]>;
+
 export type MetricsDraftSection = Omit<
   MetricsPayloadSection,
-  "std_dev" | "cuped_pre_experiment_std" | "cuped_correlation" | "secondary_metrics" | "guardrail_metrics"
+  | "std_dev"
+  | "cuped_pre_experiment_std"
+  | "cuped_correlation"
+  | "secondary_metrics"
+  | "guardrail_metrics"
+  | "planned_test"
+  | "equivalence_margin_pct"
 > & {
   std_dev: number | "";
   cuped_pre_experiment_std: number | "";
   cuped_correlation: number | "";
   cuped_enabled: boolean;
+  planned_test: PlannedTest;
+  equivalence_margin_pct: number | "";
   secondary_metrics: string;
   guardrail_metrics: GuardrailMetricDraft[];
 };
@@ -160,12 +170,21 @@ export type LoadedPayload = Omit<HydratableExperimentInput, "setup" | "metrics" 
   };
   metrics: Omit<
     MetricsDraftSection,
-    "std_dev" | "cuped_pre_experiment_std" | "cuped_correlation" | "cuped_enabled" | "secondary_metrics" | "guardrail_metrics"
+    | "std_dev"
+    | "cuped_pre_experiment_std"
+    | "cuped_correlation"
+    | "cuped_enabled"
+    | "planned_test"
+    | "equivalence_margin_pct"
+    | "secondary_metrics"
+    | "guardrail_metrics"
   > & {
     std_dev: number | "" | null;
     cuped_pre_experiment_std: number | "" | null;
     cuped_correlation: number | "" | null;
     cuped_enabled?: boolean;
+    planned_test?: PlannedTest | null;
+    equivalence_margin_pct?: number | "" | null;
     secondary_metrics: string | string[];
     guardrail_metrics: GuardrailMetricPayload[] | GuardrailMetricDraft[] | string[];
   };

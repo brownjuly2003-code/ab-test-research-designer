@@ -14,6 +14,10 @@ from app.backend.app.stats.continuous import (
     calculate_cuped_variance_reduction,
 )
 from app.backend.app.stats.duration import estimate_experiment_duration_days
+from app.backend.app.stats.equivalence import calculate_tost_sample_size
+from app.backend.app.stats.fisher_exact import calculate_fisher_exact_sample_size
+from app.backend.app.stats.mann_whitney import calculate_mann_whitney_sample_size
+from app.backend.app.stats.poisson_rate import calculate_poisson_rate_sample_size
 from app.backend.app.stats.sequential import (
     obrien_fleming_boundaries,
     sequential_sample_size_inflation,
@@ -39,23 +43,76 @@ def _build_bonferroni_note(variants_count: int, adjusted_alpha: float | None) ->
     )
 
 
+# Default planned analysis per metric type when the request does not name one. "z_test" is the
+# historical normal-approximation path (binary two-proportion z; continuous/ratio mean z formula);
+# count metrics have exactly one plan (the conditional Poisson rate test).
+_DEFAULT_PLANNED_TEST = {
+    "binary": "z_test",
+    "continuous": "z_test",
+    "ratio": "z_test",
+    "count": "poisson_rate",
+}
+
+
 def calculate_experiment_metrics(payload: dict[str, Any]) -> dict[str, Any]:
     metric_type = payload["metric_type"]
     variants_count = int(payload.get("variants_count", len(payload["traffic_split"])))
     traffic_split = payload["traffic_split"]
     n_looks = int(payload.get("n_looks", 1))
+    planned_test = payload.get("planned_test") or _DEFAULT_PLANNED_TEST.get(metric_type)
 
     _validate_variant_configuration(variants_count, traffic_split)
 
     if metric_type == "binary":
-        calculation_summary = calculate_binary_sample_size(
-            baseline_rate=payload["baseline_value"],
+        if planned_test == "fisher_exact":
+            calculation_summary = calculate_fisher_exact_sample_size(
+                baseline_rate=payload["baseline_value"],
+                mde_pct=payload["mde_pct"],
+                alpha=payload["alpha"],
+                power=payload["power"],
+                variants_count=variants_count,
+            )
+        elif planned_test == "z_test":
+            calculation_summary = calculate_binary_sample_size(
+                baseline_rate=payload["baseline_value"],
+                mde_pct=payload["mde_pct"],
+                alpha=payload["alpha"],
+                power=payload["power"],
+                variants_count=variants_count,
+            )
+        else:
+            raise ValueError(f"Unsupported planned_test for binary metrics: {planned_test}")
+    elif metric_type == "continuous" and planned_test == "mann_whitney":
+        if payload.get("std_dev") is None:
+            raise ValueError("std_dev must be positive for continuous and ratio metrics")
+        calculation_summary = calculate_mann_whitney_sample_size(
+            baseline_mean=payload["baseline_value"],
+            std_dev=payload["std_dev"],
             mde_pct=payload["mde_pct"],
             alpha=payload["alpha"],
             power=payload["power"],
             variants_count=variants_count,
         )
+    elif metric_type == "continuous" and planned_test == "tost":
+        if payload.get("std_dev") is None:
+            raise ValueError("std_dev must be positive for continuous and ratio metrics")
+        if payload.get("equivalence_margin_pct") is None:
+            raise ValueError("equivalence_margin_pct is required for a TOST equivalence plan")
+        calculation_summary = calculate_tost_sample_size(
+            baseline_mean=payload["baseline_value"],
+            std_dev=payload["std_dev"],
+            equivalence_margin_pct=payload["equivalence_margin_pct"],
+            alpha=payload["alpha"],
+            power=payload["power"],
+            variants_count=variants_count,
+        )
+        # An equivalence plan is driven by the margin, not the MDE (the assumptions say so), but
+        # the summary still echoes the user's MDE fields for a uniform response shape.
+        calculation_summary["mde_pct"] = payload["mde_pct"]
+        calculation_summary["mde_absolute"] = payload["baseline_value"] * (payload["mde_pct"] / 100)
     elif metric_type in ("continuous", "ratio"):
+        if planned_test != "z_test":
+            raise ValueError(f"Unsupported planned_test for {metric_type} metrics: {planned_test}")
         if payload.get("std_dev") is None:
             raise ValueError("std_dev must be positive for continuous and ratio metrics")
         calculation_summary = calculate_continuous_sample_size(
@@ -79,6 +136,19 @@ def calculate_experiment_metrics(payload: dict[str, Any]) -> dict[str, Any]:
                 "supplied per-user standard deviation.",
                 *calculation_summary["assumptions"][1:],
             ]
+    elif metric_type == "count":
+        # Reachable today at the service level (the wizard/schema count metric type is the 2.2
+        # increment); sized through the same conditional framing the Poisson rate analyzer uses.
+        if planned_test != "poisson_rate":
+            raise ValueError(f"Unsupported planned_test for count metrics: {planned_test}")
+        calculation_summary = calculate_poisson_rate_sample_size(
+            baseline_rate=payload["baseline_value"],
+            mde_pct=payload["mde_pct"],
+            alpha=payload["alpha"],
+            power=payload["power"],
+            exposure_per_user=payload.get("exposure_per_user") or 1.0,
+            variants_count=variants_count,
+        )
     else:
         raise ValueError(f"Unsupported metric_type: {metric_type}")
 
@@ -105,6 +175,9 @@ def calculate_experiment_metrics(payload: dict[str, Any]) -> dict[str, Any]:
             "mde_absolute": calculation_summary["mde_absolute"],
             "alpha": calculation_summary["alpha"],
             "power": calculation_summary["power"],
+            "planned_test": planned_test,
+            "equivalence_margin_pct": calculation_summary.get("equivalence_margin_pct"),
+            "equivalence_margin_absolute": calculation_summary.get("equivalence_margin_absolute"),
         },
         "results": {
             "sample_size_per_variant": calculation_summary["sample_size_per_variant"],
@@ -136,8 +209,11 @@ def calculate_experiment_metrics(payload: dict[str, Any]) -> dict[str, Any]:
         "cuped_theta": None,
     }
 
+    # The CUPED companion quantifies variance reduction on the default mean-based plan; its numbers
+    # (MDE-driven continuous formula) would be misleading next to a rank or equivalence plan.
     if (
         metric_type == "continuous"
+        and planned_test == "z_test"
         and payload.get("cuped_correlation") is not None
         and payload.get("cuped_pre_experiment_std") is not None
     ):
@@ -174,7 +250,13 @@ def calculate_experiment_metrics(payload: dict[str, Any]) -> dict[str, Any]:
             4,
         )
 
-    if payload.get("analysis_mode") == "bayesian" and payload.get("desired_precision") is not None:
+    # The Bayesian precision companion exists for the proportion/mean estimators only; a count
+    # metric has no std_dev to feed the continuous branch (schema-level count arrives with 2.2).
+    if (
+        payload.get("analysis_mode") == "bayesian"
+        and payload.get("desired_precision") is not None
+        and metric_type in ("binary", "continuous", "ratio")
+    ):
         if metric_type == "binary":
             bayesian_sample_size = bayesian_sample_size_binary(
                 baseline_rate=payload["baseline_value"],

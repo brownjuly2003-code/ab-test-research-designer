@@ -279,6 +279,48 @@ describe("useCalculationPreview", () => {
     }
   });
 
+  it("waits for the equivalence margin before previewing a TOST plan", async () => {
+    vi.useFakeTimers();
+    vi.mocked(requestCalculation).mockResolvedValueOnce(buildPreview(1713, 30));
+
+    const marginlessDraft = cloneInitialState();
+    marginlessDraft.metrics.metric_type = "continuous";
+    marginlessDraft.metrics.baseline_value = 100;
+    marginlessDraft.metrics.std_dev = 20;
+    marginlessDraft.metrics.planned_test = "tost";
+    marginlessDraft.metrics.equivalence_margin_pct = "";
+
+    const view = await renderIntoDocument(<PreviewProbe draft={marginlessDraft} enabled={true} />);
+    try {
+      await flushEffects();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(300);
+      });
+      await flushEffects();
+
+      // The margin drives a TOST plan; without it the backend would 422, so no request fires.
+      expect(requestCalculation).not.toHaveBeenCalled();
+
+      const validDraft = structuredClone(marginlessDraft);
+      validDraft.metrics.equivalence_margin_pct = 2;
+      await view.rerender(<PreviewProbe draft={validDraft} enabled={true} />);
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(300);
+      });
+      await flushEffects();
+
+      expect(requestCalculation).toHaveBeenCalledTimes(1);
+      expect(vi.mocked(requestCalculation).mock.calls[0]?.[0]).toMatchObject({
+        metric_type: "continuous",
+        planned_test: "tost",
+        equivalence_margin_pct: 2
+      });
+    } finally {
+      await view.unmount();
+    }
+  });
+
   it("waits for desired precision in bayesian mode and forwards bayesian payload fields", async () => {
     vi.useFakeTimers();
     vi.mocked(requestCalculation).mockResolvedValueOnce(buildPreview(10800, 8));

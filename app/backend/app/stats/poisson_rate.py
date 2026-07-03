@@ -29,9 +29,11 @@ would be anti-conservative there. The module is stdlib-only and holds pure funct
 response shape lives in the service layer.
 """
 
-from math import exp, isfinite, lgamma, log, sqrt
+from math import ceil, exp, isfinite, lgamma, log, sqrt
 from statistics import NormalDist
 from typing import Any
+
+from app.backend.app.constants import MAX_SUPPORTED_VARIANTS
 
 _STANDARD_NORMAL = NormalDist()
 
@@ -128,4 +130,101 @@ def poisson_rate_test(
         "n_events": total_events,
         "is_significant": p_value < alpha,
         "power_achieved": _bounded_probability(power_achieved),
+    }
+
+
+def calculate_poisson_rate_sample_size(
+    baseline_rate: float,
+    mde_pct: float,
+    alpha: float,
+    power: float,
+    exposure_per_user: float = 1.0,
+    variants_count: int = 2,
+) -> dict[str, Any]:
+    """Sample size per variant for a planned two-sample Poisson rate analysis.
+
+    Sizing matches the shipped exact analyzer's conditional framing (:func:`poisson_rate_test`
+    conditions on the total event count): with equal per-arm exposure, the treatment share of the
+    ``m`` total events is Binomial with ``pi0 = 1/2`` under H0 and ``pi1 = RR / (1 + RR)`` under the
+    alternative ``RR = 1 + mde_pct/100``. The required TOTAL EVENT COUNT ``m`` therefore comes from
+    the one-sample two-proportion normal formula at ``pi0`` vs ``pi1``, and converts to exposure via
+    ``T_per_arm = m / (lambda_c + lambda_t)`` and to users via ``ceil(T / exposure_per_user)``
+    (Gu, Ng, Tang & Schucany 2008, "Testing the ratio of two Poisson rates"; Sahai & Khurshid,
+    conditional sizing for the person-time test). Verified at implementation time by Monte-Carlo:
+    lambda_c 0.30, +20%, alpha 0.05, power 0.80 -> m = 948 events, 1437 users per variant at unit
+    exposure, empirical power of the conditional binomial test 0.799.
+
+    ``baseline_rate`` is events per exposure unit; ``exposure_per_user`` is how much exposure one
+    user contributes over the experiment (1.0 = the user itself is the exposure unit). Same honest
+    assumption as the analyzer: independent Poisson arrivals, no overdispersion / within-user
+    clustering - for clustered per-user counts plan a continuous metric on the per-user mean
+    instead.
+    """
+    if baseline_rate <= 0:
+        raise ValueError("baseline_rate must be positive for count metrics")
+    if mde_pct <= 0:
+        raise ValueError("mde_pct must be positive")
+    if not 0 < alpha < 1:
+        raise ValueError("alpha must be between 0 and 1")
+    if not 0 < power < 1:
+        raise ValueError("power must be between 0 and 1")
+    if exposure_per_user <= 0 or not isfinite(exposure_per_user):
+        raise ValueError("exposure_per_user must be positive")
+    if not 2 <= variants_count <= MAX_SUPPORTED_VARIANTS:
+        raise ValueError(f"variants_count must be between 2 and {MAX_SUPPORTED_VARIANTS}")
+
+    rate_ratio = 1.0 + mde_pct / 100
+    treatment_rate = baseline_rate * rate_ratio
+    pi_null = 0.5
+    pi_alternative = rate_ratio / (1.0 + rate_ratio)
+
+    comparison_count = max(1, variants_count - 1)
+    adjusted_alpha = alpha / comparison_count
+    z_alpha = _STANDARD_NORMAL.inv_cdf(1 - adjusted_alpha / 2)
+    z_power = _STANDARD_NORMAL.inv_cdf(power)
+
+    total_events = ceil(
+        (
+            z_alpha * sqrt(pi_null * (1 - pi_null))
+            + z_power * sqrt(pi_alternative * (1 - pi_alternative))
+        )
+        ** 2
+        / ((pi_alternative - pi_null) ** 2)
+    )
+    exposure_per_variant = total_events / (baseline_rate + treatment_rate)
+    sample_size_per_variant = ceil(exposure_per_variant / exposure_per_user)
+
+    return {
+        "metric_type": "count",
+        "baseline_value": baseline_rate,
+        "mde_pct": mde_pct,
+        "mde_absolute": baseline_rate * (mde_pct / 100),
+        "alpha": alpha,
+        "adjusted_alpha": adjusted_alpha,
+        "power": power,
+        "sample_size_per_variant": sample_size_per_variant,
+        "total_sample_size": sample_size_per_variant * variants_count,
+        "expected_total_events": total_events,
+        "required_exposure_per_variant": exposure_per_variant,
+        "assumptions": [
+            (
+                "Poisson rate plan sized through the conditional test the analyzer runs: "
+                f"~{total_events:,} total events across both arms make the conditional binomial "
+                f"split (1/2 vs RR/(1+RR) = {pi_alternative:.4f}) detectable, i.e. "
+                f"{exposure_per_variant:,.1f} exposure units per variant at "
+                f"{exposure_per_user:g} per user (Gu et al. 2008)."
+            ),
+            (
+                "Events are independent Poisson arrivals at a constant rate over the exposure - "
+                "no overdispersion or within-user clustering. For clustered per-user counts plan "
+                "a continuous metric on the per-user mean instead."
+            ),
+            "MDE is interpreted as a relative uplift of the baseline event rate (rate ratio).",
+            (
+                f"Bonferroni-adjusted alpha is {adjusted_alpha:.6g} across {comparison_count} "
+                "treatment-vs-control comparisons. This is conservative for multi-variant designs."
+                if variants_count > 2
+                else "Nominal alpha is used for a single treatment-vs-control comparison."
+            ),
+        ],
     }

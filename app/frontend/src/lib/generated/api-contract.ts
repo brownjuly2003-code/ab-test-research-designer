@@ -167,6 +167,8 @@ export type CalculationRequest = {
   cuped_pre_experiment_std?: number | null;
   cuped_correlation?: number | null;
   mde_pct: number;
+  planned_test?: ("z_test" | "fisher_exact" | "mann_whitney" | "tost") | null;
+  equivalence_margin_pct?: number | null;
   alpha: number;
   power: number;
   expected_daily_traffic: number;
@@ -221,6 +223,9 @@ export type CalculationSummaryResponse = {
   mde_absolute: number;
   alpha: number;
   power: number;
+  planned_test?: string | null;
+  equivalence_margin_pct?: number | null;
+  equivalence_margin_absolute?: number | null;
 };
 
 export type CalculationsSection = {
@@ -894,6 +899,8 @@ export type MetricsConfig = {
   baseline_value: number;
   expected_uplift_pct?: number | null;
   mde_pct: number;
+  planned_test?: ("z_test" | "fisher_exact" | "mann_whitney" | "tost") | null;
+  equivalence_margin_pct?: number | null;
   alpha: number;
   power: number;
   std_dev?: number | null;

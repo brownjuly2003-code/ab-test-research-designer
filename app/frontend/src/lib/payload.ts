@@ -67,6 +67,8 @@ export const initialState: FullPayload = {
     cuped_pre_experiment_std: "",
     cuped_correlation: "",
     cuped_enabled: false,
+    planned_test: "z_test",
+    equivalence_margin_pct: "",
     secondary_metrics: "add_to_cart_rate",
     guardrail_metrics: [
       {
@@ -134,17 +136,23 @@ export function setSectionFieldValue(
   const nextState = structuredClone(state);
   Reflect.set(nextState[section], key, value);
 
-  if (section === "metrics" && key === "metric_type" && value === "binary") {
-    return {
-      ...nextState,
-      metrics: {
-        ...nextState.metrics,
-        std_dev: "",
-        cuped_pre_experiment_std: "",
-        cuped_correlation: "",
-        cuped_enabled: false
-      }
-    };
+  if (section === "metrics" && key === "metric_type") {
+    // The planned analysis method is metric-type specific (z/Fisher for binary, z/MW/TOST for
+    // continuous), so switching the metric type falls back to the default z plan.
+    nextState.metrics.planned_test = "z_test";
+    nextState.metrics.equivalence_margin_pct = "";
+    if (value === "binary") {
+      return {
+        ...nextState,
+        metrics: {
+          ...nextState.metrics,
+          std_dev: "",
+          cuped_pre_experiment_std: "",
+          cuped_correlation: "",
+          cuped_enabled: false
+        }
+      };
+    }
   }
 
   return nextState;
@@ -178,6 +186,7 @@ export function buildApiPayload(state: FullPayload): ExperimentInputPayload {
     cuped_pre_experiment_std,
     cuped_correlation,
     cuped_enabled,
+    equivalence_margin_pct,
     secondary_metrics,
     guardrail_metrics,
     ...metrics
@@ -192,6 +201,12 @@ export function buildApiPayload(state: FullPayload): ExperimentInputPayload {
     metrics: {
       ...metrics,
       std_dev: std_dev === "" ? null : Number(std_dev),
+      // The margin only means something for a TOST equivalence plan; a stale value left over from
+      // a previous selection must not leak into the payload.
+      equivalence_margin_pct:
+        metrics.planned_test === "tost" && equivalence_margin_pct !== ""
+          ? Number(equivalence_margin_pct)
+          : null,
       cuped_pre_experiment_std:
         cuped_enabled && cuped_pre_experiment_std !== ""
           ? Number(cuped_pre_experiment_std)
@@ -255,6 +270,8 @@ export function buildCalculationPayload(state: FullPayload): CalculateRequest {
     std_dev: payload.metrics.std_dev,
     cuped_pre_experiment_std: payload.metrics.cuped_pre_experiment_std,
     cuped_correlation: payload.metrics.cuped_correlation,
+    planned_test: payload.metrics.planned_test,
+    equivalence_margin_pct: payload.metrics.equivalence_margin_pct,
     mde_pct: payload.metrics.mde_pct,
     alpha: payload.metrics.alpha,
     power: payload.metrics.power,
@@ -415,6 +432,13 @@ export function hydrateLoadedPayload(
       cuped_pre_experiment_std: cupedPreExperimentStd,
       cuped_correlation: cupedCorrelation,
       cuped_enabled: cupedPreExperimentStd !== "" || cupedCorrelation !== "",
+      planned_test: payload.metrics.planned_test ?? "z_test",
+      equivalence_margin_pct:
+        payload.metrics.equivalence_margin_pct === "" ||
+        payload.metrics.equivalence_margin_pct === null ||
+        payload.metrics.equivalence_margin_pct === undefined
+          ? ""
+          : Number(payload.metrics.equivalence_margin_pct),
       secondary_metrics: parseMetricList(payload.metrics.secondary_metrics).join(", "),
       guardrail_metrics: Array.isArray(payload.metrics.guardrail_metrics)
         ? payload.metrics.guardrail_metrics.map((guardrail) => {

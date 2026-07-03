@@ -151,7 +151,9 @@
         "secondary_metrics": "次要指标",
         "guardrail_metrics": "护栏指标",
         "alpha": "阿尔法",
-        "power": "力量"
+        "power": "力量",
+        "planned_test": "计划分析方法",
+        "equivalence_margin_pct": "等效性边界 %"
       },
       "constraints": {
         "seasonality_present": "季节性存在",
@@ -186,7 +188,9 @@
       "std_dev": "连续指标的标准差。仅对于连续指标需要；例如：平均订单价值为 12.5。",
       "interference_risk": "用户或单位可能会跨变体相互影响并打破隔离的风险。",
       "holdout_fraction": "全局保留组：作为干净对照、不进入任何实验的流量占比。没有则留空，或输入 0.1 表示 10% 的保留组。它会减少本实验获得的流量，因此持续时间变长，而样本量不变。",
-      "mutually_exclusive_experiments": "共享同一流量的互斥实验数量。为 1 时留空。为 N 时，本实验获得 1/N 的流量，持续时间相应延长。"
+      "mutually_exclusive_experiments": "共享同一流量的互斥实验数量。为 1 时留空。为 N 时，本实验获得 1/N 的流量，持续时间相应延长。",
+      "planned_test": "样本量按此分析方法规划。z 检验是经典默认方案；Fisher 精确检验在小样本上需要略多的用户；Mann-Whitney（秩检验，适合偏态指标）使计划增加约 5%；等效性检验（TOST）的目标是在边界内确认两组相同，而不是检测差异。",
+      "equivalence_margin_pct": "对称等效性边界，以基线的百分比表示：仍视为“实际相同”的最大差异。它决定 TOST 的样本量（MDE 不适用于等效性方案）。"
     },
     "options": {
       "setup": {
@@ -201,6 +205,12 @@
         "metric_type": {
           "binary": "二进制",
           "continuous": "连续的"
+        },
+        "planned_test": {
+          "z_test": "z 检验（默认）",
+          "fisher_exact": "Fisher 精确检验（小样本）",
+          "mann_whitney": "Mann-Whitney（秩检验）",
+          "tost": "等效性检验（TOST）"
         }
       },
       "constraints": {
