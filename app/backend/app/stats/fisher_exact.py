@@ -133,6 +133,112 @@ def fisher_exact_test(
     }
 
 
+# Root-finding for the mid-p odds-ratio CI runs on the log-odds scale; e^±40 brackets any ratio a
+# table below MAX_FISHER_EXACT_TOTAL can produce. Bisection stops once the log-odds bracket is tighter
+# than the tolerance (≈40 steps in practice) or after the defensive iteration cap.
+_MIDP_CI_LOG_BOUND = 40.0
+_MIDP_CI_LOG_TOLERANCE = 1e-10
+_MIDP_CI_MAX_ITERATIONS = 100
+
+# The mid-p CI enumerates the conditional (noncentral hypergeometric) support once per bisection step.
+# In Fisher's actual regime — small n or rare events — that support is tiny. Above this width the
+# large-sample odds-ratio interval is appropriate anyway, so the exact CI is skipped rather than
+# enumerated at length (the p-value itself is still exact over the same support).
+MAX_FISHER_EXACT_CI_SUPPORT = 20_000
+
+
+def fisher_exact_odds_ratio_midp_ci(
+    control_conversions: int,
+    control_users: int,
+    treatment_conversions: int,
+    treatment_users: int,
+    alpha: float,
+) -> tuple[float, float | None] | None:
+    """Mid-p conditional exact confidence interval for the 2x2 odds ratio.
+
+    Conditioning on both margins, the control-success cell ``a`` follows Fisher's noncentral
+    hypergeometric law with odds-ratio parameter ``ψ``. The two-sided mid-p ``(1 − alpha)`` interval
+    is the pair ``(ψ_L, ψ_U)`` solving
+
+        P_{ψ_L}(A > a) + ½·P_{ψ_L}(A = a) = alpha/2      (lower limit)
+        P_{ψ_U}(A < a) + ½·P_{ψ_U}(A = a) = alpha/2      (upper limit)
+
+    Counting only half the probability of the observed table (the mid-p correction) removes the
+    discreteness-driven over-coverage of the strict Cornfield exact interval, so the mid-p interval is
+    the natural, less-conservative completion of the exact family that already powers the p-value.
+    Source (definitions verified against ``scipy.stats.nchypergeom_fisher`` at implementation time, not
+    from memory): Agresti, *Categorical Data Analysis* (3rd ed., §3.5 — mid-p and exact conditional
+    inference); Vollset, *Statistics in Medicine* 12 (1993); Fay, *Biostatistics* 11 (2010), ``exact2x2``.
+
+    Returns ``(lower, upper)`` on the odds-ratio scale, where ``lower`` is ``0.0`` when the observed
+    cell sits at the low edge of its support and ``upper`` is ``None`` (unbounded, i.e. ``+∞``) when it
+    sits at the high edge — the standard boundary behaviour when an off-diagonal cell is empty. Returns
+    ``None`` when the margins are degenerate (an empty success/failure column, no estimable ratio) or
+    when the conditional support is wider than :data:`MAX_FISHER_EXACT_CI_SUPPORT`.
+    """
+    a = control_conversions
+    b = control_users - control_conversions
+    c = treatment_conversions
+    d = treatment_users - treatment_conversions
+    if a < 0 or b < 0 or c < 0 or d < 0:
+        raise ValueError("conversion counts must be non-negative and not exceed users")
+    if not 0 < alpha < 1:
+        raise ValueError("alpha must be between 0 and 1")
+
+    row1 = a + b  # control users
+    successes = a + c  # total conversions
+    failures = b + d  # total non-conversions
+    low = max(0, row1 - failures)
+    high = min(row1, successes)
+
+    # An empty success or failure column leaves the odds ratio undefined for every ψ.
+    if low >= high:
+        return None
+    if high - low + 1 > MAX_FISHER_EXACT_CI_SUPPORT:
+        return None
+
+    support = list(range(low, high + 1))
+    log_base = [
+        _log_binomial(successes, k) + _log_binomial(failures, row1 - k) for k in support
+    ]
+    observed_index = a - low
+
+    def _conditional_pmf(log_psi: float) -> list[float]:
+        log_weights = [log_base[i] + support[i] * log_psi for i in range(len(support))]
+        peak = max(log_weights)
+        weights = [exp(value - peak) for value in log_weights]
+        total = sum(weights)
+        return [weight / total for weight in weights]
+
+    def _midp_upper_tail(log_psi: float) -> float:
+        # P(A > a) + ½ P(A = a); strictly increasing in ψ.
+        pmf = _conditional_pmf(log_psi)
+        return sum(pmf[observed_index + 1 :]) + 0.5 * pmf[observed_index]
+
+    def _midp_lower_tail(log_psi: float) -> float:
+        # P(A < a) + ½ P(A = a); strictly decreasing in ψ.
+        pmf = _conditional_pmf(log_psi)
+        return sum(pmf[:observed_index]) + 0.5 * pmf[observed_index]
+
+    target = alpha / 2
+
+    def _solve(tail: Any, increasing: bool) -> float:
+        lo, hi = -_MIDP_CI_LOG_BOUND, _MIDP_CI_LOG_BOUND
+        for _ in range(_MIDP_CI_MAX_ITERATIONS):
+            mid = (lo + hi) / 2
+            if (tail(mid) < target) == increasing:
+                lo = mid
+            else:
+                hi = mid
+            if hi - lo < _MIDP_CI_LOG_TOLERANCE:
+                break
+        return exp((lo + hi) / 2)
+
+    lower = 0.0 if a == low else _solve(_midp_upper_tail, increasing=True)
+    upper = None if a == high else _solve(_midp_lower_tail, increasing=False)
+    return lower, upper
+
+
 # Exact sizing enumerates an O(n^2 log n) double sweep per candidate n; beyond this per-arm size the
 # enumeration is slow AND unnecessary (the exact and approximate answers converge), so sizing falls
 # back to the Casagrande-Pike-Smith continuity-corrected formula with an explicit assumption line.

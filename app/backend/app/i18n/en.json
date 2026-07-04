@@ -354,7 +354,8 @@
       "method_asymptotic": "normal approximation"
     },
     "fisher_exact": {
-      "odds_ratio_undefined": "undefined (a zero cell)"
+      "odds_ratio_undefined": "undefined (a zero cell)",
+      "odds_ratio_midp_ci": "Odds-ratio mid-p {{ciLevel}}% CI [{{lower}}, {{upper}}]."
     },
     "count": {
       "rate_ratio_undefined": "undefined (no control events)"

@@ -68,9 +68,12 @@ describe("ObservedResultsSection", () => {
       is_significant: true,
       power_achieved: 0.7,
       verdict: "Statistically significant change at alpha=0.050",
-      interpretation: "Fisher's exact two-sided p-value 0.034965; result is statistically significant.",
+      interpretation:
+        "Fisher's exact two-sided p-value 0.034965; result is statistically significant. Odds-ratio mid-p 95.0% CI [1.3420, 526.3952].",
       effect_size: 20,
-      effect_size_label: "odds ratio"
+      effect_size_label: "odds ratio",
+      effect_size_ci_lower: 1.342,
+      effect_size_ci_upper: 526.3952
     };
     const fetchMock = vi.fn(async (..._args: unknown[]) => ({ ok: true, json: async () => response }));
     vi.stubGlobal("fetch", fetchMock);
@@ -102,9 +105,11 @@ describe("ObservedResultsSection", () => {
         alpha: 0.05
       });
 
-      // The odds-ratio effect size is surfaced with its label.
+      // The odds-ratio effect size is surfaced with its label and its mid-p confidence interval.
       expect(view.container.textContent).toContain("odds ratio");
       expect(view.container.textContent).toContain("Fisher's exact two-sided p-value");
+      expect(view.container.textContent).toContain("1.3420");
+      expect(view.container.textContent).toContain("526.3952");
     } finally {
       await view.unmount();
     }

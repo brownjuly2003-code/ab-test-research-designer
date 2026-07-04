@@ -354,7 +354,8 @@
       "method_asymptotic": "aproximación normal"
     },
     "fisher_exact": {
-      "odds_ratio_undefined": "no definida (una celda en cero)"
+      "odds_ratio_undefined": "no definida (una celda en cero)",
+      "odds_ratio_midp_ci": "Razón de momios, mid-p {{ciLevel}}% [{{lower}}, {{upper}}]."
     },
     "count": {
       "rate_ratio_undefined": "no definida (sin eventos en el control)"

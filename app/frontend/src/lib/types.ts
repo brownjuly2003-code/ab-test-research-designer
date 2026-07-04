@@ -87,6 +87,8 @@ export type ResultsAnalysisResponse = {
   interpretation: string;
   effect_size?: number | null;
   effect_size_label?: string | null;
+  effect_size_ci_lower?: number | null;
+  effect_size_ci_upper?: number | null;
 };
 export type SavedObservedResults = {
   request: ResultsRequestPayload;

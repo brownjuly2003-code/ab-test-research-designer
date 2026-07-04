@@ -13,6 +13,68 @@ def standard_normal_cdf(value: float) -> float:
     return NormalDist().cdf(value)
 
 
+def wilson_score_interval(successes: int, n: int, alpha: float) -> tuple[float, float]:
+    """Wilson (1927) score interval for a single binomial proportion.
+
+    Unlike the Wald interval ``p̂ ± z·√(p̂(1−p̂)/n)``, the score interval inverts the score test, so it
+    is bounded inside ``[0, 1]``, never degenerates to a point at ``p̂ ∈ {0, 1}``, and holds its nominal
+    coverage far better at small ``n`` or extreme rates — exactly the regime where the Wald interval
+    collapses. Source (verified numerically against ``statsmodels.stats.proportion.proportion_confint(
+    method="wilson")`` at implementation time, not from memory): E. B. Wilson, *JASA* 22 (1927), 209–212;
+    Agresti & Coull, *The American Statistician* 52 (1998).
+
+    Returns ``(lower, upper)`` on the proportion scale. The endpoints are analytically within ``[0, 1]``
+    (at ``successes = 0`` the lower endpoint is exactly 0; at ``successes = n`` the upper is exactly 1).
+    """
+    if n <= 0:
+        raise ValueError("n must be positive")
+    if not 0 <= successes <= n:
+        raise ValueError("successes must be between 0 and n")
+    if not 0 < alpha < 1:
+        raise ValueError("alpha must be between 0 and 1")
+
+    z = NormalDist().inv_cdf(1 - alpha / 2)
+    p = successes / n
+    z_sq_over_n = z * z / n
+    denominator = 1 + z_sq_over_n
+    center = (p + z_sq_over_n / 2) / denominator
+    half_width = (z / denominator) * sqrt(p * (1 - p) / n + z * z / (4 * n * n))
+    return center - half_width, center + half_width
+
+
+def newcombe_difference_interval(
+    successes1: int,
+    n1: int,
+    successes2: int,
+    n2: int,
+    alpha: float,
+) -> tuple[float, float]:
+    """Newcombe (1998) "Method 10" hybrid-score interval for the difference ``p1 − p2``.
+
+    A MOVER (method of variance estimates recovery) combination of the two single-proportion Wilson
+    intervals ``(l_i, u_i)``::
+
+        lower = (p̂1 − p̂2) − √((p̂1 − l1)² + (u2 − p̂2)²)
+        upper = (p̂1 − p̂2) + √((u1 − p̂1)² + (p̂2 − l2)²)
+
+    It inherits Wilson's small-sample coverage and boundary behaviour, so it replaces the Wald
+    difference interval that mis-covers when a cell count is tiny or a rate is near 0 / 1. Source
+    (verified numerically against ``statsmodels.stats.proportion.confint_proportions_2indep(
+    method="newcomb", compare="diff")`` to 1e-9 at implementation time, not from memory): R. G.
+    Newcombe, *Statistics in Medicine* 17 (1998), 873–890, method 10; the worked example 56/70 vs
+    48/80 reproduces his published 95 % interval (0.0524, 0.3339). The construction is antisymmetric:
+    swapping the two groups negates and reverses the interval.
+    """
+    p1 = successes1 / n1
+    p2 = successes2 / n2
+    lower1, upper1 = wilson_score_interval(successes1, n1, alpha)
+    lower2, upper2 = wilson_score_interval(successes2, n2, alpha)
+    difference = p1 - p2
+    lower = difference - sqrt((p1 - lower1) ** 2 + (upper2 - p2) ** 2)
+    upper = difference + sqrt((upper1 - p1) ** 2 + (p2 - lower2) ** 2)
+    return lower, upper
+
+
 def calculate_detectable_mde_binary(
     n: int,
     baseline_rate: float,

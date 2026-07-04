@@ -354,7 +354,8 @@
       "method_asymptotic": "正态近似"
     },
     "fisher_exact": {
-      "odds_ratio_undefined": "未定义（存在零单元格）"
+      "odds_ratio_undefined": "未定义（存在零单元格）",
+      "odds_ratio_midp_ci": "优势比 mid-p {{ciLevel}}% 置信区间 [{{lower}}, {{upper}}]。"
     },
     "count": {
       "rate_ratio_undefined": "未定义（对照组无事件）"

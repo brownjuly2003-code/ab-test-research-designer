@@ -354,7 +354,8 @@
       "method_asymptotic": "нормальная аппроксимация"
     },
     "fisher_exact": {
-      "odds_ratio_undefined": "не определено (нулевая ячейка)"
+      "odds_ratio_undefined": "не определено (нулевая ячейка)",
+      "odds_ratio_midp_ci": "Отношение шансов, mid-p {{ciLevel}}% ДИ [{{lower}}, {{upper}}]."
     },
     "count": {
       "rate_ratio_undefined": "не определено (нет событий в контроле)"

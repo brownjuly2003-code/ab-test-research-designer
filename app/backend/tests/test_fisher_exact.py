@@ -14,7 +14,11 @@ from statistics import NormalDist
 
 import pytest
 
-from app.backend.app.stats.fisher_exact import fisher_exact_test
+from app.backend.app.stats.fisher_exact import (
+    MAX_FISHER_EXACT_CI_SUPPORT,
+    fisher_exact_odds_ratio_midp_ci,
+    fisher_exact_test,
+)
 
 _NORMAL = NormalDist()
 
@@ -106,6 +110,85 @@ def test_p_value_always_bounded() -> None:
         tu = rng.randint(2, 60)
         result = fisher_exact_test(rng.randint(0, cu), cu, rng.randint(0, tu), tu)
         assert 0.0 <= result["p_value"] <= 1.0
+
+
+# --- mid-p conditional exact CI for the odds ratio -----------------------------------------
+# Frozen references from scratchpad verify_wilson_newcombe_midp.py, where a mid-p interval was
+# built independently from scipy.stats.nchypergeom_fisher. Args are (control_conversions,
+# control_users, treatment_conversions, treatment_users) so the cell a = control conversions.
+
+_MIDP_OR_95 = {
+    (3, 4, 1, 4): (0.310055, 308.556772),   # tea table [[3,1],[1,3]], sample OR 9
+    (8, 10, 1, 6): (1.342002, 526.395203),   # canonical [[8,2],[1,5]], sample OR 20
+    (10, 50, 2, 50): (1.344810, 41.618450),  # [[10,40],[2,48]], sample OR 6
+}
+
+
+@pytest.mark.parametrize(
+    ("a", "control_users", "c", "treatment_users", "expected"),
+    [(*k, v) for k, v in _MIDP_OR_95.items()],
+)
+def test_midp_odds_ratio_ci_matches_frozen_reference(
+    a: int, control_users: int, c: int, treatment_users: int, expected: tuple[float, float]
+) -> None:
+    result = fisher_exact_odds_ratio_midp_ci(a, control_users, c, treatment_users, 0.05)
+    assert result is not None
+    lower, upper = result
+    assert upper is not None
+    assert lower == pytest.approx(expected[0], rel=1e-4)
+    assert upper == pytest.approx(expected[1], rel=1e-4)
+
+
+def test_midp_ci_brackets_the_sample_odds_ratio() -> None:
+    # [[8,2],[1,5]] sample OR = 20 lies inside its mid-p interval.
+    lower, upper = fisher_exact_odds_ratio_midp_ci(8, 10, 1, 6, 0.05)
+    assert lower is not None and upper is not None
+    assert lower < 20.0 < upper
+
+
+def test_midp_ci_is_narrower_than_the_strict_exact_interval() -> None:
+    # The mid-p correction removes discrete over-coverage, so the interval sits inside the strict
+    # Cornfield exact interval. Frozen exact bounds for [[8,2],[1,5]]: (1.008849, 1059.639495).
+    lower, upper = fisher_exact_odds_ratio_midp_ci(8, 10, 1, 6, 0.05)
+    assert lower > 1.008849
+    assert upper < 1059.639495
+
+
+def test_midp_ci_unbounded_above_when_cell_at_high_edge() -> None:
+    # control 10/10, treatment 3/8: the control-success cell is at the top of its support, so the
+    # odds ratio is unbounded above (+∞ -> None) while the lower limit stays finite. The sample odds
+    # ratio itself is undefined here (an empty off-diagonal cell), but the interval is not.
+    result = fisher_exact_odds_ratio_midp_ci(10, 10, 3, 8, 0.05)
+    assert result is not None
+    lower, upper = result
+    assert upper is None
+    assert lower == pytest.approx(2.358171, rel=1e-3)
+
+
+def test_midp_ci_is_reciprocal_under_arm_swap() -> None:
+    # Swapping arms inverts the odds ratio, so the interval (L, U) maps to (1/U, 1/L).
+    forward = fisher_exact_odds_ratio_midp_ci(8, 10, 1, 6, 0.05)
+    reverse = fisher_exact_odds_ratio_midp_ci(1, 6, 8, 10, 0.05)
+    assert forward[0] is not None and forward[1] is not None
+    assert reverse[0] == pytest.approx(1.0 / forward[1], rel=1e-4)
+    assert reverse[1] == pytest.approx(1.0 / forward[0], rel=1e-4)
+
+
+def test_midp_ci_none_for_degenerate_margin() -> None:
+    # An empty success column (no conversions in either arm) leaves no estimable odds ratio.
+    assert fisher_exact_odds_ratio_midp_ci(0, 10, 0, 10, 0.05) is None
+
+
+def test_midp_ci_none_when_support_too_wide() -> None:
+    # A large, balanced table whose conditional support exceeds the enumeration cap: the exact CI is
+    # skipped (the large-sample interval is appropriate there) rather than enumerated at length.
+    n = MAX_FISHER_EXACT_CI_SUPPORT + 500
+    assert fisher_exact_odds_ratio_midp_ci(n // 2, n, n // 2, n, 0.05) is None
+
+
+def test_midp_ci_rejects_invalid_alpha() -> None:
+    with pytest.raises(ValueError):
+        fisher_exact_odds_ratio_midp_ci(8, 10, 1, 6, 0.0)
 
 
 # --- convergence to the large-sample z-test ------------------------------------------------
