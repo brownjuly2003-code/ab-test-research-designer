@@ -46,6 +46,8 @@ function createReviewStepProps(overrides: Partial<Parameters<typeof WizardReview
     activeProjectId: "p-1",
     hasUnsavedChanges: true,
     canMutateBackend: false,
+    isReadOnlySession: false,
+    canUseCompute: false,
     backendMutationMessage: "Backend is running in read-only API mode.",
     validationErrors: ["Project name is required."],
     importingDraft: false,
@@ -67,6 +69,8 @@ function seedWizardPanelState(overrides: {
   activeProjectId?: string | null;
   hasUnsavedChanges?: boolean;
   canMutateBackend?: boolean;
+  isReadOnlySession?: boolean;
+  canUseCompute?: boolean;
   backendMutationMessage?: string;
   validationErrors?: string[];
 } = {}) {
@@ -85,6 +89,8 @@ function seedWizardPanelState(overrides: {
     activeProjectId: overrides.activeProjectId ?? null,
     hasUnsavedChanges: overrides.hasUnsavedChanges ?? false,
     canMutateBackend: overrides.canMutateBackend ?? true,
+    isReadOnlySession: overrides.isReadOnlySession ?? false,
+    canUseCompute: overrides.canUseCompute ?? overrides.canMutateBackend ?? true,
     backendMutationMessage: overrides.backendMutationMessage ?? "",
     isSavingProject: false,
     loadingProjectHistory: false,
@@ -157,6 +163,8 @@ describe("Wizard snapshots", () => {
       activeProjectId: "p-1",
       hasUnsavedChanges: true,
       canMutateBackend: false,
+      isReadOnlySession: false,
+      canUseCompute: false,
       backendMutationMessage: "Backend is running in read-only API mode.",
       validationErrors: ["Project name is required."]
     });
@@ -219,6 +227,11 @@ describe("Wizard snapshots", () => {
       await flushEffects();
       await click(findButton(view.container, "Start from template"));
       await flushEffects();
+      // Lazy-loaded gallery: poll until the dynamic chunk resolves and mounts.
+      for (let attempt = 0; attempt < 50 && !document.querySelector('[role="dialog"]'); attempt += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        await flushEffects();
+      }
 
       const dialog = document.querySelector('[role="dialog"]');
       if (!(dialog instanceof HTMLDivElement)) {

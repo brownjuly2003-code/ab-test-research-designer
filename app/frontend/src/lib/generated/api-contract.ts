@@ -324,8 +324,9 @@ export type DiagnosticsAuthSummary = {
   legacy_tokens_enabled?: boolean;
   api_keys_enabled?: boolean;
   admin_token_enabled?: boolean;
+  public_demo?: boolean;
   session_scope?: ("read" | "write" | "admin") | null;
-  session_source?: ("legacy" | "api_key" | "admin_token") | null;
+  session_source?: ("legacy" | "api_key" | "admin_token" | "anonymous") | null;
   session_can_write?: boolean;
   session_admin_authenticated?: boolean;
   accepted_headers: string[];

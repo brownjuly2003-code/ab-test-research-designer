@@ -324,7 +324,17 @@
       "new_experiment": "Fangen Sie bei Null an",
       "load_example": "Sehen Sie sich ein ausgefülltes Experiment mit einem Klick an",
       "import_project": "Wiederherstellung aus einem Workspace-Backup"
-    }
+    },
+    "demos": {
+      "heading": "Live-Demoprojekte erkunden",
+      "subtitle": "Vorbereitete Experimente mit gespeicherten Analysen — öffnen Sie eines für die vollständige Auswertung.",
+      "analyzed": "Analyse gespeichert",
+      "open": "Demo öffnen",
+      "opening": "Wird geöffnet…",
+      "durationDays_one": "{{count}} Tag",
+      "durationDays_other": "{{count}} Tage"
+    },
+    "facts": "10 statistische Analysatoren · 4 Metriktypen · sequenziell & bayesianisch · 7 Sprachen"
   },
   "sidebar": {
     "tabs": {
@@ -361,7 +371,8 @@
       "interpretationPitfalls": "Interpretationsfallen",
       "additionalChecks": "Zusätzliche Kontrollen",
       "unavailable": "KI-Ratschläge nicht verfügbar. Die kerndeterministische Ausgabe funktioniert weiterhin.",
-      "seededDemo": "Für dieses vorab befüllte Demo-Projekt werden keine KI-Ratschläge erzeugt. Starten Sie ein eigenes Experiment, um Live-Empfehlungen zu sehen."
+      "seededDemo": "Für dieses vorab befüllte Demo-Projekt werden keine KI-Ratschläge erzeugt. Starten Sie ein eigenes Experiment, um Live-Empfehlungen zu sehen.",
+      "publicDemoRequiresKey": "KI-Empfehlungen in dieser öffentlichen Demo laufen nur mit Ihrem eigenen API-Schlüssel. Hinterlegen Sie einen OpenAI- oder Anthropic-Schlüssel in den Einstellungen, um Live-Empfehlungen zu aktivieren."
     },
     "comparison": {
       "empty": "Laden Sie einen gespeicherten Projektvergleich aus der Seitenleiste „Projekte“, um Referenz- und Kandidaten-Snapshots zu überprüfen.",

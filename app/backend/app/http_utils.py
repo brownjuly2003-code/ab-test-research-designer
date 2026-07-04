@@ -22,6 +22,34 @@ else:  # pragma: no cover - compatibility path for older Starlette/FastAPI build
 AUTH_EXEMPT_PREFIXES = ("/assets",)
 AUTH_PROTECTED_EXACT_PATHS = {"/readyz"}
 AUTH_READ_ONLY_METHODS = {"GET", "HEAD", "OPTIONS"}
+# Stateless compute endpoints: POST bodies in, derived numbers out, no repository
+# writes. A read-scope session (readonly token, or the anonymous public-demo scope)
+# may call these — "read-only" means "cannot change stored state", not "GET only".
+# Every path listed here must keep a require_auth (not require_write_auth) route
+# guard; test_public_demo.py asserts the two layers stay in sync.
+PUBLIC_COMPUTE_PATHS = frozenset(
+    {
+        "/api/v1/calculate",
+        "/api/v1/sensitivity",
+        "/api/v1/srm-check",
+        "/api/v1/multiple-testing",
+        "/api/v1/results",
+        "/api/v1/results/categorical",
+        "/api/v1/results/paired",
+        "/api/v1/results/omnibus",
+        "/api/v1/simulate/bandit",
+        "/api/v1/assignment/preview",
+        "/api/v1/design",
+        "/api/v1/analyze",
+        "/api/v1/llm/advice",
+        "/api/v1/hypotheses/generate",
+        "/api/v1/export/markdown",
+        "/api/v1/export/html",
+        "/api/v1/export/comparison",
+        "/api/v1/export/html-standalone",
+        "/api/v1/projects/compare",
+    }
+)
 RATE_LIMITED_PATH_PREFIXES = ("/api/v1",)
 BODY_LIMITED_METHODS = {"POST", "PUT", "PATCH"}
 WORKSPACE_BUNDLE_PATHS = {"/api/v1/workspace/import", "/api/v1/workspace/validate"}

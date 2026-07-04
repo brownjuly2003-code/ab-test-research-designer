@@ -20,6 +20,8 @@ export default function ObservedResultsSection({ onResultsAnalysisChange }: Obse
   const selectedHistoryRun = useProjectStore((state) => state.selectedHistoryRun);
   const activeProject = useProjectStore((state) => state.activeProject);
   const canMutateBackend = useProjectStore((state) => state.canMutateBackend);
+  const isReadOnlySession = useProjectStore((state) => state.isReadOnlySession);
+  const canUseCompute = useProjectStore((state) => state.canUseCompute);
   const backendMutationMessage = useProjectStore((state) => state.backendMutationMessage);
   const displayedAnalysis = getDisplayedAnalysis(selectedHistoryRun?.analysis ?? null, analysisResult);
   const baseMetricType = displayedAnalysis ? resolveObservedMetricType(displayedAnalysis.calculations.calculation_summary.metric_type) : "binary";
@@ -196,6 +198,8 @@ export default function ObservedResultsSection({ onResultsAnalysisChange }: Obse
       actualResults={actualResults}
       setActualResults={setActualResults}
       canMutateBackend={canMutateBackend}
+      isReadOnlySession={isReadOnlySession}
+      canUseCompute={canUseCompute}
       backendMutationMessage={backendMutationMessage}
       activeProject={activeProject}
       selectedHistoryRun={selectedHistoryRun}

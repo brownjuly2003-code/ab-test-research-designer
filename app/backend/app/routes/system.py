@@ -187,13 +187,17 @@ def create_system_router(
                 format=settings.log_format,
             ),
             auth=DiagnosticsAuthSummary(
-                enabled=settings.api_token is not None or settings.readonly_api_token is not None or api_keys_enabled,
+                enabled=settings.api_token is not None
+                or settings.readonly_api_token is not None
+                or api_keys_enabled
+                or settings.public_demo,
                 mode=get_auth_mode(settings.api_token, settings.readonly_api_token, api_keys_enabled),
                 write_enabled=settings.api_token is not None or write_api_keys_enabled,
                 readonly_enabled=settings.readonly_api_token is not None or read_api_keys_enabled,
                 legacy_tokens_enabled=settings.api_token is not None or settings.readonly_api_token is not None,
                 api_keys_enabled=api_keys_enabled,
                 admin_token_enabled=settings.admin_token is not None,
+                public_demo=settings.public_demo,
                 session_scope=session_scope,
                 session_source=getattr(request.state, "auth_source", None),
                 session_can_write=session_scope in {"write", "admin"},

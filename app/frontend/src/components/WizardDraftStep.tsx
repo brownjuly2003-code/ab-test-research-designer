@@ -62,6 +62,8 @@ type WizardDraftStepProps = {
   activeProjectId: string | null;
   hasUnsavedChanges: boolean;
   canMutateBackend: boolean;
+  isReadOnlySession: boolean;
+  canUseCompute: boolean;
   backendMutationMessage: string;
   validationErrors: string[];
   importingDraft: boolean;
@@ -85,6 +87,8 @@ export default function WizardDraftStep({
   activeProjectId,
   hasUnsavedChanges,
   canMutateBackend,
+  isReadOnlySession,
+  canUseCompute,
   backendMutationMessage,
   validationErrors,
   importingDraft,
@@ -250,7 +254,7 @@ export default function WizardDraftStep({
           </ul>
         </div>
       ) : null}
-      {!canMutateBackend ? (
+      {!canUseCompute ? (
         <div className="callout">
           <span>{backendMutationMessage}</span>
         </div>
@@ -259,7 +263,7 @@ export default function WizardDraftStep({
         {current.section === "hypothesis" ? (
           <HypothesisIdeationPanel
             form={form}
-            disabled={!canMutateBackend}
+            disabled={!canUseCompute}
             onApply={(candidate) => {
               handleFieldChange("hypothesis", "change_description", candidate.change, "hypothesis-change_description");
               if (candidate.rationale) {
@@ -804,14 +808,16 @@ export default function WizardDraftStep({
           <button className="btn secondary btn-back" disabled={!canGoBack || loading} onClick={onBack}>
             {t("wizard.actions.back")}
           </button>
-          <button
-            className="btn ghost"
-            disabled={!canMutateBackend || loading || saving}
-            title={activeProjectId ? t("wizardDraft.buttons.updateProjectTitle") : t("wizardDraft.buttons.saveProjectTitle")}
-            onClick={onSave}
-          >
-            {saving ? <><Spinner /> {t("wizardDraft.buttons.saving")}</> : activeProjectId ? t("wizardDraft.buttons.updateProject") : t("wizard.actions.save")}
-          </button>
+          {isReadOnlySession ? null : (
+            <button
+              className="btn ghost"
+              disabled={!canMutateBackend || loading || saving}
+              title={activeProjectId ? t("wizardDraft.buttons.updateProjectTitle") : t("wizardDraft.buttons.saveProjectTitle")}
+              onClick={onSave}
+            >
+              {saving ? <><Spinner /> {t("wizardDraft.buttons.saving")}</> : activeProjectId ? t("wizardDraft.buttons.updateProject") : t("wizard.actions.save")}
+            </button>
+          )}
           <button className="btn primary" disabled={loading} onClick={onNext}>
             {t("wizard.actions.next")}
           </button>

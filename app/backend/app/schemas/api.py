@@ -1725,8 +1725,9 @@ class DiagnosticsAuthSummary(BaseModel):
     legacy_tokens_enabled: bool = False
     api_keys_enabled: bool = False
     admin_token_enabled: bool = False
+    public_demo: bool = False
     session_scope: Literal["read", "write", "admin"] | None = None
-    session_source: Literal["legacy", "api_key", "admin_token"] | None = None
+    session_source: Literal["legacy", "api_key", "admin_token", "anonymous"] | None = None
     session_can_write: bool = False
     session_admin_authenticated: bool = False
     accepted_headers: list[str]

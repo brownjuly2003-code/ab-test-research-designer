@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { hydrateLoadedPayload, type FullPayload, type TemplateRecord } from "../lib/experiment";
 import { listTemplatesRequest, useTemplateRequest } from "../lib/api";
+import { useProjectStore } from "../stores/projectStore";
 
 type TemplateGalleryProps = {
   onClose: () => void;
@@ -103,7 +104,11 @@ export default function TemplateGallery({ onClose, onApplyTemplate }: TemplateGa
     try {
       setUsingTemplateId(templateId);
       setError("");
-      const template = await useTemplateRequest(templateId);
+      // Read-only sessions (public demo) apply the already-listed payload locally:
+      // the /use endpoint only bumps usage_count, which would 403 without a token.
+      const readOnly = useProjectStore.getState().isReadOnlySession;
+      const listedTemplate = readOnly ? templates.find((candidate) => candidate.id === templateId) : undefined;
+      const template = listedTemplate ?? (await useTemplateRequest(templateId));
       onApplyTemplate(hydrateLoadedPayload(template.payload), template.name);
       onClose();
     } catch (requestError) {

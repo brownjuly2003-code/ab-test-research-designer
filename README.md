@@ -149,7 +149,7 @@ Post-v1.1.0 Tier 2/3 roadmap items are all landed as of 2026-04-25.
 - workspace import preflight validation with checksum/reference verification before writes begin
 - browser draft restore/autosave plus JSON draft import/export
 - workspace status board summarizing saved-project coverage, snapshot depth, exports, and current draft sync state
-- read-only aware frontend mode that disables write actions when the API session only has safe GET access
+- read-only aware frontend mode that hides write actions for read-only sessions while keeping every stateless calculator available; `AB_PUBLIC_DEMO=true` turns this into an anonymous public-demo entry with a guest landing over the seeded demo projects
 
 ## Statistical repertoire
 
@@ -189,7 +189,8 @@ Environment template:
 
 - start from [.env.example](.env.example)
 - set `AB_API_TOKEN` if you want write-capable `/api/v1/*` routes protected
-- optionally set `AB_READONLY_API_TOKEN` for read-only access to diagnostics, readiness, docs, and `GET` project routes
+- optionally set `AB_READONLY_API_TOKEN` for read-only access: diagnostics, readiness, docs, `GET` project routes, and the stateless calculation endpoints
+- optionally set `AB_PUBLIC_DEMO=true` to give anonymous visitors that same read-only scope (guest landing + calculators, no mutations) for a hosted demo
 - optionally set `AB_WORKSPACE_SIGNING_KEY` to HMAC-sign exported workspace backups and require signed imports on that runtime
 - optionally set `AB_HF_SNAPSHOT_REPO` and `AB_HF_TOKEN` to restore/persist the SQLite workspace through a private Hugging Face Dataset snapshot
 - optionally set `AB_HF_SNAPSHOT_INTERVAL_SECONDS` to change the snapshot cadence; the default is `900`, and `0` disables the background snapshot task
@@ -449,7 +450,7 @@ Active docs:
 - LLM adapter timeout/retry behavior can be tuned through `.env.example`
 - SQLite busy timeout, journal mode, synchronous mode, and backend log format are configurable through `.env.example`
 - optional write-token auth is available through `AB_API_TOKEN`; the frontend can send it as a browser-session token without baking it into the build
-- optional read-only auth is available through `AB_READONLY_API_TOKEN` for safe `GET/HEAD/OPTIONS` runtime access
+- optional read-only auth is available through `AB_READONLY_API_TOKEN` for read-only runtime access (`GET/HEAD/OPTIONS` plus stateless calculation POSTs)
 - API responses now include `X-Request-ID` and `X-Process-Time-Ms` headers for lightweight local observability
 - responses now also include baseline security headers (`Content-Security-Policy`, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`)
 - `/api/v1/*` requests now have configurable in-memory rate limiting plus a dedicated auth-failure throttle with `Retry-After` on `429`

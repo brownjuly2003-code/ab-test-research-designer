@@ -1568,7 +1568,8 @@ def test_readonly_api_token_allows_safe_requests_but_blocks_mutations(monkeypatc
             "/api/v1/projects",
             headers={"Authorization": "Bearer readonly-secret"},
         )
-        forbidden_calculation = client.post(
+        # Stateless compute is allowed for read scope; repository mutations stay 403.
+        allowed_calculation = client.post(
             "/api/v1/calculate",
             headers={"Authorization": "Bearer readonly-secret"},
             json={
@@ -1583,15 +1584,22 @@ def test_readonly_api_token_allows_safe_requests_but_blocks_mutations(monkeypatc
                 "variants_count": 2,
             },
         )
+        forbidden_mutation = client.post(
+            "/api/v1/projects",
+            headers={"Authorization": "Bearer readonly-secret"},
+            json=_full_payload(),
+        )
 
     assert diagnostics_response.status_code == 200
     assert diagnostics_response.json()["auth"]["mode"] == "readonly"
     assert diagnostics_response.json()["auth"]["write_enabled"] is False
     assert diagnostics_response.json()["auth"]["readonly_enabled"] is True
     assert project_list_response.status_code == 200
-    assert forbidden_calculation.status_code == 403
-    assert forbidden_calculation.json()["detail"] == "Forbidden"
-    assert forbidden_calculation.json()["error_code"] == "forbidden"
+    assert allowed_calculation.status_code == 200
+    assert allowed_calculation.json()["results"]["sample_size_per_variant"] > 0
+    assert forbidden_mutation.status_code == 403
+    assert forbidden_mutation.json()["detail"] == "Forbidden"
+    assert forbidden_mutation.json()["error_code"] == "forbidden"
     get_settings.cache_clear()
 
 
@@ -1651,20 +1659,11 @@ def test_diagnostics_runtime_counters_track_errors_and_auth_rejections(monkeypat
         client.get("/health")
         client.get("/api/v1/diagnostics")
         client.get("/api/v1/projects", headers={"Authorization": "Bearer readonly-secret"})
+        # A repository mutation on a read token is the auth rejection being counted.
         client.post(
-            "/api/v1/calculate",
+            "/api/v1/projects",
             headers={"Authorization": "Bearer readonly-secret"},
-            json={
-                "metric_type": "binary",
-                "baseline_value": 0.042,
-                "mde_pct": 5,
-                "alpha": 0.05,
-                "power": 0.8,
-                "expected_daily_traffic": 12000,
-                "audience_share_in_test": 0.6,
-                "traffic_split": [50, 50],
-                "variants_count": 2,
-            },
+            json=_full_payload(),
         )
         diagnostics_response = client.get(
             "/api/v1/diagnostics",
@@ -1708,7 +1707,8 @@ def test_database_api_keys_require_auth_and_enforce_scope(monkeypatch) -> None:
             "/api/v1/projects",
             headers={"Authorization": f"Bearer {read_key}"},
         )
-        forbidden_calculation = client.post(
+        # Stateless compute is allowed for read scope; repository mutations stay 403.
+        allowed_calculation = client.post(
             "/api/v1/calculate",
             headers={"Authorization": f"Bearer {read_key}"},
             json={
@@ -1723,14 +1723,21 @@ def test_database_api_keys_require_auth_and_enforce_scope(monkeypatch) -> None:
                 "variants_count": 2,
             },
         )
+        forbidden_mutation = client.post(
+            "/api/v1/projects",
+            headers={"Authorization": f"Bearer {read_key}"},
+            json=_full_payload(),
+        )
 
     assert unauthorized.status_code == 401
     assert write_response.status_code == 200
     assert write_response.json()["auth"]["session_scope"] == "write"
     assert write_response.json()["auth"]["session_can_write"] is True
     assert readonly_projects.status_code == 200
-    assert forbidden_calculation.status_code == 403
-    assert forbidden_calculation.json()["error_code"] == "forbidden"
+    assert allowed_calculation.status_code == 200
+    assert allowed_calculation.json()["results"]["sample_size_per_variant"] > 0
+    assert forbidden_mutation.status_code == 403
+    assert forbidden_mutation.json()["error_code"] == "forbidden"
     get_settings.cache_clear()
 
 

@@ -100,6 +100,12 @@ type ProjectStoreValues = {
   hasUnsavedChanges: boolean;
   selectedHistoryRun: ProjectHistory["analysis_runs"][number] | null;
   canMutateBackend: boolean;
+  // Confirmed read-scope session against an auth-enabled backend (e.g. the anonymous
+  // public-demo scope). Write surfaces should be hidden — not merely disabled.
+  isReadOnlySession: boolean;
+  // Stateless calculators (/calculate, /analyze, /results/*, exports…) stay available
+  // to read-scope sessions; they only need a confirmed reachable backend.
+  canUseCompute: boolean;
   backendMutationMessage: string;
 };
 
@@ -263,6 +269,8 @@ function deriveProjectState(
   | "hasUnsavedChanges"
   | "selectedHistoryRun"
   | "canMutateBackend"
+  | "isReadOnlySession"
+  | "canUseCompute"
   | "backendMutationMessage"
 > {
   const activeProject =
@@ -284,13 +292,18 @@ function deriveProjectState(
   const canMutateBackend: boolean = Boolean(
     diagnosticsKnown && (!backendAuth.enabled || backendAuth.session_can_write)
   );
+  const isReadOnlySession: boolean = Boolean(
+    state.backendHealth && diagnosticsKnown && backendAuth.enabled && !backendAuth.session_can_write
+  );
+  const canUseCompute: boolean = Boolean(state.backendHealth && diagnosticsKnown) &&
+    (canMutateBackend || isReadOnlySession);
   const backendMutationMessage =
     !state.backendHealth
       ? "Backend is unavailable. Mutating actions stay disabled until health and diagnostics recover."
       : !diagnosticsKnown
         ? "Backend auth state is not confirmed yet. Refresh diagnostics or provide a browser-session API token."
         : backendAuth.enabled && !canMutateBackend
-          ? "Backend is running in read-only API mode for this session. Save, analysis, report export, workspace import, and project archiving are disabled until a write-capable token is configured."
+          ? "Backend is running in read-only mode for this session. Calculators, analysis, and report exports stay available; saving, workspace import, and project changes need a write-capable token."
           : "";
 
   return {
@@ -300,6 +313,8 @@ function deriveProjectState(
     hasUnsavedChanges,
     selectedHistoryRun,
     canMutateBackend,
+    isReadOnlySession,
+    canUseCompute,
     backendMutationMessage
   };
 }
@@ -313,6 +328,8 @@ function createInitialProjectValues(): ProjectStoreValues {
     | "hasUnsavedChanges"
     | "selectedHistoryRun"
     | "canMutateBackend"
+    | "isReadOnlySession"
+    | "canUseCompute"
     | "backendMutationMessage"
   > = {
     loadingHealth: false,
@@ -576,6 +593,16 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => {
     persistAnalysisSnapshot: async (draft, analysisResult) => {
       get().clearProjectError();
       get().markDraftChanged();
+
+      if (get().isReadOnlySession) {
+        // Read-only session (public demo): analysis itself is allowed, but the
+        // snapshot POST would 403 — skip it quietly instead of surfacing an error.
+        return {
+          message: "Analysis completed. Deterministic output and optional AI advice are shown below.",
+          projectId: null,
+          analysisRunId: null
+        };
+      }
 
       const snapshotEligibleProjectId =
         get().activeProjectId !== null && !get().hasUnsavedChanges
@@ -1095,7 +1122,8 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => {
           format === "markdown" ? "text/markdown" : "text/html"
         );
 
-        if (!exportProjectId) {
+        if (!exportProjectId || get().isReadOnlySession) {
+          // Read-only sessions can render exports but not record export metadata.
           return `Exported report as ${extension.toUpperCase()}.`;
         }
 
@@ -1126,6 +1154,10 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => {
       try {
         const { blob, filename } = await downloadProjectReportPdfRequest(projectId);
         downloadFile(blob, filename, "application/pdf");
+
+        if (get().isReadOnlySession) {
+          return "Exported report as PDF.";
+        }
 
         try {
           const updatedProject = await recordProjectExportRequest(projectId, "pdf", linkedAnalysisRunId);

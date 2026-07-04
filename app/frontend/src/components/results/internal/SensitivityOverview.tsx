@@ -15,7 +15,7 @@ type SensitivityOverviewProps = {
   displayedAnalysis: AnalysisResponsePayload;
   activeProject: SavedProject | null;
   projectHistory: ProjectHistory | null;
-  canMutateBackend: boolean;
+  canUseCompute: boolean;
   backendMutationMessage: string;
   sensitivityData: SensitivityResponse | null;
   sensitivityLoading: boolean;
@@ -47,7 +47,7 @@ export default function SensitivityOverview({
   displayedAnalysis,
   activeProject,
   projectHistory,
-  canMutateBackend,
+  canUseCompute,
   backendMutationMessage,
   sensitivityData,
   sensitivityLoading,
@@ -81,7 +81,7 @@ export default function SensitivityOverview({
             className="btn ghost"
             aria-expanded={exportMenuOpen}
             aria-controls="report-export-menu"
-            disabled={!canMutateBackend}
+            disabled={!canUseCompute}
             onClick={() => setExportMenuOpen((current) => !current)}
           >
             <Icon name="download" className="icon icon-inline" />
@@ -100,33 +100,33 @@ export default function SensitivityOverview({
           marginBottom: "12px"
         }}
       >
-        <button className="btn ghost" disabled={!canMutateBackend} title={t("results.sensitivityOverview.exportReportTitle")} onClick={() => { setExportMenuOpen(false); onExportReport("markdown"); }}>
+        <button className="btn ghost" disabled={!canUseCompute} title={t("results.sensitivityOverview.exportReportTitle")} onClick={() => { setExportMenuOpen(false); onExportReport("markdown"); }}>
           <Icon name="download" className="icon icon-inline" />
           {t("results.sensitivityOverview.exportMarkdown")}
         </button>
-        <button className="btn ghost" disabled={!canMutateBackend} onClick={() => { setExportMenuOpen(false); onExportReport("html"); }}>
+        <button className="btn ghost" disabled={!canUseCompute} onClick={() => { setExportMenuOpen(false); onExportReport("html"); }}>
           <Icon name="code" className="icon icon-inline" />
           {t("results.sensitivityOverview.exportHtml")}
         </button>
-        <button className="btn ghost" disabled={!canMutateBackend || !canExportPdf} onClick={() => { setExportMenuOpen(false); onExportPdf(); }}>
+        <button className="btn ghost" disabled={!canUseCompute || !canExportPdf} onClick={() => { setExportMenuOpen(false); onExportPdf(); }}>
           <Icon name="download" className="icon icon-inline" />
           {t("results.sensitivityOverview.exportPdf")}
         </button>
-        <button className="btn ghost" disabled={!canMutateBackend} onClick={() => { setExportMenuOpen(false); onExportProjectData("csv"); }}>
+        <button className="btn ghost" disabled={!canUseCompute} onClick={() => { setExportMenuOpen(false); onExportProjectData("csv"); }}>
           <Icon name="download" className="icon icon-inline" />
           {t("results.sensitivityOverview.exportCsv")}
         </button>
-        <button className="btn ghost" disabled={!canMutateBackend} onClick={() => { setExportMenuOpen(false); onExportProjectData("xlsx"); }}>
+        <button className="btn ghost" disabled={!canUseCompute} onClick={() => { setExportMenuOpen(false); onExportProjectData("xlsx"); }}>
           <Icon name="download" className="icon icon-inline" />
           {t("results.sensitivityOverview.exportXlsx")}
         </button>
-        <button className="btn primary" disabled={!canMutateBackend || standaloneExporting} onClick={() => { setExportMenuOpen(false); onExportStandalone(); }}>
+        <button className="btn primary" disabled={!canUseCompute || standaloneExporting} onClick={() => { setExportMenuOpen(false); onExportStandalone(); }}>
           <Icon name="download" className="icon icon-inline" />
           {standaloneExporting ? t("results.sensitivityOverview.exporting") : t("results.sensitivityOverview.exportFullReport")}
         </button>
       </div>
       <p className={`muted ${styles["result-summary"]}`}>{String(displayedAnalysis.report.executive_summary ?? "")}</p>
-      {!canMutateBackend ? <div className="callout"><Icon name="info" className="icon icon-inline" /><span>{backendMutationMessage}</span></div> : null}
+      {!canUseCompute ? <div className="callout"><Icon name="info" className="icon icon-inline" /><span>{backendMutationMessage}</span></div> : null}
       {standaloneExportError ? <div className="error">{standaloneExportError}</div> : null}
       <div className={styles["metric-grid"]}>
         <MetricCard

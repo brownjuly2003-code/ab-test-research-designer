@@ -324,7 +324,16 @@
       "new_experiment": "从头开始",
       "load_example": "一键查看完整的实验",
       "import_project": "从工作区备份恢复"
-    }
+    },
+    "demos": {
+      "heading": "浏览在线演示项目",
+      "subtitle": "预置实验附带已保存的分析——打开任意一个查看完整报告。",
+      "analyzed": "已保存分析",
+      "open": "打开演示",
+      "opening": "正在打开…",
+      "durationDays": "{{count}} 天"
+    },
+    "facts": "10 个统计分析器 · 4 种指标类型 · 序贯与贝叶斯分析 · 7 种语言"
   },
   "sidebar": {
     "tabs": {
@@ -361,7 +370,8 @@
       "interpretationPitfalls": "解释陷阱",
       "additionalChecks": "额外检查",
       "unavailable": "人工智能建议不可用。核心确定性输出仍然有效。",
-      "seededDemo": "此预置演示项目不会生成人工智能建议。请运行您自己的实验以查看实时建议。"
+      "seededDemo": "此预置演示项目不会生成人工智能建议。请运行您自己的实验以查看实时建议。",
+      "publicDemoRequiresKey": "此公共演示中的 AI 建议仅在使用您自己的 API 密钥时可用。请在偏好设置中添加 OpenAI 或 Anthropic 密钥以启用实时建议。"
     },
     "comparison": {
       "empty": "从项目侧边栏加载已保存的项目比较，以查看基线与候选快照。",
