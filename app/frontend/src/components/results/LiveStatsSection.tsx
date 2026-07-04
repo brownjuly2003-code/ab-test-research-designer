@@ -22,7 +22,7 @@ import { apiUrl } from "../../lib/experiment";
 import { useAnalysisStore } from "../../stores/analysisStore";
 import { useProjectStore } from "../../stores/projectStore";
 import Icon from "../Icon";
-import { buildApiRequestHeaders, getDisplayedAnalysis } from "./resultsShared";
+import { buildApiRequestHeaders, formatCappedProbabilityPercent, getDisplayedAnalysis } from "./resultsShared";
 
 function formatPercent(fraction: number | null | undefined): string {
   if (fraction == null) {
@@ -108,7 +108,7 @@ function ComparisonCard({
           {comparison.probability_treatment_beats_control != null ? (
             <span className="muted">
               {t("results.liveStats.bayesianLine", {
-                prob: formatPercent(comparison.probability_treatment_beats_control)
+                prob: formatCappedProbabilityPercent(comparison.probability_treatment_beats_control)
               })}
             </span>
           ) : null}
@@ -534,7 +534,7 @@ function HoldoutBlock({ holdout, metricType }: { holdout: LiveHoldoutBlock | und
           {holdout.probability_treated_beats_holdout != null ? (
             <span className="muted">
               {t("results.liveStats.holdoutBayesianLine", {
-                prob: formatPercent(holdout.probability_treated_beats_holdout)
+                prob: formatCappedProbabilityPercent(holdout.probability_treated_beats_holdout)
               })}
             </span>
           ) : null}

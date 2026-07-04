@@ -54,6 +54,7 @@ function seedWizardPanelState(step: number) {
   useWizardStore.setState({
     ...useWizardStore.getState(),
     step,
+    maxVisitedStep: step,
     importingDraft: false
   });
   useProjectStore.setState({

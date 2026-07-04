@@ -33,6 +33,34 @@ describe("wizardStore", () => {
     expect(window.localStorage.getItem(onboardingStorageKey)).toBe("true");
   });
 
+  it("tracks the furthest step reached and keeps it when stepping back", async () => {
+    const { useWizardStore } = await loadWizardStore();
+
+    useWizardStore.getState().setStep(4);
+    useWizardStore.getState().setStep(1);
+
+    expect(useWizardStore.getState().step).toBe(1);
+    expect(useWizardStore.getState().maxVisitedStep).toBe(4);
+  });
+
+  it("openWizard(step) also extends the furthest visited step", async () => {
+    const { useWizardStore } = await loadWizardStore();
+
+    useWizardStore.getState().openWizard(5);
+
+    expect(useWizardStore.getState().step).toBe(5);
+    expect(useWizardStore.getState().maxVisitedStep).toBe(5);
+  });
+
+  it("hydrateWizard resets the furthest visited step", async () => {
+    const { useWizardStore } = await loadWizardStore();
+
+    useWizardStore.getState().setStep(3);
+    useWizardStore.getState().hydrateWizard();
+
+    expect(useWizardStore.getState().maxVisitedStep).toBe(0);
+  });
+
   it("initializes onboarding from localStorage", async () => {
     window.localStorage.setItem(onboardingStorageKey, "true");
 

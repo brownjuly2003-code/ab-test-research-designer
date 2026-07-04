@@ -304,6 +304,34 @@ describe("LiveStatsSection", () => {
     }
   });
 
+  it("caps a near-certain beats-control probability instead of showing a false 100.00%", async () => {
+    const nearCertainResponse = {
+      ...liveStatsResponse,
+      comparisons: [
+        {
+          ...liveStatsResponse.comparisons[0],
+          probability_treatment_beats_control: 0.99997
+        }
+      ]
+    };
+    const fetchMock = vi.fn(async (..._args: unknown[]) => ({ ok: true, json: async () => nearCertainResponse }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const view = await renderIntoDocument(<LiveStatsSection />);
+    try {
+      await flushEffects();
+      await click(findButton(view.container, "Refresh live stats"));
+      await flushEffects();
+      await flushEffects();
+
+      const text = view.container.textContent ?? "";
+      expect(text).toContain("P(treatment beats control) = >99.9%");
+      expect(text).not.toContain("100.00%");
+    } finally {
+      await view.unmount();
+    }
+  });
+
   it("fetches live stats and renders SRM + comparison", async () => {
     const fetchMock = vi.fn(async (..._args: unknown[]) => ({ ok: true, json: async () => liveStatsResponse }));
     vi.stubGlobal("fetch", fetchMock);

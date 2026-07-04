@@ -27,6 +27,14 @@ const blockedDecision = {
   blockers: [{ code: "srm_mismatch", params: { p_value: 0.0002 } }]
 };
 
+const nearCertainWinDecision = {
+  experiment_id: "p-1",
+  verdict: "ship",
+  confidence: "high",
+  reasons: [{ code: "bayesian_win", params: { arm: 1, probability: 0.99998 } }],
+  blockers: []
+};
+
 const keepRunningDecision = {
   experiment_id: "p-1",
   verdict: "keep_running",
@@ -96,6 +104,17 @@ describe("DecisionReadoutSection", () => {
       expect(text).toContain("Don't ship");
       expect(text).toContain("Blockers");
       expect(text).toContain("Sample-ratio mismatch (p=0.0002)");
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("caps a near-certain win probability instead of showing a false 100.00%", async () => {
+    const { view } = await renderWithDecision(nearCertainWinDecision);
+    try {
+      const text = view.container.textContent ?? "";
+      expect(text).toContain("Treatment beats control with probability >99.9%");
+      expect(text).not.toContain("100.00%");
     } finally {
       await view.unmount();
     }

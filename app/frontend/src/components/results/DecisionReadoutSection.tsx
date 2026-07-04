@@ -6,7 +6,7 @@ import { apiUrl } from "../../lib/experiment";
 import { useAnalysisStore } from "../../stores/analysisStore";
 import { useProjectStore } from "../../stores/projectStore";
 import Icon from "../Icon";
-import { buildApiRequestHeaders, getDisplayedAnalysis } from "./resultsShared";
+import { buildApiRequestHeaders, formatCappedProbabilityPercent, getDisplayedAnalysis } from "./resultsShared";
 
 type Verdict = DecisionReadoutResponse["verdict"];
 
@@ -33,8 +33,9 @@ function formatSignedPercent(value: number | null | undefined): string {
   return `${value > 0 ? "+" : ""}${value.toFixed(2)}%`;
 }
 
-function formatProbability(fraction: number | null | undefined): string {
-  // probability_treatment_beats_control / information_fraction are fractions in [0, 1].
+function formatFraction(fraction: number | null | undefined): string {
+  // information_fraction is a fraction of the planned sample in [0, 1]; unlike a Bayesian
+  // win probability it can legitimately reach exactly 100% and shouldn't be capped.
   if (fraction == null) {
     return "—";
   }
@@ -100,8 +101,8 @@ export default function DecisionReadoutSection() {
       arm: params.arm != null ? armName(Number(params.arm)) : "",
       effect: formatSignedPercent(params.effect_relative as number | undefined),
       p: formatNumber(params.p_value as number | undefined, 4),
-      probability: formatProbability(params.probability as number | undefined),
-      fraction: formatProbability(params.information_fraction as number | undefined)
+      probability: formatCappedProbabilityPercent(params.probability as number | undefined),
+      fraction: formatFraction(params.information_fraction as number | undefined)
     });
   }
 

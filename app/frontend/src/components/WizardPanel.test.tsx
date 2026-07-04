@@ -82,6 +82,7 @@ function seedWizardPanelState(overrides: {
   useWizardStore.setState({
     ...useWizardStore.getState(),
     step: overrides.step ?? 0,
+    maxVisitedStep: overrides.step ?? 0,
     importingDraft: false
   });
   useProjectStore.setState({
@@ -200,6 +201,27 @@ describe("Wizard snapshots", () => {
       }
 
       expect(projectNameInput.value).toBe("Store-backed wizard");
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("lets a visited step chip be clicked to jump back, but not an unvisited one ahead", async () => {
+    seedWizardPanelState({ step: 2 });
+    const view = await renderIntoDocument(<WizardPanel />);
+    try {
+      await flushEffects();
+
+      const constraintsChip = findButton(view.container, "5. Constraints");
+      expect(constraintsChip.disabled).toBe(true);
+
+      const projectChip = findButton(view.container, "1. Project");
+      expect(projectChip.disabled).toBe(false);
+      await click(projectChip);
+      await flushEffects();
+
+      expect(useWizardStore.getState().step).toBe(0);
+      expect(view.container.querySelector("h2")?.textContent).toBe(sections[0]?.title);
     } finally {
       await view.unmount();
     }
