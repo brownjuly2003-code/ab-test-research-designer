@@ -769,7 +769,27 @@
       "itemsCount_one": "Article {{count}}",
       "itemsCount_other": "Articles {{count}}",
       "credibilityInterval": "Intervalle {{percent}}%",
-      "noAnalysisYet": "Aucune analyse pour l'instant. Terminez l’assistant et exécutez d’abord le flux backend déterministe."
+      "noAnalysisYet": "Aucune analyse pour l'instant. Terminez l’assistant et exécutez d’abord le flux backend déterministe.",
+      "stages": {
+        "tocLabel": "Sections de résultats",
+        "tocHeading": "Aller à",
+        "planning": {
+          "title": "Planification",
+          "caption": "Conception, taille d'échantillon et vérifications avant lancement"
+        },
+        "posthoc": {
+          "title": "Analyse post hoc",
+          "caption": "Analyse manuelle des échantillons collectés"
+        },
+        "execution": {
+          "title": "Exécution",
+          "caption": "Affectation et suivi en direct"
+        },
+        "decision": {
+          "title": "Décision",
+          "caption": "Verdict final et recommandations"
+        }
+      }
     },
     "bandit": {
       "title": "Bandit vs répartition fixe",

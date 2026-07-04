@@ -769,7 +769,27 @@
       "itemsCount_one": "{{count}} elemento",
       "itemsCount_other": "{{count}} elementos",
       "credibilityInterval": "{{percent}}% intervalo",
-      "noAnalysisYet": "Aún no hay análisis. Complete el asistente y ejecute primero el flujo de fondo determinista."
+      "noAnalysisYet": "Aún no hay análisis. Complete el asistente y ejecute primero el flujo de fondo determinista.",
+      "stages": {
+        "tocLabel": "Secciones de resultados",
+        "tocHeading": "Ir a",
+        "planning": {
+          "title": "Planificación",
+          "caption": "Diseño, tamaño de muestra y comprobaciones previas al lanzamiento"
+        },
+        "posthoc": {
+          "title": "Análisis post hoc",
+          "caption": "Análisis manual de las muestras recopiladas"
+        },
+        "execution": {
+          "title": "Ejecución",
+          "caption": "Asignación y monitoreo en vivo"
+        },
+        "decision": {
+          "title": "Decisión",
+          "caption": "Veredicto final y recomendaciones"
+        }
+      }
     },
     "bandit": {
       "title": "Bandit vs. reparto fijo",

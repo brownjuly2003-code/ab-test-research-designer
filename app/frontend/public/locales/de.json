@@ -769,7 +769,27 @@
       "itemsCount_one": "{{count}} Artikel",
       "itemsCount_other": "{{count}} Artikel",
       "credibilityInterval": "{{percent}}% Intervall",
-      "noAnalysisYet": "Noch keine Analyse. Schließen Sie den Assistenten ab und führen Sie zuerst den deterministischen Backend-Flow aus."
+      "noAnalysisYet": "Noch keine Analyse. Schließen Sie den Assistenten ab und führen Sie zuerst den deterministischen Backend-Flow aus.",
+      "stages": {
+        "tocLabel": "Ergebnisbereiche",
+        "tocHeading": "Springe zu",
+        "planning": {
+          "title": "Planung",
+          "caption": "Design, Stichprobengröße und Prüfungen vor dem Start"
+        },
+        "posthoc": {
+          "title": "Post-hoc-Analyse",
+          "caption": "Manuelle Analyse der erhobenen Stichproben"
+        },
+        "execution": {
+          "title": "Durchführung",
+          "caption": "Zuweisung und Live-Überwachung"
+        },
+        "decision": {
+          "title": "Entscheidung",
+          "caption": "Endgültiges Urteil und Empfehlungen"
+        }
+      }
     },
     "bandit": {
       "title": "Bandit vs. feste Aufteilung",

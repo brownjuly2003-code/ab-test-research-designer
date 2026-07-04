@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { ExportFormat, ResultsAnalysisResponse } from "../lib/experiment";
@@ -34,6 +34,12 @@ import { buildSensitivityPayload, fetchSensitivityData, isAbortError } from "./r
 
 type ResultsPanelProps = { onExportReport?: (format: ExportFormat) => void; readonly [key: string]: unknown };
 
+// The four experiment-lifecycle stages the flat accordion list is grouped into (audit §6.2).
+type StageKey = "planning" | "posthoc" | "execution" | "decision";
+// Fixed to the lifecycle order (Planning=1 … Decision=4) even when the display order changes,
+// so a Decision block surfaced to the top still reads as the final stage, not "step 1".
+const STAGE_ORDINAL: Record<StageKey, number> = { planning: 1, posthoc: 2, execution: 3, decision: 4 };
+
 // Code-split the omnibus analyzer into its own async chunk (like ComparisonDashboard / PosteriorPlot)
 // so it stays out of the main bundle, keeping index.js under the 500 kB chunkSizeWarningLimit.
 const OmnibusResultsSection = lazy(() => import("./results/OmnibusResultsSection"));
@@ -59,7 +65,9 @@ export default function ResultsPanel(_props: ResultsPanelProps) {
   const [resultsAnalysis, setResultsAnalysis] = useState<ResultsAnalysisResponse | null>(null);
   const [standaloneExporting, setStandaloneExporting] = useState(false);
   const [standaloneExportError, setStandaloneExportError] = useState("");
+  const [hasLiveData, setHasLiveData] = useState(false);
   const exportProjectId = project.selectedHistoryRun?.project_id ?? analysis.resultsProjectId ?? project.activeProjectId;
+  const experimentId = project.selectedHistoryRun?.project_id ?? analysis.resultsProjectId ?? project.activeProjectId ?? null;
   const linkedRunId =
     project.selectedHistoryRun?.id ??
     analysis.resultsAnalysisRunId ??
@@ -91,6 +99,34 @@ export default function ResultsPanel(_props: ResultsPanelProps) {
     });
     return () => controller.abort();
   }, [displayedAnalysis, project.selectedHistoryRun, t]);
+
+  // Lightweight probe that only decides the stage order: does this experiment have live
+  // execution data? If so we lead with the Decision readout instead of burying it under the
+  // planning sections. Sections keep their own on-demand fetch; this is abortable and stays
+  // silent on error (an anonymous/unsaved run simply keeps the default planning-first order).
+  useEffect(() => {
+    if (!displayedAnalysis?.report || !experimentId) {
+      setHasLiveData(false);
+      return;
+    }
+    const controller = new AbortController();
+    setHasLiveData(false);
+    fetch(apiUrl(`/api/v1/experiments/${encodeURIComponent(experimentId)}/live-stats`), {
+      method: "GET",
+      headers: buildApiRequestHeaders(),
+      signal: controller.signal
+    })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body) => {
+        if (body && typeof body.exposures_total === "number") {
+          setHasLiveData(body.exposures_total > 0);
+        }
+      })
+      .catch(() => {
+        /* absence of live data just keeps the default planning-first order */
+      });
+    return () => controller.abort();
+  }, [displayedAnalysis, experimentId]);
 
   async function handleExportReport(format: "markdown" | "html") {
     if (!project.canUseCompute) return analysis.showError(project.backendMutationMessage || t("results.panel.backendReadOnly"), "warning");
@@ -146,31 +182,89 @@ export default function ResultsPanel(_props: ResultsPanelProps) {
     }
   }
 
+  const variantCount = displayedAnalysis?.report?.experiment_design?.variants.length ?? 0;
+  const metricsPlan = displayedAnalysis?.report?.metrics_plan;
+  const metricsCount =
+    (metricsPlan?.primary?.length ?? 0) +
+    (metricsPlan?.secondary?.length ?? 0) +
+    (metricsPlan?.guardrail?.length ?? 0) +
+    (metricsPlan?.diagnostic?.length ?? 0);
+  const risks = displayedAnalysis?.report?.risks;
+  const riskItemsCount =
+    (risks?.statistical?.length ?? 0) +
+    (risks?.product?.length ?? 0) +
+    (risks?.technical?.length ?? 0) +
+    (risks?.operational?.length ?? 0);
+
+  // With live execution data, lead with the Decision readout; otherwise follow the planning-first
+  // lifecycle. The stage instances are reused across reorders (stable keys), so the Decision
+  // accordion is re-keyed on hasLiveData to actually open when live data first arrives.
+  const stageOrder: StageKey[] = hasLiveData
+    ? ["decision", "execution", "planning", "posthoc"]
+    : ["planning", "posthoc", "execution", "decision"];
+
+  const stageContent: Record<StageKey, ReactNode> = {
+    planning: (
+      <>
+        <Accordion title={t("results.panel.accordion.experimentDesign")} badge={t("results.panel.variantsCount", { count: variantCount })}><ExperimentDesignSection /></Accordion>
+        <Accordion title={t("results.panel.accordion.metricsPlan")} badge={t("results.panel.metricsCount", { count: metricsCount })}><MetricsPlanSection /></Accordion>
+        <Accordion title={t("results.panel.accordion.sensitivity")} badge={t("results.panel.variantsCount", { count: variantCount })} defaultOpen><SensitivitySection sensitivityData={sensitivityData} sensitivityLoading={sensitivityLoading} sensitivityUnavailableMessage={sensitivityError || t("results.panel.sensitivityUnavailableForConfiguration")} standaloneExporting={standaloneExporting} standaloneExportError={standaloneExportError} canExportPdf={canExportPdf} onExportReport={handleExportReport} onExportPdf={() => void handleExportPdf()} onExportProjectData={(format) => void handleExportProjectData(format)} onExportStandalone={() => void handleExportStandalone()} /></Accordion>
+        <Accordion title={t("results.panel.accordion.powerCurve")} badge={sensitivityData?.cells?.length ? t("results.panel.cellsCount", { count: sensitivityData.cells.length }) : t("results.panel.badges.pending")}><PowerCurveSection sensitivityData={sensitivityData} sensitivityLoading={sensitivityLoading} sensitivityUnavailableMessage={sensitivityError || t("results.panel.sensitivityUnavailableForConfiguration")} /></Accordion>
+        <Accordion title={t("results.panel.accordion.sequentialDesign")} badge={t("results.panel.looksCount", { count: displayedAnalysis?.calculations.sequential_boundaries?.length ?? 0 })}><SequentialDesignSection /></Accordion>
+        {showBayesianPosterior ? <Accordion title={t("results.panel.accordion.bayesianPosterior")} badge={displayedAnalysis?.calculations.bayesian_credibility != null ? t("results.panel.credibilityInterval", { percent: Math.round(displayedAnalysis.calculations.bayesian_credibility * 100) }) : t("results.panel.badges.planning")}><BayesianSection /></Accordion> : null}
+        <Accordion title={t("results.panel.accordion.bandit")} badge={t("results.panel.badges.planning")}><BanditSection /></Accordion>
+        <Accordion title={t("results.panel.accordion.riskAssessment")} badge={t("results.panel.itemsCount", { count: riskItemsCount })}><RisksSection /></Accordion>
+        <Accordion title={t("results.panel.accordion.warningsAndRisks")} badge={t("results.panel.warningsCount", { count: warnings.length })} badgeColor={warningBadgeColor} defaultOpen={warnings.length > 0}><WarningsSection /></Accordion>
+      </>
+    ),
+    posthoc: (
+      <>
+        <Accordion title={t("results.panel.accordion.observedResults")} badge={resultsAnalysis ? (resultsAnalysis.is_significant ? t("results.panel.badges.significant") : t("results.panel.badges.review")) : t("results.panel.badges.postTest")} badgeColor={resultsAnalysis ? (resultsAnalysis.is_significant ? "accent" : "warn") : "accent"} defaultOpen><ObservedResultsSection onResultsAnalysisChange={setResultsAnalysis} /></Accordion>
+        <Accordion title={t("results.panel.accordion.categoricalResults")} badge={t("results.panel.badges.manual")}><CategoricalResultsSection /></Accordion>
+        <Accordion title={t("results.panel.accordion.pairedResults")} badge={t("results.panel.badges.manual")}><PairedResultsSection /></Accordion>
+        <Accordion title={t("results.panel.accordion.omnibusResults")} badge={t("results.panel.badges.manual")}><Suspense fallback={<div className="status" aria-busy={true} />}><OmnibusResultsSection /></Suspense></Accordion>
+        <Accordion title={t("results.panel.accordion.srmCheck")} badge={t("results.panel.badges.manual")}><SrmCheckSection /></Accordion>
+        <Accordion title={t("results.panel.accordion.multipleTesting")} badge={t("results.panel.badges.manual")}><MultipleTestingSection /></Accordion>
+      </>
+    ),
+    execution: (
+      <>
+        <Accordion title={t("results.panel.accordion.assignment")} badge={t("results.panel.badges.execution")}><AssignmentSection /></Accordion>
+        <Accordion title={t("results.panel.accordion.liveStats")} badge={t("results.panel.badges.execution")}><LiveStatsSection /></Accordion>
+      </>
+    ),
+    decision: (
+      <>
+        <Accordion key={`decision-${hasLiveData}`} title={t("results.panel.accordion.decision")} badge={t("results.panel.badges.execution")} defaultOpen={hasLiveData}><DecisionReadoutSection /></Accordion>
+        <Accordion title={t("results.panel.accordion.aiRecommendations")} badge={displayedAnalysis?.advice.available ? t("results.panel.badges.available") : t("results.panel.badges.offline")}><AiAdviceSection /></Accordion>
+      </>
+    )
+  };
+
   return (
     <>
       {project.selectedHistoryRun ? <div className={`${styles["result-block"]} ${styles["results-enter"]}`}><span className="pill">{t("results.panel.savedSnapshot")}</span><h3>{t("results.panel.viewingHistoricalAnalysis")}</h3><p className="muted">{t("results.panel.openedSnapshotFrom", { timestamp: new Date(project.selectedHistoryRun.created_at).toLocaleString() })}{analysis.results.report ? ` ${t("results.panel.currentResultsAvailable")}` : ""}</p><div className="actions"><button className="btn ghost" onClick={() => { if (project.clearHistoryRunSelection()) { analysis.clearFeedback(); analysis.showStatus(analysis.results.report ? t("results.panel.returnedToCurrentAnalysis") : t("results.panel.closedSnapshotPreview"), "info"); } }}>{analysis.results.report ? t("results.panel.showCurrentAnalysis") : t("results.panel.closeSnapshotView")}</button></div></div> : null}
       {analysis.isAnalyzing && !project.projectComparison && !project.projectMultiComparison ? <div className={`${styles["result-block"]} ${styles["results-enter"]}`}><span className="pill">{t("results.panel.analysisInProgress")}</span><h3>{t("results.panel.preparingDeterministicResults")}</h3><p className="muted">{t("results.panel.updatingSections")}</p><ResultsSkeleton /></div> : null}
       {displayedAnalysis?.report && !analysis.isAnalyzing ? <div className={`${styles.results} ${styles["results-enter"]}`}>
         <Accordion title={t("results.panel.accordion.comparison")} badge={project.projectComparison || project.projectMultiComparison ? t("results.panel.badges.loaded") : t("results.panel.badges.sidebar")} defaultOpen={Boolean(project.projectComparison || project.projectMultiComparison)}><ComparisonSection /></Accordion>
-        <Accordion title={t("results.panel.accordion.sensitivity")} badge={t("results.panel.variantsCount", { count: displayedAnalysis.report.experiment_design?.variants.length ?? 0 })} defaultOpen><SensitivitySection sensitivityData={sensitivityData} sensitivityLoading={sensitivityLoading} sensitivityUnavailableMessage={sensitivityError || t("results.panel.sensitivityUnavailableForConfiguration")} standaloneExporting={standaloneExporting} standaloneExportError={standaloneExportError} canExportPdf={canExportPdf} onExportReport={handleExportReport} onExportPdf={() => void handleExportPdf()} onExportProjectData={(format) => void handleExportProjectData(format)} onExportStandalone={() => void handleExportStandalone()} /></Accordion>
-        <Accordion title={t("results.panel.accordion.powerCurve")} badge={sensitivityData?.cells?.length ? t("results.panel.cellsCount", { count: sensitivityData.cells.length }) : t("results.panel.badges.pending")}><PowerCurveSection sensitivityData={sensitivityData} sensitivityLoading={sensitivityLoading} sensitivityUnavailableMessage={sensitivityError || t("results.panel.sensitivityUnavailableForConfiguration")} /></Accordion>
-        <Accordion title={t("results.panel.accordion.sequentialDesign")} badge={t("results.panel.looksCount", { count: displayedAnalysis.calculations.sequential_boundaries?.length ?? 0 })}><SequentialDesignSection /></Accordion>
-        {showBayesianPosterior ? <Accordion title={t("results.panel.accordion.bayesianPosterior")} badge={displayedAnalysis.calculations.bayesian_credibility != null ? t("results.panel.credibilityInterval", { percent: Math.round(displayedAnalysis.calculations.bayesian_credibility * 100) }) : t("results.panel.badges.planning")}><BayesianSection /></Accordion> : null}
-        <Accordion title={t("results.panel.accordion.observedResults")} badge={resultsAnalysis ? (resultsAnalysis.is_significant ? t("results.panel.badges.significant") : t("results.panel.badges.review")) : t("results.panel.badges.postTest")} badgeColor={resultsAnalysis ? (resultsAnalysis.is_significant ? "accent" : "warn") : "accent"} defaultOpen><ObservedResultsSection onResultsAnalysisChange={setResultsAnalysis} /></Accordion>
-        <Accordion title={t("results.panel.accordion.categoricalResults")} badge={t("results.panel.badges.manual")}><CategoricalResultsSection /></Accordion>
-        <Accordion title={t("results.panel.accordion.pairedResults")} badge={t("results.panel.badges.manual")}><PairedResultsSection /></Accordion>
-        <Accordion title={t("results.panel.accordion.omnibusResults")} badge={t("results.panel.badges.manual")}><Suspense fallback={<div className="status" aria-busy={true} />}><OmnibusResultsSection /></Suspense></Accordion>
-        <Accordion title={t("results.panel.accordion.warningsAndRisks")} badge={t("results.panel.warningsCount", { count: warnings.length })} badgeColor={warningBadgeColor} defaultOpen={warnings.length > 0}><WarningsSection /></Accordion>
-        <Accordion title={t("results.panel.accordion.experimentDesign")} badge={t("results.panel.variantsCount", { count: displayedAnalysis.report.experiment_design?.variants.length ?? 0 })}><ExperimentDesignSection /></Accordion>
-        <Accordion title={t("results.panel.accordion.metricsPlan")} badge={t("results.panel.metricsCount", { count: (displayedAnalysis.report.metrics_plan?.primary?.length ?? 0) + (displayedAnalysis.report.metrics_plan?.secondary?.length ?? 0) + (displayedAnalysis.report.metrics_plan?.guardrail?.length ?? 0) + (displayedAnalysis.report.metrics_plan?.diagnostic?.length ?? 0) })}><MetricsPlanSection /></Accordion>
-        <Accordion title={t("results.panel.accordion.riskAssessment")} badge={t("results.panel.itemsCount", { count: (displayedAnalysis.report.risks?.statistical?.length ?? 0) + (displayedAnalysis.report.risks?.product?.length ?? 0) + (displayedAnalysis.report.risks?.technical?.length ?? 0) + (displayedAnalysis.report.risks?.operational?.length ?? 0) })}><RisksSection /></Accordion>
-        <Accordion title={t("results.panel.accordion.aiRecommendations")} badge={displayedAnalysis.advice.available ? t("results.panel.badges.available") : t("results.panel.badges.offline")}><AiAdviceSection /></Accordion>
-        <Accordion title={t("results.panel.accordion.srmCheck")} badge={t("results.panel.badges.manual")}><SrmCheckSection /></Accordion>
-        <Accordion title={t("results.panel.accordion.multipleTesting")} badge={t("results.panel.badges.manual")}><MultipleTestingSection /></Accordion>
-        <Accordion title={t("results.panel.accordion.bandit")} badge={t("results.panel.badges.planning")}><BanditSection /></Accordion>
-        <Accordion title={t("results.panel.accordion.assignment")} badge={t("results.panel.badges.execution")}><AssignmentSection /></Accordion>
-        <Accordion title={t("results.panel.accordion.liveStats")} badge={t("results.panel.badges.execution")}><LiveStatsSection /></Accordion>
-        <Accordion title={t("results.panel.accordion.decision")} badge={t("results.panel.badges.execution")}><DecisionReadoutSection /></Accordion>
+        <nav className={styles.toc} aria-label={t("results.panel.stages.tocLabel")}>
+          <span className={styles["toc-heading"]}>{t("results.panel.stages.tocHeading")}</span>
+          {stageOrder.map((key) => (
+            <a key={key} className={styles["toc-link"]} href={`#stage-${key}`}>{t(`results.panel.stages.${key}.title`)}</a>
+          ))}
+        </nav>
+        {stageOrder.map((key) => (
+          <section key={key} id={`stage-${key}`} data-stage={key} className={styles.stage} aria-labelledby={`stage-${key}-heading`}>
+            <header className={styles["stage-header"]}>
+              <span className={styles["stage-index"]} aria-hidden="true">{STAGE_ORDINAL[key]}</span>
+              <span className={styles["stage-heading-group"]}>
+                <h3 id={`stage-${key}-heading`} className={styles["stage-title"]}>{t(`results.panel.stages.${key}.title`)}</h3>
+                <span className={styles["stage-caption"]}>{t(`results.panel.stages.${key}.caption`)}</span>
+              </span>
+            </header>
+            <div className={styles["stage-body"]}>{stageContent[key]}</div>
+          </section>
+        ))}
       </div> : null}
       {!displayedAnalysis?.report && !analysis.isAnalyzing && !project.projectComparison && !project.projectMultiComparison ? <div className="status">{t("results.panel.noAnalysisYet")}</div> : null}
       {analysis.statusMessage ? <div className="status">{analysis.statusMessage}</div> : null}

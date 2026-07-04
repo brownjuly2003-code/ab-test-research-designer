@@ -768,7 +768,27 @@
       "itemsCount_one": "{{count}} 项目",
       "itemsCount_other": "{{count}} 项目",
       "credibilityInterval": "{{percent}}%区间",
-      "noAnalysisYet": "还没有分析。完成向导并首先运行确定性后端流程。"
+      "noAnalysisYet": "还没有分析。完成向导并首先运行确定性后端流程。",
+      "stages": {
+        "tocLabel": "结果板块",
+        "tocHeading": "跳转到",
+        "planning": {
+          "title": "规划",
+          "caption": "设计、样本量与上线前检查"
+        },
+        "posthoc": {
+          "title": "事后分析",
+          "caption": "对已收集样本的手动分析"
+        },
+        "execution": {
+          "title": "执行",
+          "caption": "分配与实时监控"
+        },
+        "decision": {
+          "title": "决策",
+          "caption": "最终结论与建议"
+        }
+      }
     },
     "bandit": {
       "title": "老虎机 vs 固定分流",
