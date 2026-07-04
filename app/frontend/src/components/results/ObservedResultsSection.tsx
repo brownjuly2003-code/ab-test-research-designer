@@ -7,7 +7,7 @@ import { useAnalysisStore } from "../../stores/analysisStore";
 import { readDraftBootstrap } from "../../stores/draftStore";
 import { useProjectStore } from "../../stores/projectStore";
 import ObservedResultsView from "./internal/ObservedResultsView";
-import { type ActualResultsState, type ObservedMetricType, type ObservedTestSelection, buildActualResultsState, buildResultsRequest, resolveObservedMetricType } from "./observedResultsShared";
+import { type ActualResultsState, type ObservedTestSelection, buildActualResultsState, buildResultsRequest, resolveEffectiveMetricType, resolveObservedMetricType, restoreObservedTest, supportedObservedMetricTypes } from "./observedResultsShared";
 import { buildApiRequestHeaders, getDisplayedAnalysis } from "./resultsShared";
 
 type ObservedResultsSectionProps = {
@@ -27,28 +27,10 @@ export default function ObservedResultsSection({ onResultsAnalysisChange }: Obse
   const baseMetricType = displayedAnalysis ? resolveObservedMetricType(displayedAnalysis.calculations.calculation_summary.metric_type) : "binary";
   // Each base metric type offers an alternative test on the same data: Mann–Whitney (non-parametric)
   // for continuous, Fisher's exact (exact small-sample) for binary. The selection is local UI state;
-  // "parametric" means the default normal-approximation analysis (t-test / z-test).
+  // "parametric" means the default normal-approximation analysis (t-test / z-test). The toggle → analyzer
+  // resolution (and every other test mapping) is driven by the registry in observedResultsShared.
   const [observedTest, setObservedTest] = useState<ObservedTestSelection>("parametric");
-  const effectiveMetricType: ObservedMetricType =
-    observedTest === "count"
-      ? "count"
-      : baseMetricType === "continuous" && observedTest === "mann_whitney"
-        ? "mann_whitney"
-        : baseMetricType === "continuous" && observedTest === "bootstrap"
-          ? "bootstrap"
-          : baseMetricType === "continuous" && observedTest === "quantile"
-            ? "quantile"
-            : baseMetricType === "continuous" && observedTest === "trimmed_t"
-              ? "trimmed_t"
-              : baseMetricType === "continuous" && observedTest === "equivalence"
-                ? "equivalence"
-                : baseMetricType === "binary" && observedTest === "fisher_exact"
-                  ? "fisher_exact"
-                  // Ratio has no dedicated analyzer; "parametric" is the conscious continuous
-                  // approximation offered for it (see ObservedResultsView's ratio disclaimer).
-                  : baseMetricType === "ratio"
-                    ? "continuous"
-                    : baseMetricType;
+  const effectiveMetricType = resolveEffectiveMetricType(baseMetricType, observedTest);
   const canSaveObservedResults = Boolean(activeProject && !activeProject.is_archived && !selectedHistoryRun);
   const [actualResults, setActualResults] = useState<ActualResultsState>(() => buildActualResultsState("binary", 0.05, null));
   const [resultsRequest, setResultsRequest] = useState<ResultsRequestPayload | null>(null);
@@ -72,48 +54,12 @@ export default function ObservedResultsSection({ onResultsAnalysisChange }: Obse
     }
     const persistedObservedResults = selectedHistoryRun ? null : readDraftBootstrap().form.additional_context.observed_results ?? null;
     const persistedType = persistedObservedResults?.request?.metric_type;
-    // The Poisson rate test ("count") is plan-independent, so it is always a supported restore target.
-    const supportedTypes: ObservedMetricType[] =
-      baseMetricType === "continuous"
-        ? ["continuous", "mann_whitney", "bootstrap", "quantile", "trimmed_t", "equivalence", "count"]
-        : baseMetricType === "binary"
-          ? ["binary", "fisher_exact", "count"]
-          // Ratio has no dedicated analyzer: only the two conscious approximations restore.
-          : ["continuous", "count"];
-    const nextTest: ObservedTestSelection =
-      persistedType === "count"
-        ? "count"
-        : persistedType === "mann_whitney" && baseMetricType === "continuous"
-          ? "mann_whitney"
-          : persistedType === "bootstrap" && baseMetricType === "continuous"
-            ? "bootstrap"
-            : persistedType === "quantile" && baseMetricType === "continuous"
-              ? "quantile"
-              : persistedType === "trimmed_t" && baseMetricType === "continuous"
-                ? "trimmed_t"
-                : persistedType === "equivalence" && baseMetricType === "continuous"
-                  ? "equivalence"
-                  : persistedType === "fisher_exact" && baseMetricType === "binary"
-                    ? "fisher_exact"
-                    : "parametric";
-    const stateMetricType: ObservedMetricType =
-      nextTest === "mann_whitney"
-        ? "mann_whitney"
-        : nextTest === "bootstrap"
-          ? "bootstrap"
-          : nextTest === "quantile"
-            ? "quantile"
-            : nextTest === "trimmed_t"
-              ? "trimmed_t"
-              : nextTest === "equivalence"
-                ? "equivalence"
-                : nextTest === "fisher_exact"
-                  ? "fisher_exact"
-                  : nextTest === "count"
-                    ? "count"
-                    : baseMetricType === "ratio"
-                      ? "continuous"
-                      : baseMetricType;
+    // The registry knows which analyzers each base plan restores (default + alternatives, count being
+    // plan-independent), how to map a persisted metric_type back to the toggle, and which analyzer the
+    // restored toggle then runs. See observedResultsShared.
+    const supportedTypes = supportedObservedMetricTypes(baseMetricType);
+    const nextTest = restoreObservedTest(baseMetricType, persistedType);
+    const stateMetricType = resolveEffectiveMetricType(baseMetricType, nextTest);
     const persistedRequest = persistedType && supportedTypes.includes(persistedType) ? persistedObservedResults?.request ?? null : null;
     const persistedAnalysis =
       persistedObservedResults?.analysis && supportedTypes.includes(persistedObservedResults.analysis.metric_type)

@@ -49,6 +49,16 @@ export async function flushEffects(): Promise<void> {
   });
 }
 
+// Resolve a lazy() / Suspense boundary: a dynamic import needs a few macrotask+microtask cycles to
+// settle before the loaded component renders (a single flushEffects tick is not enough).
+export async function flushLazy(): Promise<void> {
+  for (let index = 0; index < 5; index += 1) {
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+  }
+}
+
 export function findButton(container: HTMLElement, label: string): HTMLButtonElement {
   const button = Array.from(container.querySelectorAll("button")).find(
     (candidate) => candidate.textContent?.trim() === label

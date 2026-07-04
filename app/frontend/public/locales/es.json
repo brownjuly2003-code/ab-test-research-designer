@@ -608,6 +608,53 @@
         "analyzeBeforeSaving": "Analice los resultados antes de guardarlos en un proyecto.",
         "saveUnavailable": "Los resultados observados no se pudieron guardar.",
         "savedToProject": "Los resultados observados se guardaron en el proyecto {{projectName}}."
+      },
+      "chooser": {
+        "toggle": "¿Qué prueba debería usar?",
+        "description": "Responde unas preguntas y te sugeriremos una prueba. El selector completo de arriba sigue disponible.",
+        "incomplete": "Responde las preguntas de arriba para ver una recomendación.",
+        "recommendation": "Recomendado: {{test}}",
+        "apply": "Usar esta prueba",
+        "questions": {
+          "goal": {
+            "label": "¿Qué intentas demostrar?",
+            "options": {
+              "difference": "Detectar una diferencia",
+              "equivalence": "Confirmar que no hay cambio significativo"
+            }
+          },
+          "distribution": {
+            "label": "¿Cómo se distribuye la métrica?",
+            "options": {
+              "normal": "Aproximadamente normal, muestra moderada",
+              "skew_outliers": "Sesgada, colas pesadas o valores atípicos",
+              "small_nonnormal": "Muestra pequeña (< ~30/grupo) o claramente no normal"
+            }
+          },
+          "focus": {
+            "label": "¿Qué es lo más importante?",
+            "options": {
+              "mean": "El promedio (media)",
+              "percentile": "Un percentil / cola específico (p. ej. p90)"
+            }
+          },
+          "binarySmall": {
+            "label": "¿Los recuentos son pequeños o los eventos raros (algún grupo < ~10)?",
+            "options": {
+              "yes": "Sí — pequeños o raros",
+              "no": "No — muestras grandes"
+            }
+          }
+        },
+        "rationale": {
+          "zTest": "Muestras grandes con recuentos adecuados — la aproximación normal es fiable.",
+          "fisher_exact": "Recuentos pequeños o eventos raros — la prueba exacta de Fisher evita la aproximación normal poco fiable.",
+          "parametric": "Datos aproximadamente normales, comparación de medias — la prueba t de diferencia encaja.",
+          "mann_whitney": "Muestra pequeña o no normal — una prueba de rangos sin supuesto de normalidad (bootstrap / permutación es otra opción).",
+          "trimmed_t": "Las colas pesadas o los valores atípicos arrastran la media — las medias recortadas resisten a ellos (Mann–Whitney es una alternativa sin distribución).",
+          "quantile": "Un percentil específico importa más que el promedio — compara ese cuantil directamente.",
+          "equivalence": "Quieres confirmar que la métrica se mantuvo dentro de una tolerancia — eso requiere la prueba de equivalencia TOST, no una simple prueba de diferencia."
+        }
       }
     },
     "sensitivityOverview": {

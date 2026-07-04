@@ -607,6 +607,53 @@
         "analyzeBeforeSaving": "在将结果保存到项目之前对其进行分析。",
         "saveUnavailable": "观察结果无法保存。",
         "savedToProject": "观察结果保存到项目 {{projectName}} 中。"
+      },
+      "chooser": {
+        "toggle": "我该用哪个检验？",
+        "description": "回答几个问题，我们会推荐一个检验。上方的完整切换仍然可用。",
+        "incomplete": "回答上面的问题以查看推荐。",
+        "recommendation": "推荐：{{test}}",
+        "apply": "使用此检验",
+        "questions": {
+          "goal": {
+            "label": "你想证明什么？",
+            "options": {
+              "difference": "检测差异",
+              "equivalence": "确认没有实质性变化"
+            }
+          },
+          "distribution": {
+            "label": "指标如何分布？",
+            "options": {
+              "normal": "大致正态，样本适中",
+              "skew_outliers": "偏斜、重尾或有离群值",
+              "small_nonnormal": "小样本（每组 < ~30）或明显非正态"
+            }
+          },
+          "focus": {
+            "label": "最看重什么？",
+            "options": {
+              "mean": "平均值（均值）",
+              "percentile": "某个特定分位数 / 尾部（如 p90）"
+            }
+          },
+          "binarySmall": {
+            "label": "计数很小或事件稀少（任一组 < ~10）？",
+            "options": {
+              "yes": "是——小或稀少",
+              "no": "否——大样本"
+            }
+          }
+        },
+        "rationale": {
+          "zTest": "样本量大且计数充足——正态近似可靠。",
+          "fisher_exact": "计数小或事件稀少——Fisher 精确检验避免了不可靠的正态近似。",
+          "parametric": "数据大致正态、比较均值——差异 t 检验合适。",
+          "mann_whitney": "小样本或非正态——无需正态假设的秩检验（自助法 / 置换检验是另一种选择）。",
+          "trimmed_t": "重尾或离群值会拉动均值——截尾均值对其稳健（Mann–Whitney 是一种无分布替代方法）。",
+          "quantile": "某个特定分位数比平均值更重要——直接比较该分位数。",
+          "equivalence": "你想确认指标保持在容差范围内——这需要 TOST 等价检验，而不是普通的差异检验。"
+        }
       }
     },
     "sensitivityOverview": {

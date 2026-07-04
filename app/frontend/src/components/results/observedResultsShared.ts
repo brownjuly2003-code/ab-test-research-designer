@@ -10,6 +10,14 @@ export type ObservedMetricType = "binary" | "continuous" | "equivalence" | "mann
 // the alternative tests offered on the same data per base metric type.
 export type ObservedTestSelection = "parametric" | "mann_whitney" | "bootstrap" | "quantile" | "trimmed_t" | "equivalence" | "fisher_exact" | "count";
 
+// The plan's underlying metric type, as resolved from the calculation summary (see
+// resolveObservedMetricType). Ratio has no dedicated post-hoc analyzer and is handled specially.
+export type ObservedBaseMetricType = "binary" | "continuous" | "ratio";
+
+// Which raw-input form an analyzer reads. Fisher's exact reuses the binary 2x2 form; the rank-based
+// tests share the ranked raw-sample form; TOST reuses the continuous summary form plus a margin.
+export type ObservedFormKind = "binary" | "continuous" | "equivalence" | "ranked" | "count";
+
 export type BinaryResultsForm = {
   control_conversions: string;
   control_users: string;
@@ -63,10 +71,244 @@ export type ActualResultsState = {
 // the live-stats delta method. Surfacing "ratio" here (instead of silently folding it into "binary")
 // lets the caller show a disclaimer and offer a conscious approximation (continuous or count) rather
 // than rendering the wrong 2x2-conversions form without warning.
-export function resolveObservedMetricType(metricType: string): "binary" | "continuous" | "ratio" {
+export function resolveObservedMetricType(metricType: string): ObservedBaseMetricType {
   if (metricType === "continuous") return "continuous";
   if (metricType === "ratio") return "ratio";
   return "binary";
+}
+
+// --- Test registry -------------------------------------------------------------------------------
+//
+// A single source of truth for the post-hoc test toggle. Previously three parallel ternary ladders
+// (toggle → effective metric type, restore → toggle, toggle → state metric type) each grew by a
+// branch with every new analyzer; adding a test meant editing all three plus the button list and the
+// hint list, and the ladders were becoming unreadable (audit finding 5.5). Now every analyzer is one
+// row here and all of those mappings are derived from it — adding an analyzer is a single entry (plus
+// its label/hint i18n keys and, if it needs a new input form, a FORM_BY_METRIC_TYPE row).
+
+// The default ("parametric") test offered for each base plan: the normal-approximation analysis that
+// matches the plan — the z-test for binary, the difference t-test for continuous, and a conscious
+// continuous approximation for ratio (which has no dedicated post-hoc analyzer, only the live-stats
+// delta method). Its label and hint vary by base, so they live here rather than on a toggle value.
+type BaseDefaultDescriptor = { metricType: ObservedMetricType; labelKey: string; hintKey: string };
+
+const BASE_DEFAULT_TESTS: Record<ObservedBaseMetricType, BaseDefaultDescriptor> = {
+  binary: {
+    metricType: "binary",
+    labelKey: "results.observedResults.testType.zTest",
+    hintKey: "results.observedResults.testType.fisherHint"
+  },
+  continuous: {
+    metricType: "continuous",
+    labelKey: "results.observedResults.testType.parametric",
+    hintKey: "results.observedResults.testType.hint"
+  },
+  ratio: {
+    metricType: "continuous",
+    labelKey: "results.observedResults.testType.continuousApprox",
+    hintKey: "results.observedResults.testType.ratioContinuousHint"
+  }
+};
+
+// Every alternative test offered alongside the default, in toggle display order. `availableFor` lists
+// the base plans whose toggle shows the option (count is plan-independent, so all three). Each option
+// resolves to the analyzer of the same name.
+type AlternativeTestDescriptor = {
+  test: Exclude<ObservedTestSelection, "parametric">;
+  metricType: ObservedMetricType;
+  availableFor: readonly ObservedBaseMetricType[];
+  labelKey: string;
+  hintKey: string;
+};
+
+const ALTERNATIVE_TESTS: readonly AlternativeTestDescriptor[] = [
+  { test: "fisher_exact", metricType: "fisher_exact", availableFor: ["binary"], labelKey: "results.observedResults.testType.fisherExact", hintKey: "results.observedResults.testType.fisherHint" },
+  { test: "mann_whitney", metricType: "mann_whitney", availableFor: ["continuous"], labelKey: "results.observedResults.testType.mannWhitney", hintKey: "results.observedResults.testType.hint" },
+  { test: "bootstrap", metricType: "bootstrap", availableFor: ["continuous"], labelKey: "results.observedResults.testType.bootstrap", hintKey: "results.observedResults.testType.bootstrapHint" },
+  { test: "quantile", metricType: "quantile", availableFor: ["continuous"], labelKey: "results.observedResults.testType.quantile", hintKey: "results.observedResults.testType.quantileHint" },
+  { test: "trimmed_t", metricType: "trimmed_t", availableFor: ["continuous"], labelKey: "results.observedResults.testType.trimmedT", hintKey: "results.observedResults.testType.trimmedTHint" },
+  { test: "equivalence", metricType: "equivalence", availableFor: ["continuous"], labelKey: "results.observedResults.testType.equivalence", hintKey: "results.observedResults.testType.equivalenceHint" },
+  { test: "count", metricType: "count", availableFor: ["binary", "continuous", "ratio"], labelKey: "results.observedResults.testType.rate", hintKey: "results.observedResults.testType.rateHint" }
+];
+
+// The input form each analyzer reads. Consumed by the view to pick which fields to render.
+const FORM_BY_METRIC_TYPE: Record<ObservedMetricType, ObservedFormKind> = {
+  binary: "binary",
+  fisher_exact: "binary",
+  continuous: "continuous",
+  equivalence: "equivalence",
+  mann_whitney: "ranked",
+  bootstrap: "ranked",
+  quantile: "ranked",
+  trimmed_t: "ranked",
+  count: "count"
+};
+
+export type ObservedTestButton = { test: ObservedTestSelection; labelKey: string };
+
+// The toggle buttons shown for a base plan, in display order (default first, then its alternatives).
+export function observedTestButtons(base: ObservedBaseMetricType): ObservedTestButton[] {
+  const buttons: ObservedTestButton[] = [{ test: "parametric", labelKey: BASE_DEFAULT_TESTS[base].labelKey }];
+  for (const alt of ALTERNATIVE_TESTS) {
+    if (alt.availableFor.includes(base)) {
+      buttons.push({ test: alt.test, labelKey: alt.labelKey });
+    }
+  }
+  return buttons;
+}
+
+// The analyzer metric_type a toggle selection runs on a given base plan. An alternative that is not
+// offered for the base falls back to the base default (mirrors the old guard where e.g. mann_whitney
+// on a binary plan resolved to binary).
+export function resolveEffectiveMetricType(base: ObservedBaseMetricType, test: ObservedTestSelection): ObservedMetricType {
+  if (test !== "parametric") {
+    const alt = ALTERNATIVE_TESTS.find((option) => option.test === test);
+    if (alt && alt.availableFor.includes(base)) {
+      return alt.metricType;
+    }
+  }
+  return BASE_DEFAULT_TESTS[base].metricType;
+}
+
+// The analyzer metric_types that can be restored for a base plan (default plus its alternatives).
+export function supportedObservedMetricTypes(base: ObservedBaseMetricType): ObservedMetricType[] {
+  return observedTestButtons(base).map((button) => resolveEffectiveMetricType(base, button.test));
+}
+
+// Reverse mapping: turn a persisted analyzer metric_type back into the toggle selection for a base
+// plan. A type that no alternative offers for this base (including the base's own default type)
+// restores to the default "parametric" toggle.
+export function restoreObservedTest(base: ObservedBaseMetricType, persistedType: ObservedMetricType | undefined): ObservedTestSelection {
+  if (!persistedType) {
+    return "parametric";
+  }
+  const alt = ALTERNATIVE_TESTS.find((option) => option.metricType === persistedType && option.availableFor.includes(base));
+  return alt ? alt.test : "parametric";
+}
+
+// The i18n key of the hint shown for the current toggle selection on a base plan.
+export function observedTestHintKey(base: ObservedBaseMetricType, test: ObservedTestSelection): string {
+  if (test !== "parametric") {
+    const alt = ALTERNATIVE_TESTS.find((option) => option.test === test);
+    if (alt) {
+      return alt.hintKey;
+    }
+  }
+  return BASE_DEFAULT_TESTS[base].hintKey;
+}
+
+// The input form an analyzer reads (which fields the view renders).
+export function observedFormKind(metricType: ObservedMetricType): ObservedFormKind {
+  return FORM_BY_METRIC_TYPE[metricType];
+}
+
+// --- "Which test should I use?" chooser ----------------------------------------------------------
+//
+// A guided selector (audit finding 6.2 §7): at seven continuous options the flat toggle gives no
+// guidance, so a few questions map to a recommendation. The questions and the recommendation are
+// pure data/logic here (i18n keys + a decision function) so they can be unit-tested and rendered by
+// TestChooser without duplicating the branching.
+
+export type ObservedChooserAnswers = {
+  // continuous questions
+  goal?: "difference" | "equivalence";
+  distribution?: "normal" | "skew_outliers" | "small_nonnormal";
+  focus?: "mean" | "percentile";
+  // binary question
+  binarySmall?: "yes" | "no";
+};
+
+export type ObservedChooserQuestion = {
+  id: keyof ObservedChooserAnswers;
+  labelKey: string;
+  options: readonly { value: string; labelKey: string }[];
+};
+
+const CHOOSER_NS = "results.observedResults.chooser.questions";
+
+const CONTINUOUS_QUESTIONS: readonly ObservedChooserQuestion[] = [
+  {
+    id: "goal",
+    labelKey: `${CHOOSER_NS}.goal.label`,
+    options: [
+      { value: "difference", labelKey: `${CHOOSER_NS}.goal.options.difference` },
+      { value: "equivalence", labelKey: `${CHOOSER_NS}.goal.options.equivalence` }
+    ]
+  },
+  {
+    id: "distribution",
+    labelKey: `${CHOOSER_NS}.distribution.label`,
+    options: [
+      { value: "normal", labelKey: `${CHOOSER_NS}.distribution.options.normal` },
+      { value: "skew_outliers", labelKey: `${CHOOSER_NS}.distribution.options.skew_outliers` },
+      { value: "small_nonnormal", labelKey: `${CHOOSER_NS}.distribution.options.small_nonnormal` }
+    ]
+  },
+  {
+    id: "focus",
+    labelKey: `${CHOOSER_NS}.focus.label`,
+    options: [
+      { value: "mean", labelKey: `${CHOOSER_NS}.focus.options.mean` },
+      { value: "percentile", labelKey: `${CHOOSER_NS}.focus.options.percentile` }
+    ]
+  }
+];
+
+const BINARY_QUESTIONS: readonly ObservedChooserQuestion[] = [
+  {
+    id: "binarySmall",
+    labelKey: `${CHOOSER_NS}.binarySmall.label`,
+    options: [
+      { value: "yes", labelKey: `${CHOOSER_NS}.binarySmall.options.yes` },
+      { value: "no", labelKey: `${CHOOSER_NS}.binarySmall.options.no` }
+    ]
+  }
+];
+
+// The chooser questions for a base plan. Ratio has only two options that need different data, so it
+// gets no chooser (the ratio disclaimer already explains the situation).
+export function observedChooserQuestions(base: ObservedBaseMetricType): readonly ObservedChooserQuestion[] {
+  if (base === "continuous") return CONTINUOUS_QUESTIONS;
+  if (base === "binary") return BINARY_QUESTIONS;
+  return [];
+}
+
+export type ObservedChooserRecommendation = { test: ObservedTestSelection; rationaleKey: string };
+
+const RATIONALE_NS = "results.observedResults.chooser.rationale";
+
+// Map the answers to a recommended toggle selection. Returns null until every question for the base
+// is answered. The order of the continuous rules is deliberate: goal (equivalence overrides all),
+// then focus on a tail, then distribution shape.
+export function recommendObservedTest(
+  base: ObservedBaseMetricType,
+  answers: ObservedChooserAnswers
+): ObservedChooserRecommendation | null {
+  if (base === "binary") {
+    if (!answers.binarySmall) return null;
+    return answers.binarySmall === "yes"
+      ? { test: "fisher_exact", rationaleKey: `${RATIONALE_NS}.fisher_exact` }
+      : { test: "parametric", rationaleKey: `${RATIONALE_NS}.zTest` };
+  }
+  if (base === "continuous") {
+    if (!answers.goal || !answers.distribution || !answers.focus) return null;
+    if (answers.goal === "equivalence") return { test: "equivalence", rationaleKey: `${RATIONALE_NS}.equivalence` };
+    if (answers.focus === "percentile") return { test: "quantile", rationaleKey: `${RATIONALE_NS}.quantile` };
+    if (answers.distribution === "skew_outliers") return { test: "trimmed_t", rationaleKey: `${RATIONALE_NS}.trimmed_t` };
+    if (answers.distribution === "small_nonnormal") return { test: "mann_whitney", rationaleKey: `${RATIONALE_NS}.mann_whitney` };
+    return { test: "parametric", rationaleKey: `${RATIONALE_NS}.parametric` };
+  }
+  return null;
+}
+
+// The label key for a toggle selection on a base plan (default label varies by base). Used by the
+// chooser to name its recommendation with the same wording as the toggle button.
+export function observedTestLabelKey(base: ObservedBaseMetricType, test: ObservedTestSelection): string {
+  if (test !== "parametric") {
+    const alt = ALTERNATIVE_TESTS.find((option) => option.test === test);
+    if (alt) return alt.labelKey;
+  }
+  return BASE_DEFAULT_TESTS[base].labelKey;
 }
 
 export function formatObservedValue(

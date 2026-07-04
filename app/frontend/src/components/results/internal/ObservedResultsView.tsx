@@ -1,12 +1,16 @@
-import type { Dispatch, SetStateAction } from "react";
+import { type Dispatch, type SetStateAction, Suspense, lazy } from "react";
 import { useTranslation } from "react-i18next";
 import type { ResultsAnalysisResponse, SavedProject } from "../../../lib/experiment";
 import type { ProjectAnalysisRun } from "../../../lib/experiment";
-import type { ActualResultsState, BinaryResultsForm, ContinuousResultsForm, CountResultsForm, ObservedMetricType, ObservedTestSelection } from "../observedResultsShared";
-import { formatObservedValue } from "../observedResultsShared";
+import type { ActualResultsState, BinaryResultsForm, ContinuousResultsForm, CountResultsForm, ObservedBaseMetricType, ObservedMetricType, ObservedTestSelection } from "../observedResultsShared";
+import { formatObservedValue, observedFormKind, observedTestButtons, observedTestHintKey } from "../observedResultsShared";
 import ChartErrorBoundary from "../../ChartErrorBoundary";
 import ForestPlot from "../../ForestPlot";
 import Icon from "../../Icon";
+
+// The guided "which test should I use?" helper is an optional, collapsed-by-default aid; lazy-loading
+// it keeps the main bundle under the 500 kB budget (same pattern as the other lazy result sections).
+const TestChooser = lazy(() => import("./TestChooser"));
 
 type FieldConfig<Key extends string> = {
   id: string;
@@ -20,7 +24,7 @@ type FieldConfig<Key extends string> = {
 
 type ObservedResultsViewProps = {
   analysisMetricType: ObservedMetricType;
-  baseMetricType: "binary" | "continuous" | "ratio";
+  baseMetricType: ObservedBaseMetricType;
   showTestToggle: boolean;
   observedTest: ObservedTestSelection;
   onSelectTest: (test: ObservedTestSelection) => void;
@@ -129,39 +133,15 @@ export default function ObservedResultsView({
     setActualResults((current) => ({ ...current, ranked: { ...current.ranked, [key]: value } }));
   }
 
-  // The toggle offers the default normal-approximation analysis ("parametric"), the alternative
-  // test(s) per base metric type (Mann–Whitney + bootstrap/permutation for continuous, Fisher's exact
-  // for binary), and a plan-independent Poisson rate test for event-over-exposure data. The base type
-  // comes from the plan, so it is known even while the count analyzer is active.
-  const isBinaryBase = baseMetricType === "binary";
   // Ratio plans have no dedicated post-hoc analyzer (only the live-stats delta method handles ratio
-  // directly); the toggle offers just the two conscious approximations, continuous and count — no
-  // Mann–Whitney/Fisher/bootstrap/etc. alternative, since those assume a real binary or continuous plan.
+  // directly); the toggle offers just the two conscious approximations, continuous and count.
   const isRatioBase = baseMetricType === "ratio";
-  const alternativeTest: "mann_whitney" | "fisher_exact" = isBinaryBase ? "fisher_exact" : "mann_whitney";
-  const parametricLabel = isRatioBase
-    ? t("results.observedResults.testType.continuousApprox")
-    : isBinaryBase
-      ? t("results.observedResults.testType.zTest")
-      : t("results.observedResults.testType.parametric");
-  const alternativeLabel = isBinaryBase ? t("results.observedResults.testType.fisherExact") : t("results.observedResults.testType.mannWhitney");
-  const baseHint = isRatioBase
-    ? t("results.observedResults.testType.ratioContinuousHint")
-    : isBinaryBase
-      ? t("results.observedResults.testType.fisherHint")
-      : t("results.observedResults.testType.hint");
-  const testTypeHint =
-    observedTest === "count"
-      ? t("results.observedResults.testType.rateHint")
-      : observedTest === "bootstrap"
-        ? t("results.observedResults.testType.bootstrapHint")
-        : observedTest === "quantile"
-          ? t("results.observedResults.testType.quantileHint")
-          : observedTest === "trimmed_t"
-            ? t("results.observedResults.testType.trimmedTHint")
-            : observedTest === "equivalence"
-              ? t("results.observedResults.testType.equivalenceHint")
-              : baseHint;
+  // The toggle buttons, the hint and the input form are all derived from the test registry
+  // (observedResultsShared): the button list is the base plan's default plus its alternatives, in
+  // display order, and the hint tracks the current selection.
+  const testButtons = observedTestButtons(baseMetricType);
+  const testTypeHint = t(observedTestHintKey(baseMetricType, observedTest));
+  const formKind = observedFormKind(analysisMetricType);
 
   return (
     <div className="card">
@@ -174,42 +154,27 @@ export default function ObservedResultsView({
         <div className="field" style={{ marginTop: "var(--space-4)" }}>
           <span>{t("results.observedResults.testType.label")}</span>
           <div className="actions" role="group" aria-label={t("results.observedResults.testType.label")} style={{ flexWrap: "wrap", marginTop: "var(--space-2)" }}>
-            <button type="button" className={observedTest === "parametric" ? "btn secondary" : "btn ghost"} aria-pressed={observedTest === "parametric"} onClick={() => onSelectTest("parametric")}>
-              {parametricLabel}
-            </button>
-            {!isRatioBase ? (
-              <button type="button" className={observedTest === alternativeTest ? "btn secondary" : "btn ghost"} aria-pressed={observedTest === alternativeTest} onClick={() => onSelectTest(alternativeTest)}>
-                {alternativeLabel}
+            {testButtons.map((button) => (
+              <button
+                key={button.test}
+                type="button"
+                className={observedTest === button.test ? "btn secondary" : "btn ghost"}
+                aria-pressed={observedTest === button.test}
+                onClick={() => onSelectTest(button.test)}
+              >
+                {t(button.labelKey)}
               </button>
-            ) : null}
-            {baseMetricType === "continuous" ? (
-              <button type="button" className={observedTest === "bootstrap" ? "btn secondary" : "btn ghost"} aria-pressed={observedTest === "bootstrap"} onClick={() => onSelectTest("bootstrap")}>
-                {t("results.observedResults.testType.bootstrap")}
-              </button>
-            ) : null}
-            {baseMetricType === "continuous" ? (
-              <button type="button" className={observedTest === "quantile" ? "btn secondary" : "btn ghost"} aria-pressed={observedTest === "quantile"} onClick={() => onSelectTest("quantile")}>
-                {t("results.observedResults.testType.quantile")}
-              </button>
-            ) : null}
-            {baseMetricType === "continuous" ? (
-              <button type="button" className={observedTest === "trimmed_t" ? "btn secondary" : "btn ghost"} aria-pressed={observedTest === "trimmed_t"} onClick={() => onSelectTest("trimmed_t")}>
-                {t("results.observedResults.testType.trimmedT")}
-              </button>
-            ) : null}
-            {baseMetricType === "continuous" ? (
-              <button type="button" className={observedTest === "equivalence" ? "btn secondary" : "btn ghost"} aria-pressed={observedTest === "equivalence"} onClick={() => onSelectTest("equivalence")}>
-                {t("results.observedResults.testType.equivalence")}
-              </button>
-            ) : null}
-            <button type="button" className={observedTest === "count" ? "btn secondary" : "btn ghost"} aria-pressed={observedTest === "count"} onClick={() => onSelectTest("count")}>
-              {t("results.observedResults.testType.rate")}
-            </button>
+            ))}
           </div>
           <p className="muted" style={{ marginTop: "var(--space-2)" }}>{testTypeHint}</p>
+          {isRatioBase ? null : (
+            <Suspense fallback={null}>
+              <TestChooser baseMetricType={baseMetricType} onSelectTest={onSelectTest} />
+            </Suspense>
+          )}
         </div>
       ) : null}
-      {analysisMetricType === "mann_whitney" || analysisMetricType === "bootstrap" || analysisMetricType === "quantile" || analysisMetricType === "trimmed_t" ? (
+      {formKind === "ranked" ? (
         <div style={{ display: "grid", gap: "var(--space-3)", marginTop: "var(--space-4)" }}>
           <div style={{ display: "grid", gap: "var(--space-3)", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
             <div className="field">
@@ -242,11 +207,11 @@ export default function ObservedResultsView({
         </div>
       ) : (
         <div style={{ display: "grid", gap: "var(--space-3)", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", marginTop: "var(--space-4)" }}>
-          {analysisMetricType === "binary" || analysisMetricType === "fisher_exact"
+          {formKind === "binary"
             ? renderFieldInputs("binary", binaryFields, actualResults.binary)
-            : analysisMetricType === "count"
+            : formKind === "count"
               ? renderFieldInputs("count", countFields, actualResults.count)
-              : analysisMetricType === "equivalence"
+              : formKind === "equivalence"
                 ? renderFieldInputs("continuous", equivalenceFields, actualResults.continuous)
                 : renderFieldInputs("continuous", continuousFields, actualResults.continuous)}
         </div>
