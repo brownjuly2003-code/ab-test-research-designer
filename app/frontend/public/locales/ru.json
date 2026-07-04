@@ -142,23 +142,26 @@
         "exclusion_criteria": "Критерии исключения"
       },
       "metrics": {
-        "primary_metric_name": "Primary metric",
+        "primary_metric_name": "Основная метрика",
         "metric_type": "Тип метрики",
         "baseline_value": "Базовое значение",
         "expected_uplift_pct": "Ожидаемый uplift %",
         "mde_pct": "MDE %",
-        "std_dev": "Std dev",
-        "secondary_metrics": "Secondary metrics",
-        "guardrail_metrics": "Гардайл-метрики",
+        "std_dev": "Стандартное отклонение",
+        "secondary_metrics": "Вторичные метрики",
+        "guardrail_metrics": "Защитные метрики",
         "alpha": "Альфа",
         "power": "Мощность",
         "planned_test": "Планируемый анализ",
-        "equivalence_margin_pct": "Граница эквивалентности, %"
+        "equivalence_margin_pct": "Граница эквивалентности, %",
+        "exposure_per_user": "Экспозиция на пользователя",
+        "numerator_metric_name": "Метрика числителя",
+        "denominator_metric_name": "Метрика знаменателя"
       },
       "constraints": {
         "seasonality_present": "Есть сезонность",
         "active_campaigns_present": "Есть активные кампании",
-        "returning_users_present": "Есть returning users",
+        "returning_users_present": "Есть повторные пользователи",
         "interference_risk": "Риск интерференции",
         "technical_constraints": "Технические ограничения",
         "legal_or_ethics_constraints": "Юридические / этические ограничения",
@@ -166,7 +169,10 @@
         "deadline_pressure": "Давление дедлайна",
         "long_test_possible": "Возможен длинный тест",
         "holdout_fraction": "Доля холдаута",
-        "mutually_exclusive_experiments": "Взаимоисключающие эксперименты"
+        "mutually_exclusive_experiments": "Взаимоисключающие эксперименты",
+        "desired_precision": "Желаемая точность",
+        "credibility": "Доверительный уровень",
+        "analysis_mode": "Фреймворк анализа"
       },
       "additional_context": {
         "llm_context": "Контекст для AI"
@@ -204,7 +210,9 @@
       "metrics": {
         "metric_type": {
           "binary": "Бинарная",
-          "continuous": "Непрерывная"
+          "continuous": "Непрерывная",
+          "ratio": "Ratio",
+          "count": "Счётчик / частота"
         },
         "planned_test": {
           "z_test": "z-тест (по умолчанию)",
@@ -248,7 +256,7 @@
       "correlationWithOutcomeTooltip": "Корреляция Пирсона между предэкспериментальной ковариатой и результатом эксперимента. Типичные значения — от 0.3 до 0.7."
     },
     "guardrails": {
-      "title": "Гардайл-метрики",
+      "title": "Защитные метрики",
       "description": "Метрики для мониторинга без изменения расчёта основной выборки. Поддерживается до 3 guardrail-метрик.",
       "metricName": "Название метрики",
       "metricNameAriaLabel": "Название guardrail-метрики {{index}}",
@@ -258,11 +266,11 @@
       "continuous": "Непрерывная",
       "remove": "Удалить",
       "removeAriaLabel": "Удалить guardrail {{index}}",
-      "baselinePct": "Baseline %",
+      "baselinePct": "Базовое значение, %",
       "baselineRateAriaLabel": "Baseline rate guardrail {{index}}",
-      "baselineMean": "Baseline mean",
+      "baselineMean": "Базовое среднее",
       "baselineMeanAriaLabel": "Baseline mean guardrail {{index}}",
-      "stdDev": "Std dev",
+      "stdDev": "Стандартное отклонение",
       "stdDevAriaLabel": "Std dev guardrail {{index}}",
       "direction": "Направление вреда",
       "directionAriaLabel": "Направление вреда guardrail {{index}}",
@@ -377,18 +385,18 @@
       "empty": "Загрузите сравнение сохранённых проектов из боковой панели «Проекты», чтобы просмотреть базовый и кандидатный снапшоты.",
       "loading": "Загрузка dashboard сравнения...",
       "monteCarlo": {
-        "title": "Distribution view",
-        "subtitle": "Ð—Ð°Ð¿ÑƒÑÐºÐ°Ð¹Ñ‚Ðµ Monte-Carlo overlay Ð¿Ð¾ Ð·Ð°Ð¿Ñ€Ð¾ÑÑƒ, Ñ‡Ñ‚Ð¾Ð±Ñ‹ ÑÑ€Ð°Ð²Ð½Ð¸Ñ‚ÑŒ Ñ€Ð°ÑÐ¿Ñ€ÐµÐ´ÐµÐ»ÐµÐ½Ð¸Ñ uplift Ð¸ Ñ…Ð²Ð¾ÑÑ‚Ð¾Ð²Ð¾Ð¹ Ñ€Ð¸ÑÐº.",
-        "showToggle": "ÐŸÐ¾ÐºÐ°Ð·Ð°Ñ‚ÑŒ Ñ€Ð°ÑÐ¿Ñ€ÐµÐ´ÐµÐ»ÐµÐ½Ð¸Ðµ",
-        "hideToggle": "Ð¡ÐºÑ€Ñ‹Ñ‚ÑŒ Ñ€Ð°ÑÐ¿Ñ€ÐµÐ´ÐµÐ»ÐµÐ½Ð¸Ðµ",
-        "loading": "Ð¡Ñ‡Ð¸Ñ‚Ð°ÐµÐ¼ Monte-Carlo ÑÐ¸Ð¼ÑƒÐ»ÑÑ†Ð¸Ð¸...",
-        "loadFailed": "ÐÐµ ÑƒÐ´Ð°Ð»Ð¾ÑÑŒ Ð·Ð°Ð³Ñ€ÑƒÐ·Ð¸Ñ‚ÑŒ distribution view.",
-        "empty": "Ð”Ð»Ñ Ð²Ñ‹Ð±Ñ€Ð°Ð½Ð½Ñ‹Ñ… Ð¿Ñ€Ð¾ÐµÐºÑ‚Ð¾Ð² Ð´Ð°Ð½Ð½Ñ‹Ðµ Ñ€Ð°ÑÐ¿Ñ€ÐµÐ´ÐµÐ»ÐµÐ½Ð¸Ñ Ð½ÐµÐ´Ð¾ÑÑ‚ÑƒÐ¿Ð½Ñ‹.",
-        "sliderLabel": "Ð’ÐµÑ€Ð¾ÑÑ‚Ð½Ð¾ÑÑ‚ÑŒ uplift > {{threshold}}",
-        "thresholdHint": "ÐœÐµÐ¶Ð´Ñƒ ÑÐµÑ€Ð²ÐµÑ€Ð½Ñ‹Ð¼Ð¸ Ð¿Ð¾Ñ€Ð¾Ð³Ð°Ð¼Ð¸ Ð²ÐµÑ€Ð¾ÑÑ‚Ð½Ð¾ÑÑ‚ÑŒ Ð¸Ð½Ñ‚ÐµÑ€Ð¿Ð¾Ð»Ð¸Ñ€ÑƒÐµÑ‚ÑÑ Ð½Ð° ÐºÐ»Ð¸ÐµÐ½Ñ‚Ðµ.",
-        "probabilityValue": "{{probability}} Ð²Ñ‹ÑˆÐµ Ð¿Ð¾Ñ€Ð¾Ð³Ð°",
-        "positiveProbability": "{{probability}} Ð²ÐµÑ€Ð¾ÑÑ‚Ð½Ð¾ÑÑ‚ÑŒ Ð¿Ð¾Ð»Ð¾Ð¶Ð¸Ñ‚ÐµÐ»ÑŒÐ½Ð¾Ð³Ð¾ uplift",
-        "percentileLegend": "Ð›ÐµÐ³ÐµÐ½Ð´Ð° Ð¿ÐµÑ€Ñ†ÐµÐ½Ñ‚Ð¸Ð»ÐµÐ¹",
+        "title": "Обзор распределения",
+        "subtitle": "Запускайте Monte-Carlo overlay по запросу, чтобы сравнить распределения uplift и хвостовой риск.",
+        "showToggle": "Показать распределение",
+        "hideToggle": "Скрыть распределение",
+        "loading": "Считаем Monte-Carlo симуляции...",
+        "loadFailed": "Не удалось загрузить distribution view.",
+        "empty": "Для выбранных проектов данные распределения недоступны.",
+        "sliderLabel": "Вероятность uplift > {{threshold}}",
+        "thresholdHint": "Между серверными порогами вероятность интерполируется на клиенте.",
+        "probabilityValue": "{{probability}} выше порога",
+        "positiveProbability": "{{probability}} вероятность положительного uplift",
+        "percentileLegend": "Легенда перцентилей",
         "percentileValue": "{{label}} {{value}}"
       },
       "dashboard": {
@@ -406,19 +414,19 @@
         "sampleSize": "Общая выборка: {{value}}",
         "duration": "Длительность: {{value}} дн.",
         "warnings": "Предупреждения: {{value}}",
-        "powerCurvesTitle": "Power curves",
+        "powerCurvesTitle": "Кривые мощности",
         "powerCurvesSubtitle": "Каждая линия показывает sample size per variant по точкам MDE при настроенной мощности проекта.",
-        "sensitivityTitle": "Sensitivity grid",
+        "sensitivityTitle": "Сетка чувствительности",
         "sensitivitySubtitle": "Матрицы длительности по MDE и power для каждого проекта.",
         "sensitivityUnavailable": "Данные sensitivity недоступны.",
-        "observedEffectsTitle": "Observed effects",
+        "observedEffectsTitle": "Наблюдаемые эффекты",
         "observedEffectsSubtitle": "Сохранённые observed outcomes показаны по одному forest-plot row на проект.",
-        "insightsTitle": "Shared / unique insights",
+        "insightsTitle": "Общие и уникальные наблюдения",
         "insightsSubtitle": "Общие warnings, risks, assumptions и различия по проектам.",
         "sharedWarnings": "Общие предупреждения",
         "sharedRisks": "Общие риски",
         "sharedAssumptions": "Общие предпосылки",
-        "recommendationHighlights": "Recommendation highlights",
+        "recommendationHighlights": "Ключевые рекомендации",
         "project": "Проект",
         "uniqueWarnings": "Уникальные предупреждения",
         "uniqueRisks": "Уникальные риски",
@@ -441,11 +449,11 @@
     },
     "metricsPlan": {
       "coverage": "Покрытие primary, secondary и guardrail-метрик",
-      "primary": "Primary",
-      "secondary": "Secondary",
-      "guardrail": "Guardrail",
-      "diagnostic": "Diagnostic",
-      "guardrailMetrics": "Гардайл-метрики",
+      "primary": "Основная",
+      "secondary": "Вторичная",
+      "guardrail": "Защитная",
+      "diagnostic": "Диагностическая",
+      "guardrailMetrics": "Защитные метрики",
       "guardrailMetricsDescription": "Эти метрики отслеживаются, но не меняют расчёт основной выборки.",
       "baseline": "Базовое значение"
     },
@@ -1164,7 +1172,11 @@
       "importedDraftFrom": "Черновик импортирован из {{fileName}}. Сохраните его, чтобы создать новую локальную запись проекта.",
       "restoredBrowserDraft": "Восстановлен несохранённый черновик из браузера.",
       "templateLoaded": "Шаблон {{templateName}} загружен в wizard.",
-      "draftNotSavedStorageFull": "Черновик не сохранён — хранилище браузера переполнено."
+      "draftNotSavedStorageFull": "Черновик не сохранён — хранилище браузера переполнено.",
+      "analysisCompletedGeneric": "Анализ завершён. Детерминированный результат и опциональный совет ИИ показаны ниже.",
+      "analysisCompletedUnsavedDraft": "Анализ завершён для несохранённых изменений черновика. Сохраните проект, чтобы зафиксировать этот снимок анализа.",
+      "analysisCompletedSnapshotSaved": "Анализ завершён, последний снимок сохранён для этого проекта.",
+      "analysisCompletedSnapshotFailed": "Анализ завершён, но метаданные снимка проекта сохранить не удалось."
     },
     "errors": {
       "unexpectedDraftImport": "Непредвиденная ошибка импорта черновика"
@@ -1266,7 +1278,7 @@
     },
     "fields": {
       "name": "Название",
-      "targetUrl": "Target URL",
+      "targetUrl": "URL назначения",
       "secret": "Секрет",
       "format": "Формат",
       "scope": "Область действия",
@@ -1291,7 +1303,7 @@
     "labels": {
       "enabled": "Включено",
       "disabled": "Выключено",
-      "targetUrl": "Target URL",
+      "targetUrl": "URL назначения",
       "events": "События",
       "allEvents": "Все события",
       "apiKeyId": "ID API-ключа",
@@ -1332,7 +1344,7 @@
       "loading": "Загрузка менеджера API-ключей..."
     },
     "slackApp": {
-      "title": "Slack App",
+      "title": "Slack-приложение",
       "description": "Установите двустороннее Slack-приложение для команд `/ab-test` и review actions.",
       "checking": "Проверка...",
       "installed": "Установлено",
@@ -1405,7 +1417,7 @@
       "notLoaded": "Диагностика пока не загружена.",
       "storageSummary": "проектов: {{projects}}, запусков анализа: {{analysisRuns}}, событий экспорта: {{exportEvents}}, ревизий: {{revisions}}",
       "labels": {
-        "uptime": "Uptime",
+        "uptime": "Время работы",
         "storage": "Хранилище",
         "latestProjectUpdate": "Последнее обновление проекта",
         "sqlitePath": "Путь к SQLite",
@@ -1414,7 +1426,7 @@
         "sqliteMode": "Режим SQLite",
         "sqliteWriteProbe": "Проба записи SQLite",
         "workspaceBackups": "Резервные копии workspace",
-        "frontendDist": "Frontend dist",
+        "frontendDist": "Frontend-сборка",
         "timingHeaders": "Заголовки timing",
         "llmAdapter": "LLM-адаптер",
         "logging": "Логирование",
@@ -1651,7 +1663,7 @@
       "empty": "Архивных проектов нет."
     },
     "backendEndpoints": {
-      "title": "Backend-endpoints"
+      "title": "Backend-эндпоинты"
     },
     "status": {
       "readOnlyMode": "Backend работает в режиме только для чтения.",

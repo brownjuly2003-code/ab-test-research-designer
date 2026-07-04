@@ -1153,7 +1153,11 @@
       "importedDraftFrom": "Importierter Entwurf von {{fileName}}. Speichern Sie es, um einen neuen lokalen Projektdatensatz zu erstellen.",
       "restoredBrowserDraft": "Nicht gespeicherter Browserentwurf wiederhergestellt.",
       "templateLoaded": "Vorlage {{templateName}} in den Assistenten geladen.",
-      "draftNotSavedStorageFull": "Entwurf nicht gespeichert – Browserspeicher voll."
+      "draftNotSavedStorageFull": "Entwurf nicht gespeichert – Browserspeicher voll.",
+      "analysisCompletedGeneric": "Analyse abgeschlossen. Das deterministische Ergebnis und optionale KI-Empfehlungen werden unten angezeigt.",
+      "analysisCompletedUnsavedDraft": "Analyse für Entwurfsänderungen abgeschlossen. Speichern Sie das Projekt, um diesen Analyse-Snapshot dauerhaft zu sichern.",
+      "analysisCompletedSnapshotSaved": "Analyse abgeschlossen, der neueste Snapshot wurde für dieses gespeicherte Projekt erfasst.",
+      "analysisCompletedSnapshotFailed": "Analyse abgeschlossen, aber die Snapshot-Metadaten des Projekts konnten nicht gespeichert werden."
     },
     "errors": {
       "unexpectedDraftImport": "Unerwarteter Entwurfsimportfehler"

@@ -2364,7 +2364,7 @@ describe("App UI flow", () => {
 
       expect(view.container.textContent).toContain("Review inputs");
       expect(view.container.textContent).toContain("Legal / ethics constraints: none");
-      expect(view.container.textContent).toContain("Deadline pressure: medium");
+      expect(view.container.textContent).toContain("Deadline pressure: Medium");
       expect(view.container.textContent).toContain("Payment error rate");
 
       await click(findButton(view.container, "Run analysis"));

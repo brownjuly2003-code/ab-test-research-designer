@@ -1153,7 +1153,11 @@
       "importedDraftFrom": "Imported draft from {{fileName}}. Save it to create a new local project record.",
       "restoredBrowserDraft": "Restored unsaved browser draft.",
       "templateLoaded": "Template {{templateName}} loaded into the wizard.",
-      "draftNotSavedStorageFull": "Draft not saved - browser storage full."
+      "draftNotSavedStorageFull": "Draft not saved - browser storage full.",
+      "analysisCompletedGeneric": "Analysis completed. Deterministic output and optional AI advice are shown below.",
+      "analysisCompletedUnsavedDraft": "Analysis completed for draft changes. Save the project to persist this analysis snapshot.",
+      "analysisCompletedSnapshotSaved": "Analysis completed and the latest snapshot was recorded for this saved project.",
+      "analysisCompletedSnapshotFailed": "Analysis completed, but project snapshot metadata could not be persisted."
     },
     "errors": {
       "unexpectedDraftImport": "Unexpected draft import error"

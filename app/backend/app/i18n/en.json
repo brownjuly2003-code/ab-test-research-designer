@@ -384,5 +384,61 @@
       "verdict_difference": "At least one group differs at alpha={{alpha}}",
       "verdict_no_difference": "No significant difference between groups at alpha={{alpha}}"
     }
+  },
+  "live_stats": {
+    "disclaimer": "MVP execution layer — a full plan -> run -> analyze cycle demonstration, not built for high-traffic production. Live stats are recomputed on demand over deduplicated exposures and conversions.",
+    "srm": {
+      "insufficient_data": "Not enough exposures yet to check sample-ratio mismatch.",
+      "detected": "Sample-ratio mismatch detected (p < 0.001) — assignment looks broken; do not trust results.",
+      "ok": "No sample-ratio mismatch; traffic split matches the design."
+    },
+    "comparison": {
+      "insufficient_data": "Each arm needs at least 2 exposed users before a test can run.",
+      "continuous_zero_variance": "Per-user values show zero variance in an arm, so a t-test cannot be computed yet.",
+      "ratio_insufficient_data": "Each arm needs at least 2 exposed users before a ratio test can run.",
+      "ratio_degenerate": "The ratio variance is degenerate in an arm (zero denominator or no variation across users), so a delta-method test cannot be computed yet.",
+      "bonferroni_note": "Bonferroni-adjusted alpha {{adjusted_alpha}} across {{comparison_count}} treatment-vs-control comparisons (nominal alpha {{nominal_alpha}}); significance and the confidence interval use this adjusted level to control the family-wise error rate."
+    },
+    "always_valid": {
+      "not_evaluable": "Not enough variation in the arms yet to form an anytime-valid interval.",
+      "ok": "Anytime-valid mSPRT view: this p-value and confidence sequence stay valid under continuous monitoring, so you may stop as soon as the sequence excludes zero without inflating the false-positive rate."
+    },
+    "sequential": {
+      "unsupported_metric": "Sequential planning is not available for this metric type yet, so the O'Brien-Fleming boundary cannot be evaluated.",
+      "fixed_horizon": "Fixed-horizon design (n_looks=1): read the frequentist p-value only once at the planned sample size — peeking early inflates the false-positive rate.",
+      "insufficient_data": "Not enough exposures yet to evaluate the sequential boundary.",
+      "active": "O'Brien-Fleming sequential boundary at the current information fraction. A treatment is sequential-significant only when |z| exceeds this (stricter early, ~nominal at the end). The boundary strictly controls alpha only at the pre-planned looks — reading this repeatedly at arbitrary fractions is continuous peeking, so treat any between-look crossing as provisional until a planned look."
+    },
+    "cuped": {
+      "not_applicable": "Live CUPED applies to continuous metrics — the adjusted outcome is analysed with the continuous t-test. This experiment uses a binary metric, so CUPED is not applied here.",
+      "unavailable": "CUPED needs per-user pre-experiment covariates. Ingest pre-period values via POST /api/v1/experiments/{id}/pre-period to enable variance reduction on live data.",
+      "too_many": "More distinct pre-period covariates were ingested than live CUPED supports. Reduce the number of covariate names to enable the multi-covariate adjustment.",
+      "available": "CUPED-adjusted estimates: Y_adj = Y - theta^T(X - mean X), the regression coefficients theta = Sigma_xx^-1 Sigma_xy pooled across arms. The adjusted outcome is analysed with the continuous t-test; the effect is unchanged in expectation while variance drops with the covariates' correlation. Estimated only over users that carry the full covariate vector, so it describes that subpopulation.",
+      "insufficient_data": "Each arm needs at least 2 users with a pre-period covariate.",
+      "zero_variance": "CUPED-adjusted values show zero variance in an arm, so a t-test cannot be computed yet."
+    },
+    "stratified": {
+      "not_applicable": "Post-stratification applies to binary and continuous metrics; this experiment's metric type is not supported here.",
+      "unavailable": "Post-stratification needs a per-user stratum. Ingest strata via POST /api/v1/experiments/{id}/strata to reduce variance when the stratum explains the outcome.",
+      "too_many": "More distinct strata were ingested than post-stratification supports. Too many sparse strata increase variance; reduce the number of strata to enable the adjustment.",
+      "available": "Post-stratified estimate: the effect is computed within each stratum and recombined weighted by stratum size (Delta = sum (n_s/N)*Delta_s). Variance drops when the stratum explains outcome variation, and can rise with many sparse strata, so the reduction is reported honestly. Estimated over exposed users that carry a stratum.",
+      "insufficient_data": "No stratum has both arms populated with at least 2 users yet, so a post-stratified test cannot be computed."
+    },
+    "guardrail": {
+      "none": "No guardrail metrics are declared for this experiment. Add guardrail metrics in the design to monitor protected metrics (latency, error rate, revenue) for regressions on live data.",
+      "unavailable": "Guardrail metrics are declared but no guardrail outcomes have been ingested yet. Send guardrail events through POST /api/v1/experiments/{id}/conversions using each guardrail's name as the conversion metric.",
+      "ok": "No guardrail metric shows a significant regression beyond its tolerance margin.",
+      "warning": "A guardrail metric is degrading past its tolerance margin but not yet significantly — watch it before shipping.",
+      "breached": "A guardrail metric is significantly degraded beyond its tolerance margin. Shipping is blocked until the regression is understood.",
+      "insufficient_data": "Each arm needs at least 2 exposed users with guardrail data before a breach test can run.",
+      "zero_variance": "Guardrail values show zero variance in an arm, so a breach test cannot be computed yet."
+    },
+    "holdout": {
+      "unavailable_ratio": "Holdout analysis applies to binary and continuous metrics; this experiment uses a ratio metric.",
+      "unavailable": "No holdout users have been ingested yet. Hold users back from the rollout via POST /api/v1/experiments/{id}/holdout to measure the rollout's cumulative effect against a held-back group; their outcomes ride the ordinary conversion stream under the primary metric.",
+      "insufficient_data": "Each side (the pooled treated arms and the holdout) needs at least 2 users with usable variation before the cumulative test can run.",
+      "ok": "Cumulative effect of the rollout: the pooled treated arms (variation_index >= 1) vs the held-back holdout group on the primary metric. This is the standing effect of everything shipped — a check on the per-variant wins — reusing the same frequentist, Bayesian and anytime-valid views.",
+      "zero_variance": "Per-user values show zero variance in the treated or holdout group, so a t-test cannot be computed yet."
+    }
   }
 }

@@ -384,5 +384,61 @@
       "verdict_difference": "Mindestens eine Gruppe unterscheidet sich bei alpha={{alpha}}",
       "verdict_no_difference": "Kein signifikanter Unterschied zwischen den Gruppen bei alpha={{alpha}}"
     }
+  },
+  "live_stats": {
+    "disclaimer": "MVP-Ausführungsschicht — eine Demonstration des vollständigen Zyklus Plan -> Ausführung -> Analyse, nicht für Produktivbetrieb mit hohem Traffic ausgelegt. Live-Statistiken werden bei Bedarf über deduplizierte Expositionen und Konversionen neu berechnet.",
+    "srm": {
+      "insufficient_data": "Noch nicht genug Expositionen, um einen Sample Ratio Mismatch zu prüfen.",
+      "detected": "Sample Ratio Mismatch festgestellt (p < 0,001) — die Zuweisung wirkt fehlerhaft; den Ergebnissen ist nicht zu trauen.",
+      "ok": "Kein Sample Ratio Mismatch; die Traffic-Aufteilung entspricht dem Design."
+    },
+    "comparison": {
+      "insufficient_data": "Jeder Arm benötigt mindestens 2 exponierte Nutzer, bevor ein Test durchgeführt werden kann.",
+      "continuous_zero_variance": "Die Werte pro Nutzer zeigen in einem Arm eine Varianz von null, daher kann noch kein t-Test berechnet werden.",
+      "ratio_insufficient_data": "Jeder Arm benötigt mindestens 2 exponierte Nutzer, bevor ein Ratio-Test durchgeführt werden kann.",
+      "ratio_degenerate": "Die Ratio-Varianz ist in einem Arm entartet (Nenner null oder keine Variation zwischen Nutzern), daher kann ein Delta-Methode-Test noch nicht berechnet werden.",
+      "bonferroni_note": "Bonferroni-korrigiertes Alpha {{adjusted_alpha}} über {{comparison_count}} Behandlung-vs-Kontrolle-Vergleiche (nominales Alpha {{nominal_alpha}}); Signifikanz und Konfidenzintervall verwenden dieses korrigierte Niveau, um die familienweise Fehlerrate zu kontrollieren."
+    },
+    "always_valid": {
+      "not_evaluable": "Noch nicht genug Variation in den Armen, um ein anytime-valid Intervall zu bilden.",
+      "ok": "Anytime-valid mSPRT-Ansicht: Dieser p-Wert und diese Konfidenzsequenz bleiben unter fortlaufender Beobachtung gültig, sodass Sie stoppen können, sobald die Sequenz null ausschließt, ohne die Falsch-Positiv-Rate zu erhöhen."
+    },
+    "sequential": {
+      "unsupported_metric": "Sequenzielle Planung ist für diesen Metriktyp noch nicht verfügbar, daher kann die O'Brien-Fleming-Grenze nicht ausgewertet werden.",
+      "fixed_horizon": "Design mit festem Horizont (n_looks=1): Lesen Sie den frequentistischen p-Wert nur einmal bei der geplanten Stichprobengröße — vorzeitiges Nachschauen erhöht die Falsch-Positiv-Rate.",
+      "insufficient_data": "Noch nicht genug Expositionen, um die sequenzielle Grenze auszuwerten.",
+      "active": "O'Brien-Fleming-Sequenzialgrenze beim aktuellen Informationsanteil. Eine Behandlung ist nur dann sequenziell signifikant, wenn |z| diese Grenze überschreitet (früh strenger, ~nominal am Ende). Die Grenze kontrolliert Alpha strikt nur bei den vorab geplanten Zwischenanalysen — wiederholtes Ablesen bei beliebigen Anteilen ist kontinuierliches Nachschauen; behandeln Sie jede Grenzüberschreitung zwischen den Analysen daher als vorläufig, bis eine geplante Zwischenanalyse erreicht ist."
+    },
+    "cuped": {
+      "not_applicable": "Live-CUPED gilt für kontinuierliche Metriken — das angepasste Ergebnis wird mit dem t-Test für kontinuierliche Daten analysiert. Dieses Experiment verwendet eine binäre Metrik, daher wird CUPED hier nicht angewendet.",
+      "unavailable": "CUPED benötigt Pre-Experiment-Kovariaten pro Nutzer. Laden Sie Pre-Period-Werte über POST /api/v1/experiments/{id}/pre-period, um die Varianzreduktion auf Live-Daten zu aktivieren.",
+      "too_many": "Es wurden mehr unterschiedliche Pre-Period-Kovariaten erfasst, als Live-CUPED unterstützt. Reduzieren Sie die Anzahl der Kovariatennamen, um die Mehrkovariaten-Anpassung zu aktivieren.",
+      "available": "CUPED-angepasste Schätzungen: Y_adj = Y - theta^T(X - mean X), die Regressionskoeffizienten theta = Sigma_xx^-1 Sigma_xy sind über die Arme gepoolt. Das angepasste Ergebnis wird mit dem t-Test für kontinuierliche Daten analysiert; der Effekt bleibt im Erwartungswert unverändert, während die Varianz mit der Korrelation der Kovariaten sinkt. Die Schätzung erfolgt nur über Nutzer mit vollständigem Kovariatenvektor und beschreibt daher diese Teilpopulation.",
+      "insufficient_data": "Jeder Arm benötigt mindestens 2 Nutzer mit einer Pre-Period-Kovariate.",
+      "zero_variance": "Die CUPED-angepassten Werte zeigen in einem Arm eine Varianz von null, daher kann noch kein t-Test berechnet werden."
+    },
+    "stratified": {
+      "not_applicable": "Post-Stratifizierung gilt für binäre und kontinuierliche Metriken; der Metriktyp dieses Experiments wird hier nicht unterstützt.",
+      "unavailable": "Post-Stratifizierung benötigt eine Schicht pro Nutzer. Laden Sie Schichten über POST /api/v1/experiments/{id}/strata, um die Varianz zu reduzieren, wenn die Schicht das Ergebnis erklärt.",
+      "too_many": "Es wurden mehr unterschiedliche Schichten erfasst, als die Post-Stratifizierung unterstützt. Zu viele dünn besetzte Schichten erhöhen die Varianz; reduzieren Sie die Anzahl der Schichten, um die Anpassung zu aktivieren.",
+      "available": "Post-stratifizierte Schätzung: Der Effekt wird innerhalb jeder Schicht berechnet und gewichtet nach Schichtgröße neu kombiniert (Delta = Summe (n_s/N)*Delta_s). Die Varianz sinkt, wenn die Schicht die Ergebnisvariation erklärt, kann aber bei vielen dünn besetzten Schichten steigen, daher wird die Reduktion ehrlich ausgewiesen. Die Schätzung erfolgt über exponierte Nutzer mit einer Schicht.",
+      "insufficient_data": "In keiner Schicht sind bisher beide Arme mit mindestens 2 Nutzern besetzt, daher kann kein post-stratifizierter Test berechnet werden."
+    },
+    "guardrail": {
+      "none": "Für dieses Experiment sind keine Guardrail-Metriken definiert. Fügen Sie Guardrail-Metriken im Design hinzu, um geschützte Kennzahlen (Latenz, Fehlerrate, Umsatz) auf Regressionen bei Live-Daten zu überwachen.",
+      "unavailable": "Guardrail-Metriken sind definiert, aber es wurden noch keine Guardrail-Ergebnisse erfasst. Senden Sie Guardrail-Ereignisse über POST /api/v1/experiments/{id}/conversions und verwenden Sie dabei den Namen jeder Guardrail-Metrik als Konversionsmetrik.",
+      "ok": "Keine Guardrail-Metrik zeigt eine signifikante Regression über ihre Toleranzgrenze hinaus.",
+      "warning": "Eine Guardrail-Metrik verschlechtert sich über ihre Toleranzgrenze hinaus, jedoch noch nicht signifikant — beobachten Sie sie vor dem Rollout.",
+      "breached": "Eine Guardrail-Metrik ist signifikant über ihre Toleranzgrenze hinaus verschlechtert. Der Rollout ist blockiert, bis die Regression verstanden ist.",
+      "insufficient_data": "Jeder Arm benötigt mindestens 2 exponierte Nutzer mit Guardrail-Daten, bevor ein Verletzungstest durchgeführt werden kann.",
+      "zero_variance": "Die Guardrail-Werte zeigen in einem Arm eine Varianz von null, daher kann noch kein Verletzungstest berechnet werden."
+    },
+    "holdout": {
+      "unavailable_ratio": "Die Holdout-Analyse gilt für binäre und kontinuierliche Metriken; dieses Experiment verwendet eine Ratio-Metrik.",
+      "unavailable": "Es wurden noch keine Holdout-Nutzer erfasst. Halten Sie Nutzer über POST /api/v1/experiments/{id}/holdout vom Rollout zurück, um den kumulativen Effekt des Rollouts gegenüber einer zurückgehaltenen Gruppe zu messen; deren Ergebnisse laufen über den gewöhnlichen Konversionsstrom unter der primären Metrik.",
+      "insufficient_data": "Jede Seite (die gepoolten behandelten Arme und die Holdout-Gruppe) benötigt mindestens 2 Nutzer mit nutzbarer Variation, bevor der kumulative Test durchgeführt werden kann.",
+      "ok": "Kumulativer Effekt des Rollouts: die gepoolten behandelten Arme (variation_index >= 1) gegenüber der zurückgehaltenen Holdout-Gruppe bei der primären Metrik. Dies ist der bestehende Effekt von allem, was bereits ausgerollt wurde — eine Kontrolle der Gewinne je Variante — unter Wiederverwendung derselben frequentistischen, bayesianischen und anytime-valid Ansichten.",
+      "zero_variance": "Die Werte pro Nutzer zeigen in der behandelten oder der Holdout-Gruppe eine Varianz von null, daher kann noch kein t-Test berechnet werden."
+    }
   }
 }

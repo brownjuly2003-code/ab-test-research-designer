@@ -8,21 +8,14 @@ import {
   type ApiKeyCreateResponse,
   type ApiKeyRecord
 } from "../lib/api";
+import { formatLocalizedTimestamp } from "../lib/formatDate";
 
 function formatTimestamp(value: string | null | undefined): string {
   if (!value) {
     return "Not used yet";
   }
 
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    return value;
-  }
-
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short"
-  }).format(parsed);
+  return formatLocalizedTimestamp(value);
 }
 
 export default function ApiKeyManager() {

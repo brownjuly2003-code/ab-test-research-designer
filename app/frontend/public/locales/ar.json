@@ -1152,7 +1152,11 @@
       "importedDraftFrom": "مسودة مستوردة من {{fileName}}. احفظه لإنشاء سجل مشروع محلي جديد.",
       "restoredBrowserDraft": "تمت استعادة مسودة المتصفح غير المحفوظة.",
       "templateLoaded": "تم تحميل القالب {{templateName}} في المعالج.",
-      "draftNotSavedStorageFull": "لم يتم حفظ المسودة - مساحة تخزين المتصفح ممتلئة."
+      "draftNotSavedStorageFull": "لم يتم حفظ المسودة - مساحة تخزين المتصفح ممتلئة.",
+      "analysisCompletedGeneric": "اكتمل التحليل. تُعرض أدناه النتيجة الحتمية ونصيحة الذكاء الاصطناعي الاختيارية.",
+      "analysisCompletedUnsavedDraft": "اكتمل التحليل لتغييرات المسودة. احفظ المشروع للحفاظ على لقطة التحليل هذه.",
+      "analysisCompletedSnapshotSaved": "اكتمل التحليل، وتم تسجيل أحدث لقطة لهذا المشروع المحفوظ.",
+      "analysisCompletedSnapshotFailed": "اكتمل التحليل، لكن تعذّر حفظ بيانات لقطة المشروع الوصفية."
     },
     "errors": {
       "unexpectedDraftImport": "خطأ غير متوقع في استيراد المسودة"

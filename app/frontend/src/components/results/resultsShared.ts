@@ -1,3 +1,4 @@
+import { formatLocalizedTimestamp } from "../../lib/formatDate";
 import type { AnalysisResponsePayload } from "../../lib/experiment";
 
 const apiSessionTokenStorageKey = "ab-test-research-designer:api-token:v1";
@@ -34,15 +35,7 @@ export function buildApiRequestHeaders(): Record<string, string> {
 }
 
 export function formatResultTimestamp(timestamp: string): string {
-  const parsed = new Date(timestamp);
-  if (Number.isNaN(parsed.getTime())) {
-    return timestamp;
-  }
-
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short"
-  }).format(parsed);
+  return formatLocalizedTimestamp(timestamp);
 }
 
 export function formatDelta(value: number, suffix = ""): string {

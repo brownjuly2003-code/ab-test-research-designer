@@ -347,9 +347,14 @@ export type SectionConfig = {
 export type ReviewItem = {
   label: string;
   value: string;
+  section: FullPayloadSectionKey;
+  key: string;
+  rawValue: unknown;
+  options?: SelectOption[];
 };
 export type ReviewSection = {
   title: string;
+  section: FullPayloadSectionKey;
   items: ReviewItem[];
 };
 export type DraftTransferFile = {

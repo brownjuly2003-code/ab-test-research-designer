@@ -13,21 +13,14 @@ import {
   type WebhookScope,
   type WebhookSubscriptionRecord
 } from "../lib/api";
+import { formatLocalizedTimestamp } from "../lib/formatDate";
 
 function formatTimestamp(value: string | null | undefined, emptyLabel: string): string {
   if (!value) {
     return emptyLabel;
   }
 
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    return value;
-  }
-
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short"
-  }).format(parsed);
+  return formatLocalizedTimestamp(value);
 }
 
 function parseEventFilter(value: string): string[] {

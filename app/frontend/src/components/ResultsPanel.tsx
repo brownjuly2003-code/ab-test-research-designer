@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import type { ExportFormat, ResultsAnalysisResponse } from "../lib/experiment";
 import { apiUrl, buildApiPayload } from "../lib/experiment";
+import { formatLocalizedTimestamp } from "../lib/formatDate";
 import { useAnalysisStore } from "../stores/analysisStore";
 import { readDraftBootstrap, useDraftStore } from "../stores/draftStore";
 import { useProjectStore } from "../stores/projectStore";
@@ -243,7 +244,7 @@ export default function ResultsPanel(_props: ResultsPanelProps) {
 
   return (
     <>
-      {project.selectedHistoryRun ? <div className={`${styles["result-block"]} ${styles["results-enter"]}`}><span className="pill">{t("results.panel.savedSnapshot")}</span><h3>{t("results.panel.viewingHistoricalAnalysis")}</h3><p className="muted">{t("results.panel.openedSnapshotFrom", { timestamp: new Date(project.selectedHistoryRun.created_at).toLocaleString() })}{analysis.results.report ? ` ${t("results.panel.currentResultsAvailable")}` : ""}</p><div className="actions"><button className="btn ghost" onClick={() => { if (project.clearHistoryRunSelection()) { analysis.clearFeedback(); analysis.showStatus(analysis.results.report ? t("results.panel.returnedToCurrentAnalysis") : t("results.panel.closedSnapshotPreview"), "info"); } }}>{analysis.results.report ? t("results.panel.showCurrentAnalysis") : t("results.panel.closeSnapshotView")}</button></div></div> : null}
+      {project.selectedHistoryRun ? <div className={`${styles["result-block"]} ${styles["results-enter"]}`}><span className="pill">{t("results.panel.savedSnapshot")}</span><h3>{t("results.panel.viewingHistoricalAnalysis")}</h3><p className="muted">{t("results.panel.openedSnapshotFrom", { timestamp: formatLocalizedTimestamp(project.selectedHistoryRun.created_at) })}{analysis.results.report ? ` ${t("results.panel.currentResultsAvailable")}` : ""}</p><div className="actions"><button className="btn ghost" onClick={() => { if (project.clearHistoryRunSelection()) { analysis.clearFeedback(); analysis.showStatus(analysis.results.report ? t("results.panel.returnedToCurrentAnalysis") : t("results.panel.closedSnapshotPreview"), "info"); } }}>{analysis.results.report ? t("results.panel.showCurrentAnalysis") : t("results.panel.closeSnapshotView")}</button></div></div> : null}
       {analysis.isAnalyzing && !project.projectComparison && !project.projectMultiComparison ? <div className={`${styles["result-block"]} ${styles["results-enter"]}`}><span className="pill">{t("results.panel.analysisInProgress")}</span><h3>{t("results.panel.preparingDeterministicResults")}</h3><p className="muted">{t("results.panel.updatingSections")}</p><ResultsSkeleton /></div> : null}
       {displayedAnalysis?.report && !analysis.isAnalyzing ? <div className={`${styles.results} ${styles["results-enter"]}`}>
         <Accordion title={t("results.panel.accordion.comparison")} badge={project.projectComparison || project.projectMultiComparison ? t("results.panel.badges.loaded") : t("results.panel.badges.sidebar")} defaultOpen={Boolean(project.projectComparison || project.projectMultiComparison)}><ComparisonSection /></Accordion>
