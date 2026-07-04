@@ -139,7 +139,9 @@
         "audience_share_in_test": "测试中的观众份额",
         "variants_count": "变体计数",
         "inclusion_criteria": "纳入标准",
-        "exclusion_criteria": "排除标准"
+        "exclusion_criteria": "排除标准",
+        "avg_cluster_size": "平均集群规模 (m)",
+        "icc": "组内相关系数 (ICC)"
       },
       "metrics": {
         "primary_metric_name": "主要指标",
@@ -190,7 +192,9 @@
       "holdout_fraction": "全局保留组：作为干净对照、不进入任何实验的流量占比。没有则留空，或输入 0.1 表示 10% 的保留组。它会减少本实验获得的流量，因此持续时间变长，而样本量不变。",
       "mutually_exclusive_experiments": "共享同一流量的互斥实验数量。为 1 时留空。为 N 时，本实验获得 1/N 的流量，持续时间相应延长。",
       "planned_test": "样本量按此分析方法规划。z 检验是经典默认方案；Fisher 精确检验在小样本上需要略多的用户；Mann-Whitney（秩检验，适合偏态指标）使计划增加约 5%；等效性检验（TOST）的目标是在边界内确认两组相同，而不是检测差异。",
-      "equivalence_margin_pct": "对称等效性边界，以基线的百分比表示：仍视为“实际相同”的最大差异。它决定 TOST 的样本量（MDE 不适用于等效性方案）。"
+      "equivalence_margin_pct": "对称等效性边界，以基线的百分比表示：仍视为“实际相同”的最大差异。它决定 TOST 的样本量（MDE 不适用于等效性方案）。",
+      "avg_cluster_size": "仅用于集群设计：每个集群的平均个体数 (m)，例如每家门店 100 名顾客。决定设计效应 DEFF = 1 + (m - 1) x ICC，从而放大所需样本量。",
+      "icc": "仅用于集群设计：组内相关系数 (ICC, 0-1) —— 同一集群内个体的相似程度。在网页/产品实验中较小 (0.01-0.05)，在地理/课堂试验中较大。0 = 无集群惩罚。"
     },
     "options": {
       "setup": {
@@ -683,7 +687,10 @@
         "durationSubtitle": "预计持续时间",
         "perDayMeta": "{{traffic}}/天",
         "warnings": "警告",
-        "warningsSubtitle": "启发式检查"
+        "warningsSubtitle": "启发式检查",
+        "designEffect": "设计效应",
+        "designEffectSubtitle": "集群随机化 (DEFF)",
+        "clustersMeta": "每组 {{clusters}} 个约 {{size}} 单位的集群"
       },
       "warningSeverity": {
         "high": "{{count}} 高",
@@ -1657,7 +1664,8 @@
     "days_one": "{{count}} 天",
     "days_other": "{{count}} 天",
     "allocatedTrafficTitle": "分配的每日流量",
-    "allocatedTrafficUnit": "扣除保留组后 用户/天"
+    "allocatedTrafficUnit": "扣除保留组后 用户/天",
+    "clusterDesignBadge": "设计效应 {{deff}} · 每组 {{clusters}} 个约 {{size}} 单位的集群"
   },
   "hypothesisIdeation": {
     "title": "AI 假设建议",

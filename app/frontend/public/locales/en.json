@@ -139,7 +139,9 @@
         "audience_share_in_test": "Audience share in test",
         "variants_count": "Variants count",
         "inclusion_criteria": "Inclusion criteria",
-        "exclusion_criteria": "Exclusion criteria"
+        "exclusion_criteria": "Exclusion criteria",
+        "avg_cluster_size": "Avg cluster size (m)",
+        "icc": "Intraclass correlation (ICC)"
       },
       "metrics": {
         "primary_metric_name": "Primary metric",
@@ -190,7 +192,9 @@
       "holdout_fraction": "Global holdout: the share of traffic kept out of every experiment as a clean control. Leave empty for none, or enter 0.1 for a 10% holdout. It reduces the traffic this test receives, so the duration grows while the sample size stays the same.",
       "mutually_exclusive_experiments": "Number of mutually-exclusive experiments sharing the same traffic. Leave empty for 1. With N, this test receives 1/N of the traffic, extending the duration accordingly.",
       "planned_test": "Analysis method the sample size is planned for. The z-test plan is the classic default; Fisher's exact needs slightly more users on small samples; Mann-Whitney (rank test, for skewed metrics) inflates the plan by ~5%; equivalence (TOST) plans to CONFIRM the arms are the same within a margin instead of detecting a difference.",
-      "equivalence_margin_pct": "Symmetric equivalence margin as a percent of baseline: the largest difference still treated as 'practically the same'. Drives the TOST sample size (the MDE does not apply to an equivalence plan)."
+      "equivalence_margin_pct": "Symmetric equivalence margin as a percent of baseline: the largest difference still treated as 'practically the same'. Drives the TOST sample size (the MDE does not apply to an equivalence plan).",
+      "avg_cluster_size": "Cluster designs only: the average number of individuals per cluster (m), e.g. 100 shoppers per store. Drives the design effect DEFF = 1 + (m - 1) x ICC that inflates the required sample size.",
+      "icc": "Cluster designs only: the intraclass correlation coefficient (ICC, 0-1) - how similar individuals in the same cluster are. Small in web/product experiments (0.01-0.05), larger in geo/classroom trials. 0 = no clustering penalty."
     },
     "options": {
       "setup": {
@@ -684,7 +688,10 @@
         "durationSubtitle": "estimated duration",
         "perDayMeta": "{{traffic}}/day",
         "warnings": "Warnings",
-        "warningsSubtitle": "heuristic checks"
+        "warningsSubtitle": "heuristic checks",
+        "designEffect": "Design effect",
+        "designEffectSubtitle": "Cluster randomization (DEFF)",
+        "clustersMeta": "{{clusters}} clusters of ~{{size}} per arm"
       },
       "warningSeverity": {
         "high": "{{count}} high",
@@ -1658,7 +1665,8 @@
     "days_one": "{{count}} day",
     "days_other": "{{count}} days",
     "allocatedTrafficTitle": "Allocated daily traffic",
-    "allocatedTrafficUnit": "users / day after holdout"
+    "allocatedTrafficUnit": "users / day after holdout",
+    "clusterDesignBadge": "Design effect {{deff}} · {{clusters}} clusters of ~{{size}} per arm"
   },
   "hypothesisIdeation": {
     "title": "AI hypothesis ideas",

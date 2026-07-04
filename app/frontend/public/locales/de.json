@@ -139,7 +139,9 @@
         "audience_share_in_test": "Anteil der Zielgruppe im Test",
         "variants_count": "Anzahl der Varianten",
         "inclusion_criteria": "Einschlusskriterien",
-        "exclusion_criteria": "Ausschlusskriterien"
+        "exclusion_criteria": "Ausschlusskriterien",
+        "avg_cluster_size": "Durchschn. Clustergröße (m)",
+        "icc": "Intraklassen-Korrelation (ICC)"
       },
       "metrics": {
         "primary_metric_name": "Primäre Metrik",
@@ -190,7 +192,9 @@
       "holdout_fraction": "Globaler Holdout: Anteil des Traffics, der als saubere Kontrolle aus allen Experimenten herausgehalten wird. Leer lassen für keinen, oder 0,1 für einen Holdout von 10 % eingeben. Reduziert den Traffic für diesen Test, sodass die Dauer steigt, während die Stichprobengröße gleich bleibt.",
       "mutually_exclusive_experiments": "Anzahl sich gegenseitig ausschließender Experimente, die sich denselben Traffic teilen. Leer lassen für 1. Bei N erhält dieser Test 1/N des Traffics, was die Dauer entsprechend verlängert.",
       "planned_test": "Analysemethode, für die die Stichprobengröße geplant wird. Der z-Test ist der klassische Standard; Fishers exakter Test braucht bei kleinen Stichproben etwas mehr Nutzer; Mann-Whitney (Rangtest für schiefe Metriken) erhöht den Plan um ca. 5 %; Äquivalenz (TOST) plant, die Gleichheit der Varianten innerhalb einer Marge zu BESTÄTIGEN statt einen Unterschied zu entdecken.",
-      "equivalence_margin_pct": "Symmetrische Äquivalenzmarge in Prozent des Basiswerts: der größte Unterschied, der noch als 'praktisch gleich' gilt. Sie bestimmt die TOST-Stichprobengröße (der MDE gilt nicht für einen Äquivalenzplan)."
+      "equivalence_margin_pct": "Symmetrische Äquivalenzmarge in Prozent des Basiswerts: der größte Unterschied, der noch als 'praktisch gleich' gilt. Sie bestimmt die TOST-Stichprobengröße (der MDE gilt nicht für einen Äquivalenzplan).",
+      "avg_cluster_size": "Nur für Cluster-Designs: die durchschnittliche Anzahl an Einheiten pro Cluster (m), z. B. 100 Kunden pro Filiale. Bestimmt den Design-Effekt DEFF = 1 + (m - 1) x ICC, der die erforderliche Stichprobe erhöht.",
+      "icc": "Nur für Cluster-Designs: der Intraklassen-Korrelationskoeffizient (ICC, 0-1) - wie ähnlich sich Einheiten im selben Cluster sind. Klein in Web-/Produktexperimenten (0,01-0,05), größer in Geo-/Klassenstudien. 0 = keine Cluster-Strafe."
     },
     "options": {
       "setup": {
@@ -684,7 +688,10 @@
         "durationSubtitle": "geschätzte Dauer",
         "perDayMeta": "{{traffic}}/Tag",
         "warnings": "Warnungen",
-        "warningsSubtitle": "heuristische Prüfungen"
+        "warningsSubtitle": "heuristische Prüfungen",
+        "designEffect": "Design-Effekt",
+        "designEffectSubtitle": "Cluster-Randomisierung (DEFF)",
+        "clustersMeta": "{{clusters}} Cluster à ~{{size}} pro Arm"
       },
       "warningSeverity": {
         "high": "{{count}} hoch",
@@ -1658,7 +1665,8 @@
     "days_one": "{{count}} Tag",
     "days_other": "{{count}} Tage",
     "allocatedTrafficTitle": "Zugewiesener Tagestraffic",
-    "allocatedTrafficUnit": "Nutzer / Tag nach Holdout"
+    "allocatedTrafficUnit": "Nutzer / Tag nach Holdout",
+    "clusterDesignBadge": "Design-Effekt {{deff}} · {{clusters}} Cluster à ~{{size}} pro Arm"
   },
   "hypothesisIdeation": {
     "title": "KI-Hypothesenideen",

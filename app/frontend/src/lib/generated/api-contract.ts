@@ -177,6 +177,8 @@ export type CalculationRequest = {
   traffic_split: number[];
   variants_count: number;
   randomization_unit?: string | null;
+  avg_cluster_size?: number | null;
+  icc?: number | null;
   actual_counts?: number[] | null;
   seasonality_present?: boolean | null;
   active_campaigns_present?: boolean | null;
@@ -195,6 +197,10 @@ export type CalculationResponse = {
   assumptions: string[];
   warnings: WarningResponse[];
   bonferroni_note?: string | null;
+  design_effect?: number | null;
+  avg_cluster_size?: number | null;
+  icc?: number | null;
+  clusters_per_variant?: number | null;
   bayesian_sample_size_per_variant?: number | null;
   bayesian_credibility?: number | null;
   bayesian_note?: string | null;
@@ -235,6 +241,8 @@ export type CalculationsSection = {
   total_sample_size: number;
   estimated_duration_days: number;
   assumptions: string[];
+  design_effect?: number | null;
+  clusters_per_variant?: number | null;
 };
 
 export type CategoricalResultsRequest = {
@@ -510,6 +518,8 @@ export type ExperimentSetup = {
   variants_count: number;
   inclusion_criteria: string;
   exclusion_criteria: string;
+  avg_cluster_size?: number | null;
+  icc?: number | null;
   namespace?: NamespaceConfig | null;
   targeting_rules?: TargetingRule[];
 };

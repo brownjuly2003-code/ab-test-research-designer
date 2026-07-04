@@ -244,6 +244,8 @@
       "continuous_std_positive": "для непрерывной метрики std_dev должен быть положительным",
       "ratio_baseline_positive": "для метрики-отношения baseline_value (базовое отношение) должен быть положительным",
       "count_baseline_positive": "для метрики-счётчика baseline_value (базовая частота событий) должен быть положительным",
+      "cluster_size_min": "avg_cluster_size (средний размер кластера) должен быть не меньше 1",
+      "icc_range": "icc (коэффициент внутриклассовой корреляции) должен быть в диапазоне от 0 до 1",
       "ratio_std_positive": "для метрики-отношения std_dev (линеаризованное стандартное отклонение на пользователя) должен быть положительным",
       "bayesian_requires_precision": "в байесовском режиме нужен desired_precision",
       "control_conversions_exceed_users": "control_conversions не может превышать control_users",

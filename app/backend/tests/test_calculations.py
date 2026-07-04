@@ -6,6 +6,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
 from app.backend.app.services.calculations_service import calculate_experiment_metrics
+from app.backend.app.stats.cluster import inflate_for_cluster_design
 
 
 def test_binary_calculation_returns_required_fields() -> None:
@@ -561,3 +562,78 @@ def test_cuped_companion_only_on_the_default_plan() -> None:
     )
     assert default_plan["cuped_sample_size_per_variant"] is not None
     assert mw_plan["cuped_sample_size_per_variant"] is None
+
+
+# --- Cluster design effect (P5.2) ---------------------------------------------------------------
+
+_CLUSTER = {"randomization_unit": "cluster", "avg_cluster_size": 100, "icc": 0.02}
+
+
+def test_cluster_design_inflates_primary_sample_size() -> None:
+    base = calculate_experiment_metrics(dict(_BINARY_BASE))
+    base_n = base["results"]["sample_size_per_variant"]
+    expected = inflate_for_cluster_design(base_n, 100, 0.02, variants_count=2)
+
+    result = calculate_experiment_metrics({**_BINARY_BASE, **_CLUSTER})
+
+    assert result["design_effect"] == pytest.approx(2.98, abs=1e-4)
+    assert result["avg_cluster_size"] == 100
+    assert result["icc"] == 0.02
+    assert result["clusters_per_variant"] == expected["clusters_per_variant"]
+    assert result["results"]["sample_size_per_variant"] == expected["sample_size_per_variant"]
+    assert result["results"]["total_sample_size"] == expected["total_sample_size"]
+    # Inflated n takes at least as long to enrol at the same traffic.
+    assert result["results"]["estimated_duration_days"] >= base["results"]["estimated_duration_days"]
+    assert any("design effect" in note.lower() for note in result["assumptions"])
+
+
+def test_cluster_design_icc_zero_matches_non_cluster_exactly() -> None:
+    base = calculate_experiment_metrics(dict(_BINARY_BASE))
+    result = calculate_experiment_metrics(
+        {**_BINARY_BASE, "randomization_unit": "cluster", "avg_cluster_size": 100, "icc": 0.0}
+    )
+    assert result["design_effect"] == 1.0
+    assert result["results"]["sample_size_per_variant"] == base["results"]["sample_size_per_variant"]
+    assert result["results"]["total_sample_size"] == base["results"]["total_sample_size"]
+
+
+def test_cluster_params_ignored_for_non_cluster_unit() -> None:
+    base = calculate_experiment_metrics(dict(_BINARY_BASE))
+    result = calculate_experiment_metrics(
+        {**_BINARY_BASE, "randomization_unit": "user", "avg_cluster_size": 100, "icc": 0.02}
+    )
+    assert result["design_effect"] is None
+    assert result["clusters_per_variant"] is None
+    assert result["results"]["sample_size_per_variant"] == base["results"]["sample_size_per_variant"]
+
+
+def test_cluster_unit_without_params_does_not_inflate() -> None:
+    # The 5.1 warning-only path: cluster selected but no m / ICC supplied yet.
+    base = calculate_experiment_metrics(dict(_BINARY_BASE))
+    result = calculate_experiment_metrics({**_BINARY_BASE, "randomization_unit": "cluster"})
+    assert result["design_effect"] is None
+    assert result["results"]["sample_size_per_variant"] == base["results"]["sample_size_per_variant"]
+
+
+def test_cluster_design_inflates_cuped_companion() -> None:
+    cuped_inputs = {"cuped_pre_experiment_std": 18.0, "cuped_correlation": 0.6}
+    base = calculate_experiment_metrics({**_CONTINUOUS_BASE, **cuped_inputs})
+    base_cuped_n = base["cuped_sample_size_per_variant"]
+    expected = inflate_for_cluster_design(base_cuped_n, 100, 0.02, variants_count=2)
+
+    result = calculate_experiment_metrics({**_CONTINUOUS_BASE, **cuped_inputs, **_CLUSTER})
+
+    assert result["cuped_sample_size_per_variant"] == expected["sample_size_per_variant"]
+    assert result["cuped_sample_size_per_variant"] > base_cuped_n
+
+
+def test_cluster_design_inflates_bayesian_companion() -> None:
+    bayes_inputs = {"analysis_mode": "bayesian", "desired_precision": 2.0, "credibility": 0.95}
+    base = calculate_experiment_metrics({**_CONTINUOUS_BASE, **bayes_inputs})
+    base_bayes_n = base["bayesian_sample_size_per_variant"]
+    expected = inflate_for_cluster_design(base_bayes_n, 100, 0.02, variants_count=2)
+
+    result = calculate_experiment_metrics({**_CONTINUOUS_BASE, **bayes_inputs, **_CLUSTER})
+
+    assert result["bayesian_sample_size_per_variant"] == expected["sample_size_per_variant"]
+    assert result["bayesian_sample_size_per_variant"] > base_bayes_n

@@ -139,7 +139,9 @@
         "audience_share_in_test": "Cuota de audiencia en la prueba",
         "variants_count": "Cantidad de variantes",
         "inclusion_criteria": "Criterios de inclusión",
-        "exclusion_criteria": "Criterios de exclusión"
+        "exclusion_criteria": "Criterios de exclusión",
+        "avg_cluster_size": "Tamaño medio de clúster (m)",
+        "icc": "Correlación intraclase (ICC)"
       },
       "metrics": {
         "primary_metric_name": "Métrica primaria",
@@ -190,7 +192,9 @@
       "holdout_fraction": "Holdout global: proporción del tráfico que se mantiene fuera de todos los experimentos como control limpio. Déjelo vacío si no hay, o introduzca 0.1 para un holdout del 10 %. Reduce el tráfico que recibe esta prueba, por lo que la duración aumenta mientras el tamaño de muestra no cambia.",
       "mutually_exclusive_experiments": "Número de experimentos mutuamente excluyentes que comparten el mismo tráfico. Déjelo vacío para 1. Con N, esta prueba recibe 1/N del tráfico, extendiendo la duración en consecuencia.",
       "planned_test": "Método de análisis para el que se planifica el tamaño de muestra. El test z es el estándar clásico; el test exacto de Fisher necesita algo más de usuarios en muestras pequeñas; Mann-Whitney (test de rangos para métricas sesgadas) aumenta el plan en ~5 %; la equivalencia (TOST) planifica para CONFIRMAR que las variantes son iguales dentro de un margen en lugar de detectar una diferencia.",
-      "equivalence_margin_pct": "Margen de equivalencia simétrico como porcentaje del valor base: la mayor diferencia que aún se considera 'prácticamente igual'. Determina el tamaño de muestra TOST (el MDE no aplica a un plan de equivalencia)."
+      "equivalence_margin_pct": "Margen de equivalencia simétrico como porcentaje del valor base: la mayor diferencia que aún se considera 'prácticamente igual'. Determina el tamaño de muestra TOST (el MDE no aplica a un plan de equivalencia).",
+      "avg_cluster_size": "Solo diseños por clústeres: el número medio de individuos por clúster (m), p. ej. 100 compradores por tienda. Determina el efecto de diseño DEFF = 1 + (m - 1) x ICC que infla el tamaño de muestra requerido.",
+      "icc": "Solo diseños por clústeres: el coeficiente de correlación intraclase (ICC, 0-1) - cuán similares son los individuos del mismo clúster. Pequeño en experimentos web/de producto (0,01-0,05), mayor en ensayos geográficos/de aula. 0 = sin penalización por agrupamiento."
     },
     "options": {
       "setup": {
@@ -684,7 +688,10 @@
         "durationSubtitle": "duración estimada",
         "perDayMeta": "{{traffic}}/día",
         "warnings": "Advertencias",
-        "warningsSubtitle": "comprobaciones heurísticas"
+        "warningsSubtitle": "comprobaciones heurísticas",
+        "designEffect": "Efecto de diseño",
+        "designEffectSubtitle": "Aleatorización por clústeres (DEFF)",
+        "clustersMeta": "{{clusters}} clústeres de ~{{size}} por rama"
       },
       "warningSeverity": {
         "high": "{{count}} alto",
@@ -1658,7 +1665,8 @@
     "days_one": "{{count}} día",
     "days_other": "{{count}} días",
     "allocatedTrafficTitle": "Tráfico diario asignado",
-    "allocatedTrafficUnit": "usuarios / día tras el holdout"
+    "allocatedTrafficUnit": "usuarios / día tras el holdout",
+    "clusterDesignBadge": "Efecto de diseño {{deff}} · {{clusters}} clústeres de ~{{size}} por rama"
   },
   "hypothesisIdeation": {
     "title": "Ideas de hipótesis con IA",

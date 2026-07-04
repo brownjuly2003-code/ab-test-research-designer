@@ -102,6 +102,8 @@ def _build_calculation_payload(payload: ExperimentInput) -> CalculationRequest:
         traffic_split=payload.setup.traffic_split,
         variants_count=payload.setup.variants_count,
         randomization_unit=payload.setup.randomization_unit,
+        avg_cluster_size=payload.setup.avg_cluster_size,
+        icc=payload.setup.icc,
         seasonality_present=payload.constraints.seasonality_present,
         active_campaigns_present=payload.constraints.active_campaigns_present,
         long_test_possible=payload.constraints.long_test_possible,

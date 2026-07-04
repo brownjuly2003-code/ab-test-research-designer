@@ -51,7 +51,9 @@ export const initialState: FullPayload = {
     audience_share_in_test: 0.6,
     variants_count: 2,
     inclusion_criteria: "new users only",
-    exclusion_criteria: "internal staff"
+    exclusion_criteria: "internal staff",
+    avg_cluster_size: null,
+    icc: null
   },
   metrics: {
     primary_metric_name: "purchase_conversion",
@@ -136,6 +138,13 @@ export function setSectionFieldValue(
 ): FullPayload {
   const nextState = structuredClone(state);
   Reflect.set(nextState[section], key, value);
+
+  if (section === "setup" && key === "randomization_unit" && value !== "cluster") {
+    // The average cluster size and ICC only size a cluster design; clear them when the unit is not a
+    // cluster so a stale value never leaks into a non-cluster plan (mirrors the exposure_per_user reset).
+    nextState.setup.avg_cluster_size = null;
+    nextState.setup.icc = null;
+  }
 
   if (section === "metrics" && key === "metric_type") {
     // The planned analysis method is metric-type specific (z/Fisher for binary, z/MW/TOST for
@@ -290,6 +299,8 @@ export function buildCalculationPayload(state: FullPayload): CalculateRequest {
     traffic_split: payload.setup.traffic_split,
     variants_count: payload.setup.variants_count,
     randomization_unit: payload.setup.randomization_unit,
+    avg_cluster_size: payload.setup.avg_cluster_size,
+    icc: payload.setup.icc,
     seasonality_present: payload.constraints.seasonality_present,
     active_campaigns_present: payload.constraints.active_campaigns_present,
     long_test_possible: payload.constraints.long_test_possible,

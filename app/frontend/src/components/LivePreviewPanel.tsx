@@ -12,6 +12,11 @@ type LivePreviewPanelProps = {
 export default function LivePreviewPanel({ result, isLoading, error }: LivePreviewPanelProps) {
   const { t } = useTranslation();
   const hasCupedEstimate = result?.cuped_sample_size_per_variant !== null && result?.cuped_sample_size_per_variant !== undefined;
+  const hasClusterDesign =
+    result?.design_effect !== null &&
+    result?.design_effect !== undefined &&
+    result?.clusters_per_variant !== null &&
+    result?.clusters_per_variant !== undefined;
 
   function formatDuration(days: number): string {
     if (days < 1) {
@@ -67,6 +72,15 @@ export default function LivePreviewPanel({ result, isLoading, error }: LivePrevi
             <span className="preview-badge">{t("livePreview.varianceReductionBadge", { pct: result.cuped_variance_reduction_pct })}</span>
           ) : null}
           {result.bonferroni_note ? <span className="preview-badge">{t("livePreview.bonferroniBadge")}</span> : null}
+          {hasClusterDesign ? (
+            <span className="preview-badge">
+              {t("livePreview.clusterDesignBadge", {
+                deff: result.design_effect?.toFixed(2),
+                clusters: result.clusters_per_variant?.toLocaleString(),
+                size: result.avg_cluster_size
+              })}
+            </span>
+          ) : null}
         </>
       ) : (
         <span className="live-preview-message">{t("livePreview.emptyHint")}</span>

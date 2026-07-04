@@ -79,6 +79,20 @@ class TargetingRule(BaseModel):
         return self
 
 
+def _validate_cluster_params(avg_cluster_size: float | None, icc: float | None) -> None:
+    """Range-validate the cluster design-effect inputs (P5.2) with i18n error keys.
+
+    ``avg_cluster_size`` (m) must be >= 1 — m = 1 is allowed (the Kish design effect degenerates to 1)
+    but a fractional-below-1 cluster is nonsense. ``icc`` must be in [0, 1]. Both are optional and are
+    consumed only when ``randomization_unit == "cluster"`` (see stats/cluster.py); validated whenever
+    supplied so a cluster design left over from the 5.1 warning-only flow (no params) still validates.
+    """
+    if avg_cluster_size is not None and avg_cluster_size < 1:
+        raise ValueError(translate("errors.schemas.cluster_size_min"))
+    if icc is not None and not 0 <= icc <= 1:
+        raise ValueError(translate("errors.schemas.icc_range"))
+
+
 class ExperimentSetup(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -90,6 +104,11 @@ class ExperimentSetup(BaseModel):
     variants_count: int = Field(ge=2, le=MAX_SUPPORTED_VARIANTS)
     inclusion_criteria: str
     exclusion_criteria: str
+    # Cluster-randomized sizing (P5.2): the average cluster size (m) and intraclass correlation (ICC)
+    # that drive the Kish design effect DEFF = 1 + (m - 1)*ICC. Consumed only when
+    # randomization_unit == "cluster" (inflates the per-arm sample size); ignored otherwise.
+    avg_cluster_size: float | None = None
+    icc: float | None = None
     # Optional mutual-exclusion namespace (execution layer); planning flow ignores it.
     namespace: NamespaceConfig | None = None
     # Optional attribute-based targeting rules (AND); planning flow ignores them.
@@ -101,6 +120,11 @@ class ExperimentSetup(BaseModel):
             raise ValueError(translate("errors.schemas.traffic_split_length"))
         if any(weight <= 0 for weight in self.traffic_split):
             raise ValueError(translate("errors.schemas.traffic_split_positive"))
+        return self
+
+    @model_validator(mode="after")
+    def validate_cluster_params(self) -> "ExperimentSetup":
+        _validate_cluster_params(self.avg_cluster_size, self.icc)
         return self
 
 
@@ -646,9 +670,14 @@ class CalculationRequest(BaseModel):
     audience_share_in_test: float = Field(gt=0, le=1)
     traffic_split: list[int] = Field(min_length=2)
     variants_count: int = Field(ge=2, le=MAX_SUPPORTED_VARIANTS)
-    # Informational only (see execution/experiment_assignment.py); carried here purely so the
-    # deterministic rules engine can warn when it is "cluster" (naive SEs assume independent units).
+    # Informational for the rules engine (warns when "cluster"); also the switch that turns on the
+    # cluster design-effect sizing below (naive SEs assume independent units).
     randomization_unit: str | None = None
+    # Cluster design-effect sizing (P5.2): average cluster size (m) and ICC feeding
+    # DEFF = 1 + (m - 1)*ICC. Consumed only when randomization_unit == "cluster" (see
+    # stats/cluster.py); range-validated whenever supplied, ignored for other units.
+    avg_cluster_size: float | None = None
+    icc: float | None = None
     actual_counts: list[int] | None = Field(default=None, min_length=2, max_length=MAX_SUPPORTED_VARIANTS)
     seasonality_present: bool | None = None
     active_campaigns_present: bool | None = None
@@ -717,6 +746,11 @@ class CalculationRequest(BaseModel):
     def validate_analysis_mode(self) -> "CalculationRequest":
         if self.analysis_mode == "bayesian" and self.desired_precision is None:
             raise ValueError(translate("errors.schemas.bayesian_requires_precision"))
+        return self
+
+    @model_validator(mode="after")
+    def validate_cluster_params(self) -> "CalculationRequest":
+        _validate_cluster_params(self.avg_cluster_size, self.icc)
         return self
 
 
@@ -1442,6 +1476,13 @@ class CalculationResponse(BaseModel):
     assumptions: list[str]
     warnings: list[WarningResponse]
     bonferroni_note: str | None = None
+    # Cluster-randomized design effect (P5.2). Populated only when randomization_unit == "cluster" and
+    # the average cluster size + ICC were supplied; otherwise null. design_effect = 1 + (m - 1)*ICC,
+    # clusters_per_variant = ceil(individual n * design_effect / m).
+    design_effect: float | None = None
+    avg_cluster_size: float | None = None
+    icc: float | None = None
+    clusters_per_variant: int | None = None
     bayesian_sample_size_per_variant: int | None = None
     bayesian_credibility: float | None = None
     bayesian_note: str | None = None
