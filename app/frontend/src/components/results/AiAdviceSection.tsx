@@ -74,6 +74,11 @@ export default function AiAdviceSection() {
           <Icon name="info" className="icon icon-inline" />
           <span>{t("results.aiAdvice.seededDemo")}</span>
         </div>
+      ) : displayedAnalysis.advice.error_code === "public_demo_llm_requires_key" ? (
+        <div className="callout">
+          <Icon name="info" className="icon icon-inline" />
+          <span>{t("results.aiAdvice.publicDemoRequiresKey")}</span>
+        </div>
       ) : (
         <div className="callout">
           <Icon name="info" className="icon icon-inline" />

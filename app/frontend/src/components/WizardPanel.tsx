@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { lazy, Suspense, useEffect, useRef, useState, type ChangeEvent } from "react";
 
 import sampleProject from "../fixtures/sample-project.json";
 import { useToast, type ToastType } from "../hooks/useToast";
@@ -6,6 +6,7 @@ import { t } from "../i18n";
 import {
   buildApiPayload,
   buildDraftTransferFile,
+  hydrateLoadedPayload,
   parseImportedDraft,
   sections,
   setSectionFieldValue,
@@ -25,11 +26,13 @@ import ErrorBoundary from "./ErrorBoundary";
 import ProgressBar from "./ProgressBar";
 import ResultsPanel from "./ResultsPanel";
 import ShortcutHelp from "./ShortcutHelp";
-import TemplateGallery from "./TemplateGallery";
 import ToastSystem from "./ToastSystem";
 import WizardDraftStep from "./WizardDraftStep";
 import WizardReviewStep from "./WizardReviewStep";
 import styles from "./WizardDraftStep.module.css";
+
+// Lazy-loaded modal: opened on demand, keeps the main bundle under the size budget.
+const TemplateGallery = lazy(() => import("./TemplateGallery"));
 
 const sampleProjectDraft = parseImportedDraft(JSON.stringify(sampleProject));
 
@@ -53,6 +56,19 @@ function blockMutations(): boolean {
   const analysis = useAnalysisStore.getState();
   const project = useProjectStore.getState();
   if (project.canMutateBackend) {
+    return false;
+  }
+  analysis.clearFeedback();
+  analysis.showError(project.backendMutationMessage || t("results.panel.backendReadOnly"), "warning");
+  return true;
+}
+
+// Stateless calculators stay available to read-only sessions (public demo);
+// they only need a confirmed reachable backend.
+function blockCompute(): boolean {
+  const analysis = useAnalysisStore.getState();
+  const project = useProjectStore.getState();
+  if (project.canUseCompute) {
     return false;
   }
   analysis.clearFeedback();
@@ -88,6 +104,31 @@ function startNewDraft() {
   analysis.clearAnalysis();
   project.resetProjectSelection();
   analysis.showStatus(t("wizardPanel.status.startedNewDraft"), "info");
+  useWizardStore.getState().openWizard();
+}
+
+// Mirrors the sidebar's load-project flow so the public landing can open the
+// seeded demos without the operator surface (`?admin=1`).
+async function openDemoProject(projectId: string, projectName: string) {
+  const analysis = useAnalysisStore.getState();
+  const project = useProjectStore.getState();
+  analysis.clearFeedback();
+  const loaded = await project.loadProject(projectId);
+  if (!loaded) {
+    return;
+  }
+  useDraftStore.getState().replaceDraft(hydrateLoadedPayload(loaded.payload), { markDirty: true });
+  analysis.clearAnalysis();
+  // Surface the demo's saved readout immediately: open the latest recorded
+  // analysis run instead of leaving the results panel empty until a re-run.
+  const latestRun = useProjectStore.getState().projectHistory?.analysis_runs[0];
+  if (latestRun) {
+    useProjectStore.getState().openHistoryRun(latestRun.id);
+  }
+  analysis.showStatus(
+    t("sidebarPanel.status.loadedProjectIntoWizard", { projectName: String(loaded.project_name ?? projectName) }),
+    "info"
+  );
   useWizardStore.getState().openWizard();
 }
 
@@ -147,7 +188,7 @@ async function importDraftFromFile(event: ChangeEvent<HTMLInputElement>) {
 }
 
 async function runAnalysisFlow() {
-  if (blockMutations()) {
+  if (blockCompute()) {
     return;
   }
   const analysis = useAnalysisStore.getState();
@@ -220,7 +261,7 @@ function clearHistoryRunSelection() {
 }
 
 async function exportReportFlow(format: ExportFormat) {
-  if (blockMutations()) {
+  if (blockCompute()) {
     return;
   }
   const analysis = useAnalysisStore.getState();
@@ -446,6 +487,7 @@ export function OnboardingPanel() {
         onNewExperiment={startNewDraft}
         onLoadExample={loadExampleDraft}
         onImportProject={() => inputRef.current?.click()}
+        onOpenDemo={(projectId, projectName) => void openDemoProject(projectId, projectName)}
       />
     </>
   );
@@ -521,6 +563,8 @@ export default function WizardPanel() {
           activeProjectId={project.activeProjectId}
           hasUnsavedChanges={project.hasUnsavedChanges}
           canMutateBackend={project.canMutateBackend}
+          isReadOnlySession={project.isReadOnlySession}
+          canUseCompute={project.canUseCompute}
           backendMutationMessage={project.backendMutationMessage}
           validationErrors={analysis.validationErrors}
           importingDraft={importingDraft}
@@ -542,6 +586,8 @@ export default function WizardPanel() {
           activeProjectId={project.activeProjectId}
           hasUnsavedChanges={project.hasUnsavedChanges}
           canMutateBackend={project.canMutateBackend}
+          isReadOnlySession={project.isReadOnlySession}
+          canUseCompute={project.canUseCompute}
           backendMutationMessage={project.backendMutationMessage}
           validationErrors={analysis.validationErrors}
           importingDraft={importingDraft}
@@ -574,10 +620,12 @@ export default function WizardPanel() {
         />
       </ErrorBoundary>
       {templateGalleryOpen ? (
-        <TemplateGallery
-          onClose={() => setTemplateGalleryOpen(false)}
-          onApplyTemplate={handleApplyTemplate}
-        />
+        <Suspense fallback={<div className="status" aria-busy={true} />}>
+          <TemplateGallery
+            onClose={() => setTemplateGalleryOpen(false)}
+            onApplyTemplate={handleApplyTemplate}
+          />
+        </Suspense>
       ) : null}
     </section>
   );

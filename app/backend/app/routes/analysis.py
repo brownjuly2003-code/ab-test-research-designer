@@ -129,6 +129,36 @@ def _build_llm_advice_payload(payload: ExperimentInput, calculation_result: dict
 
 AdviceAdapter = LocalOrchestratorAdapter | OpenAIAdapter | AnthropicAdapter | MistralAdapter
 
+PUBLIC_DEMO_LLM_ERROR_CODE = "public_demo_llm_requires_key"
+
+
+def server_llm_allowed(request: Request) -> bool:
+    """Whether this session may spend server-funded LLM resources.
+
+    The default local-orchestrator path and the server-side Mistral insurance key
+    are reserved for write/admin sessions. When auth is disabled entirely (private
+    local instance, ``auth_scope`` is ``None``) they stay available. A read-scope
+    session (readonly token or the anonymous public-demo scope) must bring its own
+    provider via the ``X-AB-LLM-Provider`` / ``X-AB-LLM-Token`` headers instead.
+    """
+    return getattr(request.state, "auth_scope", None) in {None, "write", "admin"}
+
+
+def _public_demo_llm_stub(*, method: str) -> dict[str, Any]:
+    stub: dict[str, Any] = {
+        "available": False,
+        "provider": "none",
+        "model": "none",
+        "raw_text": None,
+        "error": "Server-side AI is reserved for authenticated sessions. Bring your own API key to enable it.",
+        "error_code": PUBLIC_DEMO_LLM_ERROR_CODE,
+    }
+    if method == "hypotheses":
+        stub["hypotheses"] = []
+    else:
+        stub["advice"] = None
+    return stub
+
 
 def pick_adapter(
     request: Request,
@@ -243,7 +273,7 @@ def create_analysis_router(
     @router.post(
         "/api/v1/calculate",
         response_model=CalculationResponse,
-        dependencies=[Depends(require_write_auth)],
+        dependencies=[Depends(require_auth)],
     )
     def calculate(payload: CalculationRequest) -> CalculationResponse:
         result = calculate_experiment_metrics(payload.model_dump())
@@ -252,7 +282,7 @@ def create_analysis_router(
     @router.post(
         "/api/v1/sensitivity",
         response_model=SensitivityResponse,
-        dependencies=[Depends(require_write_auth)],
+        dependencies=[Depends(require_auth)],
     )
     def sensitivity(payload: SensitivityRequest) -> SensitivityResponse:
         cells: list[SensitivityCell] = []
@@ -303,7 +333,7 @@ def create_analysis_router(
     @router.post(
         "/api/v1/srm-check",
         response_model=SrmCheckResponse,
-        dependencies=[Depends(require_write_auth)],
+        dependencies=[Depends(require_auth)],
     )
     def srm_check(payload: SrmCheckRequest) -> SrmCheckResponse:
         chi_square, p_value, is_srm = chi_square_srm(
@@ -329,7 +359,7 @@ def create_analysis_router(
     @router.post(
         "/api/v1/multiple-testing",
         response_model=MultipleTestingResponse,
-        dependencies=[Depends(require_write_auth)],
+        dependencies=[Depends(require_auth)],
     )
     def multiple_testing(payload: MultipleTestingRequest) -> MultipleTestingResponse:
         pvalues = [metric.p_value for metric in payload.metrics]
@@ -362,7 +392,7 @@ def create_analysis_router(
     @router.post(
         "/api/v1/results",
         response_model=ResultsResponse,
-        dependencies=[Depends(require_write_auth)],
+        dependencies=[Depends(require_auth)],
     )
     def results(payload: ResultsRequest) -> ResultsResponse:
         return analyze_results(payload)
@@ -370,7 +400,7 @@ def create_analysis_router(
     @router.post(
         "/api/v1/results/categorical",
         response_model=CategoricalResultsResponse,
-        dependencies=[Depends(require_write_auth)],
+        dependencies=[Depends(require_auth)],
     )
     def categorical_results(payload: CategoricalResultsRequest) -> CategoricalResultsResponse:
         return analyze_categorical_results(payload)
@@ -378,7 +408,7 @@ def create_analysis_router(
     @router.post(
         "/api/v1/results/paired",
         response_model=PairedResultsResponse,
-        dependencies=[Depends(require_write_auth)],
+        dependencies=[Depends(require_auth)],
     )
     def paired_results(payload: PairedResultsRequest) -> PairedResultsResponse:
         return analyze_paired_results(payload)
@@ -386,7 +416,7 @@ def create_analysis_router(
     @router.post(
         "/api/v1/results/omnibus",
         response_model=OmnibusResultsResponse,
-        dependencies=[Depends(require_write_auth)],
+        dependencies=[Depends(require_auth)],
     )
     def omnibus_results(payload: OmnibusResultsRequest) -> OmnibusResultsResponse:
         return analyze_omnibus_results(payload)
@@ -394,7 +424,7 @@ def create_analysis_router(
     @router.post(
         "/api/v1/simulate/bandit",
         response_model=BanditSimulationResponse,
-        dependencies=[Depends(require_write_auth)],
+        dependencies=[Depends(require_auth)],
     )
     def simulate_bandit(payload: BanditSimulationRequest) -> BanditSimulationResponse:
         result = simulate_thompson_sampling(
@@ -408,7 +438,7 @@ def create_analysis_router(
     @router.post(
         "/api/v1/assignment/preview",
         response_model=AssignmentPreviewResponse,
-        dependencies=[Depends(require_write_auth)],
+        dependencies=[Depends(require_auth)],
     )
     def assignment_preview(payload: AssignmentPreviewRequest) -> AssignmentPreviewResponse:
         result = preview_assignment_distribution(
@@ -447,7 +477,7 @@ def create_analysis_router(
     @router.post(
         "/api/v1/design",
         response_model=ExperimentReport,
-        dependencies=[Depends(require_write_auth)],
+        dependencies=[Depends(require_auth)],
     )
     def design(payload: ExperimentInput) -> ExperimentReport:
         calculation_payload = _build_calculation_payload(payload)
@@ -458,7 +488,7 @@ def create_analysis_router(
     @router.post(
         "/api/v1/analyze",
         response_model=AnalysisResponse,
-        dependencies=[Depends(require_write_auth)],
+        dependencies=[Depends(require_auth)],
     )
     def analyze(request: Request, payload: ExperimentInput) -> AnalysisResponse:
         calculation_payload = _build_calculation_payload(payload)
@@ -472,6 +502,12 @@ def create_analysis_router(
             mistral_adapter=mistral_adapter,
         )
         advice_payload = _build_llm_advice_payload(payload, calculation_result)
+        if adapter is local_adapter and not server_llm_allowed(request):
+            return AnalysisResponse(
+                calculations=CalculationResponse.model_validate(calculation_result),
+                report=ExperimentReport.model_validate(report),
+                advice=LlmAdviceResponse.model_validate(_public_demo_llm_stub(method="advice")),
+            )
         try:
             advice = _request_with_insurance(
                 adapter=adapter,
@@ -495,7 +531,7 @@ def create_analysis_router(
     @router.post(
         "/api/v1/llm/advice",
         response_model=LlmAdviceResponse,
-        dependencies=[Depends(require_write_auth)],
+        dependencies=[Depends(require_auth)],
     )
     def llm_advice(request: Request, payload: LlmAdviceRequest) -> LlmAdviceResponse:
         adapter, token = pick_adapter(
@@ -506,6 +542,8 @@ def create_analysis_router(
             mistral_adapter=mistral_adapter,
         )
         advice_payload = payload.model_dump(exclude_none=True)
+        if adapter is local_adapter and not server_llm_allowed(request):
+            return LlmAdviceResponse.model_validate(_public_demo_llm_stub(method="advice"))
         try:
             result = _request_with_insurance(
                 adapter=adapter,
@@ -525,7 +563,7 @@ def create_analysis_router(
     @router.post(
         "/api/v1/hypotheses/generate",
         response_model=HypothesisIdeationResponse,
-        dependencies=[Depends(require_write_auth)],
+        dependencies=[Depends(require_auth)],
     )
     def generate_hypotheses(request: Request, payload: HypothesisIdeationRequest) -> HypothesisIdeationResponse:
         adapter, token = pick_adapter(
@@ -536,6 +574,8 @@ def create_analysis_router(
             mistral_adapter=mistral_adapter,
         )
         ideation_payload = payload.model_dump(exclude_none=True)
+        if adapter is local_adapter and not server_llm_allowed(request):
+            return HypothesisIdeationResponse.model_validate(_public_demo_llm_stub(method="hypotheses"))
         try:
             result = _request_with_insurance(
                 adapter=adapter,

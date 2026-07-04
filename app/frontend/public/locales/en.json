@@ -324,7 +324,17 @@
       "new_experiment": "Start from scratch",
       "load_example": "See a filled experiment in 1 click",
       "import_project": "Restore from a workspace backup"
-    }
+    },
+    "demos": {
+      "heading": "Explore live demo projects",
+      "subtitle": "Seeded experiments with saved analyses — open one to see the full readout.",
+      "analyzed": "Saved analysis",
+      "open": "Open demo",
+      "opening": "Opening…",
+      "durationDays_one": "{{count}} day",
+      "durationDays_other": "{{count}} days"
+    },
+    "facts": "10 statistical analyzers · 4 metric types · sequential & Bayesian · 7 languages"
   },
   "sidebar": {
     "tabs": {
@@ -361,7 +371,8 @@
       "interpretationPitfalls": "Interpretation pitfalls",
       "additionalChecks": "Additional checks",
       "unavailable": "AI advice unavailable. Core deterministic output still works.",
-      "seededDemo": "AI advice is not generated for this seeded demo project. Run your own experiment to see live recommendations."
+      "seededDemo": "AI advice is not generated for this seeded demo project. Run your own experiment to see live recommendations.",
+      "publicDemoRequiresKey": "AI advice on this public demo runs only with your own API key. Add an OpenAI or Anthropic key in Preferences to enable live recommendations."
     },
     "comparison": {
       "empty": "Load a saved project comparison from the Projects sidebar to review baseline versus candidate snapshots.",

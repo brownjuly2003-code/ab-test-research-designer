@@ -93,7 +93,7 @@ export default function ResultsPanel(_props: ResultsPanelProps) {
   }, [displayedAnalysis, project.selectedHistoryRun, t]);
 
   async function handleExportReport(format: "markdown" | "html") {
-    if (!project.canMutateBackend) return analysis.showError(project.backendMutationMessage || t("results.panel.backendReadOnly"), "warning");
+    if (!project.canUseCompute) return analysis.showError(project.backendMutationMessage || t("results.panel.backendReadOnly"), "warning");
     if (!displayedAnalysis?.report) return analysis.showError(t("results.panel.runAnalysisBeforeExportingReport"), "info");
     analysis.clearFeedback();
     const message = await project.exportReport(displayedAnalysis.report, format, exportProjectId, linkedRunId);
@@ -101,7 +101,7 @@ export default function ResultsPanel(_props: ResultsPanelProps) {
   }
 
   async function handleExportPdf() {
-    if (!project.canMutateBackend) return analysis.showError(project.backendMutationMessage || t("results.panel.backendReadOnly"), "warning");
+    if (!project.canUseCompute) return analysis.showError(project.backendMutationMessage || t("results.panel.backendReadOnly"), "warning");
     if (!displayedAnalysis?.report) return analysis.showError(t("results.panel.runAnalysisBeforeExportingReport"), "info");
     if (!exportProjectId || !linkedRunId) return analysis.showError(t("results.panel.saveProjectBeforePdf"), "info");
     analysis.clearFeedback();
@@ -110,7 +110,7 @@ export default function ResultsPanel(_props: ResultsPanelProps) {
   }
 
   async function handleExportProjectData(format: "csv" | "xlsx") {
-    if (!project.canMutateBackend) return analysis.showError(project.backendMutationMessage || t("results.panel.backendReadOnly"), "warning");
+    if (!project.canUseCompute) return analysis.showError(project.backendMutationMessage || t("results.panel.backendReadOnly"), "warning");
     if (!displayedAnalysis?.report) return analysis.showError(t("results.panel.runAnalysisBeforeExportingProjectData"), "info");
     if (!exportProjectId) return analysis.showError(t("results.panel.saveProjectBeforeProjectData"), "info");
     analysis.clearFeedback();

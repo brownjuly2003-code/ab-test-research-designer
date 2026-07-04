@@ -324,7 +324,17 @@
       "new_experiment": "Repartir de zéro",
       "load_example": "Voir une expérience remplie en 1 clic",
       "import_project": "Restaurer à partir d'une sauvegarde d'espace de travail"
-    }
+    },
+    "demos": {
+      "heading": "Explorer les projets de démonstration",
+      "subtitle": "Expériences préchargées avec analyses enregistrées — ouvrez-en une pour voir le rapport complet.",
+      "analyzed": "Analyse enregistrée",
+      "open": "Ouvrir la démo",
+      "opening": "Ouverture…",
+      "durationDays_one": "{{count}} jour",
+      "durationDays_other": "{{count}} jours"
+    },
+    "facts": "10 analyseurs statistiques · 4 types de métriques · séquentiel & bayésien · 7 langues"
   },
   "sidebar": {
     "tabs": {
@@ -361,7 +371,8 @@
       "interpretationPitfalls": "Pièges d’interprétation",
       "additionalChecks": "Contrôles supplémentaires",
       "unavailable": "Conseils IA indisponibles. La sortie déterministe de base fonctionne toujours.",
-      "seededDemo": "Les conseils IA ne sont pas générés pour ce projet de démonstration pré-rempli. Lancez votre propre expérience pour voir des recommandations en direct."
+      "seededDemo": "Les conseils IA ne sont pas générés pour ce projet de démonstration pré-rempli. Lancez votre propre expérience pour voir des recommandations en direct.",
+      "publicDemoRequiresKey": "Les conseils IA de cette démo publique ne fonctionnent qu'avec votre propre clé API. Ajoutez une clé OpenAI ou Anthropic dans les préférences pour activer les recommandations en direct."
     },
     "comparison": {
       "empty": "Chargez une comparaison de projet enregistrée à partir de la barre latérale Projets pour examiner la référence par rapport aux instantanés candidats.",

@@ -468,6 +468,8 @@ export function seedResultsStores(options: {
   selectedHistoryRunId?: string | null;
   projectComparison?: ProjectComparison | null;
   canMutateBackend?: boolean;
+  isReadOnlySession?: boolean;
+  canUseCompute?: boolean;
   backendMutationMessage?: string;
 } = {}) {
   const analysis = options.analysis ?? buildAnalysisResult();
@@ -508,6 +510,8 @@ export function seedResultsStores(options: {
     activeProject,
     selectedHistoryRun,
     canMutateBackend: options.canMutateBackend ?? true,
+    isReadOnlySession: options.isReadOnlySession ?? false,
+    canUseCompute: options.canUseCompute ?? options.canMutateBackend ?? true,
     backendMutationMessage: options.backendMutationMessage ?? ""
   });
 }

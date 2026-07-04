@@ -27,6 +27,8 @@ type ObservedResultsViewProps = {
   actualResults: ActualResultsState;
   setActualResults: Dispatch<SetStateAction<ActualResultsState>>;
   canMutateBackend: boolean;
+  isReadOnlySession: boolean;
+  canUseCompute: boolean;
   backendMutationMessage: string;
   activeProject: SavedProject | null;
   selectedHistoryRun: ProjectAnalysisRun | null;
@@ -49,6 +51,8 @@ export default function ObservedResultsView({
   actualResults,
   setActualResults,
   canMutateBackend,
+  isReadOnlySession,
+  canUseCompute,
   backendMutationMessage,
   activeProject,
   selectedHistoryRun,
@@ -164,7 +168,7 @@ export default function ObservedResultsView({
       <h3>{t("results.observedResults.title")}</h3>
       <p className="muted">{t("results.observedResults.description")}</p>
       {selectedHistoryRun ? <div className="callout"><Icon name="info" className="icon icon-inline" /><span>{t("results.observedResults.historicalReadOnly")}</span></div> : null}
-      {!canMutateBackend ? <div className="callout"><Icon name="info" className="icon icon-inline" /><span>{backendMutationMessage}</span></div> : null}
+      {!canUseCompute ? <div className="callout"><Icon name="info" className="icon icon-inline" /><span>{backendMutationMessage}</span></div> : null}
       {isRatioBase ? <div className="callout"><Icon name="info" className="icon icon-inline" /><span>{t("results.observedResults.ratioDisclaimer")}</span></div> : null}
       {showTestToggle ? (
         <div className="field" style={{ marginTop: "var(--space-4)" }}>
@@ -248,10 +252,12 @@ export default function ObservedResultsView({
         </div>
       )}
       <div className="actions" style={{ marginTop: "var(--space-4)", flexWrap: "wrap" }}>
-        <button className="btn secondary" type="button" onClick={onRunAnalysis} disabled={!canMutateBackend || resultsLoading}>{resultsLoading ? t("results.observedResults.analyzing") : t("results.observedResults.analyzeButton")}</button>
-        <button className="btn ghost" type="button" onClick={onSave} disabled={!canMutateBackend || !canSaveObservedResults || !resultsAnalysis || resultsSaving}>{resultsSaving ? t("results.observedResults.saving") : t("results.observedResults.saveButton")}</button>
+        <button className="btn secondary" type="button" onClick={onRunAnalysis} disabled={!canUseCompute || resultsLoading}>{resultsLoading ? t("results.observedResults.analyzing") : t("results.observedResults.analyzeButton")}</button>
+        {isReadOnlySession ? null : (
+          <button className="btn ghost" type="button" onClick={onSave} disabled={!canMutateBackend || !canSaveObservedResults || !resultsAnalysis || resultsSaving}>{resultsSaving ? t("results.observedResults.saving") : t("results.observedResults.saveButton")}</button>
+        )}
       </div>
-      {!activeProject && !selectedHistoryRun ? <p className="muted" style={{ marginTop: "var(--space-3)" }}>{t("results.observedResults.saveProjectFirst")}</p> : null}
+      {!isReadOnlySession && !activeProject && !selectedHistoryRun ? <p className="muted" style={{ marginTop: "var(--space-3)" }}>{t("results.observedResults.saveProjectFirst")}</p> : null}
       {resultsError ? <div className="error">{resultsError}</div> : null}
       {resultsSaveMessage ? <div className="status">{resultsSaveMessage}</div> : null}
       {resultsAnalysis ? (

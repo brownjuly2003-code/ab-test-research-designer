@@ -22,7 +22,7 @@ export default function SensitivitySection(props: SensitivitySectionProps) {
   const selectedHistoryAnalysis = useProjectStore((state) => state.selectedHistoryRun?.analysis ?? null);
   const activeProject = useProjectStore((state) => state.activeProject);
   const projectHistory = useProjectStore((state) => state.projectHistory);
-  const canMutateBackend = useProjectStore((state) => state.canMutateBackend);
+  const canUseCompute = useProjectStore((state) => state.canUseCompute);
   const backendMutationMessage = useProjectStore((state) => state.backendMutationMessage);
   const displayedAnalysis = getDisplayedAnalysis(selectedHistoryAnalysis, analysisResult);
 
@@ -36,7 +36,7 @@ export default function SensitivitySection(props: SensitivitySectionProps) {
       displayedAnalysis={displayedAnalysis}
       activeProject={activeProject}
       projectHistory={projectHistory}
-      canMutateBackend={canMutateBackend}
+      canUseCompute={canUseCompute}
       backendMutationMessage={backendMutationMessage}
     />
   );

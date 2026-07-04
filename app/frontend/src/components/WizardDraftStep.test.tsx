@@ -62,6 +62,8 @@ function createStepProps(currentSection: FullPayloadSectionKey, form: FullPayloa
     activeProjectId: null,
     hasUnsavedChanges: false,
     canMutateBackend: true,
+    isReadOnlySession: false,
+    canUseCompute: true,
     backendMutationMessage: "",
     validationErrors: [],
     importingDraft: false,
@@ -101,6 +103,8 @@ function WizardDraftStepHarnessWithSection({
       activeProjectId={null}
       hasUnsavedChanges={false}
       canMutateBackend={true}
+      isReadOnlySession={false}
+      canUseCompute={true}
       backendMutationMessage=""
       validationErrors={[]}
       importingDraft={false}

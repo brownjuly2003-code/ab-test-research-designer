@@ -17,6 +17,7 @@ from app.backend.app.errors import ApiError
 from app.backend.app.http_utils import (
     AUTH_READ_ONLY_METHODS,
     HTTP_413_BODY_TOO_LARGE,
+    PUBLIC_COMPUTE_PATHS,
     RequestBodyTooLargeError,
     apply_standard_response_headers,
     buffer_request_body_with_limit,
@@ -91,15 +92,25 @@ def register_http_runtime(
             runtime_counters["last_error_at"] = timestamp
             runtime_counters["last_error_code"] = error_code
 
+    def auth_enabled() -> bool:
+        # public_demo alone (no tokens configured) still forces anonymous sessions
+        # into the read scope — a hosted demo must never expose open mutations.
+        return bool(
+            settings.api_token
+            or settings.readonly_api_token
+            or settings.public_demo
+            or repository.has_api_keys()
+        )
+
     def require_auth(request: Request) -> None:
-        if not (settings.api_token or settings.readonly_api_token or repository.has_api_keys()):
+        if not auth_enabled():
             return
         if getattr(request.state, "auth_scope", None) in {"read", "write", "admin"}:
             return
         raise HTTPException(status_code=401, detail="Unauthorized")
 
     def require_write_auth(request: Request) -> None:
-        if not (settings.api_token or settings.readonly_api_token or repository.has_api_keys()):
+        if not auth_enabled():
             return
         auth_scope = getattr(request.state, "auth_scope", None)
         if auth_scope in {"write", "admin"}:
@@ -211,7 +222,7 @@ def register_http_runtime(
                     request.state.auth_scope = "admin"
                     request.state.auth_source = "admin_token"
                     request.state.audit_actor = "admin_token"
-            auth_required = admin_only_path or settings.api_token or settings.readonly_api_token or repository.has_api_keys()
+            auth_required = admin_only_path or auth_enabled()
             if auth_required and not request.state.admin_authenticated:
                 if settings.api_token and presented_token is not None and hmac.compare_digest(presented_token, settings.api_token):
                     request.state.auth_scope = "write"
@@ -246,6 +257,14 @@ def register_http_runtime(
                         "request_id": request_id,
                         "ip_address": get_client_identifier(request),
                     }
+                elif settings.public_demo and not admin_only_path:
+                    # Public demo mode: an anonymous visitor gets a read-scope
+                    # session instead of a 401 so the hosted demo is browsable
+                    # (and its calculators usable) without handing out tokens.
+                    # Admin-only surfaces (keys/webhooks) keep rejecting.
+                    request.state.auth_scope = "read"
+                    request.state.auth_source = "anonymous"
+                    request.state.audit_actor = "anonymous"
                 else:
                     return reject_auth_request(
                         detail="Unauthorized",
@@ -253,7 +272,13 @@ def register_http_runtime(
                         error_code="unauthorized",
                     )
 
-                if getattr(request.state, "auth_scope", None) == "read" and request.method not in AUTH_READ_ONLY_METHODS:
+                if (
+                    getattr(request.state, "auth_scope", None) == "read"
+                    and request.method not in AUTH_READ_ONLY_METHODS
+                    # Read-only means "cannot change stored state": stateless
+                    # compute POSTs stay available to read-scope sessions.
+                    and request.url.path not in PUBLIC_COMPUTE_PATHS
+                ):
                     return reject_auth_request(
                         detail="Forbidden",
                         response_status=status.HTTP_403_FORBIDDEN,

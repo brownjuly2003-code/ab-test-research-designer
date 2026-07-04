@@ -773,6 +773,11 @@ describe("App UI flow", () => {
 
       await click(findButton(view.container, "Start from template"));
       await flushEffects();
+      // Lazy-loaded gallery: poll until the dynamic chunk resolves and mounts.
+      for (let attempt = 0; attempt < 50 && !document.querySelector('[role="dialog"]'); attempt += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        await flushEffects();
+      }
 
       expect(document.body.textContent).toContain("Experiment templates");
       expect(document.body.textContent).toContain("Checkout Conversion");
@@ -1068,24 +1073,30 @@ describe("App UI flow", () => {
       await openSystemTab(view);
 
       expect(view.container.textContent).toContain("Read-only API");
-      expect(view.container.textContent).toContain("read-only API mode for this session");
-      expect(findButton(view.container, "Save project").disabled).toBe(true);
+      expect(view.container.textContent).toContain("read-only mode for this session");
+      // Write surfaces are hidden (not merely disabled) for a confirmed read-only session.
+      const buttonLabels = Array.from(view.container.querySelectorAll("button")).map(
+        (candidate) => candidate.textContent?.trim()
+      );
+      expect(buttonLabels).not.toContain("Save project");
       expect(findButton(view.container, "Import workspace JSON").disabled).toBe(true);
       expect(findButton(view.container, "Export workspace JSON").disabled).toBe(false);
       expect(findButtonByAriaLabel(view.container, "Archive Stored checkout test").disabled).toBe(true);
-      await click(findButton(view.container, "Save project"));
-      await flushEffects();
-      expect(saveProjectRequest).not.toHaveBeenCalled();
 
       for (let stepIndex = 0; stepIndex < 5; stepIndex += 1) {
         await click(findButton(view.container, "Next"));
       }
       await flushEffects();
 
-      expect(findButton(view.container, "Run analysis").disabled).toBe(true);
+      // Stateless compute stays available to read-only sessions: analysis runs,
+      // while the snapshot write is skipped quietly.
+      vi.mocked(requestAnalysis).mockResolvedValueOnce(buildAnalysisResult());
+      expect(findButton(view.container, "Run analysis").disabled).toBe(false);
       await click(findButton(view.container, "Run analysis"));
       await flushEffects();
-      expect(requestAnalysis).not.toHaveBeenCalled();
+      expect(requestAnalysis).toHaveBeenCalledTimes(1);
+      expect(recordProjectAnalysisRequest).not.toHaveBeenCalled();
+      expect(saveProjectRequest).not.toHaveBeenCalled();
     } finally {
       await view.unmount();
     }
@@ -2119,6 +2130,8 @@ describe("App UI flow", () => {
         activeProjectId={null}
         hasUnsavedChanges={false}
         canMutateBackend={true}
+        isReadOnlySession={false}
+        canUseCompute={true}
         backendMutationMessage=""
         validationErrors={[]}
         importingDraft={false}
@@ -2159,6 +2172,8 @@ describe("App UI flow", () => {
           activeProjectId={null}
           hasUnsavedChanges={false}
           canMutateBackend={true}
+          isReadOnlySession={false}
+          canUseCompute={true}
           backendMutationMessage=""
           validationErrors={[]}
           importingDraft={false}
@@ -2197,6 +2212,8 @@ describe("App UI flow", () => {
           activeProjectId={null}
           hasUnsavedChanges={false}
           canMutateBackend={true}
+          isReadOnlySession={false}
+          canUseCompute={true}
           backendMutationMessage=""
           validationErrors={[]}
           importingDraft={false}
@@ -2237,6 +2254,8 @@ describe("App UI flow", () => {
           activeProjectId={null}
           hasUnsavedChanges={false}
           canMutateBackend={true}
+          isReadOnlySession={false}
+          canUseCompute={true}
           backendMutationMessage=""
           validationErrors={[]}
           importingDraft={false}

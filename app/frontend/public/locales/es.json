@@ -324,7 +324,17 @@
       "new_experiment": "Empezar desde el principio",
       "load_example": "Vea un experimento completo en 1 clic",
       "import_project": "Restaurar desde una copia de seguridad del espacio de trabajo"
-    }
+    },
+    "demos": {
+      "heading": "Explorar proyectos de demostración",
+      "subtitle": "Experimentos precargados con análisis guardados: abra uno para ver el informe completo.",
+      "analyzed": "Análisis guardado",
+      "open": "Abrir demo",
+      "opening": "Abriendo…",
+      "durationDays_one": "{{count}} día",
+      "durationDays_other": "{{count}} días"
+    },
+    "facts": "10 analizadores estadísticos · 4 tipos de métricas · secuencial y bayesiano · 7 idiomas"
   },
   "sidebar": {
     "tabs": {
@@ -361,7 +371,8 @@
       "interpretationPitfalls": "Errores de interpretación",
       "additionalChecks": "Controles adicionales",
       "unavailable": "Consejos de IA no disponibles. La salida determinista central todavía funciona.",
-      "seededDemo": "No se generan consejos de IA para este proyecto de demostración con datos precargados. Ejecuta tu propio experimento para ver recomendaciones en vivo."
+      "seededDemo": "No se generan consejos de IA para este proyecto de demostración con datos precargados. Ejecuta tu propio experimento para ver recomendaciones en vivo.",
+      "publicDemoRequiresKey": "Los consejos de IA en esta demo pública solo funcionan con su propia clave de API. Añada una clave de OpenAI o Anthropic en las preferencias para activar las recomendaciones en vivo."
     },
     "comparison": {
       "empty": "Cargue una comparación de proyectos guardados desde la barra lateral de Proyectos para revisar instantáneas de la línea base y de los candidatos.",
