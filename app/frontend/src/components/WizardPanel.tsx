@@ -496,6 +496,7 @@ export function OnboardingPanel() {
 export default function WizardPanel() {
   const openWizard = useWizardStore((state) => state.openWizard);
   const step = useWizardStore((state) => state.step);
+  const maxVisitedStep = useWizardStore((state) => state.maxVisitedStep);
   const importingDraft = useWizardStore((state) => state.importingDraft);
   const setStep = useWizardStore((state) => state.setStep);
   const draftStore = useDraftStore();
@@ -539,20 +540,28 @@ export default function WizardPanel() {
     <section className="panel">
       <ProgressBar currentStep={step} totalSteps={stepLabels.length - 1} />
       <div className={styles.steps}>
-        {translatedStepLabels.map((label, index) => (
-          <div
-            key={label}
-            className={[
-              styles.step,
-              "step",
-              index === step ? `${styles.active} active` : index < step ? styles.done : ""
-            ].filter(Boolean).join(" ")}
-            data-step-index={index}
-          >
-            {index + 1}. {label}
-            {stepErrors[index] ? <span className={styles["error-dot"]} aria-label={t("wizardPanel.aria.stepHasErrors")} /> : null}
-          </div>
-        ))}
+        {translatedStepLabels.map((label, index) => {
+          const isActive = index === step;
+          const isVisited = index <= maxVisitedStep;
+          return (
+            <button
+              key={label}
+              type="button"
+              className={[
+                styles.step,
+                "step",
+                isActive ? `${styles.active} active` : isVisited ? styles.done : ""
+              ].filter(Boolean).join(" ")}
+              data-step-index={index}
+              disabled={!isVisited}
+              aria-current={isActive ? "step" : undefined}
+              onClick={() => setStep(index)}
+            >
+              {index + 1}. {label}
+              {stepErrors[index] ? <span className={styles["error-dot"]} aria-label={t("wizardPanel.aria.stepHasErrors")} /> : null}
+            </button>
+          );
+        })}
       </div>
       {!isReviewStep ? (
         <WizardDraftStep

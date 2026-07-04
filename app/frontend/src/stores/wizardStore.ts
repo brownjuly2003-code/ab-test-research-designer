@@ -4,6 +4,8 @@ type StepUpdater = number | ((current: number) => number);
 
 export interface WizardState {
   step: number;
+  // Highest step index reached this session; drives which step chips are clickable.
+  maxVisitedStep: number;
   showOnboarding: boolean;
   importingDraft: boolean;
   setStep: (step: StepUpdater) => void;
@@ -40,11 +42,13 @@ function persistOnboardingState(showOnboarding: boolean) {
 
 export const useWizardStore = create<WizardState>((set) => ({
   step: 0,
+  maxVisitedStep: 0,
   showOnboarding: !readOnboardingSeen(),
   importingDraft: false,
-  setStep: (step) => set((state) => ({
-    step: typeof step === "function" ? step(state.step) : step
-  })),
+  setStep: (step) => set((state) => {
+    const nextStep = typeof step === "function" ? step(state.step) : step;
+    return { step: nextStep, maxVisitedStep: Math.max(state.maxVisitedStep, nextStep) };
+  }),
   setShowOnboarding: (showOnboarding) => {
     persistOnboardingState(showOnboarding);
     set({ showOnboarding });
@@ -52,10 +56,11 @@ export const useWizardStore = create<WizardState>((set) => ({
   setImportingDraft: (importingDraft) => set({ importingDraft }),
   openWizard: (step = 0) => {
     persistOnboardingState(false);
-    set({ step, showOnboarding: false });
+    set((state) => ({ step, showOnboarding: false, maxVisitedStep: Math.max(state.maxVisitedStep, step) }));
   },
   hydrateWizard: () => set({
     step: 0,
+    maxVisitedStep: 0,
     importingDraft: false,
     showOnboarding: !readOnboardingSeen()
   })
