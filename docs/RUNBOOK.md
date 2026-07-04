@@ -123,7 +123,7 @@ If `AB_API_TOKEN` or `AB_READONLY_API_TOKEN` is enabled, send either:
 - `Authorization: Bearer <token>`
 - `X-API-Key: <token>`
 
-Read-only tokens are valid only for `GET`, `HEAD`, and `OPTIONS`. Mutating routes still require the write token.
+Read-only tokens allow `GET`/`HEAD`/`OPTIONS` plus the stateless calculation endpoints (`/calculate`, `/analyze`, `/results/*`, exports, and similar compute-only POSTs). Anything that changes stored state still requires the write token. Setting `AB_PUBLIC_DEMO=true` gives anonymous visitors the same read-only scope instead of `401` (hosted-demo mode).
 When the frontend is served, enter the token through the "API session token" field; it is stored only in the current browser session.
 When throttling is enabled, bursty `/api/v1/*` traffic and repeated bad tokens return `429` with `Retry-After`.
 

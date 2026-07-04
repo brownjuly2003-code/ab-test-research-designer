@@ -126,20 +126,32 @@ def main() -> int:
             "traffic_split": [50, 50],
             "variants_count": 2,
         }
+        # Read scope means "cannot change stored state": stateless compute POSTs
+        # are allowed, repository mutations are rejected.
         readonly_calc_status, readonly_calc_body = http_request(
             "POST",
             "/api/v1/calculate",
             token=env["AB_READONLY_API_TOKEN"],
             payload=calculation_payload,
         )
-        if readonly_calc_status != 403:
+        if readonly_calc_status != 200:
             raise SystemExit(
-                f"Readonly token should be rejected for POST /api/v1/calculate, got {readonly_calc_status} {readonly_calc_body}"
+                f"Readonly token should be allowed stateless POST /api/v1/calculate, got {readonly_calc_status} {readonly_calc_body}"
             )
-        readonly_error_payload = json.loads(readonly_calc_body)
+        readonly_mutation_status, readonly_mutation_body = http_request(
+            "POST",
+            "/api/v1/templates",
+            token=env["AB_READONLY_API_TOKEN"],
+            payload={"name": "verify", "description": "verify", "payload": {}},
+        )
+        if readonly_mutation_status != 403:
+            raise SystemExit(
+                f"Readonly token should be rejected for mutating POST /api/v1/templates, got {readonly_mutation_status} {readonly_mutation_body}"
+            )
+        readonly_error_payload = json.loads(readonly_mutation_body)
         if readonly_error_payload.get("error_code") != "forbidden":
             raise SystemExit(
-                f"Readonly POST should return forbidden error code, got {readonly_error_payload}"
+                f"Readonly mutation should return forbidden error code, got {readonly_error_payload}"
             )
 
         write_calc_status, write_calc_body = http_request(
