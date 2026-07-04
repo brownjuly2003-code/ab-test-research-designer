@@ -769,7 +769,27 @@
       "itemsCount_one": "{{count}} item",
       "itemsCount_other": "{{count}} items",
       "credibilityInterval": "{{percent}}% interval",
-      "noAnalysisYet": "No analysis yet. Complete the wizard and run the deterministic backend flow first."
+      "noAnalysisYet": "No analysis yet. Complete the wizard and run the deterministic backend flow first.",
+      "stages": {
+        "tocLabel": "Results sections",
+        "tocHeading": "Jump to",
+        "planning": {
+          "title": "Planning",
+          "caption": "Design, sample size, and pre-launch checks"
+        },
+        "posthoc": {
+          "title": "Post-hoc analysis",
+          "caption": "Manual analysis of collected samples"
+        },
+        "execution": {
+          "title": "Execution",
+          "caption": "Assignment and live monitoring"
+        },
+        "decision": {
+          "title": "Decision",
+          "caption": "Final verdict and recommendations"
+        }
+      }
     },
     "bandit": {
       "title": "Bandit vs fixed split",

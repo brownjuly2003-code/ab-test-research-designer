@@ -182,3 +182,101 @@
     display: none;
   }
 }
+
+/* --- Results information architecture: anchor ToC + lifecycle stage groups (P4.2) --- */
+
+.toc {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-subtle);
+}
+
+.toc-heading {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-secondary);
+  margin-inline-end: var(--space-1);
+}
+
+.toc-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border-soft);
+  background: var(--color-bg-card);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    color var(--transition-fast),
+    border-color var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.toc-link:hover {
+  color: var(--color-text);
+  border-color: var(--color-primary);
+  background: var(--color-surface-muted);
+}
+
+.toc-link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.stage {
+  display: grid;
+  gap: var(--space-3);
+  scroll-margin-block-start: var(--space-4);
+}
+
+.stage-header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  padding-block-end: var(--space-2);
+  border-block-end: 1px solid var(--color-border);
+}
+
+.stage-index {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  /* 20px bold keeps the teal ordinal in WCAG "large text" territory (>= 3:1) on the
+     subtle surface, where the brand teal lands at ~3.7:1 (below the 4.5:1 body floor). */
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.stage-heading-group {
+  display: grid;
+  gap: 2px;
+}
+
+.stage-title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.stage-caption {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.stage-body {
+  display: grid;
+  gap: var(--space-3);
+}
