@@ -1153,7 +1153,11 @@
       "importedDraftFrom": "Brouillon importé de {{fileName}}. Enregistrez-le pour créer un nouvel enregistrement de projet local.",
       "restoredBrowserDraft": "Brouillon de navigateur non enregistré restauré.",
       "templateLoaded": "Modèle {{templateName}} chargé dans l'assistant.",
-      "draftNotSavedStorageFull": "Brouillon non enregistré - stockage du navigateur saturé."
+      "draftNotSavedStorageFull": "Brouillon non enregistré - stockage du navigateur saturé.",
+      "analysisCompletedGeneric": "Analyse terminée. Le résultat déterministe et le conseil IA optionnel sont affichés ci-dessous.",
+      "analysisCompletedUnsavedDraft": "Analyse terminée pour les modifications du brouillon. Enregistrez le projet pour conserver cet instantané d'analyse.",
+      "analysisCompletedSnapshotSaved": "Analyse terminée ; le dernier instantané a été enregistré pour ce projet sauvegardé.",
+      "analysisCompletedSnapshotFailed": "Analyse terminée, mais les métadonnées de l'instantané du projet n'ont pas pu être enregistrées."
     },
     "errors": {
       "unexpectedDraftImport": "Erreur d'importation de brouillon inattendue"

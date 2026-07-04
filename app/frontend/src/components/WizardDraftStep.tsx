@@ -451,8 +451,8 @@ export default function WizardDraftStep({
               <div key={fieldId} className={fieldClassName}>
                 <SliderInput
                   id={fieldId}
-                  label={field.label}
-                  helpText={field.helpText}
+                  label={translatedFieldLabel}
+                  helpText={translatedHelpText ?? undefined}
                   value={value}
                   min={0.1}
                   max={form.metrics.metric_type === "continuous" ? 50 : 20}
@@ -473,8 +473,8 @@ export default function WizardDraftStep({
               <div key={fieldId} className={fieldClassName}>
                 <SliderInput
                   id={fieldId}
-                  label={field.label}
-                  helpText={field.helpText}
+                  label={translatedFieldLabel}
+                  helpText={translatedHelpText ?? undefined}
                   value={value}
                   min={0.7}
                   max={0.99}
@@ -494,8 +494,8 @@ export default function WizardDraftStep({
               <div key={fieldId} className={fieldClassName}>
                 <SliderInput
                   id={fieldId}
-                  label={field.label}
-                  helpText={field.helpText}
+                  label={translatedFieldLabel}
+                  helpText={translatedHelpText ?? undefined}
                   value={value}
                   min={0.8}
                   max={0.99}

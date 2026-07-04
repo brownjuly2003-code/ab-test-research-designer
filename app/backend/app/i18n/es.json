@@ -384,5 +384,61 @@
       "verdict_difference": "Al menos un grupo difiere con alpha={{alpha}}",
       "verdict_no_difference": "Sin diferencia significativa entre los grupos con alpha={{alpha}}"
     }
+  },
+  "live_stats": {
+    "disclaimer": "Capa de ejecución MVP — una demostración del ciclo completo de plan -> ejecución -> análisis, no diseñada para producción de alto tráfico. Las estadísticas en vivo se recalculan bajo demanda sobre exposiciones y conversiones deduplicadas.",
+    "srm": {
+      "insufficient_data": "Aún no hay suficientes exposiciones para verificar el desajuste en la proporción de muestra.",
+      "detected": "Se detectó un desajuste en la proporción de muestra (p < 0,001) — la asignación parece defectuosa; no confíe en los resultados.",
+      "ok": "No hay desajuste en la proporción de muestra; la distribución del tráfico coincide con el diseño."
+    },
+    "comparison": {
+      "insufficient_data": "Cada brazo necesita al menos 2 usuarios expuestos antes de que se pueda ejecutar una prueba.",
+      "continuous_zero_variance": "Los valores por usuario muestran varianza cero en un brazo, por lo que aún no se puede calcular una prueba t.",
+      "ratio_insufficient_data": "Cada brazo necesita al menos 2 usuarios expuestos antes de que se pueda ejecutar una prueba de ratio.",
+      "ratio_degenerate": "La varianza del ratio es degenerada en un brazo (denominador cero o sin variación entre usuarios), por lo que aún no se puede calcular una prueba por método delta.",
+      "bonferroni_note": "Alpha ajustada por Bonferroni {{adjusted_alpha}} en {{comparison_count}} comparaciones tratamiento-vs-control (alpha nominal {{nominal_alpha}}); la significancia y el intervalo de confianza utilizan este nivel ajustado para controlar la tasa de error familiar (family-wise error rate)."
+    },
+    "always_valid": {
+      "not_evaluable": "Aún no hay suficiente variación en los brazos para formar un intervalo anytime-valid.",
+      "ok": "Vista mSPRT anytime-valid: este valor p y esta secuencia de confianza siguen siendo válidos bajo monitorización continua, por lo que puede detenerse en cuanto la secuencia excluya el cero sin inflar la tasa de falsos positivos."
+    },
+    "sequential": {
+      "unsupported_metric": "La planificación secuencial aún no está disponible para este tipo de métrica, por lo que no se puede evaluar el límite de O'Brien-Fleming.",
+      "fixed_horizon": "Diseño de horizonte fijo (n_looks=1): lea el valor p frecuentista solo una vez, en el tamaño de muestra planificado — mirar antes de tiempo infla la tasa de falsos positivos.",
+      "insufficient_data": "Aún no hay suficientes exposiciones para evaluar el límite secuencial.",
+      "active": "Límite secuencial de O'Brien-Fleming en la fracción de información actual. Un tratamiento es secuencialmente significativo solo cuando |z| supera este límite (más estricto al principio, ~nominal al final). El límite controla estrictamente alpha solo en los análisis planificados previamente — leerlo repetidamente en fracciones arbitrarias es un espionaje continuo (peeking), por lo que cualquier cruce entre análisis debe tratarse como provisional hasta el siguiente análisis planificado."
+    },
+    "cuped": {
+      "not_applicable": "Live CUPED se aplica a métricas continuas — el resultado ajustado se analiza con la prueba t continua. Este experimento usa una métrica binaria, por lo que CUPED no se aplica aquí.",
+      "unavailable": "CUPED necesita covariables previas al experimento por usuario. Ingiera los valores del pre-periodo mediante POST /api/v1/experiments/{id}/pre-period para habilitar la reducción de varianza en datos en vivo.",
+      "too_many": "Se ingirieron más covariables de pre-periodo distintas de las que admite Live CUPED. Reduzca el número de nombres de covariables para habilitar el ajuste multicovariable.",
+      "available": "Estimaciones ajustadas por CUPED: Y_adj = Y - theta^T(X - media de X), los coeficientes de regresión theta = Sigma_xx^-1 Sigma_xy se agrupan entre brazos. El resultado ajustado se analiza con la prueba t continua; el efecto no cambia en valor esperado mientras la varianza disminuye con la correlación de las covariables. Se estima solo sobre los usuarios que tienen el vector de covariables completo, por lo que describe a esa subpoblación.",
+      "insufficient_data": "Cada brazo necesita al menos 2 usuarios con una covariable de pre-periodo.",
+      "zero_variance": "Los valores ajustados por CUPED muestran varianza cero en un brazo, por lo que aún no se puede calcular una prueba t."
+    },
+    "stratified": {
+      "not_applicable": "La post-estratificación se aplica a métricas binarias y continuas; el tipo de métrica de este experimento no es compatible aquí.",
+      "unavailable": "La post-estratificación necesita un estrato por usuario. Ingiera los estratos mediante POST /api/v1/experiments/{id}/strata para reducir la varianza cuando el estrato explique el resultado.",
+      "too_many": "Se ingirieron más estratos distintos de los que admite la post-estratificación. Demasiados estratos escasos aumentan la varianza; reduzca el número de estratos para habilitar el ajuste.",
+      "available": "Estimación post-estratificada: el efecto se calcula dentro de cada estrato y se recombina ponderado por el tamaño del estrato (Delta = suma (n_s/N)*Delta_s). La varianza disminuye cuando el estrato explica la variación del resultado, y puede aumentar con muchos estratos escasos, por lo que la reducción se informa honestamente. Se estima sobre los usuarios expuestos que tienen un estrato.",
+      "insufficient_data": "Ningún estrato tiene todavía ambos brazos con al menos 2 usuarios, por lo que no se puede calcular una prueba post-estratificada."
+    },
+    "guardrail": {
+      "none": "No se han declarado métricas guardrail para este experimento. Añada métricas guardrail en el diseño para monitorizar métricas protegidas (latencia, tasa de error, ingresos) por si hay regresiones en los datos en vivo.",
+      "unavailable": "Las métricas guardrail están declaradas, pero aún no se han ingerido resultados de guardrail. Envíe eventos de guardrail mediante POST /api/v1/experiments/{id}/conversions usando el nombre de cada guardrail como métrica de conversión.",
+      "ok": "Ninguna métrica guardrail muestra una regresión significativa más allá de su margen de tolerancia.",
+      "warning": "Una métrica guardrail se está degradando más allá de su margen de tolerancia, pero aún no de forma significativa — vigílela antes de lanzar.",
+      "breached": "Una métrica guardrail está significativamente degradada más allá de su margen de tolerancia. El lanzamiento está bloqueado hasta que se entienda la regresión.",
+      "insufficient_data": "Cada brazo necesita al menos 2 usuarios expuestos con datos de guardrail antes de que se pueda ejecutar una prueba de incumplimiento.",
+      "zero_variance": "Los valores de guardrail muestran varianza cero en un brazo, por lo que aún no se puede calcular una prueba de incumplimiento."
+    },
+    "holdout": {
+      "unavailable_ratio": "El análisis de holdout se aplica a métricas binarias y continuas; este experimento usa una métrica de ratio.",
+      "unavailable": "Aún no se han ingerido usuarios de holdout. Reserve usuarios fuera del despliegue mediante POST /api/v1/experiments/{id}/holdout para medir el efecto acumulado del despliegue frente a un grupo retenido; sus resultados siguen el flujo de conversión ordinario bajo la métrica primaria.",
+      "insufficient_data": "Cada lado (los brazos tratados agrupados y el holdout) necesita al menos 2 usuarios con variación utilizable antes de que se pueda ejecutar la prueba acumulada.",
+      "ok": "Efecto acumulado del despliegue: los brazos tratados agrupados (variation_index >= 1) frente al grupo holdout retenido en la métrica primaria. Este es el efecto vigente de todo lo desplegado — una verificación de las victorias por variante — reutilizando las mismas vistas frecuentista, bayesiana y anytime-valid.",
+      "zero_variance": "Los valores por usuario muestran varianza cero en el grupo tratado o en el holdout, por lo que aún no se puede calcular una prueba t."
+    }
   }
 }

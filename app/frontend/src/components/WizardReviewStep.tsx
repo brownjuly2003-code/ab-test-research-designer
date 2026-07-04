@@ -1,7 +1,7 @@
 import type { RefObject } from "react";
 
 import { t } from "../i18n";
-import { getReviewSections, type FullPayload } from "../lib/experiment";
+import { getReviewSections, type FullPayload, type ReviewItem } from "../lib/experiment";
 import Spinner from "./Spinner";
 import styles from "./WizardDraftStep.module.css";
 
@@ -34,56 +34,33 @@ const reviewValidationIssueKeys: Record<string, string> = {
   "Metric type must be either binary or continuous.": "wizardDraft.validation.metricType"
 };
 
-const reviewSectionKeys: Record<string, string> = {
-  "Project context": "wizardDraft.sections.project",
-  "Hypothesis": "wizardDraft.sections.hypothesis",
-  "Experiment setup": "wizardDraft.sections.setup",
-  "Metrics": "wizardDraft.sections.metrics",
-  "Constraints": "wizardDraft.sections.constraints"
+// analysis_mode has no field.options in field-config.ts (its Draft-step UI is a bespoke radio
+// pair, not the generic <select>), so its stored value needs its own translation lookup instead
+// of the options-array mechanism the rest of the enum-backed fields use below.
+const ANALYSIS_MODE_VALUE_KEYS: Record<string, string> = {
+  frequentist: "wizardDraft.analysisFramework.frequentist",
+  bayesian: "wizardDraft.analysisFramework.bayesian"
 };
 
-const reviewLabelKeys: Record<string, string> = {
-  "Project name": "wizardDraft.fields.project.project_name",
-  "Domain": "wizardDraft.fields.project.domain",
-  "Product type": "wizardDraft.fields.project.product_type",
-  "Platform": "wizardDraft.fields.project.platform",
-  "Market": "wizardDraft.fields.project.market",
-  "Project description": "wizardDraft.fields.project.project_description",
-  "Change description": "wizardDraft.fields.hypothesis.change_description",
-  "Target audience": "wizardDraft.fields.hypothesis.target_audience",
-  "Business problem": "wizardDraft.fields.hypothesis.business_problem",
-  "Hypothesis statement": "wizardDraft.fields.hypothesis.hypothesis_statement",
-  "What to validate": "wizardDraft.fields.hypothesis.what_to_validate",
-  "Desired result": "wizardDraft.fields.hypothesis.desired_result",
-  "Experiment type": "wizardDraft.fields.setup.experiment_type",
-  "Randomization unit": "wizardDraft.fields.setup.randomization_unit",
-  "Traffic split": "wizardDraft.fields.setup.traffic_split",
-  "Expected daily traffic": "wizardDraft.fields.setup.expected_daily_traffic",
-  "Audience share in test": "wizardDraft.fields.setup.audience_share_in_test",
-  "Variants count": "wizardDraft.fields.setup.variants_count",
-  "Inclusion criteria": "wizardDraft.fields.setup.inclusion_criteria",
-  "Exclusion criteria": "wizardDraft.fields.setup.exclusion_criteria",
-  "Primary metric": "wizardDraft.fields.metrics.primary_metric_name",
-  "Metric type": "wizardDraft.fields.metrics.metric_type",
-  "Baseline value": "wizardDraft.fields.metrics.baseline_value",
-  "Expected uplift %": "wizardDraft.fields.metrics.expected_uplift_pct",
-  "MDE %": "wizardDraft.fields.metrics.mde_pct",
-  "Secondary metrics": "wizardDraft.fields.metrics.secondary_metrics",
-  "Guardrail metrics": "wizardDraft.fields.metrics.guardrail_metrics",
-  "Seasonality present": "wizardDraft.fields.constraints.seasonality_present",
-  "Active campaigns present": "wizardDraft.fields.constraints.active_campaigns_present",
-  "Returning users present": "wizardDraft.fields.constraints.returning_users_present",
-  "Analysis framework": "wizardDraft.analysisFramework.title",
-  "Alpha": "wizardDraft.fields.metrics.alpha",
-  "Power": "wizardDraft.fields.metrics.power",
-  "Interference risk": "wizardDraft.fields.constraints.interference_risk",
-  "Technical constraints": "wizardDraft.fields.constraints.technical_constraints",
-  "Legal / ethics constraints": "wizardDraft.fields.constraints.legal_or_ethics_constraints",
-  "Known risks": "wizardDraft.fields.constraints.known_risks",
-  "Deadline pressure": "wizardDraft.fields.constraints.deadline_pressure",
-  "Long test possible": "wizardDraft.fields.constraints.long_test_possible",
-  "AI context": "wizardDraft.fields.additional_context.llm_context"
-};
+function translateReviewValue(item: ReviewItem): string {
+  if (typeof item.rawValue === "boolean") {
+    return item.rawValue ? t("wizardDraft.common.yes") : t("wizardDraft.common.no");
+  }
+  if (item.section === "constraints" && item.key === "analysis_mode") {
+    const valueKey = ANALYSIS_MODE_VALUE_KEYS[String(item.rawValue ?? "")];
+    if (valueKey) {
+      return t(valueKey);
+    }
+  }
+  if (item.options && item.options.length > 0) {
+    const normalized = String(item.rawValue ?? "").trim();
+    const match = item.options.find((option) => option.value === normalized);
+    if (match) {
+      return t(`wizardDraft.options.${item.section}.${item.key}.${match.value}`, { defaultValue: match.label });
+    }
+  }
+  return item.value;
+}
 
 type WizardReviewStepProps = {
   headingRef?: RefObject<HTMLHeadingElement | null>;
@@ -128,10 +105,11 @@ export default function WizardReviewStep({
 }: WizardReviewStepProps) {
   const reviewSections = getReviewSections(form).map((section) => ({
     ...section,
-    title: reviewSectionKeys[section.title] ? t(reviewSectionKeys[section.title]) : section.title,
+    title: t(`wizardDraft.sections.${section.section}`, { defaultValue: section.title }),
     items: section.items.map((item) => ({
       ...item,
-      label: reviewLabelKeys[item.label] ? t(reviewLabelKeys[item.label]) : item.label
+      label: t(`wizardDraft.fields.${item.section}.${item.key}`, { defaultValue: item.label }),
+      value: translateReviewValue(item)
     }))
   }));
   const translatedValidationErrors = validationErrors.map((issue) => {

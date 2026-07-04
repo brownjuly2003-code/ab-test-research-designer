@@ -4,6 +4,7 @@ import type {
   FullPayload,
   ReviewSection,
   SectionConfig,
+  SelectOption,
   WizardStep
 } from "./types";
 
@@ -325,9 +326,16 @@ export const FIELD_DEFINITIONS: Record<string, FieldDef> = sections.reduce<Recor
   return lookup;
 }, {});
 
-export function formatReviewValue(value: unknown): string {
+export function formatReviewValue(value: unknown, options?: SelectOption[]): string {
   if (typeof value === "boolean") {
     return value ? "Yes" : "No";
+  }
+  if (options && options.length > 0) {
+    const normalized = String(value ?? "").trim();
+    const match = options.find((option) => option.value === normalized);
+    if (match) {
+      return match.label;
+    }
   }
   if (Array.isArray(value)) {
     if (
@@ -383,13 +391,19 @@ export function formatReviewValue(value: unknown): string {
 export function getReviewSections(state: FullPayload): ReviewSection[] {
   return REVIEW_SECTIONS.map((section) => ({
     title: section.title,
+    section: section.section,
     items: section.fields
       .filter((field) => (field.visibleWhen ? field.visibleWhen(state) : true))
       .map((field) => {
         const targetSection = field.section ?? section.section;
+        const rawValue = getSectionFieldValue(state, targetSection, field.key);
         return {
           label: field.label,
-          value: formatReviewValue(getSectionFieldValue(state, targetSection, field.key))
+          value: formatReviewValue(rawValue, field.options),
+          section: targetSection,
+          key: field.key,
+          rawValue,
+          options: field.options
         };
       })
   }));

@@ -384,5 +384,61 @@
       "verdict_difference": "在 alpha={{alpha}} 下至少有一组存在差异",
       "verdict_no_difference": "在 alpha={{alpha}} 下各组之间无显著差异"
     }
+  },
+  "live_stats": {
+    "disclaimer": "MVP 执行层——完整的计划 -> 运行 -> 分析周期演示，并非为高流量生产环境构建。实时统计数据会按需基于去重后的曝光和转化重新计算。",
+    "srm": {
+      "insufficient_data": "曝光量尚不足，无法检查样本比例不匹配 (sample-ratio mismatch)。",
+      "detected": "检测到样本比例不匹配 (p < 0.001)——分配似乎已被破坏；请勿信任当前结果。",
+      "ok": "未检测到样本比例不匹配；流量分配与设计相符。"
+    },
+    "comparison": {
+      "insufficient_data": "每个组都需要至少 2 名已曝光用户，测试才能运行。",
+      "continuous_zero_variance": "某个组的用户级数值方差为零，因此暂时无法计算 t 检验。",
+      "ratio_insufficient_data": "每个组都需要至少 2 名已曝光用户，比率检验才能运行。",
+      "ratio_degenerate": "某个组的比率方差退化（分母为零或用户之间无变异），因此暂时无法计算 delta 方法检验。",
+      "bonferroni_note": "在 {{comparison_count}} 次实验组对照组比较中，经 Bonferroni 校正后的 alpha 为 {{adjusted_alpha}}（名义 alpha 为 {{nominal_alpha}}）；显著性判断和置信区间均使用该校正后的水平，以控制族错误率 (family-wise error rate)。"
+    },
+    "always_valid": {
+      "not_evaluable": "各组的变异尚不足以构建 anytime-valid 区间。",
+      "ok": "Anytime-valid mSPRT 视图：该 p 值和置信序列在持续监控下始终有效，因此一旦序列排除零值即可停止，而不会推高假阳性率。"
+    },
+    "sequential": {
+      "unsupported_metric": "该指标类型尚不支持序贯规划，因此无法评估 O'Brien-Fleming 边界。",
+      "fixed_horizon": "固定视野设计 (n_looks=1)：仅在计划的样本量下读取一次频率派 p 值——提前查看会推高假阳性率。",
+      "insufficient_data": "曝光量尚不足，无法评估序贯边界。",
+      "active": "当前信息分数下的 O'Brien-Fleming 序贯边界。只有当 |z| 超过该边界时，处理效应才被视为序贯显著（早期更严格，末期接近名义水平）。该边界仅在预先计划的分析点严格控制 alpha——在任意分数处反复读取属于持续窥视 (peeking)，因此计划分析点之间的任何越界都应视为临时结果，直至下一个计划分析点。"
+    },
+    "cuped": {
+      "not_applicable": "Live CUPED 适用于连续型指标——调整后的结果使用连续型 t 检验分析。本实验使用二元指标，因此这里不应用 CUPED。",
+      "unavailable": "CUPED 需要用户级的实验前协变量。通过 POST /api/v1/experiments/{id}/pre-period 导入实验前 (pre-period) 数值，以在实时数据上启用方差缩减。",
+      "too_many": "导入的不同实验前协变量数量超过了 Live CUPED 的支持上限。请减少协变量名称的数量以启用多协变量调整。",
+      "available": "CUPED 调整后的估计：Y_adj = Y - theta^T(X - X 均值)，回归系数 theta = Sigma_xx^-1 Sigma_xy 已跨组合并计算。调整后的结果使用连续型 t 检验分析；效应的期望值不变，而方差随协变量的相关性下降。该估计仅基于具有完整协变量向量的用户，因此只描述该子人群。",
+      "insufficient_data": "每个组都需要至少 2 名具有实验前协变量的用户。",
+      "zero_variance": "某个组的 CUPED 调整值方差为零，因此暂时无法计算 t 检验。"
+    },
+    "stratified": {
+      "not_applicable": "后分层适用于二元和连续型指标；本实验的指标类型在此不受支持。",
+      "unavailable": "后分层需要用户级的分层变量。通过 POST /api/v1/experiments/{id}/strata 导入分层信息，当分层能解释结果时可降低方差。",
+      "too_many": "导入的不同分层数量超过了后分层的支持上限。过多的稀疏分层会增加方差；请减少分层数量以启用该调整。",
+      "available": "后分层估计：效应在每个分层内计算，再按分层规模加权重新合并（Delta = 求和 (n_s/N)*Delta_s）。当分层能解释结果变异时方差会下降，但在分层过多且稀疏时可能上升，因此该缩减效果会被如实报告。该估计基于具有分层信息的已曝光用户。",
+      "insufficient_data": "目前还没有任何分层的两个组都达到至少 2 名用户，因此无法计算后分层检验。"
+    },
+    "guardrail": {
+      "none": "本实验未声明任何护栏指标。请在设计中添加护栏指标，以监控受保护指标（延迟、错误率、收入）在实时数据上的回归情况。",
+      "unavailable": "已声明护栏指标，但尚未导入任何护栏结果数据。请通过 POST /api/v1/experiments/{id}/conversions 发送护栏事件，并以每个护栏指标的名称作为转化指标名称。",
+      "ok": "没有任何护栏指标显示出超出其容忍边界的显著回归。",
+      "warning": "某个护栏指标正在超出其容忍边界地劣化，但尚未达到显著水平——在上线前请密切关注。",
+      "breached": "某个护栏指标已显著劣化，超出其容忍边界。在弄清该回归原因之前，上线将被阻止。",
+      "insufficient_data": "每个组都需要至少 2 名具有护栏数据的已曝光用户，违规检验才能运行。",
+      "zero_variance": "某个组的护栏数值方差为零，因此暂时无法计算违规检验。"
+    },
+    "holdout": {
+      "unavailable_ratio": "留出组 (holdout) 分析适用于二元和连续型指标；本实验使用的是比率指标。",
+      "unavailable": "尚未导入任何留出组用户。可通过 POST /api/v1/experiments/{id}/holdout 将部分用户排除在上线范围之外，从而衡量上线相对于留出组的累积效应；这些用户的结果会按主指标计入常规转化数据流。",
+      "insufficient_data": "累积检验运行前，双方（合并后的处理组与留出组）都需要至少 2 名具有可用变异的用户。",
+      "ok": "上线的累积效应：将合并后的处理组（variation_index >= 1）与留出的 holdout 组在主指标上进行比较。这反映了迄今已上线内容的整体持续效应——是对各分组胜出结果的复核——沿用相同的频率派、贝叶斯和 anytime-valid 视图。",
+      "zero_variance": "处理组或留出组的用户级数值方差为零，因此暂时无法计算 t 检验。"
+    }
   }
 }

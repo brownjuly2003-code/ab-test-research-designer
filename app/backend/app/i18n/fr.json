@@ -384,5 +384,61 @@
       "verdict_difference": "Au moins un groupe diffère à alpha={{alpha}}",
       "verdict_no_difference": "Aucune différence significative entre les groupes à alpha={{alpha}}"
     }
+  },
+  "live_stats": {
+    "disclaimer": "Couche d'exécution MVP — une démonstration du cycle complet plan -> exécution -> analyse, non conçue pour une production à fort trafic. Les statistiques en direct sont recalculées à la demande sur des expositions et conversions dédupliquées.",
+    "srm": {
+      "insufficient_data": "Pas encore assez d'expositions pour vérifier l'inadéquation du rapport d'échantillonnage (sample-ratio mismatch).",
+      "detected": "Inadéquation du rapport d'échantillonnage détectée (p < 0,001) — l'affectation semble défectueuse ; ne faites pas confiance aux résultats.",
+      "ok": "Aucune inadéquation du rapport d'échantillonnage ; la répartition du trafic correspond à la conception."
+    },
+    "comparison": {
+      "insufficient_data": "Chaque bras nécessite au moins 2 utilisateurs exposés avant qu'un test puisse être exécuté.",
+      "continuous_zero_variance": "Les valeurs par utilisateur affichent une variance nulle dans un bras, un test t ne peut donc pas encore être calculé.",
+      "ratio_insufficient_data": "Chaque bras nécessite au moins 2 utilisateurs exposés avant qu'un test de ratio puisse être exécuté.",
+      "ratio_degenerate": "La variance du ratio est dégénérée dans un bras (dénominateur nul ou absence de variation entre utilisateurs), un test par méthode delta ne peut donc pas encore être calculé.",
+      "bonferroni_note": "Alpha ajusté par Bonferroni {{adjusted_alpha}} sur {{comparison_count}} comparaisons traitement-vs-contrôle (alpha nominal {{nominal_alpha}}) ; la significativité et l'intervalle de confiance utilisent ce niveau ajusté pour contrôler le taux d'erreur global (family-wise error rate)."
+    },
+    "always_valid": {
+      "not_evaluable": "Pas encore assez de variation dans les bras pour former un intervalle anytime-valid.",
+      "ok": "Vue mSPRT anytime-valid : cette valeur p et cette séquence de confiance restent valides sous surveillance continue, vous pouvez donc arrêter dès que la séquence exclut zéro sans gonfler le taux de faux positifs."
+    },
+    "sequential": {
+      "unsupported_metric": "La planification séquentielle n'est pas encore disponible pour ce type de métrique, la limite d'O'Brien-Fleming ne peut donc pas être évaluée.",
+      "fixed_horizon": "Conception à horizon fixe (n_looks=1) : ne lisez la valeur p fréquentiste qu'une seule fois, à la taille d'échantillon prévue — regarder trop tôt gonfle le taux de faux positifs.",
+      "insufficient_data": "Pas encore assez d'expositions pour évaluer la limite séquentielle.",
+      "active": "Limite séquentielle d'O'Brien-Fleming à la fraction d'information actuelle. Un traitement n'est significatif au sens séquentiel que lorsque |z| dépasse cette limite (plus stricte en début d'essai, ~nominale en fin). La limite ne contrôle strictement alpha qu'aux analyses planifiées à l'avance — la lire de façon répétée à des fractions arbitraires revient à un examen continu (peeking) ; tout franchissement entre deux analyses doit donc être considéré comme provisoire jusqu'à la prochaine analyse planifiée."
+    },
+    "cuped": {
+      "not_applicable": "Live CUPED s'applique aux métriques continues — le résultat ajusté est analysé avec le test t continu. Cette expérience utilise une métrique binaire, CUPED n'est donc pas appliqué ici.",
+      "unavailable": "CUPED nécessite des covariables pré-expérience par utilisateur. Ingérez les valeurs de pré-période via POST /api/v1/experiments/{id}/pre-period pour activer la réduction de variance sur les données en direct.",
+      "too_many": "Davantage de covariables de pré-période distinctes ont été ingérées que ce que Live CUPED prend en charge. Réduisez le nombre de noms de covariables pour activer l'ajustement multi-covariables.",
+      "available": "Estimations ajustées par CUPED : Y_adj = Y - theta^T(X - moyenne de X), les coefficients de régression theta = Sigma_xx^-1 Sigma_xy sont regroupés entre les bras. Le résultat ajusté est analysé avec le test t continu ; l'effet reste inchangé en espérance tandis que la variance diminue avec la corrélation des covariables. Estimé uniquement sur les utilisateurs disposant du vecteur de covariables complet, il décrit donc cette sous-population.",
+      "insufficient_data": "Chaque bras nécessite au moins 2 utilisateurs avec une covariable de pré-période.",
+      "zero_variance": "Les valeurs ajustées par CUPED affichent une variance nulle dans un bras, un test t ne peut donc pas encore être calculé."
+    },
+    "stratified": {
+      "not_applicable": "La post-stratification s'applique aux métriques binaires et continues ; le type de métrique de cette expérience n'est pas pris en charge ici.",
+      "unavailable": "La post-stratification nécessite une strate par utilisateur. Ingérez les strates via POST /api/v1/experiments/{id}/strata pour réduire la variance lorsque la strate explique le résultat.",
+      "too_many": "Davantage de strates distinctes ont été ingérées que ce que la post-stratification prend en charge. Un trop grand nombre de strates éparses augmente la variance ; réduisez le nombre de strates pour activer l'ajustement.",
+      "available": "Estimation post-stratifiée : l'effet est calculé au sein de chaque strate puis recombiné en le pondérant par la taille de la strate (Delta = somme (n_s/N)*Delta_s). La variance diminue lorsque la strate explique la variation du résultat, et peut augmenter avec de nombreuses strates éparses ; la réduction est donc rapportée honnêtement. Estimée sur les utilisateurs exposés disposant d'une strate.",
+      "insufficient_data": "Aucune strate n'a encore ses deux bras peuplés d'au moins 2 utilisateurs, un test post-stratifié ne peut donc pas être calculé."
+    },
+    "guardrail": {
+      "none": "Aucune métrique de garde-fou n'est déclarée pour cette expérience. Ajoutez des métriques de garde-fou dans la conception pour surveiller les métriques protégées (latence, taux d'erreur, revenu) en cas de régression sur les données en direct.",
+      "unavailable": "Des métriques de garde-fou sont déclarées, mais aucun résultat de garde-fou n'a encore été ingéré. Envoyez les événements de garde-fou via POST /api/v1/experiments/{id}/conversions en utilisant le nom de chaque garde-fou comme métrique de conversion.",
+      "ok": "Aucune métrique de garde-fou ne montre de régression significative au-delà de sa marge de tolérance.",
+      "warning": "Une métrique de garde-fou se dégrade au-delà de sa marge de tolérance, mais pas encore de façon significative — surveillez-la avant la mise en production.",
+      "breached": "Une métrique de garde-fou est significativement dégradée au-delà de sa marge de tolérance. La mise en production est bloquée jusqu'à ce que la régression soit comprise.",
+      "insufficient_data": "Chaque bras nécessite au moins 2 utilisateurs exposés avec des données de garde-fou avant qu'un test de dépassement puisse être exécuté.",
+      "zero_variance": "Les valeurs de garde-fou affichent une variance nulle dans un bras, un test de dépassement ne peut donc pas encore être calculé."
+    },
+    "holdout": {
+      "unavailable_ratio": "L'analyse holdout s'applique aux métriques binaires et continues ; cette expérience utilise une métrique de ratio.",
+      "unavailable": "Aucun utilisateur holdout n'a encore été ingéré. Retenez des utilisateurs en dehors du déploiement via POST /api/v1/experiments/{id}/holdout pour mesurer l'effet cumulé du déploiement par rapport à un groupe retenu ; leurs résultats suivent le flux de conversion ordinaire selon la métrique principale.",
+      "insufficient_data": "Chaque côté (les bras traités regroupés et le holdout) nécessite au moins 2 utilisateurs avec une variation exploitable avant que le test cumulé puisse être exécuté.",
+      "ok": "Effet cumulé du déploiement : les bras traités regroupés (variation_index >= 1) contre le groupe holdout retenu sur la métrique principale. Il s'agit de l'effet global de tout ce qui a été déployé — une vérification des gains par variante — en réutilisant les mêmes vues fréquentiste, bayésienne et anytime-valid.",
+      "zero_variance": "Les valeurs par utilisateur affichent une variance nulle dans le groupe traité ou dans le holdout, un test t ne peut donc pas encore être calculé."
+    }
   }
 }

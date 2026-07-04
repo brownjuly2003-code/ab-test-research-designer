@@ -1152,7 +1152,11 @@
       "importedDraftFrom": "从 {{fileName}} 导入草稿。保存以创建新的本地项目记录。",
       "restoredBrowserDraft": "恢复未保存的浏览器草稿。",
       "templateLoaded": "模板 {{templateName}} 已加载到向导中。",
-      "draftNotSavedStorageFull": "草稿未保存 - 浏览器存储空间已满。"
+      "draftNotSavedStorageFull": "草稿未保存 - 浏览器存储空间已满。",
+      "analysisCompletedGeneric": "分析已完成。下方展示了确定性结果和可选的 AI 建议。",
+      "analysisCompletedUnsavedDraft": "已针对草稿更改完成分析。请保存项目以持久化此分析快照。",
+      "analysisCompletedSnapshotSaved": "分析已完成，最新快照已记录到该已保存项目。",
+      "analysisCompletedSnapshotFailed": "分析已完成，但项目快照元数据未能保存。"
     },
     "errors": {
       "unexpectedDraftImport": "意外的草稿导入错误"

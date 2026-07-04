@@ -1,5 +1,6 @@
 import { create } from "zustand";
 
+import { t } from "../i18n";
 import {
   archiveProjectRequest,
   clearApiSessionToken,
@@ -598,7 +599,7 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => {
         // Read-only session (public demo): analysis itself is allowed, but the
         // snapshot POST would 403 — skip it quietly instead of surfacing an error.
         return {
-          message: "Analysis completed. Deterministic output and optional AI advice are shown below.",
+          message: t("wizardPanel.status.analysisCompletedGeneric"),
           projectId: null,
           analysisRunId: null
         };
@@ -612,8 +613,8 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => {
       if (!snapshotEligibleProjectId) {
         return {
           message: get().activeProjectId
-            ? "Analysis completed for draft changes. Save the project to persist this analysis snapshot."
-            : "Analysis completed. Deterministic output and optional AI advice are shown below.",
+            ? t("wizardPanel.status.analysisCompletedUnsavedDraft")
+            : t("wizardPanel.status.analysisCompletedGeneric"),
           projectId: null,
           analysisRunId: null
         };
@@ -624,7 +625,7 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => {
         syncPersistedProject(updatedProject, JSON.stringify(buildApiPayload(draft)));
         await get().refreshProjectHistory(snapshotEligibleProjectId, true);
         return {
-          message: "Analysis completed and the latest snapshot was recorded for this saved project.",
+          message: t("wizardPanel.status.analysisCompletedSnapshotSaved"),
           projectId: snapshotEligibleProjectId,
           analysisRunId: updatedProject.last_analysis_run_id ?? null
         };
@@ -633,7 +634,7 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => {
           projectError: resolveErrorMessage(error, "Unexpected analysis snapshot error")
         });
         return {
-          message: "Analysis completed, but project snapshot metadata could not be persisted.",
+          message: t("wizardPanel.status.analysisCompletedSnapshotFailed"),
           projectId: snapshotEligibleProjectId,
           analysisRunId: null
         };

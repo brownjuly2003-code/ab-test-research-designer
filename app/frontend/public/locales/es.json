@@ -1153,7 +1153,11 @@
       "importedDraftFrom": "Borrador importado de {{fileName}}. Guárdelo para crear un nuevo registro de proyecto local.",
       "restoredBrowserDraft": "Borrador del navegador no guardado restaurado.",
       "templateLoaded": "Plantilla {{templateName}} cargada en el asistente.",
-      "draftNotSavedStorageFull": "Borrador no guardado: almacenamiento del navegador lleno."
+      "draftNotSavedStorageFull": "Borrador no guardado: almacenamiento del navegador lleno.",
+      "analysisCompletedGeneric": "Análisis completado. El resultado determinista y el consejo opcional de IA se muestran a continuación.",
+      "analysisCompletedUnsavedDraft": "Análisis completado para los cambios del borrador. Guarde el proyecto para conservar este snapshot del análisis.",
+      "analysisCompletedSnapshotSaved": "Análisis completado; se registró el último snapshot para este proyecto guardado.",
+      "analysisCompletedSnapshotFailed": "Análisis completado, pero no se pudieron guardar los metadatos del snapshot del proyecto."
     },
     "errors": {
       "unexpectedDraftImport": "Error de importación de borrador inesperado"

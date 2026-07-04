@@ -14,6 +14,7 @@ import {
 } from "../lib/api";
 import { hydrateLoadedPayload, stepLabels, type AuditLogEntry } from "../lib/experiment";
 import { isAdminMode } from "../lib/adminMode";
+import { formatLocalizedTimestamp } from "../lib/formatDate";
 import type { ToastType } from "../hooks/useToast";
 import { useAnalysisStore } from "../stores/analysisStore";
 import { useDraftStore } from "../stores/draftStore";
@@ -28,15 +29,7 @@ import StatusDot from "./StatusDot";
 import styles from "./SidebarPanel.module.css";
 
 function formatProjectTimestamp(timestamp: string): string {
-  const parsed = new Date(timestamp);
-  if (Number.isNaN(parsed.getTime())) {
-    return timestamp;
-  }
-
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short"
-  }).format(parsed);
+  return formatLocalizedTimestamp(timestamp);
 }
 
 function formatOptionalTimestamp(timestamp: string | null | undefined, emptyLabel: string): string {

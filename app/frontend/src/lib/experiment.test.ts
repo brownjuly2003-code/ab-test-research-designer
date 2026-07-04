@@ -266,17 +266,17 @@ describe("experiment helpers", () => {
 
     expect(constraints?.items).toEqual(
       expect.arrayContaining([
-        { label: "Seasonality present", value: "Yes" },
-        { label: "Legal / ethics constraints", value: "none" },
-        { label: "Deadline pressure", value: "medium" }
+        expect.objectContaining({ label: "Seasonality present", value: "Yes" }),
+        expect.objectContaining({ label: "Legal / ethics constraints", value: "none" }),
+        expect.objectContaining({ label: "Deadline pressure", value: "Medium" })
       ])
     );
     expect(metrics?.items).toEqual(
       expect.arrayContaining([
-        {
+        expect.objectContaining({
           label: "Guardrail metrics",
           value: expect.stringContaining("Payment error rate")
-        }
+        })
       ])
     );
   });

@@ -25,6 +25,7 @@ import math
 from typing import Any, cast
 
 from app.backend.app.execution.experiment_assignment import normalize_weights
+from app.backend.app.i18n import translate
 from app.backend.app.schemas.api import (
     ObservedResultsBinary,
     ObservedResultsContinuous,
@@ -54,12 +55,6 @@ from app.backend.app.stats.guardrail import (
 )
 from app.backend.app.stats.ratio import compare_ratios, ratio_estimate
 from app.backend.app.stats.srm import chi_square_srm
-
-DISCLAIMER = (
-    "MVP execution layer — a full plan -> run -> analyze cycle demonstration, not built for "
-    "high-traffic production. Live stats are recomputed on demand over deduplicated exposures "
-    "and conversions."
-)
 
 _BAYESIAN_SIMULATIONS = 10000
 _BAYESIAN_SEED = 42
@@ -232,7 +227,7 @@ def build_live_stats(
         "primary_metric_name": primary_metric_name,
         "exposures_total": exposures_total,
         "conversions_total": conversions_total,
-        "disclaimer": DISCLAIMER,
+        "disclaimer": translate("live_stats.disclaimer"),
         "srm": srm,
         "comparisons": comparisons,
         "sequential": sequential,
@@ -258,14 +253,14 @@ def _build_srm_block(
             "is_srm": False,
             "observed_counts": observed_counts,
             "expected_counts": [],
-            "verdict": "Not enough exposures yet to check sample-ratio mismatch.",
+            "verdict": translate("live_stats.srm.insufficient_data"),
         }
     chi_square, p_value, is_srm = chi_square_srm(observed_counts, expected_fractions)
     expected_counts = [round(fraction * total, 4) for fraction in expected_fractions]
     verdict = (
-        "Sample-ratio mismatch detected (p < 0.001) — assignment looks broken; do not trust results."
+        translate("live_stats.srm.detected")
         if is_srm
-        else "No sample-ratio mismatch; traffic split matches the design."
+        else translate("live_stats.srm.ok")
     )
     return {
         "status": "srm_detected" if is_srm else "ok",
@@ -315,10 +310,13 @@ def _annotate_multiple_comparison(
     confidence interval are transparent. The live tests already ran at ``adjusted_alpha`` (see
     ``build_live_stats``); this only annotates the ``ok`` comparisons, leaving the insufficient-data
     notes intact."""
-    note = (
-        f"Bonferroni-adjusted alpha {adjusted_alpha:.6g} across {comparison_count} "
-        f"treatment-vs-control comparisons (nominal alpha {nominal_alpha:.6g}); significance and the "
-        "confidence interval use this adjusted level to control the family-wise error rate."
+    note = translate(
+        "live_stats.comparison.bonferroni_note",
+        {
+            "adjusted_alpha": f"{adjusted_alpha:.6g}",
+            "comparison_count": comparison_count,
+            "nominal_alpha": f"{nominal_alpha:.6g}",
+        },
     )
     for comparison in comparisons:
         if comparison.get("status") == "ok":
@@ -349,7 +347,7 @@ def _build_comparison(
 
     if control["exposed_users"] < 2 or treatment["exposed_users"] < 2:
         base["status"] = "insufficient_data"
-        base["note"] = "Each arm needs at least 2 exposed users before a test can run."
+        base["note"] = translate("live_stats.comparison.insufficient_data")
         return base
 
     if metric_type == "binary":
@@ -415,9 +413,7 @@ def _continuous_comparison(
     treatment_mean, treatment_std = _continuous_moments(treatment)
     if not control_std or not treatment_std:
         base["status"] = "insufficient_data"
-        base["note"] = (
-            "Per-user values show zero variance in an arm, so a t-test cannot be computed yet."
-        )
+        base["note"] = translate("live_stats.comparison.continuous_zero_variance")
         return base
     # A non-None/non-zero std is only returned when exposed_users >= 2, which is
     # exactly the branch where _continuous_moments also yields a non-None mean.
@@ -485,7 +481,7 @@ def _always_valid_block(
             "ci_sequence_upper": None,
             "is_significant": None,
             "mixture_variance": None,
-            "note": "Not enough variation in the arms yet to form an anytime-valid interval.",
+            "note": translate("live_stats.always_valid.not_evaluable"),
         }
     result = evaluate_always_valid(effect, variance, tau_squared, alpha)
     return {
@@ -496,11 +492,7 @@ def _always_valid_block(
         "ci_sequence_upper": round(result["ci_sequence_upper"], _ALWAYS_VALID_DECIMALS),
         "is_significant": result["is_significant"],
         "mixture_variance": round(tau_squared, 8),
-        "note": (
-            "Anytime-valid mSPRT view: this p-value and confidence sequence stay valid under "
-            "continuous monitoring, so you may stop as soon as the sequence excludes zero without "
-            "inflating the false-positive rate."
-        ),
+        "note": translate("live_stats.always_valid.ok"),
     }
 
 
@@ -557,15 +549,12 @@ def _build_ratio_comparison(
     }
     if int(control["n"]) < 2 or int(treatment["n"]) < 2:
         base["status"] = "insufficient_data"
-        base["note"] = "Each arm needs at least 2 exposed users before a ratio test can run."
+        base["note"] = translate("live_stats.comparison.ratio_insufficient_data")
         return base
     result = compare_ratios(control, treatment, alpha)
     if result is None:
         base["status"] = "insufficient_data"
-        base["note"] = (
-            "The ratio variance is degenerate in an arm (zero denominator or no variation across "
-            "users), so a delta-method test cannot be computed yet."
-        )
+        base["note"] = translate("live_stats.comparison.ratio_degenerate")
         return base
     base["status"] = "ok"
     base["analysis"] = build_ratio_results_response(result, alpha).model_dump()
@@ -679,10 +668,7 @@ def _build_sequential_block(
             "planned_sample_size_per_variant": planned_per_variant,
             "total_exposed": total_exposed,
             "information_fraction": information_fraction,
-            "note": (
-                "Fixed-horizon design (n_looks=1): read the frequentist p-value only once at the "
-                "planned sample size — peeking early inflates the false-positive rate."
-            ),
+            "note": translate("live_stats.sequential.fixed_horizon"),
         }
 
     try:
@@ -697,10 +683,7 @@ def _build_sequential_block(
             "n_looks": n_looks,
             "planned_sample_size_per_variant": None,
             "total_exposed": total_exposed,
-            "note": (
-                "Sequential planning is not available for this metric type yet, so the O'Brien-"
-                "Fleming boundary cannot be evaluated."
-            ),
+            "note": translate("live_stats.sequential.unsupported_metric"),
         }
     planned_per_variant = int(
         calculation.get("sequential_adjusted_sample_size")
@@ -716,7 +699,7 @@ def _build_sequential_block(
             "n_looks": n_looks,
             "planned_sample_size_per_variant": planned_per_variant or None,
             "total_exposed": total_exposed,
-            "note": "Not enough exposures yet to evaluate the sequential boundary.",
+            "note": translate("live_stats.sequential.insufficient_data"),
         }
 
     information_fraction = min(1.0, total_exposed / planned_total)
@@ -740,13 +723,7 @@ def _build_sequential_block(
         "total_exposed": total_exposed,
         "information_fraction": round(information_fraction, 4),
         "current_boundary_z": round(current_boundary_z, 4) if current_boundary_z is not None else None,
-        "note": (
-            "O'Brien-Fleming sequential boundary at the current information fraction. A treatment "
-            "is sequential-significant only when |z| exceeds this (stricter early, ~nominal at the end). "
-            "The boundary strictly controls alpha only at the pre-planned looks — reading this "
-            "repeatedly at arbitrary fractions is continuous peeking, so treat any between-look "
-            "crossing as provisional until a planned look."
-        ),
+        "note": translate("live_stats.sequential.active"),
     }
 
 
@@ -773,26 +750,6 @@ def _build_sequential_block(
 # (the centering constant does not affect variance; the pooled theta meets each arm's own
 # moments). Those per-arm adjusted moments feed the existing continuous t-test (``analyze_results``)
 # — no new test statistic here. The linear algebra lives in ``stats.cuped`` (stdlib).
-
-_NOTE_NOT_APPLICABLE = (
-    "Live CUPED applies to continuous metrics — the adjusted outcome is analysed with the "
-    "continuous t-test. This experiment uses a binary metric, so CUPED is not applied here."
-)
-_NOTE_UNAVAILABLE = (
-    "CUPED needs per-user pre-experiment covariates. Ingest pre-period values via "
-    "POST /api/v1/experiments/{id}/pre-period to enable variance reduction on live data."
-)
-_NOTE_TOO_MANY = (
-    "More distinct pre-period covariates were ingested than live CUPED supports. Reduce the "
-    "number of covariate names to enable the multi-covariate adjustment."
-)
-_NOTE_AVAILABLE = (
-    "CUPED-adjusted estimates: Y_adj = Y - theta^T(X - mean X), the regression coefficients "
-    "theta = Sigma_xx^-1 Sigma_xy pooled across arms. The adjusted outcome is analysed with the "
-    "continuous t-test; the effect is unchanged in expectation while variance drops with the "
-    "covariates' correlation. Estimated only over users that carry the full covariate vector, so "
-    "it describes that subpopulation."
-)
 
 
 def _multi_moments(
@@ -904,13 +861,11 @@ def _cuped_comparison(
     }
     if control["covariate_users"] < 2 or treatment["covariate_users"] < 2:
         base["status"] = "insufficient_data"
-        base["note"] = "Each arm needs at least 2 users with a pre-period covariate."
+        base["note"] = translate("live_stats.cuped.insufficient_data")
         return base
     if not control["adjusted_std"] or not treatment["adjusted_std"]:
         base["status"] = "insufficient_data"
-        base["note"] = (
-            "CUPED-adjusted values show zero variance in an arm, so a t-test cannot be computed yet."
-        )
+        base["note"] = translate("live_stats.cuped.zero_variance")
         return base
     request = ResultsRequest(
         metric_type="continuous",
@@ -947,13 +902,13 @@ def _build_cuped_block(
         "comparisons": [],
     }
     if metric_type != "continuous":
-        return {"status": "not_applicable", "note": _NOTE_NOT_APPLICABLE, **empty}
+        return {"status": "not_applicable", "note": translate("live_stats.cuped.not_applicable"), **empty}
 
     aggregates = cuped_aggregates or {}
     if aggregates.get("too_many_covariates"):
         return {
             "status": "too_many_covariates",
-            "note": _NOTE_TOO_MANY,
+            "note": translate("live_stats.cuped.too_many"),
             **empty,
             "num_covariates": len(aggregates.get("covariate_names", [])),
             "exposed_users_total": exposed_total,
@@ -966,7 +921,7 @@ def _build_cuped_block(
     if k == 0 or covariate_users_total == 0:
         return {
             "status": "unavailable",
-            "note": _NOTE_UNAVAILABLE,
+            "note": translate("live_stats.cuped.unavailable"),
             **empty,
             "num_covariates": k or None,
             "covariate_users_total": 0,
@@ -1006,7 +961,7 @@ def _build_cuped_block(
     covariates = [{"name": covariate_names[j], "theta": round(theta[j], 6)} for j in range(k)]
     return {
         "status": "available",
-        "note": _NOTE_AVAILABLE,
+        "note": translate("live_stats.cuped.available"),
         # Single-covariate convenience (backward compatible); the vector lives in `covariates`.
         "theta": round(theta[0], 6) if k == 1 else None,
         "num_covariates": k,
@@ -1033,28 +988,6 @@ def _build_cuped_block(
 # size-weighted combine + z-test live in ``stats.stratification`` (stdlib). Supported for binary and
 # continuous metrics; a ratio metric has no single per-user outcome the combine reads.
 
-_NOTE_STRATIFIED_NOT_APPLICABLE = (
-    "Post-stratification applies to binary and continuous metrics; this experiment's metric type "
-    "is not supported here."
-)
-_NOTE_STRATIFIED_UNAVAILABLE = (
-    "Post-stratification needs a per-user stratum. Ingest strata via "
-    "POST /api/v1/experiments/{id}/strata to reduce variance when the stratum explains the outcome."
-)
-_NOTE_STRATIFIED_TOO_MANY = (
-    "More distinct strata were ingested than post-stratification supports. Too many sparse strata "
-    "increase variance; reduce the number of strata to enable the adjustment."
-)
-_NOTE_STRATIFIED_AVAILABLE = (
-    "Post-stratified estimate: the effect is computed within each stratum and recombined weighted "
-    "by stratum size (Delta = sum (n_s/N)*Delta_s). Variance drops when the stratum explains "
-    "outcome variation, and can rise with many sparse strata, so the reduction is reported "
-    "honestly. Estimated over exposed users that carry a stratum."
-)
-_STRATIFIED_INSUFFICIENT_NOTE = (
-    "No stratum has both arms populated with at least 2 users yet, so a post-stratified test "
-    "cannot be computed."
-)
 
 
 def _stratum_arm_estimate(metric_type: str, arm: dict[str, Any]) -> tuple[float, float] | None:
@@ -1139,7 +1072,7 @@ def _stratified_comparison(
         "variance_reduction_pct": None,
         "num_strata": None,
         "strata": strata_effects,
-        "note": _STRATIFIED_INSUFFICIENT_NOTE,
+        "note": translate("live_stats.stratified.insufficient_data"),
     }
     combined = stratification.combine_strata(combine_input, alpha) if combine_input else None
     if combined is None:
@@ -1191,13 +1124,13 @@ def _build_stratified_block(
         "comparisons": [],
     }
     if metric_type not in ("binary", "continuous"):
-        return {"status": "unavailable", "note": _NOTE_STRATIFIED_NOT_APPLICABLE, **empty}
+        return {"status": "unavailable", "note": translate("live_stats.stratified.not_applicable"), **empty}
 
     aggregates = stratified_aggregates or {}
     if aggregates.get("too_many_strata"):
         return {
             "status": "too_many_strata",
-            "note": _NOTE_STRATIFIED_TOO_MANY,
+            "note": translate("live_stats.stratified.too_many"),
             **empty,
             "num_strata": aggregates.get("num_strata"),
             "exposed_users_total": exposed_total,
@@ -1210,7 +1143,7 @@ def _build_stratified_block(
     if not strata or covered_total == 0:
         return {
             "status": "unavailable",
-            "note": _NOTE_STRATIFIED_UNAVAILABLE,
+            "note": translate("live_stats.stratified.unavailable"),
             **empty,
             "num_strata": len(strata) or None,
             "stratified_users_total": 0,
@@ -1223,7 +1156,7 @@ def _build_stratified_block(
     ]
     return {
         "status": "available",
-        "note": _NOTE_STRATIFIED_AVAILABLE,
+        "note": translate("live_stats.stratified.available"),
         "num_strata": len(strata),
         "stratified_users_total": covered_total,
         "exposed_users_total": exposed_total,
@@ -1241,30 +1174,6 @@ def _build_stratified_block(
 # outcomes are ingested through the ordinary conversion stream (one conversion metric per guardrail
 # name) and rolled up by ``repository.get_experiment_analysis_aggregates`` per guardrail — no new
 # store and no new test statistic. A breach feeds the decision readout as a ship blocker.
-
-_NOTE_GUARDRAIL_NONE = (
-    "No guardrail metrics are declared for this experiment. Add guardrail metrics in the design to "
-    "monitor protected metrics (latency, error rate, revenue) for regressions on live data."
-)
-_NOTE_GUARDRAIL_UNAVAILABLE = (
-    "Guardrail metrics are declared but no guardrail outcomes have been ingested yet. Send guardrail "
-    "events through POST /api/v1/experiments/{id}/conversions using each guardrail's name as the "
-    "conversion metric."
-)
-_NOTE_GUARDRAIL_OK = (
-    "No guardrail metric shows a significant regression beyond its tolerance margin."
-)
-_NOTE_GUARDRAIL_WARNING = (
-    "A guardrail metric is degrading past its tolerance margin but not yet significantly — watch it "
-    "before shipping."
-)
-_NOTE_GUARDRAIL_BREACHED = (
-    "A guardrail metric is significantly degraded beyond its tolerance margin. Shipping is blocked "
-    "until the regression is understood."
-)
-_GUARDRAIL_INSUFFICIENT_NOTE = (
-    "Each arm needs at least 2 exposed users with guardrail data before a breach test can run."
-)
 
 
 def _guardrail_baseline(metric: dict[str, Any]) -> float | None:
@@ -1338,7 +1247,7 @@ def _guardrail_comparison(
     treatment_point = _guardrail_point(metric_type, treatment)
     if control_point is None or treatment_point is None:
         base["status"] = "insufficient_data"
-        base["note"] = _GUARDRAIL_INSUFFICIENT_NOTE
+        base["note"] = translate("live_stats.guardrail.insufficient_data")
         return base
     effect = treatment_point[0] - control_point[0]
     variance = control_point[1] + treatment_point[1]
@@ -1347,9 +1256,7 @@ def _guardrail_comparison(
     )
     if result is None:
         base["status"] = "insufficient_data"
-        base["note"] = (
-            "Guardrail values show zero variance in an arm, so a breach test cannot be computed yet."
-        )
+        base["note"] = translate("live_stats.guardrail.zero_variance")
         return base
     base["status"] = result["status"]
     base["effect"] = round(effect, 6)
@@ -1421,7 +1328,7 @@ def _build_guardrail_block(
     if not guardrail_metrics:
         return {
             "status": "unavailable",
-            "note": _NOTE_GUARDRAIL_NONE,
+            "note": translate("live_stats.guardrail.none"),
             "any_breached": False,
             "metrics": [],
         }
@@ -1441,15 +1348,15 @@ def _build_guardrail_block(
     if not evaluated:
         return {
             "status": "unavailable",
-            "note": _NOTE_GUARDRAIL_UNAVAILABLE,
+            "note": translate("live_stats.guardrail.unavailable"),
             "any_breached": False,
             "metrics": metrics,
         }
     block_status = worst_status(evaluated)
     note = {
-        STATUS_BREACHED: _NOTE_GUARDRAIL_BREACHED,
-        STATUS_WARNING: _NOTE_GUARDRAIL_WARNING,
-        STATUS_OK: _NOTE_GUARDRAIL_OK,
+        STATUS_BREACHED: translate("live_stats.guardrail.breached"),
+        STATUS_WARNING: translate("live_stats.guardrail.warning"),
+        STATUS_OK: translate("live_stats.guardrail.ok"),
     }[block_status]
     return {
         "status": block_status,
@@ -1471,24 +1378,6 @@ def _build_guardrail_block(
 # primary path uses — no new statistic. The control arm (variation_index = 0) stays out of the treated
 # pool: it is the in-window baseline, whereas the holdout is the long-lived held-back group. Supported
 # for binary and continuous metrics; a ratio metric has no single per-user outcome the pool reads.
-
-_NOTE_HOLDOUT_UNAVAILABLE_RATIO = (
-    "Holdout analysis applies to binary and continuous metrics; this experiment uses a ratio metric."
-)
-_NOTE_HOLDOUT_UNAVAILABLE = (
-    "No holdout users have been ingested yet. Hold users back from the rollout via "
-    "POST /api/v1/experiments/{id}/holdout to measure the rollout's cumulative effect against a "
-    "held-back group; their outcomes ride the ordinary conversion stream under the primary metric."
-)
-_NOTE_HOLDOUT_INSUFFICIENT = (
-    "Each side (the pooled treated arms and the holdout) needs at least 2 users with usable variation "
-    "before the cumulative test can run."
-)
-_NOTE_HOLDOUT_OK = (
-    "Cumulative effect of the rollout: the pooled treated arms (variation_index >= 1) vs the held-back "
-    "holdout group on the primary metric. This is the standing effect of everything shipped — a check "
-    "on the per-variant wins — reusing the same frequentist, Bayesian and anytime-valid views."
-)
 
 
 def _pool_treated_arms(arms: list[dict[str, Any]]) -> dict[str, Any]:
@@ -1558,7 +1447,7 @@ def _holdout_binary(
         treated_rate * (1 - treated_rate) / int(treated["exposed_users"])
     )
     base["status"] = "ok"
-    base["note"] = _NOTE_HOLDOUT_OK
+    base["note"] = translate("live_stats.holdout.ok")
     base["analysis"] = analysis.model_dump()
     base["probability_treated_beats_holdout"] = round(
         simulation["probability_uplift_positive"], _BAYESIAN_PROBABILITY_DECIMALS
@@ -1578,10 +1467,7 @@ def _holdout_continuous(
     treated_mean, treated_std = _continuous_moments(treated)
     if not holdout_std or not treated_std:
         base["status"] = "insufficient_data"
-        base["note"] = (
-            "Per-user values show zero variance in the treated or holdout group, so a t-test cannot "
-            "be computed yet."
-        )
+        base["note"] = translate("live_stats.holdout.zero_variance")
         return base
     holdout_mean = cast("float", holdout_mean)
     treated_mean = cast("float", treated_mean)
@@ -1613,7 +1499,7 @@ def _holdout_continuous(
         + treated_std**2 / int(treated["exposed_users"])
     )
     base["status"] = "ok"
-    base["note"] = _NOTE_HOLDOUT_OK
+    base["note"] = translate("live_stats.holdout.ok")
     base["analysis"] = analyze_results(request).model_dump()
     base["probability_treated_beats_holdout"] = round(
         simulation["probability_uplift_positive"], _BAYESIAN_PROBABILITY_DECIMALS
@@ -1640,12 +1526,12 @@ def _build_holdout_block(
         "holdout_users_total": None,
     }
     if metric_type not in ("binary", "continuous"):
-        return {"status": "unavailable", "note": _NOTE_HOLDOUT_UNAVAILABLE_RATIO, **empty}
+        return {"status": "unavailable", "note": translate("live_stats.holdout.unavailable_ratio"), **empty}
 
     holdout = (holdout_aggregates or {}).get("holdout")
     holdout_users = int(holdout["exposed_users"]) if holdout else 0
     if not holdout or holdout_users == 0:
-        return {"status": "unavailable", "note": _NOTE_HOLDOUT_UNAVAILABLE, **empty}
+        return {"status": "unavailable", "note": translate("live_stats.holdout.unavailable"), **empty}
 
     treated = _pool_treated_arms(arms)
     treated_users = int(treated["exposed_users"])
@@ -1660,7 +1546,7 @@ def _build_holdout_block(
     }
     if treated_users < 2 or holdout_users < 2:
         base["status"] = "insufficient_data"
-        base["note"] = _NOTE_HOLDOUT_INSUFFICIENT
+        base["note"] = translate("live_stats.holdout.insufficient_data")
         return base
     if metric_type == "binary":
         return _holdout_binary(base, alpha, holdout, treated, mixture_variance)
