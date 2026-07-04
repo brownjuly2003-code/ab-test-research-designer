@@ -139,7 +139,9 @@
         "audience_share_in_test": "Part d'audience en test",
         "variants_count": "Les variantes comptent",
         "inclusion_criteria": "Critères d'inclusion",
-        "exclusion_criteria": "Critères d'exclusion"
+        "exclusion_criteria": "Critères d'exclusion",
+        "avg_cluster_size": "Taille moyenne de cluster (m)",
+        "icc": "Corrélation intraclasse (ICC)"
       },
       "metrics": {
         "primary_metric_name": "Métrique principale",
@@ -190,7 +192,9 @@
       "holdout_fraction": "Holdout global : part du trafic exclue de toutes les expériences comme contrôle propre. Laissez vide s'il n'y en a pas, ou saisissez 0,1 pour un holdout de 10 %. Réduit le trafic reçu par ce test, ce qui allonge la durée tandis que la taille d'échantillon reste inchangée.",
       "mutually_exclusive_experiments": "Nombre d'expériences mutuellement exclusives partageant le même trafic. Laissez vide pour 1. Avec N, ce test reçoit 1/N du trafic, ce qui allonge la durée en conséquence.",
       "planned_test": "Méthode d'analyse pour laquelle la taille d'échantillon est planifiée. Le test z est le choix classique par défaut ; le test exact de Fisher demande un peu plus d'utilisateurs sur les petits échantillons ; Mann-Whitney (test de rangs pour les métriques asymétriques) augmente le plan d'environ 5 % ; l'équivalence (TOST) vise à CONFIRMER que les variantes sont identiques dans une marge donnée plutôt qu'à détecter une différence.",
-      "equivalence_margin_pct": "Marge d'équivalence symétrique en pourcentage de la valeur de référence : le plus grand écart encore considéré comme « pratiquement identique ». C'est elle qui détermine la taille d'échantillon TOST (le MDE ne s'applique pas à un plan d'équivalence)."
+      "equivalence_margin_pct": "Marge d'équivalence symétrique en pourcentage de la valeur de référence : le plus grand écart encore considéré comme « pratiquement identique ». C'est elle qui détermine la taille d'échantillon TOST (le MDE ne s'applique pas à un plan d'équivalence).",
+      "avg_cluster_size": "Conception en clusters uniquement : le nombre moyen d'individus par cluster (m), par ex. 100 clients par magasin. Détermine l'effet de plan DEFF = 1 + (m - 1) x ICC qui gonfle la taille d'échantillon requise.",
+      "icc": "Conception en clusters uniquement : le coefficient de corrélation intraclasse (ICC, 0-1) - à quel point les individus d'un même cluster se ressemblent. Faible dans les expériences web/produit (0,01-0,05), plus élevé dans les essais géo/scolaires. 0 = aucune pénalité de clustering."
     },
     "options": {
       "setup": {
@@ -684,7 +688,10 @@
         "durationSubtitle": "durée estimée",
         "perDayMeta": "{{traffic}}/jour",
         "warnings": "Avertissements",
-        "warningsSubtitle": "vérifications heuristiques"
+        "warningsSubtitle": "vérifications heuristiques",
+        "designEffect": "Effet de plan",
+        "designEffectSubtitle": "Randomisation par clusters (DEFF)",
+        "clustersMeta": "{{clusters}} clusters de ~{{size}} par bras"
       },
       "warningSeverity": {
         "high": "{{count}} élevé",
@@ -1658,7 +1665,8 @@
     "days_one": "{{count}} jour",
     "days_other": "{{count}} jours",
     "allocatedTrafficTitle": "Trafic quotidien alloué",
-    "allocatedTrafficUnit": "utilisateurs / jour après holdout"
+    "allocatedTrafficUnit": "utilisateurs / jour après holdout",
+    "clusterDesignBadge": "Effet de plan {{deff}} · {{clusters}} clusters de ~{{size}} par bras"
   },
   "hypothesisIdeation": {
     "title": "Idées d'hypothèses par IA",

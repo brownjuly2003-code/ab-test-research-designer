@@ -372,6 +372,73 @@ def test_calculate_endpoint_warns_for_cluster_randomization_unit() -> None:
     assert "CLUSTER_RANDOMIZATION" in codes
 
 
+def _cluster_calculate_body(**overrides: object) -> dict:
+    body = {
+        "metric_type": "binary",
+        "baseline_value": 0.042,
+        "mde_pct": 5,
+        "alpha": 0.05,
+        "power": 0.8,
+        "expected_daily_traffic": 12000,
+        "audience_share_in_test": 0.6,
+        "traffic_split": [50, 50],
+        "variants_count": 2,
+        "randomization_unit": "cluster",
+        "avg_cluster_size": 100,
+        "icc": 0.02,
+    }
+    body.update(overrides)
+    return body
+
+
+def test_calculate_endpoint_inflates_sizing_for_cluster_design() -> None:
+    client = TestClient(create_app())
+
+    base = client.post(
+        "/api/v1/calculate", json=_cluster_calculate_body(randomization_unit="user")
+    ).json()
+    response = client.post("/api/v1/calculate", json=_cluster_calculate_body())
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["design_effect"] == pytest.approx(2.98, abs=1e-4)
+    assert body["avg_cluster_size"] == 100
+    assert body["icc"] == 0.02
+    assert body["clusters_per_variant"] >= 1
+    # DEFF 2.98 inflates the individual-level per-arm size (roughly threefold).
+    assert body["results"]["sample_size_per_variant"] > base["results"]["sample_size_per_variant"]
+    assert "CLUSTER_RANDOMIZATION" in {w["code"] for w in body["warnings"]}
+
+
+def test_calculate_endpoint_rejects_icc_out_of_range() -> None:
+    client = TestClient(create_app())
+    response = client.post("/api/v1/calculate", json=_cluster_calculate_body(icc=1.5))
+    assert response.status_code == 422
+
+
+def test_calculate_endpoint_rejects_cluster_size_below_one() -> None:
+    client = TestClient(create_app())
+    response = client.post("/api/v1/calculate", json=_cluster_calculate_body(avg_cluster_size=0.5))
+    assert response.status_code == 422
+
+
+def test_design_endpoint_reports_cluster_design_effect() -> None:
+    client = TestClient(create_app())
+    payload = _full_payload()
+    payload["setup"]["randomization_unit"] = "cluster"
+    payload["setup"]["avg_cluster_size"] = 50
+    payload["setup"]["icc"] = 0.05
+
+    baseline = client.post("/api/v1/design", json=_full_payload()).json()
+    response = client.post("/api/v1/design", json=payload)
+
+    assert response.status_code == 200
+    calculations = response.json()["calculations"]
+    assert calculations["design_effect"] == pytest.approx(3.45, abs=1e-4)
+    assert calculations["clusters_per_variant"] >= 1
+    assert calculations["sample_size_per_variant"] > baseline["calculations"]["sample_size_per_variant"]
+
+
 def test_calculate_endpoint_returns_cuped_fields_for_continuous_metric() -> None:
     client = TestClient(create_app())
 

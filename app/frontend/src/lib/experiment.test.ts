@@ -12,6 +12,7 @@ import {
   parseImportedDraft,
   parseMetricList,
   parseTrafficSplit,
+  sections,
   setSectionFieldValue,
   validateField,
   validateForm
@@ -75,6 +76,48 @@ describe("experiment helpers", () => {
     const payload = buildCalculationPayload(state);
 
     expect(payload.randomization_unit).toBe("cluster");
+  });
+
+  it("forwards the cluster size and ICC into the calculation payload for a cluster design", () => {
+    const state = cloneInitialState();
+    state.setup.randomization_unit = "cluster";
+    state.setup.avg_cluster_size = 100;
+    state.setup.icc = 0.02;
+
+    const payload = buildCalculationPayload(state);
+
+    expect(payload.avg_cluster_size).toBe(100);
+    expect(payload.icc).toBe(0.02);
+  });
+
+  it("clears the cluster size and ICC when the randomization unit is no longer a cluster", () => {
+    let state = cloneInitialState();
+    state.setup.randomization_unit = "cluster";
+    state.setup.avg_cluster_size = 100;
+    state.setup.icc = 0.02;
+
+    state = setSectionFieldValue(state, "setup", "randomization_unit", "user");
+
+    expect(state.setup.avg_cluster_size).toBeNull();
+    expect(state.setup.icc).toBeNull();
+  });
+
+  it("shows the cluster size and ICC fields only for a cluster randomization unit", () => {
+    const setupSection = sections.find((section) => section.section === "setup");
+    const clusterFields = (setupSection?.fields ?? []).filter(
+      (field) => field.key === "avg_cluster_size" || field.key === "icc"
+    );
+    expect(clusterFields).toHaveLength(2);
+
+    const clusterState = cloneInitialState();
+    clusterState.setup.randomization_unit = "cluster";
+    const userState = cloneInitialState();
+    userState.setup.randomization_unit = "user";
+
+    for (const field of clusterFields) {
+      expect(field.visibleWhen?.(clusterState)).toBe(true);
+      expect(field.visibleWhen?.(userState)).toBe(false);
+    }
   });
 
   it("defaults holdout and mutual-exclusion to null in the calculation payload", () => {

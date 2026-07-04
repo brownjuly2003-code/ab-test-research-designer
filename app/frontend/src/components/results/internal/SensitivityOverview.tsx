@@ -140,6 +140,18 @@ export default function SensitivityOverview({
         <MetricCard icon="check" title={t("results.sensitivityOverview.cards.totalSample")} value={String(displayedAnalysis.calculations.results.total_sample_size ?? "-")} subtitle={t("results.sensitivityOverview.cards.totalSampleSubtitle")} meta={t("results.sensitivityOverview.cards.variantsMeta", { count: variantsCount })} />
         <MetricCard icon="clock" title={t("results.sensitivityOverview.cards.duration")} value={t("results.sensitivityOverview.cards.durationValue", { days: String(displayedAnalysis.calculations.results.estimated_duration_days ?? "-") })} subtitle={t("results.sensitivityOverview.cards.durationSubtitle")} meta={t("results.sensitivityOverview.cards.perDayMeta", { traffic: String(displayedAnalysis.calculations.results.effective_daily_traffic ?? "-") })} />
         <MetricCard icon="warning" title={t("results.sensitivityOverview.cards.warnings")} value={String(warnings.length)} subtitle={t("results.sensitivityOverview.cards.warningsSubtitle")} meta={getWarningSeverityLabel(warnings, t)} tone={warningSeverity === "high" ? "warning" : "default"} />
+        {displayedAnalysis.calculations.design_effect != null ? (
+          <MetricCard
+            icon="activity"
+            title={t("results.sensitivityOverview.cards.designEffect")}
+            value={displayedAnalysis.calculations.design_effect.toFixed(2)}
+            subtitle={t("results.sensitivityOverview.cards.designEffectSubtitle")}
+            meta={t("results.sensitivityOverview.cards.clustersMeta", {
+              clusters: String(displayedAnalysis.calculations.clusters_per_variant ?? "-"),
+              size: String(displayedAnalysis.calculations.avg_cluster_size ?? "-")
+            })}
+          />
+        ) : null}
       </div>
       {displayedAnalysis.calculations.bonferroni_note ? <div className={`callout ${styles["callout-info"]}`}><Icon name="info" className="icon icon-inline" /><span>{displayedAnalysis.calculations.bonferroni_note}</span></div> : null}
       {displayedAnalysis.calculations.bayesian_sample_size_per_variant !== null ? (

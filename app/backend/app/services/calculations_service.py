@@ -8,6 +8,7 @@ from app.backend.app.stats.bayesian import (
     bayesian_sample_size_continuous,
 )
 from app.backend.app.stats.binary import calculate_binary_sample_size
+from app.backend.app.stats.cluster import inflate_for_cluster_design
 from app.backend.app.stats.continuous import (
     calculate_continuous_sample_size,
     calculate_cuped_theta,
@@ -152,6 +153,53 @@ def calculate_experiment_metrics(payload: dict[str, Any]) -> dict[str, Any]:
     else:
         raise ValueError(f"Unsupported metric_type: {metric_type}")
 
+    # Cluster-randomized design effect (P5.2). When the randomization unit is a cluster and the
+    # average cluster size + ICC are supplied, inflate the individual-level per-arm sample size by
+    # the Kish design effect DEFF = 1 + (m - 1)*ICC (Donner & Klar 2000; Hayes & Moulton 2009).
+    # Applied to the primary plan here — and, further down, to the CUPED and Bayesian companions —
+    # so every reported per-arm size reflects the design; it degenerates to the individual-level
+    # path exactly at ICC=0 or m=1. The duration below is computed from the inflated size, and the
+    # sequential block reuses it, so both stack correctly for free. The deterministic
+    # CLUSTER_RANDOMIZATION warning still fires: sizing accounts for clustering, but the live
+    # analysis still uses naive SEs (cluster-robust analysis is a separate future increment).
+    avg_cluster_size = payload.get("avg_cluster_size")
+    icc = payload.get("icc")
+    cluster_design = (
+        payload.get("randomization_unit") == "cluster"
+        and avg_cluster_size is not None
+        and icc is not None
+    )
+    design_effect: float | None = None
+    clusters_per_variant: int | None = None
+    if cluster_design and avg_cluster_size is not None and icc is not None:
+        cluster = inflate_for_cluster_design(
+            individual_sample_size_per_variant=calculation_summary["sample_size_per_variant"],
+            avg_cluster_size=avg_cluster_size,
+            icc=icc,
+            variants_count=variants_count,
+        )
+        design_effect = cluster["design_effect"]
+        clusters_per_variant = cluster["clusters_per_variant"]
+        calculation_summary["sample_size_per_variant"] = cluster["sample_size_per_variant"]
+        calculation_summary["total_sample_size"] = cluster["total_sample_size"]
+        calculation_summary["assumptions"] = [
+            *calculation_summary["assumptions"],
+            (
+                "Cluster-randomized design: the individual-level sample size is inflated by the Kish "
+                f"design effect DEFF = 1 + (m - 1) x ICC = {design_effect:.4g} "
+                f"(m = {avg_cluster_size:g} individuals per cluster, ICC = {icc:g}), requiring about "
+                f"{clusters_per_variant:,} clusters per arm (Donner & Klar 2000; Hayes & Moulton 2009)."
+            ),
+            (
+                "Cluster sizes are assumed equal; unequal cluster sizes inflate the true design effect "
+                "further (Eldridge & Kerry's coefficient-of-variation correction is out of scope here)."
+            ),
+            (
+                "The design effect adjusts the planned sample size only; the live analysis still uses "
+                "naive standard errors, and valid cluster inference needs enough clusters per arm."
+            ),
+        ]
+
     holdout_fraction = payload.get("holdout_fraction")
     mutually_exclusive_experiments = payload.get("mutually_exclusive_experiments")
     holdout = float(holdout_fraction) if holdout_fraction is not None else 0.0
@@ -196,6 +244,10 @@ def calculate_experiment_metrics(payload: dict[str, Any]) -> dict[str, Any]:
             variants_count,
             calculation_summary.get("adjusted_alpha"),
         ),
+        "design_effect": round(design_effect, 4) if design_effect is not None else None,
+        "avg_cluster_size": avg_cluster_size if cluster_design else None,
+        "icc": icc if cluster_design else None,
+        "clusters_per_variant": clusters_per_variant,
         "bayesian_sample_size_per_variant": None,
         "bayesian_credibility": None,
         "bayesian_note": None,
@@ -230,6 +282,15 @@ def calculate_experiment_metrics(payload: dict[str, Any]) -> dict[str, Any]:
             power=payload["power"],
             variants_count=variants_count,
         )
+        if cluster_design and avg_cluster_size is not None and icc is not None:
+            # The design effect applies to the CUPED-reduced size too; leaving it individual-level
+            # next to an inflated primary would understate it.
+            cuped_summary["sample_size_per_variant"] = inflate_for_cluster_design(
+                individual_sample_size_per_variant=cuped_summary["sample_size_per_variant"],
+                avg_cluster_size=avg_cluster_size,
+                icc=icc,
+                variants_count=variants_count,
+            )["sample_size_per_variant"]
         cuped_duration = estimate_experiment_duration_days(
             sample_size_per_variant=cuped_summary["sample_size_per_variant"],
             expected_daily_traffic=payload["expected_daily_traffic"],
@@ -271,6 +332,16 @@ def calculate_experiment_metrics(payload: dict[str, Any]) -> dict[str, Any]:
                 credibility=payload.get("credibility", 0.95),
             )
             precision_unit = "units"
+
+        if cluster_design and avg_cluster_size is not None and icc is not None:
+            # A credible-interval half-width is variance-driven, so the same design effect inflates
+            # the Bayesian precision size just like the frequentist one.
+            bayesian_sample_size = inflate_for_cluster_design(
+                individual_sample_size_per_variant=bayesian_sample_size,
+                avg_cluster_size=avg_cluster_size,
+                icc=icc,
+                variants_count=variants_count,
+            )["sample_size_per_variant"]
 
         result["bayesian_sample_size_per_variant"] = bayesian_sample_size
         result["bayesian_credibility"] = payload.get("credibility", 0.95)

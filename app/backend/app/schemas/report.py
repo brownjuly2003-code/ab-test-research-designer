@@ -6,6 +6,10 @@ class CalculationsSection(BaseModel):
     total_sample_size: int
     estimated_duration_days: int
     assumptions: list[str]
+    # Cluster-randomized design effect (P5.2): null unless the design randomizes clusters and supplied
+    # the average cluster size + ICC. sample_size_per_variant / total_sample_size are already inflated.
+    design_effect: float | None = None
+    clusters_per_variant: int | None = None
 
 
 class VariantDefinition(BaseModel):

@@ -244,6 +244,8 @@
       "continuous_std_positive": "يجب أن يكون std_dev موجبًا للمقاييس المستمرة",
       "ratio_baseline_positive": "يجب أن تكون قيمة baseline_value (النسبة الأساسية) موجبة لمقاييس النسبة",
       "count_baseline_positive": "يجب أن تكون قيمة baseline_value (معدل الأحداث الأساسي) موجبة لمقاييس العدد",
+      "cluster_size_min": "يجب ألا يقل avg_cluster_size (متوسط حجم المجموعة) عن 1",
+      "icc_range": "يجب أن تكون قيمة icc (معامل الارتباط داخل المجموعة) بين 0 و 1",
       "ratio_std_positive": "يجب أن يكون std_dev (الانحراف المعياري المخطّط لكل مستخدم) موجبًا لمقاييس النسبة",
       "bayesian_requires_precision": "يتطلب الوضع الافتراضي الدقة المطلوبة",
       "control_conversions_exceed_users": "لا يمكن أن تتجاوز تحويلات control_users",

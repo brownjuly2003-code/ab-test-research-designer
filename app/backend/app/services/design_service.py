@@ -136,6 +136,8 @@ def build_experiment_report(
             total_sample_size=calculation_result["results"]["total_sample_size"],
             estimated_duration_days=calculation_result["results"]["estimated_duration_days"],
             assumptions=calculation_result["assumptions"],
+            design_effect=calculation_result.get("design_effect"),
+            clusters_per_variant=calculation_result.get("clusters_per_variant"),
         ),
         experiment_design=ExperimentDesignSection(
             variants=variants,

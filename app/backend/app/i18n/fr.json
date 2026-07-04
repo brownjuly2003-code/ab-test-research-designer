@@ -244,6 +244,8 @@
       "continuous_std_positive": "std_dev doit être positif pour les métriques continues",
       "ratio_baseline_positive": "baseline_value (ratio de référence) doit être positif pour les métriques de ratio",
       "count_baseline_positive": "baseline_value (taux d'événements de référence) doit être positif pour les métriques de comptage",
+      "cluster_size_min": "avg_cluster_size (taille moyenne de cluster) doit être d'au moins 1",
+      "icc_range": "icc (coefficient de corrélation intraclasse) doit être compris entre 0 et 1",
       "ratio_std_positive": "std_dev (écart-type linéarisé par utilisateur) doit être positif pour les métriques de ratio",
       "bayesian_requires_precision": "Le mode bayésien nécessite wanted_precision",
       "control_conversions_exceed_users": "control_conversions ne peut pas dépasser control_users",

@@ -49,7 +49,11 @@ export const FIELD_TOOLTIPS: Record<string, string> = {
   planned_test:
     "Analysis method the sample size is planned for. The z-test plan is the classic default; Fisher's exact needs slightly more users on small samples; Mann-Whitney (rank test, for skewed metrics) inflates the plan by ~5%; equivalence (TOST) plans to CONFIRM the arms are the same within a margin instead of detecting a difference.",
   equivalence_margin_pct:
-    "Symmetric equivalence margin as a percent of baseline: the largest difference still treated as 'practically the same'. Drives the TOST sample size (the MDE does not apply to an equivalence plan)."
+    "Symmetric equivalence margin as a percent of baseline: the largest difference still treated as 'practically the same'. Drives the TOST sample size (the MDE does not apply to an equivalence plan).",
+  avg_cluster_size:
+    "Cluster designs only: the average number of individuals per cluster (m), e.g. 100 shoppers per store. Drives the design effect DEFF = 1 + (m - 1) x ICC that inflates the required sample size.",
+  icc:
+    "Cluster designs only: the intraclass correlation coefficient (ICC, 0-1) - how similar individuals in the same cluster are. Small in web/product experiments (0.01-0.05), larger in geo/classroom trials. 0 = no clustering penalty."
 };
 
 export const WIZARD_STEPS: WizardStep[] = [
@@ -101,6 +105,22 @@ export const sections: SectionConfig[] = [
           { label: "Account", value: "account" },
           { label: "Cluster (store, region, classroom)", value: "cluster" }
         ]
+      },
+      {
+        label: "Avg cluster size (m)",
+        key: "avg_cluster_size",
+        kind: "number",
+        emptyValue: null,
+        visibleWhen: (state) => state.setup.randomization_unit === "cluster",
+        helpText: FIELD_TOOLTIPS.avg_cluster_size
+      },
+      {
+        label: "Intraclass correlation (ICC)",
+        key: "icc",
+        kind: "number",
+        emptyValue: null,
+        visibleWhen: (state) => state.setup.randomization_unit === "cluster",
+        helpText: FIELD_TOOLTIPS.icc
       },
       {
         label: "Traffic split",
