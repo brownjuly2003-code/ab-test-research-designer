@@ -46,4 +46,8 @@ WARNING_CATALOG = {
         "severity": "high",
         "message_key": "warnings.srm_detected",
     },
+    "CLUSTER_RANDOMIZATION": {
+        "severity": "high",
+        "message_key": "warnings.cluster_randomization",
+    },
 }

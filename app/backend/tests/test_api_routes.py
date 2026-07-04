@@ -348,6 +348,30 @@ def test_calculate_endpoint_returns_deterministic_payload() -> None:
     assert float(response.headers["x-process-time-ms"]) >= 0
 
 
+def test_calculate_endpoint_warns_for_cluster_randomization_unit() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/calculate",
+        json={
+            "metric_type": "binary",
+            "baseline_value": 0.042,
+            "mde_pct": 5,
+            "alpha": 0.05,
+            "power": 0.8,
+            "expected_daily_traffic": 12000,
+            "audience_share_in_test": 0.6,
+            "traffic_split": [50, 50],
+            "variants_count": 2,
+            "randomization_unit": "cluster",
+        },
+    )
+
+    assert response.status_code == 200
+    codes = {warning["code"] for warning in response.json()["warnings"]}
+    assert "CLUSTER_RANDOMIZATION" in codes
+
+
 def test_calculate_endpoint_returns_cuped_fields_for_continuous_metric() -> None:
     client = TestClient(create_app())
 

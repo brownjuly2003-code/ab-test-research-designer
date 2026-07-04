@@ -198,7 +198,8 @@
           "user": "Utilisateur",
           "session": "Session",
           "device": "Appareil",
-          "account": "Compte"
+          "account": "Compte",
+          "cluster": "Cluster (magasin, région, classe)"
         }
       },
       "metrics": {

@@ -646,6 +646,9 @@ class CalculationRequest(BaseModel):
     audience_share_in_test: float = Field(gt=0, le=1)
     traffic_split: list[int] = Field(min_length=2)
     variants_count: int = Field(ge=2, le=MAX_SUPPORTED_VARIANTS)
+    # Informational only (see execution/experiment_assignment.py); carried here purely so the
+    # deterministic rules engine can warn when it is "cluster" (naive SEs assume independent units).
+    randomization_unit: str | None = None
     actual_counts: list[int] | None = Field(default=None, min_length=2, max_length=MAX_SUPPORTED_VARIANTS)
     seasonality_present: bool | None = None
     active_campaigns_present: bool | None = None

@@ -43,6 +43,26 @@ def test_rules_engine_warns_for_long_duration_and_context_risks() -> None:
     assert "LONG_TEST_NOT_POSSIBLE" in codes
 
 
+def test_rules_engine_warns_for_cluster_randomization() -> None:
+    warnings = evaluate_warnings(
+        payload={"metric_type": "binary", "randomization_unit": "cluster"},
+        results={},
+    )
+
+    codes = {warning["code"] for warning in warnings}
+    assert "CLUSTER_RANDOMIZATION" in codes
+
+
+def test_rules_engine_does_not_warn_for_user_randomization() -> None:
+    warnings = evaluate_warnings(
+        payload={"metric_type": "binary", "randomization_unit": "user"},
+        results={},
+    )
+
+    codes = {warning["code"] for warning in warnings}
+    assert "CLUSTER_RANDOMIZATION" not in codes
+
+
 def test_rules_engine_warns_for_many_variants_with_low_traffic() -> None:
     result = calculate_experiment_metrics(
         {

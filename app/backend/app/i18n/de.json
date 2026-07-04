@@ -10,7 +10,8 @@
     "conservative_multivariant_alpha": "Mehr als zwei Varianten lösen eine Bonferroni-Alpha-Korrektur aus. Dies ist konservativ und kann die erforderliche Stichprobengröße überschätzen.",
     "long_test_not_possible": "Erwartete Dauer ist lang, aber das Projekt unterstützt keine langlaufenden Tests.",
     "interim_looks_increase_sample": "Sequenzielles Design mit {{n_looks}} Zwischenanalysen erhöht die erforderliche Stichprobengröße um ca. {{pct}}%",
-    "srm_detected": "Sample Ratio Mismatch festgestellt (p < 0,001). Prüfen Sie Randomisierung und Tracking."
+    "srm_detected": "Sample Ratio Mismatch festgestellt (p < 0,001). Prüfen Sie Randomisierung und Tracking.",
+    "cluster_randomization": "Die Randomisierungseinheit ist ein Cluster (z. B. Filiale, Region, Klasse), keine einzelne Nutzerin oder kein einzelner Nutzer. Naive Standardfehler setzen unabhängige Beobachtungen voraus und sind bei Cluster-Randomisierung unterschätzt — betrachten Sie die Signifikanz als zu optimistisch, bis eine Design-Effekt-/ICC-Korrektur oder eine clusterrobuste Analyse angewendet wird."
   },
   "report": {
     "executive_summary": "{{project_name}} prüft, ob {{change_description}} {{primary_metric_name}} für {{target_audience}} verbessern kann. Der deterministische Plan schätzt {{estimated_duration_days}} Tage mit {{sample_size_per_variant}} Nutzern pro Variante.",

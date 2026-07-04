@@ -176,6 +176,7 @@ export type CalculationRequest = {
   audience_share_in_test: number;
   traffic_split: number[];
   variants_count: number;
+  randomization_unit?: string | null;
   actual_counts?: number[] | null;
   seasonality_present?: boolean | null;
   active_campaigns_present?: boolean | null;
