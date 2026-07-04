@@ -608,6 +608,53 @@
         "analyzeBeforeSaving": "Analysieren Sie die Ergebnisse, bevor Sie sie in einem Projekt speichern.",
         "saveUnavailable": "Beobachtete Ergebnisse konnten nicht gespeichert werden.",
         "savedToProject": "Die beobachteten Ergebnisse wurden im Projekt {{projectName}} gespeichert."
+      },
+      "chooser": {
+        "toggle": "Welchen Test soll ich verwenden?",
+        "description": "Beantworten Sie ein paar Fragen und wir schlagen einen Test vor. Die vollständige Umschaltung oben bleibt verfügbar.",
+        "incomplete": "Beantworten Sie die Fragen oben, um eine Empfehlung zu sehen.",
+        "recommendation": "Empfohlen: {{test}}",
+        "apply": "Diesen Test verwenden",
+        "questions": {
+          "goal": {
+            "label": "Was möchten Sie zeigen?",
+            "options": {
+              "difference": "Einen Unterschied nachweisen",
+              "equivalence": "Keine wesentliche Änderung bestätigen"
+            }
+          },
+          "distribution": {
+            "label": "Wie ist die Metrik verteilt?",
+            "options": {
+              "normal": "Annähernd normal, mittlere Stichprobe",
+              "skew_outliers": "Schief, schwere Ränder oder Ausreißer",
+              "small_nonnormal": "Kleine Stichprobe (< ~30/Arm) oder deutlich nicht normal"
+            }
+          },
+          "focus": {
+            "label": "Was ist am wichtigsten?",
+            "options": {
+              "mean": "Der Durchschnitt (Mittelwert)",
+              "percentile": "Ein bestimmtes Perzentil / Rand (z. B. p90)"
+            }
+          },
+          "binarySmall": {
+            "label": "Sind die Anzahlen klein oder Ereignisse selten (jede Gruppe < ~10)?",
+            "options": {
+              "yes": "Ja — klein oder selten",
+              "no": "Nein — große Stichproben"
+            }
+          }
+        },
+        "rationale": {
+          "zTest": "Große Stichproben mit ausreichenden Anzahlen — die Normalapproximation ist zuverlässig.",
+          "fisher_exact": "Kleine Anzahlen oder seltene Ereignisse — der exakte Test von Fisher vermeidet die unzuverlässige Normalapproximation.",
+          "parametric": "Annähernd normale Daten, Vergleich der Mittelwerte — der t-Test für Differenzen passt.",
+          "mann_whitney": "Kleine oder nicht normale Stichprobe — ein verteilungsfreier Rangtest ohne Normalitätsannahme (Bootstrap / Permutation ist eine weitere Möglichkeit).",
+          "trimmed_t": "Schwere Ränder oder Ausreißer verzerren den Mittelwert — getrimmte Mittelwerte sind robust dagegen (Mann–Whitney ist eine verteilungsfreie Alternative).",
+          "quantile": "Ein bestimmtes Perzentil ist wichtiger als der Durchschnitt — vergleichen Sie direkt dieses Quantil.",
+          "equivalence": "Sie möchten bestätigen, dass die Metrik innerhalb einer Toleranz blieb — dafür braucht es den TOST-Äquivalenztest, nicht einen einfachen Differenztest."
+        }
       }
     },
     "sensitivityOverview": {

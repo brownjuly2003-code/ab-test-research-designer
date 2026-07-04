@@ -3,7 +3,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import ObservedResultsSection from "../ObservedResultsSection";
-import { changeValue, click, findButton, flushEffects, renderIntoDocument } from "../../../test/dom";
+import { changeValue, click, findButton, flushEffects, flushLazy, renderIntoDocument } from "../../../test/dom";
 import { buildAnalysisResult, resetResultsStores, seedResultsStores } from "./resultsTestUtils";
 
 describe("ObservedResultsSection", () => {
@@ -594,6 +594,77 @@ describe("ObservedResultsSection", () => {
       // The equivalence prose is surfaced.
       expect(view.container.textContent).toContain("equivalence demonstrated");
       expect(view.container.textContent).toContain("TOST decision interval");
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("guides the user through the chooser and applies its recommendation on a continuous plan", async () => {
+    seedResultsStores({ analysis: buildAnalysisResult({ metricType: "continuous" }) });
+    const view = await renderIntoDocument(<ObservedResultsSection onResultsAnalysisChange={vi.fn()} />);
+    try {
+      await flushEffects();
+      // The continuous default renders the difference t-test's continuous summary fields.
+      expect(view.container.querySelector("#results-control-mean")).not.toBeNull();
+
+      // The chooser is lazy-loaded; let its chunk resolve before interacting.
+      await flushLazy();
+      // Open the guided chooser and answer: detect a difference, skewed / outliers, compare the mean.
+      await click(findButton(view.container, "Which test should I use?"));
+      await flushEffects();
+      const pick = async (id: string) => {
+        const radio = view.container.querySelector<HTMLInputElement>(`#${id}`)!;
+        expect(radio).not.toBeNull();
+        await click(radio);
+        await flushEffects();
+      };
+      await pick("chooser-goal-difference");
+      await pick("chooser-distribution-skew_outliers");
+      await pick("chooser-focus-mean");
+
+      // The recommendation surfaces the robust trimmed t-test.
+      expect(view.container.textContent).toContain("Recommended: Trimmed t (robust)");
+
+      // Applying it switches the toggle to the trimmed t-test and its ranked raw-sample form.
+      await click(findButton(view.container, "Use this test"));
+      await flushEffects();
+      expect(view.container.querySelectorAll("textarea").length).toBe(2);
+      expect(view.container.querySelector("#results-trim-ranked")).not.toBeNull();
+      expect(findButton(view.container, "Trimmed t (robust)").getAttribute("aria-pressed")).toBe("true");
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("recommends Fisher's exact through the chooser for small binary samples", async () => {
+    // The default seeded plan is binary -> the one-question small-sample chooser applies.
+    const view = await renderIntoDocument(<ObservedResultsSection onResultsAnalysisChange={vi.fn()} />);
+    try {
+      await flushEffects();
+      // The chooser is lazy-loaded; let its chunk resolve before interacting.
+      await flushLazy();
+      await click(findButton(view.container, "Which test should I use?"));
+      await flushEffects();
+      const radio = view.container.querySelector<HTMLInputElement>("#chooser-binarySmall-yes")!;
+      expect(radio).not.toBeNull();
+      await click(radio);
+      await flushEffects();
+
+      expect(view.container.textContent).toContain("Recommended: Fisher's exact (small samples)");
+      await click(findButton(view.container, "Use this test"));
+      await flushEffects();
+      expect(findButton(view.container, "Fisher's exact (small samples)").getAttribute("aria-pressed")).toBe("true");
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("hides the guided chooser on a ratio plan (its two options need different data)", async () => {
+    seedResultsStores({ analysis: buildAnalysisResult({ metricType: "ratio" }) });
+    const view = await renderIntoDocument(<ObservedResultsSection onResultsAnalysisChange={vi.fn()} />);
+    try {
+      await flushEffects();
+      expect(view.container.textContent).not.toContain("Which test should I use?");
     } finally {
       await view.unmount();
     }

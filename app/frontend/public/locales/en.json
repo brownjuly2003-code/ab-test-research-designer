@@ -608,6 +608,53 @@
         "analyzeBeforeSaving": "Analyze results before saving them to a project.",
         "saveUnavailable": "Observed results could not be saved.",
         "savedToProject": "Observed results were saved to project {{projectName}}."
+      },
+      "chooser": {
+        "toggle": "Which test should I use?",
+        "description": "Answer a few questions and we'll suggest a test. The full toggle above stays available.",
+        "incomplete": "Answer the questions above to see a recommendation.",
+        "recommendation": "Recommended: {{test}}",
+        "apply": "Use this test",
+        "questions": {
+          "goal": {
+            "label": "What are you trying to show?",
+            "options": {
+              "difference": "Detect a difference",
+              "equivalence": "Confirm no meaningful change"
+            }
+          },
+          "distribution": {
+            "label": "How is the metric distributed?",
+            "options": {
+              "normal": "Roughly normal, moderate sample",
+              "skew_outliers": "Skewed, heavy tails or outliers",
+              "small_nonnormal": "Small sample (< ~30/arm) or clearly non-normal"
+            }
+          },
+          "focus": {
+            "label": "What matters most?",
+            "options": {
+              "mean": "The average (mean)",
+              "percentile": "A specific percentile / tail (e.g. p90)"
+            }
+          },
+          "binarySmall": {
+            "label": "Are the counts small or events rare (any group < ~10)?",
+            "options": {
+              "yes": "Yes — small or rare",
+              "no": "No — large samples"
+            }
+          }
+        },
+        "rationale": {
+          "zTest": "Large samples with adequate counts — the normal approximation is reliable.",
+          "fisher_exact": "Small or rare-event counts — Fisher's exact avoids the unreliable normal approximation.",
+          "parametric": "Roughly normal data, comparing means — the difference t-test fits.",
+          "mann_whitney": "Small or non-normal samples — a distribution-free rank test avoids the normality assumption (bootstrap / permutation is another option).",
+          "trimmed_t": "Heavy tails or outliers would drag the mean — trimmed means resist them (Mann–Whitney is a distribution-free alternative).",
+          "quantile": "A specific percentile matters more than the average — compare that quantile directly.",
+          "equivalence": "You want to confirm the metric stayed within a tolerance — that needs the TOST equivalence test, not a plain difference test."
+        }
       }
     },
     "sensitivityOverview": {

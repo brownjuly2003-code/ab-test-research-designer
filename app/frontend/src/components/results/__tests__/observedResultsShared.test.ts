@@ -3,9 +3,19 @@ import { describe, expect, it } from "vitest";
 import {
   buildActualResultsState,
   buildResultsRequest,
+  observedChooserQuestions,
+  observedFormKind,
+  observedTestButtons,
+  observedTestLabelKey,
   parseSampleValues,
+  recommendObservedTest,
+  resolveEffectiveMetricType,
   resolveObservedMetricType,
-  type ActualResultsState
+  restoreObservedTest,
+  supportedObservedMetricTypes,
+  type ActualResultsState,
+  type ObservedBaseMetricType,
+  type ObservedTestSelection
 } from "../observedResultsShared";
 
 function emptyState(): ActualResultsState {
@@ -349,5 +359,184 @@ describe("buildResultsRequest (equivalence)", () => {
       alpha: "0.01",
       equivalence_margin: "0.5"
     });
+  });
+});
+
+describe("test registry — observedTestButtons", () => {
+  it("offers the z-test default, Fisher's exact and the plan-independent rate test on a binary plan", () => {
+    expect(observedTestButtons("binary").map((button) => button.test)).toEqual(["parametric", "fisher_exact", "count"]);
+  });
+
+  it("offers the full continuous suite in display order, default first", () => {
+    expect(observedTestButtons("continuous").map((button) => button.test)).toEqual([
+      "parametric",
+      "mann_whitney",
+      "bootstrap",
+      "quantile",
+      "trimmed_t",
+      "equivalence",
+      "count"
+    ]);
+  });
+
+  it("offers only the continuous approximation and the rate test on a ratio plan", () => {
+    expect(observedTestButtons("ratio").map((button) => button.test)).toEqual(["parametric", "count"]);
+  });
+
+  it("labels the default option per base plan", () => {
+    expect(observedTestButtons("binary")[0].labelKey).toBe("results.observedResults.testType.zTest");
+    expect(observedTestButtons("continuous")[0].labelKey).toBe("results.observedResults.testType.parametric");
+    expect(observedTestButtons("ratio")[0].labelKey).toBe("results.observedResults.testType.continuousApprox");
+  });
+});
+
+describe("test registry — resolveEffectiveMetricType", () => {
+  it("resolves the parametric default to the base plan's own analyzer (ratio approximates as continuous)", () => {
+    expect(resolveEffectiveMetricType("binary", "parametric")).toBe("binary");
+    expect(resolveEffectiveMetricType("continuous", "parametric")).toBe("continuous");
+    expect(resolveEffectiveMetricType("ratio", "parametric")).toBe("continuous");
+  });
+
+  it("resolves each alternative offered for the base to its own analyzer", () => {
+    expect(resolveEffectiveMetricType("binary", "fisher_exact")).toBe("fisher_exact");
+    expect(resolveEffectiveMetricType("continuous", "mann_whitney")).toBe("mann_whitney");
+    expect(resolveEffectiveMetricType("continuous", "equivalence")).toBe("equivalence");
+    expect(resolveEffectiveMetricType("ratio", "count")).toBe("count");
+    expect(resolveEffectiveMetricType("binary", "count")).toBe("count");
+  });
+
+  it("falls back to the base default when an alternative is not offered for that base (guard preserved)", () => {
+    // Mann–Whitney is a continuous-only alternative; on a binary plan the old ladder folded it back to
+    // binary, and the registry preserves that guard.
+    expect(resolveEffectiveMetricType("binary", "mann_whitney")).toBe("binary");
+    expect(resolveEffectiveMetricType("ratio", "fisher_exact")).toBe("continuous");
+  });
+});
+
+describe("test registry — supportedObservedMetricTypes", () => {
+  it("mirrors the previous hard-coded supported-type sets per base", () => {
+    expect(supportedObservedMetricTypes("continuous")).toEqual([
+      "continuous",
+      "mann_whitney",
+      "bootstrap",
+      "quantile",
+      "trimmed_t",
+      "equivalence",
+      "count"
+    ]);
+    expect(supportedObservedMetricTypes("binary")).toEqual(["binary", "fisher_exact", "count"]);
+    expect(supportedObservedMetricTypes("ratio")).toEqual(["continuous", "count"]);
+  });
+});
+
+describe("test registry — restoreObservedTest", () => {
+  it("maps a persisted analyzer metric_type back to its toggle selection for the base plan", () => {
+    expect(restoreObservedTest("binary", "fisher_exact")).toBe("fisher_exact");
+    expect(restoreObservedTest("continuous", "trimmed_t")).toBe("trimmed_t");
+    expect(restoreObservedTest("continuous", "count")).toBe("count");
+    expect(restoreObservedTest("ratio", "count")).toBe("count");
+  });
+
+  it("restores the base default type (and anything not offered for the base) to the parametric toggle", () => {
+    expect(restoreObservedTest("binary", "binary")).toBe("parametric");
+    expect(restoreObservedTest("continuous", "continuous")).toBe("parametric");
+    // A continuous-only analyzer persisted against a binary plan cannot restore -> default toggle.
+    expect(restoreObservedTest("binary", "mann_whitney")).toBe("parametric");
+    // No persisted type at all.
+    expect(restoreObservedTest("continuous", undefined)).toBe("parametric");
+  });
+
+  it("round-trips every button through resolve -> restore for each base plan", () => {
+    const bases: ObservedBaseMetricType[] = ["binary", "continuous", "ratio"];
+    for (const base of bases) {
+      for (const button of observedTestButtons(base)) {
+        const resolved = resolveEffectiveMetricType(base, button.test);
+        const restored = restoreObservedTest(base, resolved);
+        // The default and its analyzer both round-trip to the parametric toggle; alternatives to themselves.
+        const expected: ObservedTestSelection = button.test === "parametric" ? "parametric" : button.test;
+        expect(restored).toBe(expected);
+      }
+    }
+  });
+});
+
+describe("test registry — observedFormKind", () => {
+  it("routes each analyzer to its input form", () => {
+    expect(observedFormKind("binary")).toBe("binary");
+    expect(observedFormKind("fisher_exact")).toBe("binary");
+    expect(observedFormKind("continuous")).toBe("continuous");
+    expect(observedFormKind("equivalence")).toBe("equivalence");
+    expect(observedFormKind("mann_whitney")).toBe("ranked");
+    expect(observedFormKind("bootstrap")).toBe("ranked");
+    expect(observedFormKind("quantile")).toBe("ranked");
+    expect(observedFormKind("trimmed_t")).toBe("ranked");
+    expect(observedFormKind("count")).toBe("count");
+  });
+});
+
+describe("recommendObservedTest — binary chooser", () => {
+  it("asks a single small-sample question and recommends Fisher vs the z-test", () => {
+    expect(observedChooserQuestions("binary").map((question) => question.id)).toEqual(["binarySmall"]);
+    expect(recommendObservedTest("binary", {})).toBeNull();
+    expect(recommendObservedTest("binary", { binarySmall: "yes" })).toEqual({
+      test: "fisher_exact",
+      rationaleKey: "results.observedResults.chooser.rationale.fisher_exact"
+    });
+    expect(recommendObservedTest("binary", { binarySmall: "no" })).toEqual({
+      test: "parametric",
+      rationaleKey: "results.observedResults.chooser.rationale.zTest"
+    });
+  });
+});
+
+describe("recommendObservedTest — continuous chooser", () => {
+  it("needs all three questions before recommending", () => {
+    expect(observedChooserQuestions("continuous").map((question) => question.id)).toEqual(["goal", "distribution", "focus"]);
+    expect(recommendObservedTest("continuous", { goal: "difference", distribution: "normal" })).toBeNull();
+  });
+
+  it("prioritises the equivalence goal over everything else", () => {
+    expect(recommendObservedTest("continuous", { goal: "equivalence", distribution: "skew_outliers", focus: "percentile" })).toEqual({
+      test: "equivalence",
+      rationaleKey: "results.observedResults.chooser.rationale.equivalence"
+    });
+  });
+
+  it("recommends the quantile effect when a tail matters more than the mean", () => {
+    expect(recommendObservedTest("continuous", { goal: "difference", distribution: "normal", focus: "percentile" })).toEqual({
+      test: "quantile",
+      rationaleKey: "results.observedResults.chooser.rationale.quantile"
+    });
+  });
+
+  it("recommends the robust trimmed t for skewed / outlier-heavy data comparing the mean", () => {
+    expect(recommendObservedTest("continuous", { goal: "difference", distribution: "skew_outliers", focus: "mean" })).toEqual({
+      test: "trimmed_t",
+      rationaleKey: "results.observedResults.chooser.rationale.trimmed_t"
+    });
+  });
+
+  it("recommends Mann–Whitney for a small / non-normal sample comparing the mean", () => {
+    expect(recommendObservedTest("continuous", { goal: "difference", distribution: "small_nonnormal", focus: "mean" })).toEqual({
+      test: "mann_whitney",
+      rationaleKey: "results.observedResults.chooser.rationale.mann_whitney"
+    });
+  });
+
+  it("recommends the plain difference t-test for roughly-normal data comparing the mean", () => {
+    expect(recommendObservedTest("continuous", { goal: "difference", distribution: "normal", focus: "mean" })).toEqual({
+      test: "parametric",
+      rationaleKey: "results.observedResults.chooser.rationale.parametric"
+    });
+  });
+
+  it("names its recommendation with the same label as the toggle button", () => {
+    expect(observedTestLabelKey("continuous", "trimmed_t")).toBe("results.observedResults.testType.trimmedT");
+    expect(observedTestLabelKey("binary", "parametric")).toBe("results.observedResults.testType.zTest");
+  });
+
+  it("offers no chooser for ratio plans (two options needing different data)", () => {
+    expect(observedChooserQuestions("ratio")).toEqual([]);
+    expect(recommendObservedTest("ratio", {})).toBeNull();
   });
 });

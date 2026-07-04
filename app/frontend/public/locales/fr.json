@@ -608,6 +608,53 @@
         "analyzeBeforeSaving": "Analysez les résultats avant de les enregistrer dans un projet.",
         "saveUnavailable": "Les résultats observés n'ont pas pu être enregistrés.",
         "savedToProject": "Les résultats observés ont été enregistrés dans le projet {{projectName}}."
+      },
+      "chooser": {
+        "toggle": "Quel test utiliser ?",
+        "description": "Répondez à quelques questions et nous suggérerons un test. Le sélecteur complet ci-dessus reste disponible.",
+        "incomplete": "Répondez aux questions ci-dessus pour voir une recommandation.",
+        "recommendation": "Recommandé : {{test}}",
+        "apply": "Utiliser ce test",
+        "questions": {
+          "goal": {
+            "label": "Que cherchez-vous à démontrer ?",
+            "options": {
+              "difference": "Détecter une différence",
+              "equivalence": "Confirmer l'absence de changement significatif"
+            }
+          },
+          "distribution": {
+            "label": "Comment la métrique est-elle distribuée ?",
+            "options": {
+              "normal": "À peu près normale, échantillon modéré",
+              "skew_outliers": "Asymétrique, queues lourdes ou valeurs aberrantes",
+              "small_nonnormal": "Petit échantillon (< ~30/groupe) ou nettement non normal"
+            }
+          },
+          "focus": {
+            "label": "Qu'est-ce qui compte le plus ?",
+            "options": {
+              "mean": "La moyenne",
+              "percentile": "Un percentile / une queue précis (par ex. p90)"
+            }
+          },
+          "binarySmall": {
+            "label": "Les effectifs sont-ils faibles ou les événements rares (un groupe < ~10) ?",
+            "options": {
+              "yes": "Oui — faibles ou rares",
+              "no": "Non — grands échantillons"
+            }
+          }
+        },
+        "rationale": {
+          "zTest": "Grands échantillons avec des effectifs suffisants — l'approximation normale est fiable.",
+          "fisher_exact": "Effectifs faibles ou événements rares — le test exact de Fisher évite l'approximation normale peu fiable.",
+          "parametric": "Données à peu près normales, comparaison des moyennes — le test t de différence convient.",
+          "mann_whitney": "Échantillon petit ou non normal — un test de rangs sans hypothèse de normalité (le bootstrap / la permutation est une autre option).",
+          "trimmed_t": "Les queues lourdes ou les valeurs aberrantes tirent la moyenne — les moyennes tronquées y résistent (Mann–Whitney est une alternative sans distribution).",
+          "quantile": "Un percentile précis compte plus que la moyenne — comparez directement ce quantile.",
+          "equivalence": "Vous voulez confirmer que la métrique est restée dans une tolérance — cela nécessite le test d'équivalence TOST, pas un simple test de différence."
+        }
       }
     },
     "sensitivityOverview": {
