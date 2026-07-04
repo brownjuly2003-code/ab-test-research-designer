@@ -198,7 +198,8 @@
           "user": "用户",
           "session": "会议",
           "device": "设备",
-          "account": "帐户"
+          "account": "帐户",
+          "cluster": "集群（门店/地区/班级）"
         }
       },
       "metrics": {

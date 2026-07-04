@@ -68,6 +68,15 @@ describe("experiment helpers", () => {
     expect(payload.long_test_possible).toBe(true);
   });
 
+  it("forwards the randomization unit into the calculation payload so the live preview can warn on cluster designs", () => {
+    const state = cloneInitialState();
+    state.setup.randomization_unit = "cluster";
+
+    const payload = buildCalculationPayload(state);
+
+    expect(payload.randomization_unit).toBe("cluster");
+  });
+
   it("defaults holdout and mutual-exclusion to null in the calculation payload", () => {
     const payload = buildCalculationPayload(cloneInitialState());
 

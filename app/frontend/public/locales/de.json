@@ -198,7 +198,8 @@
           "user": "Benutzer",
           "session": "Sitzung",
           "device": "Gerät",
-          "account": "Konto"
+          "account": "Konto",
+          "cluster": "Cluster (Filiale, Region, Klasse)"
         }
       },
       "metrics": {

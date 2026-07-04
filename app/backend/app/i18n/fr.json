@@ -10,7 +10,8 @@
     "conservative_multivariant_alpha": "Plus de deux variantes déclenchent une correction alpha de Bonferroni. Ceci est prudent et peut surestimer la taille de l’échantillon requis.",
     "long_test_not_possible": "La durée prévue est longue, mais le projet ne peut pas supporter un test de longue durée.",
     "interim_looks_increase_sample": "La conception séquentielle avec les looks {{n_looks}} augmente la taille de l'échantillon requise de ~{{pct}}%",
-    "srm_detected": "Inadéquation du rapport d’échantillonnage détectée (p < 0,001). Vérifiez la randomisation et le suivi."
+    "srm_detected": "Inadéquation du rapport d’échantillonnage détectée (p < 0,001). Vérifiez la randomisation et le suivi.",
+    "cluster_randomization": "L'unité de randomisation est un cluster (magasin, région, classe, etc.), pas un utilisateur individuel. Les erreurs types naïves supposent des observations indépendantes et sont sous-estimées avec une randomisation par cluster — considérez la significativité comme optimiste tant qu'une correction par effet de dispositif/ICC ou une analyse robuste par cluster n'a pas été appliquée."
   },
   "report": {
     "executive_summary": "{{project_name}} teste si {{change_description}} peut améliorer {{primary_metric_name}} pour {{target_audience}}. Le plan déterministe estime les jours {{estimated_duration_days}} avec des utilisateurs {{sample_size_per_variant}} par variante.",

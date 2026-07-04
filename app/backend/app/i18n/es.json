@@ -10,7 +10,8 @@
     "conservative_multivariant_alpha": "Más de dos variantes activan una corrección alfa de Bonferroni. Es conservador y puede sobrestimar el tamaño de muestra requerido.",
     "long_test_not_possible": "La duración esperada es larga, pero el proyecto no admite pruebas prolongadas.",
     "interim_looks_increase_sample": "El diseño secuencial con {{n_looks}} análisis interinos aumenta el tamaño de muestra requerido en ~{{pct}}%",
-    "srm_detected": "Se detectó desajuste en la proporción de muestra (p < 0,001). Verifique la aleatorización y el seguimiento."
+    "srm_detected": "Se detectó desajuste en la proporción de muestra (p < 0,001). Verifique la aleatorización y el seguimiento.",
+    "cluster_randomization": "La unidad de aleatorización es un clúster (tienda, región, aula, etc.), no un usuario individual. Los errores estándar ingenuos asumen observaciones independientes y están subestimados bajo aleatorización por clústeres — considere la significancia como optimista hasta aplicar un ajuste por efecto de diseño/ICC o un análisis robusto por clústeres."
   },
   "report": {
     "executive_summary": "{{project_name}} prueba si {{change_description}} puede mejorar {{primary_metric_name}} para {{target_audience}}. El plan determinista estima {{estimated_duration_days}} días con {{sample_size_per_variant}} usuarios por variante.",

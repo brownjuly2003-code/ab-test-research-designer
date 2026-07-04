@@ -10,7 +10,8 @@
     "conservative_multivariant_alpha": "两个以上的变体会触发 Bonferroni alpha 校正。这是保守的，可能夸大了所需的样本量。",
     "long_test_not_possible": "预期持续时间较长，但该项目无法支持长时间运行的测试。",
     "interim_looks_increase_sample": "采用 {{n_looks}} 的序贯设计看起来将所需样本量增加了 ~{{pct}}%",
-    "srm_detected": "检测到样本比率不匹配 (p < 0.001)。检查随机化和跟踪。"
+    "srm_detected": "检测到样本比率不匹配 (p < 0.001)。检查随机化和跟踪。",
+    "cluster_randomization": "随机化单位是集群级别（例如门店、地区、班级），而非单个用户。朴素标准误假设观测相互独立，在集群随机化下会被低估——在应用设计效应/ICC 调整或集群稳健分析之前，应将显著性结果视为偏乐观。"
   },
   "report": {
     "executive_summary": "{{project_name}} 测试 {{change_description}} 是否可以改进 {{primary_metric_name}} 对于 {{target_audience}}。确定性计划估计每个变体的 {{sample_size_per_variant}} 用户数为 {{estimated_duration_days}} 天。",

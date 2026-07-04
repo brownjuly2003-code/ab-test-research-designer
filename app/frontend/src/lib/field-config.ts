@@ -98,7 +98,8 @@ export const sections: SectionConfig[] = [
           { label: "User", value: "user" },
           { label: "Session", value: "session" },
           { label: "Device", value: "device" },
-          { label: "Account", value: "account" }
+          { label: "Account", value: "account" },
+          { label: "Cluster (store, region, classroom)", value: "cluster" }
         ]
       },
       {

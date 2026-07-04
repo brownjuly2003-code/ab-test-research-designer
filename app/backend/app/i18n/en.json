@@ -10,7 +10,8 @@
     "conservative_multivariant_alpha": "More than two variants trigger a Bonferroni alpha correction. This is conservative and may overstate the required sample size.",
     "long_test_not_possible": "Expected duration is long, but the project cannot support a long-running test.",
     "interim_looks_increase_sample": "Sequential design with {{n_looks}} looks increases required sample size by ~{{pct}}%",
-    "srm_detected": "Sample ratio mismatch detected (p < 0.001). Check randomization and tracking."
+    "srm_detected": "Sample ratio mismatch detected (p < 0.001). Check randomization and tracking.",
+    "cluster_randomization": "Randomization unit is a cluster (e.g. store, region, classroom), not an individual user. Naive standard errors assume independent observations and are underestimated under cluster randomization — treat significance as optimistic until a design-effect/ICC adjustment or cluster-robust analysis is applied."
   },
   "report": {
     "executive_summary": "{{project_name}} tests whether {{change_description}} can improve {{primary_metric_name}} for {{target_audience}}. The deterministic plan estimates {{estimated_duration_days}} days with {{sample_size_per_variant}} users per variant.",

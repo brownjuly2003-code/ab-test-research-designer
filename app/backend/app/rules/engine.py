@@ -47,6 +47,9 @@ def evaluate_warnings(
     if effective_daily_traffic and variants_count > 2 and effective_daily_traffic < variants_count * 2000:
         warnings.append(_warning("MANY_VARIANTS_LOW_TRAFFIC"))
 
+    if payload.get("randomization_unit") == "cluster":
+        warnings.append(_warning("CLUSTER_RANDOMIZATION"))
+
     if payload.get("seasonality_present") is True:
         warnings.append(_warning("SEASONALITY_PRESENT"))
 

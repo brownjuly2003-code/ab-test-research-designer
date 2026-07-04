@@ -289,6 +289,7 @@ export function buildCalculationPayload(state: FullPayload): CalculateRequest {
     audience_share_in_test: payload.setup.audience_share_in_test,
     traffic_split: payload.setup.traffic_split,
     variants_count: payload.setup.variants_count,
+    randomization_unit: payload.setup.randomization_unit,
     seasonality_present: payload.constraints.seasonality_present,
     active_campaigns_present: payload.constraints.active_campaigns_present,
     long_test_possible: payload.constraints.long_test_possible,
