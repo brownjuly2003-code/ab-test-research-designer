@@ -594,6 +594,8 @@
         "zTest": "prueba z (aproximación normal)",
         "fisherExact": "prueba exacta de Fisher (muestras pequeñas)",
         "fisherHint": "La prueba exacta de Fisher condiciona en ambos márgenes y enumera la distribución hipergeométrica: un valor p exacto para muestras pequeñas o eventos raros, donde la aproximación normal de la prueba z no es fiable.",
+        "boschloo": "Prueba exacta de Boschloo (incondicional)",
+        "boschlooHint": "La prueba exacta incondicional de Boschloo fija solo los tamaños de grupo y toma el supremo sobre la tasa de éxito común desconocida, ordenando las tablas por la p exacta de Fisher. Es uniformemente al menos tan potente como la prueba exacta de Fisher —una opción más fuerte para muestras pequeñas— a un mayor coste de cómputo, por lo que se limita a tablas pequeñas.",
         "rate": "Tasa (Poisson)",
         "rateHint": "La prueba de tasa de Poisson compara eventos sobre exposición (p. ej. errores por 1000 sesiones) con una prueba condicional exacta. Úsela para datos de tasa de eventos con llegadas independientes, no para conteos agrupados por usuario.",
         "bootstrap": "Bootstrap / permutación",
@@ -1009,6 +1011,15 @@
       }
     },
     "categoricalResults": {
+      "testTypeLabel": "Prueba",
+      "testType": {
+        "chi_square": "Chi-cuadrado de Pearson",
+        "g_test": "Prueba G (razón de verosimilitud)"
+      },
+      "statistic": {
+        "chi_square": "Chi-cuadrado",
+        "g_test": "Estadístico G"
+      },
       "title": "Resultado categórico (chi-cuadrado)",
       "description": "Comprueba si la distribución de un resultado categórico difiere entre grupos con una prueba de independencia chi-cuadrado sobre una tabla de contingencia r×c.",
       "tableLabel": "Tabla de contingencia",

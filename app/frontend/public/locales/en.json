@@ -594,6 +594,8 @@
         "zTest": "z-test (normal approximation)",
         "fisherExact": "Fisher's exact (small samples)",
         "fisherHint": "Fisher's exact conditions on both margins and enumerates the hypergeometric distribution — an exact p-value for small samples or rare events, where the z-test's normal approximation is unreliable.",
+        "boschloo": "Boschloo's exact (unconditional)",
+        "boschlooHint": "Boschloo's unconditional exact test treats only the group sizes as fixed and takes the supremum over the unknown shared success rate, ordering tables by Fisher's exact p. It is uniformly at least as powerful as Fisher's exact test — a stronger small-sample choice — at a higher compute cost, so it is capped to small tables.",
         "rate": "Rate (Poisson)",
         "rateHint": "The Poisson rate test compares events over exposure (e.g. errors per 1000 sessions) with an exact conditional test. Use it for event-rate data where arrivals are independent — not for clustered per-user counts.",
         "bootstrap": "Bootstrap / permutation",
@@ -1009,6 +1011,15 @@
       }
     },
     "categoricalResults": {
+      "testTypeLabel": "Test",
+      "testType": {
+        "chi_square": "Pearson chi-square",
+        "g_test": "G-test (likelihood ratio)"
+      },
+      "statistic": {
+        "chi_square": "Chi-square",
+        "g_test": "G statistic"
+      },
       "title": "Categorical outcome (chi-square)",
       "description": "Test whether a categorical outcome's distribution differs across groups with a chi-square test of independence on an r×c contingency table.",
       "tableLabel": "Contingency table",

@@ -23,6 +23,7 @@ from app.backend.app.services.results_service import analyze_categorical_results
 from app.backend.app.stats.chi_square_independence import (
     MAX_CONTINGENCY_TOTAL,
     chi_square_independence_test,
+    g_test_independence,
 )
 
 # Frozen references from scipy.stats.chi2_contingency(table, correction=False) — the uncorrected
@@ -294,5 +295,107 @@ def test_endpoint_too_many_rows_returns_422() -> None:
     response = client.post(
         "/api/v1/results/categorical",
         json={"table": [[1, 1] for _ in range(60)]},  # exceeds the dimension cap
+    )
+    assert response.status_code == 422
+
+
+# --- G-test (likelihood-ratio chi-square) ----------------------------------------------------
+
+# Frozen references from scipy.stats.chi2_contingency(table, lambda_="log-likelihood",
+# correction=False) — cross-checked locally at implementation time; scipy is not a committed dependency.
+# Each row: (table, G, dof, p_value).
+G_TEST_REFERENCE = [
+    ([[10, 20, 30], [15, 25, 20], [12, 18, 25]], 3.96198552, 4, 0.41117500),
+    ([[30, 10, 15], [20, 25, 18]], 8.38529783, 2, 0.01510622),
+    ([[0, 10], [8, 6]], 11.43125315, 1, 0.00072219),  # a zero cell contributes 0 to G (x*ln x -> 0)
+]
+
+
+@pytest.mark.parametrize("table,g,dof,p", G_TEST_REFERENCE)
+def test_g_test_matches_scipy_reference(table, g, dof, p) -> None:
+    result = g_test_independence(table)
+    assert result["chi_square"] == pytest.approx(g, abs=1e-6)  # the ``chi_square`` key carries G
+    assert result["degrees_of_freedom"] == dof
+    assert result["p_value"] == pytest.approx(p, abs=1e-6)
+
+
+def test_g_test_zero_cell_contributes_nothing() -> None:
+    """An empty *cell* (O = 0) is fine — lim_{x->0} x*ln x = 0 — only an empty row/column is degenerate.
+    Recompute G from the definition, skipping the zero cell, and confirm the module agrees."""
+    table = [[0, 10], [8, 6]]
+    row_totals = [10, 14]
+    col_totals = [8, 16]
+    total = 24
+    expected_g = 2.0 * sum(
+        table[i][j] * math.log(table[i][j] / (row_totals[i] * col_totals[j] / total))
+        for i in range(2)
+        for j in range(2)
+        if table[i][j] != 0
+    )
+    assert g_test_independence(table)["chi_square"] == pytest.approx(expected_g, rel=1e-12)
+
+
+def test_g_test_differs_from_pearson_but_is_close() -> None:
+    """G and Pearson's chi-square are distinct power-divergence statistics but numerically close."""
+    table = [[10, 20, 30], [15, 25, 20], [12, 18, 25]]
+    g = g_test_independence(table)["chi_square"]
+    chi = chi_square_independence_test(table)["chi_square"]
+    assert g != pytest.approx(chi, abs=1e-6)
+    assert g == pytest.approx(chi, abs=0.2)
+
+
+def test_g_test_shares_degeneracy_guards() -> None:
+    with pytest.raises(ValueError, match="row and column"):
+        g_test_independence([[0, 0], [5, 5]])
+    with pytest.raises(ValueError, match="rectangular"):
+        g_test_independence([[1, 2, 3], [4, 5]])
+    with pytest.raises(ValueError, match="two rows"):
+        g_test_independence([[1, 2]])
+
+
+def test_service_dispatches_g_test() -> None:
+    response = analyze_categorical_results(
+        CategoricalResultsRequest(table=[[10, 20, 30], [15, 25, 20], [12, 18, 25]], test_type="g_test")
+    )
+    assert response.test_type == "g_test"
+    assert response.degrees_of_freedom == 4
+    assert response.chi_square == pytest.approx(3.9620, abs=1e-4)
+    assert response.p_value == pytest.approx(0.411175, abs=1e-6)
+    assert "G" in response.interpretation
+
+
+def test_service_defaults_to_chi_square() -> None:
+    response = analyze_categorical_results(
+        CategoricalResultsRequest(table=[[10, 20, 30], [30, 20, 10]])
+    )
+    assert response.test_type == "chi_square"
+
+
+def test_endpoint_g_test_returns_g_statistic() -> None:
+    client = TestClient(create_app())
+    response = client.post(
+        "/api/v1/results/categorical",
+        json={"table": [[10, 20, 30], [15, 25, 20], [12, 18, 25]], "test_type": "g_test"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["test_type"] == "g_test"
+    assert body["chi_square"] == pytest.approx(3.9620, abs=1e-4)
+    assert body["p_value"] == pytest.approx(0.411175, abs=1e-6)
+
+
+def test_endpoint_g_test_localizes_via_accept_language() -> None:
+    client = TestClient(create_app())
+    body = {"table": [[10, 20, 30], [15, 25, 20], [12, 18, 25]], "test_type": "g_test"}
+    russian = client.post("/api/v1/results/categorical", json=body, headers={"Accept-Language": "ru"})
+    assert russian.status_code == 200
+    assert "G-критерий" in russian.json()["interpretation"]
+
+
+def test_endpoint_malformed_test_type_returns_422() -> None:
+    client = TestClient(create_app())
+    response = client.post(
+        "/api/v1/results/categorical",
+        json={"table": [[30, 70], [50, 50]], "test_type": "not_a_test"},
     )
     assert response.status_code == 422

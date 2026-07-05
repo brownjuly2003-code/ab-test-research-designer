@@ -594,6 +594,8 @@
         "zTest": "test z (approximation normale)",
         "fisherExact": "test exact de Fisher (petits échantillons)",
         "fisherHint": "Le test exact de Fisher conditionne sur les deux marges et énumère la distribution hypergéométrique — une valeur p exacte pour les petits échantillons ou les événements rares, là où l'approximation normale du test z n'est pas fiable.",
+        "boschloo": "Test exact de Boschloo (inconditionnel)",
+        "boschlooHint": "Le test exact inconditionnel de Boschloo ne fixe que les tailles de groupe et prend le supremum sur le taux de succès commun inconnu, en ordonnant les tableaux par la p exacte de Fisher. Il est uniformément au moins aussi puissant que le test exact de Fisher — un choix plus fort pour les petits échantillons — pour un coût de calcul plus élevé, il est donc limité aux petits tableaux.",
         "rate": "Taux (Poisson)",
         "rateHint": "Le test de taux de Poisson compare les événements sur l'exposition (p. ex. erreurs pour 1000 sessions) avec un test conditionnel exact. À utiliser pour des taux d'événements à arrivées indépendantes, pas pour des comptages groupés par utilisateur.",
         "bootstrap": "Bootstrap / permutation",
@@ -1009,6 +1011,15 @@
       }
     },
     "categoricalResults": {
+      "testTypeLabel": "Test",
+      "testType": {
+        "chi_square": "Khi-deux de Pearson",
+        "g_test": "Test G (rapport de vraisemblance)"
+      },
+      "statistic": {
+        "chi_square": "Khi-deux",
+        "g_test": "Statistique G"
+      },
       "title": "Résultat catégoriel (khi-deux)",
       "description": "Vérifiez si la distribution d'un résultat catégoriel diffère entre les groupes à l'aide d'un test d'indépendance du khi-deux sur un tableau de contingence r×c.",
       "tableLabel": "Tableau de contingence",

@@ -68,8 +68,13 @@ export function cramersVMagnitude(
   return "large";
 }
 
+type CategoricalTestType = "chi_square" | "g_test";
+
+const CATEGORICAL_TEST_TYPES: CategoricalTestType[] = ["chi_square", "g_test"];
+
 export default function CategoricalResultsSection() {
   const { t } = useTranslation();
+  const [testType, setTestType] = useState<CategoricalTestType>("chi_square");
   const [tableText, setTableText] = useState("");
   const [alpha, setAlpha] = useState("0.05");
   const [analysis, setAnalysis] = useState<CategoricalResultsResponse | null>(null);
@@ -95,7 +100,7 @@ export default function CategoricalResultsSection() {
       const response = await fetch(apiUrl("/api/v1/results/categorical"), {
         method: "POST",
         headers: buildApiRequestHeaders(),
-        body: JSON.stringify({ table, alpha: Number.isFinite(alphaValue) ? alphaValue : 0.05 })
+        body: JSON.stringify({ table, alpha: Number.isFinite(alphaValue) ? alphaValue : 0.05, test_type: testType })
       });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) {
@@ -115,6 +120,24 @@ export default function CategoricalResultsSection() {
       <h3>{t("results.categoricalResults.title")}</h3>
       <p className="muted">{t("results.categoricalResults.description")}</p>
       <div style={{ display: "grid", gap: "var(--space-3)", marginTop: "var(--space-4)" }}>
+        <div className="field" style={{ maxWidth: "320px" }}>
+          <label htmlFor="categorical-test-type">{t("results.categoricalResults.testTypeLabel")}</label>
+          <select
+            id="categorical-test-type"
+            value={testType}
+            onChange={(event) => {
+              setTestType(event.target.value as CategoricalTestType);
+              setAnalysis(null);
+              setError("");
+            }}
+          >
+            {CATEGORICAL_TEST_TYPES.map((value) => (
+              <option key={value} value={value}>
+                {t(`results.categoricalResults.testType.${value}`)}
+              </option>
+            ))}
+          </select>
+        </div>
         <div className="field">
           <label htmlFor="categorical-table">{t("results.categoricalResults.tableLabel")}</label>
           <textarea id="categorical-table" rows={5} value={tableText} placeholder={t("results.categoricalResults.tablePlaceholder")} onChange={(event) => setTableText(event.target.value)} />
@@ -144,7 +167,7 @@ export default function CategoricalResultsSection() {
             </div>
           ) : null}
           <div style={{ display: "grid", gap: "var(--space-3)", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))" }}>
-            <div className="card"><strong>{t("results.categoricalResults.results.chiSquare")}</strong><div style={{ marginTop: "8px" }}>{analysis.chi_square.toFixed(4)}</div></div>
+            <div className="card"><strong>{t(`results.categoricalResults.statistic.${analysis.test_type}`)}</strong><div style={{ marginTop: "8px" }}>{analysis.chi_square.toFixed(4)}</div></div>
             <div className="card"><strong>{t("results.categoricalResults.results.degreesOfFreedom")}</strong><div style={{ marginTop: "8px" }}>{analysis.degrees_of_freedom}</div></div>
             <div className="card"><strong>{t("results.categoricalResults.results.pValue")}</strong><div style={{ marginTop: "8px" }}>{analysis.p_value.toFixed(6)}</div></div>
             <div className="card"><strong>{t("results.categoricalResults.results.cramersV")}</strong><div style={{ marginTop: "8px" }}>{analysis.cramers_v.toFixed(4)} <span className="muted">· {t(`results.categoricalResults.magnitude.${cramersVMagnitude(analysis.cramers_v, analysis.num_rows, analysis.num_cols)}`)}</span></div></div>

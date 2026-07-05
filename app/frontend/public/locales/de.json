@@ -594,6 +594,8 @@
         "zTest": "z-Test (Normalapproximation)",
         "fisherExact": "Fisher-Exakt-Test (kleine Stichproben)",
         "fisherHint": "Der Fisher-Exakt-Test bedingt auf beide Randsummen und zählt die hypergeometrische Verteilung aus — ein exakter p-Wert für kleine Stichproben oder seltene Ereignisse, wo die Normalapproximation des z-Tests unzuverlässig ist.",
+        "boschloo": "Boschloos exakter Test (unbedingt)",
+        "boschlooHint": "Boschloos unbedingter exakter Test hält nur die Gruppengrößen fest und bildet das Supremum über die unbekannte gemeinsame Erfolgswahrscheinlichkeit, wobei Tabellen nach Fishers exaktem p geordnet werden. Er ist gleichmäßig mindestens so mächtig wie Fishers exakter Test — die stärkere Wahl bei kleinen Stichproben — bei höherem Rechenaufwand und daher auf kleine Tabellen begrenzt.",
         "rate": "Rate (Poisson)",
         "rateHint": "Der Poisson-Ratentest vergleicht Ereignisse über die Exposition (z. B. Fehler pro 1000 Sitzungen) mit einem exakten bedingten Test. Für Ereignisraten mit unabhängigen Ankünften — nicht für geclusterte Zählungen pro Nutzer.",
         "bootstrap": "Bootstrap / Permutation",
@@ -1009,6 +1011,15 @@
       }
     },
     "categoricalResults": {
+      "testTypeLabel": "Test",
+      "testType": {
+        "chi_square": "Pearson-Chi-Quadrat",
+        "g_test": "G-Test (Likelihood-Quotient)"
+      },
+      "statistic": {
+        "chi_square": "Chi-Quadrat",
+        "g_test": "G-Statistik"
+      },
       "title": "Kategoriales Ergebnis (Chi-Quadrat)",
       "description": "Prüfen Sie mit einem Chi-Quadrat-Unabhängigkeitstest auf einer r×c-Kontingenztabelle, ob sich die Verteilung eines kategorialen Ergebnisses zwischen Gruppen unterscheidet.",
       "tableLabel": "Kontingenztabelle",

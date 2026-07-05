@@ -23,7 +23,10 @@ from app.backend.app.stats.binary import (
     normal_ppf,
 )
 from app.backend.app.stats.bootstrap_permutation import bootstrap_permutation_test
-from app.backend.app.stats.chi_square_independence import chi_square_independence_test
+from app.backend.app.stats.chi_square_independence import (
+    chi_square_independence_test,
+    g_test_independence,
+)
 from app.backend.app.stats.equivalence import tost_equivalence_test
 from app.backend.app.stats.fisher_exact import (
     MAX_FISHER_EXACT_TOTAL,
@@ -41,6 +44,10 @@ from app.backend.app.stats.poisson_rate import MAX_POISSON_EVENTS, poisson_rate_
 from app.backend.app.stats.quantile_te import quantile_treatment_effect_test
 from app.backend.app.stats.student_t import t_cdf, t_ppf
 from app.backend.app.stats.trimmed_t import trimmed_means_t_test
+from app.backend.app.stats.unconditional_exact import (
+    MAX_UNCONDITIONAL_EXACT_TOTAL,
+    boschloo_exact_test,
+)
 
 _STANDARD_NORMAL = NormalDist()
 
@@ -50,6 +57,8 @@ def analyze_results(request: ResultsRequest) -> ResultsResponse:
         return _analyze_binary(request.binary)
     if request.metric_type == "fisher_exact":
         return _analyze_fisher_exact(request.binary)
+    if request.metric_type == "boschloo_exact":
+        return _analyze_boschloo_exact(request.binary)
     if request.metric_type == "mann_whitney":
         return _analyze_mann_whitney(request.ranked)
     if request.metric_type == "bootstrap":
@@ -66,16 +75,21 @@ def analyze_results(request: ResultsRequest) -> ResultsResponse:
 
 
 def analyze_categorical_results(request: CategoricalResultsRequest) -> CategoricalResultsResponse:
-    """Chi-square test of independence on an r×c contingency table.
+    """Test of independence on an r×c contingency table — Pearson chi-square or the G-test.
 
-    Separate from ``analyze_results`` because the outcome is omnibus — a chi-square statistic with
-    degrees of freedom and Cramér's V, not the scalar effect + confidence interval that
-    ``ResultsResponse`` carries. A degenerate table raises ``ValueError`` from the stats layer, which
-    the global handler maps to HTTP 400.
+    Separate from ``analyze_results`` because the outcome is omnibus — a test statistic with degrees of
+    freedom and Cramér's V, not the scalar effect + confidence interval that ``ResultsResponse`` carries.
+    ``test_type`` selects Pearson's chi-square (default) or the G-test (likelihood-ratio chi-square) on
+    the same table; both share this response shape. A degenerate table raises ``ValueError`` from the
+    stats layer, which the global handler maps to HTTP 400.
     """
-    result = chi_square_independence_test(request.table, request.alpha)
+    if request.test_type == "g_test":
+        result = g_test_independence(request.table, request.alpha)
+    else:
+        result = chi_square_independence_test(request.table, request.alpha)
     is_significant = result["is_significant"]
     return CategoricalResultsResponse(
+        test_type=request.test_type,
         chi_square=round(result["chi_square"], 4),
         degrees_of_freedom=result["degrees_of_freedom"],
         p_value=round(result["p_value"], 6),
@@ -91,18 +105,18 @@ def analyze_categorical_results(request: CategoricalResultsRequest) -> Categoric
             if is_significant
             else "results.categorical.verdict_independent"
         ),
-        interpretation=_interpretation_categorical(result),
+        interpretation=_interpretation_categorical(result, request.test_type),
     )
 
 
-def _interpretation_categorical(result: dict[str, Any]) -> str:
+def _interpretation_categorical(result: dict[str, Any], test_type: str) -> str:
     significance_text = translate(
         "results.significance.significant"
         if result["is_significant"]
         else "results.significance.not_significant"
     )
     return translate(
-        "results.interpretation.categorical",
+        "results.interpretation.g_test" if test_type == "g_test" else "results.interpretation.categorical",
         {
             "chiSquare": f"{result['chi_square']:.4f}",
             "df": str(result["degrees_of_freedom"]),
@@ -468,6 +482,51 @@ def _analyze_fisher_exact(obs: ObservedResultsBinary | None) -> ResultsResponse:
         obs.treatment_conversions,
         obs.treatment_users,
     )
+    return _binary_exact_response(
+        obs,
+        result,
+        metric_type="fisher_exact",
+        interpretation_key="results.interpretation.fisher_exact",
+    )
+
+
+def _analyze_boschloo_exact(obs: ObservedResultsBinary | None) -> ResultsResponse:
+    if obs is None:
+        raise ValueError("binary observations are required")
+    if obs.control_users + obs.treatment_users > MAX_UNCONDITIONAL_EXACT_TOTAL:
+        # The unconditional grid-search is far heavier than Fisher's single-margin sweep; above the cap
+        # the unconditional advantage over the z-test / Fisher test has vanished, so redirect the caller.
+        raise ValueError(translate("errors.schemas.unconditional_exact_table_too_large"))
+
+    result = boschloo_exact_test(
+        obs.control_conversions,
+        obs.control_users,
+        obs.treatment_conversions,
+        obs.treatment_users,
+    )
+    return _binary_exact_response(
+        obs,
+        result,
+        metric_type="boschloo_exact",
+        interpretation_key="results.interpretation.boschloo_exact",
+    )
+
+
+def _binary_exact_response(
+    obs: ObservedResultsBinary,
+    result: dict[str, Any],
+    *,
+    metric_type: str,
+    interpretation_key: str,
+) -> ResultsResponse:
+    """Assemble the ``ResultsResponse`` for a 2x2 exact analyzer (Fisher or Boschloo).
+
+    Both exact tests read the same 2x2 counts and report the same descriptive effect (risk difference +
+    Newcombe CI, odds ratio + mid-p conditional CI, descriptive large-sample power) — they differ only
+    in the p-value (supplied in ``result``), the ``metric_type`` tag, and the interpretation sentence's
+    lead-in key. ``result`` carries the p-value plus the test-agnostic table statistics (rates, odds
+    ratio, risk difference) produced by :func:`fisher_exact_test` / :func:`boschloo_exact_test`.
+    """
     p1 = result["control_rate"]
     p2 = result["treatment_rate"]
     effect = result["risk_difference"]
@@ -476,7 +535,7 @@ def _analyze_fisher_exact(obs: ObservedResultsBinary | None) -> ResultsResponse:
     odds_ratio = result["odds_ratio"]
 
     # The p-value is exact. The risk-difference interval uses Newcombe's hybrid-score method (accurate
-    # in exactly the small-n / rare-event regime where Fisher's test is the right analyzer). Achieved
+    # in exactly the small-n / rare-event regime where an exact test is the right analyzer). Achieved
     # power stays the large-sample normal approximation on the risk difference, framed as descriptive.
     z_critical = normal_ppf(1 - obs.alpha / 2)
     ci_lower, ci_upper = newcombe_difference_interval(
@@ -516,7 +575,7 @@ def _analyze_fisher_exact(obs: ObservedResultsBinary | None) -> ResultsResponse:
         effect_size_ci_upper = None if or_upper is None else round(or_upper, 4)
 
     return ResultsResponse(
-        metric_type="fisher_exact",
+        metric_type=metric_type,
         observed_effect=round(effect * 100, 4),
         observed_effect_relative=round(result["relative_risk_difference"] * 100, 2),
         control_rate=round(p1 * 100, 4),
@@ -529,7 +588,8 @@ def _analyze_fisher_exact(obs: ObservedResultsBinary | None) -> ResultsResponse:
         is_significant=is_significant,
         power_achieved=round(_bounded_probability(power_achieved), 3),
         verdict=_verdict(is_significant, effect, obs.alpha),
-        interpretation=_interpretation_fisher_exact(
+        interpretation=_interpretation_binary_exact(
+            interpretation_key=interpretation_key,
             p1=p1,
             p2=p2,
             effect=effect,
@@ -546,8 +606,9 @@ def _analyze_fisher_exact(obs: ObservedResultsBinary | None) -> ResultsResponse:
     )
 
 
-def _interpretation_fisher_exact(
+def _interpretation_binary_exact(
     *,
+    interpretation_key: str,
     p1: float,
     p2: float,
     effect: float,
@@ -568,7 +629,7 @@ def _interpretation_fisher_exact(
         else translate("results.fisher_exact.odds_ratio_undefined")
     )
     interpretation = translate(
-        "results.interpretation.fisher_exact",
+        interpretation_key,
         {
             "treatment": f"{p2 * 100:.4f}",
             "control": f"{p1 * 100:.4f}",

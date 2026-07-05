@@ -250,6 +250,50 @@ describe("buildResultsRequest (fisher_exact)", () => {
   });
 });
 
+describe("buildResultsRequest (boschloo_exact)", () => {
+  it("reuses the binary 2x2 input and tags the payload as boschloo_exact", () => {
+    const state = emptyState();
+    state.binary = {
+      control_conversions: "3",
+      control_users: "10",
+      treatment_conversions: "8",
+      treatment_users: "10",
+      alpha: "0.05"
+    };
+    const payload = buildResultsRequest("boschloo_exact", state);
+    expect(payload).toEqual({
+      metric_type: "boschloo_exact",
+      binary: {
+        control_conversions: 3,
+        control_users: 10,
+        treatment_conversions: 8,
+        treatment_users: 10,
+        alpha: 0.05
+      }
+    });
+  });
+
+  it("restores a saved boschloo_exact request into the binary form", () => {
+    const restored = buildActualResultsState("boschloo_exact", 0.05, {
+      metric_type: "boschloo_exact",
+      binary: {
+        control_conversions: 3,
+        control_users: 10,
+        treatment_conversions: 8,
+        treatment_users: 10,
+        alpha: 0.01
+      }
+    });
+    expect(restored.binary).toEqual({
+      control_conversions: "3",
+      control_users: "10",
+      treatment_conversions: "8",
+      treatment_users: "10",
+      alpha: "0.01"
+    });
+  });
+});
+
 describe("buildResultsRequest (count)", () => {
   it("builds a count payload from events and exposure per arm", () => {
     const state = emptyState();
@@ -363,8 +407,8 @@ describe("buildResultsRequest (equivalence)", () => {
 });
 
 describe("test registry — observedTestButtons", () => {
-  it("offers the z-test default, Fisher's exact and the plan-independent rate test on a binary plan", () => {
-    expect(observedTestButtons("binary").map((button) => button.test)).toEqual(["parametric", "fisher_exact", "count"]);
+  it("offers the z-test default, Fisher's exact, Boschloo's exact and the plan-independent rate test on a binary plan", () => {
+    expect(observedTestButtons("binary").map((button) => button.test)).toEqual(["parametric", "fisher_exact", "boschloo_exact", "count"]);
   });
 
   it("offers the full continuous suite in display order, default first", () => {
@@ -399,6 +443,7 @@ describe("test registry — resolveEffectiveMetricType", () => {
 
   it("resolves each alternative offered for the base to its own analyzer", () => {
     expect(resolveEffectiveMetricType("binary", "fisher_exact")).toBe("fisher_exact");
+    expect(resolveEffectiveMetricType("binary", "boschloo_exact")).toBe("boschloo_exact");
     expect(resolveEffectiveMetricType("continuous", "mann_whitney")).toBe("mann_whitney");
     expect(resolveEffectiveMetricType("continuous", "equivalence")).toBe("equivalence");
     expect(resolveEffectiveMetricType("ratio", "count")).toBe("count");
@@ -424,7 +469,7 @@ describe("test registry — supportedObservedMetricTypes", () => {
       "equivalence",
       "count"
     ]);
-    expect(supportedObservedMetricTypes("binary")).toEqual(["binary", "fisher_exact", "count"]);
+    expect(supportedObservedMetricTypes("binary")).toEqual(["binary", "fisher_exact", "boschloo_exact", "count"]);
     expect(supportedObservedMetricTypes("ratio")).toEqual(["continuous", "count"]);
   });
 });
@@ -432,6 +477,7 @@ describe("test registry — supportedObservedMetricTypes", () => {
 describe("test registry — restoreObservedTest", () => {
   it("maps a persisted analyzer metric_type back to its toggle selection for the base plan", () => {
     expect(restoreObservedTest("binary", "fisher_exact")).toBe("fisher_exact");
+    expect(restoreObservedTest("binary", "boschloo_exact")).toBe("boschloo_exact");
     expect(restoreObservedTest("continuous", "trimmed_t")).toBe("trimmed_t");
     expect(restoreObservedTest("continuous", "count")).toBe("count");
     expect(restoreObservedTest("ratio", "count")).toBe("count");
@@ -464,6 +510,7 @@ describe("test registry — observedFormKind", () => {
   it("routes each analyzer to its input form", () => {
     expect(observedFormKind("binary")).toBe("binary");
     expect(observedFormKind("fisher_exact")).toBe("binary");
+    expect(observedFormKind("boschloo_exact")).toBe("binary");
     expect(observedFormKind("continuous")).toBe("continuous");
     expect(observedFormKind("equivalence")).toBe("equivalence");
     expect(observedFormKind("mann_whitney")).toBe("ranked");

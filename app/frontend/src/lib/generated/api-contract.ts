@@ -248,9 +248,11 @@ export type CalculationsSection = {
 export type CategoricalResultsRequest = {
   table: number[][];
   alpha?: number;
+  test_type?: "chi_square" | "g_test";
 };
 
 export type CategoricalResultsResponse = {
+  test_type: string;
   chi_square: number;
   degrees_of_freedom: number;
   p_value: number;
@@ -1262,7 +1264,7 @@ export type RecommendationsSection = {
 };
 
 export type ResultsRequest = {
-  metric_type: "binary" | "continuous" | "equivalence" | "mann_whitney" | "bootstrap" | "quantile" | "trimmed_t" | "fisher_exact" | "count";
+  metric_type: "binary" | "continuous" | "equivalence" | "mann_whitney" | "bootstrap" | "quantile" | "trimmed_t" | "fisher_exact" | "boschloo_exact" | "count";
   binary?: ObservedResultsBinary | null;
   continuous?: ObservedResultsContinuous | null;
   ranked?: ObservedResultsRanked | null;
