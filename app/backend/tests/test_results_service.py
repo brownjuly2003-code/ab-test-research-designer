@@ -933,6 +933,105 @@ def test_results_endpoint_fisher_exact_rejects_oversized_table() -> None:
     assert response.status_code == 400
 
 
+def test_results_endpoint_boschloo_exact_significant() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/results",
+        json={
+            "metric_type": "boschloo_exact",
+            "binary": {
+                "control_conversions": 3,
+                "control_users": 10,
+                "treatment_conversions": 8,
+                "treatment_users": 10,
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["metric_type"] == "boschloo_exact"
+    # Frozen two-sided Boschloo p-value for the 3/10-vs-8/10 table (== scipy 0.04138947).
+    assert payload["p_value"] == pytest.approx(0.041389, abs=1e-5)
+    assert payload["is_significant"] is True
+    # Sample odds ratio (3*2)/(7*8) surfaced as the effect size, same as the Fisher card.
+    assert payload["effect_size"] == pytest.approx((3 * 2) / (7 * 8), rel=1e-3)
+    assert "Boschloo" in payload["interpretation"]
+
+
+def test_results_endpoint_boschloo_exact_beats_fisher_on_same_table() -> None:
+    """Boschloo's unconditional p-value is <= Fisher's on the same data (strictly < here)."""
+    client = TestClient(create_app())
+    body = {
+        "binary": {
+            "control_conversions": 3,
+            "control_users": 10,
+            "treatment_conversions": 8,
+            "treatment_users": 10,
+        }
+    }
+    boschloo = client.post("/api/v1/results", json={**body, "metric_type": "boschloo_exact"}).json()
+    fisher = client.post("/api/v1/results", json={**body, "metric_type": "fisher_exact"}).json()
+    assert boschloo["p_value"] < fisher["p_value"]
+
+
+def test_results_endpoint_boschloo_exact_localizes_via_accept_language() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/results",
+        headers={"Accept-Language": "ru"},
+        json={
+            "metric_type": "boschloo_exact",
+            "binary": {
+                "control_conversions": 3,
+                "control_users": 10,
+                "treatment_conversions": 8,
+                "treatment_users": 10,
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    assert "Бошлоо" in response.json()["interpretation"]
+
+
+def test_results_endpoint_boschloo_exact_requires_binary_data() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/results",
+        json={
+            "metric_type": "boschloo_exact",
+            "ranked": {"control_values": [1, 2, 3], "treatment_values": [4, 5, 6]},
+        },
+    )
+
+    assert response.status_code == 422
+
+
+def test_results_endpoint_boschloo_exact_rejects_oversized_table() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/results",
+        json={
+            "metric_type": "boschloo_exact",
+            "binary": {
+                "control_conversions": 50,
+                "control_users": 150,
+                "treatment_conversions": 60,
+                "treatment_users": 150,
+            },
+        },
+    )
+
+    # The unconditional grid-search is capped at MAX_UNCONDITIONAL_EXACT_TOTAL (200); a 300-user table
+    # is rejected with a service-level ValueError -> 400, redirecting to Fisher's exact / the z-test.
+    assert response.status_code == 400
+
+
 def test_results_endpoint_count_significant() -> None:
     client = TestClient(create_app())
 

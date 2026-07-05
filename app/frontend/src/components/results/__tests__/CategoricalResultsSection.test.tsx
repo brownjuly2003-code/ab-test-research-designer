@@ -64,6 +64,7 @@ describe("CategoricalResultsSection", () => {
 
   it("posts the parsed table and renders the chi-square result", async () => {
     const response = {
+      test_type: "chi_square",
       chi_square: 20.0,
       degrees_of_freedom: 2,
       p_value: 0.000045,
@@ -99,6 +100,8 @@ describe("CategoricalResultsSection", () => {
         [30, 20, 10]
       ]);
       expect(body.alpha).toBe(0.05);
+      // Defaults to Pearson's chi-square.
+      expect(body.test_type).toBe("chi_square");
 
       expect(view.container.textContent).toContain("Association detected");
       expect(view.container.textContent).toContain("20.0000");
@@ -106,6 +109,53 @@ describe("CategoricalResultsSection", () => {
       expect(view.container.textContent).toContain("2×3");
       // Cramér's V 0.4082 on a 2×3 table (min dimension 1) → w = 0.4082 → "medium".
       expect(view.container.textContent).toContain("medium");
+      // The statistic card is labelled "Chi-square" for the Pearson test.
+      expect(view.container.textContent).toContain("Chi-square");
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("posts test_type g_test when the G-test is selected and labels the statistic 'G'", async () => {
+    const response = {
+      test_type: "g_test",
+      chi_square: 3.9620,
+      degrees_of_freedom: 4,
+      p_value: 0.411175,
+      is_significant: false,
+      cramers_v: 0.0743,
+      n_total: 195,
+      num_rows: 3,
+      num_cols: 3,
+      min_expected_count: 15.0,
+      low_expected_warning: false,
+      verdict: "No significant association",
+      interpretation: "G-test (likelihood-ratio) 3.9620 on 4 degrees of freedom..."
+    };
+    const fetchMock = vi.fn(async (..._args: unknown[]) => ({ ok: true, json: async () => response }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const view = await renderIntoDocument(<CategoricalResultsSection />);
+    try {
+      await flushEffects();
+      const select = view.container.querySelector("select") as HTMLSelectElement;
+      expect(select).not.toBeNull();
+      await changeValue(select, "g_test");
+
+      const textarea = view.container.querySelector("textarea") as HTMLTextAreaElement;
+      await changeValue(textarea, "10 20 30\n15 25 20\n12 18 25");
+
+      await click(findButton(view.container, "Run chi-square test"));
+      await flushEffects();
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const [, requestInit] = fetchMock.mock.calls[0] as [string, RequestInit];
+      const body = JSON.parse(String(requestInit.body));
+      expect(body.test_type).toBe("g_test");
+
+      expect(view.container.textContent).toContain("3.9620");
+      // The statistic card is labelled "G statistic" for the likelihood-ratio test.
+      expect(view.container.textContent).toContain("G statistic");
     } finally {
       await view.unmount();
     }

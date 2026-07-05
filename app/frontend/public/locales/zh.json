@@ -589,6 +589,8 @@
         "zTest": "z 检验（正态近似）",
         "fisherExact": "Fisher 精确检验（小样本）",
         "fisherHint": "Fisher 精确检验固定两个边际并枚举超几何分布——为小样本或稀有事件给出精确 p 值，此时 z 检验的正态近似不可靠。",
+        "boschloo": "Boschloo 精确检验（非条件）",
+        "boschlooHint": "Boschloo 非条件精确检验只固定各组样本量，并对未知的共同成功率取上确界，按 Fisher 精确 p 值对各表排序。它在功效上一致地不低于 Fisher 精确检验——是更强的小样本选择——但计算开销更高，因此仅限于小表。",
         "rate": "速率（Poisson）",
         "rateHint": "Poisson 速率检验用精确条件检验比较暴露上的事件（如每 1000 次会话的错误数）。适用于到达相互独立的事件速率数据，不适用于按用户聚集的计数。",
         "bootstrap": "Bootstrap / 置换",
@@ -1001,6 +1003,15 @@
       }
     },
     "categoricalResults": {
+      "testTypeLabel": "检验",
+      "testType": {
+        "chi_square": "Pearson 卡方",
+        "g_test": "G 检验（似然比）"
+      },
+      "statistic": {
+        "chi_square": "卡方值",
+        "g_test": "G 统计量"
+      },
       "title": "分类结果（卡方）",
       "description": "使用 r×c 列联表的卡方独立性检验，判断分类结果的分布是否在各组之间存在差异。",
       "tableLabel": "列联表",

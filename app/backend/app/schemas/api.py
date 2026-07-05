@@ -320,6 +320,7 @@ class ResultsRequest(BaseModel):
         "quantile",
         "trimmed_t",
         "fisher_exact",
+        "boschloo_exact",
         "count",
     ]
     binary: ObservedResultsBinary | None = None
@@ -341,6 +342,13 @@ class ResultsRequest(BaseModel):
                 raise ValueError(translate("errors.schemas.fisher_exact_requires_binary_data"))
             if self.continuous is not None or self.ranked is not None:
                 raise ValueError(translate("errors.schemas.fisher_exact_rejects_other_data"))
+        if self.metric_type == "boschloo_exact":
+            # Boschloo's unconditional exact test also reuses the 2x2 binary shape — it is another exact
+            # alternative analysis of the same counts (uniformly at least as powerful as Fisher's).
+            if self.binary is None:
+                raise ValueError(translate("errors.schemas.boschloo_exact_requires_binary_data"))
+            if self.continuous is not None or self.ranked is not None:
+                raise ValueError(translate("errors.schemas.boschloo_exact_rejects_other_data"))
         if self.metric_type == "continuous":
             if self.continuous is None:
                 raise ValueError(translate("errors.schemas.continuous_requires_continuous_data"))
@@ -428,6 +436,10 @@ class CategoricalResultsRequest(BaseModel):
 
     table: list[list[int]] = Field(min_length=2, max_length=MAX_CONTINGENCY_DIM)
     alpha: float = Field(default=0.05, ge=0.001, le=0.1)
+    # Which independence statistic to compute on the same r×c table: Pearson's chi-square (the default,
+    # preserving every existing caller) or the G-test (likelihood-ratio chi-square). Both reference the
+    # χ² distribution and share the response shape; only the statistic and its label differ.
+    test_type: Literal["chi_square", "g_test"] = "chi_square"
 
     @model_validator(mode="after")
     def validate_table(self) -> "CategoricalResultsRequest":
@@ -444,8 +456,14 @@ class CategoricalResultsRequest(BaseModel):
 
 
 class CategoricalResultsResponse(BaseModel):
-    """Outcome of the chi-square test of independence — an omnibus statistic, not a scalar effect."""
+    """Outcome of an r×c test of independence — an omnibus statistic, not a scalar effect.
 
+    Shared by Pearson's chi-square and the G-test (likelihood-ratio chi-square); ``test_type`` says
+    which one produced ``chi_square`` (the test statistic, Pearson χ² or G², both referred to the χ²
+    distribution) so the UI can label it correctly.
+    """
+
+    test_type: str
     chi_square: float
     degrees_of_freedom: int
     p_value: float
