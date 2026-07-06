@@ -546,7 +546,7 @@
       "saving": "保存...",
       "yes": "是的",
       "no": "不",
-      "ratioDisclaimer": "此方案的指标是比率（ratio）。这里没有专门的事后检验——比率本身会在“实时实验结果”中通过delta方法自动分析。若要手动分析，请在下方有意识地选择一种近似方法：对预先计算的每用户比率值做连续检验，或对分子的原始事件数与分母的暴露量做Poisson速率检验。",
+      "ratioDisclaimer": "该计划的指标是比率。请在下方专门的「比率指标（Delta 方法）」板块中进行事后分析——在那里粘贴每位用户的原始分子值和分母值；它与实时路径使用相同的 Delta 方法 z 检验。本表单中只能选择有意识的近似：对预先计算的每用户比率值做连续检验，或对原始分子事件相对分母曝光量做泊松率检验。",
       "fields": {
         "controlConversions": "对照组转化数",
         "controlUsers": "对照组用户数",
@@ -784,6 +784,7 @@
         "sequentialDesign": "序贯设计",
         "bayesianPosterior": "贝叶斯后验",
         "observedResults": "观察结果",
+        "ratioResults": "比率指标（Delta 方法）",
         "warningsAndRisks": "警告和风险",
         "experimentDesign": "实验设计",
         "metricsPlan": "指标计划",
@@ -1077,6 +1078,31 @@
         "pairs": "对数",
         "zeroDifferences": "零差值",
         "discordant": "不一致（+/−）"
+      }
+    },
+    "ratioResults": {
+      "title": "比率指标（事后分析）",
+      "description": "基于每位用户的原始数值对分析比率指标 R = Σ分子 / Σ分母——Delta 方法 z 检验，与实时路径使用相同的数学。",
+      "controlNumeratorsLabel": "对照组——分子",
+      "controlDenominatorsLabel": "对照组——分母",
+      "treatmentNumeratorsLabel": "实验组——分子",
+      "treatmentDenominatorsLabel": "实验组——分母",
+      "valuesPlaceholder": "3\n1\n0\n5",
+      "valuesHelp": "每位用户一个值（每行一个，或用逗号/空格分隔）。每组内分子与分母列表的数量必须相同并按位置配对——正是这种配对携带了 Delta 方法所需的用户内协方差。",
+      "alphaLabel": "显著性水平（alpha）",
+      "analyzeButton": "运行比率检验",
+      "analyzing": "分析中…",
+      "validation": {
+        "parseError": "每个字段至少输入两个数值（每行一个，或用逗号/空格分隔）。",
+        "lengthMismatch": "每组内的分子与分母值数量必须相同。",
+        "analysisUnavailable": "分析不可用。请检查数值后重试。"
+      },
+      "results": {
+        "effect": "比率差",
+        "relativeEffect": "相对效应",
+        "pValue": "p 值",
+        "testStatistic": "z 统计量",
+        "power": "达到的功效"
       }
     },
     "omnibusResults": {

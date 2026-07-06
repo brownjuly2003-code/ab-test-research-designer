@@ -40,6 +40,7 @@ from app.backend.app.schemas.api import (
     OmnibusResultsResponse,
     PairedResultsRequest,
     PairedResultsResponse,
+    RatioResultsRequest,
     ResultsRequest,
     ResultsResponse,
     SensitivityCell,
@@ -57,6 +58,7 @@ from app.backend.app.services.results_service import (
     analyze_categorical_results,
     analyze_omnibus_results,
     analyze_paired_results,
+    analyze_ratio_results,
     analyze_results,
     analyze_survival_results,
 )
@@ -434,6 +436,14 @@ def create_analysis_router(
     )
     def survival_results(payload: SurvivalResultsRequest) -> SurvivalResultsResponse:
         return analyze_survival_results(payload)
+
+    @router.post(
+        "/api/v1/results/ratio",
+        response_model=ResultsResponse,
+        dependencies=[Depends(require_auth)],
+    )
+    def ratio_results(payload: RatioResultsRequest) -> ResultsResponse:
+        return analyze_ratio_results(payload)
 
     @router.post(
         "/api/v1/simulate/bandit",

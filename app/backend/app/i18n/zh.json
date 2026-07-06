@@ -312,7 +312,10 @@
       "survival_length_mismatch": "生存时长与事件标记的长度必须一致",
       "survival_durations_finite": "生存时长必须为有限数值",
       "survival_durations_non_negative": "生存时长不能为负",
-      "survival_no_events": "对数秩检验无法定义：两组中均未发生事件（所有个体均被删失）"
+      "survival_no_events": "对数秩检验无法定义：两组中均未发生事件（所有个体均被删失）",
+      "ratio_pairs_length_mismatch": "比率指标的每组必须具有相同数量的分子值和分母值",
+      "ratio_values_finite": "比率指标的取值必须是有限数值",
+      "ratio_degenerate": "比率比较无法定义：分母均值为零或各组无方差"
     },
     "srm_detected": "检测到 SRM - 检查您的随机化或跟踪实施",
     "srm_not_detected": "未检测到 SRM"

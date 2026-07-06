@@ -547,7 +547,7 @@
       "saving": "Saving...",
       "yes": "yes",
       "no": "no",
-      "ratioDisclaimer": "This plan's metric is a ratio. There is no dedicated post-hoc test for it here — the ratio itself is analyzed automatically via the delta method in \"Live experiment results\". To analyze it manually, consciously choose an approximation below: a continuous test on a precomputed per-user ratio value, or a Poisson rate test on the raw numerator events over denominator exposure.",
+      "ratioDisclaimer": "This plan's metric is a ratio. Analyze it post-hoc in the dedicated \"Ratio metric (delta method)\" section below — paste the raw per-user numerator and denominator values there; it runs the same delta-method z-test the live path uses. In this form you can only choose a conscious approximation: a continuous test on a precomputed per-user ratio value, or a Poisson rate test on the raw numerator events over denominator exposure.",
       "fields": {
         "controlConversions": "Control conversions",
         "controlUsers": "Control users",
@@ -785,6 +785,7 @@
         "sequentialDesign": "Sequential design",
         "bayesianPosterior": "Bayesian posterior",
         "observedResults": "Observed results",
+        "ratioResults": "Ratio metric (delta method)",
         "warningsAndRisks": "Warnings & Risks",
         "experimentDesign": "Experiment design",
         "metricsPlan": "Metrics plan",
@@ -1078,6 +1079,31 @@
         "pairs": "Pairs",
         "zeroDifferences": "Zero differences",
         "discordant": "Discordant (+/−)"
+      }
+    },
+    "ratioResults": {
+      "title": "Ratio metric (post-hoc)",
+      "description": "Analyze a ratio metric R = Σnumerator / Σdenominator from raw per-user pairs — the delta-method z-test, the same math the live path uses.",
+      "controlNumeratorsLabel": "Control — numerators",
+      "controlDenominatorsLabel": "Control — denominators",
+      "treatmentNumeratorsLabel": "Treatment — numerators",
+      "treatmentDenominatorsLabel": "Treatment — denominators",
+      "valuesPlaceholder": "3\n1\n0\n5",
+      "valuesHelp": "One value per user (one per line or comma / space separated). Within each arm the numerator and denominator lists must have the same number of values, paired by position — the pairing carries the within-user covariance the delta method needs.",
+      "alphaLabel": "Significance level (alpha)",
+      "analyzeButton": "Run ratio test",
+      "analyzing": "Analyzing…",
+      "validation": {
+        "parseError": "Enter at least two numeric values per field (one per line or comma/space separated).",
+        "lengthMismatch": "Within each arm, numerators and denominators must have the same number of values.",
+        "analysisUnavailable": "Analysis is unavailable. Check the values and try again."
+      },
+      "results": {
+        "effect": "Ratio difference",
+        "relativeEffect": "Relative effect",
+        "pValue": "p-value",
+        "testStatistic": "z-statistic",
+        "power": "Achieved power"
       }
     },
     "omnibusResults": {
