@@ -146,6 +146,38 @@ def test_public_demo_every_compute_path_admits_anonymous_post(monkeypatch) -> No
     get_settings.cache_clear()
 
 
+def test_every_read_scope_compute_route_is_whitelisted(monkeypatch) -> None:
+    """The reverse direction of the sync invariant.
+
+    Every fixed-path POST route guarded by require_auth (read scope) is by
+    definition a stateless compute endpoint, so it must also appear in
+    PUBLIC_COMPUTE_PATHS — otherwise the middleware rejects anonymous demo
+    sessions with 403 before the (willing) route guard is ever consulted.
+    This is exactly how /results/survival and /results/ratio shipped broken
+    on the public Space: correct route guard, missing whitelist entry.
+    """
+    _enable_public_demo(monkeypatch)
+
+    app = create_app()
+    missing: list[str] = []
+    for route in app.routes:
+        methods = getattr(route, "methods", None) or set()
+        path = getattr(route, "path", "")
+        dependant = getattr(route, "dependant", None)
+        if "POST" not in methods or not path.startswith("/api/v1") or "{" in path:
+            continue
+        guard_names = {
+            dep.call.__name__ for dep in getattr(dependant, "dependencies", []) if dep.call is not None
+        }
+        if "require_auth" in guard_names and path not in PUBLIC_COMPUTE_PATHS:
+            missing.append(path)
+    assert not missing, (
+        "POST routes guarded by require_auth are missing from PUBLIC_COMPUTE_PATHS "
+        f"(anonymous demo sessions would get 403 from the middleware): {sorted(missing)}"
+    )
+    get_settings.cache_clear()
+
+
 def test_public_demo_blocks_anonymous_mutations(monkeypatch) -> None:
     _enable_public_demo(monkeypatch)
 
