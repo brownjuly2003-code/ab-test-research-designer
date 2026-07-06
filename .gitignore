@@ -61,3 +61,6 @@ exports/*
 # research artifacts (Kimi/Codex traces, large)
 research/*.log
 
+
+# local operator credentials (never commit)
+/_space_write_token_*.txt
