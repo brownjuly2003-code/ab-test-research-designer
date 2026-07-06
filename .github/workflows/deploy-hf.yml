@@ -49,12 +49,17 @@ jobs:
       # posture: AB_PUBLIC_DEMO=true (guest read-only sessions, a plain variable — it is not a
       # secret) and AB_API_TOKEN (the write token, a Space secret sourced from the repository
       # secret of the same name). Both calls are idempotent — re-running overwrites in place.
+      # The secrets context is not available in step `if` expressions, so the presence check
+      # happens inside the script via env.
       - name: Configure Space demo variables and write token
-        if: ${{ secrets.AB_API_TOKEN != '' }}
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           AB_API_TOKEN: ${{ secrets.AB_API_TOKEN }}
         run: |
+          if [ -z "$AB_API_TOKEN" ]; then
+            echo "AB_API_TOKEN repository secret is not set; skipping Space demo configuration."
+            exit 0
+          fi
           python - <<'PY'
           import os
           from huggingface_hub import HfApi
