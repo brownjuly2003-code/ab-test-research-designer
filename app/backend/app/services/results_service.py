@@ -19,6 +19,7 @@ from app.backend.app.schemas.api import (
     RatioResultsRequest,
     ResultsRequest,
     ResultsResponse,
+    SurvivalArmSummary,
     SurvivalCurvePoint,
     SurvivalResultsRequest,
     SurvivalResultsResponse,
@@ -49,7 +50,10 @@ from app.backend.app.stats.poisson_rate import MAX_POISSON_EVENTS, poisson_rate_
 from app.backend.app.stats.quantile_te import quantile_treatment_effect_test
 from app.backend.app.stats.ratio import compare_ratios
 from app.backend.app.stats.student_t import t_cdf, t_ppf
-from app.backend.app.stats.survival import kaplan_meier_estimate, log_rank_test
+from app.backend.app.stats.survival import (
+    kaplan_meier_estimate,
+    weighted_k_sample_log_rank_test,
+)
 from app.backend.app.stats.trimmed_t import trimmed_means_t_test
 from app.backend.app.stats.unconditional_exact import (
     MAX_UNCONDITIONAL_EXACT_TOTAL,
@@ -405,58 +409,102 @@ def _omnibus_verdict(is_significant: bool, alpha: float) -> str:
 
 
 def analyze_survival_results(request: SurvivalResultsRequest) -> SurvivalResultsResponse:
-    """Two-arm Kaplan–Meier survival curves + the log-rank (Mantel–Cox) test.
+    """Kaplan–Meier survival curves + a log-rank-family test over ``k >= 2`` arms.
 
     Separate from ``analyze_results`` because the input is time-to-event (a duration plus a censoring
-    flag per subject) and the outcome is a pair of survival curves plus an omnibus log-rank statistic,
-    not the scalar effect + confidence interval ``ResultsResponse`` carries. A fully censored comparison
-    (no events in either arm) makes the log-rank variance zero and the statistic undefined; the stats
-    layer returns ``None`` and this raises ``ValueError``, which the global handler maps to HTTP 400
-    rather than inventing a chi-square.
+    flag per subject) and the outcome is per-arm survival curves plus an omnibus statistic, not the
+    scalar effect + confidence interval ``ResultsResponse`` carries. All requests run through the one
+    weighted k-sample statistic (``ρ = γ = 0`` for the plain log-rank branch — for two arms that is
+    numerically identical to the classic Mantel–Cox formula, pinned by a test). A fully censored
+    comparison (or an arm contributing no information, making the covariance singular) leaves the
+    statistic undefined; the stats layer returns ``None`` and this raises ``ValueError``, which the
+    global handler maps to HTTP 400 rather than inventing a chi-square.
     """
-    control = request.control_arm
-    treatment = request.treatment_arm
-    log_rank = log_rank_test(
-        control.durations,
-        control.events_observed,
-        treatment.durations,
-        treatment.events_observed,
+    arms = [request.control_arm, request.treatment_arm, *request.additional_arms]
+    is_weighted = request.test_type == "fleming_harrington"
+    rho = request.fh_rho if is_weighted else 0.0
+    gamma = request.fh_gamma if is_weighted else 0.0
+    result = weighted_k_sample_log_rank_test(
+        [(arm.durations, arm.events_observed) for arm in arms],
         request.alpha,
+        rho=rho,
+        gamma=gamma,
     )
-    if log_rank is None:
+    if result is None:
         raise ValueError(translate("errors.schemas.survival_no_events"))
 
-    control_curve = kaplan_meier_estimate(control.durations, control.events_observed, request.alpha)
-    treatment_curve = kaplan_meier_estimate(treatment.durations, treatment.events_observed, request.alpha)
+    curves = [
+        [
+            _survival_curve_point(point)
+            for point in kaplan_meier_estimate(arm.durations, arm.events_observed, request.alpha)
+        ]
+        for arm in arms
+    ]
+    arm_summaries = [
+        SurvivalArmSummary(
+            n=result["n_by_arm"][index],
+            observed=result["observed_by_arm"][index],
+            expected=round(result["expected_by_arm"][index], 4),
+        )
+        for index in range(len(arms))
+    ]
 
-    is_significant = log_rank["is_significant"]
-    interpretation = translate(
-        "results.interpretation.log_rank",
-        {
-            "chiSquare": f"{log_rank['chi_square']:.4f}",
-            "pValue": f"{log_rank['p_value']:.6f}",
-            "observedControl": str(log_rank["observed1"]),
-            "expectedControl": f"{log_rank['expected1']:.4f}",
-            "observedTreatment": str(log_rank["observed2"]),
-            "expectedTreatment": f"{log_rank['expected2']:.4f}",
-            "nControl": str(log_rank["n1"]),
-            "nTreatment": str(log_rank["n2"]),
-            "significance": _significance_text(is_significant),
-        },
-    )
+    is_significant = result["is_significant"]
+    if len(arms) == 2 and not is_weighted:
+        # The classic two-arm log-rank keeps its established, more detailed interpretation.
+        interpretation = translate(
+            "results.interpretation.log_rank",
+            {
+                "chiSquare": f"{result['chi_square']:.4f}",
+                "pValue": f"{result['p_value']:.6f}",
+                "observedControl": str(result["observed_by_arm"][0]),
+                "expectedControl": f"{result['expected_by_arm'][0]:.4f}",
+                "observedTreatment": str(result["observed_by_arm"][1]),
+                "expectedTreatment": f"{result['expected_by_arm'][1]:.4f}",
+                "nControl": str(result["n_by_arm"][0]),
+                "nTreatment": str(result["n_by_arm"][1]),
+                "significance": _significance_text(is_significant),
+            },
+        )
+    else:
+        test_name = (
+            translate(
+                "results.survival.test_name.fleming_harrington",
+                {"rho": f"{rho:g}", "gamma": f"{gamma:g}"},
+            )
+            if is_weighted
+            else translate("results.survival.test_name.log_rank")
+        )
+        interpretation = translate(
+            "results.interpretation.log_rank_family",
+            {
+                "testName": test_name,
+                "numArms": str(len(arms)),
+                "chiSquare": f"{result['chi_square']:.4f}",
+                "df": str(result["df"]),
+                "pValue": f"{result['p_value']:.6f}",
+                "significance": _significance_text(is_significant),
+            },
+        )
+
     return SurvivalResultsResponse(
-        chi_square=round(log_rank["chi_square"], 4),
-        degrees_of_freedom=log_rank["df"],
-        p_value=round(log_rank["p_value"], 6),
+        chi_square=round(result["chi_square"], 4),
+        degrees_of_freedom=result["df"],
+        p_value=round(result["p_value"], 6),
         is_significant=is_significant,
-        observed_control=log_rank["observed1"],
-        expected_control=round(log_rank["expected1"], 4),
-        observed_treatment=log_rank["observed2"],
-        expected_treatment=round(log_rank["expected2"], 4),
-        n_control=log_rank["n1"],
-        n_treatment=log_rank["n2"],
-        control_curve=[_survival_curve_point(point) for point in control_curve],
-        treatment_curve=[_survival_curve_point(point) for point in treatment_curve],
+        test_type=request.test_type,
+        fh_rho=rho if is_weighted else None,
+        fh_gamma=gamma if is_weighted else None,
+        observed_control=arm_summaries[0].observed,
+        expected_control=arm_summaries[0].expected,
+        observed_treatment=arm_summaries[1].observed,
+        expected_treatment=arm_summaries[1].expected,
+        n_control=arm_summaries[0].n,
+        n_treatment=arm_summaries[1].n,
+        arm_summaries=arm_summaries,
+        control_curve=curves[0],
+        treatment_curve=curves[1],
+        additional_arm_curves=curves[2:],
         verdict=_survival_verdict(is_significant, request.alpha),
         interpretation=interpretation,
     )

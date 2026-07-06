@@ -357,7 +357,8 @@
       "mcnemar": "الأزواج غير المتوافقة: {{b}} تحوّلت إلى نجاح، {{c}} تحوّلت عنه (المجموع {{nDiscordant}}). فرق النسب الهامشية {{proportionDiff}} نقطة مئوية، نسبة أرجحية عدم التوافق {{oddsRatio}}. قيمة p ثنائية الجانب {{pValue}} ({{method}})؛ النتيجة {{significance}}.",
       "welch_anova": "F لتحليل تباين ويلش {{fStatistic}} بدرجات حرية {{dfNum}} و {{dfDen}} عبر {{groups}} مجموعات (N = {{n}}). قيمة p ثنائية الجانب {{pValue}}؛ النتيجة {{significance}}. يفسّر η² {{etaSquared}} من التباين بالانتماء إلى المجموعة.",
       "kruskal_wallis": "H لكروسكال–واليس {{hStatistic}} بدرجات حرية {{df}} عبر {{groups}} مجموعات (N = {{n}}). قيمة p لمربع كاي {{pValue}}؛ النتيجة {{significance}}. يقيس ε² {{epsilonSquared}} التباين الرتبي المفسّر بالانتماء إلى المجموعة.",
-      "log_rank": "مربع كاي لِلوغ-رانك {{chiSquare}} بدرجة حرية واحدة. المجموعة الضابطة: {{observedControl}} حدثًا ملاحظًا مقابل {{expectedControl}} متوقعًا؛ المجموعة التجريبية: {{observedTreatment}} مقابل {{expectedTreatment}} (n {{nControl}} مقابل {{nTreatment}}). قيمة p ثنائية الطرف {{pValue}}؛ النتيجة {{significance}}. المجموعة التي تسجّل أحداثًا أقل من المتوقع تبقى على قيد الحياة لفترة أطول."
+      "log_rank": "مربع كاي لِلوغ-رانك {{chiSquare}} بدرجة حرية واحدة. المجموعة الضابطة: {{observedControl}} حدثًا ملاحظًا مقابل {{expectedControl}} متوقعًا؛ المجموعة التجريبية: {{observedTreatment}} مقابل {{expectedTreatment}} (n {{nControl}} مقابل {{nTreatment}}). قيمة p ثنائية الطرف {{pValue}}؛ النتيجة {{significance}}. المجموعة التي تسجّل أحداثًا أقل من المتوقع تبقى على قيد الحياة لفترة أطول.",
+      "log_rank_family": "{{testName}} عبر {{numArms}} مجموعات: كاي-تربيع {{chiSquare}} بدرجات حرية {{df}}. القيمة الاحتمالية الثنائية {{pValue}}؛ النتيجة {{significance}}. الأحداث المرصودة مقابل المتوقعة لكل مجموعة مدرجة أدناه — المجموعة التي أحداثها أقل من المتوقع تبقى أطول."
     },
     "effect_size": {
       "rank_biserial": "ارتباط ثنائي التسلسل الرتبي",
@@ -405,7 +406,11 @@
     },
     "survival": {
       "verdict_difference": "منحنيات البقاء مختلفة عند alpha={{alpha}}",
-      "verdict_no_difference": "لا فرق معنوي في البقاء بين المجموعتين عند alpha={{alpha}}"
+      "verdict_no_difference": "لا فرق معنوي في البقاء بين المجموعتين عند alpha={{alpha}}",
+      "test_name": {
+        "log_rank": "اختبار اللوغ-رانك",
+        "fleming_harrington": "اختبار اللوغ-رانك الموزون فليمنغ-هارينغتون G({{rho}}, {{gamma}})"
+      }
     }
   },
   "live_stats": {

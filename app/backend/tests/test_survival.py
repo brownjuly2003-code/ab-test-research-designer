@@ -10,6 +10,13 @@ covered: a tiny hand-computable example that pins the censoring / risk-set logic
 all-censored guard (V = 0 → ``None`` → service ``ValueError`` → HTTP 400), the schema validation
 (mismatched-length arrays / empty arms → 422), the observation cap, and the service + HTTP layer
 (rounding, localization, per-arm survival curves in the 200 response).
+
+The weighted k-sample generalization (``weighted_k_sample_log_rank_test``) is frozen against
+``lifelines 0.30.3`` ``multivariate_logrank_test`` — cross-checked for the 2-arm G^ρ subfamily with
+``statsmodels 0.14.6`` ``survdiff(weight_type="fh")`` — in
+``scratchpad/verify_ksample_weighted_logrank.py`` (neither is a runtime dependency): 3-arm unweighted
+χ² = 19.389263 (df 2), 2-arm FH(1,0) = 14.457151, FH(0,1) = 13.048449, 3-arm FH(1,0) = 16.701169.
+The k = 2 unweighted case is pinned to agree with the legacy ``log_rank_test`` to 1e-12.
 """
 
 import pytest
@@ -22,6 +29,7 @@ from app.backend.app.stats.survival import (
     MAX_SURVIVAL_TOTAL,
     kaplan_meier_estimate,
     log_rank_test,
+    weighted_k_sample_log_rank_test,
 )
 
 # --- Freireich et al. (1963) leukemia remission data (arm 1 = 6-MP treatment, arm 2 = placebo) ------
@@ -35,6 +43,15 @@ MP6_RAW = [
 ]
 MP6_DURATIONS = [float(t) for t, _ in MP6_RAW]
 MP6_EVENTS = [e for _, e in MP6_RAW]
+
+# A hand-pinned third arm ("half-dose"): intermediate survival, some censoring. Used by the k-sample
+# tests; the frozen chi-squares below come from lifelines' multivariate_logrank_test on these arms.
+THIRD_RAW = [
+    (2, True), (4, True), (5, False), (6, True), (7, True), (9, True), (11, False), (12, True),
+    (14, True), (15, False), (18, True), (21, False), (24, True), (26, False), (30, False),
+]
+THIRD_DURATIONS = [float(t) for t, _ in THIRD_RAW]
+THIRD_EVENTS = [e for _, e in THIRD_RAW]
 
 
 # --- Kaplan–Meier estimator --------------------------------------------------------------------
@@ -247,3 +264,172 @@ def test_endpoint_localizes_via_accept_language() -> None:
     assert english.status_code == 200 and russian.status_code == 200
     assert english.json()["verdict"] != russian.json()["verdict"]
     assert "alpha=0.050" in english.json()["verdict"]
+
+
+# --- weighted k-sample log-rank (frozen against lifelines / statsmodels, see module docstring) ----
+
+TWO_ARMS = [(MP6_DURATIONS, MP6_EVENTS), (PLACEBO_DURATIONS, PLACEBO_EVENTS)]
+THREE_ARMS = [*TWO_ARMS, (THIRD_DURATIONS, THIRD_EVENTS)]
+
+
+def test_k_sample_two_arm_unweighted_reduces_to_legacy_log_rank() -> None:
+    generalized = weighted_k_sample_log_rank_test(TWO_ARMS)
+    legacy = log_rank_test(MP6_DURATIONS, MP6_EVENTS, PLACEBO_DURATIONS, PLACEBO_EVENTS)
+    assert generalized is not None and legacy is not None
+    assert generalized["chi_square"] == pytest.approx(legacy["chi_square"], abs=1e-12)
+    assert generalized["df"] == 1
+    assert generalized["observed_by_arm"] == [legacy["observed1"], legacy["observed2"]]
+    assert generalized["expected_by_arm"][0] == pytest.approx(legacy["expected1"], abs=1e-12)
+
+
+def test_k_sample_three_arm_matches_lifelines_reference() -> None:
+    result = weighted_k_sample_log_rank_test(THREE_ARMS)
+    assert result is not None
+    assert result["chi_square"] == pytest.approx(19.389263, abs=1e-5)
+    assert result["df"] == 2
+    assert result["p_value"] == pytest.approx(0.00006161, abs=1e-7)
+    assert result["n_by_arm"] == [21, 21, 15]
+
+
+def test_k_sample_is_invariant_to_arm_order() -> None:
+    forward = weighted_k_sample_log_rank_test(THREE_ARMS)
+    shuffled = weighted_k_sample_log_rank_test([THREE_ARMS[2], THREE_ARMS[0], THREE_ARMS[1]])
+    assert forward is not None and shuffled is not None
+    assert forward["chi_square"] == pytest.approx(shuffled["chi_square"], abs=1e-9)
+
+
+def test_fleming_harrington_early_weights_match_reference() -> None:
+    # FH(1, 0) = the classic G^rho early-difference test; frozen against lifelines AND statsmodels.
+    result = weighted_k_sample_log_rank_test(TWO_ARMS, rho=1.0, gamma=0.0)
+    assert result is not None
+    assert result["chi_square"] == pytest.approx(14.457151, abs=1e-5)
+    assert result["df"] == 1
+    assert result["rho"] == 1.0 and result["gamma"] == 0.0
+
+
+def test_fleming_harrington_late_weights_match_reference() -> None:
+    result = weighted_k_sample_log_rank_test(TWO_ARMS, rho=0.0, gamma=1.0)
+    assert result is not None
+    assert result["chi_square"] == pytest.approx(13.048449, abs=1e-5)
+
+
+def test_fleming_harrington_three_arm_matches_reference() -> None:
+    result = weighted_k_sample_log_rank_test(THREE_ARMS, rho=1.0, gamma=0.0)
+    assert result is not None
+    assert result["chi_square"] == pytest.approx(16.701169, abs=1e-5)
+    assert result["df"] == 2
+
+
+def test_fleming_harrington_zero_exponents_equal_unweighted() -> None:
+    weighted = weighted_k_sample_log_rank_test(THREE_ARMS, rho=0.0, gamma=0.0)
+    unweighted = weighted_k_sample_log_rank_test(THREE_ARMS)
+    assert weighted is not None and unweighted is not None
+    assert weighted["chi_square"] == pytest.approx(unweighted["chi_square"], abs=1e-12)
+
+
+def test_k_sample_all_censored_returns_none() -> None:
+    arms = [([1.0, 2.0], [False, False]), ([1.5, 2.5], [False, False])]
+    assert weighted_k_sample_log_rank_test(arms) is None
+
+
+def test_k_sample_rejects_fewer_than_two_arms() -> None:
+    with pytest.raises(ValueError, match="at least two arms"):
+        weighted_k_sample_log_rank_test([(MP6_DURATIONS, MP6_EVENTS)])
+
+
+def test_k_sample_rejects_negative_exponents() -> None:
+    with pytest.raises(ValueError, match="non-negative"):
+        weighted_k_sample_log_rank_test(TWO_ARMS, rho=-1.0)
+
+
+def test_k_sample_rejects_over_cap() -> None:
+    half = MAX_SURVIVAL_TOTAL // 2 + 1
+    arms = [([1.0] * half, [True] * half), ([1.0] * half, [True] * half)]
+    with pytest.raises(ValueError, match="cap"):
+        weighted_k_sample_log_rank_test(arms)
+
+
+# --- k-sample / weighted service + endpoint ------------------------------------------------------
+
+
+def _three_arm_payload() -> dict:
+    return {
+        "control_arm": {"durations": MP6_DURATIONS, "events_observed": MP6_EVENTS},
+        "treatment_arm": {"durations": PLACEBO_DURATIONS, "events_observed": PLACEBO_EVENTS},
+        "additional_arms": [
+            {"durations": THIRD_DURATIONS, "events_observed": THIRD_EVENTS},
+        ],
+        "alpha": 0.05,
+    }
+
+
+def test_service_legacy_two_arm_payload_unchanged() -> None:
+    """A pre-T3 request (no new fields) keeps its exact response: same χ², same detailed
+    interpretation, log_rank echoed as the default test_type, no FH exponents."""
+    response = analyze_survival_results(_freireich_request())
+    assert response.chi_square == 16.7929
+    assert response.test_type == "log_rank"
+    assert response.fh_rho is None and response.fh_gamma is None
+    assert len(response.arm_summaries) == 2
+    assert response.arm_summaries[0].observed == response.observed_control
+    assert response.additional_arm_curves == []
+
+
+def test_endpoint_three_arm_round_trip() -> None:
+    client = TestClient(create_app())
+    response = client.post("/api/v1/results/survival", json=_three_arm_payload())
+    assert response.status_code == 200
+    body = response.json()
+    assert body["chi_square"] == pytest.approx(19.3893, abs=1e-4)
+    assert body["degrees_of_freedom"] == 2
+    assert body["p_value"] == pytest.approx(0.000062, abs=1e-6)
+    assert body["is_significant"] is True
+    assert body["test_type"] == "log_rank"
+    assert [summary["n"] for summary in body["arm_summaries"]] == [21, 21, 15]
+    assert len(body["additional_arm_curves"]) == 1
+    assert len(body["additional_arm_curves"][0]) > 0
+    # The k-sample interpretation names the test and the number of arms.
+    assert "3" in body["interpretation"]
+
+
+def test_endpoint_fleming_harrington_round_trip() -> None:
+    client = TestClient(create_app())
+    payload = {
+        "control_arm": {"durations": MP6_DURATIONS, "events_observed": MP6_EVENTS},
+        "treatment_arm": {"durations": PLACEBO_DURATIONS, "events_observed": PLACEBO_EVENTS},
+        "test_type": "fleming_harrington",
+        "fh_rho": 1.0,
+        "fh_gamma": 0.0,
+    }
+    response = client.post("/api/v1/results/survival", json=payload)
+    assert response.status_code == 200
+    body = response.json()
+    assert body["chi_square"] == pytest.approx(14.4572, abs=1e-4)
+    assert body["degrees_of_freedom"] == 1
+    assert body["test_type"] == "fleming_harrington"
+    assert body["fh_rho"] == 1.0 and body["fh_gamma"] == 0.0
+    assert "Fleming" in body["interpretation"]
+
+
+def test_endpoint_fleming_harrington_localizes_via_accept_language() -> None:
+    client = TestClient(create_app())
+    payload = {
+        "control_arm": {"durations": MP6_DURATIONS, "events_observed": MP6_EVENTS},
+        "treatment_arm": {"durations": PLACEBO_DURATIONS, "events_observed": PLACEBO_EVENTS},
+        "test_type": "fleming_harrington",
+    }
+    response = client.post(
+        "/api/v1/results/survival", json=payload, headers={"Accept-Language": "ru"}
+    )
+    assert response.status_code == 200
+    assert "Флеминга" in response.json()["interpretation"]
+
+
+def test_endpoint_rejects_too_many_additional_arms() -> None:
+    client = TestClient(create_app())
+    payload = _three_arm_payload()
+    payload["additional_arms"] = [
+        {"durations": [1.0, 2.0], "events_observed": [True, True]} for _ in range(9)
+    ]
+    response = client.post("/api/v1/results/survival", json=payload)
+    assert response.status_code == 422

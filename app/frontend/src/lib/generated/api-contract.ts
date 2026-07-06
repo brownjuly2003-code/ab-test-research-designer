@@ -1387,6 +1387,12 @@ export type SurvivalArm = {
   events_observed: boolean[];
 };
 
+export type SurvivalArmSummary = {
+  n: number;
+  observed: number;
+  expected: number;
+};
+
 export type SurvivalCurvePoint = {
   time: number;
   survival: number;
@@ -1400,6 +1406,10 @@ export type SurvivalCurvePoint = {
 export type SurvivalResultsRequest = {
   control_arm: SurvivalArm;
   treatment_arm: SurvivalArm;
+  additional_arms?: SurvivalArm[];
+  test_type?: "log_rank" | "fleming_harrington";
+  fh_rho?: number;
+  fh_gamma?: number;
   alpha?: number;
 };
 
@@ -1408,14 +1418,19 @@ export type SurvivalResultsResponse = {
   degrees_of_freedom: number;
   p_value: number;
   is_significant: boolean;
+  test_type?: string;
+  fh_rho?: number | null;
+  fh_gamma?: number | null;
   observed_control: number;
   expected_control: number;
   observed_treatment: number;
   expected_treatment: number;
   n_control: number;
   n_treatment: number;
+  arm_summaries?: SurvivalArmSummary[];
   control_curve: SurvivalCurvePoint[];
   treatment_curve: SurvivalCurvePoint[];
+  additional_arm_curves?: SurvivalCurvePoint[][];
   verdict: string;
   interpretation: string;
 };

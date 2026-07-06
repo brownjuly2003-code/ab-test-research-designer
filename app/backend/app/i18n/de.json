@@ -357,7 +357,8 @@
       "mcnemar": "Diskordante Paare: {{b}} wechselten zum Erfolg, {{c}} weg ({{nDiscordant}} gesamt). Differenz der Randanteile {{proportionDiff}} Pp, Quotenverhältnis der Diskordanz {{oddsRatio}}. Zweiseitiger p-Wert {{pValue}} ({{method}}); das Ergebnis ist {{significance}}.",
       "welch_anova": "Welch-ANOVA F {{fStatistic}} bei {{dfNum}} und {{dfDen}} Freiheitsgraden über {{groups}} Gruppen (N = {{n}}). Zweiseitiger p-Wert {{pValue}}; das Ergebnis ist {{significance}}. η² {{etaSquared}} der Varianz wird durch die Gruppenzugehörigkeit erklärt.",
       "kruskal_wallis": "Kruskal-Wallis H {{hStatistic}} bei {{df}} Freiheitsgraden über {{groups}} Gruppen (N = {{n}}). Chi-Quadrat-p-Wert {{pValue}}; das Ergebnis ist {{significance}}. ε² {{epsilonSquared}} misst die durch die Gruppenzugehörigkeit erklärte Rangvariation.",
-      "log_rank": "Log-Rank-Chi-Quadrat {{chiSquare}} bei 1 Freiheitsgrad. Kontrolle: {{observedControl}} beobachtete vs. {{expectedControl}} erwartete Ereignisse; Behandlung: {{observedTreatment}} vs. {{expectedTreatment}} (n {{nControl}} vs. {{nTreatment}}). Zweiseitiger p-Wert {{pValue}}; Ergebnis ist {{significance}}. Eine Gruppe mit weniger Ereignissen als erwartet überlebt länger."
+      "log_rank": "Log-Rank-Chi-Quadrat {{chiSquare}} bei 1 Freiheitsgrad. Kontrolle: {{observedControl}} beobachtete vs. {{expectedControl}} erwartete Ereignisse; Behandlung: {{observedTreatment}} vs. {{expectedTreatment}} (n {{nControl}} vs. {{nTreatment}}). Zweiseitiger p-Wert {{pValue}}; Ergebnis ist {{significance}}. Eine Gruppe mit weniger Ereignissen als erwartet überlebt länger.",
+      "log_rank_family": "{{testName}} über {{numArms}} Gruppen: Chi-Quadrat {{chiSquare}} bei {{df}} Freiheitsgraden. Zweiseitiger p-Wert {{pValue}}; das Ergebnis ist {{significance}}. Beobachtete vs. erwartete Ereignisse je Gruppe stehen unten — eine Gruppe mit weniger Ereignissen als erwartet überlebt länger."
     },
     "effect_size": {
       "rank_biserial": "Rang-biseriale Korrelation",
@@ -405,7 +406,11 @@
     },
     "survival": {
       "verdict_difference": "Die Überlebenskurven unterscheiden sich bei alpha={{alpha}}",
-      "verdict_no_difference": "Kein signifikanter Unterschied im Überleben zwischen den Gruppen bei alpha={{alpha}}"
+      "verdict_no_difference": "Kein signifikanter Unterschied im Überleben zwischen den Gruppen bei alpha={{alpha}}",
+      "test_name": {
+        "log_rank": "Log-Rank-Test",
+        "fleming_harrington": "Fleming-Harrington-gewichteter Log-Rank-Test G({{rho}}, {{gamma}})"
+      }
     }
   },
   "live_stats": {

@@ -357,7 +357,8 @@
       "mcnemar": "不一致对：{{b}} 个转为成功，{{c}} 个转为失败（共 {{nDiscordant}} 个）。边际比例差 {{proportionDiff}} 个百分点，不一致优势比 {{oddsRatio}}。双侧 p 值 {{pValue}}（{{method}}）；结果{{significance}}。",
       "welch_anova": "在 {{dfNum}} 和 {{dfDen}} 个自由度下，{{groups}} 组（N = {{n}}）的 Welch 方差分析 F 值为 {{fStatistic}}。双侧 p 值 {{pValue}}；结果{{significance}}。η² {{etaSquared}} 表示由分组解释的方差比例。",
       "kruskal_wallis": "在 {{df}} 个自由度下，{{groups}} 组（N = {{n}}）的 Kruskal–Wallis H 值为 {{hStatistic}}。卡方 p 值 {{pValue}}；结果{{significance}}。ε² {{epsilonSquared}} 衡量由分组解释的秩变异。",
-      "log_rank": "对数秩卡方 {{chiSquare}}，自由度为 1。对照组：观察到 {{observedControl}} 个事件，期望 {{expectedControl}} 个；处理组：{{observedTreatment}} 对 {{expectedTreatment}}（n {{nControl}} 对 {{nTreatment}}）。双侧 p 值 {{pValue}}；结果为 {{significance}}。事件数少于期望的一组存活时间更长。"
+      "log_rank": "对数秩卡方 {{chiSquare}}，自由度为 1。对照组：观察到 {{observedControl}} 个事件，期望 {{expectedControl}} 个；处理组：{{observedTreatment}} 对 {{expectedTreatment}}（n {{nControl}} 对 {{nTreatment}}）。双侧 p 值 {{pValue}}；结果为 {{significance}}。事件数少于期望的一组存活时间更长。",
+      "log_rank_family": "{{testName}}（{{numArms}} 组）：卡方 {{chiSquare}}，自由度 {{df}}。双侧 p 值 {{pValue}}；结果{{significance}}。各组观察与期望事件数见下——事件数少于期望的组存活更久。"
     },
     "effect_size": {
       "rank_biserial": "秩二列相关",
@@ -405,7 +406,11 @@
     },
     "survival": {
       "verdict_difference": "生存曲线在 alpha={{alpha}} 下存在差异",
-      "verdict_no_difference": "在 alpha={{alpha}} 下两组生存无显著差异"
+      "verdict_no_difference": "在 alpha={{alpha}} 下两组生存无显著差异",
+      "test_name": {
+        "log_rank": "对数秩检验",
+        "fleming_harrington": "Fleming-Harrington G({{rho}}, {{gamma}}) 加权对数秩检验"
+      }
     }
   },
   "live_stats": {

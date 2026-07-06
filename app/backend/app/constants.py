@@ -61,6 +61,11 @@ MAX_CONTINGENCY_DIM = 50
 # total is capped separately in the stats module.
 MAX_OMNIBUS_GROUPS = 50
 
+# Upper bound on the total number of survival arms (control + treatment + additional) accepted by the
+# k-sample log-rank analyzer. Each extra arm adds a row/column to the covariance matrix and a curve to
+# the response; a real multi-variant time-to-event experiment has a handful of arms.
+MAX_SURVIVAL_ARMS = 10
+
 DEFAULT_CORS_METHODS = ("GET", "POST", "PUT", "DELETE", "OPTIONS")
 DEFAULT_CORS_HEADERS = ("Accept", "Content-Type")
 

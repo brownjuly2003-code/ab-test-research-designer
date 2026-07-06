@@ -1147,8 +1147,8 @@
       }
     },
     "survivalResults": {
-      "title": "Curvas de supervivencia (log-rank)",
-      "description": "Compara el tiempo hasta el evento entre dos grupos con las curvas de supervivencia de Kaplan–Meier y la prueba de log-rank (Mantel–Cox) de dos muestras — para duraciones censuradas por la derecha (abandono, tiempo hasta la conversión, retención), donde un sujeto censurado sigue sin evento en el último seguimiento.",
+      "title": "Curvas de supervivencia (familia log-rank)",
+      "description": "Compare el tiempo hasta el evento entre dos o más grupos: curvas de Kaplan-Meier y la familia de pruebas log-rank — sin ponderar (Mantel-Cox) o ponderada de Fleming-Harrington para diferencias tempranas/tardías — para duraciones censuradas por la derecha (churn, tiempo hasta conversión, retención), donde un sujeto censurado sigue sin evento en el último seguimiento.",
       "controlLabel": "Grupo de control",
       "treatmentLabel": "Grupo de tratamiento",
       "controlPlaceholder": "1 1\n2 1\n3 1\n8 1\n11 1",
@@ -1182,6 +1182,23 @@
         "events": "Eventos",
         "survival": "S(t)",
         "ci": "IC 95%"
+      },
+      "testTypeLabel": "Prueba",
+      "testType": {
+        "log_rank": "Log-rank (sin ponderar)",
+        "fleming_harrington": "Fleming-Harrington (ponderada)"
+      },
+      "rhoLabel": "ρ (peso temprano)",
+      "gammaLabel": "γ (peso tardío)",
+      "fhHelp": "Pesos w(t) = S(t−)^ρ · (1−S(t−))^γ: ρ > 0 acentúa las diferencias tempranas, γ > 0 las tardías; ρ = γ = 0 es el log-rank simple.",
+      "addArm": "Añadir grupo",
+      "removeArm": "Quitar este grupo",
+      "additionalArmLabel": "Grupo {{index}}",
+      "armSummaries": {
+        "title": "Eventos por grupo",
+        "arm": "Grupo",
+        "n": "n",
+        "observedExpected": "Eventos (obs. / esp.)"
       }
     }
   },

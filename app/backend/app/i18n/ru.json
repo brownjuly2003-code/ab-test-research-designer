@@ -357,7 +357,8 @@
       "mcnemar": "Дискордантные пары: {{b}} перешли к успеху, {{c}} — от успеха (всего {{nDiscordant}}). Разность маргинальных долей {{proportionDiff}} п.п., отношение шансов дискордантности {{oddsRatio}}. Двусторонний p-value {{pValue}} ({{method}}); результат {{significance}}.",
       "welch_anova": "F Уэлча {{fStatistic}} при {{dfNum}} и {{dfDen}} степенях свободы по {{groups}} группам (N = {{n}}). Двусторонний p-value {{pValue}}; результат {{significance}}. Долю дисперсии, объяснённую принадлежностью к группе, измеряет η² {{etaSquared}}.",
       "kruskal_wallis": "H Краскела–Уоллиса {{hStatistic}} при {{df}} степенях свободы по {{groups}} группам (N = {{n}}). p-value по хи-квадрату {{pValue}}; результат {{significance}}. Ранговую вариацию, объяснённую принадлежностью к группе, измеряет ε² {{epsilonSquared}}.",
-      "log_rank": "Лог-ранговый χ² {{chiSquare}} на 1 степени свободы. Контроль: наблюдалось {{observedControl}} событий против {{expectedControl}} ожидаемых; лечение: {{observedTreatment}} против {{expectedTreatment}} (n {{nControl}} против {{nTreatment}}). Двусторонний p-value {{pValue}}; результат {{significance}}. Группа с меньшим числом событий, чем ожидалось, выживает дольше."
+      "log_rank": "Лог-ранговый χ² {{chiSquare}} на 1 степени свободы. Контроль: наблюдалось {{observedControl}} событий против {{expectedControl}} ожидаемых; лечение: {{observedTreatment}} против {{expectedTreatment}} (n {{nControl}} против {{nTreatment}}). Двусторонний p-value {{pValue}}; результат {{significance}}. Группа с меньшим числом событий, чем ожидалось, выживает дольше.",
+      "log_rank_family": "{{testName}} по {{numArms}} группам: χ² {{chiSquare}} при {{df}} степенях свободы. Двусторонний p-value {{pValue}}; результат {{significance}}. Наблюдаемые и ожидаемые события по группам приведены ниже — группа, где событий меньше ожидаемого, выживает дольше."
     },
     "effect_size": {
       "rank_biserial": "ранг-бисериальная корреляция",
@@ -405,7 +406,11 @@
     },
     "survival": {
       "verdict_difference": "Кривые выживаемости различаются при alpha={{alpha}}",
-      "verdict_no_difference": "Значимых различий в выживаемости между группами при alpha={{alpha}} нет"
+      "verdict_no_difference": "Значимых различий в выживаемости между группами при alpha={{alpha}} нет",
+      "test_name": {
+        "log_rank": "Лог-ранговый критерий",
+        "fleming_harrington": "Взвешенный лог-ранговый критерий Флеминга–Харрингтона G({{rho}}, {{gamma}})"
+      }
     }
   },
   "live_stats": {
