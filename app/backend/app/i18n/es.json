@@ -312,7 +312,10 @@
       "survival_length_mismatch": "las duraciones de supervivencia y los indicadores de evento deben tener la misma longitud",
       "survival_durations_finite": "las duraciones de supervivencia deben ser números finitos",
       "survival_durations_non_negative": "las duraciones de supervivencia deben ser no negativas",
-      "survival_no_events": "la prueba de log-rank no está definida: no ocurrió ningún evento en ninguno de los grupos (todos los sujetos están censurados)"
+      "survival_no_events": "la prueba de log-rank no está definida: no ocurrió ningún evento en ninguno de los grupos (todos los sujetos están censurados)",
+      "ratio_pairs_length_mismatch": "un grupo de la métrica ratio debe tener el mismo número de valores de numerador y denominador",
+      "ratio_values_finite": "los valores de la métrica ratio deben ser números finitos",
+      "ratio_degenerate": "la comparación del ratio no está definida: media del denominador cero o sin varianza en los grupos"
     },
     "srm_detected": "SRM detectado — verifique su aleatorización o implementación de seguimiento",
     "srm_not_detected": "No se detectó SRM"

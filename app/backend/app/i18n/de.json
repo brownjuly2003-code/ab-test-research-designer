@@ -312,7 +312,10 @@
       "survival_length_mismatch": "die Überlebensdauern und die Ereignis-Flags müssen dieselbe Länge haben",
       "survival_durations_finite": "Überlebensdauern müssen endliche Zahlen sein",
       "survival_durations_non_negative": "Überlebensdauern dürfen nicht negativ sein",
-      "survival_no_events": "der Log-Rank-Test ist nicht definiert: in keiner der Gruppen trat ein Ereignis auf (jede Beobachtung ist zensiert)"
+      "survival_no_events": "der Log-Rank-Test ist nicht definiert: in keiner der Gruppen trat ein Ereignis auf (jede Beobachtung ist zensiert)",
+      "ratio_pairs_length_mismatch": "eine Gruppe der Ratio-Metrik muss gleich viele Zähler- und Nenner-Werte haben",
+      "ratio_values_finite": "Werte der Ratio-Metrik müssen endliche Zahlen sein",
+      "ratio_degenerate": "der Ratio-Vergleich ist nicht definiert: Nenner-Mittelwert von null oder keine Varianz in den Gruppen"
     },
     "srm_detected": "SRM erkannt — prüfen Sie Ihre Randomisierung oder Tracking-Implementierung",
     "srm_not_detected": "Keine SRM erkannt"

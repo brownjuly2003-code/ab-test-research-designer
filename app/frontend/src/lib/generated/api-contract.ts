@@ -1245,6 +1245,17 @@ export type ProjectUniqueInsights = {
   assumptions: string[];
 };
 
+export type RatioArm = {
+  numerators: number[];
+  denominators: number[];
+};
+
+export type RatioResultsRequest = {
+  control_arm: RatioArm;
+  treatment_arm: RatioArm;
+  alpha?: number;
+};
+
 export type ReadinessCheck = {
   name: string;
   ok: boolean;

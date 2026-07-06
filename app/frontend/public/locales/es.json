@@ -547,7 +547,7 @@
       "saving": "Guardando...",
       "yes": "Sí",
       "no": "No",
-      "ratioDisclaimer": "La métrica de este plan es un ratio. No hay una prueba post-hoc dedicada para ella aquí: el propio ratio se analiza automáticamente mediante el método delta en «Resultados del experimento en vivo». Para analizarlo manualmente, elija conscientemente una aproximación a continuación: una prueba continua sobre un valor de ratio precalculado por usuario, o una prueba de tasa de Poisson sobre los eventos brutos del numerador y la exposición del denominador.",
+      "ratioDisclaimer": "La métrica de este plan es un ratio. Analícela post-hoc en la sección dedicada «Métrica ratio (método delta)» más abajo: pegue allí los valores brutos del numerador y del denominador por usuario; es la misma prueba z por método delta que usa la ruta en vivo. En este formulario solo puede elegir una aproximación consciente: una prueba continua sobre un valor de ratio precalculado por usuario, o una prueba de tasa de Poisson sobre los eventos brutos del numerador respecto a la exposición del denominador.",
       "fields": {
         "controlConversions": "Conversiones del control",
         "controlUsers": "Usuarios del control",
@@ -785,6 +785,7 @@
         "sequentialDesign": "Diseño secuencial",
         "bayesianPosterior": "posterior bayesiano",
         "observedResults": "Resultados observados",
+        "ratioResults": "Métrica ratio (método delta)",
         "warningsAndRisks": "Advertencias y riesgos",
         "experimentDesign": "Diseño de experimentos",
         "metricsPlan": "Plan de métricas",
@@ -1078,6 +1079,31 @@
         "pairs": "Pares",
         "zeroDifferences": "Diferencias nulas",
         "discordant": "Discordantes (+/−)"
+      }
+    },
+    "ratioResults": {
+      "title": "Métrica ratio (post-hoc)",
+      "description": "Analiza una métrica ratio R = Σ numerador / Σ denominador a partir de pares brutos por usuario: la prueba z por método delta, la misma matemática que usa la ruta en vivo.",
+      "controlNumeratorsLabel": "Control — numeradores",
+      "controlDenominatorsLabel": "Control — denominadores",
+      "treatmentNumeratorsLabel": "Tratamiento — numeradores",
+      "treatmentDenominatorsLabel": "Tratamiento — denominadores",
+      "valuesPlaceholder": "3\n1\n0\n5",
+      "valuesHelp": "Un valor por usuario (uno por línea o separados por coma/espacio). Dentro de cada brazo, las listas de numeradores y denominadores deben tener el mismo número de valores, emparejados por posición: el emparejamiento aporta la covarianza intra-usuario que necesita el método delta.",
+      "alphaLabel": "Nivel de significación (alfa)",
+      "analyzeButton": "Ejecutar prueba de ratio",
+      "analyzing": "Analizando…",
+      "validation": {
+        "parseError": "Introduzca al menos dos valores numéricos por campo (uno por línea o separados por coma/espacio).",
+        "lengthMismatch": "Dentro de cada brazo, numeradores y denominadores deben tener el mismo número de valores.",
+        "analysisUnavailable": "El análisis no está disponible. Compruebe los valores e inténtelo de nuevo."
+      },
+      "results": {
+        "effect": "Diferencia de ratio",
+        "relativeEffect": "Efecto relativo",
+        "pValue": "valor p",
+        "testStatistic": "estadístico z",
+        "power": "Potencia alcanzada"
       }
     },
     "omnibusResults": {

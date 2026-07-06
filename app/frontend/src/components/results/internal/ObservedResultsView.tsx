@@ -133,8 +133,9 @@ export default function ObservedResultsView({
     setActualResults((current) => ({ ...current, ranked: { ...current.ranked, [key]: value } }));
   }
 
-  // Ratio plans have no dedicated post-hoc analyzer (only the live-stats delta method handles ratio
-  // directly); the toggle offers just the two conscious approximations, continuous and count.
+  // Ratio plans are analyzed post-hoc in the dedicated "Ratio metric" section (raw per-user pairs,
+  // delta method); this form's toggle offers only the two conscious approximations, continuous and
+  // count, and the disclaimer points at that section.
   const isRatioBase = baseMetricType === "ratio";
   // The toggle buttons, the hint and the input form are all derived from the test registry
   // (observedResultsShared): the button list is the base plan's default plus its alternatives, in

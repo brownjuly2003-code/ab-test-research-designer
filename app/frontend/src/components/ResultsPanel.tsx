@@ -20,8 +20,6 @@ import ExperimentDesignSection from "./results/ExperimentDesignSection";
 import LiveStatsSection from "./results/LiveStatsSection";
 import MetricsPlanSection from "./results/MetricsPlanSection";
 import MultipleTestingSection from "./results/MultipleTestingSection";
-import CategoricalResultsSection from "./results/CategoricalResultsSection";
-import PairedResultsSection from "./results/PairedResultsSection";
 import ObservedResultsSection from "./results/ObservedResultsSection";
 import PowerCurveSection from "./results/PowerCurveSection";
 import RisksSection from "./results/RisksSection";
@@ -47,6 +45,12 @@ const OmnibusResultsSection = lazy(() => import("./results/OmnibusResultsSection
 // The survival section pulls in recharts for the Kaplan–Meier curve; code-split it into its own async
 // chunk for the same reason (keep recharts out of the main bundle).
 const SurvivalResultsSection = lazy(() => import("./results/SurvivalResultsSection"));
+// The remaining manual post-hoc analyzers are individually light, but the main bundle sits right at
+// the 500 kB warning limit (it crossed it when the survival section's accordion landed), so they are
+// code-split the same way — they only load when a user actually opens a post-hoc form.
+const RatioResultsSection = lazy(() => import("./results/RatioResultsSection"));
+const CategoricalResultsSection = lazy(() => import("./results/CategoricalResultsSection"));
+const PairedResultsSection = lazy(() => import("./results/PairedResultsSection"));
 
 export default function ResultsPanel(_props: ResultsPanelProps) {
   const { t } = useTranslation();
@@ -224,8 +228,9 @@ export default function ResultsPanel(_props: ResultsPanelProps) {
     posthoc: (
       <>
         <Accordion title={t("results.panel.accordion.observedResults")} badge={resultsAnalysis ? (resultsAnalysis.is_significant ? t("results.panel.badges.significant") : t("results.panel.badges.review")) : t("results.panel.badges.postTest")} badgeColor={resultsAnalysis ? (resultsAnalysis.is_significant ? "accent" : "warn") : "accent"} defaultOpen><ObservedResultsSection onResultsAnalysisChange={setResultsAnalysis} /></Accordion>
-        <Accordion title={t("results.panel.accordion.categoricalResults")} badge={t("results.panel.badges.manual")}><CategoricalResultsSection /></Accordion>
-        <Accordion title={t("results.panel.accordion.pairedResults")} badge={t("results.panel.badges.manual")}><PairedResultsSection /></Accordion>
+        <Accordion title={t("results.panel.accordion.ratioResults")} badge={t("results.panel.badges.manual")}><Suspense fallback={<div className="status" aria-busy={true} />}><RatioResultsSection /></Suspense></Accordion>
+        <Accordion title={t("results.panel.accordion.categoricalResults")} badge={t("results.panel.badges.manual")}><Suspense fallback={<div className="status" aria-busy={true} />}><CategoricalResultsSection /></Suspense></Accordion>
+        <Accordion title={t("results.panel.accordion.pairedResults")} badge={t("results.panel.badges.manual")}><Suspense fallback={<div className="status" aria-busy={true} />}><PairedResultsSection /></Suspense></Accordion>
         <Accordion title={t("results.panel.accordion.omnibusResults")} badge={t("results.panel.badges.manual")}><Suspense fallback={<div className="status" aria-busy={true} />}><OmnibusResultsSection /></Suspense></Accordion>
         <Accordion title={t("results.panel.accordion.survivalResults")} badge={t("results.panel.badges.manual")}><Suspense fallback={<div className="status" aria-busy={true} />}><SurvivalResultsSection /></Suspense></Accordion>
         <Accordion title={t("results.panel.accordion.srmCheck")} badge={t("results.panel.badges.manual")}><SrmCheckSection /></Accordion>

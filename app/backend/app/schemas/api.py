@@ -722,6 +722,52 @@ class SurvivalResultsResponse(BaseModel):
     interpretation: str
 
 
+class RatioArm(BaseModel):
+    """One arm of a ratio metric: parallel per-user numerator and denominator totals.
+
+    ``numerators[i]`` / ``denominators[i]`` are user ``i``'s totals of the numerator and denominator
+    events (e.g. clicks and impressions for a click-through ratio), paired by index — hence the two
+    arrays must have the same length. The delta method needs the within-user covariance between the
+    two, which is exactly why a ratio cannot be analyzed from marginal summaries alone and the arm
+    carries raw pairs. At least 2 users are needed for a sample (co)variance.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    numerators: list[float] = Field(min_length=2, max_length=MAX_OBSERVED_SAMPLE_SIZE)
+    denominators: list[float] = Field(min_length=2, max_length=MAX_OBSERVED_SAMPLE_SIZE)
+
+    @model_validator(mode="after")
+    def validate_arm(self) -> "RatioArm":
+        if len(self.numerators) != len(self.denominators):
+            raise ValueError(translate("errors.schemas.ratio_pairs_length_mismatch"))
+        if any(not isfinite(value) for value in self.numerators) or any(
+            not isfinite(value) for value in self.denominators
+        ):
+            raise ValueError(translate("errors.schemas.ratio_values_finite"))
+        return self
+
+
+class RatioResultsRequest(BaseModel):
+    """Two ratio-metric arms (control + treatment) for the post-hoc delta-method z-test.
+
+    Separate from ``ResultsRequest`` because a ratio metric ``R = sum(numerator) / sum(denominator)``
+    cannot be reconstructed from the marginal summaries that request carries — the delta-method
+    variance needs the per-user numerator/denominator covariance, so the input is raw per-user pairs
+    per arm. The response reuses ``ResultsResponse`` (the outcome *is* a scalar effect with a
+    confidence interval), assembled by the same ``build_ratio_results_response`` the live executor
+    uses, so post-hoc and live ratio readouts agree by construction. A degenerate comparison (zero
+    denominator mean or zero pooled variance) is a statistical degeneracy surfaced by the service as
+    a 400, not a schema error.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    control_arm: RatioArm
+    treatment_arm: RatioArm
+    alpha: float = Field(default=0.05, ge=0.001, le=0.1)
+
+
 class SavedObservedResults(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

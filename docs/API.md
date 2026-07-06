@@ -384,6 +384,10 @@ Omnibus Results
 
 Paired Results
 
+### `POST /api/v1/results/ratio`
+
+Ratio Results
+
 ### `POST /api/v1/results/survival`
 
 Survival Results

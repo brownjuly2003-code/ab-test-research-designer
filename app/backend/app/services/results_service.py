@@ -15,6 +15,8 @@ from app.backend.app.schemas.api import (
     OmnibusResultsResponse,
     PairedResultsRequest,
     PairedResultsResponse,
+    RatioArm,
+    RatioResultsRequest,
     ResultsRequest,
     ResultsResponse,
     SurvivalCurvePoint,
@@ -45,6 +47,7 @@ from app.backend.app.stats.paired import (
 )
 from app.backend.app.stats.poisson_rate import MAX_POISSON_EVENTS, poisson_rate_test
 from app.backend.app.stats.quantile_te import quantile_treatment_effect_test
+from app.backend.app.stats.ratio import compare_ratios
 from app.backend.app.stats.student_t import t_cdf, t_ppf
 from app.backend.app.stats.survival import kaplan_meier_estimate, log_rank_test
 from app.backend.app.stats.trimmed_t import trimmed_means_t_test
@@ -454,6 +457,38 @@ def analyze_survival_results(request: SurvivalResultsRequest) -> SurvivalResults
         verdict=_survival_verdict(is_significant, request.alpha),
         interpretation=interpretation,
     )
+
+
+def analyze_ratio_results(request: RatioResultsRequest) -> ResultsResponse:
+    """Post-hoc delta-method z-test on a ratio metric from raw per-user pairs.
+
+    The math and the response assembly are exactly the live executor's (``stats.ratio.compare_ratios``
+    + ``build_ratio_results_response``) — only the entry differs: raw per-user (numerator, denominator)
+    pairs are reduced to the per-arm sufficient statistics here. A degenerate comparison (a zero
+    denominator mean, so the ratio blows up, or zero pooled variance, so there is no usable signal)
+    returns ``None`` from the stats layer and raises ``ValueError``, which the global handler maps to
+    HTTP 400 rather than inventing a z-statistic.
+    """
+    result = compare_ratios(
+        _ratio_arm_sufficient_stats(request.control_arm),
+        _ratio_arm_sufficient_stats(request.treatment_arm),
+        request.alpha,
+    )
+    if result is None:
+        raise ValueError(translate("errors.schemas.ratio_degenerate"))
+    return build_ratio_results_response(result, request.alpha)
+
+
+def _ratio_arm_sufficient_stats(arm: RatioArm) -> dict[str, float]:
+    # x = denominator, y = numerator — the orientation ``stats.ratio`` documents.
+    return {
+        "n": len(arm.numerators),
+        "sum_x": sum(arm.denominators),
+        "sum_x2": sum(value * value for value in arm.denominators),
+        "sum_y": sum(arm.numerators),
+        "sum_y2": sum(value * value for value in arm.numerators),
+        "sum_xy": sum(x * y for x, y in zip(arm.denominators, arm.numerators, strict=True)),
+    }
 
 
 def _survival_curve_point(point: dict[str, Any]) -> SurvivalCurvePoint:

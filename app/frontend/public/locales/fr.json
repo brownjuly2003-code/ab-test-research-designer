@@ -547,7 +547,7 @@
       "saving": "Économie...",
       "yes": "Oui",
       "no": "Non",
-      "ratioDisclaimer": "La métrique de ce plan est un ratio. Il n'existe pas de test post-hoc dédié pour elle ici — le ratio lui-même est analysé automatiquement par la méthode delta dans « Résultats de l'expérience en direct ». Pour l'analyser manuellement, choisissez consciemment une approximation ci-dessous : un test continu sur une valeur de ratio précalculée par utilisateur, ou un test de taux de Poisson sur les événements bruts du numérateur et l'exposition du dénominateur.",
+      "ratioDisclaimer": "La métrique de ce plan est un ratio. Analysez-la post-hoc dans la section dédiée « Métrique ratio (méthode delta) » ci-dessous — collez-y les valeurs brutes du numérateur et du dénominateur par utilisateur ; c'est le même test z par méthode delta que sur le chemin live. Dans ce formulaire, seule une approximation consciente est possible : un test continu sur une valeur de ratio précalculée par utilisateur, ou un test de taux de Poisson sur les événements bruts du numérateur rapportés à l'exposition du dénominateur.",
       "fields": {
         "controlConversions": "Conversions du contrôle",
         "controlUsers": "Utilisateurs du contrôle",
@@ -785,6 +785,7 @@
         "sequentialDesign": "Conception séquentielle",
         "bayesianPosterior": "Bayésien postérieur",
         "observedResults": "Résultats observés",
+        "ratioResults": "Métrique ratio (méthode delta)",
         "warningsAndRisks": "Avertissements et risques",
         "experimentDesign": "Conception d'expériences",
         "metricsPlan": "Plan de métriques",
@@ -1078,6 +1079,31 @@
         "pairs": "Paires",
         "zeroDifferences": "Différences nulles",
         "discordant": "Discordantes (+/−)"
+      }
+    },
+    "ratioResults": {
+      "title": "Métrique ratio (post-hoc)",
+      "description": "Analyse d'une métrique ratio R = Σ numérateur / Σ dénominateur à partir de paires brutes par utilisateur — le test z par méthode delta, la même mathématique que sur le chemin live.",
+      "controlNumeratorsLabel": "Contrôle — numérateurs",
+      "controlDenominatorsLabel": "Contrôle — dénominateurs",
+      "treatmentNumeratorsLabel": "Traitement — numérateurs",
+      "treatmentDenominatorsLabel": "Traitement — dénominateurs",
+      "valuesPlaceholder": "3\n1\n0\n5",
+      "valuesHelp": "Une valeur par utilisateur (une par ligne ou séparées par virgule/espace). Dans chaque bras, les listes de numérateurs et de dénominateurs doivent avoir le même nombre de valeurs, appariées par position — c'est l'appariement qui porte la covariance intra-utilisateur nécessaire à la méthode delta.",
+      "alphaLabel": "Niveau de signification (alpha)",
+      "analyzeButton": "Lancer le test ratio",
+      "analyzing": "Analyse…",
+      "validation": {
+        "parseError": "Saisissez au moins deux valeurs numériques par champ (une par ligne ou séparées par virgule/espace).",
+        "lengthMismatch": "Dans chaque bras, les numérateurs et les dénominateurs doivent avoir le même nombre de valeurs.",
+        "analysisUnavailable": "Analyse indisponible. Vérifiez les valeurs et réessayez."
+      },
+      "results": {
+        "effect": "Différence de ratio",
+        "relativeEffect": "Effet relatif",
+        "pValue": "valeur p",
+        "testStatistic": "statistique z",
+        "power": "Puissance atteinte"
       }
     },
     "omnibusResults": {

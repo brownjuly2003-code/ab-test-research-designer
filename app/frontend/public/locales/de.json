@@ -547,7 +547,7 @@
       "saving": "Speichern...",
       "yes": "Ja",
       "no": "Nein",
-      "ratioDisclaimer": "Die Metrik dieses Plans ist ein Ratio. Dafür gibt es hier keinen eigenen Post-hoc-Test — das Ratio selbst wird automatisch per Delta-Methode in „Live-Experimentergebnisse\" analysiert. Um es manuell zu analysieren, wählen Sie bewusst eine Näherung unten: einen stetigen Test auf einem vorab berechneten Ratio-Wert pro Nutzer, oder einen Poisson-Ratentest auf den rohen Zähler-Ereignissen über die Nenner-Exposition.",
+      "ratioDisclaimer": "Die Metrik dieses Plans ist ein Ratio. Analysieren Sie sie post-hoc im eigenen Abschnitt „Ratio-Metrik (Delta-Methode)“ unten — fügen Sie dort die rohen Zähler- und Nenner-Werte pro Nutzer ein; es ist derselbe Delta-Methoden-z-Test wie auf dem Live-Pfad. In diesem Formular ist nur eine bewusste Näherung wählbar: ein kontinuierlicher Test auf einem vorberechneten Ratio-Wert pro Nutzer oder ein Poisson-Raten-Test auf den rohen Zähler-Ereignissen über der Nenner-Exposition.",
       "fields": {
         "controlConversions": "Konversionen der Kontrollgruppe",
         "controlUsers": "Nutzer der Kontrollgruppe",
@@ -785,6 +785,7 @@
         "sequentialDesign": "Sequenzielles Design",
         "bayesianPosterior": "Bayesianische A-posteriori-Verteilung",
         "observedResults": "Beobachtete Ergebnisse",
+        "ratioResults": "Ratio-Metrik (Delta-Methode)",
         "warningsAndRisks": "Warnungen und Risiken",
         "experimentDesign": "Experimentdesign",
         "metricsPlan": "Metrikplan",
@@ -1078,6 +1079,31 @@
         "pairs": "Paare",
         "zeroDifferences": "Nulldifferenzen",
         "discordant": "Diskordant (+/−)"
+      }
+    },
+    "ratioResults": {
+      "title": "Ratio-Metrik (post-hoc)",
+      "description": "Analyse einer Ratio-Metrik R = Σ Zähler / Σ Nenner aus rohen Paaren pro Nutzer — der Delta-Methoden-z-Test, dieselbe Mathematik wie auf dem Live-Pfad.",
+      "controlNumeratorsLabel": "Kontrolle — Zähler",
+      "controlDenominatorsLabel": "Kontrolle — Nenner",
+      "treatmentNumeratorsLabel": "Variante — Zähler",
+      "treatmentDenominatorsLabel": "Variante — Nenner",
+      "valuesPlaceholder": "3\n1\n0\n5",
+      "valuesHelp": "Ein Wert pro Nutzer (einer pro Zeile oder durch Komma/Leerzeichen getrennt). Innerhalb jeder Gruppe müssen Zähler- und Nenner-Listen gleich lang und positionsweise gepaart sein — die Paarung trägt die nutzerinterne Kovarianz, die die Delta-Methode braucht.",
+      "alphaLabel": "Signifikanzniveau (Alpha)",
+      "analyzeButton": "Ratio-Test ausführen",
+      "analyzing": "Analysiere…",
+      "validation": {
+        "parseError": "Geben Sie mindestens zwei numerische Werte pro Feld ein (einer pro Zeile oder durch Komma/Leerzeichen getrennt).",
+        "lengthMismatch": "Innerhalb jeder Gruppe müssen Zähler und Nenner gleich viele Werte haben.",
+        "analysisUnavailable": "Analyse nicht verfügbar. Prüfen Sie die Werte und versuchen Sie es erneut."
+      },
+      "results": {
+        "effect": "Ratio-Differenz",
+        "relativeEffect": "Relativer Effekt",
+        "pValue": "p-Wert",
+        "testStatistic": "z-Statistik",
+        "power": "Erreichte Power"
       }
     },
     "omnibusResults": {

@@ -312,7 +312,10 @@
       "survival_length_mismatch": "the survival durations and event flags must have the same length",
       "survival_durations_finite": "survival durations must be finite numbers",
       "survival_durations_non_negative": "survival durations must be non-negative",
-      "survival_no_events": "the log-rank test is undefined: no events occurred in either arm (every subject is censored)"
+      "survival_no_events": "the log-rank test is undefined: no events occurred in either arm (every subject is censored)",
+      "ratio_pairs_length_mismatch": "a ratio arm must have the same number of numerator and denominator values",
+      "ratio_values_finite": "ratio metric values must be finite numbers",
+      "ratio_degenerate": "the ratio comparison is undefined: a zero denominator mean or no variance in either arm"
     },
     "srm_detected": "SRM detected - check your randomization or tracking implementation",
     "srm_not_detected": "No SRM detected"
