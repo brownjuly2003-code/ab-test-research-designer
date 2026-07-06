@@ -798,7 +798,8 @@
         "decision": "Entscheidungs-Readout",
         "categoricalResults": "Kategoriales Ergebnis (Chi-Quadrat)",
         "pairedResults": "Gepaarte Stichproben",
-        "omnibusResults": "Mehrere Gruppen (Omnibus)"
+        "omnibusResults": "Mehrere Gruppen (Omnibus)",
+        "survivalResults": "Überleben (Log-Rank)"
       },
       "badges": {
         "loaded": "Geladen",
@@ -1115,6 +1116,44 @@
         "std": "SD",
         "median": "Median",
         "meanRank": "Mittlerer Rang"
+      }
+    },
+    "survivalResults": {
+      "title": "Überlebenskurven (Log-Rank)",
+      "description": "Vergleicht die Zeit bis zum Ereignis zwischen zwei Gruppen mit den Kaplan–Meier-Überlebenskurven und dem Log-Rank-Test (Mantel–Cox) für zwei Stichproben — für rechtszensierte Dauern (Abwanderung, Zeit bis zur Conversion, Retention), bei denen eine zensierte Beobachtung beim letzten Kontakt noch ereignisfrei ist.",
+      "controlLabel": "Kontrollgruppe",
+      "treatmentLabel": "Behandlungsgruppe",
+      "controlPlaceholder": "1 1\n2 1\n3 1\n8 1\n11 1",
+      "treatmentPlaceholder": "6 1\n6 0\n7 1\n10 0\n13 1",
+      "dataHelp": "Eine Beobachtung pro Zeile: die Beobachtungsdauer, dann 1 für ein beobachtetes Ereignis oder 0 für eine zensierte (noch ereignisfreie) Beobachtung. Eine Zeile mit nur einer Dauer zählt als beobachtetes Ereignis.",
+      "alphaLabel": "Signifikanzniveau (alpha)",
+      "analyzeButton": "Log-Rank-Test ausführen",
+      "analyzing": "Analyse…",
+      "validation": {
+        "parseError": "Geben Sie mindestens eine Beobachtung pro Gruppe ein, eine pro Zeile: eine nicht-negative Dauer, optional gefolgt von 1 (Ereignis) oder 0 (zensiert).",
+        "analysisUnavailable": "Analyse nicht verfügbar. Prüfen Sie die Werte und versuchen Sie es erneut."
+      },
+      "statistic": {
+        "chiSquare": "Log-Rank-χ²"
+      },
+      "results": {
+        "pValue": "p-Wert",
+        "degreesOfFreedom": "Freiheitsgrade",
+        "observedControl": "Kontroll-Ereignisse (beob. / erw.)",
+        "observedTreatment": "Behandlungs-Ereignisse (beob. / erw.)",
+        "sampleSize": "n (Kontrolle / Behandlung)"
+      },
+      "chart": {
+        "ariaLabel": "Kaplan–Meier-Überlebenskurven für die Kontroll- und die Behandlungsgruppe",
+        "timeAxis": "Zeit",
+        "survivalAxis": "Überleben S(t)"
+      },
+      "curve": {
+        "time": "Zeit",
+        "atRisk": "Unter Risiko",
+        "events": "Ereignisse",
+        "survival": "S(t)",
+        "ci": "95%-KI"
       }
     }
   },

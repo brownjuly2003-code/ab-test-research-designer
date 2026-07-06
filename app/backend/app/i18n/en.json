@@ -308,7 +308,11 @@
       "omnibus_group_too_large": "a group has too many observations",
       "omnibus_values_finite": "omnibus values must be finite numbers",
       "welch_anova_degenerate": "Welch's ANOVA is undefined: every group needs at least two observations and non-zero within-group variance",
-      "kruskal_wallis_degenerate": "the Kruskal–Wallis test is undefined: the observations carry no rank variation (every value is identical)"
+      "kruskal_wallis_degenerate": "the Kruskal–Wallis test is undefined: the observations carry no rank variation (every value is identical)",
+      "survival_length_mismatch": "the survival durations and event flags must have the same length",
+      "survival_durations_finite": "survival durations must be finite numbers",
+      "survival_durations_non_negative": "survival durations must be non-negative",
+      "survival_no_events": "the log-rank test is undefined: no events occurred in either arm (every subject is censored)"
     },
     "srm_detected": "SRM detected - check your randomization or tracking implementation",
     "srm_not_detected": "No SRM detected"
@@ -346,7 +350,8 @@
       "wilcoxon": "Hodges–Lehmann pseudomedian of the paired differences {{pseudomedian}} with {{ciLevel}}% CI [{{ciLower}}, {{ciUpper}}]. Signed-rank statistic {{wStat}} over {{nNonzero}} non-zero differences ({{nZero}} zero differences dropped), two-sided p-value {{pValue}}; result is {{significance}}. Rank-biserial correlation {{rankBiserial}}.",
       "mcnemar": "Discordant pairs: {{b}} switched to success, {{c}} switched away ({{nDiscordant}} total). Marginal proportion difference {{proportionDiff}} pp, discordance odds ratio {{oddsRatio}}. Two-sided p-value {{pValue}} ({{method}}); result is {{significance}}.",
       "welch_anova": "Welch's ANOVA F {{fStatistic}} on {{dfNum}} and {{dfDen}} degrees of freedom across {{groups}} groups (N = {{n}}). Two-sided p-value {{pValue}}; result is {{significance}}. η² {{etaSquared}} of the variance is explained by group membership.",
-      "kruskal_wallis": "Kruskal–Wallis H {{hStatistic}} on {{df}} degrees of freedom across {{groups}} groups (N = {{n}}). Chi-square p-value {{pValue}}; result is {{significance}}. ε² {{epsilonSquared}} measures the rank variation explained by group membership."
+      "kruskal_wallis": "Kruskal–Wallis H {{hStatistic}} on {{df}} degrees of freedom across {{groups}} groups (N = {{n}}). Chi-square p-value {{pValue}}; result is {{significance}}. ε² {{epsilonSquared}} measures the rank variation explained by group membership.",
+      "log_rank": "Log-rank chi-square {{chiSquare}} on 1 degree of freedom. Control: {{observedControl}} events observed vs {{expectedControl}} expected; treatment: {{observedTreatment}} vs {{expectedTreatment}} (n {{nControl}} vs {{nTreatment}}). Two-sided p-value {{pValue}}; result is {{significance}}. An arm with fewer events than expected is surviving longer."
     },
     "effect_size": {
       "rank_biserial": "rank-biserial correlation",
@@ -391,6 +396,10 @@
     "omnibus": {
       "verdict_difference": "At least one group differs at alpha={{alpha}}",
       "verdict_no_difference": "No significant difference between groups at alpha={{alpha}}"
+    },
+    "survival": {
+      "verdict_difference": "Survival curves differ at alpha={{alpha}}",
+      "verdict_no_difference": "No significant difference in survival between the arms at alpha={{alpha}}"
     }
   },
   "live_stats": {

@@ -636,6 +636,92 @@ class OmnibusResultsResponse(BaseModel):
     interpretation: str
 
 
+class SurvivalArm(BaseModel):
+    """One arm of a time-to-event experiment: parallel per-subject durations + censoring flags.
+
+    ``durations[i]`` is subject ``i``'s observed follow-up time (non-negative, finite) and
+    ``events_observed[i]`` is ``True`` when the event was observed at that time or ``False`` when the
+    subject was right-censored (still event-free at last follow-up). The two arrays are paired by index,
+    so they must have the same length — a mismatch is a 422 (malformed input), not a statistical
+    degeneracy. Per-arm counts reuse ``MAX_OBSERVED_SAMPLE_SIZE``.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    durations: list[float] = Field(min_length=1, max_length=MAX_OBSERVED_SAMPLE_SIZE)
+    events_observed: list[bool] = Field(min_length=1, max_length=MAX_OBSERVED_SAMPLE_SIZE)
+
+    @model_validator(mode="after")
+    def validate_arm(self) -> "SurvivalArm":
+        if len(self.durations) != len(self.events_observed):
+            raise ValueError(translate("errors.schemas.survival_length_mismatch"))
+        if any(not isfinite(value) for value in self.durations):
+            raise ValueError(translate("errors.schemas.survival_durations_finite"))
+        if any(value < 0 for value in self.durations):
+            raise ValueError(translate("errors.schemas.survival_durations_non_negative"))
+        return self
+
+
+class SurvivalResultsRequest(BaseModel):
+    """Two survival arms (control + treatment) for the Kaplan–Meier curves and the log-rank test.
+
+    Separate from ``ResultsRequest`` because the input is time-to-event — a duration plus a censoring
+    flag per subject, not a scalar outcome — and the response carries a per-arm survival curve rather
+    than a single scalar effect, exactly as the omnibus and categorical analyzers have their own
+    request / response shapes. A fully censored comparison (no events in either arm) is a statistical
+    degeneracy surfaced by the service as a 400, not a schema error.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    control_arm: SurvivalArm
+    treatment_arm: SurvivalArm
+    alpha: float = Field(default=0.05, ge=0.001, le=0.1)
+
+
+class SurvivalCurvePoint(BaseModel):
+    """One step of a Kaplan–Meier product-limit survival curve, at a distinct event time.
+
+    ``survival`` is S(t); ``at_risk`` the number of subjects with observed time ``>= time``; ``n_events``
+    the events at that time; ``std_error`` the Greenwood standard error and ``ci_lower`` / ``ci_upper``
+    the normal-approximation confidence bounds (clamped to ``[0, 1]``, collapsed to the point estimate
+    where S(t) reaches 0 and Greenwood's variance is undefined).
+    """
+
+    time: float
+    survival: float
+    at_risk: int
+    n_events: int
+    std_error: float
+    ci_lower: float
+    ci_upper: float
+
+
+class SurvivalResultsResponse(BaseModel):
+    """Outcome of a two-arm survival comparison: the log-rank test plus both Kaplan–Meier curves.
+
+    ``chi_square`` is the Mantel–Cox log-rank statistic on one degree of freedom (symmetric in the
+    arms); ``observed_*`` / ``expected_*`` are the observed and risk-set-expected event counts per arm
+    (an arm with fewer events than expected is surviving longer). ``control_curve`` / ``treatment_curve``
+    are the step points the frontend draws as the two survival curves.
+    """
+
+    chi_square: float
+    degrees_of_freedom: int
+    p_value: float
+    is_significant: bool
+    observed_control: int
+    expected_control: float
+    observed_treatment: int
+    expected_treatment: float
+    n_control: int
+    n_treatment: int
+    control_curve: list[SurvivalCurvePoint]
+    treatment_curve: list[SurvivalCurvePoint]
+    verdict: str
+    interpretation: str
+
+
 class SavedObservedResults(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

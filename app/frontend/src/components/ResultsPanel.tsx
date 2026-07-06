@@ -44,6 +44,9 @@ const STAGE_ORDINAL: Record<StageKey, number> = { planning: 1, posthoc: 2, execu
 // Code-split the omnibus analyzer into its own async chunk (like ComparisonDashboard / PosteriorPlot)
 // so it stays out of the main bundle, keeping index.js under the 500 kB chunkSizeWarningLimit.
 const OmnibusResultsSection = lazy(() => import("./results/OmnibusResultsSection"));
+// The survival section pulls in recharts for the Kaplan–Meier curve; code-split it into its own async
+// chunk for the same reason (keep recharts out of the main bundle).
+const SurvivalResultsSection = lazy(() => import("./results/SurvivalResultsSection"));
 
 export default function ResultsPanel(_props: ResultsPanelProps) {
   const { t } = useTranslation();
@@ -224,6 +227,7 @@ export default function ResultsPanel(_props: ResultsPanelProps) {
         <Accordion title={t("results.panel.accordion.categoricalResults")} badge={t("results.panel.badges.manual")}><CategoricalResultsSection /></Accordion>
         <Accordion title={t("results.panel.accordion.pairedResults")} badge={t("results.panel.badges.manual")}><PairedResultsSection /></Accordion>
         <Accordion title={t("results.panel.accordion.omnibusResults")} badge={t("results.panel.badges.manual")}><Suspense fallback={<div className="status" aria-busy={true} />}><OmnibusResultsSection /></Suspense></Accordion>
+        <Accordion title={t("results.panel.accordion.survivalResults")} badge={t("results.panel.badges.manual")}><Suspense fallback={<div className="status" aria-busy={true} />}><SurvivalResultsSection /></Suspense></Accordion>
         <Accordion title={t("results.panel.accordion.srmCheck")} badge={t("results.panel.badges.manual")}><SrmCheckSection /></Accordion>
         <Accordion title={t("results.panel.accordion.multipleTesting")} badge={t("results.panel.badges.manual")}><MultipleTestingSection /></Accordion>
       </>

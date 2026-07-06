@@ -47,6 +47,8 @@ from app.backend.app.schemas.api import (
     SensitivityResponse,
     SrmCheckRequest,
     SrmCheckResponse,
+    SurvivalResultsRequest,
+    SurvivalResultsResponse,
 )
 from app.backend.app.services.calculations_service import calculate_experiment_metrics
 from app.backend.app.services.design_service import build_experiment_report
@@ -56,6 +58,7 @@ from app.backend.app.services.results_service import (
     analyze_omnibus_results,
     analyze_paired_results,
     analyze_results,
+    analyze_survival_results,
 )
 from app.backend.app.stats.binary import calculate_binary_sample_size
 from app.backend.app.stats.continuous import calculate_continuous_sample_size
@@ -423,6 +426,14 @@ def create_analysis_router(
     )
     def omnibus_results(payload: OmnibusResultsRequest) -> OmnibusResultsResponse:
         return analyze_omnibus_results(payload)
+
+    @router.post(
+        "/api/v1/results/survival",
+        response_model=SurvivalResultsResponse,
+        dependencies=[Depends(require_auth)],
+    )
+    def survival_results(payload: SurvivalResultsRequest) -> SurvivalResultsResponse:
+        return analyze_survival_results(payload)
 
     @router.post(
         "/api/v1/simulate/bandit",

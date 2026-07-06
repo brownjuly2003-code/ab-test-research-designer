@@ -798,7 +798,8 @@
         "decision": "Synthèse de décision",
         "categoricalResults": "Résultat catégoriel (khi-deux)",
         "pairedResults": "Échantillons appariés",
-        "omnibusResults": "Plusieurs groupes (omnibus)"
+        "omnibusResults": "Plusieurs groupes (omnibus)",
+        "survivalResults": "Survie (log-rank)"
       },
       "badges": {
         "loaded": "Chargé",
@@ -1115,6 +1116,44 @@
         "std": "ÉT",
         "median": "Médiane",
         "meanRank": "Rang moyen"
+      }
+    },
+    "survivalResults": {
+      "title": "Courbes de survie (log-rank)",
+      "description": "Compare le temps jusqu'à l'événement entre deux groupes à l'aide des courbes de survie de Kaplan–Meier et du test du log-rank (Mantel–Cox) à deux échantillons — pour des durées censurées à droite (attrition, temps jusqu'à la conversion, rétention), où un sujet censuré est encore sans événement au dernier suivi.",
+      "controlLabel": "Groupe témoin",
+      "treatmentLabel": "Groupe traité",
+      "controlPlaceholder": "1 1\n2 1\n3 1\n8 1\n11 1",
+      "treatmentPlaceholder": "6 1\n6 0\n7 1\n10 0\n13 1",
+      "dataHelp": "Un sujet par ligne : la durée de suivi, puis 1 pour un événement observé ou 0 pour une observation censurée (encore sans événement). Une ligne avec seulement une durée compte comme un événement observé.",
+      "alphaLabel": "Seuil de signification (alpha)",
+      "analyzeButton": "Lancer le test du log-rank",
+      "analyzing": "Analyse…",
+      "validation": {
+        "parseError": "Saisissez au moins un sujet par groupe, un par ligne : une durée positive ou nulle, suivie éventuellement de 1 (événement) ou 0 (censuré).",
+        "analysisUnavailable": "L'analyse n'est pas disponible. Vérifiez les valeurs et réessayez."
+      },
+      "statistic": {
+        "chiSquare": "χ² du log-rank"
+      },
+      "results": {
+        "pValue": "valeur p",
+        "degreesOfFreedom": "Degrés de liberté",
+        "observedControl": "Événements témoin (obs. / att.)",
+        "observedTreatment": "Événements traité (obs. / att.)",
+        "sampleSize": "n (témoin / traité)"
+      },
+      "chart": {
+        "ariaLabel": "Courbes de survie de Kaplan–Meier pour le groupe témoin et le groupe traité",
+        "timeAxis": "Temps",
+        "survivalAxis": "Survie S(t)"
+      },
+      "curve": {
+        "time": "Temps",
+        "atRisk": "À risque",
+        "events": "Événements",
+        "survival": "S(t)",
+        "ci": "IC 95 %"
       }
     }
   },

@@ -1371,6 +1371,44 @@ export type StratumIngestRequest = {
   strata: StratumEvent[];
 };
 
+export type SurvivalArm = {
+  durations: number[];
+  events_observed: boolean[];
+};
+
+export type SurvivalCurvePoint = {
+  time: number;
+  survival: number;
+  at_risk: number;
+  n_events: number;
+  std_error: number;
+  ci_lower: number;
+  ci_upper: number;
+};
+
+export type SurvivalResultsRequest = {
+  control_arm: SurvivalArm;
+  treatment_arm: SurvivalArm;
+  alpha?: number;
+};
+
+export type SurvivalResultsResponse = {
+  chi_square: number;
+  degrees_of_freedom: number;
+  p_value: number;
+  is_significant: boolean;
+  observed_control: number;
+  expected_control: number;
+  observed_treatment: number;
+  expected_treatment: number;
+  n_control: number;
+  n_treatment: number;
+  control_curve: SurvivalCurvePoint[];
+  treatment_curve: SurvivalCurvePoint[];
+  verdict: string;
+  interpretation: string;
+};
+
 export type TargetingRule = {
   attribute: string;
   operator: "equals" | "not_equals" | "in" | "gt" | "lt" | "gte" | "lte";
