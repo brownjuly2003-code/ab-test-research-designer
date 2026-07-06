@@ -596,6 +596,8 @@
         "fisherHint": "Le test exact de Fisher conditionne sur les deux marges et énumère la distribution hypergéométrique — une valeur p exacte pour les petits échantillons ou les événements rares, là où l'approximation normale du test z n'est pas fiable.",
         "boschloo": "Test exact de Boschloo (inconditionnel)",
         "boschlooHint": "Le test exact inconditionnel de Boschloo ne fixe que les tailles de groupe et prend le supremum sur le taux de succès commun inconnu, en ordonnant les tableaux par la p exacte de Fisher. Il est uniformément au moins aussi puissant que le test exact de Fisher — un choix plus fort pour les petits échantillons — pour un coût de calcul plus élevé, il est donc limité aux petits tableaux.",
+        "barnard": "Test exact de Barnard (inconditionnel)",
+        "barnardHint": "Le test exact inconditionnel de Barnard utilise la même construction que celui de Boschloo mais ordonne les tableaux par un z de Wald poolé au lieu de la p exacte de Fisher. Contrairement à celui de Boschloo, il ne domine pas uniformément le test exact de Fisher — préférez Boschloo sauf besoin spécifique de l'ordre de Barnard. Même coût de calcul, il est donc limité aux petits tableaux.",
         "rate": "Taux (Poisson)",
         "rateHint": "Le test de taux de Poisson compare les événements sur l'exposition (p. ex. erreurs pour 1000 sessions) avec un test conditionnel exact. À utiliser pour des taux d'événements à arrivées indépendantes, pas pour des comptages groupés par utilisateur.",
         "bootstrap": "Bootstrap / permutation",

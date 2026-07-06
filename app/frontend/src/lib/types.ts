@@ -61,17 +61,17 @@ export type ObservedResultsCountPayload = {
   alpha?: number;
 };
 export type ResultsRequestPayload = {
-  // "fisher_exact" and "boschloo_exact" reuse the binary 2x2 input; "bootstrap", "quantile",
-  // "trimmed_t" and "equivalence" reuse the continuous / ranked inputs of the same data; "count" is a
-  // plan-independent Poisson rate test.
-  metric_type: "binary" | "continuous" | "equivalence" | "mann_whitney" | "bootstrap" | "quantile" | "trimmed_t" | "fisher_exact" | "boschloo_exact" | "count";
+  // "fisher_exact", "boschloo_exact" and "barnard_exact" reuse the binary 2x2 input; "bootstrap",
+  // "quantile", "trimmed_t" and "equivalence" reuse the continuous / ranked inputs of the same data;
+  // "count" is a plan-independent Poisson rate test.
+  metric_type: "binary" | "continuous" | "equivalence" | "mann_whitney" | "bootstrap" | "quantile" | "trimmed_t" | "fisher_exact" | "boschloo_exact" | "barnard_exact" | "count";
   binary?: ObservedResultsBinaryPayload | null;
   continuous?: ObservedResultsContinuousPayload | null;
   ranked?: ObservedResultsRankedPayload | null;
   count?: ObservedResultsCountPayload | null;
 };
 export type ResultsAnalysisResponse = {
-  metric_type: "binary" | "continuous" | "equivalence" | "mann_whitney" | "bootstrap" | "quantile" | "trimmed_t" | "fisher_exact" | "boschloo_exact" | "count";
+  metric_type: "binary" | "continuous" | "equivalence" | "mann_whitney" | "bootstrap" | "quantile" | "trimmed_t" | "fisher_exact" | "boschloo_exact" | "barnard_exact" | "count";
   observed_effect: number;
   observed_effect_relative: number;
   control_rate?: number | null;

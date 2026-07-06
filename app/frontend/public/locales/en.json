@@ -596,6 +596,8 @@
         "fisherHint": "Fisher's exact conditions on both margins and enumerates the hypergeometric distribution — an exact p-value for small samples or rare events, where the z-test's normal approximation is unreliable.",
         "boschloo": "Boschloo's exact (unconditional)",
         "boschlooHint": "Boschloo's unconditional exact test treats only the group sizes as fixed and takes the supremum over the unknown shared success rate, ordering tables by Fisher's exact p. It is uniformly at least as powerful as Fisher's exact test — a stronger small-sample choice — at a higher compute cost, so it is capped to small tables.",
+        "barnard": "Barnard's exact (unconditional)",
+        "barnardHint": "Barnard's unconditional exact test uses the same construction as Boschloo's but orders tables by a pooled Wald z-score instead of Fisher's exact p. Unlike Boschloo's, it does not uniformly dominate Fisher's exact test — prefer Boschloo's unless you specifically need Barnard's ordering. Same compute cost, so it is capped to small tables.",
         "rate": "Rate (Poisson)",
         "rateHint": "The Poisson rate test compares events over exposure (e.g. errors per 1000 sessions) with an exact conditional test. Use it for event-rate data where arrivals are independent — not for clustered per-user counts.",
         "bootstrap": "Bootstrap / permutation",

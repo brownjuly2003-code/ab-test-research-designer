@@ -596,6 +596,8 @@
         "fisherHint": "Der Fisher-Exakt-Test bedingt auf beide Randsummen und zählt die hypergeometrische Verteilung aus — ein exakter p-Wert für kleine Stichproben oder seltene Ereignisse, wo die Normalapproximation des z-Tests unzuverlässig ist.",
         "boschloo": "Boschloos exakter Test (unbedingt)",
         "boschlooHint": "Boschloos unbedingter exakter Test hält nur die Gruppengrößen fest und bildet das Supremum über die unbekannte gemeinsame Erfolgswahrscheinlichkeit, wobei Tabellen nach Fishers exaktem p geordnet werden. Er ist gleichmäßig mindestens so mächtig wie Fishers exakter Test — die stärkere Wahl bei kleinen Stichproben — bei höherem Rechenaufwand und daher auf kleine Tabellen begrenzt.",
+        "barnard": "Barnards exakter Test (unbedingt)",
+        "barnardHint": "Barnards unbedingter exakter Test nutzt dieselbe Konstruktion wie Boschloos, ordnet Tabellen aber nach einem gepoolten Wald-z-Wert statt nach Fishers exaktem p. Anders als Boschloos dominiert er Fishers exakten Test nicht gleichmäßig — bevorzugen Sie Boschloos, sofern Sie nicht gezielt Barnards Ordnung benötigen. Gleicher Rechenaufwand, daher auf kleine Tabellen begrenzt.",
         "rate": "Rate (Poisson)",
         "rateHint": "Der Poisson-Ratentest vergleicht Ereignisse über die Exposition (z. B. Fehler pro 1000 Sitzungen) mit einem exakten bedingten Test. Für Ereignisraten mit unabhängigen Ankünften — nicht für geclusterte Zählungen pro Nutzer.",
         "bootstrap": "Bootstrap / Permutation",

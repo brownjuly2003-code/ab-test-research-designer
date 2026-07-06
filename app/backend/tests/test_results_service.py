@@ -1032,6 +1032,106 @@ def test_results_endpoint_boschloo_exact_rejects_oversized_table() -> None:
     assert response.status_code == 400
 
 
+def test_results_endpoint_barnard_exact_significant() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/results",
+        json={
+            "metric_type": "barnard_exact",
+            "binary": {
+                "control_conversions": 3,
+                "control_users": 10,
+                "treatment_conversions": 8,
+                "treatment_users": 10,
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["metric_type"] == "barnard_exact"
+    # Frozen two-sided Barnard p-value for the 3/10-vs-8/10 table (== scipy 0.04138947).
+    assert payload["p_value"] == pytest.approx(0.041389, abs=1e-5)
+    assert payload["is_significant"] is True
+    # Same test-agnostic card layout as Fisher / Boschloo: the sample odds ratio is the effect size.
+    assert payload["effect_size"] == pytest.approx((3 * 2) / (7 * 8), rel=1e-3)
+    assert "Barnard" in payload["interpretation"]
+
+
+def test_results_endpoint_barnard_differs_from_boschloo_on_asymmetric_table() -> None:
+    """The discriminating table from the freeze: the pooled-Wald ordering (Barnard) and the Fisher-p
+    ordering (Boschloo) genuinely disagree — the endpoint exposes two different analyzers."""
+    client = TestClient(create_app())
+    body = {
+        "binary": {
+            "control_conversions": 2,
+            "control_users": 8,
+            "treatment_conversions": 11,
+            "treatment_users": 25,
+        }
+    }
+    barnard = client.post("/api/v1/results", json={**body, "metric_type": "barnard_exact"}).json()
+    boschloo = client.post("/api/v1/results", json={**body, "metric_type": "boschloo_exact"}).json()
+    assert barnard["p_value"] == pytest.approx(0.371643, abs=1e-5)
+    assert boschloo["p_value"] == pytest.approx(0.379091, abs=1e-5)
+
+
+def test_results_endpoint_barnard_exact_localizes_via_accept_language() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/results",
+        headers={"Accept-Language": "ru"},
+        json={
+            "metric_type": "barnard_exact",
+            "binary": {
+                "control_conversions": 3,
+                "control_users": 10,
+                "treatment_conversions": 8,
+                "treatment_users": 10,
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    assert "Барнарда" in response.json()["interpretation"]
+
+
+def test_results_endpoint_barnard_exact_requires_binary_data() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/results",
+        json={
+            "metric_type": "barnard_exact",
+            "ranked": {"control_values": [1, 2, 3], "treatment_values": [4, 5, 6]},
+        },
+    )
+
+    assert response.status_code == 422
+
+
+def test_results_endpoint_barnard_exact_rejects_oversized_table() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/results",
+        json={
+            "metric_type": "barnard_exact",
+            "binary": {
+                "control_conversions": 50,
+                "control_users": 150,
+                "treatment_conversions": 60,
+                "treatment_users": 150,
+            },
+        },
+    )
+
+    # Barnard shares MAX_UNCONDITIONAL_EXACT_TOTAL with Boschloo — same 400 redirect above the cap.
+    assert response.status_code == 400
+
+
 def test_results_endpoint_count_significant() -> None:
     client = TestClient(create_app())
 

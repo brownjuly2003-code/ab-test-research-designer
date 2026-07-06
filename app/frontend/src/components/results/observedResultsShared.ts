@@ -2,14 +2,14 @@ import type { ResultsRequestPayload } from "../../lib/experiment";
 
 // The observed-results form supports the two planned metric types plus alternative tests offered on
 // the same data — Mann–Whitney (non-parametric), bootstrap/permutation, quantile treatment effect,
-// Yuen–Welch trimmed-means (robust) and TOST equivalence for continuous, Fisher's exact and Boschloo's
-// unconditional exact for binary — and a plan-independent Poisson rate test ("count") for
-// event-over-exposure data.
-export type ObservedMetricType = "binary" | "continuous" | "equivalence" | "mann_whitney" | "bootstrap" | "quantile" | "trimmed_t" | "fisher_exact" | "boschloo_exact" | "count";
+// Yuen–Welch trimmed-means (robust) and TOST equivalence for continuous, Fisher's exact and the
+// Boschloo / Barnard unconditional exact tests for binary — and a plan-independent Poisson rate test
+// ("count") for event-over-exposure data.
+export type ObservedMetricType = "binary" | "continuous" | "equivalence" | "mann_whitney" | "bootstrap" | "quantile" | "trimmed_t" | "fisher_exact" | "boschloo_exact" | "barnard_exact" | "count";
 
 // The local toggle selection: "parametric" is the default analysis (t-test / z-test); the rest are
 // the alternative tests offered on the same data per base metric type.
-export type ObservedTestSelection = "parametric" | "mann_whitney" | "bootstrap" | "quantile" | "trimmed_t" | "equivalence" | "fisher_exact" | "boschloo_exact" | "count";
+export type ObservedTestSelection = "parametric" | "mann_whitney" | "bootstrap" | "quantile" | "trimmed_t" | "equivalence" | "fisher_exact" | "boschloo_exact" | "barnard_exact" | "count";
 
 // The plan's underlying metric type, as resolved from the calculation summary (see
 // resolveObservedMetricType). Ratio has no dedicated post-hoc analyzer and is handled specially.
@@ -125,6 +125,7 @@ type AlternativeTestDescriptor = {
 const ALTERNATIVE_TESTS: readonly AlternativeTestDescriptor[] = [
   { test: "fisher_exact", metricType: "fisher_exact", availableFor: ["binary"], labelKey: "results.observedResults.testType.fisherExact", hintKey: "results.observedResults.testType.fisherHint" },
   { test: "boschloo_exact", metricType: "boschloo_exact", availableFor: ["binary"], labelKey: "results.observedResults.testType.boschloo", hintKey: "results.observedResults.testType.boschlooHint" },
+  { test: "barnard_exact", metricType: "barnard_exact", availableFor: ["binary"], labelKey: "results.observedResults.testType.barnard", hintKey: "results.observedResults.testType.barnardHint" },
   { test: "mann_whitney", metricType: "mann_whitney", availableFor: ["continuous"], labelKey: "results.observedResults.testType.mannWhitney", hintKey: "results.observedResults.testType.hint" },
   { test: "bootstrap", metricType: "bootstrap", availableFor: ["continuous"], labelKey: "results.observedResults.testType.bootstrap", hintKey: "results.observedResults.testType.bootstrapHint" },
   { test: "quantile", metricType: "quantile", availableFor: ["continuous"], labelKey: "results.observedResults.testType.quantile", hintKey: "results.observedResults.testType.quantileHint" },
@@ -138,6 +139,7 @@ const FORM_BY_METRIC_TYPE: Record<ObservedMetricType, ObservedFormKind> = {
   binary: "binary",
   fisher_exact: "binary",
   boschloo_exact: "binary",
+  barnard_exact: "binary",
   continuous: "continuous",
   equivalence: "equivalence",
   mann_whitney: "ranked",
@@ -355,11 +357,13 @@ export function buildActualResultsState(
   alpha: number,
   request: ResultsRequestPayload | null
 ): ActualResultsState {
-  // Fisher's exact and Boschloo's exact share the binary 2x2 input, so all three read request.binary.
+  // Fisher's exact and the Boschloo / Barnard unconditional exact tests share the binary 2x2 input,
+  // so all four read request.binary.
   const requestUsesBinaryForm =
     request?.metric_type === "binary" ||
     request?.metric_type === "fisher_exact" ||
-    request?.metric_type === "boschloo_exact";
+    request?.metric_type === "boschloo_exact" ||
+    request?.metric_type === "barnard_exact";
   // Mann–Whitney, bootstrap/permutation, the quantile treatment effect and the Yuen–Welch
   // trimmed-means test all share the ranked raw-sample input.
   const requestUsesRankedForm =
@@ -372,7 +376,7 @@ export function buildActualResultsState(
     request?.metric_type === "continuous" || request?.metric_type === "equivalence";
   const matchingAlpha =
     request?.metric_type === metricType
-      ? metricType === "binary" || metricType === "fisher_exact" || metricType === "boschloo_exact"
+      ? metricType === "binary" || metricType === "fisher_exact" || metricType === "boschloo_exact" || metricType === "barnard_exact"
         ? request.binary?.alpha
         : metricType === "continuous" || metricType === "equivalence"
           ? request.continuous?.alpha
@@ -566,7 +570,7 @@ export function buildResultsRequest(
     };
   }
 
-  if (metricType === "binary" || metricType === "fisher_exact" || metricType === "boschloo_exact") {
+  if (metricType === "binary" || metricType === "fisher_exact" || metricType === "boschloo_exact" || metricType === "barnard_exact") {
     if (
       form.binary.control_conversions.trim() === "" ||
       form.binary.control_users.trim() === "" ||
