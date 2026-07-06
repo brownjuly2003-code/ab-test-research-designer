@@ -37,6 +37,8 @@ PUBLIC_COMPUTE_PATHS = frozenset(
         "/api/v1/results/categorical",
         "/api/v1/results/paired",
         "/api/v1/results/omnibus",
+        "/api/v1/results/survival",
+        "/api/v1/results/ratio",
         "/api/v1/simulate/bandit",
         "/api/v1/assignment/preview",
         "/api/v1/design",
