@@ -1,4 +1,4 @@
-"""Boschloo's unconditional exact test for a 2x2 table.
+"""Boschloo's and Barnard's unconditional exact tests for a 2x2 table.
 
 Fisher's exact test (``stats.fisher_exact``) conditions on *both* margins of the 2x2 table and is,
 because of that conditioning, conservative: on a fixed margin its attainable significance levels are a
@@ -30,16 +30,15 @@ Layout (same orientation as ``fisher_exact``)::
 with ``a = control_conversions``, ``n1 = control_users``, ``c = treatment_conversions``,
 ``n2 = treatment_users``.
 
-**Why Boschloo and not also Barnard.** Barnard's test is the *same* unconditional construction with a
-different ordering statistic (a pooled-variance Wald Z instead of Fisher's exact p). It is a sibling,
-not an addition: it needs the same nuisance-supremum machinery below plus one extra ``T`` function, and
-it does **not** carry Boschloo's clean domination property over Fisher's exact test — no single ordering
-makes Barnard's test uniformly more powerful than Fisher's. Shipping two unconditional exact analyzers
-side by side would offer users a redundant choice with no principled rule for picking between them,
-so Barnard's test is deliberately deferred: Boschloo's is the flagship unconditional exact test and
-strictly dominates the conditional Fisher test the app already offers. If a concrete request for
-Barnard's ordering ever arrives, it is a small, localized addition on top of the shared helpers here
-(one ``T`` statistic + a dispatch branch); nothing below needs to change.
+**Boschloo vs Barnard.** Barnard's test (added on explicit request, 2026-07-06; originally deferred)
+is the *same* unconditional construction with a different ordering statistic: tables are ranked by a
+pooled-variance Wald ``Z`` score instead of Fisher's one-sided exact p-value, and the two-sided
+p-value is the nuisance-supremum over the ``|Z| >= |Z_obs|`` set directly (scipy's convention for
+Barnard) rather than the doubled smaller one-sided supremum (scipy's convention for Boschloo).
+Boschloo's remains the recommended default: its ordering gives it the clean uniform-domination
+property over Fisher's exact test (Boschloo 1970), which Barnard's Wald ordering does not carry —
+the UI hints say as much. Both share every helper below; Barnard adds one ``T`` statistic and a
+p-value function, nothing else.
 
 The unconditional supremum is the expensive part: unlike Fisher's ``O(support)`` sweep over one margin,
 each candidate ``pi`` costs ``O((n1+1)(n2+1))`` and the extreme set is re-scored on a grid of ``pi``
@@ -205,6 +204,80 @@ def _boschloo_two_sided_p_value(a: int, n1: int, c: int, n2: int) -> float:
         return _sup_product_binomial(pairs, n1, n2)
 
     return min(1.0, 2.0 * min(one_sided(less), one_sided(greater)))
+
+
+def _pooled_wald_z(x1: int, n1: int, x2: int, n2: int) -> float:
+    """Pooled-variance Wald z-score of a candidate table — Barnard's ordering statistic.
+
+    Degenerate tables (all successes or all failures pooled, so the pooled variance is zero) score 0:
+    under H0 they carry no evidence against equality, which matches scipy's handling.
+    """
+    p1 = x1 / n1
+    p2 = x2 / n2
+    p_pooled = (x1 + x2) / (n1 + n2)
+    if p_pooled <= 0.0 or p_pooled >= 1.0:
+        return 0.0
+    standard_error = math.sqrt(p_pooled * (1.0 - p_pooled) * (1.0 / n1 + 1.0 / n2))
+    return (p1 - p2) / standard_error if standard_error > 0.0 else 0.0
+
+
+def _barnard_two_sided_p_value(a: int, n1: int, c: int, n2: int) -> float:
+    """Two-sided Barnard p-value: nuisance-supremum over the ``|Z| >= |Z_obs|`` table set.
+
+    Unlike Boschloo's (doubled smaller one-sided supremum), scipy's two-sided Barnard convention
+    scores the two-sided extreme set directly by the absolute pooled Wald statistic (verified in
+    ``scratchpad/verify_barnard_boschloo_gtest.py``: this reproduces ``scipy.stats.barnard_exact``
+    to ~1e-10 across symmetric, asymmetric, zero-cell and degenerate tables).
+    """
+    z_observed = abs(_pooled_wald_z(a, n1, c, n2))
+    pairs = [
+        (x1, x2)
+        for x1 in range(n1 + 1)
+        for x2 in range(n2 + 1)
+        if abs(_pooled_wald_z(x1, n1, x2, n2)) >= z_observed - 1e-12
+    ]
+    return min(1.0, _sup_product_binomial(pairs, n1, n2))
+
+
+def barnard_exact_test(
+    control_conversions: int,
+    control_users: int,
+    treatment_conversions: int,
+    treatment_users: int,
+) -> dict[str, Any]:
+    """Two-sided Barnard unconditional exact test on a 2x2 conversion table.
+
+    Same contract as :func:`boschloo_exact_test`: the exact two-sided p-value plus the test-agnostic
+    descriptive table statistics, so the service presents both unconditional tests with an identical
+    card layout. The observed pooled Wald z-score is returned as ``ordering_statistic`` for the
+    interpretation text (it is Barnard's ranking score, not a normal-approximation p-value source).
+    The service enforces the shared :data:`MAX_UNCONDITIONAL_EXACT_TOTAL` cap before calling this.
+    """
+    a = control_conversions
+    b = control_users - control_conversions
+    c = treatment_conversions
+    d = treatment_users - treatment_conversions
+    if a < 0 or b < 0 or c < 0 or d < 0:
+        raise ValueError("conversion counts must be non-negative and not exceed users")
+
+    p_value = _barnard_two_sided_p_value(a, control_users, c, treatment_users)
+
+    control_rate = a / control_users
+    treatment_rate = c / treatment_users
+    odds_ratio = (a * d) / (b * c) if (b * c) != 0 else None
+
+    return {
+        "p_value": p_value,
+        "ordering_statistic": _pooled_wald_z(a, control_users, c, treatment_users),
+        "odds_ratio": odds_ratio,
+        "control_rate": control_rate,
+        "treatment_rate": treatment_rate,
+        "risk_difference": treatment_rate - control_rate,
+        "relative_risk_difference": (
+            (treatment_rate - control_rate) / control_rate if control_rate > 0 else 0.0
+        ),
+        "table_total": control_users + treatment_users,
+    }
 
 
 def boschloo_exact_test(

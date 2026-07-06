@@ -345,6 +345,7 @@ class ResultsRequest(BaseModel):
         "trimmed_t",
         "fisher_exact",
         "boschloo_exact",
+        "barnard_exact",
         "count",
     ]
     binary: ObservedResultsBinary | None = None
@@ -373,6 +374,13 @@ class ResultsRequest(BaseModel):
                 raise ValueError(translate("errors.schemas.boschloo_exact_requires_binary_data"))
             if self.continuous is not None or self.ranked is not None:
                 raise ValueError(translate("errors.schemas.boschloo_exact_rejects_other_data"))
+        if self.metric_type == "barnard_exact":
+            # Barnard's unconditional exact test reuses the same 2x2 binary shape as Fisher / Boschloo —
+            # same counts, a different (pooled Wald z) ordering of the extreme tables.
+            if self.binary is None:
+                raise ValueError(translate("errors.schemas.barnard_exact_requires_binary_data"))
+            if self.continuous is not None or self.ranked is not None:
+                raise ValueError(translate("errors.schemas.barnard_exact_rejects_other_data"))
         if self.metric_type == "continuous":
             if self.continuous is None:
                 raise ValueError(translate("errors.schemas.continuous_requires_continuous_data"))

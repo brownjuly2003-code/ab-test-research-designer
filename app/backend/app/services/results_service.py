@@ -53,6 +53,7 @@ from app.backend.app.stats.survival import kaplan_meier_estimate, log_rank_test
 from app.backend.app.stats.trimmed_t import trimmed_means_t_test
 from app.backend.app.stats.unconditional_exact import (
     MAX_UNCONDITIONAL_EXACT_TOTAL,
+    barnard_exact_test,
     boschloo_exact_test,
 )
 
@@ -66,6 +67,8 @@ def analyze_results(request: ResultsRequest) -> ResultsResponse:
         return _analyze_fisher_exact(request.binary)
     if request.metric_type == "boschloo_exact":
         return _analyze_boschloo_exact(request.binary)
+    if request.metric_type == "barnard_exact":
+        return _analyze_barnard_exact(request.binary)
     if request.metric_type == "mann_whitney":
         return _analyze_mann_whitney(request.ranked)
     if request.metric_type == "bootstrap":
@@ -629,6 +632,27 @@ def _analyze_boschloo_exact(obs: ObservedResultsBinary | None) -> ResultsRespons
         result,
         metric_type="boschloo_exact",
         interpretation_key="results.interpretation.boschloo_exact",
+    )
+
+
+def _analyze_barnard_exact(obs: ObservedResultsBinary | None) -> ResultsResponse:
+    if obs is None:
+        raise ValueError("binary observations are required")
+    if obs.control_users + obs.treatment_users > MAX_UNCONDITIONAL_EXACT_TOTAL:
+        # Same cap as Boschloo's — the nuisance-supremum grid search is the shared expensive part.
+        raise ValueError(translate("errors.schemas.unconditional_exact_table_too_large"))
+
+    result = barnard_exact_test(
+        obs.control_conversions,
+        obs.control_users,
+        obs.treatment_conversions,
+        obs.treatment_users,
+    )
+    return _binary_exact_response(
+        obs,
+        result,
+        metric_type="barnard_exact",
+        interpretation_key="results.interpretation.barnard_exact",
     )
 
 

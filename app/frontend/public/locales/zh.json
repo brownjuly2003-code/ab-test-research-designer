@@ -595,6 +595,8 @@
         "fisherHint": "Fisher 精确检验固定两个边际并枚举超几何分布——为小样本或稀有事件给出精确 p 值，此时 z 检验的正态近似不可靠。",
         "boschloo": "Boschloo 精确检验（非条件）",
         "boschlooHint": "Boschloo 非条件精确检验只固定各组样本量，并对未知的共同成功率取上确界，按 Fisher 精确 p 值对各表排序。它在功效上一致地不低于 Fisher 精确检验——是更强的小样本选择——但计算开销更高，因此仅限于小表。",
+        "barnard": "Barnard 精确检验（非条件）",
+        "barnardHint": "Barnard 非条件精确检验与 Boschloo 使用相同的构造，但按合并 Wald z 统计量而非 Fisher 精确 p 值对各表排序。与 Boschloo 不同，它并不一致地优于 Fisher 精确检验——除非特别需要 Barnard 的排序方式，否则建议优先使用 Boschloo。计算开销相同，因此仅限于小表。",
         "rate": "速率（Poisson）",
         "rateHint": "Poisson 速率检验用精确条件检验比较暴露上的事件（如每 1000 次会话的错误数）。适用于到达相互独立的事件速率数据，不适用于按用户聚集的计数。",
         "bootstrap": "Bootstrap / 置换",
