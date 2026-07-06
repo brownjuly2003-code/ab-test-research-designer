@@ -798,7 +798,8 @@
         "decision": "Decision readout",
         "categoricalResults": "Categorical outcome (chi-square)",
         "pairedResults": "Paired samples",
-        "omnibusResults": "Multiple groups (omnibus)"
+        "omnibusResults": "Multiple groups (omnibus)",
+        "survivalResults": "Survival (log-rank)"
       },
       "badges": {
         "loaded": "Loaded",
@@ -1115,6 +1116,44 @@
         "std": "SD",
         "median": "Median",
         "meanRank": "Mean rank"
+      }
+    },
+    "survivalResults": {
+      "title": "Survival curves (log-rank)",
+      "description": "Compare time-to-event between two arms with the Kaplan–Meier survival curves and the two-arm log-rank (Mantel–Cox) test — for right-censored durations (churn, time-to-conversion, retention), where a censored subject is still event-free at last follow-up.",
+      "controlLabel": "Control arm",
+      "treatmentLabel": "Treatment arm",
+      "controlPlaceholder": "1 1\n2 1\n3 1\n8 1\n11 1",
+      "treatmentPlaceholder": "6 1\n6 0\n7 1\n10 0\n13 1",
+      "dataHelp": "One subject per line: the follow-up duration, then 1 for an observed event or 0 for a censored (still event-free) observation. A line with only a duration counts as an observed event.",
+      "alphaLabel": "Significance level (alpha)",
+      "analyzeButton": "Run log-rank test",
+      "analyzing": "Analyzing…",
+      "validation": {
+        "parseError": "Enter at least one subject per arm, one per line: a non-negative duration optionally followed by 1 (event) or 0 (censored).",
+        "analysisUnavailable": "Analysis is unavailable. Check the values and try again."
+      },
+      "statistic": {
+        "chiSquare": "Log-rank χ²"
+      },
+      "results": {
+        "pValue": "p-value",
+        "degreesOfFreedom": "Degrees of freedom",
+        "observedControl": "Control events (obs / exp)",
+        "observedTreatment": "Treatment events (obs / exp)",
+        "sampleSize": "n (control / treatment)"
+      },
+      "chart": {
+        "ariaLabel": "Kaplan–Meier survival curves for the control and treatment arms",
+        "timeAxis": "Time",
+        "survivalAxis": "Survival S(t)"
+      },
+      "curve": {
+        "time": "Time",
+        "atRisk": "At risk",
+        "events": "Events",
+        "survival": "S(t)",
+        "ci": "95% CI"
       }
     }
   },

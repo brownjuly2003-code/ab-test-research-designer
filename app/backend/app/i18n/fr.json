@@ -308,7 +308,11 @@
       "omnibus_group_too_large": "un groupe comporte trop d'observations",
       "omnibus_values_finite": "les valeurs de l'omnibus doivent être des nombres finis",
       "welch_anova_degenerate": "l'ANOVA de Welch n'est pas définie : chaque groupe doit comporter au moins deux observations et une variance intra-groupe non nulle",
-      "kruskal_wallis_degenerate": "le test de Kruskal–Wallis n'est pas défini : les observations ne présentent aucune variation de rang (toutes les valeurs sont identiques)"
+      "kruskal_wallis_degenerate": "le test de Kruskal–Wallis n'est pas défini : les observations ne présentent aucune variation de rang (toutes les valeurs sont identiques)",
+      "survival_length_mismatch": "les durées de survie et les indicateurs d'événement doivent avoir la même longueur",
+      "survival_durations_finite": "les durées de survie doivent être des nombres finis",
+      "survival_durations_non_negative": "les durées de survie doivent être positives ou nulles",
+      "survival_no_events": "le test du log-rank n'est pas défini : aucun événement n'est survenu dans l'un ou l'autre des groupes (chaque sujet est censuré)"
     },
     "srm_detected": "SRM détecté - vérifiez votre mise en œuvre de randomisation ou de suivi",
     "srm_not_detected": "Aucun SRM détecté"
@@ -346,7 +350,8 @@
       "wilcoxon": "Pseudomédiane de Hodges–Lehmann des différences appariées {{pseudomedian}} avec IC à {{ciLevel}}% [{{ciLower}}, {{ciUpper}}]. Statistique des rangs signés {{wStat}} sur {{nNonzero}} différences non nulles ({{nZero}} différences nulles écartées), valeur p bilatérale {{pValue}} ; le résultat est {{significance}}. Corrélation bisériale de rang {{rankBiserial}}.",
       "mcnemar": "Paires discordantes : {{b}} passées au succès, {{c}} à l'échec ({{nDiscordant}} au total). Différence des proportions marginales {{proportionDiff}} pp, rapport des cotes de discordance {{oddsRatio}}. Valeur p bilatérale {{pValue}} ({{method}}) ; le résultat est {{significance}}.",
       "welch_anova": "F de l'ANOVA de Welch {{fStatistic}} à {{dfNum}} et {{dfDen}} degrés de liberté sur {{groups}} groupes (N = {{n}}). Valeur p bilatérale {{pValue}} ; le résultat est {{significance}}. η² {{etaSquared}} de la variance est expliquée par l'appartenance au groupe.",
-      "kruskal_wallis": "H de Kruskal–Wallis {{hStatistic}} à {{df}} degrés de liberté sur {{groups}} groupes (N = {{n}}). Valeur p du khi-deux {{pValue}} ; le résultat est {{significance}}. ε² {{epsilonSquared}} mesure la variation de rang expliquée par l'appartenance au groupe."
+      "kruskal_wallis": "H de Kruskal–Wallis {{hStatistic}} à {{df}} degrés de liberté sur {{groups}} groupes (N = {{n}}). Valeur p du khi-deux {{pValue}} ; le résultat est {{significance}}. ε² {{epsilonSquared}} mesure la variation de rang expliquée par l'appartenance au groupe.",
+      "log_rank": "Chi-deux du log-rank {{chiSquare}} à 1 degré de liberté. Contrôle : {{observedControl}} événements observés contre {{expectedControl}} attendus ; traitement : {{observedTreatment}} contre {{expectedTreatment}} (n {{nControl}} contre {{nTreatment}}). Valeur p bilatérale {{pValue}} ; le résultat est {{significance}}. Un groupe avec moins d'événements que prévu survit plus longtemps."
     },
     "effect_size": {
       "rank_biserial": "corrélation bisériale de rang",
@@ -391,6 +396,10 @@
     "omnibus": {
       "verdict_difference": "Au moins un groupe diffère à alpha={{alpha}}",
       "verdict_no_difference": "Aucune différence significative entre les groupes à alpha={{alpha}}"
+    },
+    "survival": {
+      "verdict_difference": "Les courbes de survie diffèrent avec alpha={{alpha}}",
+      "verdict_no_difference": "Aucune différence significative de survie entre les groupes avec alpha={{alpha}}"
     }
   },
   "live_stats": {

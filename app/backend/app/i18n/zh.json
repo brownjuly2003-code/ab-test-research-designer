@@ -308,7 +308,11 @@
       "omnibus_group_too_large": "某一组的观测值过多",
       "omnibus_values_finite": "omnibus 检验的值必须是有限数",
       "welch_anova_degenerate": "Welch 方差分析无定义：每组至少需要两个观测值且组内方差不为零",
-      "kruskal_wallis_degenerate": "Kruskal–Wallis 检验无定义：观测值没有秩变异（所有值都相同）"
+      "kruskal_wallis_degenerate": "Kruskal–Wallis 检验无定义：观测值没有秩变异（所有值都相同）",
+      "survival_length_mismatch": "生存时长与事件标记的长度必须一致",
+      "survival_durations_finite": "生存时长必须为有限数值",
+      "survival_durations_non_negative": "生存时长不能为负",
+      "survival_no_events": "对数秩检验无法定义：两组中均未发生事件（所有个体均被删失）"
     },
     "srm_detected": "检测到 SRM - 检查您的随机化或跟踪实施",
     "srm_not_detected": "未检测到 SRM"
@@ -346,7 +350,8 @@
       "wilcoxon": "配对差值的 Hodges–Lehmann 伪中位数 {{pseudomedian}}，{{ciLevel}}% 置信区间 [{{ciLower}}, {{ciUpper}}]。符号秩统计量 {{wStat}}，基于 {{nNonzero}} 个非零差值（舍弃 {{nZero}} 个零差值），双侧 p 值 {{pValue}}；结果{{significance}}。秩二列相关 {{rankBiserial}}。",
       "mcnemar": "不一致对：{{b}} 个转为成功，{{c}} 个转为失败（共 {{nDiscordant}} 个）。边际比例差 {{proportionDiff}} 个百分点，不一致优势比 {{oddsRatio}}。双侧 p 值 {{pValue}}（{{method}}）；结果{{significance}}。",
       "welch_anova": "在 {{dfNum}} 和 {{dfDen}} 个自由度下，{{groups}} 组（N = {{n}}）的 Welch 方差分析 F 值为 {{fStatistic}}。双侧 p 值 {{pValue}}；结果{{significance}}。η² {{etaSquared}} 表示由分组解释的方差比例。",
-      "kruskal_wallis": "在 {{df}} 个自由度下，{{groups}} 组（N = {{n}}）的 Kruskal–Wallis H 值为 {{hStatistic}}。卡方 p 值 {{pValue}}；结果{{significance}}。ε² {{epsilonSquared}} 衡量由分组解释的秩变异。"
+      "kruskal_wallis": "在 {{df}} 个自由度下，{{groups}} 组（N = {{n}}）的 Kruskal–Wallis H 值为 {{hStatistic}}。卡方 p 值 {{pValue}}；结果{{significance}}。ε² {{epsilonSquared}} 衡量由分组解释的秩变异。",
+      "log_rank": "对数秩卡方 {{chiSquare}}，自由度为 1。对照组：观察到 {{observedControl}} 个事件，期望 {{expectedControl}} 个；处理组：{{observedTreatment}} 对 {{expectedTreatment}}（n {{nControl}} 对 {{nTreatment}}）。双侧 p 值 {{pValue}}；结果为 {{significance}}。事件数少于期望的一组存活时间更长。"
     },
     "effect_size": {
       "rank_biserial": "秩二列相关",
@@ -391,6 +396,10 @@
     "omnibus": {
       "verdict_difference": "在 alpha={{alpha}} 下至少有一组存在差异",
       "verdict_no_difference": "在 alpha={{alpha}} 下各组之间无显著差异"
+    },
+    "survival": {
+      "verdict_difference": "生存曲线在 alpha={{alpha}} 下存在差异",
+      "verdict_no_difference": "在 alpha={{alpha}} 下两组生存无显著差异"
     }
   },
   "live_stats": {

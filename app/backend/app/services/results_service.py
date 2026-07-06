@@ -17,6 +17,9 @@ from app.backend.app.schemas.api import (
     PairedResultsResponse,
     ResultsRequest,
     ResultsResponse,
+    SurvivalCurvePoint,
+    SurvivalResultsRequest,
+    SurvivalResultsResponse,
 )
 from app.backend.app.stats.binary import (
     newcombe_difference_interval,
@@ -43,6 +46,7 @@ from app.backend.app.stats.paired import (
 from app.backend.app.stats.poisson_rate import MAX_POISSON_EVENTS, poisson_rate_test
 from app.backend.app.stats.quantile_te import quantile_treatment_effect_test
 from app.backend.app.stats.student_t import t_cdf, t_ppf
+from app.backend.app.stats.survival import kaplan_meier_estimate, log_rank_test
 from app.backend.app.stats.trimmed_t import trimmed_means_t_test
 from app.backend.app.stats.unconditional_exact import (
     MAX_UNCONDITIONAL_EXACT_TOTAL,
@@ -390,6 +394,87 @@ def _omnibus_verdict(is_significant: bool, alpha: float) -> str:
         "results.omnibus.verdict_difference"
         if is_significant
         else "results.omnibus.verdict_no_difference",
+        {"alpha": f"{alpha:.3f}"},
+    )
+
+
+def analyze_survival_results(request: SurvivalResultsRequest) -> SurvivalResultsResponse:
+    """Two-arm Kaplan–Meier survival curves + the log-rank (Mantel–Cox) test.
+
+    Separate from ``analyze_results`` because the input is time-to-event (a duration plus a censoring
+    flag per subject) and the outcome is a pair of survival curves plus an omnibus log-rank statistic,
+    not the scalar effect + confidence interval ``ResultsResponse`` carries. A fully censored comparison
+    (no events in either arm) makes the log-rank variance zero and the statistic undefined; the stats
+    layer returns ``None`` and this raises ``ValueError``, which the global handler maps to HTTP 400
+    rather than inventing a chi-square.
+    """
+    control = request.control_arm
+    treatment = request.treatment_arm
+    log_rank = log_rank_test(
+        control.durations,
+        control.events_observed,
+        treatment.durations,
+        treatment.events_observed,
+        request.alpha,
+    )
+    if log_rank is None:
+        raise ValueError(translate("errors.schemas.survival_no_events"))
+
+    control_curve = kaplan_meier_estimate(control.durations, control.events_observed, request.alpha)
+    treatment_curve = kaplan_meier_estimate(treatment.durations, treatment.events_observed, request.alpha)
+
+    is_significant = log_rank["is_significant"]
+    interpretation = translate(
+        "results.interpretation.log_rank",
+        {
+            "chiSquare": f"{log_rank['chi_square']:.4f}",
+            "pValue": f"{log_rank['p_value']:.6f}",
+            "observedControl": str(log_rank["observed1"]),
+            "expectedControl": f"{log_rank['expected1']:.4f}",
+            "observedTreatment": str(log_rank["observed2"]),
+            "expectedTreatment": f"{log_rank['expected2']:.4f}",
+            "nControl": str(log_rank["n1"]),
+            "nTreatment": str(log_rank["n2"]),
+            "significance": _significance_text(is_significant),
+        },
+    )
+    return SurvivalResultsResponse(
+        chi_square=round(log_rank["chi_square"], 4),
+        degrees_of_freedom=log_rank["df"],
+        p_value=round(log_rank["p_value"], 6),
+        is_significant=is_significant,
+        observed_control=log_rank["observed1"],
+        expected_control=round(log_rank["expected1"], 4),
+        observed_treatment=log_rank["observed2"],
+        expected_treatment=round(log_rank["expected2"], 4),
+        n_control=log_rank["n1"],
+        n_treatment=log_rank["n2"],
+        control_curve=[_survival_curve_point(point) for point in control_curve],
+        treatment_curve=[_survival_curve_point(point) for point in treatment_curve],
+        verdict=_survival_verdict(is_significant, request.alpha),
+        interpretation=interpretation,
+    )
+
+
+def _survival_curve_point(point: dict[str, Any]) -> SurvivalCurvePoint:
+    return SurvivalCurvePoint(
+        time=point["time"],
+        survival=round(point["survival"], 6),
+        at_risk=point["at_risk"],
+        n_events=point["n_events"],
+        std_error=round(point["std_error"], 6),
+        ci_lower=round(point["ci_lower"], 6),
+        ci_upper=round(point["ci_upper"], 6),
+    )
+
+
+def _survival_verdict(is_significant: bool, alpha: float) -> str:
+    # The log-rank test reports only whether the two survival curves differ (no signed direction), so
+    # the verdict is a two-state call, mirroring the omnibus / categorical analyzers.
+    return translate(
+        "results.survival.verdict_difference"
+        if is_significant
+        else "results.survival.verdict_no_difference",
         {"alpha": f"{alpha:.3f}"},
     )
 

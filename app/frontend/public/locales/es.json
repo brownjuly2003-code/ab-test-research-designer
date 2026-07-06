@@ -798,7 +798,8 @@
         "decision": "Lectura de decisión",
         "categoricalResults": "Resultado categórico (chi-cuadrado)",
         "pairedResults": "Muestras pareadas",
-        "omnibusResults": "Varios grupos (ómnibus)"
+        "omnibusResults": "Varios grupos (ómnibus)",
+        "survivalResults": "Supervivencia (log-rank)"
       },
       "badges": {
         "loaded": "Cargado",
@@ -1115,6 +1116,44 @@
         "std": "DE",
         "median": "Mediana",
         "meanRank": "Rango medio"
+      }
+    },
+    "survivalResults": {
+      "title": "Curvas de supervivencia (log-rank)",
+      "description": "Compara el tiempo hasta el evento entre dos grupos con las curvas de supervivencia de Kaplan–Meier y la prueba de log-rank (Mantel–Cox) de dos muestras — para duraciones censuradas por la derecha (abandono, tiempo hasta la conversión, retención), donde un sujeto censurado sigue sin evento en el último seguimiento.",
+      "controlLabel": "Grupo de control",
+      "treatmentLabel": "Grupo de tratamiento",
+      "controlPlaceholder": "1 1\n2 1\n3 1\n8 1\n11 1",
+      "treatmentPlaceholder": "6 1\n6 0\n7 1\n10 0\n13 1",
+      "dataHelp": "Un sujeto por línea: la duración de seguimiento, luego 1 para un evento observado o 0 para una observación censurada (aún sin evento). Una línea con solo una duración cuenta como evento observado.",
+      "alphaLabel": "Nivel de significación (alpha)",
+      "analyzeButton": "Ejecutar prueba de log-rank",
+      "analyzing": "Analizando…",
+      "validation": {
+        "parseError": "Introduzca al menos un sujeto por grupo, uno por línea: una duración no negativa, seguida opcionalmente de 1 (evento) o 0 (censurado).",
+        "analysisUnavailable": "El análisis no está disponible. Revise los valores e inténtelo de nuevo."
+      },
+      "statistic": {
+        "chiSquare": "χ² de log-rank"
+      },
+      "results": {
+        "pValue": "valor p",
+        "degreesOfFreedom": "Grados de libertad",
+        "observedControl": "Eventos de control (obs. / esp.)",
+        "observedTreatment": "Eventos de tratamiento (obs. / esp.)",
+        "sampleSize": "n (control / tratamiento)"
+      },
+      "chart": {
+        "ariaLabel": "Curvas de supervivencia de Kaplan–Meier para el grupo de control y el de tratamiento",
+        "timeAxis": "Tiempo",
+        "survivalAxis": "Supervivencia S(t)"
+      },
+      "curve": {
+        "time": "Tiempo",
+        "atRisk": "En riesgo",
+        "events": "Eventos",
+        "survival": "S(t)",
+        "ci": "IC 95%"
       }
     }
   },

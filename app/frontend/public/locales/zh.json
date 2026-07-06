@@ -797,7 +797,8 @@
         "decision": "决策摘要",
         "categoricalResults": "分类结果（卡方）",
         "pairedResults": "配对样本",
-        "omnibusResults": "多组比较（综合检验）"
+        "omnibusResults": "多组比较（综合检验）",
+        "survivalResults": "生存分析（对数秩）"
       },
       "badges": {
         "loaded": "已加载",
@@ -1114,6 +1115,44 @@
         "std": "标准差",
         "median": "中位数",
         "meanRank": "平均秩"
+      }
+    },
+    "survivalResults": {
+      "title": "生存曲线（对数秩）",
+      "description": "使用 Kaplan–Meier 生存曲线和两样本对数秩（Mantel–Cox）检验比较两组的事件发生时间——适用于右删失时长（流失、转化时间、留存），其中被删失的个体在最后一次随访时仍未发生事件。",
+      "controlLabel": "对照组",
+      "treatmentLabel": "实验组",
+      "controlPlaceholder": "1 1\n2 1\n3 1\n8 1\n11 1",
+      "treatmentPlaceholder": "6 1\n6 0\n7 1\n10 0\n13 1",
+      "dataHelp": "每行一个个体：随访时长，随后 1 表示观察到事件，0 表示删失（尚未发生事件）。仅有时长的行按观察到事件计。",
+      "alphaLabel": "显著性水平（alpha）",
+      "analyzeButton": "运行对数秩检验",
+      "analyzing": "分析中…",
+      "validation": {
+        "parseError": "每组至少输入一个个体，每行一个：一个非负时长，可选地跟随 1（事件）或 0（删失）。",
+        "analysisUnavailable": "无法进行分析。请检查数值后重试。"
+      },
+      "statistic": {
+        "chiSquare": "对数秩 χ²"
+      },
+      "results": {
+        "pValue": "p 值",
+        "degreesOfFreedom": "自由度",
+        "observedControl": "对照组事件（观察 / 期望）",
+        "observedTreatment": "实验组事件（观察 / 期望）",
+        "sampleSize": "n（对照 / 实验）"
+      },
+      "chart": {
+        "ariaLabel": "对照组与实验组的 Kaplan–Meier 生存曲线",
+        "timeAxis": "时间",
+        "survivalAxis": "生存 S(t)"
+      },
+      "curve": {
+        "time": "时间",
+        "atRisk": "风险集",
+        "events": "事件",
+        "survival": "S(t)",
+        "ci": "95% 置信区间"
       }
     }
   },
