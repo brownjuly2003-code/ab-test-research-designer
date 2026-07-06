@@ -315,6 +315,8 @@
       "survival_durations_finite": "las duraciones de supervivencia deben ser números finitos",
       "survival_durations_non_negative": "las duraciones de supervivencia deben ser no negativas",
       "survival_no_events": "la prueba de log-rank no está definida: no ocurrió ningún evento en ninguno de los grupos (todos los sujetos están censurados)",
+      "survival_cox_two_arms_only": "el ajuste de riesgos proporcionales de Cox es una regresión de dos grupos sobre el indicador de tratamiento y no acepta grupos adicionales",
+      "survival_cox_undefined": "el ajuste de Cox no está definido: sin eventos, o todos los eventos están en la experiencia de riesgo de un solo grupo (la estimación del hazard ratio diverge)",
       "ratio_pairs_length_mismatch": "un grupo de la métrica ratio debe tener el mismo número de valores de numerador y denominador",
       "ratio_values_finite": "los valores de la métrica ratio deben ser números finitos",
       "ratio_degenerate": "la comparación del ratio no está definida: media del denominador cero o sin varianza en los grupos"
@@ -358,7 +360,8 @@
       "welch_anova": "F del ANOVA de Welch {{fStatistic}} con {{dfNum}} y {{dfDen}} grados de libertad en {{groups}} grupos (N = {{n}}). Valor p bilateral {{pValue}}; el resultado es {{significance}}. η² {{etaSquared}} de la varianza se explica por la pertenencia al grupo.",
       "kruskal_wallis": "H de Kruskal–Wallis {{hStatistic}} con {{df}} grados de libertad en {{groups}} grupos (N = {{n}}). Valor p del chi-cuadrado {{pValue}}; el resultado es {{significance}}. ε² {{epsilonSquared}} mide la variación de rango explicada por la pertenencia al grupo.",
       "log_rank": "Chi-cuadrado de log-rank {{chiSquare}} con 1 grado de libertad. Control: {{observedControl}} eventos observados frente a {{expectedControl}} esperados; tratamiento: {{observedTreatment}} frente a {{expectedTreatment}} (n {{nControl}} frente a {{nTreatment}}). Valor p bilateral {{pValue}}; el resultado es {{significance}}. Un grupo con menos eventos de los esperados sobrevive más tiempo.",
-      "log_rank_family": "{{testName}} sobre {{numArms}} grupos: chi-cuadrado {{chiSquare}} con {{df}} grados de libertad. Valor p bilateral {{pValue}}; el resultado es {{significance}}. Los eventos observados vs esperados por grupo se listan abajo: un grupo con menos eventos de los esperados sobrevive más."
+      "log_rank_family": "{{testName}} sobre {{numArms}} grupos: chi-cuadrado {{chiSquare}} con {{df}} grados de libertad. Valor p bilateral {{pValue}}; el resultado es {{significance}}. Los eventos observados vs esperados por grupo se listan abajo: un grupo con menos eventos de los esperados sobrevive más.",
+      "cox_ph": "Ajuste de riesgos proporcionales de Cox para el efecto del tratamiento: hazard ratio {{hazardRatio}} (IC {{ciLevel}}% {{ciLower}} – {{ciUpper}}), z de Wald {{z}}, valor p bilateral {{pValue}}; el resultado es {{significance}}. HR < 1 significa que el tratamiento reduce el riesgo del evento (mayor supervivencia), HR > 1 lo aumenta; la estimación supone riesgos proporcionales."
     },
     "effect_size": {
       "rank_biserial": "correlación biserial por rangos",

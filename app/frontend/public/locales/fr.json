@@ -1159,17 +1159,20 @@
       "analyzing": "Analyse…",
       "validation": {
         "parseError": "Saisissez au moins un sujet par groupe, un par ligne : une durée positive ou nulle, suivie éventuellement de 1 (événement) ou 0 (censuré).",
-        "analysisUnavailable": "L'analyse n'est pas disponible. Vérifiez les valeurs et réessayez."
+        "analysisUnavailable": "L'analyse n'est pas disponible. Vérifiez les valeurs et réessayez.",
+        "coxTwoArmsOnly": "L'ajustement de Cox compare exactement deux groupes — retirez les groupes supplémentaires ou passez au test du log-rank."
       },
       "statistic": {
-        "chiSquare": "χ² du log-rank"
+        "chiSquare": "χ² du log-rank",
+        "waldChiSquare": "χ² de Wald"
       },
       "results": {
         "pValue": "valeur p",
         "degreesOfFreedom": "Degrés de liberté",
         "observedControl": "Événements témoin (obs. / att.)",
         "observedTreatment": "Événements traité (obs. / att.)",
-        "sampleSize": "n (témoin / traité)"
+        "sampleSize": "n (témoin / traité)",
+        "hazardRatio": "Hazard ratio [IC]"
       },
       "chart": {
         "ariaLabel": "Courbes de survie de Kaplan–Meier pour le groupe témoin et le groupe traité",
@@ -1186,7 +1189,8 @@
       "testTypeLabel": "Test",
       "testType": {
         "log_rank": "Log-rank (non pondéré)",
-        "fleming_harrington": "Fleming-Harrington (pondéré)"
+        "fleming_harrington": "Fleming-Harrington (pondéré)",
+        "cox": "Risques proportionnels de Cox (hazard ratio)"
       },
       "rhoLabel": "ρ (poids précoce)",
       "gammaLabel": "γ (poids tardif)",
@@ -1199,7 +1203,8 @@
         "arm": "Groupe",
         "n": "n",
         "observedExpected": "Événements (obs. / att.)"
-      }
+      },
+      "coxHelp": "Ajuste l'indicateur de traitement dans un modèle de Cox à risques proportionnels et rapporte le hazard ratio avec son intervalle de confiance de Wald — la taille d'effet que le test du log-rank ne fournit pas. Deux groupes uniquement ; suppose des risques proportionnels."
     }
   },
   "errors": {

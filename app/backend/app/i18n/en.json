@@ -315,6 +315,8 @@
       "survival_durations_finite": "survival durations must be finite numbers",
       "survival_durations_non_negative": "survival durations must be non-negative",
       "survival_no_events": "the log-rank test is undefined: no events occurred in either arm (every subject is censored)",
+      "survival_cox_two_arms_only": "the Cox proportional-hazards fit is a two-arm regression on the treatment indicator and does not accept additional arms",
+      "survival_cox_undefined": "the Cox fit is undefined: no events, or every event sits in one arm's risk experience (the hazard-ratio estimate diverges)",
       "ratio_pairs_length_mismatch": "a ratio arm must have the same number of numerator and denominator values",
       "ratio_values_finite": "ratio metric values must be finite numbers",
       "ratio_degenerate": "the ratio comparison is undefined: a zero denominator mean or no variance in either arm"
@@ -358,7 +360,8 @@
       "welch_anova": "Welch's ANOVA F {{fStatistic}} on {{dfNum}} and {{dfDen}} degrees of freedom across {{groups}} groups (N = {{n}}). Two-sided p-value {{pValue}}; result is {{significance}}. η² {{etaSquared}} of the variance is explained by group membership.",
       "kruskal_wallis": "Kruskal–Wallis H {{hStatistic}} on {{df}} degrees of freedom across {{groups}} groups (N = {{n}}). Chi-square p-value {{pValue}}; result is {{significance}}. ε² {{epsilonSquared}} measures the rank variation explained by group membership.",
       "log_rank": "Log-rank chi-square {{chiSquare}} on 1 degree of freedom. Control: {{observedControl}} events observed vs {{expectedControl}} expected; treatment: {{observedTreatment}} vs {{expectedTreatment}} (n {{nControl}} vs {{nTreatment}}). Two-sided p-value {{pValue}}; result is {{significance}}. An arm with fewer events than expected is surviving longer.",
-      "log_rank_family": "{{testName}} across {{numArms}} arms: chi-square {{chiSquare}} on {{df}} degrees of freedom. Two-sided p-value {{pValue}}; result is {{significance}}. Per-arm observed vs expected event counts are listed below — an arm with fewer events than expected is surviving longer."
+      "log_rank_family": "{{testName}} across {{numArms}} arms: chi-square {{chiSquare}} on {{df}} degrees of freedom. Two-sided p-value {{pValue}}; result is {{significance}}. Per-arm observed vs expected event counts are listed below — an arm with fewer events than expected is surviving longer.",
+      "cox_ph": "Cox proportional-hazards fit of the treatment effect: hazard ratio {{hazardRatio}} ({{ciLevel}}% CI {{ciLower}} – {{ciUpper}}), Wald z {{z}}, two-sided p-value {{pValue}}; result is {{significance}}. HR < 1 means the treatment lowers the event hazard (longer survival), HR > 1 raises it; the estimate assumes proportional hazards."
     },
     "effect_size": {
       "rank_biserial": "rank-biserial correlation",

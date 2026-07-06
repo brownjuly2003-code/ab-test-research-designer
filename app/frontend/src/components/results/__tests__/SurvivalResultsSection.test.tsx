@@ -212,6 +212,97 @@ describe("SurvivalResultsSection", () => {
     }
   });
 
+  it("sends test_type cox and renders the hazard-ratio card", async () => {
+    const curvePoint = { time: 2, survival: 0.8, at_risk: 5, n_events: 1, std_error: 0.05, ci_lower: 0.6, ci_upper: 1 };
+    const response = {
+      chi_square: 14.5326,
+      degrees_of_freedom: 1,
+      p_value: 0.000138,
+      is_significant: true,
+      test_type: "cox",
+      fh_rho: null,
+      fh_gamma: null,
+      hazard_ratio: 0.2076,
+      hazard_ratio_ci_lower: 0.0925,
+      hazard_ratio_ci_upper: 0.4659,
+      log_hazard_ratio: -1.572125,
+      log_hazard_ratio_se: 0.412397,
+      observed_control: 21,
+      expected_control: 10.7495,
+      observed_treatment: 9,
+      expected_treatment: 19.2505,
+      n_control: 21,
+      n_treatment: 21,
+      arm_summaries: [
+        { n: 21, observed: 21, expected: 10.7495 },
+        { n: 21, observed: 9, expected: 19.2505 }
+      ],
+      control_curve: [curvePoint],
+      treatment_curve: [curvePoint],
+      additional_arm_curves: [],
+      verdict: "Survival curves differ at alpha=0.050",
+      interpretation: "Cox proportional-hazards fit of the treatment effect: hazard ratio 0.2076..."
+    };
+    const fetchMock = vi.fn(async (..._args: unknown[]) => ({ ok: true, json: async () => response }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const view = await renderIntoDocument(<SurvivalResultsSection />);
+    try {
+      await flushEffects();
+      const select = view.container.querySelector("select") as HTMLSelectElement;
+      await changeValue(select, "cox");
+      await flushEffects();
+      // Cox is a two-arm regression: the add-arm button disappears, no FH exponent inputs.
+      const buttonLabels = Array.from(view.container.querySelectorAll("button")).map((b) => b.textContent);
+      expect(buttonLabels).not.toContain("Add arm");
+      expect(view.container.querySelector("#survival-fh-rho")).toBeNull();
+
+      const [controlArea, treatmentArea] = Array.from(view.container.querySelectorAll("textarea"));
+      await changeValue(controlArea as HTMLTextAreaElement, "1 1\n2 1");
+      await changeValue(treatmentArea as HTMLTextAreaElement, "6 1\n6 0");
+      await click(findButton(view.container, "Run log-rank test"));
+      await flushEffects();
+
+      const [, requestInit] = fetchMock.mock.calls[0] as [string, RequestInit];
+      const body = JSON.parse(String(requestInit.body));
+      expect(body.test_type).toBe("cox");
+      expect(body.additional_arms).toEqual([]);
+
+      expect(view.container.textContent).toContain("Hazard ratio");
+      expect(view.container.textContent).toContain("0.2076");
+      expect(view.container.textContent).toContain("Wald χ²");
+    } finally {
+      await view.unmount();
+    }
+  });
+
+  it("blocks a cox run while extra arms are present and does not call the API", async () => {
+    const fetchMock = vi.fn(async (..._args: unknown[]) => ({ ok: true, json: async () => ({}) }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const view = await renderIntoDocument(<SurvivalResultsSection />);
+    try {
+      await flushEffects();
+      await click(findButton(view.container, "Add arm"));
+      await flushEffects();
+      const select = view.container.querySelector("select") as HTMLSelectElement;
+      await changeValue(select, "cox");
+      await flushEffects();
+      const textareas = Array.from(view.container.querySelectorAll("textarea"));
+      await changeValue(textareas[0] as HTMLTextAreaElement, "1 1\n2 1");
+      await changeValue(textareas[1] as HTMLTextAreaElement, "6 1\n6 0");
+      await changeValue(textareas[2] as HTMLTextAreaElement, "2 1\n4 0");
+
+      await click(findButton(view.container, "Run log-rank test"));
+      await flushEffects();
+
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(view.container.textContent).toContain("exactly two arms");
+    } finally {
+      await view.unmount();
+    }
+  });
+
   it("sends the Fleming-Harrington exponents when the weighted test is selected", async () => {
     const fetchMock = vi.fn(async (..._args: unknown[]) => ({ ok: false, json: async () => ({}) }));
     vi.stubGlobal("fetch", fetchMock);

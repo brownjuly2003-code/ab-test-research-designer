@@ -1159,17 +1159,20 @@
       "analyzing": "Analyzing…",
       "validation": {
         "parseError": "Enter at least one subject per arm, one per line: a non-negative duration optionally followed by 1 (event) or 0 (censored).",
-        "analysisUnavailable": "Analysis is unavailable. Check the values and try again."
+        "analysisUnavailable": "Analysis is unavailable. Check the values and try again.",
+        "coxTwoArmsOnly": "The Cox fit compares exactly two arms — remove the additional arms or switch to the log-rank test."
       },
       "statistic": {
-        "chiSquare": "Log-rank χ²"
+        "chiSquare": "Log-rank χ²",
+        "waldChiSquare": "Wald χ²"
       },
       "results": {
         "pValue": "p-value",
         "degreesOfFreedom": "Degrees of freedom",
         "observedControl": "Control events (obs / exp)",
         "observedTreatment": "Treatment events (obs / exp)",
-        "sampleSize": "n (control / treatment)"
+        "sampleSize": "n (control / treatment)",
+        "hazardRatio": "Hazard ratio [CI]"
       },
       "chart": {
         "ariaLabel": "Kaplan–Meier survival curves for the control and treatment arms",
@@ -1186,7 +1189,8 @@
       "testTypeLabel": "Test",
       "testType": {
         "log_rank": "Log-rank (unweighted)",
-        "fleming_harrington": "Fleming–Harrington (weighted)"
+        "fleming_harrington": "Fleming–Harrington (weighted)",
+        "cox": "Cox proportional hazards (hazard ratio)"
       },
       "rhoLabel": "ρ (early weight)",
       "gammaLabel": "γ (late weight)",
@@ -1199,7 +1203,8 @@
         "arm": "Arm",
         "n": "n",
         "observedExpected": "Events (obs / exp)"
-      }
+      },
+      "coxHelp": "Fits the treatment indicator in a Cox proportional-hazards model and reports the hazard ratio with its Wald confidence interval — the effect size the log-rank test does not provide. Two arms only; assumes proportional hazards."
     }
   },
   "errors": {

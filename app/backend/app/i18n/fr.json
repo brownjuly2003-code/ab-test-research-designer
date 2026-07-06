@@ -315,6 +315,8 @@
       "survival_durations_finite": "les durées de survie doivent être des nombres finis",
       "survival_durations_non_negative": "les durées de survie doivent être positives ou nulles",
       "survival_no_events": "le test du log-rank n'est pas défini : aucun événement n'est survenu dans l'un ou l'autre des groupes (chaque sujet est censuré)",
+      "survival_cox_two_arms_only": "le modèle de Cox à risques proportionnels est une régression à deux groupes sur l'indicateur de traitement et n'accepte pas de groupes supplémentaires",
+      "survival_cox_undefined": "l'ajustement de Cox n'est pas défini : aucun événement, ou tous les événements se trouvent dans l'expérience à risque d'un seul groupe (l'estimation du hazard ratio diverge)",
       "ratio_pairs_length_mismatch": "un groupe de la métrique ratio doit avoir le même nombre de valeurs de numérateur et de dénominateur",
       "ratio_values_finite": "les valeurs de la métrique ratio doivent être des nombres finis",
       "ratio_degenerate": "la comparaison du ratio n'est pas définie : moyenne du dénominateur nulle ou aucune variance dans les groupes"
@@ -358,7 +360,8 @@
       "welch_anova": "F de l'ANOVA de Welch {{fStatistic}} à {{dfNum}} et {{dfDen}} degrés de liberté sur {{groups}} groupes (N = {{n}}). Valeur p bilatérale {{pValue}} ; le résultat est {{significance}}. η² {{etaSquared}} de la variance est expliquée par l'appartenance au groupe.",
       "kruskal_wallis": "H de Kruskal–Wallis {{hStatistic}} à {{df}} degrés de liberté sur {{groups}} groupes (N = {{n}}). Valeur p du khi-deux {{pValue}} ; le résultat est {{significance}}. ε² {{epsilonSquared}} mesure la variation de rang expliquée par l'appartenance au groupe.",
       "log_rank": "Chi-deux du log-rank {{chiSquare}} à 1 degré de liberté. Contrôle : {{observedControl}} événements observés contre {{expectedControl}} attendus ; traitement : {{observedTreatment}} contre {{expectedTreatment}} (n {{nControl}} contre {{nTreatment}}). Valeur p bilatérale {{pValue}} ; le résultat est {{significance}}. Un groupe avec moins d'événements que prévu survit plus longtemps.",
-      "log_rank_family": "{{testName}} sur {{numArms}} groupes : chi-deux {{chiSquare}} à {{df}} degrés de liberté. Valeur p bilatérale {{pValue}} ; le résultat est {{significance}}. Les événements observés vs attendus par groupe figurent ci-dessous — un groupe avec moins d'événements qu'attendu survit plus longtemps."
+      "log_rank_family": "{{testName}} sur {{numArms}} groupes : chi-deux {{chiSquare}} à {{df}} degrés de liberté. Valeur p bilatérale {{pValue}} ; le résultat est {{significance}}. Les événements observés vs attendus par groupe figurent ci-dessous — un groupe avec moins d'événements qu'attendu survit plus longtemps.",
+      "cox_ph": "Modèle de Cox à risques proportionnels pour l'effet du traitement : hazard ratio {{hazardRatio}} (IC {{ciLevel}} % {{ciLower}} – {{ciUpper}}), z de Wald {{z}}, valeur p bilatérale {{pValue}} ; le résultat est {{significance}}. HR < 1 signifie que le traitement réduit le risque d'événement (survie plus longue), HR > 1 l'augmente ; l'estimation suppose des risques proportionnels."
     },
     "effect_size": {
       "rank_biserial": "corrélation bisériale de rang",
