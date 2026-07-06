@@ -1159,17 +1159,20 @@
       "analyzing": "Analizando…",
       "validation": {
         "parseError": "Introduzca al menos un sujeto por grupo, uno por línea: una duración no negativa, seguida opcionalmente de 1 (evento) o 0 (censurado).",
-        "analysisUnavailable": "El análisis no está disponible. Revise los valores e inténtelo de nuevo."
+        "analysisUnavailable": "El análisis no está disponible. Revise los valores e inténtelo de nuevo.",
+        "coxTwoArmsOnly": "El ajuste de Cox compara exactamente dos grupos: elimine los grupos adicionales o cambie a la prueba log-rank."
       },
       "statistic": {
-        "chiSquare": "χ² de log-rank"
+        "chiSquare": "χ² de log-rank",
+        "waldChiSquare": "χ² de Wald"
       },
       "results": {
         "pValue": "valor p",
         "degreesOfFreedom": "Grados de libertad",
         "observedControl": "Eventos de control (obs. / esp.)",
         "observedTreatment": "Eventos de tratamiento (obs. / esp.)",
-        "sampleSize": "n (control / tratamiento)"
+        "sampleSize": "n (control / tratamiento)",
+        "hazardRatio": "Hazard ratio [IC]"
       },
       "chart": {
         "ariaLabel": "Curvas de supervivencia de Kaplan–Meier para el grupo de control y el de tratamiento",
@@ -1186,7 +1189,8 @@
       "testTypeLabel": "Prueba",
       "testType": {
         "log_rank": "Log-rank (sin ponderar)",
-        "fleming_harrington": "Fleming-Harrington (ponderada)"
+        "fleming_harrington": "Fleming-Harrington (ponderada)",
+        "cox": "Riesgos proporcionales de Cox (hazard ratio)"
       },
       "rhoLabel": "ρ (peso temprano)",
       "gammaLabel": "γ (peso tardío)",
@@ -1199,7 +1203,8 @@
         "arm": "Grupo",
         "n": "n",
         "observedExpected": "Eventos (obs. / esp.)"
-      }
+      },
+      "coxHelp": "Ajusta el indicador de tratamiento en un modelo de riesgos proporcionales de Cox y reporta el hazard ratio con su intervalo de confianza de Wald: el tamaño de efecto que la prueba log-rank no proporciona. Solo dos grupos; supone riesgos proporcionales."
     }
   },
   "errors": {

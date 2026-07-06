@@ -1407,7 +1407,7 @@ export type SurvivalResultsRequest = {
   control_arm: SurvivalArm;
   treatment_arm: SurvivalArm;
   additional_arms?: SurvivalArm[];
-  test_type?: "log_rank" | "fleming_harrington";
+  test_type?: "log_rank" | "fleming_harrington" | "cox";
   fh_rho?: number;
   fh_gamma?: number;
   alpha?: number;
@@ -1421,6 +1421,11 @@ export type SurvivalResultsResponse = {
   test_type?: string;
   fh_rho?: number | null;
   fh_gamma?: number | null;
+  hazard_ratio?: number | null;
+  hazard_ratio_ci_lower?: number | null;
+  hazard_ratio_ci_upper?: number | null;
+  log_hazard_ratio?: number | null;
+  log_hazard_ratio_se?: number | null;
   observed_control: number;
   expected_control: number;
   observed_treatment: number;

@@ -1159,17 +1159,20 @@
       "analyzing": "Analyse…",
       "validation": {
         "parseError": "Geben Sie mindestens eine Beobachtung pro Gruppe ein, eine pro Zeile: eine nicht-negative Dauer, optional gefolgt von 1 (Ereignis) oder 0 (zensiert).",
-        "analysisUnavailable": "Analyse nicht verfügbar. Prüfen Sie die Werte und versuchen Sie es erneut."
+        "analysisUnavailable": "Analyse nicht verfügbar. Prüfen Sie die Werte und versuchen Sie es erneut.",
+        "coxTwoArmsOnly": "Die Cox-Anpassung vergleicht genau zwei Gruppen — entfernen Sie die zusätzlichen Gruppen oder wechseln Sie zum Log-Rank-Test."
       },
       "statistic": {
-        "chiSquare": "Log-Rank-χ²"
+        "chiSquare": "Log-Rank-χ²",
+        "waldChiSquare": "Wald-χ²"
       },
       "results": {
         "pValue": "p-Wert",
         "degreesOfFreedom": "Freiheitsgrade",
         "observedControl": "Kontroll-Ereignisse (beob. / erw.)",
         "observedTreatment": "Behandlungs-Ereignisse (beob. / erw.)",
-        "sampleSize": "n (Kontrolle / Behandlung)"
+        "sampleSize": "n (Kontrolle / Behandlung)",
+        "hazardRatio": "Hazard Ratio [KI]"
       },
       "chart": {
         "ariaLabel": "Kaplan–Meier-Überlebenskurven für die Kontroll- und die Behandlungsgruppe",
@@ -1186,7 +1189,8 @@
       "testTypeLabel": "Test",
       "testType": {
         "log_rank": "Log-Rank (ungewichtet)",
-        "fleming_harrington": "Fleming-Harrington (gewichtet)"
+        "fleming_harrington": "Fleming-Harrington (gewichtet)",
+        "cox": "Cox proportionale Hazards (Hazard Ratio)"
       },
       "rhoLabel": "ρ (frühe Gewichtung)",
       "gammaLabel": "γ (späte Gewichtung)",
@@ -1199,7 +1203,8 @@
         "arm": "Gruppe",
         "n": "n",
         "observedExpected": "Ereignisse (beob. / erw.)"
-      }
+      },
+      "coxHelp": "Passt den Behandlungsindikator in einem Cox-Modell proportionaler Hazards an und liefert die Hazard Ratio mit Wald-Konfidenzintervall — die Effektgröße, die der Log-Rank-Test nicht liefert. Nur zwei Gruppen; setzt proportionale Hazards voraus."
     }
   },
   "errors": {

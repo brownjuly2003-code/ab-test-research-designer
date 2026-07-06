@@ -315,6 +315,8 @@
       "survival_durations_finite": "Überlebensdauern müssen endliche Zahlen sein",
       "survival_durations_non_negative": "Überlebensdauern dürfen nicht negativ sein",
       "survival_no_events": "der Log-Rank-Test ist nicht definiert: in keiner der Gruppen trat ein Ereignis auf (jede Beobachtung ist zensiert)",
+      "survival_cox_two_arms_only": "die Cox-Regression proportionaler Hazards ist eine Zwei-Gruppen-Regression auf den Behandlungsindikator und akzeptiert keine zusätzlichen Gruppen",
+      "survival_cox_undefined": "die Cox-Anpassung ist nicht definiert: keine Ereignisse, oder alle Ereignisse liegen im Risiko einer Gruppe (die Hazard-Ratio-Schätzung divergiert)",
       "ratio_pairs_length_mismatch": "eine Gruppe der Ratio-Metrik muss gleich viele Zähler- und Nenner-Werte haben",
       "ratio_values_finite": "Werte der Ratio-Metrik müssen endliche Zahlen sein",
       "ratio_degenerate": "der Ratio-Vergleich ist nicht definiert: Nenner-Mittelwert von null oder keine Varianz in den Gruppen"
@@ -358,7 +360,8 @@
       "welch_anova": "Welch-ANOVA F {{fStatistic}} bei {{dfNum}} und {{dfDen}} Freiheitsgraden über {{groups}} Gruppen (N = {{n}}). Zweiseitiger p-Wert {{pValue}}; das Ergebnis ist {{significance}}. η² {{etaSquared}} der Varianz wird durch die Gruppenzugehörigkeit erklärt.",
       "kruskal_wallis": "Kruskal-Wallis H {{hStatistic}} bei {{df}} Freiheitsgraden über {{groups}} Gruppen (N = {{n}}). Chi-Quadrat-p-Wert {{pValue}}; das Ergebnis ist {{significance}}. ε² {{epsilonSquared}} misst die durch die Gruppenzugehörigkeit erklärte Rangvariation.",
       "log_rank": "Log-Rank-Chi-Quadrat {{chiSquare}} bei 1 Freiheitsgrad. Kontrolle: {{observedControl}} beobachtete vs. {{expectedControl}} erwartete Ereignisse; Behandlung: {{observedTreatment}} vs. {{expectedTreatment}} (n {{nControl}} vs. {{nTreatment}}). Zweiseitiger p-Wert {{pValue}}; Ergebnis ist {{significance}}. Eine Gruppe mit weniger Ereignissen als erwartet überlebt länger.",
-      "log_rank_family": "{{testName}} über {{numArms}} Gruppen: Chi-Quadrat {{chiSquare}} bei {{df}} Freiheitsgraden. Zweiseitiger p-Wert {{pValue}}; das Ergebnis ist {{significance}}. Beobachtete vs. erwartete Ereignisse je Gruppe stehen unten — eine Gruppe mit weniger Ereignissen als erwartet überlebt länger."
+      "log_rank_family": "{{testName}} über {{numArms}} Gruppen: Chi-Quadrat {{chiSquare}} bei {{df}} Freiheitsgraden. Zweiseitiger p-Wert {{pValue}}; das Ergebnis ist {{significance}}. Beobachtete vs. erwartete Ereignisse je Gruppe stehen unten — eine Gruppe mit weniger Ereignissen als erwartet überlebt länger.",
+      "cox_ph": "Cox-Regression proportionaler Hazards für den Behandlungseffekt: Hazard Ratio {{hazardRatio}} ({{ciLevel}}%-KI {{ciLower}} – {{ciUpper}}), Wald-z {{z}}, zweiseitiger p-Wert {{pValue}}; das Ergebnis ist {{significance}}. HR < 1 heißt, die Behandlung senkt das Ereignisrisiko (längeres Überleben), HR > 1 erhöht es; die Schätzung setzt proportionale Hazards voraus."
     },
     "effect_size": {
       "rank_biserial": "Rang-biseriale Korrelation",

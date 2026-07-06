@@ -33,6 +33,7 @@ from app.backend.app.stats.chi_square_independence import (
     chi_square_independence_test,
     g_test_independence,
 )
+from app.backend.app.stats.cox_ph import cox_ph_treatment_effect
 from app.backend.app.stats.equivalence import tost_equivalence_test
 from app.backend.app.stats.fisher_exact import (
     MAX_FISHER_EXACT_TOTAL,
@@ -420,6 +421,9 @@ def analyze_survival_results(request: SurvivalResultsRequest) -> SurvivalResults
     statistic undefined; the stats layer returns ``None`` and this raises ``ValueError``, which the
     global handler maps to HTTP 400 rather than inventing a chi-square.
     """
+    if request.test_type == "cox":
+        return _analyze_cox_survival(request)
+
     arms = [request.control_arm, request.treatment_arm, *request.additional_arms]
     is_weighted = request.test_type == "fleming_harrington"
     rho = request.fh_rho if is_weighted else 0.0
@@ -505,6 +509,97 @@ def analyze_survival_results(request: SurvivalResultsRequest) -> SurvivalResults
         control_curve=curves[0],
         treatment_curve=curves[1],
         additional_arm_curves=curves[2:],
+        verdict=_survival_verdict(is_significant, request.alpha),
+        interpretation=interpretation,
+    )
+
+
+def _analyze_cox_survival(request: SurvivalResultsRequest) -> SurvivalResultsResponse:
+    """Cox proportional-hazards branch: the treatment-effect hazard ratio with Wald inference.
+
+    Reuses the survival response shape — ``chi_square`` carries the Wald ``z²`` (1 df) and the
+    ``hazard_ratio*`` effect-size fields are populated. The descriptive per-arm ``expected`` counts
+    come from an unweighted log-rank pass over the same data (risk-set expectations are
+    test-agnostic); when even that is undefined the observed counts stand in, which cannot happen
+    for a fit that converged (a converged Cox fit needs events in both arms' risk experience).
+    """
+    control = request.control_arm
+    treatment = request.treatment_arm
+    result = cox_ph_treatment_effect(
+        control.durations,
+        control.events_observed,
+        treatment.durations,
+        treatment.events_observed,
+        request.alpha,
+    )
+    if result is None:
+        raise ValueError(translate("errors.schemas.survival_cox_undefined"))
+
+    log_rank = weighted_k_sample_log_rank_test(
+        [
+            (control.durations, control.events_observed),
+            (treatment.durations, treatment.events_observed),
+        ],
+        request.alpha,
+    )
+    expected = (
+        log_rank["expected_by_arm"]
+        if log_rank is not None
+        else [float(result["events_control"]), float(result["events_treatment"])]
+    )
+    arm_summaries = [
+        SurvivalArmSummary(
+            n=int(result["n_control"]),
+            observed=int(result["events_control"]),
+            expected=round(expected[0], 4),
+        ),
+        SurvivalArmSummary(
+            n=int(result["n_treatment"]),
+            observed=int(result["events_treatment"]),
+            expected=round(expected[1], 4),
+        ),
+    ]
+    curves = [
+        [
+            _survival_curve_point(point)
+            for point in kaplan_meier_estimate(arm.durations, arm.events_observed, request.alpha)
+        ]
+        for arm in (control, treatment)
+    ]
+
+    is_significant = bool(result["is_significant"])
+    interpretation = translate(
+        "results.interpretation.cox_ph",
+        {
+            "hazardRatio": f"{result['hazard_ratio']:.4f}",
+            "ciLevel": f"{(1 - request.alpha) * 100:.1f}",
+            "ciLower": f"{result['hr_ci_lower']:.4f}",
+            "ciUpper": f"{result['hr_ci_upper']:.4f}",
+            "z": f"{result['z_statistic']:.4f}",
+            "pValue": f"{result['p_value']:.6f}",
+            "significance": _significance_text(is_significant),
+        },
+    )
+    return SurvivalResultsResponse(
+        chi_square=round(float(result["wald_chi_square"]), 4),
+        degrees_of_freedom=1,
+        p_value=round(float(result["p_value"]), 6),
+        is_significant=is_significant,
+        test_type="cox",
+        hazard_ratio=round(float(result["hazard_ratio"]), 4),
+        hazard_ratio_ci_lower=round(float(result["hr_ci_lower"]), 4),
+        hazard_ratio_ci_upper=round(float(result["hr_ci_upper"]), 4),
+        log_hazard_ratio=round(float(result["log_hazard_ratio"]), 6),
+        log_hazard_ratio_se=round(float(result["standard_error"]), 6),
+        observed_control=arm_summaries[0].observed,
+        expected_control=arm_summaries[0].expected,
+        observed_treatment=arm_summaries[1].observed,
+        expected_treatment=arm_summaries[1].expected,
+        n_control=arm_summaries[0].n,
+        n_treatment=arm_summaries[1].n,
+        arm_summaries=arm_summaries,
+        control_curve=curves[0],
+        treatment_curve=curves[1],
         verdict=_survival_verdict(is_significant, request.alpha),
         interpretation=interpretation,
     )

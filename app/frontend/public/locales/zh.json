@@ -1158,17 +1158,20 @@
       "analyzing": "分析中…",
       "validation": {
         "parseError": "每组至少输入一个个体，每行一个：一个非负时长，可选地跟随 1（事件）或 0（删失）。",
-        "analysisUnavailable": "无法进行分析。请检查数值后重试。"
+        "analysisUnavailable": "无法进行分析。请检查数值后重试。",
+        "coxTwoArmsOnly": "Cox 拟合只比较两组——请移除额外的组或改用对数秩检验。"
       },
       "statistic": {
-        "chiSquare": "对数秩 χ²"
+        "chiSquare": "对数秩 χ²",
+        "waldChiSquare": "Wald χ²"
       },
       "results": {
         "pValue": "p 值",
         "degreesOfFreedom": "自由度",
         "observedControl": "对照组事件（观察 / 期望）",
         "observedTreatment": "实验组事件（观察 / 期望）",
-        "sampleSize": "n（对照 / 实验）"
+        "sampleSize": "n（对照 / 实验）",
+        "hazardRatio": "风险比 [置信区间]"
       },
       "chart": {
         "ariaLabel": "对照组与实验组的 Kaplan–Meier 生存曲线",
@@ -1185,7 +1188,8 @@
       "testTypeLabel": "检验",
       "testType": {
         "log_rank": "对数秩（非加权）",
-        "fleming_harrington": "Fleming-Harrington（加权）"
+        "fleming_harrington": "Fleming-Harrington（加权）",
+        "cox": "Cox 比例风险（风险比）"
       },
       "rhoLabel": "ρ（早期权重）",
       "gammaLabel": "γ（晚期权重）",
@@ -1198,7 +1202,8 @@
         "arm": "组",
         "n": "n",
         "observedExpected": "事件（观察 / 期望）"
-      }
+      },
+      "coxHelp": "在 Cox 比例风险模型中拟合处理指示变量，报告风险比及其 Wald 置信区间——这是对数秩检验无法提供的效应量。仅限两组；假设风险成比例。"
     }
   },
   "errors": {

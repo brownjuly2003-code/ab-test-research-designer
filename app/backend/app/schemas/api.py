@@ -679,10 +679,13 @@ class SurvivalResultsRequest(BaseModel):
     than a single scalar effect, exactly as the omnibus and categorical analyzers have their own
     request / response shapes. ``additional_arms`` extends the comparison beyond two arms (the
     k-sample log-rank, χ² on k−1 df); ``test_type`` picks the unweighted log-rank (default, most
-    powerful under proportional hazards) or the Fleming–Harrington ``G(ρ, γ)`` weighted variant,
+    powerful under proportional hazards), the Fleming–Harrington ``G(ρ, γ)`` weighted variant —
     whose exponents ``fh_rho`` / ``fh_gamma`` up-weight early / late differences respectively and
-    are consumed only on that branch. A fully censored comparison (no events in any arm) is a
-    statistical degeneracy surfaced by the service as a 400, not a schema error.
+    are consumed only on that branch — or the Cox proportional-hazards fit of the treatment effect,
+    which turns the comparison into an effect size (a hazard ratio with a Wald CI). Cox is a
+    two-arm regression on the treatment indicator, so it rejects ``additional_arms`` at the schema.
+    A fully censored comparison (no events in any arm) is a statistical degeneracy surfaced by the
+    service as a 400, not a schema error.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -692,12 +695,18 @@ class SurvivalResultsRequest(BaseModel):
     additional_arms: list[SurvivalArm] = Field(
         default_factory=list, max_length=MAX_SURVIVAL_ARMS - 2
     )
-    test_type: Literal["log_rank", "fleming_harrington"] = "log_rank"
+    test_type: Literal["log_rank", "fleming_harrington", "cox"] = "log_rank"
     # Fleming-Harrington exponents (w(t) = S(t-)^rho * (1 - S(t-))^gamma). The (1, 0) default is the
     # classic early-difference G^rho test; bounded to keep the weights numerically tame.
     fh_rho: float = Field(default=1.0, ge=0.0, le=4.0)
     fh_gamma: float = Field(default=0.0, ge=0.0, le=4.0)
     alpha: float = Field(default=0.05, ge=0.001, le=0.1)
+
+    @model_validator(mode="after")
+    def validate_cox_is_two_arm(self) -> "SurvivalResultsRequest":
+        if self.test_type == "cox" and self.additional_arms:
+            raise ValueError(translate("errors.schemas.survival_cox_two_arms_only"))
+        return self
 
 
 class SurvivalCurvePoint(BaseModel):
@@ -735,12 +744,14 @@ class SurvivalArmSummary(BaseModel):
 class SurvivalResultsResponse(BaseModel):
     """Outcome of a survival comparison: a log-rank-family test plus the Kaplan–Meier curves.
 
-    ``chi_square`` is the (possibly weighted) log-rank statistic on ``degrees_of_freedom = k − 1``;
-    ``test_type`` echoes the analyzer branch and ``fh_rho`` / ``fh_gamma`` are populated only for
-    ``fleming_harrington``. ``arm_summaries`` lists every arm in request order (control, treatment,
-    then the additional arms); the flat ``observed_* / expected_* / n_*`` fields duplicate its first
-    two entries for backward compatibility. ``control_curve`` / ``treatment_curve`` carry the first
-    two Kaplan–Meier curves and ``additional_arm_curves`` the rest, in the same order.
+    ``chi_square`` is the (possibly weighted) log-rank statistic on ``degrees_of_freedom = k − 1``
+    — or, on the Cox branch, the Wald chi-square ``z²`` on 1 df; ``test_type`` echoes the analyzer
+    branch, ``fh_rho`` / ``fh_gamma`` are populated only for ``fleming_harrington``, and the
+    ``hazard_ratio*`` / ``log_hazard_ratio*`` effect-size fields only for ``cox`` (``HR < 1``:
+    treatment lowers the event hazard). ``arm_summaries`` lists every arm in request order (control,
+    treatment, then the additional arms); the flat ``observed_* / expected_* / n_*`` fields duplicate
+    its first two entries for backward compatibility. ``control_curve`` / ``treatment_curve`` carry
+    the first two Kaplan–Meier curves and ``additional_arm_curves`` the rest, in the same order.
     """
 
     chi_square: float
@@ -750,6 +761,11 @@ class SurvivalResultsResponse(BaseModel):
     test_type: str = "log_rank"
     fh_rho: float | None = None
     fh_gamma: float | None = None
+    hazard_ratio: float | None = None
+    hazard_ratio_ci_lower: float | None = None
+    hazard_ratio_ci_upper: float | None = None
+    log_hazard_ratio: float | None = None
+    log_hazard_ratio_se: float | None = None
     observed_control: int
     expected_control: float
     observed_treatment: int

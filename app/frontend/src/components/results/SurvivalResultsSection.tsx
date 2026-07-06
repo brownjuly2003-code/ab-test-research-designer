@@ -121,7 +121,7 @@ function CurveTable({ points, caption }: { points: SurvivalCurvePoint[]; caption
 // Total arms are capped server-side at MAX_SURVIVAL_ARMS = 10 (control + treatment + 8 additional).
 const MAX_ADDITIONAL_ARMS = 8;
 
-type SurvivalTestType = "log_rank" | "fleming_harrington";
+type SurvivalTestType = "log_rank" | "fleming_harrington" | "cox";
 
 export default function SurvivalResultsSection() {
   const { t } = useTranslation();
@@ -142,6 +142,11 @@ export default function SurvivalResultsSection() {
     const additional = additionalArmsText.map((text) => parseSurvivalArm(text));
     if (!control || !treatment || additional.some((arm) => arm === null)) {
       setError(t("results.survivalResults.validation.parseError"));
+      setAnalysis(null);
+      return;
+    }
+    if (testType === "cox" && additional.length > 0) {
+      setError(t("results.survivalResults.validation.coxTwoArmsOnly"));
       setAnalysis(null);
       return;
     }
@@ -239,7 +244,7 @@ export default function SurvivalResultsSection() {
             </div>
           </div>
         ))}
-        {additionalArmsText.length < MAX_ADDITIONAL_ARMS ? (
+        {additionalArmsText.length < MAX_ADDITIONAL_ARMS && testType !== "cox" ? (
           <div className="actions">
             <button
               className="btn ghost"
@@ -264,8 +269,10 @@ export default function SurvivalResultsSection() {
           >
             <option value="log_rank">{t("results.survivalResults.testType.log_rank")}</option>
             <option value="fleming_harrington">{t("results.survivalResults.testType.fleming_harrington")}</option>
+            <option value="cox">{t("results.survivalResults.testType.cox")}</option>
           </select>
         </div>
+        {testType === "cox" ? <p className="muted">{t("results.survivalResults.coxHelp")}</p> : null}
         {testType === "fleming_harrington" ? (
           <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap" }}>
             <div className="field" style={{ maxWidth: "160px" }}>
@@ -330,8 +337,23 @@ export default function SurvivalResultsSection() {
             </div>
           </div>
           <div style={{ display: "grid", gap: "var(--space-3)", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))" }}>
+            {analysis.hazard_ratio != null ? (
+              <div className="card">
+                <strong>{t("results.survivalResults.results.hazardRatio")}</strong>
+                <div style={{ marginTop: "8px" }}>
+                  {analysis.hazard_ratio.toFixed(4)}{" "}
+                  <span className="muted">
+                    [{analysis.hazard_ratio_ci_lower?.toFixed(4)}, {analysis.hazard_ratio_ci_upper?.toFixed(4)}]
+                  </span>
+                </div>
+              </div>
+            ) : null}
             <div className="card">
-              <strong>{t("results.survivalResults.statistic.chiSquare")}</strong>
+              <strong>
+                {analysis.test_type === "cox"
+                  ? t("results.survivalResults.statistic.waldChiSquare")
+                  : t("results.survivalResults.statistic.chiSquare")}
+              </strong>
               <div style={{ marginTop: "8px" }}>{analysis.chi_square.toFixed(4)}</div>
             </div>
             <div className="card">

@@ -315,6 +315,8 @@
       "survival_durations_finite": "生存时长必须为有限数值",
       "survival_durations_non_negative": "生存时长不能为负",
       "survival_no_events": "对数秩检验无法定义：两组中均未发生事件（所有个体均被删失）",
+      "survival_cox_two_arms_only": "Cox 比例风险拟合是对处理指示变量的两组回归，不接受额外的组",
+      "survival_cox_undefined": "Cox 拟合无法定义：没有事件，或所有事件都位于同一组的风险经历中（风险比估计发散）",
       "ratio_pairs_length_mismatch": "比率指标的每组必须具有相同数量的分子值和分母值",
       "ratio_values_finite": "比率指标的取值必须是有限数值",
       "ratio_degenerate": "比率比较无法定义：分母均值为零或各组无方差"
@@ -358,7 +360,8 @@
       "welch_anova": "在 {{dfNum}} 和 {{dfDen}} 个自由度下，{{groups}} 组（N = {{n}}）的 Welch 方差分析 F 值为 {{fStatistic}}。双侧 p 值 {{pValue}}；结果{{significance}}。η² {{etaSquared}} 表示由分组解释的方差比例。",
       "kruskal_wallis": "在 {{df}} 个自由度下，{{groups}} 组（N = {{n}}）的 Kruskal–Wallis H 值为 {{hStatistic}}。卡方 p 值 {{pValue}}；结果{{significance}}。ε² {{epsilonSquared}} 衡量由分组解释的秩变异。",
       "log_rank": "对数秩卡方 {{chiSquare}}，自由度为 1。对照组：观察到 {{observedControl}} 个事件，期望 {{expectedControl}} 个；处理组：{{observedTreatment}} 对 {{expectedTreatment}}（n {{nControl}} 对 {{nTreatment}}）。双侧 p 值 {{pValue}}；结果为 {{significance}}。事件数少于期望的一组存活时间更长。",
-      "log_rank_family": "{{testName}}（{{numArms}} 组）：卡方 {{chiSquare}}，自由度 {{df}}。双侧 p 值 {{pValue}}；结果{{significance}}。各组观察与期望事件数见下——事件数少于期望的组存活更久。"
+      "log_rank_family": "{{testName}}（{{numArms}} 组）：卡方 {{chiSquare}}，自由度 {{df}}。双侧 p 值 {{pValue}}；结果{{significance}}。各组观察与期望事件数见下——事件数少于期望的组存活更久。",
+      "cox_ph": "处理效应的 Cox 比例风险拟合：风险比 {{hazardRatio}}（{{ciLevel}}% 置信区间 {{ciLower}} – {{ciUpper}}），Wald z {{z}}，双侧 p 值 {{pValue}}；结果{{significance}}。HR < 1 表示处理降低事件风险（生存更久），HR > 1 表示升高；该估计假设风险成比例。"
     },
     "effect_size": {
       "rank_biserial": "秩二列相关",
