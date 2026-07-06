@@ -1,4 +1,4 @@
-"""Two-arm survival analysis — the Kaplan-Meier estimator and the log-rank (Mantel-Cox) test.
+"""Survival analysis — the Kaplan-Meier estimator and the log-rank test family.
 
 Where the binary / continuous analyzers compare a *scalar* outcome measured once per subject, a
 time-to-event experiment measures, per subject, a **duration** and whether the event was actually
@@ -24,25 +24,45 @@ observation carries real information — the subject survived at least that long
   one degree of freedom. It weights every event time equally (the unweighted log-rank), which is most
   powerful under proportional hazards.
 
+* **Weighted k-sample log-rank** (added on explicit request 2026-07-06, un-deferring the 5.4
+  deferrals for >2 arms and Fleming-Harrington weights) — one generalization covers both axes. Over
+  the pooled event times, with ``d_j(t)`` / ``n_j(t)`` the per-arm events and risk set and
+  ``d(t)`` / ``n(t)`` their totals,
+
+      w(t)  = S(t-)^ρ · (1 - S(t-))^γ        (pooled left-continuous Kaplan-Meier; w ≡ 1 when ρ=γ=0)
+      z_j   = Σ_t w(t) · (d_j - d·n_j/n)                       for the first k-1 arms
+      V_jj  = Σ_t w(t)² · d(n-d)/(n-1) · (n_j/n)(1 - n_j/n)
+      V_jl  = -Σ_t w(t)² · d(n-d)/(n-1) · n_j·n_l/n²
+      χ²    = zᵀ V⁻¹ z,   df = k - 1.
+
+  ``G(ρ, γ)`` is the Fleming-Harrington family: ``ρ=γ=0`` is the unweighted log-rank (most powerful
+  under proportional hazards), ``ρ>0, γ=0`` emphasizes **early** differences (weights fall with S),
+  ``ρ=0, γ>0`` emphasizes **late** differences. The k=2 unweighted case reduces exactly to
+  :func:`log_rank_test` (pinned by a test). ``V`` is inverted via the existing
+  ``cuped.solve_linear_system`` (Gaussian elimination, singular → ``None`` → the caller's 400).
+
 Sources (checked against the literature at implementation time, not from memory): Kaplan & Meier,
 "Nonparametric estimation from incomplete observations" (JASA, 1958); Greenwood (1926); Mantel (1966)
-/ Cox (1972). Both the log-rank χ² and the Kaplan-Meier estimates are frozen against the canonical
+/ Cox (1972); Harrington & Fleming, "A class of rank test procedures for censored survival data"
+(Biometrika, 1982); Klein & Moeschberger, *Survival Analysis* ch. 7 (the k-sample statistic and its
+covariance). The log-rank χ² and Kaplan-Meier estimates are frozen against the canonical
 **Freireich et al. (1963)** 6-MP-vs-placebo leukemia dataset (published log-rank χ² ≈ 16.79,
-p ≈ 4.2e-5) and cross-checked with ``scipy.stats.chi2.sf`` in the scratchpad verification
-(``scratchpad/verify_logrank_km.py``); scipy is not a runtime dependency. Stdlib-only, pure
-functions reusing ``srm.chi_square_cdf`` for the χ²(1) tail (no second chi-square implementation);
-the response shapes are assembled in the service layer.
+p ≈ 4.2e-5); the k-sample and weighted variants are frozen against ``lifelines 0.30.3``
+(``multivariate_logrank_test``, exact agreement) cross-checked with ``statsmodels 0.14.6``
+(``survdiff(weight_type="fh")``, ≤6e-15) in ``scratchpad/verify_ksample_weighted_logrank.py``;
+neither is a runtime dependency. Stdlib-only, pure functions reusing ``srm.chi_square_cdf`` for the
+χ²(df) tail; the response shapes are assembled in the service layer.
 
 Explicitly OUT OF SCOPE for this module (documented deferrals, not implemented): Cox
-proportional-hazards regression, parametric survival (Weibull / exponential), >2-arm / trend
-log-rank, weighted log-rank (Gehan-Wilcoxon / Fleming-Harrington), competing risks, survival
-sample-size / power, hazard-ratio and median-survival estimation.
+proportional-hazards regression (T4 of the 2026-07-06 plan), parametric survival (Weibull /
+exponential), competing risks, survival sample-size / power, median-survival estimation.
 """
 
 import math
 from statistics import NormalDist
 from typing import Any
 
+from app.backend.app.stats.cuped import solve_linear_system
 from app.backend.app.stats.srm import chi_square_cdf
 
 # Cap on total observations across both arms. Kaplan-Meier is O(N log N) (sorting) and the log-rank is
@@ -202,6 +222,114 @@ def log_rank_test(
         "n2": len(durations2),
         "events1": observed1,
         "events2": observed2,
+        "is_significant": p_value < alpha,
+        "alpha": alpha,
+    }
+
+
+def weighted_k_sample_log_rank_test(
+    arms: list[tuple[list[float], list[bool]]],
+    alpha: float = 0.05,
+    rho: float = 0.0,
+    gamma: float = 0.0,
+) -> dict[str, Any] | None:
+    """Weighted k-sample log-rank test — the ``G(ρ, γ)`` Fleming-Harrington family over ``k >= 2`` arms.
+
+    ``arms`` is a list of ``(durations, events_observed)`` pairs, one per arm. ``ρ = γ = 0`` is the
+    unweighted log-rank (for ``k = 2`` it reduces exactly to :func:`log_rank_test`); ``ρ > 0``
+    up-weights early event times, ``γ > 0`` late ones. The statistic is the quadratic form
+    ``zᵀ V⁻¹ z`` over the first ``k - 1`` arms' weighted observed-minus-expected sums, referred to a
+    chi-square with ``k - 1`` degrees of freedom.
+
+    Returns the χ², df and p-value plus per-arm ``n`` / observed / (unweighted) expected event counts
+    for the readout. Returns ``None`` when the statistic is undefined — no events anywhere, or a
+    singular covariance matrix (e.g. an arm whose subjects are all censored before the first pooled
+    event time carries no information) — which the caller surfaces as a 400.
+    """
+    if not 0 < alpha < 1:
+        raise ValueError("alpha must be between 0 and 1")
+    if len(arms) < 2:
+        raise ValueError("the k-sample log-rank test needs at least two arms")
+    if rho < 0 or gamma < 0:
+        raise ValueError("Fleming-Harrington exponents must be non-negative")
+    for durations, events in arms:
+        _validate_arm(durations, events)
+
+    total = sum(len(durations) for durations, _ in arms)
+    if total > MAX_SURVIVAL_TOTAL:
+        raise ValueError(f"survival total observations exceed the {MAX_SURVIVAL_TOTAL} cap")
+
+    k = len(arms)
+    pooled_event_times = sorted(
+        {
+            durations[i]
+            for durations, events in arms
+            for i in range(len(durations))
+            if events[i]
+        }
+    )
+
+    observed = [0] * k
+    expected = [0.0] * k
+    z = [0.0] * (k - 1)
+    covariance = [[0.0] * (k - 1) for _ in range(k - 1)]
+    survival_before = 1.0  # pooled left-continuous KM: S(t-) just before the current event time
+    for event_time in pooled_event_times:
+        at_risk_by_arm = [
+            sum(1 for value in durations if value >= event_time) for durations, _ in arms
+        ]
+        events_by_arm = [
+            sum(1 for i in range(len(durations)) if durations[i] == event_time and events[i])
+            for durations, events in arms
+        ]
+        at_risk = sum(at_risk_by_arm)
+        events_here = sum(events_by_arm)
+        if at_risk == 0:
+            continue
+        # The weight uses S at the *previous* event time (left-continuous), so the first weight under
+        # ρ > 0 is exactly 1 — the statsmodels/lifelines convention the freeze pinned.
+        weight = (
+            (survival_before**rho) * ((1.0 - survival_before) ** gamma)
+            if (rho > 0 or gamma > 0)
+            else 1.0
+        )
+        for j in range(k):
+            observed[j] += events_by_arm[j]
+            expected[j] += events_here * at_risk_by_arm[j] / at_risk
+        for j in range(k - 1):
+            z[j] += weight * (events_by_arm[j] - events_here * at_risk_by_arm[j] / at_risk)
+        if at_risk > 1:
+            base = events_here * (at_risk - events_here) / (at_risk - 1)
+            weight_sq = weight * weight
+            for j in range(k - 1):
+                share_j = at_risk_by_arm[j] / at_risk
+                covariance[j][j] += weight_sq * base * share_j * (1.0 - share_j)
+                for m in range(j + 1, k - 1):
+                    off_diagonal = -weight_sq * base * share_j * at_risk_by_arm[m] / at_risk
+                    covariance[j][m] += off_diagonal
+                    covariance[m][j] += off_diagonal
+        survival_before *= 1.0 - events_here / at_risk
+
+    solved = solve_linear_system(covariance, z)
+    if solved is None:
+        # No events anywhere, or a singular covariance (an arm contributing no information): the
+        # quadratic form is undefined. Surfaced by the caller as a 400.
+        return None
+    chi_square = sum(z_j * s_j for z_j, s_j in zip(z, solved, strict=True))
+    if not math.isfinite(chi_square) or chi_square < 0:
+        return None
+
+    df = k - 1
+    p_value = min(1.0, max(0.0, 1.0 - chi_square_cdf(chi_square, df)))
+    return {
+        "chi_square": chi_square,
+        "df": df,
+        "p_value": p_value,
+        "rho": rho,
+        "gamma": gamma,
+        "n_by_arm": [len(durations) for durations, _ in arms],
+        "observed_by_arm": observed,
+        "expected_by_arm": expected,
         "is_significant": p_value < alpha,
         "alpha": alpha,
     }

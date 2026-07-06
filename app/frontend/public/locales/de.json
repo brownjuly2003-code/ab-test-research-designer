@@ -1147,8 +1147,8 @@
       }
     },
     "survivalResults": {
-      "title": "Überlebenskurven (Log-Rank)",
-      "description": "Vergleicht die Zeit bis zum Ereignis zwischen zwei Gruppen mit den Kaplan–Meier-Überlebenskurven und dem Log-Rank-Test (Mantel–Cox) für zwei Stichproben — für rechtszensierte Dauern (Abwanderung, Zeit bis zur Conversion, Retention), bei denen eine zensierte Beobachtung beim letzten Kontakt noch ereignisfrei ist.",
+      "title": "Überlebenskurven (Log-Rank-Familie)",
+      "description": "Vergleich der Zeit bis zum Ereignis über zwei oder mehr Gruppen: Kaplan-Meier-Kurven und die Log-Rank-Testfamilie — ungewichtet (Mantel-Cox) oder Fleming-Harrington-gewichtet für frühe/späte Unterschiede — für rechtszensierte Dauern (Churn, Zeit bis zur Konversion, Retention), wobei ein zensiertes Subjekt beim letzten Follow-up noch ereignisfrei ist.",
       "controlLabel": "Kontrollgruppe",
       "treatmentLabel": "Behandlungsgruppe",
       "controlPlaceholder": "1 1\n2 1\n3 1\n8 1\n11 1",
@@ -1182,6 +1182,23 @@
         "events": "Ereignisse",
         "survival": "S(t)",
         "ci": "95%-KI"
+      },
+      "testTypeLabel": "Test",
+      "testType": {
+        "log_rank": "Log-Rank (ungewichtet)",
+        "fleming_harrington": "Fleming-Harrington (gewichtet)"
+      },
+      "rhoLabel": "ρ (frühe Gewichtung)",
+      "gammaLabel": "γ (späte Gewichtung)",
+      "fhHelp": "Gewichte w(t) = S(t−)^ρ · (1−S(t−))^γ: ρ > 0 betont frühe Unterschiede, γ > 0 späte; ρ = γ = 0 ist der einfache Log-Rank.",
+      "addArm": "Gruppe hinzufügen",
+      "removeArm": "Diese Gruppe entfernen",
+      "additionalArmLabel": "Gruppe {{index}}",
+      "armSummaries": {
+        "title": "Ereignisse je Gruppe",
+        "arm": "Gruppe",
+        "n": "n",
+        "observedExpected": "Ereignisse (beob. / erw.)"
       }
     }
   },

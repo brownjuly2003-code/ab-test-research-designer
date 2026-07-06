@@ -1146,8 +1146,8 @@
       }
     },
     "survivalResults": {
-      "title": "生存曲线（对数秩）",
-      "description": "使用 Kaplan–Meier 生存曲线和两样本对数秩（Mantel–Cox）检验比较两组的事件发生时间——适用于右删失时长（流失、转化时间、留存），其中被删失的个体在最后一次随访时仍未发生事件。",
+      "title": "生存曲线（对数秩家族）",
+      "description": "比较两个或更多组的事件发生时间：Kaplan-Meier 生存曲线与对数秩检验家族——非加权（Mantel-Cox）或针对早期/晚期差异的 Fleming-Harrington 加权——适用于右删失的持续时间（流失、转化时间、留存），删失个体在最后随访时仍未发生事件。",
       "controlLabel": "对照组",
       "treatmentLabel": "实验组",
       "controlPlaceholder": "1 1\n2 1\n3 1\n8 1\n11 1",
@@ -1181,6 +1181,23 @@
         "events": "事件",
         "survival": "S(t)",
         "ci": "95% 置信区间"
+      },
+      "testTypeLabel": "检验",
+      "testType": {
+        "log_rank": "对数秩（非加权）",
+        "fleming_harrington": "Fleming-Harrington（加权）"
+      },
+      "rhoLabel": "ρ（早期权重）",
+      "gammaLabel": "γ（晚期权重）",
+      "fhHelp": "权重 w(t) = S(t−)^ρ · (1−S(t−))^γ：ρ > 0 强调早期差异，γ > 0 强调晚期差异；ρ = γ = 0 即普通对数秩。",
+      "addArm": "添加组",
+      "removeArm": "移除该组",
+      "additionalArmLabel": "第 {{index}} 组",
+      "armSummaries": {
+        "title": "各组事件",
+        "arm": "组",
+        "n": "n",
+        "observedExpected": "事件（观察 / 期望）"
       }
     }
   },

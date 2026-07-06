@@ -1147,8 +1147,8 @@
       }
     },
     "survivalResults": {
-      "title": "Courbes de survie (log-rank)",
-      "description": "Compare le temps jusqu'à l'événement entre deux groupes à l'aide des courbes de survie de Kaplan–Meier et du test du log-rank (Mantel–Cox) à deux échantillons — pour des durées censurées à droite (attrition, temps jusqu'à la conversion, rétention), où un sujet censuré est encore sans événement au dernier suivi.",
+      "title": "Courbes de survie (famille log-rank)",
+      "description": "Comparez le temps jusqu'à l'événement entre deux groupes ou plus : courbes de Kaplan-Meier et famille de tests du log-rank — non pondéré (Mantel-Cox) ou pondéré de Fleming-Harrington pour les différences précoces/tardives — pour des durées censurées à droite (churn, délai de conversion, rétention), où un sujet censuré est encore sans événement au dernier suivi.",
       "controlLabel": "Groupe témoin",
       "treatmentLabel": "Groupe traité",
       "controlPlaceholder": "1 1\n2 1\n3 1\n8 1\n11 1",
@@ -1182,6 +1182,23 @@
         "events": "Événements",
         "survival": "S(t)",
         "ci": "IC 95 %"
+      },
+      "testTypeLabel": "Test",
+      "testType": {
+        "log_rank": "Log-rank (non pondéré)",
+        "fleming_harrington": "Fleming-Harrington (pondéré)"
+      },
+      "rhoLabel": "ρ (poids précoce)",
+      "gammaLabel": "γ (poids tardif)",
+      "fhHelp": "Poids w(t) = S(t−)^ρ · (1−S(t−))^γ : ρ > 0 accentue les différences précoces, γ > 0 les tardives ; ρ = γ = 0 est le log-rank simple.",
+      "addArm": "Ajouter un groupe",
+      "removeArm": "Retirer ce groupe",
+      "additionalArmLabel": "Groupe {{index}}",
+      "armSummaries": {
+        "title": "Événements par groupe",
+        "arm": "Groupe",
+        "n": "n",
+        "observedExpected": "Événements (obs. / att.)"
       }
     }
   },

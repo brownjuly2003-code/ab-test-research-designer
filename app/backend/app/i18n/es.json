@@ -357,7 +357,8 @@
       "mcnemar": "Pares discordantes: {{b}} pasaron a éxito, {{c}} lo dejaron ({{nDiscordant}} en total). Diferencia de proporciones marginales {{proportionDiff}} pp, razón de momios de discordancia {{oddsRatio}}. Valor p bilateral {{pValue}} ({{method}}); el resultado es {{significance}}.",
       "welch_anova": "F del ANOVA de Welch {{fStatistic}} con {{dfNum}} y {{dfDen}} grados de libertad en {{groups}} grupos (N = {{n}}). Valor p bilateral {{pValue}}; el resultado es {{significance}}. η² {{etaSquared}} de la varianza se explica por la pertenencia al grupo.",
       "kruskal_wallis": "H de Kruskal–Wallis {{hStatistic}} con {{df}} grados de libertad en {{groups}} grupos (N = {{n}}). Valor p del chi-cuadrado {{pValue}}; el resultado es {{significance}}. ε² {{epsilonSquared}} mide la variación de rango explicada por la pertenencia al grupo.",
-      "log_rank": "Chi-cuadrado de log-rank {{chiSquare}} con 1 grado de libertad. Control: {{observedControl}} eventos observados frente a {{expectedControl}} esperados; tratamiento: {{observedTreatment}} frente a {{expectedTreatment}} (n {{nControl}} frente a {{nTreatment}}). Valor p bilateral {{pValue}}; el resultado es {{significance}}. Un grupo con menos eventos de los esperados sobrevive más tiempo."
+      "log_rank": "Chi-cuadrado de log-rank {{chiSquare}} con 1 grado de libertad. Control: {{observedControl}} eventos observados frente a {{expectedControl}} esperados; tratamiento: {{observedTreatment}} frente a {{expectedTreatment}} (n {{nControl}} frente a {{nTreatment}}). Valor p bilateral {{pValue}}; el resultado es {{significance}}. Un grupo con menos eventos de los esperados sobrevive más tiempo.",
+      "log_rank_family": "{{testName}} sobre {{numArms}} grupos: chi-cuadrado {{chiSquare}} con {{df}} grados de libertad. Valor p bilateral {{pValue}}; el resultado es {{significance}}. Los eventos observados vs esperados por grupo se listan abajo: un grupo con menos eventos de los esperados sobrevive más."
     },
     "effect_size": {
       "rank_biserial": "correlación biserial por rangos",
@@ -405,7 +406,11 @@
     },
     "survival": {
       "verdict_difference": "Las curvas de supervivencia difieren con alpha={{alpha}}",
-      "verdict_no_difference": "No hay diferencia significativa en la supervivencia entre los grupos con alpha={{alpha}}"
+      "verdict_no_difference": "No hay diferencia significativa en la supervivencia entre los grupos con alpha={{alpha}}",
+      "test_name": {
+        "log_rank": "Prueba de log-rank",
+        "fleming_harrington": "Prueba de log-rank ponderada de Fleming-Harrington G({{rho}}, {{gamma}})"
+      }
     }
   },
   "live_stats": {

@@ -118,10 +118,19 @@ function CurveTable({ points, caption }: { points: SurvivalCurvePoint[]; caption
   );
 }
 
+// Total arms are capped server-side at MAX_SURVIVAL_ARMS = 10 (control + treatment + 8 additional).
+const MAX_ADDITIONAL_ARMS = 8;
+
+type SurvivalTestType = "log_rank" | "fleming_harrington";
+
 export default function SurvivalResultsSection() {
   const { t } = useTranslation();
   const [controlText, setControlText] = useState("");
   const [treatmentText, setTreatmentText] = useState("");
+  const [additionalArmsText, setAdditionalArmsText] = useState<string[]>([]);
+  const [testType, setTestType] = useState<SurvivalTestType>("log_rank");
+  const [fhRho, setFhRho] = useState("1");
+  const [fhGamma, setFhGamma] = useState("0");
   const [alpha, setAlpha] = useState("0.05");
   const [analysis, setAnalysis] = useState<SurvivalResultsResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -130,12 +139,15 @@ export default function SurvivalResultsSection() {
   async function runAnalysis() {
     const control = parseSurvivalArm(controlText);
     const treatment = parseSurvivalArm(treatmentText);
-    if (!control || !treatment) {
+    const additional = additionalArmsText.map((text) => parseSurvivalArm(text));
+    if (!control || !treatment || additional.some((arm) => arm === null)) {
       setError(t("results.survivalResults.validation.parseError"));
       setAnalysis(null);
       return;
     }
     const alphaValue = Number(alpha);
+    const rhoValue = Number(fhRho);
+    const gammaValue = Number(fhGamma);
     setLoading(true);
     setError("");
     try {
@@ -145,6 +157,10 @@ export default function SurvivalResultsSection() {
         body: JSON.stringify({
           control_arm: control,
           treatment_arm: treatment,
+          additional_arms: additional,
+          test_type: testType,
+          fh_rho: Number.isFinite(rhoValue) ? rhoValue : 1,
+          fh_gamma: Number.isFinite(gammaValue) ? gammaValue : 0,
           alpha: Number.isFinite(alphaValue) ? alphaValue : 0.05
         })
       });
@@ -193,7 +209,92 @@ export default function SurvivalResultsSection() {
             onChange={(event) => setTreatmentText(event.target.value)}
           />
         </div>
+        {additionalArmsText.map((text, index) => (
+          <div className="field" key={index}>
+            <label htmlFor={`survival-additional-${index}`}>
+              {t("results.survivalResults.additionalArmLabel", { index: index + 3 })}
+            </label>
+            <textarea
+              id={`survival-additional-${index}`}
+              rows={5}
+              value={text}
+              placeholder={t("results.survivalResults.treatmentPlaceholder")}
+              onChange={(event) =>
+                setAdditionalArmsText((current) =>
+                  current.map((value, i) => (i === index ? event.target.value : value))
+                )
+              }
+            />
+            <div className="actions" style={{ marginTop: "var(--space-2)" }}>
+              <button
+                className="btn ghost"
+                type="button"
+                onClick={() => {
+                  setAdditionalArmsText((current) => current.filter((_, i) => i !== index));
+                  setAnalysis(null);
+                }}
+              >
+                {t("results.survivalResults.removeArm")}
+              </button>
+            </div>
+          </div>
+        ))}
+        {additionalArmsText.length < MAX_ADDITIONAL_ARMS ? (
+          <div className="actions">
+            <button
+              className="btn ghost"
+              type="button"
+              onClick={() => setAdditionalArmsText((current) => [...current, ""])}
+            >
+              {t("results.survivalResults.addArm")}
+            </button>
+          </div>
+        ) : null}
         <p className="muted">{t("results.survivalResults.dataHelp")}</p>
+        <div className="field" style={{ maxWidth: "320px" }}>
+          <label htmlFor="survival-test-type">{t("results.survivalResults.testTypeLabel")}</label>
+          <select
+            id="survival-test-type"
+            value={testType}
+            onChange={(event) => {
+              setTestType(event.target.value as SurvivalTestType);
+              setAnalysis(null);
+              setError("");
+            }}
+          >
+            <option value="log_rank">{t("results.survivalResults.testType.log_rank")}</option>
+            <option value="fleming_harrington">{t("results.survivalResults.testType.fleming_harrington")}</option>
+          </select>
+        </div>
+        {testType === "fleming_harrington" ? (
+          <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap" }}>
+            <div className="field" style={{ maxWidth: "160px" }}>
+              <label htmlFor="survival-fh-rho">{t("results.survivalResults.rhoLabel")}</label>
+              <input
+                id="survival-fh-rho"
+                type="number"
+                min="0"
+                max="4"
+                step="0.5"
+                value={fhRho}
+                onChange={(event) => setFhRho(event.target.value)}
+              />
+            </div>
+            <div className="field" style={{ maxWidth: "160px" }}>
+              <label htmlFor="survival-fh-gamma">{t("results.survivalResults.gammaLabel")}</label>
+              <input
+                id="survival-fh-gamma"
+                type="number"
+                min="0"
+                max="4"
+                step="0.5"
+                value={fhGamma}
+                onChange={(event) => setFhGamma(event.target.value)}
+              />
+            </div>
+            <p className="muted" style={{ alignSelf: "end" }}>{t("results.survivalResults.fhHelp")}</p>
+          </div>
+        ) : null}
         <div className="field" style={{ maxWidth: "220px" }}>
           <label htmlFor="survival-alpha">{t("results.survivalResults.alphaLabel")}</label>
           <input
@@ -260,6 +361,39 @@ export default function SurvivalResultsSection() {
               </div>
             </div>
           </div>
+          {analysis.arm_summaries && analysis.arm_summaries.length > 2 ? (
+            <div className="card">
+              <strong>{t("results.survivalResults.armSummaries.title")}</strong>
+              <div style={{ overflowX: "auto", marginTop: "var(--space-3)" }}>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>{t("results.survivalResults.armSummaries.arm")}</th>
+                      <th>{t("results.survivalResults.armSummaries.n")}</th>
+                      <th>{t("results.survivalResults.armSummaries.observedExpected")}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {analysis.arm_summaries.map((summary, index) => (
+                      <tr key={index}>
+                        <td>
+                          {index === 0
+                            ? controlLabel
+                            : index === 1
+                              ? treatmentLabel
+                              : t("results.survivalResults.additionalArmLabel", { index: index + 1 })}
+                        </td>
+                        <td>{summary.n}</td>
+                        <td>
+                          {summary.observed} / {summary.expected.toFixed(2)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : null}
           <SurvivalCurveChart
             series={buildSurvivalSeries(analysis.control_curve, analysis.treatment_curve)}
             controlLabel={controlLabel}
@@ -271,6 +405,13 @@ export default function SurvivalResultsSection() {
           <div style={{ display: "grid", gap: "var(--space-3)", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}>
             <CurveTable points={analysis.control_curve} caption={controlLabel} />
             <CurveTable points={analysis.treatment_curve} caption={treatmentLabel} />
+            {(analysis.additional_arm_curves ?? []).map((curve, index) => (
+              <CurveTable
+                key={index}
+                points={curve}
+                caption={t("results.survivalResults.additionalArmLabel", { index: index + 3 })}
+              />
+            ))}
           </div>
         </div>
       ) : null}

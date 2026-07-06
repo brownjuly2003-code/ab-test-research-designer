@@ -1147,8 +1147,8 @@
       }
     },
     "survivalResults": {
-      "title": "Survival curves (log-rank)",
-      "description": "Compare time-to-event between two arms with the Kaplan–Meier survival curves and the two-arm log-rank (Mantel–Cox) test — for right-censored durations (churn, time-to-conversion, retention), where a censored subject is still event-free at last follow-up.",
+      "title": "Survival curves (log-rank family)",
+      "description": "Compare time-to-event across two or more arms with Kaplan–Meier survival curves and the log-rank test family — unweighted (Mantel–Cox) or Fleming–Harrington weighted for early/late differences — for right-censored durations (churn, time-to-conversion, retention), where a censored subject is still event-free at last follow-up.",
       "controlLabel": "Control arm",
       "treatmentLabel": "Treatment arm",
       "controlPlaceholder": "1 1\n2 1\n3 1\n8 1\n11 1",
@@ -1182,6 +1182,23 @@
         "events": "Events",
         "survival": "S(t)",
         "ci": "95% CI"
+      },
+      "testTypeLabel": "Test",
+      "testType": {
+        "log_rank": "Log-rank (unweighted)",
+        "fleming_harrington": "Fleming–Harrington (weighted)"
+      },
+      "rhoLabel": "ρ (early weight)",
+      "gammaLabel": "γ (late weight)",
+      "fhHelp": "Weights w(t) = S(t−)^ρ · (1−S(t−))^γ: ρ > 0 emphasizes early differences, γ > 0 late ones; ρ = γ = 0 is the plain log-rank.",
+      "addArm": "Add arm",
+      "removeArm": "Remove this arm",
+      "additionalArmLabel": "Arm {{index}}",
+      "armSummaries": {
+        "title": "Per-arm events",
+        "arm": "Arm",
+        "n": "n",
+        "observedExpected": "Events (obs / exp)"
       }
     }
   },
