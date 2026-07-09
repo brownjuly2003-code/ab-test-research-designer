@@ -67,8 +67,14 @@ jobs:
           api = HfApi(token=os.environ["HF_TOKEN"])
           repo_id = "liovina/ab-test-research-designer"
           api.add_space_variable(repo_id, "AB_PUBLIC_DEMO", "true")
+          # Measured on 2026-07-09 via the diagnostics network echo (see docs/RUNBOOK.md,
+          # "Running behind a reverse proxy"): HF appends exactly one entry to
+          # X-Forwarded-For — a marker header came back as [marker, <real client IP>].
+          # Do not raise this without re-measuring; an over-declared hop count lets a
+          # caller choose its own rate-limit bucket.
+          api.add_space_variable(repo_id, "AB_TRUSTED_PROXY_HOPS", "1")
           api.add_space_secret(repo_id, "AB_API_TOKEN", os.environ["AB_API_TOKEN"])
-          print("Space configured: AB_PUBLIC_DEMO=true (variable), AB_API_TOKEN (secret).")
+          print("Space configured: AB_PUBLIC_DEMO=true, AB_TRUSTED_PROXY_HOPS=1 (variables), AB_API_TOKEN (secret).")
           PY
 
       - name: Upload snapshot to HF Space and smoke /health

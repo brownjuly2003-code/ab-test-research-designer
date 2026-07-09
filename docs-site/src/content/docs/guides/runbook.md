@@ -104,6 +104,10 @@ egress address (`curl -s https://ipinfo.io/ip`). After raising the hop count, re
 response must show `resolved_from: "forwarded_header"` and `resolved_client` equal to your egress
 address, not something you supplied in the marker.
 
+For the hosted Hugging Face demo this procedure was run on 2026-07-09 and measured exactly one
+appended entry, so the deploy workflow (`.github/workflows/deploy-hf.yml`) pins
+`AB_TRUSTED_PROXY_HOPS=1` on the Space. Re-measure before changing it.
+
 Setting `AB_TRUSTED_PROXIES` without a non-zero hop count is a startup error.
 
 API-key traffic is unaffected either way — it buckets by `api_key:{id}`, not by address.
