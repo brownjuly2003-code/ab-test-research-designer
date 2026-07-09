@@ -36,7 +36,15 @@ RUN pip install --no-cache-dir -r /tmp/requirements.txt
 COPY app /app/app
 COPY --from=frontend-build /workspace/app/frontend/dist /app/app/frontend/dist
 
-RUN mkdir -p /app/data
+# Run unprivileged. UID 1000 matches the user Hugging Face Spaces runs containers
+# as, so the same image works there without a second ownership pass. Only /app/data
+# is writable; the code tree stays root-owned and read-only to the app user.
+RUN groupadd --gid 1000 app \
+    && useradd --uid 1000 --gid 1000 --home-dir /app --shell /usr/sbin/nologin app \
+    && mkdir -p /app/data \
+    && chown -R app:app /app/data
+
+USER app
 
 EXPOSE 8008
 

@@ -11,6 +11,7 @@ import urllib.request
 from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
+SERVICE_NAME = "ab-test-research-designer"
 WRITE_TOKEN = "verify-write-token"
 READONLY_TOKEN = "verify-readonly-token"
 WORKSPACE_SIGNING_KEY = "verify-workspace-signing-key"
@@ -58,6 +59,40 @@ def http_request(
         return 0, str(exc)
 
 
+def assert_runtime_is_unprivileged(env: dict[str, str]) -> None:
+    """The image must run as a non-root user, and /app/data must stay writable for it."""
+    completed = subprocess.run(
+        ["docker", "compose", "exec", "-T", SERVICE_NAME, "python", "-c", "import os; print(os.getuid())"],
+        cwd=ROOT_DIR,
+        env=env,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if completed.returncode != 0:
+        raise SystemExit(f"Failed to read container uid: {completed.stderr.strip()}")
+    uid = completed.stdout.strip()
+    if uid == "0":
+        raise SystemExit("Container runs as root — expected an unprivileged USER in the Dockerfile")
+    print(f"[docker-verify] container runs as uid {uid}")
+
+    probe = subprocess.run(
+        [
+            "docker", "compose", "exec", "-T", SERVICE_NAME,
+            "python", "-c",
+            "import os, pathlib; p = pathlib.Path(os.environ['AB_DB_PATH']).parent / '.write-probe'; "
+            "p.write_text('ok'); p.unlink(); print('writable')",
+        ],
+        cwd=ROOT_DIR,
+        env=env,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if probe.returncode != 0:
+        raise SystemExit(f"Data directory is not writable by the unprivileged user: {probe.stderr.strip()}")
+
+
 def wait_for_health(timeout_seconds: float) -> None:
     deadline = time.time() + timeout_seconds
     while time.time() < deadline:
@@ -87,6 +122,7 @@ def main() -> int:
         run_step("docker compose config", ["docker", "compose", "config"], env=env)
         run_step("docker compose up", ["docker", "compose", "up", "-d", "--build"], env=env)
         wait_for_health(args.timeout_seconds)
+        assert_runtime_is_unprivileged(env)
 
         readonly_ready_status, readonly_ready_body = http_request(
             "GET",

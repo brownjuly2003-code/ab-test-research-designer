@@ -1,3 +1,4 @@
+import ipaddress
 import os
 from dataclasses import dataclass
 from functools import lru_cache
@@ -54,6 +55,8 @@ class Settings:
     auth_failure_window_seconds: int
     max_request_body_bytes: int
     max_workspace_body_bytes: int
+    trusted_proxy_hops: int
+    trusted_proxies: tuple[str, ...]
 
     @property
     def is_production(self) -> bool:
@@ -174,6 +177,19 @@ def _validate_settings(settings: Settings) -> Settings:
         raise ValueError("AB_MAX_REQUEST_BODY_BYTES must be at least 1024")
     if settings.max_workspace_body_bytes < settings.max_request_body_bytes:
         raise ValueError("AB_MAX_WORKSPACE_BODY_BYTES must be greater than or equal to AB_MAX_REQUEST_BODY_BYTES")
+    if settings.trusted_proxy_hops < 0:
+        raise ValueError("AB_TRUSTED_PROXY_HOPS must be zero or greater")
+    for proxy_entry in settings.trusted_proxies:
+        try:
+            ipaddress.ip_network(proxy_entry, strict=False)
+        except ValueError as exc:
+            raise ValueError(
+                "AB_TRUSTED_PROXIES must be a comma-separated list of IP addresses or CIDR blocks"
+            ) from exc
+    if settings.trusted_proxies and settings.trusted_proxy_hops == 0:
+        # Silently ignoring the allowlist would read as "proxy trust is configured"
+        # while X-Forwarded-For stays unread. Fail fast instead.
+        raise ValueError("AB_TRUSTED_PROXIES has no effect unless AB_TRUSTED_PROXY_HOPS is at least 1")
     return settings
 
 
@@ -229,5 +245,9 @@ def get_settings() -> Settings:
         auth_failure_window_seconds=_read_int_env("AB_AUTH_FAILURE_WINDOW_SECONDS", 60),
         max_request_body_bytes=_read_int_env("AB_MAX_REQUEST_BODY_BYTES", 1_048_576),
         max_workspace_body_bytes=_read_int_env("AB_MAX_WORKSPACE_BODY_BYTES", 8_388_608),
+        # 0 = never read X-Forwarded-For. Any other default would let an unproxied
+        # deployment be rate-limit-bypassed by a forged header.
+        trusted_proxy_hops=_read_int_env("AB_TRUSTED_PROXY_HOPS", 0),
+        trusted_proxies=_read_csv_env("AB_TRUSTED_PROXIES", ()),
     )
     return _validate_settings(settings)

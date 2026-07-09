@@ -1,8 +1,10 @@
 """Student-t distribution CDF and quantile via stdlib only.
 
 Numerical recipes' regularized incomplete beta is used so the runtime tree
-keeps its zero-`scipy` posture. Accuracy is within ~1e-9 of `scipy.stats.t`
-for df >= 1; for df > 1e6 we fall back to the standard normal because the
+keeps its zero-`scipy` posture. Accuracy is bounded by the continued-fraction
+tolerance `_BETACF_EPS` (3e-7): `t_cdf` matches `scipy.stats.t.cdf` to ~1e-7
+for df >= 1, and `t_ppf` inherits that through bisection (~1e-6 on the
+quantile). For df > 1e6 we fall back to the standard normal because the
 t-distribution converges to it and the continued fraction loses precision.
 """
 

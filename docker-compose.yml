@@ -27,11 +27,21 @@ services:
       AB_SQLITE_BUSY_TIMEOUT_MS: ${AB_SQLITE_BUSY_TIMEOUT_MS:-5000}
       AB_SQLITE_JOURNAL_MODE: ${AB_SQLITE_JOURNAL_MODE:-WAL}
       AB_SQLITE_SYNCHRONOUS: ${AB_SQLITE_SYNCHRONOUS:-NORMAL}
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    # Named volume, not a host bind: the image runs as uid 1000 and a bind source
+    # created by the daemon would be root-owned, leaving the data dir unwritable.
+    # Docker seeds a fresh named volume from the image's /app/data, ownership included.
     volumes:
-      - ./app/backend/data:/app/data
+      - ab-test-data:/app/data
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8008/health', timeout=3)"]
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 10s
+
+volumes:
+  ab-test-data:
