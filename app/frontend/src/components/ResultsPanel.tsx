@@ -228,7 +228,7 @@ export default function ResultsPanel(_props: ResultsPanelProps) {
     posthoc: (
       <>
         <Accordion title={t("results.panel.accordion.observedResults")} badge={resultsAnalysis ? (resultsAnalysis.is_significant ? t("results.panel.badges.significant") : t("results.panel.badges.review")) : t("results.panel.badges.postTest")} badgeColor={resultsAnalysis ? (resultsAnalysis.is_significant ? "accent" : "warn") : "accent"} defaultOpen><ObservedResultsSection onResultsAnalysisChange={setResultsAnalysis} /></Accordion>
-        <Accordion title={t("results.panel.accordion.ratioResults")} badge={t("results.panel.badges.manual")}><Suspense fallback={<div className="status" aria-busy={true} />}><RatioResultsSection /></Suspense></Accordion>
+        <Accordion title={t("results.panel.accordion.ratioResults")} badge={t("results.panel.badges.manual")}><Suspense fallback={<div className="status" aria-busy={true} />}><RatioResultsSection onResultsAnalysisChange={setResultsAnalysis} /></Suspense></Accordion>
         <Accordion title={t("results.panel.accordion.categoricalResults")} badge={t("results.panel.badges.manual")}><Suspense fallback={<div className="status" aria-busy={true} />}><CategoricalResultsSection /></Suspense></Accordion>
         <Accordion title={t("results.panel.accordion.pairedResults")} badge={t("results.panel.badges.manual")}><Suspense fallback={<div className="status" aria-busy={true} />}><PairedResultsSection /></Suspense></Accordion>
         <Accordion title={t("results.panel.accordion.omnibusResults")} badge={t("results.panel.badges.manual")}><Suspense fallback={<div className="status" aria-busy={true} />}><OmnibusResultsSection /></Suspense></Accordion>

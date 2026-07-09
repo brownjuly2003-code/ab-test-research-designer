@@ -71,7 +71,7 @@ export type ResultsRequestPayload = {
   count?: ObservedResultsCountPayload | null;
 };
 export type ResultsAnalysisResponse = {
-  metric_type: "binary" | "continuous" | "equivalence" | "mann_whitney" | "bootstrap" | "quantile" | "trimmed_t" | "fisher_exact" | "boschloo_exact" | "barnard_exact" | "count";
+  metric_type: "binary" | "continuous" | "equivalence" | "mann_whitney" | "bootstrap" | "quantile" | "trimmed_t" | "fisher_exact" | "boschloo_exact" | "barnard_exact" | "count" | "ratio";
   observed_effect: number;
   observed_effect_relative: number;
   control_rate?: number | null;
@@ -90,9 +90,12 @@ export type ResultsAnalysisResponse = {
   effect_size_ci_lower?: number | null;
   effect_size_ci_upper?: number | null;
 };
+export type ObservedResultsAnalysisResponse = Omit<ResultsAnalysisResponse, "metric_type"> & {
+  metric_type: ResultsRequestPayload["metric_type"];
+};
 export type SavedObservedResults = {
   request: ResultsRequestPayload;
-  analysis: ResultsAnalysisResponse;
+  analysis: ObservedResultsAnalysisResponse;
   saved_at?: string | null;
 };
 export type AdditionalContextSection = NonNullable<ApiExperimentInputInput["additional_context"]> & {

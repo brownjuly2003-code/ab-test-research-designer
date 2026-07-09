@@ -229,7 +229,7 @@ describe("ObservedResultsSection", () => {
       // The old bug: a ratio plan silently fell back to the binary 2x2-conversions form.
       expect(view.container.textContent).not.toContain("Control conversions");
       expect(view.container.textContent).not.toContain("Control users");
-      // Instead a disclaimer explains ratio has no dedicated post-hoc test here.
+      // Instead a disclaimer points at the dedicated raw-pair ratio analyzer.
       expect(view.container.textContent).toContain("This plan's metric is a ratio.");
       // No Fisher's exact / Mann–Whitney alternative — neither applies to an unresolved ratio.
       expect(view.container.textContent).not.toContain("Fisher's exact (small samples)");

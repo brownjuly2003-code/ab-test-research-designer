@@ -12,7 +12,8 @@ export type ObservedMetricType = "binary" | "continuous" | "equivalence" | "mann
 export type ObservedTestSelection = "parametric" | "mann_whitney" | "bootstrap" | "quantile" | "trimmed_t" | "equivalence" | "fisher_exact" | "boschloo_exact" | "barnard_exact" | "count";
 
 // The plan's underlying metric type, as resolved from the calculation summary (see
-// resolveObservedMetricType). Ratio has no dedicated post-hoc analyzer and is handled specially.
+// resolveObservedMetricType). Ratio is kept distinct because the generic observed-results form only
+// offers approximations; the exact ratio post-hoc analyzer lives in its own raw-pair section.
 export type ObservedBaseMetricType = "binary" | "continuous" | "ratio";
 
 // Which raw-input form an analyzer reads. Fisher's exact reuses the binary 2x2 form; the rank-based
@@ -68,9 +69,8 @@ export type ActualResultsState = {
   count: CountResultsForm;
 };
 
-// Ratio plans (metric_type "ratio") have no dedicated post-hoc analyzer — they are only analyzed via
-// the live-stats delta method. Surfacing "ratio" here (instead of silently folding it into "binary")
-// lets the caller show a disclaimer and offer a conscious approximation (continuous or count) rather
+// Surfacing "ratio" here (instead of silently folding it into "binary") lets the caller point to the
+// dedicated raw-pair ratio analyzer and offer conscious approximations (continuous or count), rather
 // than rendering the wrong 2x2-conversions form without warning.
 export function resolveObservedMetricType(metricType: string): ObservedBaseMetricType {
   if (metricType === "continuous") return "continuous";
@@ -89,8 +89,8 @@ export function resolveObservedMetricType(metricType: string): ObservedBaseMetri
 
 // The default ("parametric") test offered for each base plan: the normal-approximation analysis that
 // matches the plan — the z-test for binary, the difference t-test for continuous, and a conscious
-// continuous approximation for ratio (which has no dedicated post-hoc analyzer, only the live-stats
-// delta method). Its label and hint vary by base, so they live here rather than on a toggle value.
+// continuous approximation for ratio when the user stays in this generic form. Its label and hint
+// vary by base, so they live here rather than on a toggle value.
 type BaseDefaultDescriptor = { metricType: ObservedMetricType; labelKey: string; hintKey: string };
 
 const BASE_DEFAULT_TESTS: Record<ObservedBaseMetricType, BaseDefaultDescriptor> = {

@@ -2,19 +2,23 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { apiUrl } from "../../lib/experiment";
-import type { ResultsResponse } from "../../lib/generated/api-contract";
+import type { ResultsAnalysisResponse } from "../../lib/experiment";
 import Icon from "../Icon";
 import { parseSampleValues } from "./observedResultsShared";
 import { buildApiRequestHeaders } from "./resultsShared";
 
-export default function RatioResultsSection() {
+type RatioResultsSectionProps = {
+  onResultsAnalysisChange?: (analysis: ResultsAnalysisResponse | null) => void;
+};
+
+export default function RatioResultsSection({ onResultsAnalysisChange }: RatioResultsSectionProps) {
   const { t } = useTranslation();
   const [controlNumeratorsText, setControlNumeratorsText] = useState("");
   const [controlDenominatorsText, setControlDenominatorsText] = useState("");
   const [treatmentNumeratorsText, setTreatmentNumeratorsText] = useState("");
   const [treatmentDenominatorsText, setTreatmentDenominatorsText] = useState("");
   const [alpha, setAlpha] = useState("0.05");
-  const [analysis, setAnalysis] = useState<ResultsResponse | null>(null);
+  const [analysis, setAnalysis] = useState<ResultsAnalysisResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -31,6 +35,7 @@ export default function RatioResultsSection() {
     ) {
       setError(t("results.ratioResults.validation.parseError"));
       setAnalysis(null);
+      onResultsAnalysisChange?.(null);
       return;
     }
     if (
@@ -39,6 +44,7 @@ export default function RatioResultsSection() {
     ) {
       setError(t("results.ratioResults.validation.lengthMismatch"));
       setAnalysis(null);
+      onResultsAnalysisChange?.(null);
       return;
     }
     const alphaValue = Number(alpha);
@@ -62,10 +68,13 @@ export default function RatioResultsSection() {
             : t("results.ratioResults.validation.analysisUnavailable")
         );
       }
-      setAnalysis(body as ResultsResponse);
+      const nextAnalysis = body as ResultsAnalysisResponse;
+      setAnalysis(nextAnalysis);
+      onResultsAnalysisChange?.(nextAnalysis);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : t("results.ratioResults.validation.analysisUnavailable"));
       setAnalysis(null);
+      onResultsAnalysisChange?.(null);
     } finally {
       setLoading(false);
     }

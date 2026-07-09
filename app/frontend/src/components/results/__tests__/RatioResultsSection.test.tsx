@@ -45,9 +45,10 @@ describe("RatioResultsSection", () => {
       interpretation: "Treatment ratio 0.538000 vs control 0.436170..."
     };
     const fetchMock = vi.fn(async (..._args: unknown[]) => ({ ok: true, json: async () => response }));
+    const onResultsAnalysisChange = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
 
-    const view = await renderIntoDocument(<RatioResultsSection />);
+    const view = await renderIntoDocument(<RatioResultsSection onResultsAnalysisChange={onResultsAnalysisChange} />);
     try {
       await flushEffects();
       const textareas = view.container.querySelectorAll("textarea");
@@ -72,6 +73,7 @@ describe("RatioResultsSection", () => {
       expect(view.container.textContent).toContain("Statistically significant uplift");
       expect(view.container.textContent).toContain("Ratio difference");
       expect(view.container.textContent).toContain("23.35%");
+      expect(onResultsAnalysisChange).toHaveBeenCalledWith(response);
     } finally {
       await view.unmount();
     }
@@ -79,9 +81,10 @@ describe("RatioResultsSection", () => {
 
   it("shows a per-arm length-mismatch hint and does not call the API", async () => {
     const fetchMock = vi.fn(async (..._args: unknown[]) => ({ ok: true, json: async () => ({}) }));
+    const onResultsAnalysisChange = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
 
-    const view = await renderIntoDocument(<RatioResultsSection />);
+    const view = await renderIntoDocument(<RatioResultsSection onResultsAnalysisChange={onResultsAnalysisChange} />);
     try {
       await flushEffects();
       const textareas = view.container.querySelectorAll("textarea");
@@ -95,6 +98,7 @@ describe("RatioResultsSection", () => {
 
       expect(fetchMock).not.toHaveBeenCalled();
       expect(view.container.textContent).toContain("same number of values");
+      expect(onResultsAnalysisChange).toHaveBeenCalledWith(null);
     } finally {
       await view.unmount();
     }

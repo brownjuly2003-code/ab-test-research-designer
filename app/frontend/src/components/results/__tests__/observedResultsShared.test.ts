@@ -479,7 +479,7 @@ describe("test registry — observedTestButtons", () => {
 });
 
 describe("test registry — resolveEffectiveMetricType", () => {
-  it("resolves the parametric default to the base plan's own analyzer (ratio approximates as continuous)", () => {
+  it("resolves the parametric default to the base plan's own analyzer (ratio approximates as continuous in this generic form)", () => {
     expect(resolveEffectiveMetricType("binary", "parametric")).toBe("binary");
     expect(resolveEffectiveMetricType("continuous", "parametric")).toBe("continuous");
     expect(resolveEffectiveMetricType("ratio", "parametric")).toBe("continuous");
