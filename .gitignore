@@ -76,3 +76,22 @@ research/*.log
 /_*.md
 /.claude/
 /.cx_polls/
+
+# local research / handoff / assessment notes (root-level, never published;
+# policy decided 2026-07-09). Standalone public candidates such as
+# app/frontend/public/help.html, docs/data-flow.html, presentation.html and
+# docs/plans history stay visible in `git status` until a product decision.
+/AB_research.md
+/astro_prompt.md
+/desc_for_julia.md
+/eval.md
+/fable_com.md
+/fable_handoff_features.md
+/new_plen_05_07_26.md
+/res_07_06_26.md
+/research_kimi_23_05_26.md
+/tails_plan_06_07_26.md
+/pic.png
+
+# local scratch verification scripts and captured tool output
+/scratchpad/
