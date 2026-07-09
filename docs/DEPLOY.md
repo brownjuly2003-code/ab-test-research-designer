@@ -150,17 +150,31 @@ license: mit
 
 Note: `app_port` must match the port uvicorn listens on inside the container (`AB_PORT=8008` from `Dockerfile`). HF routes HTTPS traffic to that exact port.
 
-Sync code (preferred — HF rejects binary PNGs >LFS-threshold on direct git push, so use API):
+Sync code (HF rejects binary PNGs >LFS-threshold on direct git push, so the upload goes through
+the API). Always go through the script — never call `upload_folder` on the working tree by hand:
 
-```python
-from huggingface_hub import upload_folder
-upload_folder(
-    folder_path=".",
-    repo_id="liovina/ab-test-research-designer",
-    repo_type="space",
-    ignore_patterns=[".git/**", "**/__pycache__/**", "archive/**", "docs/demo/*.png", "*.sqlite3*", "**/node_modules/**"],
-    commit_message="Sync from GitHub main",
-)
+```bash
+HF_TOKEN=*** python scripts/deploy_hf.py \
+    --health-url https://liovina-ab-test-research-designer.hf.space/health
+```
+
+`scripts/deploy_hf.py` is the single source of truth for what reaches the Space, and CI runs the
+same script. Two rules it enforces that a hand-rolled `upload_folder(folder_path=".")` does not:
+
+- **Only git-tracked files are published.** `upload_folder` walks the *working tree*, so a manual
+  call uploads whatever is lying around — internal audit reports, session handoffs, scratch tokens
+  — to a **public** Space. The script derives its allowlist from `git ls-files`, which is exactly
+  what a clean CI checkout contains. `scripts/deploy_hf.py --self-test` proves the filter.
+- **The Space mirrors the repo.** `upload_folder` only adds and updates; it never deletes. Without
+  the prune step a Space keeps every file any past upload left behind, including modules the repo
+  has since removed — a decommissioned `repository.py` sitting beside the `repository/` package
+  that replaced it. The script deletes whatever the upload no longer ships (keeping HF's own
+  `.gitattributes`).
+
+Preview what would be published without uploading:
+
+```bash
+python scripts/deploy_hf.py --dry-run
 ```
 
 Practical notes (learned 2026-06-16):
