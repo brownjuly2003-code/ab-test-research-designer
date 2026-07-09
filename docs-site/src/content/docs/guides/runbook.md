@@ -69,6 +69,32 @@ set AB_MAX_WORKSPACE_BODY_BYTES=8388608
 docker compose up --build
 ```
 
+### Running behind a reverse proxy
+
+The rate limiter and the auth-failure throttle bucket callers by IP address. `X-Forwarded-For` is
+client-controlled, so it is ignored by default (`AB_TRUSTED_PROXY_HOPS=0`) and both limits key off the
+direct peer. Leave it at `0` whenever the app is reachable directly — otherwise a caller can rotate the
+header and get a fresh bucket on every request.
+
+When the app sits behind reverse proxies, set the hop count to how many of them append to the header
+(one nginx / one load balancer = `1`; CDN in front of a load balancer = `2`). The caller is then read as
+the N-th entry from the right; everything to its left is client-supplied and never trusted.
+
+```bash
+set AB_TRUSTED_PROXY_HOPS=1
+# Optional: only honour the header when the direct peer is one of these addresses / CIDR blocks.
+set AB_TRUSTED_PROXIES=10.0.0.0/8,192.0.2.7
+```
+
+Never set the hop count higher than the number of proxies that actually append. A caller can prepend
+any number of entries to the header, so an over-declared count reads one of *its* entries and hands it
+back control of its rate-limit bucket. Under-declaring is safe by comparison: it resolves to a proxy
+address, which merely buckets more traffic together. If in doubt, measure the chain before raising it.
+
+Setting `AB_TRUSTED_PROXIES` without a non-zero hop count is a startup error.
+
+API-key traffic is unaffected either way — it buckets by `api_key:{id}`, not by address.
+
 ## Postgres deployment
 
 Use Postgres when the backend must support concurrent writers, multiple app instances, or database-native replication. Leave `AB_DATABASE_URL` empty to keep the default SQLite workflow.

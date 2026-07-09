@@ -182,7 +182,7 @@ def register_http_runtime(
             resolved_detail = detail
             resolved_error_code = error_code
             if settings.rate_limit_enabled:
-                auth_limit_decision = auth_failure_limiter.allow(f"auth:{get_client_identifier(request)}")
+                auth_limit_decision = auth_failure_limiter.allow(f"auth:{get_client_identifier(request, settings)}")
                 if not auth_limit_decision.allowed:
                     auth_limit_headers = {"Retry-After": str(auth_limit_decision.retry_after_seconds)}
                     resolved_error_code = "auth_rate_limited"
@@ -255,7 +255,7 @@ def register_http_runtime(
                         "key_id": api_key["id"],
                         "actor": request.state.audit_actor,
                         "request_id": request_id,
-                        "ip_address": get_client_identifier(request),
+                        "ip_address": get_client_identifier(request, settings),
                     }
                 elif settings.public_demo and not admin_only_path:
                     # Public demo mode: an anonymous visitor gets a read-scope
@@ -288,7 +288,7 @@ def register_http_runtime(
 
         if settings.rate_limit_enabled and request.method != "OPTIONS" and is_rate_limited_path(request.url.path):
             rate_limit_decision = request_rate_limiter.allow(
-                getattr(request.state, "rate_limit_bucket_key", None) or f"api:{get_client_identifier(request)}",
+                getattr(request.state, "rate_limit_bucket_key", None) or f"api:{get_client_identifier(request, settings)}",
                 max_requests=getattr(request.state, "rate_limit_requests", None),
                 window_seconds=getattr(request.state, "rate_limit_window_seconds", None),
             )

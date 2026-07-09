@@ -61,6 +61,15 @@ docker push <REGISTRY>/ab-test-research-designer:latest
 
 ## Run Locally
 
+The container runs as the unprivileged user `app` (uid 1000), not root. `/app/data` is the only writable path in the image. To persist SQLite across runs, prefer a named volume — Docker seeds it from the image directory and keeps its ownership — because a host bind source that the daemon creates is root-owned and the app user cannot write to it:
+
+```bash
+docker volume create ab-test-data
+docker run --rm -v ab-test-data:/app/data -p 8008:8008 ab-test-research-designer:1.0.0
+```
+
+To bind-mount a host directory instead, chown it to uid 1000 first: `mkdir -p ./data && sudo chown 1000:1000 ./data`.
+
 Open mode:
 
 ```bash
@@ -161,7 +170,9 @@ Known limits of the HF free tier:
 - 2 vCPU + 16 GB RAM, no GPU
 - docs/demo screenshots are referenced from `raw.githubusercontent.com` URLs since HF rejects large binaries without Xet storage
 
-## Fly.io Demo Deploy (blocked — credit card required)
+## Fly.io Demo Deploy (alternative host — not the deployed demo)
+
+Hugging Face Spaces is the host of record for the public demo; the Fly.io path below is kept as a documented alternative and is not exercised by CI.
 
 Open mode is recommended for a public showcase. This keeps the hosted demo anonymous and matches the default open runtime in the app.
 
@@ -175,6 +186,12 @@ Notes:
 
 - `fly.toml` keeps `app = "ab-test-research-designer"` as a placeholder; replace it after `fly apps create` or pass `fly deploy -a <fly-app-name>`.
 - The Fly volume is mounted at `/data`, and SQLite is pointed at `/data/projects.sqlite3`.
+- The image runs as the unprivileged user `app` (uid 1000). A freshly created Fly volume is mounted root-owned, so chown it once before the app can write SQLite there (`fly ssh console` opens a root shell, the app process does not):
+
+```bash
+fly ssh console -C "chown -R 1000:1000 /data"
+```
+
 - Demo seeding is a manual post-deploy step because Fly `release_command` Machines do not mount persistent volumes:
 
 ```bash

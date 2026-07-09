@@ -8,7 +8,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
-import app.backend.app.repository as repository_module
+from app.backend.app.repository import _workspace as workspace_module
 from app.backend.app.repository import ProjectRepository
 from app.backend.app.errors import ApiError
 from app.backend.app.schemas.api import WorkspaceBundle
@@ -867,13 +867,13 @@ def test_repository_uses_constant_time_workspace_signature_comparison(monkeypatc
     bundle = source_repository.export_workspace()
 
     compare_digest_calls: list[tuple[str, str]] = []
-    original_compare_digest = repository_module.hmac.compare_digest
+    original_compare_digest = workspace_module.hmac.compare_digest
 
     def tracking_compare_digest(expected: str, actual: str) -> bool:
         compare_digest_calls.append((expected, actual))
         return original_compare_digest(expected, actual)
 
-    monkeypatch.setattr(repository_module.hmac, "compare_digest", tracking_compare_digest)
+    monkeypatch.setattr(workspace_module.hmac, "compare_digest", tracking_compare_digest)
 
     target_repository = ProjectRepository(
         str(target_db_path),

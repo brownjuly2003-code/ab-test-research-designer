@@ -1,6 +1,8 @@
+import ipaddress
 import uuid
 from collections import deque
 from dataclasses import dataclass
+from functools import lru_cache
 from math import ceil
 from threading import Lock
 from time import monotonic, perf_counter
@@ -147,15 +149,56 @@ def is_rate_limited_path(path: str) -> bool:
     return any(path.startswith(prefix) for prefix in RATE_LIMITED_PATH_PREFIXES)
 
 
-def get_client_identifier(request: Request) -> str:
-    forwarded_for = request.headers.get("x-forwarded-for", "")
-    if forwarded_for:
-        first_hop = forwarded_for.split(",", maxsplit=1)[0].strip()
-        if first_hop:
-            return first_hop
-    if request.client and request.client.host:
-        return request.client.host
-    return "unknown"
+@lru_cache(maxsize=8)
+def _parse_trusted_proxies(entries: tuple[str, ...]) -> tuple[ipaddress.IPv4Network | ipaddress.IPv6Network, ...]:
+    return tuple(ipaddress.ip_network(entry, strict=False) for entry in entries)
+
+
+def _peer_is_trusted(peer: str, entries: tuple[str, ...]) -> bool:
+    try:
+        peer_address = ipaddress.ip_address(peer)
+    except ValueError:
+        return False
+    return any(peer_address in network for network in _parse_trusted_proxies(entries))
+
+
+
+def _is_ip_address(value: str) -> bool:
+    try:
+        ipaddress.ip_address(value)
+    except ValueError:
+        return False
+    return True
+
+
+def get_client_identifier(request: Request, settings: "Settings") -> str:
+    """Resolve the caller's address for rate-limit and auth-throttle bucketing.
+
+    `X-Forwarded-For` is attacker-controlled unless every hop that appended to it is
+    trusted, so the header is ignored entirely until `AB_TRUSTED_PROXY_HOPS` declares
+    how many proxies sit in front of the app. Each such proxy appends the address it
+    received the request from, so with N trusted hops the caller is the N-th entry
+    counted from the right, and a client cannot influence it however many entries it
+    prepends.
+
+    Counting from the right is what makes this safe, but it also means the hop count
+    must not exceed the number of proxies that actually append: a caller can pad the
+    header on the left, so an over-declared count would read one of its own entries.
+    An under-declared count only degrades to bucketing by a proxy address.
+
+    The selected entry must parse as an IP address — a proxy writes one, so anything
+    else means the chain is shorter or dirtier than declared and the direct peer is
+    the safer key.
+    """
+    peer = request.client.host if request.client and request.client.host else ""
+    trusted_hops = settings.trusted_proxy_hops
+    if trusted_hops > 0 and (not settings.trusted_proxies or _peer_is_trusted(peer, settings.trusted_proxies)):
+        forwarded_chain = [hop.strip() for hop in request.headers.get("x-forwarded-for", "").split(",") if hop.strip()]
+        if len(forwarded_chain) >= trusted_hops:
+            candidate = forwarded_chain[-trusted_hops]
+            if _is_ip_address(candidate):
+                return candidate
+    return peer or "unknown"
 
 
 def get_request_body_limit(path: str, method: str, settings: "Settings") -> int | None:

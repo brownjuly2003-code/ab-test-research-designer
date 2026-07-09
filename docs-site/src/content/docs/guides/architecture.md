@@ -60,7 +60,7 @@ FastAPI API layer
 - `rules/` holds warning catalog metadata and trigger logic.
 - `services/design_service.py` builds the deterministic report used by export and the UI dashboard.
 - `llm/adapter.py` calls the local orchestrator and normalizes unreliable responses through `parser.py`.
-- `repository.py` owns SQLite schema, migrations, saved projects, history, and comparison inputs.
+- `repository/` owns persistence. `ProjectRepository` is the entry point; it forwards to a backend chosen from the database URL (`SQLiteBackend`, or `PostgresBackend` which overrides only the dialect and the queries that cannot be translated). The backend is composed from per-domain mixins — `_projects`, `_history`, `_templates`, `_api_keys`, `_webhooks`, `_slack`, `_audit`, `_workspace`, `_diagnostics`, `_execution` — over a shared `_core` (connection, schema bootstrap, revision helpers), with DDL and migrations in `_schema.py` and row mappers in `_rows.py`.
 
 ## Data model
 
