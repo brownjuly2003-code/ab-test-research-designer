@@ -1,0 +1,120 @@
+name: Space maintenance
+
+# Operator-triggered only. Pausing a Space frees its cpu-basic slot; the `liovina` account
+# is capped at 3 running cpu-basic Spaces, so bringing one up means putting another down.
+# Both actions are reversible from the HF UI or by re-running this workflow.
+#
+# Requires the same HF_TOKEN repository secret as deploy-hf.yml.
+on:
+  workflow_dispatch:
+    inputs:
+      pause:
+        description: "Space id to pause, e.g. liovina/agentflow-edge-spb (empty = skip)"
+        required: false
+        default: ""
+      restart:
+        description: "Space id to restart, e.g. liovina/ab-test-research-designer (empty = skip)"
+        required: false
+        default: ""
+      health_url:
+        description: "URL to poll for HTTP 200 after the restart (empty = skip)"
+        required: false
+        default: ""
+      health_timeout:
+        description: "Seconds to wait for the health URL"
+        required: false
+        default: "600"
+
+concurrency:
+  group: space-maintenance
+  cancel-in-progress: false
+
+jobs:
+  maintain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install Hugging Face Hub client
+        run: python -m pip install "huggingface_hub==1.5.0"
+
+      - name: Pause / restart Spaces and report quota
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          PAUSE_SPACE: ${{ github.event.inputs.pause }}
+          RESTART_SPACE: ${{ github.event.inputs.restart }}
+        run: |
+          if [ -z "$HF_TOKEN" ]; then
+            echo "::error::HF_TOKEN repository secret is not set."
+            exit 1
+          fi
+          python - <<'PY'
+          import os
+          from huggingface_hub import HfApi
+
+          # The token owns every Space under this account; a typo must not touch someone else's.
+          ALLOWED_OWNER = "liovina"
+
+          api = HfApi(token=os.environ["HF_TOKEN"])
+
+          def check(space_id: str) -> str:
+              owner, _, name = space_id.partition("/")
+              if not name or owner != ALLOWED_OWNER:
+                  raise SystemExit(f"refusing to act on {space_id!r}: owner must be {ALLOWED_OWNER!r}")
+              return space_id
+
+          def stage(space_id: str) -> str:
+              runtime = api.get_space_runtime(space_id)
+              return f"{runtime.stage} (hardware={runtime.hardware})"
+
+          pause = os.environ.get("PAUSE_SPACE", "").strip()
+          restart = os.environ.get("RESTART_SPACE", "").strip()
+
+          if pause:
+              check(pause)
+              print(f"[space] {pause}: {stage(pause)} -> pausing")
+              api.pause_space(pause)
+              print(f"[space] {pause}: {stage(pause)}")
+
+          if restart:
+              check(restart)
+              print(f"[space] {restart}: {stage(restart)} -> restarting")
+              api.restart_space(restart)
+              print(f"[space] {restart}: {stage(restart)}")
+
+          print("\n[space] cpu-basic usage across the account:")
+          for space in api.list_spaces(author=ALLOWED_OWNER):
+              runtime = api.get_space_runtime(space.id)
+              note = f" — {runtime.raw.get('errorMessage')}" if runtime.raw.get("errorMessage") else ""
+              print(f"  {space.id:<45} {runtime.stage}{note}")
+          PY
+
+      - name: Smoke the restarted Space
+        if: ${{ github.event.inputs.health_url != '' }}
+        env:
+          HEALTH_URL: ${{ github.event.inputs.health_url }}
+          HEALTH_TIMEOUT: ${{ github.event.inputs.health_timeout }}
+        run: |
+          python - <<'PY'
+          import os, sys, time, urllib.error, urllib.request
+
+          url = os.environ["HEALTH_URL"]
+          timeout = int(os.environ.get("HEALTH_TIMEOUT") or 600)
+          deadline = time.time() + timeout
+          attempt = 0
+          while time.time() < deadline:
+              attempt += 1
+              try:
+                  with urllib.request.urlopen(url, timeout=20) as response:
+                      if response.status == 200:
+                          print(f"[space] health OK after {attempt} attempt(s): {url}")
+                          raise SystemExit(0)
+              except urllib.error.URLError as error:
+                  print(f"[space] health not ready (attempt {attempt}): {error}")
+              time.sleep(15)
+          print(f"[space] health FAILED after {timeout}s: {url}", file=sys.stderr)
+          raise SystemExit(1)
+          PY
