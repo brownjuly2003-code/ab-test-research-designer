@@ -103,6 +103,9 @@ from app.backend.app.schemas.api._diagnostics import (
     DiagnosticsLoggingSummary as DiagnosticsLoggingSummary,
 )
 from app.backend.app.schemas.api._diagnostics import (
+    DiagnosticsNetworkSummary as DiagnosticsNetworkSummary,
+)
+from app.backend.app.schemas.api._diagnostics import (
     DiagnosticsResponse as DiagnosticsResponse,
 )
 from app.backend.app.schemas.api._diagnostics import (

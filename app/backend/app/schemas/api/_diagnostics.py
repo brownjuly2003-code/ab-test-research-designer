@@ -76,6 +76,24 @@ class DiagnosticsGuardsSummary(BaseModel):
     max_workspace_body_bytes: int
 
 
+class DiagnosticsNetworkSummary(BaseModel):
+    """The server-side view of the calling request's addressing.
+
+    Echoes back what the app received for THIS request: the direct socket peer,
+    the parsed `X-Forwarded-For` chain, and which of the two the rate limiter
+    resolved as the caller under the configured trust. Send a marker header and
+    everything to its right in `forwarded_for_chain` was appended by real
+    proxies — that count is the correct `AB_TRUSTED_PROXY_HOPS` value.
+    """
+
+    direct_peer: str | None
+    forwarded_for_chain: list[str]
+    trusted_proxy_hops: int
+    trusted_proxies: list[str]
+    resolved_client: str
+    resolved_from: Literal["forwarded_header", "direct_peer"]
+
+
 class DiagnosticsRuntimeSummary(BaseModel):
     total_requests: int
     success_responses: int
@@ -103,6 +121,7 @@ class DiagnosticsResponse(BaseModel):
     logging: DiagnosticsLoggingSummary
     auth: DiagnosticsAuthSummary
     guards: DiagnosticsGuardsSummary
+    network: DiagnosticsNetworkSummary
     runtime: DiagnosticsRuntimeSummary
 
 

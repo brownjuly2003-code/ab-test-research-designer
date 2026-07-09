@@ -375,6 +375,15 @@ export type DiagnosticsLoggingSummary = {
   format: string;
 };
 
+export type DiagnosticsNetworkSummary = {
+  direct_peer: string | null;
+  forwarded_for_chain: string[];
+  trusted_proxy_hops: number;
+  trusted_proxies: string[];
+  resolved_client: string;
+  resolved_from: "forwarded_header" | "direct_peer";
+};
+
 export type DiagnosticsResponse = {
   status: string;
   generated_at: string;
@@ -389,6 +398,7 @@ export type DiagnosticsResponse = {
   logging: DiagnosticsLoggingSummary;
   auth: DiagnosticsAuthSummary;
   guards: DiagnosticsGuardsSummary;
+  network: DiagnosticsNetworkSummary;
   runtime: DiagnosticsRuntimeSummary;
 };
 

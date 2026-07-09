@@ -5,13 +5,18 @@ from typing import TYPE_CHECKING, Any
 from fastapi import APIRouter, Request, Response, status
 from pydantic import BaseModel
 
-from app.backend.app.http_utils import AUTH_READ_ONLY_METHODS, get_auth_mode
+from app.backend.app.http_utils import (
+    AUTH_READ_ONLY_METHODS,
+    get_auth_mode,
+    resolve_client_identity,
+)
 from app.backend.app.schemas.api import (
     DiagnosticsAuthSummary,
     DiagnosticsFrontendSummary,
     DiagnosticsGuardsSummary,
     DiagnosticsLlmSummary,
     DiagnosticsLoggingSummary,
+    DiagnosticsNetworkSummary,
     DiagnosticsResponse,
     DiagnosticsRuntimeSummary,
     ReadinessCheck,
@@ -160,6 +165,7 @@ def create_system_router(
         write_api_keys_enabled = repository.has_active_api_keys(scope="write")
         read_api_keys_enabled = repository.has_active_api_keys(scope="read")
         session_scope = getattr(request.state, "auth_scope", None)
+        client_identity = resolve_client_identity(request, settings)
         return DiagnosticsResponse(
             status="ok",
             generated_at=diagnostics_generated_at.isoformat(),
@@ -214,6 +220,14 @@ def create_system_router(
                 auth_failure_window_seconds=settings.auth_failure_window_seconds,
                 max_request_body_bytes=settings.max_request_body_bytes,
                 max_workspace_body_bytes=settings.max_workspace_body_bytes,
+            ),
+            network=DiagnosticsNetworkSummary(
+                direct_peer=client_identity.direct_peer,
+                forwarded_for_chain=list(client_identity.forwarded_chain),
+                trusted_proxy_hops=settings.trusted_proxy_hops,
+                trusted_proxies=list(settings.trusted_proxies),
+                resolved_client=client_identity.identifier,
+                resolved_from=client_identity.source,
             ),
             runtime=DiagnosticsRuntimeSummary(**runtime_counters),
         )

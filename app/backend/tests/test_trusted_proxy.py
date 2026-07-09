@@ -212,6 +212,48 @@ def test_behind_a_trusted_proxy_each_real_client_gets_its_own_throttle_bucket(mo
     assert statuses == [401] * 6, f"per-client bucketing broke: {statuses}"
 
 
+def _diagnostics_network(monkeypatch, *, trusted_proxy_hops: str, forwarded_for: str) -> dict:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    monkeypatch.setenv("AB_DB_PATH", str(temp_dir / f"{uuid.uuid4()}.sqlite3"))
+    monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")
+    monkeypatch.setenv("AB_TRUSTED_PROXY_HOPS", trusted_proxy_hops)
+    get_settings.cache_clear()
+
+    with TestClient(create_app()) as client:
+        response = client.get("/api/v1/diagnostics", headers={"X-Forwarded-For": forwarded_for})
+
+    get_settings.cache_clear()
+    assert response.status_code == 200
+    return response.json()["network"]
+
+
+def test_diagnostics_echoes_the_untrusted_network_view(monkeypatch) -> None:
+    """With hops=0 the chain is echoed for measurement but never resolved from.
+
+    This is the read-back an operator uses on a fresh deployment: send a marker
+    header, count the entries real proxies appended to its right, and only then
+    declare `AB_TRUSTED_PROXY_HOPS`.
+    """
+    network = _diagnostics_network(monkeypatch, trusted_proxy_hops="0", forwarded_for="203.0.113.7, 198.51.100.9")
+
+    assert network["trusted_proxy_hops"] == 0
+    assert network["trusted_proxies"] == []
+    assert network["forwarded_for_chain"] == ["203.0.113.7", "198.51.100.9"]
+    assert network["resolved_from"] == "direct_peer"
+    assert network["direct_peer"] == "testclient"
+    assert network["resolved_client"] == "testclient"
+
+
+def test_diagnostics_reports_resolution_from_a_trusted_header(monkeypatch) -> None:
+    network = _diagnostics_network(monkeypatch, trusted_proxy_hops="1", forwarded_for="203.0.113.7, 198.51.100.9")
+
+    assert network["trusted_proxy_hops"] == 1
+    assert network["forwarded_for_chain"] == ["203.0.113.7", "198.51.100.9"]
+    assert network["resolved_from"] == "forwarded_header"
+    assert network["resolved_client"] == "198.51.100.9"
+
+
 @pytest.mark.parametrize(
     ("env_value", "message"),
     [

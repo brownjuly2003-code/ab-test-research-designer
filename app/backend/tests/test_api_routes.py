@@ -1522,6 +1522,12 @@ def test_diagnostics_endpoint_returns_runtime_summary(monkeypatch) -> None:
     assert payload["guards"]["auth_failure_limit"] == 20
     assert payload["guards"]["max_request_body_bytes"] == 1_048_576
     assert payload["guards"]["max_workspace_body_bytes"] == 8_388_608
+    assert payload["network"]["direct_peer"] == "testclient"
+    assert payload["network"]["forwarded_for_chain"] == []
+    assert payload["network"]["trusted_proxy_hops"] == 0
+    assert payload["network"]["trusted_proxies"] == []
+    assert payload["network"]["resolved_client"] == "testclient"
+    assert payload["network"]["resolved_from"] == "direct_peer"
     assert payload["runtime"]["total_requests"] >= 0
     assert payload["runtime"]["success_responses"] >= 0
     assert payload["runtime"]["auth_rejections"] == 0

@@ -6,7 +6,7 @@ from functools import lru_cache
 from math import ceil
 from threading import Lock
 from time import monotonic, perf_counter
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 from fastapi import Request, Response, status
 from fastapi.responses import JSONResponse
@@ -171,7 +171,15 @@ def _is_ip_address(value: str) -> bool:
     return True
 
 
-def get_client_identifier(request: Request, settings: "Settings") -> str:
+@dataclass(frozen=True)
+class ClientIdentity:
+    identifier: str
+    source: Literal["forwarded_header", "direct_peer"]
+    direct_peer: str | None
+    forwarded_chain: tuple[str, ...]
+
+
+def resolve_client_identity(request: Request, settings: "Settings") -> ClientIdentity:
     """Resolve the caller's address for rate-limit and auth-throttle bucketing.
 
     `X-Forwarded-For` is attacker-controlled unless every hop that appended to it is
@@ -189,16 +197,37 @@ def get_client_identifier(request: Request, settings: "Settings") -> str:
     The selected entry must parse as an IP address — a proxy writes one, so anything
     else means the chain is shorter or dirtier than declared and the direct peer is
     the safer key.
+
+    The full resolution (peer, parsed chain, which side won) is exposed so the
+    diagnostics endpoint can echo it back — that is how an operator measures the
+    real chain before declaring a hop count instead of guessing one.
     """
     peer = request.client.host if request.client and request.client.host else ""
+    forwarded_chain = tuple(
+        hop.strip() for hop in request.headers.get("x-forwarded-for", "").split(",") if hop.strip()
+    )
     trusted_hops = settings.trusted_proxy_hops
     if trusted_hops > 0 and (not settings.trusted_proxies or _peer_is_trusted(peer, settings.trusted_proxies)):
-        forwarded_chain = [hop.strip() for hop in request.headers.get("x-forwarded-for", "").split(",") if hop.strip()]
         if len(forwarded_chain) >= trusted_hops:
             candidate = forwarded_chain[-trusted_hops]
             if _is_ip_address(candidate):
-                return candidate
-    return peer or "unknown"
+                return ClientIdentity(
+                    identifier=candidate,
+                    source="forwarded_header",
+                    direct_peer=peer or None,
+                    forwarded_chain=forwarded_chain,
+                )
+    return ClientIdentity(
+        identifier=peer or "unknown",
+        source="direct_peer",
+        direct_peer=peer or None,
+        forwarded_chain=forwarded_chain,
+    )
+
+
+def get_client_identifier(request: Request, settings: "Settings") -> str:
+    """Bucketing key for the rate limiter and auth-failure throttle; see resolve_client_identity."""
+    return resolve_client_identity(request, settings).identifier
 
 
 def get_request_body_limit(path: str, method: str, settings: "Settings") -> int | None:

@@ -329,6 +329,14 @@ function buildDiagnostics() {
       max_request_body_bytes: 1048576,
       max_workspace_body_bytes: 8388608
     },
+    network: {
+      direct_peer: "127.0.0.1",
+      forwarded_for_chain: [],
+      trusted_proxy_hops: 0,
+      trusted_proxies: [],
+      resolved_client: "127.0.0.1",
+      resolved_from: "direct_peer" as const
+    },
     runtime: {
       total_requests: 4,
       success_responses: 4,

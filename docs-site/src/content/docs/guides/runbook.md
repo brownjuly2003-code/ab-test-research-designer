@@ -91,6 +91,19 @@ any number of entries to the header, so an over-declared count reads one of *its
 back control of its rate-limit bucket. Under-declaring is safe by comparison: it resolves to a proxy
 address, which merely buckets more traffic together. If in doubt, measure the chain before raising it.
 
+Measure the chain with the diagnostics endpoint, which echoes the server-side view of the calling
+request. Send a marker entry and see what the infrastructure appends to its right:
+
+```bash
+curl -s -H "X-Forwarded-For: 203.0.113.7" https://<host>/api/v1/diagnostics | jq .network
+```
+
+Everything to the right of `203.0.113.7` in `forwarded_for_chain` was appended by a real proxy — that
+count is the correct `AB_TRUSTED_PROXY_HOPS` value, and the leftmost appended entry should be your own
+egress address (`curl -s https://ipinfo.io/ip`). After raising the hop count, repeat the call: the
+response must show `resolved_from: "forwarded_header"` and `resolved_client` equal to your egress
+address, not something you supplied in the marker.
+
 Setting `AB_TRUSTED_PROXIES` without a non-zero hop count is a startup error.
 
 API-key traffic is unaffected either way — it buckets by `api_key:{id}`, not by address.
