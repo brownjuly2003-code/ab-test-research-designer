@@ -16,10 +16,12 @@ from __future__ import annotations
 
 import argparse
 import os
+import subprocess
 import sys
 import time
 import urllib.error
 import urllib.request
+from fnmatch import fnmatch
 from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
@@ -27,6 +29,10 @@ DEFAULT_REPO_ID = "liovina/ab-test-research-designer"
 
 # Identical to docs/DEPLOY.md — keeps the upload to the proven source set and
 # strips build artefacts, caches, local DBs and internal demo assets.
+#
+# These are the second line of defence. The first is `tracked_files()`: the Space is
+# public, so only files git tracks are ever uploaded. Both are needed — a pattern here
+# also protects a file that someone tracks by mistake.
 IGNORE_PATTERNS = [
     ".git/**",
     "**/__pycache__/**",
@@ -34,19 +40,136 @@ IGNORE_PATTERNS = [
     "docs/demo/*.png",
     "*.sqlite3*",
     "**/node_modules/**",
+    # Internal notes that must never reach a public Space, mirroring the classes
+    # check_repo_hygiene.py keeps out of the index.
+    "audit_*.md",
+    "_*.md",
+    ".claude/**",
+    ".cx_polls/**",
 ]
+
+# Managed by Hugging Face, not by this repo: never prune it when mirroring.
+PRESERVE_ON_SPACE = {".gitattributes"}
+
+
+def tracked_files() -> list[str]:
+    """Return every path git tracks, relative to the repo root, as posix strings.
+
+    `upload_folder` walks the *working tree*, not the index. Untracked files therefore
+    ship too — internal audit reports, session handoffs, scratch token files — straight
+    into a public Space. Restricting the upload to tracked paths makes that structurally
+    impossible, and it reproduces exactly what a clean CI checkout would have uploaded.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "ls-files", "-z"],
+            cwd=ROOT_DIR,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except (OSError, subprocess.CalledProcessError) as error:
+        raise SystemExit(
+            f"[deploy] cannot list tracked files ({error}). Refusing to upload the working "
+            "tree unfiltered: it may hold internal notes."
+        ) from error
+
+    paths = [line for line in result.stdout.split("\0") if line]
+    if not paths:
+        raise SystemExit("[deploy] git reported no tracked files; refusing to upload.")
+    return paths
+
+
+def is_ignored(path: str) -> bool:
+    """True when ``path`` matches IGNORE_PATTERNS, using huggingface_hub's own semantics.
+
+    ``huggingface_hub`` filters with :func:`fnmatch.fnmatch`, where ``*`` also crosses ``/``.
+    A pattern therefore matches from the start of the repo-relative posix path, which is why
+    ``audit_*.md`` catches the root reports and leaves ``docs/plans/…-audit-report.md`` alone.
+    """
+    return any(fnmatch(path, pattern) for pattern in IGNORE_PATTERNS)
+
+
+def self_test() -> int:
+    """Prove the publish filter drops internal notes and keeps the files the Space needs."""
+    must_exclude = [
+        "audit_07_07_26.md",
+        "audit_opus_2026-06-17.md",
+        "_NEXT_SESSION.md",
+        ".claude/settings.local.json",
+        ".cx_polls/poll.json",
+        "archive/smoke-runs/20260709-104049/downloads/experiment-report.md",
+        "app/backend/data/app.sqlite3",
+        "docs/demo/wizard-overview.png",
+        "app/frontend/node_modules/react/index.js",
+        ".git/config",
+    ]
+    must_publish = [
+        "README.md",
+        "Dockerfile",
+        "app/backend/requirements.txt",
+        "app/backend/app/main.py",
+        "app/frontend/src/components/SidebarPanel.tsx",
+        "docs/DEPLOY.md",
+        # Audit *reports under docs/* are part of the published documentation set and
+        # are already tracked in the public repo; only the root-level notes are internal.
+        "docs/plans/2026-04-21-a11y-audit-report.md",
+    ]
+
+    failures: list[str] = []
+    for path in must_exclude:
+        if not is_ignored(path):
+            failures.append(f"should be excluded but is not: {path}")
+    for path in must_publish:
+        if is_ignored(path):
+            failures.append(f"should be published but is excluded: {path}")
+
+    if failures:
+        print("[deploy] self-test FAILED:", file=sys.stderr)
+        for line in failures:
+            print(f"  - {line}", file=sys.stderr)
+        return 1
+    print(
+        f"[deploy] self-test passed ({len(must_exclude)} excluded, {len(must_publish)} published). "
+        "Untracked files are dropped separately by the git allowlist."
+    )
+    return 0
+
+
+def stale_space_paths(repo_id: str, token: str, publishable: set[str]) -> list[str]:
+    """Files the Space still serves that this upload no longer ships.
+
+    ``upload_folder`` only adds and updates. Without an explicit delete list the Space keeps
+    every file any past upload ever put there: decommissioned modules (a pre-split
+    ``repository.py`` sitting next to the ``repository/`` package that replaced it), local
+    caches, and internal notes from a working-tree deploy. The Space must mirror the repo.
+    """
+    from huggingface_hub import HfApi
+
+    existing = set(HfApi(token=token).list_repo_files(repo_id, repo_type="space"))
+    return sorted(existing - publishable - PRESERVE_ON_SPACE)
 
 
 def upload_snapshot(repo_id: str, token: str, commit_message: str) -> str:
-    """Upload the working tree to the Space; return the resulting commit URL/oid."""
+    """Mirror the git-tracked source tree onto the Space; return the commit URL/oid."""
     from huggingface_hub import upload_folder
+
+    publishable = [path for path in tracked_files() if not is_ignored(path)]
+    print(f"[deploy] publishing {len(publishable)} git-tracked file(s); untracked paths are skipped")
+
+    stale = stale_space_paths(repo_id, token, set(publishable))
+    if stale:
+        preview = ", ".join(stale[:3])
+        print(f"[deploy] pruning {len(stale)} stale file(s) from the Space (e.g. {preview})")
 
     result = upload_folder(
         folder_path=str(ROOT_DIR),
         repo_id=repo_id,
         repo_type="space",
         token=token,
+        allow_patterns=publishable,
         ignore_patterns=IGNORE_PATTERNS,
+        delete_patterns=stale or None,
         commit_message=commit_message,
     )
     return str(result)
@@ -89,10 +212,20 @@ def main() -> int:
         action="store_true",
         help="Validate inputs and print the plan without uploading (no token required).",
     )
+    parser.add_argument(
+        "--self-test",
+        action="store_true",
+        help="Verify the publish filter excludes internal notes and keeps Space sources, then exit.",
+    )
     args = parser.parse_args()
 
+    if args.self_test:
+        return self_test()
+
     if args.dry_run:
+        published = [path for path in tracked_files() if not is_ignored(path)]
         print(f"[deploy] DRY RUN — would upload {ROOT_DIR} -> space {args.repo_id}")
+        print(f"[deploy] {len(published)} git-tracked file(s) pass the filter")
         print(f"[deploy] ignore_patterns={IGNORE_PATTERNS}")
         if args.health_url:
             print(f"[deploy] would smoke health: {args.health_url} (timeout {args.health_timeout}s)")

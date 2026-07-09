@@ -101,6 +101,11 @@ jobs:
       - name: Check no internal archive/ or root audit_*.md is tracked
         run: python scripts/check_repo_hygiene.py
 
+      # check_repo_hygiene guards the git index; this guards the public HF Space, which is
+      # uploaded from the working tree and so leaks a different set of files.
+      - name: Verify the HF Space publish filter excludes internal notes
+        run: python scripts/deploy_hf.py --self-test
+
   dependency-audit:
     runs-on: ubuntu-latest
     timeout-minutes: 10

@@ -150,30 +150,45 @@ license: mit
 
 Note: `app_port` must match the port uvicorn listens on inside the container (`AB_PORT=8008` from `Dockerfile`). HF routes HTTPS traffic to that exact port.
 
-Sync code (preferred — HF rejects binary PNGs >LFS-threshold on direct git push, so use API):
+Sync code (HF rejects binary PNGs >LFS-threshold on direct git push, so the upload goes through
+the API). Always go through the script — never call `upload_folder` on the working tree by hand:
 
-```python
-from huggingface_hub import upload_folder
-upload_folder(
-    folder_path=".",
-    repo_id="liovina/ab-test-research-designer",
-    repo_type="space",
-    ignore_patterns=[".git/**", "**/__pycache__/**", "archive/**", "docs/demo/*.png", "*.sqlite3*", "**/node_modules/**"],
-    commit_message="Sync from GitHub main",
-)
+```bash
+HF_TOKEN=*** python scripts/deploy_hf.py \
+    --health-url https://liovina-ab-test-research-designer.hf.space/health
 ```
 
-Practical notes (learned 2026-06-16):
-- The `liovina` write token is already stored in the OS git credential manager
-  (`printf 'protocol=https\nhost=huggingface.co\n\n' | git credential fill` returns
-  `username=liovina` + token). Pass it as `token=` to `upload_folder`. Note: the
-  `hf` CLI can report "Not logged in" even when this credential exists — they are
-  separate stores; don't be misled.
-- Deploy from a **clean snapshot of committed `main`**, not the working tree
-  (which carries dist/, caches, untracked notes): `git archive main | tar -x -C
-  D:/hfdeploy` then `folder_path="D:/hfdeploy"`. Use a **native Windows path** —
-  Git Bash `/tmp` and Windows-Python `/tmp` resolve differently and the upload
-  fails with "is not a directory".
+`scripts/deploy_hf.py` is the single source of truth for what reaches the Space, and CI runs the
+same script. Two rules it enforces that a hand-rolled `upload_folder(folder_path=".")` does not:
+
+- **Only git-tracked files are published.** `upload_folder` walks the *working tree*, so a manual
+  call uploads whatever is lying around — internal audit reports, session handoffs, scratch tokens
+  — to a **public** Space. The script derives its allowlist from `git ls-files`, which is exactly
+  what a clean CI checkout contains. `scripts/deploy_hf.py --self-test` proves the filter.
+- **The Space mirrors the repo.** `upload_folder` only adds and updates; it never deletes. Without
+  the prune step a Space keeps every file any past upload left behind, including modules the repo
+  has since removed — a decommissioned `repository.py` sitting beside the `repository/` package
+  that replaced it. The script deletes whatever the upload no longer ships (keeping HF's own
+  `.gitattributes`).
+
+Preview what would be published without uploading:
+
+```bash
+python scripts/deploy_hf.py --dry-run
+```
+
+Practical notes (learned 2026-06-16, corrected 2026-07-09):
+- An HF write token may already sit in the OS git credential manager. **Check whose it is
+  before using it** — the account there is not necessarily the one that owns this Space:
+  `printf 'protocol=https\nhost=huggingface.co\n\n' | git credential fill` prints a
+  `username=` line. Note that the `hf` CLI can report "Not logged in" even when this
+  credential exists — they are separate stores; don't be misled.
+- Working-tree deploys used to require exporting a clean snapshot of `main` first, because
+  the upload carried `dist/`, caches and untracked notes. `scripts/deploy_hf.py` now filters
+  to git-tracked files itself, so run it straight from the checkout. If you ever bypass the
+  script, export the snapshot: `git archive main | tar -x -C D:/hfdeploy`, and use a **native
+  Windows path** — Git Bash `/tmp` and Windows-Python `/tmp` resolve differently, and the
+  upload fails with "is not a directory".
 - HF keeps the old container live during `RUNNING_BUILDING`, so the page does not
   change instantly. Detect rollout by polling the live homepage's JS asset hash
   for a **change** (`assets/index-<hash>.js`) — do NOT wait for a specific local

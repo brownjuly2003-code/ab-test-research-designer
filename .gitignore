@@ -64,3 +64,14 @@ research/*.log
 
 # local operator credentials (never commit)
 /_space_write_token_*.txt
+
+# internal notes: audit reports, session handoffs, agent scratch.
+# Three layers keep these out of anything published:
+#   1. here — they cannot enter the git index by accident;
+#   2. scripts/check_repo_hygiene.py — CI fails if one is tracked anyway;
+#   3. scripts/deploy_hf.py — the HF Space upload publishes only git-tracked files,
+#      because it reads the working tree and the Space is public.
+/audit_*.md
+/_*.md
+/.claude/
+/.cx_polls/
