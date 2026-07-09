@@ -262,6 +262,84 @@ curl -X POST http://127.0.0.1:8008/api/v1/export/markdown ^
 
 ## Other
 
+### `POST /api/v1/assignment/preview`
+
+Assignment Preview
+
+### `POST /api/v1/experiments/{experiment_id}/assign`
+
+Assign Experiment
+
+### `POST /api/v1/experiments/{experiment_id}/conversions`
+
+Ingest Conversions
+
+### `GET /api/v1/experiments/{experiment_id}/decision`
+
+Get Decision
+
+Decision Readout — one synthesized ship / no-ship / keep-running verdict over the same
+live-stats signals (SRM, frequentist effect/CI, Bayesian P(B>A), sequential crossing). No
+new statistics; see services/decision_service.py.
+
+### `POST /api/v1/experiments/{experiment_id}/exclusions`
+
+Ingest Exclusions
+
+Ingest manual deny-list exclusions for the bot / fraud filter (P4.4). First-write-wins per
+user (the first reason sticks); the live-stats rollup drops excluded users — resolved to their
+canonical id — from every aggregate, alongside the automatic rate-spike heuristic. The raw
+events are never deleted, so an exclusion is a reversible read-time filter.
+
+### `POST /api/v1/experiments/{experiment_id}/exposures`
+
+Ingest Exposures
+
+### `POST /api/v1/experiments/{experiment_id}/holdout`
+
+Ingest Holdout
+
+Ingest holdout members — users held back from the rollout (F5). Recorded as
+``variation_index = -1`` exposures (first-write-wins per user); the live-stats read compares
+the pooled treated arms against this held-back group to measure the rollout's cumulative
+effect. Holdout outcomes ride the ordinary conversion stream under the primary metric name.
+
+### `POST /api/v1/experiments/{experiment_id}/identities`
+
+Ingest Identities
+
+Ingest anonymous → canonical identity links (P4.3). First-write-wins per anonymous id;
+the live-stats rollup folds each user's exposures and conversions onto their canonical id, so
+a person exposed while anonymous and re-exposed / converting after login is counted once
+instead of inflating SRM and the conversion rate. A self-link is a no-op and is skipped.
+
+### `GET /api/v1/experiments/{experiment_id}/ingestion`
+
+Get Ingestion Summary
+
+### `GET /api/v1/experiments/{experiment_id}/live-stats`
+
+Get Live Stats
+
+Phase D — live SRM / frequentist / Bayesian / sequential read over the current
+deduplicated exposures and conversions. Recomputed on demand (the dashboard polls);
+there is no separate scheduler process in the local-first MVP.
+
+### `POST /api/v1/experiments/{experiment_id}/pre-period`
+
+Ingest Pre Period Values
+
+Ingest per-user pre-experiment covariate values for CUPED (E5). First-write-wins
+per user; the covariate enables variance reduction on the continuous live-stats.
+
+### `POST /api/v1/experiments/{experiment_id}/strata`
+
+Ingest Strata
+
+Ingest one categorical stratum per user for post-stratification (F3b). First-write-wins
+per user; the stratum lets the live-stats read estimate the effect within each stratum and
+recombine it, reducing variance when the stratum explains outcome variation.
+
 ### `POST /api/v1/export/comparison`
 
 Export Comparison
@@ -269,6 +347,14 @@ Export Comparison
 ### `POST /api/v1/export/html-standalone`
 
 Export Html Standalone
+
+### `POST /api/v1/hypotheses/generate`
+
+Generate Hypotheses
+
+### `POST /api/v1/multiple-testing`
+
+Multiple Testing
 
 ### `POST /api/v1/projects/{project_id}/archive`
 
@@ -290,9 +376,33 @@ Get Project Report Xlsx
 
 Results
 
+### `POST /api/v1/results/categorical`
+
+Categorical Results
+
+### `POST /api/v1/results/omnibus`
+
+Omnibus Results
+
+### `POST /api/v1/results/paired`
+
+Paired Results
+
+### `POST /api/v1/results/ratio`
+
+Ratio Results
+
+### `POST /api/v1/results/survival`
+
+Survival Results
+
 ### `POST /api/v1/sensitivity`
 
 Sensitivity
+
+### `POST /api/v1/simulate/bandit`
+
+Simulate Bandit
 
 ### `GET /api/v1/slack/status`
 

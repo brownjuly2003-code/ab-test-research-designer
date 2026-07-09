@@ -7,10 +7,10 @@ import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
 
 <CardGrid>
   <Card title="Total endpoints" icon="rocket">
-    59
+    79
   </Card>
   <Card title="Source files" icon="document">
-    11
+    12
   </Card>
 </CardGrid>
 
@@ -19,9 +19,10 @@ import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
 | File | Endpoints |
 | --- | ---: |
 | `app/backend/app/frontend_routes.py` | 2 |
-| `app/backend/app/routes/analysis.py` | 7 |
+| `app/backend/app/routes/analysis.py` | 17 |
 | `app/backend/app/routes/audit.py` | 2 |
 | `app/backend/app/routes/system.py` | 3 |
+| `app/backend/app/routes/execution.py` | 10 |
 | `app/backend/app/routes/export.py` | 4 |
 | `app/backend/app/routes/keys.py` | 4 |
 | `app/backend/app/routes/projects.py` | 16 |
@@ -39,20 +40,34 @@ import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
 | <span class="route-method route-method-get">GET</span> | `/` | `app/backend/app/frontend_routes.py` |
 | <span class="route-method route-method-get">GET</span> | `/{full_path:path}` | `app/backend/app/frontend_routes.py` |
 | <span class="route-method route-method-post">POST</span> | `/api/v1/analyze` | `app/backend/app/routes/analysis.py` |
+| <span class="route-method route-method-post">POST</span> | `/api/v1/assignment/preview` | `app/backend/app/routes/analysis.py` |
 | <span class="route-method route-method-get">GET</span> | `/api/v1/audit` | `app/backend/app/routes/audit.py` |
 | <span class="route-method route-method-get">GET</span> | `/api/v1/audit/export` | `app/backend/app/routes/audit.py` |
 | <span class="route-method route-method-post">POST</span> | `/api/v1/calculate` | `app/backend/app/routes/analysis.py` |
 | <span class="route-method route-method-post">POST</span> | `/api/v1/design` | `app/backend/app/routes/analysis.py` |
 | <span class="route-method route-method-get">GET</span> | `/api/v1/diagnostics` | `app/backend/app/routes/system.py` |
+| <span class="route-method route-method-post">POST</span> | `/api/v1/experiments/{experiment_id}/assign` | `app/backend/app/routes/analysis.py` |
+| <span class="route-method route-method-post">POST</span> | `/api/v1/experiments/{experiment_id}/conversions` | `app/backend/app/routes/execution.py` |
+| <span class="route-method route-method-get">GET</span> | `/api/v1/experiments/{experiment_id}/decision` | `app/backend/app/routes/execution.py` |
+| <span class="route-method route-method-post">POST</span> | `/api/v1/experiments/{experiment_id}/exclusions` | `app/backend/app/routes/execution.py` |
+| <span class="route-method route-method-post">POST</span> | `/api/v1/experiments/{experiment_id}/exposures` | `app/backend/app/routes/execution.py` |
+| <span class="route-method route-method-post">POST</span> | `/api/v1/experiments/{experiment_id}/holdout` | `app/backend/app/routes/execution.py` |
+| <span class="route-method route-method-post">POST</span> | `/api/v1/experiments/{experiment_id}/identities` | `app/backend/app/routes/execution.py` |
+| <span class="route-method route-method-get">GET</span> | `/api/v1/experiments/{experiment_id}/ingestion` | `app/backend/app/routes/execution.py` |
+| <span class="route-method route-method-get">GET</span> | `/api/v1/experiments/{experiment_id}/live-stats` | `app/backend/app/routes/execution.py` |
+| <span class="route-method route-method-post">POST</span> | `/api/v1/experiments/{experiment_id}/pre-period` | `app/backend/app/routes/execution.py` |
+| <span class="route-method route-method-post">POST</span> | `/api/v1/experiments/{experiment_id}/strata` | `app/backend/app/routes/execution.py` |
 | <span class="route-method route-method-post">POST</span> | `/api/v1/export/comparison` | `app/backend/app/routes/export.py` |
 | <span class="route-method route-method-post">POST</span> | `/api/v1/export/html` | `app/backend/app/routes/export.py` |
 | <span class="route-method route-method-post">POST</span> | `/api/v1/export/html-standalone` | `app/backend/app/routes/export.py` |
 | <span class="route-method route-method-post">POST</span> | `/api/v1/export/markdown` | `app/backend/app/routes/export.py` |
+| <span class="route-method route-method-post">POST</span> | `/api/v1/hypotheses/generate` | `app/backend/app/routes/analysis.py` |
 | <span class="route-method route-method-get">GET</span> | `/api/v1/keys` | `app/backend/app/routes/keys.py` |
 | <span class="route-method route-method-post">POST</span> | `/api/v1/keys` | `app/backend/app/routes/keys.py` |
 | <span class="route-method route-method-delete">DELETE</span> | `/api/v1/keys/{api_key_id}` | `app/backend/app/routes/keys.py` |
 | <span class="route-method route-method-post">POST</span> | `/api/v1/keys/{api_key_id}/revoke` | `app/backend/app/routes/keys.py` |
 | <span class="route-method route-method-post">POST</span> | `/api/v1/llm/advice` | `app/backend/app/routes/analysis.py` |
+| <span class="route-method route-method-post">POST</span> | `/api/v1/multiple-testing` | `app/backend/app/routes/analysis.py` |
 | <span class="route-method route-method-get">GET</span> | `/api/v1/projects` | `app/backend/app/routes/projects.py` |
 | <span class="route-method route-method-post">POST</span> | `/api/v1/projects` | `app/backend/app/routes/projects.py` |
 | <span class="route-method route-method-delete">DELETE</span> | `/api/v1/projects/{project_id}` | `app/backend/app/routes/projects.py` |
@@ -70,7 +85,13 @@ import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
 | <span class="route-method route-method-get">GET</span> | `/api/v1/projects/compare` | `app/backend/app/routes/projects.py` |
 | <span class="route-method route-method-post">POST</span> | `/api/v1/projects/compare` | `app/backend/app/routes/projects.py` |
 | <span class="route-method route-method-post">POST</span> | `/api/v1/results` | `app/backend/app/routes/analysis.py` |
+| <span class="route-method route-method-post">POST</span> | `/api/v1/results/categorical` | `app/backend/app/routes/analysis.py` |
+| <span class="route-method route-method-post">POST</span> | `/api/v1/results/omnibus` | `app/backend/app/routes/analysis.py` |
+| <span class="route-method route-method-post">POST</span> | `/api/v1/results/paired` | `app/backend/app/routes/analysis.py` |
+| <span class="route-method route-method-post">POST</span> | `/api/v1/results/ratio` | `app/backend/app/routes/analysis.py` |
+| <span class="route-method route-method-post">POST</span> | `/api/v1/results/survival` | `app/backend/app/routes/analysis.py` |
 | <span class="route-method route-method-post">POST</span> | `/api/v1/sensitivity` | `app/backend/app/routes/analysis.py` |
+| <span class="route-method route-method-post">POST</span> | `/api/v1/simulate/bandit` | `app/backend/app/routes/analysis.py` |
 | <span class="route-method route-method-get">GET</span> | `/api/v1/slack/status` | `app/backend/app/routes/slack.py` |
 | <span class="route-method route-method-post">POST</span> | `/api/v1/srm-check` | `app/backend/app/routes/analysis.py` |
 | <span class="route-method route-method-get">GET</span> | `/api/v1/templates` | `app/backend/app/routes/templates.py` |

@@ -7,7 +7,7 @@ import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
 
 <CardGrid>
   <Card title="Environment variables" icon="document">
-    39
+    44
   </Card>
   <Card title="Slack manifest" icon="puzzle">
     present
@@ -47,13 +47,16 @@ import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
 | `AB_LOG_LEVEL` | Application | `INFO` |
 | `AB_MAX_REQUEST_BODY_BYTES` | Runtime guard | `1_048_576` |
 | `AB_MAX_WORKSPACE_BODY_BYTES` | Runtime guard | `8_388_608` |
+| `AB_MISTRAL_API_KEY` | Auth | `None` |
+| `AB_MISTRAL_MODEL` | Application | `mistral-small-latest` |
 | `AB_PORT` | HTTP | `8008` |
+| `AB_PUBLIC_DEMO` | Application | `False` |
 | `AB_RATE_LIMIT_ENABLED` | Runtime guard | `True` |
 | `AB_RATE_LIMIT_REQUESTS` | Runtime guard | `240` |
 | `AB_RATE_LIMIT_WINDOW_SECONDS` | Runtime guard | `60` |
 | `AB_READONLY_API_TOKEN` | Auth | `None` |
 | `AB_SEED_DEMO_ON_STARTUP` | Snapshot and seed | `False` |
-| `AB_SERVE_FRONTEND_DIST` | Application | `true` |
+| `AB_SERVE_FRONTEND_DIST` | Application | `True` |
 | `AB_SLACK_CLIENT_ID` | Slack | `None` |
 | `AB_SLACK_CLIENT_SECRET` | Slack | `None` |
 | `AB_SLACK_REVIEW_CHANNEL` | Slack | `None` |
@@ -61,6 +64,8 @@ import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
 | `AB_SQLITE_BUSY_TIMEOUT_MS` | Data store | `5000` |
 | `AB_SQLITE_JOURNAL_MODE` | Data store | `WAL` |
 | `AB_SQLITE_SYNCHRONOUS` | Data store | `NORMAL` |
+| `AB_TRUSTED_PROXIES` | Application | `(` |
+| `AB_TRUSTED_PROXY_HOPS` | Application | `0` |
 | `AB_WORKSPACE_SIGNING_KEY` | Auth | `None` |
 
 </div>

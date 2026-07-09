@@ -1,0 +1,148 @@
+---
+title: "P5.3 — Barnard's & Boschloo's unconditional exact tests + the G-test"
+---
+
+# P5.3 — Barnard's & Boschloo's unconditional exact tests + the G-test
+
+Audit finding §4 Tier 3 п.8: two families of *alternatives* to analyzers the app already has, for the
+same input shapes. Boschloo's and Barnard's **unconditional** exact tests are alternatives to Fisher's
+(conditional) exact test on the 2×2 binary observed-results section; the **G-test** (likelihood-ratio
+chi-square) is an alternative to Pearson's chi-square on the r×c categorical section. This is new
+statistics — every formula is frozen against scipy in `scratchpad/verify_barnard_boschloo_gtest.py`
+BEFORE any production code, exactly as p3.2 / p3.3 did — but stdlib-only at runtime.
+
+## Ship decision: ship all three (Boschloo, Barnard, G-test)
+
+- **Boschloo and Barnard share ~all machinery** — both are a supremum over the nuisance success
+  probability `π ∈ (0, 1)` of a product-binomial tail probability; they differ *only* in the statistic
+  that orders "as or more extreme" tables (Fisher's exact p-value for Boschloo, the pooled-Wald Z for
+  Barnard). The shared grid-search lives in one module; Barnard is one extra ordering function. The
+  marginal cost of the second test is a statistic function + a dispatch branch + a registry row + i18n,
+  so — as the audit lists both — **both ship**. Boschloo is the flagship (uniformly more powerful than
+  Fisher, unambiguous ordering); Barnard is offered with scipy's default pooled-Wald ordering,
+  documented as such.
+- **G-test ships** as a new `test_type` on the existing categorical section (it is the same r×c
+  contingency input, differing only in the statistic), mirroring how p3.2 put Kruskal–Wallis alongside
+  Welch-ANOVA as a selector on one section.
+
+## Wiring decisions (per-test: new selector option vs. new section)
+
+- **Boschloo / Barnard → new `metric_type` options on the EXISTING binary observed-results section.**
+  Their input is exactly Fisher's 2×2 counts-per-arm (`ObservedResultsBinary`), and they return the
+  same scalar-effect `ResultsResponse` (risk difference + Newcombe CI, odds ratio + mid-p OR CI,
+  exact p-value). So they are two new options on `ResultsRequest.metric_type`
+  (`boschloo_exact` / `barnard_exact`), dispatched in `analyze_results`, and two new rows in the
+  frontend `ALTERNATIVE_TESTS` registry (`availableFor: ["binary"]`) — an "add analyzer = a few lines"
+  change on the 4.3 registry. No new endpoint (`POST /api/v1/results` is reused).
+- **G-test → new `test_type` on the EXISTING categorical section.** `CategoricalResultsRequest` gains
+  `test_type: Literal["chi_square", "g_test"] = "chi_square"` (default preserves every existing
+  caller). `CategoricalResultsResponse` gains `test_type: str`; the existing `chi_square` field carries
+  the test statistic for both tests (Pearson χ² *or* the likelihood-ratio G², both referenced to the
+  χ² distribution), disambiguated by `test_type` and a dynamic UI label. No new endpoint
+  (`POST /api/v1/results/categorical` is reused).
+
+Neither test adds an endpoint, so the 4.1 `PUBLIC_COMPUTE_PATHS` whitelist already covers them.
+
+## Statistics (frozen against scipy 1.17.1 BEFORE coding)
+
+`scratchpad/verify_barnard_boschloo_gtest.py`. scipy is cross-checked locally, not a project
+dependency, so the numbers are frozen into the tests. Runtime code is stdlib-only.
+
+### Unconditional exact machinery — `app/stats/unconditional_exact.py`
+
+Both groups share a nuisance success probability `π` under H0; group-1 successes `x1 ~ Binomial(n1, π)`
+and group-2 successes `x2 ~ Binomial(n2, π)` independently. For a candidate table `(x1, x2)` a test
+statistic `T` orders tables; the exact p-value is
+`sup_{π ∈ (0,1)} Σ_{(x1,x2): as-or-more-extreme} C(n1,x1)π^x1(1−π)^(n1−x1) · C(n2,x2)π^x2(1−π)^(n2−x2)`.
+
+- **Supremum:** a `GRID_POINTS = 64` uniform interior grid + a golden-section local refinement around
+  the best grid point (the objective is a smooth polynomial in `π` for a fixed extreme set, so the
+  refinement pins the maximum to machine precision). scipy's `boschloo_exact` / `barnard_exact` p-value
+  is *stable from n=16 to n=1024* on these tables, so 64 points + refine reproduces it. Grid choice /
+  accuracy documented in the module docstring.
+- **Barnard** (`barnard_exact_test`): `T = pooled Wald Z = (x1/n1 − x2/n2) / √(p̂(1−p̂)(1/n1+1/n2))`,
+  `p̂ = (x1+x2)/(n1+n2)`; two-sided extreme set `{|T| ≥ |T_obs|}` (Z=0 when `p̂ ∈ {0,1}`). Matches
+  `scipy.stats.barnard_exact(pooled=True)` (its default). Frozen: 3/10 vs 8/10 → **0.04138947**
+  (Fisher two-sided is 0.06977852 — Barnard is more powerful); 0/10 vs 7/10 → 0.00087281.
+- **Boschloo** (`boschloo_exact_test`): the ordering statistic is Fisher's *one-sided* exact p-value;
+  the one-sided Boschloo p-value is the supremum over `π` of the product-binomial mass of tables whose
+  one-sided Fisher p ≤ observed. The two-sided p-value is `min(1, 2·min(p_less, p_greater))` —
+  **scipy's two-sided convention** (verified: ordering by the two-sided Fisher p directly does *not*
+  match scipy on asymmetric tables; the doubled one-sided does, to ~1e-14). The Fisher one-sided p of
+  every candidate table is precomputed in `O(n1·n2)` by organizing tables by their total-success count
+  `m = x1+x2` (cumulative hypergeometric per `m`), which is what keeps Boschloo tractable. Frozen:
+  3/10 vs 8/10 → **0.04138947** (beats Fisher 0.06977852); 0/10 vs 7/10 → **0.00087281** (beats Fisher
+  0.00309598); asymmetric 2/8 vs 11/25 → 0.37909051; empty success margin 0/10 vs 0/10 → **1.0**
+  (defined, no error).
+- **Cost cap `MAX_UNCONDITIONAL_EXACT_TOTAL = 200`.** The work is `O((n1+1)(n2+1) · GRID_POINTS)`
+  (enumeration × grid), unlike Fisher's `O(support)`; worst case at the cap (100/100 balanced,
+  large extreme set) is ~0.26 s. Above the cap the service raises a 422 pointing the user to Fisher's
+  exact test / the z-test (the unconditional advantage vanishes at large n, where those are accurate
+  and far cheaper). Set below the audit's loose "a few hundred per cell" because runtime, not memory,
+  is the binding constraint here and unconditional exact tests are a small-n tool by construction.
+- Effect / CI / power reuse the Fisher path verbatim: odds ratio (`fisher_exact_test`), Newcombe
+  hybrid-score risk-difference CI, mid-p conditional OR CI, large-sample descriptive power. The
+  reported `test_statistic` is the odds ratio (mirroring the existing Fisher card — the ordering
+  statistic is internal to the p-value, as it already is for Fisher). Boschloo/Barnard differ from the
+  Fisher card only in the analyzer name and the p-value.
+
+### G-test — `app/stats/chi_square_independence.py` (`g_test_independence`)
+
+`G = 2·Σ O·ln(O/E)`, `E_ij = rowtotal_i · coltotal_j / N`, on `(r−1)(c−1)` df; upper tail via the same
+`srm.chi_square_cdf` (regularized gamma) the Pearson test already uses — **no second chi-square tail**.
+An `O = 0` cell contributes 0 (`lim_{x→0} x·ln x = 0`). Same degeneracy guards as Pearson (empty
+row/column total → `ValueError` → 400; cap; non-negative; rectangular). Cramér's V is computed from G
+(≈ the Pearson V; both are power-divergence statistics). Reference
+`scipy.stats.chi2_contingency(lambda_="log-likelihood", correction=False)`. Frozen: 3×3 table → **G =
+3.96198552, df=4, p = 0.41117500** (Pearson χ² on the same table is 3.89070889 — close but distinct);
+2×2 with a zero cell → G = 11.43125315, df=1, p = 0.00072219.
+
+## Files
+
+Backend:
+- `app/stats/unconditional_exact.py` — NEW: `boschloo_exact_test`, `barnard_exact_test`, shared
+  grid-supremum + product-binomial + Fisher-one-sided-by-`m` helpers, `GRID_POINTS`, sourced docstring.
+- `app/stats/chi_square_independence.py` — NEW `g_test_independence` (reuses the Pearson validation +
+  expected counts; O=0 term → 0).
+- `app/constants.py` — NEW `MAX_UNCONDITIONAL_EXACT_TOTAL = 200`.
+- `app/schemas/api.py` — `ResultsRequest.metric_type` gains `boschloo_exact` / `barnard_exact` (+
+  validation mirroring `fisher_exact`); `CategoricalResultsRequest` gains `test_type`;
+  `CategoricalResultsResponse` gains `test_type`.
+- `app/services/results_service.py` — `analyze_results` dispatches Boschloo/Barnard (shared
+  `_analyze_unconditional_exact`); `analyze_categorical_results` dispatches chi²/G; new interpretations.
+- i18n `app/i18n/{7}.json` — `errors.schemas.unconditional_exact_table_too_large`,
+  `errors.schemas.{boschloo,barnard}_exact_requires_binary_data` / `_rejects_other_data`,
+  `results.interpretation.{boschloo_exact,barnard_exact,g_test}`, `results.categorical.g_test.*`
+  verdicts as needed (×7, backend `translate()` has no EN fallback).
+
+Frontend:
+- `components/results/observedResultsShared.ts` — two rows in `ALTERNATIVE_TESTS`; extend
+  `ObservedMetricType` / `ObservedTestSelection` / `FORM_BY_METRIC_TYPE`; binary-form/percentage-point
+  predicates keyed off `observedFormKind(...) === "binary"` so all four proportion tests share them.
+- `components/results/internal/ObservedResultsView.tsx` — binary-rate rows / forest-plot key via the
+  same predicate (no per-type ladder).
+- `components/results/CategoricalResultsSection.tsx` — a `test_type` `<select>` (chi²/G), sends
+  `test_type`, dynamic statistic label `results.categoricalResults.statistic.${test_type}`.
+- `lib/generated/api-contract.ts` + `docs/API.md` — contract regen.
+- `public/locales/{7}.json` — `results.observedResults.testType.{boschloo,barnard}` + hint;
+  `results.categoricalResults.testType.*` + `.statistic.{chi_square,g_test}` (natural RU:
+  «точный безусловный тест», «G-критерий (отношение правдоподобия)»).
+
+Tests:
+- `tests/test_unconditional_exact.py` — NEW: Boschloo/Barnard vs frozen scipy (incl. small-n
+  beats-Fisher, zero cell, empty margin, asymmetric) + over-cap `ValueError`.
+- `tests/test_categorical.py` (or existing) — G vs frozen scipy incl. O=0 cell + degeneracy.
+- `tests/test_results_service.py` — Boschloo/Barnard round-trip (effect/CI/OR-CI) + categorical G
+  dispatch + RU locale.
+- `tests/test_api_routes.py` — `/api/v1/results` boschloo/barnard success + 422 over-cap; categorical
+  g_test success + 422 malformed test_type + 400 degenerate.
+- `components/results/__tests__/{observedResultsShared,CategoricalResultsSection}.test.tsx` — registry
+  rows resolve/restore; the G selector renders + posts `test_type` + labels the statistic "G".
+
+## Verify
+
+Frozen scipy reproduction in the focused stats suite · mypy `--strict` from repo ROOT · contract
+`--check` (regen) · full backend pytest · full vitest (throttle `maxThreads=2` if it hangs) · tsc ·
+locale content · vite build < 500 kB (lazy-split if needed) · live uvicorn curl: Boschloo/Barnard on
+the 3/10-vs-8/10 table returns **0.041389** (EN) and G on the 3×3 table returns **3.961986 / p
+0.411175** (RU verdict), over-cap → 422.

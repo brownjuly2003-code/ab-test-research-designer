@@ -1,0 +1,96 @@
+---
+title: "P2.1 — Sizing parity: Mann-Whitney (ARE), TOST, binary exact, Poisson rate"
+---
+
+# P2.1 — Sizing parity: Mann-Whitney (ARE), TOST, binary exact, Poisson rate
+
+## Goal
+
+Close the "can analyze but can't plan" gap (audit `audit_fable_02_07_2026.md` §4 Tier 1 п.2): the
+planner sizes only the z-family, while the product ships MW / TOST / Fisher-exact / Poisson
+analyzers. Add sample-size formulas for all four, verified against primary sources and
+scipy/statsmodels, with honest assumptions in the response.
+
+## Design decisions
+
+- **New request field `planned_test`** (optional, `Literal["z_test","fisher_exact","mann_whitney","tost"]`,
+  default `None` → resolved to `z_test`) on BOTH `CalculationRequest` and `MetricsConfig`, so the
+  wizard preview (`/calculate`) and the full report (`/analyze`) size identically.
+  Validation: `fisher_exact` only for binary; `mann_whitney`/`tost` only for continuous;
+  ratio keeps delta-method z-sizing only.
+- **New request field `equivalence_margin_pct`** (optional, gt 0, required iff `planned_test="tost"`),
+  relative to baseline like `mde_pct`. TOST sizing is driven by the margin; `mde_pct` is ignored there
+  (stated in assumptions).
+- **Poisson rate sizing lands at stats+service layer** (`metric_type="count"` branch in
+  `calculate_experiment_metrics`, keyed on `baseline_value` = events per exposure-unit per user and
+  `exposure_per_user`): full unit tests now; the wizard/schema `count` metric type is task 2.2
+  ("schema + wizard + duration по exposure") and will consume this function unchanged.
+- **Formulas (primary sources, frozen references from a local scipy/statsmodels/MC script):**
+  - MW: `n_MW = ceil(n_z / ARE)`, Pitman ARE(WMW vs t) = 3/π ≈ 0.9549 under a normal-like
+    location-shift alternative (Lehmann 1975; Noether 1987 JASA). Assumptions state the
+    worst-case shift bound ARE ≥ 0.864 (Hodges–Lehmann 1956) and that heavy tails make MW
+    MORE efficient (sizing then conservative).
+  - TOST: smallest n with
+    `power(n) = Φ((δ−ε)/(σ√(2/n)) − z_{1−α}) + Φ((δ+ε)/(σ√(2/n)) − z_{1−α}) − 1 ≥ power`,
+    ε = 0 (perfect equivalence), seeded by closed form `2σ²(z_{1−α}+z_{1−β/2})²/δ²`
+    (Schuirmann 1987; Julious 2004; Chow–Shao–Wang ch. 3). TOST is level-α (no α/2).
+  - Binary exact: exact unconditional power of the conditional two-sided Fisher test —
+    `power(n) = Σ_m P_binom(m | p0, p1, n) · P(reject | m)` with the rejection region enumerated
+    from the hypergeometric law (reuses `fisher_exact._hypergeometric_pmf`); smallest n with
+    power ≥ target (Bennett & Hsu 1960; Casagrande–Pike–Smith 1978). Above an n cap the exact
+    enumeration is pointless and slow → CPS/Fleiss continuity-corrected approximation with an
+    explicit assumption line.
+  - Poisson: conditional-binomial sizing consistent with the shipped exact analyzer
+    (`poisson_rate_test` conditions on total events): required total events m from the
+    two-proportion z formula at π0 = ½ vs π1 = RR/(1+RR), per-arm exposure `T = m/(λ_c+λ_t)`,
+    users/variant = `ceil(T / exposure_per_user)` (Gu–Ng–Tang–Schucany 2008; Sahai & Khurshid).
+- Sequential inflation / Bayesian / CUPED stay orthogonal (existing behavior applies to the base n;
+  CUPED companion remains t-based). `calculation_summary` echoes `planned_test` and (for TOST)
+  `equivalence_margin_absolute`.
+
+## Tasks
+
+- [x] 1. Scratchpad `verify_sizing_vs_scipy.py`: freeze reference n / power values for all 4 formulas
+      vs scipy + statsmodels (`power_equivalence`, MC power sims, exact Fisher enumeration via
+      `scipy.stats.fisher_exact`, Poisson MC) → numbers go into tests and this plan.
+      → Verify: script printout shows |empirical − target power| small at computed n; literature
+      example reproduced (Chow–Shao–Wang TOST n; CPS Fisher table value).
+- [x] 2. Stats functions + docstrings with sources: `calculate_mann_whitney_sample_size`,
+      `calculate_tost_sample_size`, `calculate_fisher_exact_sample_size` (+ exact power helper),
+      `calculate_poisson_rate_sample_size`. → Verify: new unit tests with frozen references pass.
+- [x] 3. Service routing in `calculate_experiment_metrics` (`planned_test` dispatch + `count` branch);
+      summary echo fields. → Verify: `test_calculations.py` routing tests pass.
+- [x] 4. Schemas: `CalculationRequest`/`MetricsConfig` (+validators, backend error i18n ×7),
+      `CalculationSummaryResponse` optional echo fields; `routes/analysis._build_calculation_payload`
+      passes the new fields. → Verify: HTTP tests (422 shapes, round-trip) pass.
+- [x] 5. Contract regen: `generate_frontend_api_types.py` + `generate_api_docs.py`. → Verify: `--check`
+      clean afterwards.
+- [x] 6. Frontend: `field-config.ts` planned-test selects (binary/continuous variants) + margin field
+      (visible when tost), state defaults + reset on metric-type change in `payload.ts`,
+      `buildCalculationPayload`/`buildApiPayload`, `canCompute` tost-margin gate, i18n ×7.
+      → Verify: vitest (payload + wizard render + preview hook) green; tsc 0.
+- [ ] 7. Full gate (ruff · mypy --strict from ROOT · backend pytest · contract --check ×2 · locale ·
+      tsc · full vitest · vite build <500kB) → PR → full CI → merge → tracker `audit_plan_02_07_26.md`
+      + handoff updated.
+
+## Done when
+
+- All four analyzers have a planning path whose n is verified against scipy/literature (frozen in tests).
+- Wizard can plan a binary experiment for Fisher exact and a continuous one for MW / TOST end-to-end.
+- Assumptions honestly state ARE basis, TOST power convention, exact-power method + cap, and the
+  Poisson conditional framing. CI fully green, squash-merged to main.
+
+## Frozen verification numbers (task 1 output — scratchpad `verify_sizing_vs_scipy.py`, seed 20260703)
+
+- MW: n_z(α=0.05, power=0.8, baseline 100, σ=20, mde 5%) = **252** (statsmodels `TTestIndPower`
+  252.1) → n_MW = ceil(252 / 0.95493) = **264**; MC power of `scipy.stats.mannwhitneyu` at 264
+  under the normal shift = **0.802**; at the uninflated 252 only **0.775** — inflation is real.
+- TOST: σ=0.10, δ=0.05, α=0.05, power=0.80, ε=0 → **n = 69** (closed form 68.51 — the classic
+  Chow–Shao–Wang example; analytic power 0.8036 at 69, 0.7961 at 68 → minimal n; MC Welch-TOST
+  power 0.802). Second frozen case: σ=20, δ=2.0 → **n = 1713** (power 0.8001 / n−1 0.7998).
+- Fisher exact: p0=0.20, p1=0.40, α=0.05, power=0.80 → z-approx **82**, exact **90** (exact power
+  0.8017 at 90, 0.7956 at 89; simulated power via `scipy.stats.fisher_exact` 0.800; CPS approx 92).
+  Second case p0=0.10, p1=0.30 → z 62, exact **69** (power 0.8073), CPS 72.
+- Poisson: λ_c=0.30/exposure-unit, +20% (RR=1.2), α=0.05, power=0.80, exposure_per_user=1 →
+  total events **m = 948**, per-arm exposure T = 1436.4 → **1437 users/variant**; MC power of the
+  conditional binomial test at T = **0.799**; exposure_per_user=2 → 719 users (halves correctly).

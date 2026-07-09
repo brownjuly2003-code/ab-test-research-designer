@@ -19,7 +19,7 @@ license: mit
 [![Tests](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/brownjuly2003-code/ab-test-research-designer/main/badges/tests.json)](https://github.com/brownjuly2003-code/ab-test-research-designer/actions/workflows/test.yml)
 [![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/brownjuly2003-code/ab-test-research-designer/main/badges/coverage.json)](https://github.com/brownjuly2003-code/ab-test-research-designer/actions/workflows/test.yml)
 [![Lighthouse](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/brownjuly2003-code/ab-test-research-designer/main/badges/lighthouse.json)](https://github.com/brownjuly2003-code/ab-test-research-designer/actions/workflows/test.yml)
-[![Docs](https://img.shields.io/badge/docs-mkdocs--material-blue)](https://brownjuly2003-code.github.io/ab-test-research-designer/)
+[![Docs](https://img.shields.io/badge/docs-astro--starlight-blue)](https://brownjuly2003-code.github.io/ab-test-research-designer/)
 
 Local-first experiment planning tool for A/B and multi-variant tests. Plan sample size and duration from the wizard, review deterministic statistical guidance (SRM, Bayesian, group-sequential, CUPED) plus design-time guardrail-metric recommendations, compare saved experiments side by side, and export decision-ready reports in seven languages (English, Russian, German, Spanish, French, Simplified Chinese, Arabic with RTL) — all against a local SQLite workspace with no cloud required.
 
@@ -44,7 +44,7 @@ It combines:
 
 **Live demo:** https://liovina-ab-test-research-designer.hf.space (hosted on Hugging Face Spaces, free CPU tier — first cold request may take a few seconds)
 
-The hosted demo is seeded with three sample projects (checkout conversion, pricing sensitivity, onboarding completion), each with a completed analysis run and an export on the first one, so the sidebar and history views are populated on first load. For Hugging Face Spaces, set `AB_SEED_DEMO_ON_STARTUP=true` in Space Settings.
+The hosted demo is seeded with four sample projects (checkout conversion, pricing sensitivity, onboarding completion, and feed ad click-through ratio), each with a completed analysis run and seeded live-experiment data (plus an export on the first one), so the sidebar and history views are populated on first load. For Hugging Face Spaces, set `AB_SEED_DEMO_ON_STARTUP=true` in Space Settings.
 
 For persistent hosted state on Hugging Face Spaces, also set:
 
@@ -52,7 +52,7 @@ For persistent hosted state on Hugging Face Spaces, also set:
 - `AB_HF_TOKEN` to a Hugging Face token with dataset write access, stored only as a Space Secret
 - `AB_HF_SNAPSHOT_INTERVAL_SECONDS` to control periodic snapshot uploads; default is `900`, and `0` disables the background loop
 
-With those variables configured, the backend restores the latest `projects.sqlite3` snapshot on startup, skips the demo seed when a snapshot was restored, uploads periodic dataset snapshots while the Space is running, and attempts one final push during shutdown.
+With those variables configured, the backend restores the latest `projects.sqlite3` snapshot on startup, still runs the idempotent demo seed afterwards (so seeded live-experiment data survives a restore that predates it), uploads periodic dataset snapshots while the Space is running, and attempts one final push during shutdown.
 
 [![GHCR](https://img.shields.io/github/v/tag/brownjuly2003-code/ab-test-research-designer?label=ghcr.io&logo=docker)](https://github.com/brownjuly2003-code/ab-test-research-designer/pkgs/container/ab-test-research-designer)
 
@@ -111,11 +111,11 @@ Full inputs and outputs: [docs/case-studies/checkout-redesign.json](https://gith
 
 ## Roadmap
 
-Post-v1.1.0 Tier 2/3 roadmap items are all landed as of 2026-04-25. See the [archived progress log](https://github.com/brownjuly2003-code/ab-test-research-designer/blob/main/archive/2026-04-23-bcg-planning-docs/progress.md) for the full tiered backlog.
+Post-v1.1.0 Tier 2/3 roadmap items are all landed as of 2026-04-25.
 
 **Landed:**
 - **Portfolio polish.** HF Space startup seed, v1.1.0 screenshots, case-study section, GHCR Docker publish, dynamic shields.io badges.
-- **Product quality.** Locale parity at 925 leaf keys across all shipped UI locales (en/ru/de/es/fr/zh/ar — including the Slack-App admin block), HF Dataset SQLite snapshot service, optional OpenAI/Anthropic adapter via browser-session token, mkdocs-material docs site at [brownjuly2003-code.github.io/ab-test-research-designer](https://brownjuly2003-code.github.io/ab-test-research-designer/), 10-template industry gallery.
+- **Product quality.** Locale parity at 940 leaf keys across all shipped UI locales (en/ru/de/es/fr/zh/ar — including the Slack-App admin block), HF Dataset SQLite snapshot service, optional OpenAI/Anthropic adapter via browser-session token, Astro Starlight docs site at [brownjuly2003-code.github.io/ab-test-research-designer](https://brownjuly2003-code.github.io/ab-test-research-designer/), 10-template industry gallery.
 - **Hardening.** Monte-Carlo distribution overlay with interactive probability slider, French / Simplified-Chinese / Arabic locales (+RTL for Arabic), extended Hypothesis property coverage (numerical stability + Bayesian edges + Monte-Carlo determinism), bundle optimization (main chunk 247 → 122 KB gzip via lazy-load locales + vendor chunks), optional Postgres backend via `AB_DATABASE_URL` with CI matrix coverage, Slack App integration with OAuth install + slash commands + interactive actions.
 
 **Dropped as out-of-scope for a portfolio/demo:** manual NVDA / JAWS audit (automated axe a11y coverage sufficient here).
@@ -135,6 +135,8 @@ Post-v1.1.0 Tier 2/3 roadmap items are all landed as of 2026-04-25. See the [arc
 
 - wizard-based experiment input with review step
 - deterministic calculations for binary and continuous metrics
+- sixteen-analyzer post-hoc results engine spanning independent two-sample, paired within-subject, and omnibus (>2 group) designs across binary, continuous, ratio, count, and categorical metrics (two-proportion z, Fisher's exact, Welch's t, TOST equivalence, Mann–Whitney U, bootstrap/permutation, quantile treatment effect, Yuen–Welch trimmed t-test, ratio delta method, Poisson rate, chi-square r×c + Cramér's V, paired t, Wilcoxon signed-rank, McNemar, Welch's ANOVA, Kruskal–Wallis) — see [Statistical repertoire](#statistical-repertoire)
+- live-experiment monitoring: SRM detection, sequential (O'Brien–Fleming) and always-valid boundaries, Bayesian P(B>A), multi-covariate CUPED, post-stratification, guardrail metrics with non-inferiority margins, holdout cumulative read, ratio delta-method, identity resolution, late/out-of-order event detection, and a bot/fraud filter
 - Bonferroni-aware multivariant sizing notes
 - warning engine for traffic, duration, seasonality, campaigns, and design quality
 - deterministic report with design, metrics plan, risks, and recommendations
@@ -147,7 +149,32 @@ Post-v1.1.0 Tier 2/3 roadmap items are all landed as of 2026-04-25. See the [arc
 - workspace import preflight validation with checksum/reference verification before writes begin
 - browser draft restore/autosave plus JSON draft import/export
 - workspace status board summarizing saved-project coverage, snapshot depth, exports, and current draft sync state
-- read-only aware frontend mode that disables write actions when the API session only has safe GET access
+- read-only aware frontend mode that hides write actions for read-only sessions while keeping every stateless calculator available; `AB_PUBLIC_DEMO=true` turns this into an anonymous public-demo entry with a guest landing over the seeded demo projects
+
+## Statistical repertoire
+
+Post-hoc analysis (`POST /api/v1/results`, plus dedicated `/api/v1/results/ratio`, `/api/v1/results/categorical`, `/api/v1/results/paired` and `/api/v1/results/omnibus` endpoints) covers sixteen analyzers across independent two-sample, paired within-subject, and omnibus (more-than-two-group) designs. Each request declares a `metric_type` (or a `test_type` on the dedicated endpoints); the backend validates the matching data shape and rejects mismatches.
+
+| Analyzer | Binary | Continuous | Ratio | Count | Categorical | `metric_type` / endpoint | Notes |
+| --- | :---: | :---: | :---: | :---: | :---: | --- | --- |
+| Two-proportion z-test | ✓ | | | | | `binary` | Standard proportion significance test |
+| Fisher's exact test | ✓ | | | | | `fisher_exact` | Exact 2×2 test, no normal approximation; capped at 500k total observations |
+| Welch's t-test | | ✓ | | | | `continuous` | Unequal-variance two-sample mean comparison |
+| TOST equivalence | | ✓ | | | | `equivalence` | Two one-sided tests for "no meaningful difference" |
+| Mann–Whitney U | | ✓ | | | | `mann_whitney` | Distribution-free rank test; exact for ≤30 tie-free samples, asymptotic otherwise; reports Hodges–Lehmann shift and rank-biserial effect size |
+| Bootstrap / permutation | | ✓ | | | | `bootstrap` | Resampling test, no distributional assumption; exact enumeration for small samples, fixed-seed Monte Carlo otherwise |
+| Quantile treatment effect | | ✓ | | | | `quantile` | Permutation test on any quantile (default: median), not just the mean |
+| Yuen–Welch trimmed t-test | | ✓ | | | | `trimmed_t` | Robust mean comparison with tail trimming |
+| Ratio delta method | | | ✓ | | | `/results/ratio` | Raw per-user numerator/denominator pairs; reports the delta-method ratio difference with covariance-aware variance |
+| Poisson rate | | | | ✓ | | `count` | Event-rate comparison via a conditional binomial test; capped at 1M events |
+| Chi-square r×c + Cramér's V | | | | | ✓ | `/results/categorical` | Independence test across more than two arms/categories; includes a Cochran low-expected-count warning |
+| Paired t-test | | ✓ | | | | `/results/paired` (`paired_t`) | Paired (within-subject) mean comparison on per-pair differences; reports Cohen's dz |
+| Wilcoxon signed-rank | | ✓ | | | | `/results/paired` (`wilcoxon`) | Distribution-free paired test; Hodges–Lehmann pseudomedian and rank-biserial effect size |
+| McNemar | ✓ | | | | | `/results/paired` (`mcnemar`) | Paired binary test on discordant pairs; exact binomial or continuity-corrected chi-square |
+| Welch's ANOVA | | ✓ | | | | `/results/omnibus` (`welch_anova`) | Omnibus mean comparison across more than two groups, robust to unequal variances; reports η² |
+| Kruskal–Wallis | | ✓ | | | | `/results/omnibus` (`kruskal_wallis`) | Distribution-free omnibus across more than two groups; reports ε² |
+
+The paired and omnibus rows are within-subject and multi-group designs respectively (each with its own dedicated endpoint and `test_type`); the ratio row uses its own endpoint because the delta-method variance needs raw per-user numerator/denominator covariance rather than marginal summaries.
 
 ## Local setup
 
@@ -161,7 +188,8 @@ Environment template:
 
 - start from [.env.example](https://github.com/brownjuly2003-code/ab-test-research-designer/blob/main/.env.example)
 - set `AB_API_TOKEN` if you want write-capable `/api/v1/*` routes protected
-- optionally set `AB_READONLY_API_TOKEN` for read-only access to diagnostics, readiness, docs, and `GET` project routes
+- optionally set `AB_READONLY_API_TOKEN` for read-only access: diagnostics, readiness, docs, `GET` project routes, and the stateless calculation endpoints
+- optionally set `AB_PUBLIC_DEMO=true` to give anonymous visitors that same read-only scope (guest landing + calculators, no mutations) for a hosted demo
 - optionally set `AB_WORKSPACE_SIGNING_KEY` to HMAC-sign exported workspace backups and require signed imports on that runtime
 - optionally set `AB_HF_SNAPSHOT_REPO` and `AB_HF_TOKEN` to restore/persist the SQLite workspace through a private Hugging Face Dataset snapshot
 - optionally set `AB_HF_SNAPSHOT_INTERVAL_SECONDS` to change the snapshot cadence; the default is `900`, and `0` disables the background snapshot task
@@ -174,7 +202,7 @@ Environment template:
 ```bash
 cd app/backend
 python -m pip install -r requirements.txt
-cd D:\AB_TEST
+cd ../..                                 # back to repo root
 python -m uvicorn app.backend.app.main:app --host 127.0.0.1 --port 8008
 ```
 
@@ -410,8 +438,6 @@ Active docs:
 6. [docs/RELEASE_CHECKLIST.md](/ab-test-research-designer/guides/release_checklist/)
 7. [CHANGELOG.md](/ab-test-research-designer/guides/changelog/)
 
-Archived planning/setup files live under `archive/`.
-
 ## Notes
 
 - frontend API contracts are generated from FastAPI OpenAPI into `app/frontend/src/lib/generated/api-contract.ts`
@@ -423,7 +449,7 @@ Archived planning/setup files live under `archive/`.
 - LLM adapter timeout/retry behavior can be tuned through `.env.example`
 - SQLite busy timeout, journal mode, synchronous mode, and backend log format are configurable through `.env.example`
 - optional write-token auth is available through `AB_API_TOKEN`; the frontend can send it as a browser-session token without baking it into the build
-- optional read-only auth is available through `AB_READONLY_API_TOKEN` for safe `GET/HEAD/OPTIONS` runtime access
+- optional read-only auth is available through `AB_READONLY_API_TOKEN` for read-only runtime access (`GET/HEAD/OPTIONS` plus stateless calculation POSTs)
 - API responses now include `X-Request-ID` and `X-Process-Time-Ms` headers for lightweight local observability
 - responses now also include baseline security headers (`Content-Security-Policy`, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`)
 - `/api/v1/*` requests now have configurable in-memory rate limiting plus a dedicated auth-failure throttle with `Retry-After` on `429`

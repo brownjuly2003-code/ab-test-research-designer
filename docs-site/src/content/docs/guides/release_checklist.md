@@ -32,7 +32,7 @@ title: "Release Checklist"
   - `docker compose build`
   - `docker compose up -d`
   - `curl http://127.0.0.1:8008/readyz`
-  - if auth is enabled, verify read-only token gets `200` on `GET /api/v1/diagnostics` and `403` on `POST /api/v1/calculate`
+  - if auth is enabled, verify read-only token gets `200` on `GET /api/v1/diagnostics`, `200` on stateless `POST /api/v1/calculate`, and `403` on a mutating route such as `POST /api/v1/templates`
   - verify burst requests to `/api/v1/diagnostics` return `429` only after the configured threshold, with `Retry-After`
   - use `python scripts/verify_docker_compose.py --preserve` when you need the same verification without automatic `down -v`
 

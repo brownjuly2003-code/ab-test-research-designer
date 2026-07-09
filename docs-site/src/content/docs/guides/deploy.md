@@ -112,6 +112,16 @@ The current production demo lives on Hugging Face Spaces on the free CPU tier �
 
 **Live URL:** https://liovina-ab-test-research-designer.hf.space
 
+**Operator mode (`?admin=1`):** the public app shows only the planning wizard. All
+operator surfaces — the saved-project sidebar (projects, history, revisions,
+archived, workspace backup) and the **System** / **API keys** tabs (backend
+status, API session token, `AB_ADMIN_TOKEN`, Slack App, diagnostics, audit log,
+webhooks, raw endpoints) — are hidden and live behind admin mode. Open
+`…hf.space/?admin=1` to reveal them (persisted to `localStorage['ab-test:admin']`;
+clear with `?admin=0`). Logic: `app/frontend/src/lib/adminMode.ts`. The smoke
+flows (`app/frontend/src/test/e2e-smoke.spec.ts`, `scripts/run_local_smoke.py`)
+open `/?admin=1` so they can exercise those surfaces.
+
 Initial setup (one-time):
 
 1. Generate a write-scoped token at https://huggingface.co/settings/tokens
@@ -144,18 +154,50 @@ license: mit
 
 Note: `app_port` must match the port uvicorn listens on inside the container (`AB_PORT=8008` from `Dockerfile`). HF routes HTTPS traffic to that exact port.
 
-Sync code (preferred — HF rejects binary PNGs >LFS-threshold on direct git push, so use API):
+Sync code (HF rejects binary PNGs >LFS-threshold on direct git push, so the upload goes through
+the API). Always go through the script — never call `upload_folder` on the working tree by hand:
 
-```python
-from huggingface_hub import upload_folder
-upload_folder(
-    folder_path=".",
-    repo_id="liovina/ab-test-research-designer",
-    repo_type="space",
-    ignore_patterns=[".git/**", "**/__pycache__/**", "archive/**", "docs/demo/*.png", "*.sqlite3*", "**/node_modules/**"],
-    commit_message="Sync from GitHub main",
-)
+```bash
+HF_TOKEN=*** python scripts/deploy_hf.py \
+    --health-url https://liovina-ab-test-research-designer.hf.space/health
 ```
+
+`scripts/deploy_hf.py` is the single source of truth for what reaches the Space, and CI runs the
+same script. Two rules it enforces that a hand-rolled `upload_folder(folder_path=".")` does not:
+
+- **Only git-tracked files are published.** `upload_folder` walks the *working tree*, so a manual
+  call uploads whatever is lying around — internal audit reports, session handoffs, scratch tokens
+  — to a **public** Space. The script derives its allowlist from `git ls-files`, which is exactly
+  what a clean CI checkout contains. `scripts/deploy_hf.py --self-test` proves the filter.
+- **The Space mirrors the repo.** `upload_folder` only adds and updates; it never deletes. Without
+  the prune step a Space keeps every file any past upload left behind, including modules the repo
+  has since removed — a decommissioned `repository.py` sitting beside the `repository/` package
+  that replaced it. The script deletes whatever the upload no longer ships (keeping HF's own
+  `.gitattributes`).
+
+Preview what would be published without uploading:
+
+```bash
+python scripts/deploy_hf.py --dry-run
+```
+
+Practical notes (learned 2026-06-16, corrected 2026-07-09):
+- An HF write token may already sit in the OS git credential manager. **Check whose it is
+  before using it** — the account there is not necessarily the one that owns this Space:
+  `printf 'protocol=https\nhost=huggingface.co\n\n' | git credential fill` prints a
+  `username=` line. Note that the `hf` CLI can report "Not logged in" even when this
+  credential exists — they are separate stores; don't be misled.
+- Working-tree deploys used to require exporting a clean snapshot of `main` first, because
+  the upload carried `dist/`, caches and untracked notes. `scripts/deploy_hf.py` now filters
+  to git-tracked files itself, so run it straight from the checkout. If you ever bypass the
+  script, export the snapshot: `git archive main | tar -x -C D:/hfdeploy`, and use a **native
+  Windows path** — Git Bash `/tmp` and Windows-Python `/tmp` resolve differently, and the
+  upload fails with "is not a directory".
+- HF keeps the old container live during `RUNNING_BUILDING`, so the page does not
+  change instantly. Detect rollout by polling the live homepage's JS asset hash
+  for a **change** (`assets/index-<hash>.js`) — do NOT wait for a specific local
+  build hash, because HF's build environment produces a different hash than a
+  local `vite build`.
 
 Verify after HF finishes `APP_STARTING`:
 
@@ -163,6 +205,14 @@ Verify after HF finishes `APP_STARTING`:
 curl https://liovina-ab-test-research-designer.hf.space/health
 # {"status":"ok","service":"AB Test Research Designer API","version":"1.1.0","environment":"local"}
 ```
+
+Rate limiting on the Space: `AB_TRUSTED_PROXY_HOPS` is left at its safe default of `0`, so every
+anonymous visitor shares one rate-limit bucket keyed by HF's router address. That is fail-safe (a
+forged `X-Forwarded-For` cannot mint a fresh bucket) but it means heavy concurrent demo traffic can
+throttle itself. To bucket per visitor, measure how many entries HF's router appends to the header from
+inside the container and set the hop count to match — see the reverse-proxy section of
+[`docs/RUNBOOK.md`](/ab-test-research-designer/guides/runbook/). Do not guess the number upwards: an over-declared hop count lets a
+visitor prepend entries and pick its own bucket.
 
 Known limits of the HF free tier:
 

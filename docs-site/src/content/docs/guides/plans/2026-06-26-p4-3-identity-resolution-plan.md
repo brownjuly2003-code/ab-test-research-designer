@@ -1,0 +1,122 @@
+---
+title: "P4.3 — Identity resolution (Phase 4 · 2026-06-26)"
+---
+
+# P4.3 — Identity resolution (Phase 4 · 2026-06-26)
+
+Builds on the execution store (`exposures` / `conversions`). Resolves anonymous → canonical user
+identities so a person who is exposed while anonymous and converts (or is re-exposed) after login is
+counted **once**, not twice. This is the first slice in Phase 4 that **corrects the primary rollup**
+(SRM + conversion attribution) rather than adding a side diagnostic — because preventing double-count
+*is* the purpose. Safety comes from a strict **no-op-when-empty** property, not from staying off the
+read path.
+
+## Identity model — first-write-wins canonical
+New table `identity_map (experiment_id, anonymous_id, canonical_id, created_at)`,
+`UNIQUE(experiment_id, anonymous_id)` → first-write-wins: an `anonymous_id` maps to exactly one
+`canonical_id`. `resolve(id)` = the `canonical_id` if `id` appears as an `anonymous_id`, else `id`
+unchanged. **Single-hop** (canonical ids are terminal — a canonical id is not itself re-linked as an
+anonymous id; first-write-wins prevents re-pointing). Multi-hop chains are a documented non-goal.
+
+## Where resolution happens — read-time, no-op when the map is empty
+Resolution is applied in the **primary rollup** `get_experiment_analysis_aggregates`, which feeds the
+SRM guardrail, frequentist effect/CI, Bayesian P(B>A), sequential, and the decision verdict
+(`live_stats_service.build_live_stats` derives `arms` and SRM from its `exposed_users` /
+`converted_users`). Resolving here fixes **SRM and conversion attribution together** in one place.
+
+When `identity_map` has no rows for an experiment (every current test + the default), `resolve` is the
+identity function and the rollup is **byte-identical** to today — so all existing backend tests pass
+unchanged. Validated by an explicit empty-map equality test.
+
+### Portable SQL (no window functions — matches the codebase, dual-SQL safe)
+The project has no window-function precedent and prefers portable SQL + Python (P4.2). The resolution
+rollup uses only `COALESCE`, string `||` concat, `MIN`, and ordinary joins — all identical on SQLite
+and Postgres (placeholders `?`→`%s` via `_translate_sql`). First-exposure-wins across merged ids is
+done **without** `ROW_NUMBER` by selecting the exposure whose `occurred_at || created_at || id` is
+minimal per canonical user (these columns are `NOT NULL`; `occurred_at`/`created_at` are fixed-width
+ISO-8601 UTC → lexicographic order = chronological):
+
+```
+WITH exp_resolved AS (            -- resolve each exposure's user to canonical
+  SELECT e.variation_index AS variation_index,
+         COALESCE(im.canonical_id, e.user_id) AS cuser,
+         (e.occurred_at || '|' || e.created_at || '|' || e.id) AS order_key
+  FROM exposures e
+  LEFT JOIN identity_map im
+    ON im.experiment_id = e.experiment_id AND im.anonymous_id = e.user_id
+  WHERE e.experiment_id = ? AND e.variation_index >= 0
+),
+exp_first AS (                    -- first-exposure-wins per canonical user (no window fn)
+  SELECT cuser, MIN(order_key) AS order_key FROM exp_resolved GROUP BY cuser
+),
+arm AS (                         -- the winning exposure's variation for each canonical user
+  SELECT er.cuser AS cuser, er.variation_index AS variation_index
+  FROM exp_resolved er JOIN exp_first f ON f.cuser = er.cuser AND f.order_key = er.order_key
+),
+conv_resolved AS (               -- resolve each conversion's user to canonical
+  SELECT COALESCE(im.canonical_id, c.user_id) AS cuser, c.value AS value, c.id AS id
+  FROM conversions c
+  LEFT JOIN identity_map im
+    ON im.experiment_id = c.experiment_id AND im.anonymous_id = c.user_id
+  WHERE c.experiment_id = ? AND c.metric = ?
+),
+user_values AS (
+  SELECT arm.variation_index AS variation_index, arm.cuser AS cuser,
+         COALESCE(SUM(cr.value), 0) AS user_value,
+         MAX(CASE WHEN cr.id IS NOT NULL THEN 1 ELSE 0 END) AS converted
+  FROM arm LEFT JOIN conv_resolved cr ON cr.cuser = arm.cuser
+  GROUP BY arm.variation_index, arm.cuser
+)
+SELECT variation_index, COUNT(*) AS exposed_users, SUM(converted) AS converted_users,
+       SUM(user_value) AS value_sum, SUM(user_value * user_value) AS value_sq_sum
+FROM user_values GROUP BY variation_index ORDER BY variation_index
+```
+
+Holdout tail (`variation_index = -1`) stays excluded (filter on the resolved exposure). A canonical
+user exposed in two arms keeps the arm of their **first** exposure; the later exposure is collapsed,
+not double-counted — this is exactly the SRM-inflation fix.
+
+## Scope (one slice)
+- **Core, resolved:** `get_experiment_analysis_aggregates` (primary rollup → SRM + frequentist +
+  Bayesian + sequential + decision). This is the decision-critical path.
+- **Diagnostic indicator:** `get_identity_resolution_summary(experiment_id)` → `{linked_identities,
+  canonicalized_events, merged_users}` where `merged_users` = canonical ids that absorbed ≥1 distinct
+  raw id (the users whose double-count was prevented). Surfaced as an informational live-stats block
+  (shown only when `linked_identities > 0`), mirroring P4.2's `event_timing` indicator.
+- **Left raw (documented):** `get_ingestion_summary` (raw ingest view by design),
+  `get_event_timing_summary`, `get_stratified_aggregates`. These are secondary diagnostics; resolving
+  them is a follow-up. `get_holdout_aggregates` — resolve **iff** the helper is cleanly reusable
+  (treated side comes from the resolved primary rollup, so resolving holdout keeps the comparison
+  consistent); otherwise document the edge (holdout user who logs in) as a known follow-up.
+
+## Steps (all done)
+- [x] **schema** `identity_map` table in `_create_execution_tables` (both `_init_db`), index on
+  `(experiment_id, anonymous_id)`; `schema_version` 12 → 13 (+ diagnostics tests 12→13). No
+  `_migrate_db` backfill (new table). PG provisions fresh from `_init_db`.
+- [x] **repository** `record_identities(experiment_id, items)` (INSERT ON CONFLICT DO NOTHING,
+  first-write-wins, self-link skipped) + resolution CTE in `get_experiment_analysis_aggregates` +
+  `get_identity_resolution_summary`. (Holdout left raw — documented; its treated side comes from the
+  resolved primary rollup.)
+- [x] **routes/execution** `POST /api/v1/experiments/{id}/identities` + collect resolution summary in
+  `_compute_live_stats`.
+- [x] **schemas** `IdentityLink` + `IdentityIngestRequest`; `LiveIdentityResolutionBlock {linked_identities,
+  canonicalized_events, merged_users}` + `LiveStatsResponse += identity_resolution`. Regenerated
+  `api-contract.ts` + `docs/API.md`.
+- [x] **frontend** `LiveStatsSection` IdentityResolutionBlock (indicator) + `lib/api` re-export.
+- [x] **i18n×7** `results.liveStats.identity*` (3 keys per locale).
+- [x] **tests**: repository (empty-map no-op equality · anon→login attribution · re-exposure collapse
+  no SRM inflation · first-write-wins + self-link · summary counts) · live-stats (inactive without
+  summary · active block · endpoint e2e) · `test_postgres_backend` (+ identity round-trip, skip on
+  Win) · vitest (+ active render · hidden when inactive).
+
+## Verify / gate
+Serial Windows gate (ruff, mypy --strict, backend pytest + coverage ≥ 88, tsc, vitest, build < 500,
+contract --check, locale). PG identity round-trip + resolved-rollup validated by CI `verify-postgres`
+(no local Docker on Windows). Then push → PR → CI → merge under the standing "реши сам / принимай
+решения сам" mandate. Deploy stays gated on "задеплой".
+
+## Notes
+- No-op-when-empty is the safety contract: an explicit test asserts the resolved rollup equals the
+  pre-P4.3 rollup whenever `identity_map` is empty, so the change is invisible to every existing path.
+- `||` concat with `NOT NULL` columns is portable (SQLite & Postgres); no NULL-propagation risk.
+- Resolution is single-hop and first-write-wins canonical — documented limitation, not a defect.

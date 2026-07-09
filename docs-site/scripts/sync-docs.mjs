@@ -1,7 +1,9 @@
 import { copyFile, readdir, readFile, writeFile, mkdir, rm } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
+import { execFile } from 'node:child_process';
 import { basename, dirname, extname, join, posix, relative } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { promisify } from 'node:util';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = join(__dirname, '..', '..');
@@ -11,6 +13,10 @@ const PUBLIC_DEMO_DIR = join(__dirname, '..', 'public', 'demo');
 const SITE_BASE = '/ab-test-research-designer';
 const REPO_BLOB_BASE = 'https://github.com/brownjuly2003-code/ab-test-research-designer/blob/main';
 const MARKDOWN_EXTENSIONS = new Set(['.md', '.mdx']);
+const execFileAsync = promisify(execFile);
+
+let trackedDocsRel = null;
+let trackedDemoAssetRel = null;
 
 const ROOT_FILES = [
   { src: 'README.md', dest: 'overview.md', title: 'Project overview' },
@@ -30,6 +36,37 @@ async function walkMarkdown(dir, prefix = '') {
     }
   }
   return out;
+}
+
+async function gitLsFilesUnder(repoRelPaths) {
+  try {
+    const { stdout } = await execFileAsync('git', ['ls-files', '-z', '--', ...repoRelPaths], {
+      cwd: PROJECT_ROOT,
+      maxBuffer: 10 * 1024 * 1024,
+    });
+    return stdout
+      .split('\0')
+      .filter(Boolean)
+      .map(toPosixPath);
+  } catch {
+    return null;
+  }
+}
+
+async function listSourceMarkdown() {
+  const tracked = await gitLsFilesUnder(['docs']);
+  if (!tracked) return walkMarkdown(SRC_DOCS);
+
+  const docsRel = tracked
+    .filter((repoRel) => repoRel.startsWith('docs/'))
+    .map((repoRel) => repoRel.slice('docs/'.length))
+    .filter((rel) => MARKDOWN_EXTENSIONS.has(extname(rel).toLowerCase()))
+    .sort();
+  trackedDocsRel = new Set(docsRel);
+  return docsRel.map((rel) => ({
+    full: join(SRC_DOCS, ...rel.split('/')),
+    rel,
+  }));
 }
 
 function deriveTitle(content, fallbackName) {
@@ -129,7 +166,11 @@ function findDocsMarkdownRel(targetPath, sourceRelPath) {
   for (const candidate of [...new Set(candidates)]) {
     if (!isDocsCandidate(candidate)) continue;
     if (!MARKDOWN_EXTENSIONS.has(extname(candidate).toLowerCase())) continue;
-    if (existsSync(join(SRC_DOCS, ...candidate.split('/')))) return candidate;
+    if (trackedDocsRel) {
+      if (trackedDocsRel.has(candidate)) return candidate;
+    } else if (existsSync(join(SRC_DOCS, ...candidate.split('/')))) {
+      return candidate;
+    }
   }
 
   return null;
@@ -141,7 +182,10 @@ function findDemoAssetRel(targetPath, sourceRelPath) {
   const candidates = [repoRel, cleanTarget];
 
   for (const candidate of candidates) {
-    if (candidate.startsWith('docs/demo/')) return candidate.slice('docs/demo/'.length);
+    if (candidate.startsWith('docs/demo/')) {
+      const assetRel = candidate.slice('docs/demo/'.length);
+      if (!trackedDemoAssetRel || trackedDemoAssetRel.has(assetRel)) return assetRel;
+    }
   }
 
   return null;
@@ -219,6 +263,32 @@ async function copyAssets(srcDir, destDir) {
   return count;
 }
 
+async function copyDemoAssets(destDir) {
+  const tracked = await gitLsFilesUnder(['docs/demo']);
+  if (!tracked) {
+    trackedDemoAssetRel = null;
+    return copyAssets(join(PROJECT_ROOT, 'docs', 'demo'), destDir);
+  }
+
+  const assetRels = tracked
+    .filter((repoRel) => repoRel.startsWith('docs/demo/'))
+    .map((repoRel) => repoRel.slice('docs/demo/'.length))
+    .filter(Boolean)
+    .sort();
+  trackedDemoAssetRel = new Set(assetRels);
+
+  let count = 0;
+  for (const assetRel of assetRels) {
+    const src = join(PROJECT_ROOT, 'docs', 'demo', ...assetRel.split('/'));
+    const dest = join(destDir, ...assetRel.split('/'));
+    if (!existsSync(src)) continue;
+    await mkdir(dirname(dest), { recursive: true });
+    await copyFile(src, dest);
+    count++;
+  }
+  return count;
+}
+
 async function main() {
   if (existsSync(OUT_DIR)) {
     await rm(OUT_DIR, { recursive: true, force: true });
@@ -230,7 +300,7 @@ async function main() {
   let count = 0;
 
   if (existsSync(SRC_DOCS)) {
-    const all = await walkMarkdown(SRC_DOCS);
+    const all = await listSourceMarkdown();
     for (const { full, rel } of all) {
       const raw = await readFile(full, 'utf8');
       const title = deriveTitle(raw.replace(/\r\n/g, '\n'), basename(rel));
@@ -247,7 +317,7 @@ async function main() {
     count++;
   }
 
-  const assetCount = await copyAssets(join(PROJECT_ROOT, 'docs', 'demo'), PUBLIC_DEMO_DIR);
+  const assetCount = await copyDemoAssets(PUBLIC_DEMO_DIR);
 
   console.log(
     `[sync-docs] copied ${count} markdown files into ${relative(PROJECT_ROOT, OUT_DIR)} and ${assetCount} demo assets into ${relative(PROJECT_ROOT, PUBLIC_DEMO_DIR)}`,

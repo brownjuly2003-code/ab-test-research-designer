@@ -1,0 +1,110 @@
+---
+title: "P5.2 — Cluster design effect / ICC in sizing"
+---
+
+# P5.2 — Cluster design effect / ICC in sizing
+
+## Goal
+
+Task 5.1 added a `"cluster"` `randomization_unit` option that only *warns* ("naive SEs are too small
+under cluster randomization"). This increment makes the planner actually *account* for the design
+effect (audit `audit_fable_02_07_2026.md` §4 Tier 3 item 10 / §8 P5.2): when the randomization unit
+is a cluster and the user supplies the average cluster size and ICC, inflate the required sample size
+by the Kish (1965) design effect and surface the number of clusters per arm — verified against the
+cluster-trial literature AND Monte Carlo before any production code (P2.1 "new statistics" protocol).
+
+## Statistics (frozen against literature + MC — see bottom section)
+
+- **Design effect (Kish 1965; Donner & Klar 2000 eq. 1.1; Hayes & Moulton 2009):**
+  `DEFF = 1 + (m − 1)·ICC`, m = average cluster size (individuals per cluster), ICC = intraclass
+  correlation ∈ [0, 1]. This is *by definition* the ratio of the variance of the estimated mean under
+  cluster sampling to its variance under simple random sampling (confirmed by Monte Carlo, part B).
+- **Inflated per-arm sample size:** `n_cluster = ceil(n_ind · DEFF)`, where `n_ind` is the existing
+  individual-level per-arm sample size from `stats/binary.py` / `continuous.py` / `poisson_rate.py`
+  (whatever the metric plan resolves to — the cluster inflation is a post-multiplier on any of them).
+- **Clusters per arm:** `k = ceil(n_ind · DEFF / m)`.
+- **Degeneracies (strongest correctness checks):** `ICC = 0 → DEFF = 1 →` n identical to the
+  non-cluster path (byte-identical: `ceil(n_ind · 1.0) == n_ind`); `m = 1 → DEFF = 1` for any ICC.
+- **Validation:** `0 ≤ ICC ≤ 1`; `m ≥ 1` (m = 1 is allowed — the math is well defined and degenerates
+  to DEFF = 1; a value < 1 is nonsense and rejected). i18n error keys `errors.schemas.icc_range`,
+  `errors.schemas.cluster_size_min` (schema validator + translate() ×7, no EN fallback), matching the
+  `count_baseline_positive` / `ratio_baseline_positive` pattern.
+
+## Design decisions
+
+- **New stdlib-only module `stats/cluster.py`** (no runtime scipy/numpy — those are used only in the
+  throwaway `scratchpad/verify_cluster_design_effect.py`, exactly as P2.1/P3.1 did). Two pure
+  functions: `cluster_design_effect(m, icc)` and `inflate_for_cluster_design(n_ind, m, icc,
+  variants_count)` returning `{design_effect, avg_cluster_size, icc, individual_sample_size_per_variant,
+  sample_size_per_variant, total_sample_size, clusters_per_variant}`.
+- **Where the fields live.** `randomization_unit` lives in `ExperimentSetup` (NOT `MetricsConfig`) —
+  confirmed by reading the code (`_build_calculation_payload` reads `payload.setup.randomization_unit`;
+  the 5.1 warning keys off it). So the two new fields `avg_cluster_size` and `icc` go into
+  `ExperimentSetup` (next to `randomization_unit`, so the wizard can gate their visibility within one
+  section) and into `CalculationRequest` (flat, for the `/calculate` preview, where
+  `randomization_unit` is already a flat field). This is the honest adjustment of the task's
+  "MetricsConfig" guess to the actual code — same as P2.1 kept sizing knobs where they belonged.
+- **Applied only when** `randomization_unit == "cluster"` AND both `avg_cluster_size` and `icc` are
+  present. If the unit is cluster but the params are missing, behaviour is unchanged from 5.1 (the
+  deterministic `CLUSTER_RANDOMIZATION` warning still fires, no inflation) — this keeps the 5.1
+  warning-only round-trip test passing and never hard-blocks. The params are ignored for non-cluster
+  units (same "consumed only when …" convention as `exposure_per_user` for count metrics).
+- **Consistency across companion sizings.** The design effect is a universal variance multiplier, so
+  it is applied to *every* per-arm sizing the response reports, not just the primary one: the primary
+  `sample_size_per_variant`/`total_sample_size` (→ duration, → sequential which reads the inflated
+  base for free), the CUPED companion, and the Bayesian-precision companion. Leaving any of them at
+  the individual level next to an inflated primary would be misleading. All go through the single
+  tested `inflate_for_cluster_design` helper.
+- **The 5.1 warning stays.** The sizing now accounts for clustering, but the *live analysis* still
+  uses naive SEs (cluster-robust SE for the results side is explicitly out of scope — 5.3+/future), so
+  the "treat significance as optimistic" warning remains correct and is left firing.
+- **Response surface.** New optional fields on `CalculationResponse`
+  (`design_effect`, `avg_cluster_size`, `icc`, `clusters_per_variant`) and on the report
+  `CalculationsSection` (`design_effect`, `clusters_per_variant`). Null for non-cluster designs.
+- **Assumptions (honest, English strings like the other sizers — assumptions are not translated).**
+  (1) states DEFF = 1 + (m−1)·ICC with the resolved numbers and cites Donner & Klar / Hayes & Moulton;
+  (2) the equal-cluster-sizes caveat — "unequal cluster sizes inflate the true design effect further;
+  Eldridge & Kerry's coefficient-of-variation correction is out of scope"; (3) the sizing accounts for
+  clustering but the live analysis still uses naive SEs, and a valid cluster trial needs enough
+  clusters per arm for between-cluster inference.
+
+## Tasks
+
+- [x] 1. Scratchpad `verify_cluster_design_effect.py`: freeze DEFF fixtures + worked sizing +
+      MC variance-inflation (DEFF == Var ratio) + MC power (inflated n restores power). → Verify:
+      script prints all OK; numbers below go into tests + this plan.
+- [ ] 2. `stats/cluster.py` with sourced docstrings. → Verify: new `test_cluster.py` unit tests pass
+      (fixtures, ICC=0 and m=1 degeneracies, range guards).
+- [ ] 3. Schema: `ExperimentSetup` + `CalculationRequest` gain `avg_cluster_size` / `icc` (+ i18n
+      validators ×7); response fields on `CalculationResponse` / report `CalculationsSection`.
+      → Verify: HTTP 422 shapes (icc out of range, m < 1) + round-trip on `/calculate` and `/design`.
+- [ ] 4. Service wiring in `calculate_experiment_metrics` (primary + CUPED + Bayesian companions);
+      `_build_calculation_payload` + `design_service` pass/echo the fields. → Verify: routing tests.
+- [ ] 5. Contract regen (`generate_frontend_api_types.py` + `generate_api_docs.py`). → Verify: `--check`.
+- [ ] 6. Frontend: `field-config.ts` cluster fields (visibleWhen randomization_unit === cluster),
+      `payload.ts` build/reset, `LivePreviewPanel` badge + `SensitivityOverview` card, i18n ×7.
+      → Verify: vitest (payload, conditional visibility, rendered DEFF/clusters, i18n presence); tsc 0.
+- [ ] 7. Full gate (ruff · mypy --strict from ROOT · backend pytest · contract --check ×2 · locale ·
+      tsc · full vitest · vite build <500 kB) → PR → full CI → squash-merge → tracker + handoff.
+
+## Done when
+
+- A cluster design with (m, ICC) plans an inflated per-arm n and reports DEFF + clusters/arm, verified
+  against the frozen literature numbers; ICC=0 and m=1 reproduce the non-cluster n exactly.
+- Live-verified against a running uvicorn with a real cluster payload (numbers match the freeze).
+- CI fully green, squash-merged to main; tracker + handoff updated.
+
+## Frozen verification numbers (task 1 output — `scratchpad/verify_cluster_design_effect.py`, seed 20260704)
+
+- **DEFF algebra vs literature:** DEFF(m=100, ICC=0.02) = **2.98** (Hayes & Moulton 2009 worked figure);
+  DEFF(20, 0.01) = **1.19**; DEFF(50, 0.05) = **3.45** (Donner & Klar); DEFF(30, 0.03) = **1.87**;
+  DEFF(1, any ICC) = **1.0** (m=1 degeneracy); DEFF(any m, ICC=0) = **1.0** (ICC=0 degeneracy).
+- **Worked sizing (n_ind → n_cluster, clusters):** 1000 × DEFF 2.98 = **2980 → 30 clusters of ~100**;
+  500 × 3.45 = **1725 → 35 clusters of ~50**; ICC=0: 1000 → **1000** (unchanged) → 10 clusters of 100;
+  m=1: 1000 → **1000** (unchanged) → 1000 clusters; 63 × 1.30 = **82 → 12 clusters of ~7**.
+- **MC variance inflation (DEFF ≡ Var(cluster mean)/Var(SRS mean), 60k reps):** m=100/ICC=0.02 theory
+  2.98 vs MC 3.03 (1.7%); m=50/0.05 3.45 vs 3.46 (0.3%); m=20/0.01 1.19 vs 1.18 (0.6%); m=30/0.03 1.87
+  vs 1.86 (0.5%) — confirms DEFF is exactly the Kish variance-inflation factor.
+- **MC power (cluster-level t-test, σ=20, δ=10, α=0.05, target 0.80):** n_ind=63/arm, DEFF(7,0.05)=1.30
+  → n_cluster=82 (12 clusters/arm) power **0.776** ≈ target (t small-sample df penalty + ceil); the
+  un-inflated 63 (9 clusters/arm) power **0.641** — the inflation is necessary, not cosmetic.
