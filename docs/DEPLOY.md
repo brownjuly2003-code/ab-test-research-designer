@@ -177,17 +177,18 @@ Preview what would be published without uploading:
 python scripts/deploy_hf.py --dry-run
 ```
 
-Practical notes (learned 2026-06-16):
-- The `liovina` write token is already stored in the OS git credential manager
-  (`printf 'protocol=https\nhost=huggingface.co\n\n' | git credential fill` returns
-  `username=liovina` + token). Pass it as `token=` to `upload_folder`. Note: the
-  `hf` CLI can report "Not logged in" even when this credential exists — they are
-  separate stores; don't be misled.
-- Deploy from a **clean snapshot of committed `main`**, not the working tree
-  (which carries dist/, caches, untracked notes): `git archive main | tar -x -C
-  D:/hfdeploy` then `folder_path="D:/hfdeploy"`. Use a **native Windows path** —
-  Git Bash `/tmp` and Windows-Python `/tmp` resolve differently and the upload
-  fails with "is not a directory".
+Practical notes (learned 2026-06-16, corrected 2026-07-09):
+- An HF write token may already sit in the OS git credential manager. **Check whose it is
+  before using it** — the account there is not necessarily the one that owns this Space:
+  `printf 'protocol=https\nhost=huggingface.co\n\n' | git credential fill` prints a
+  `username=` line. Note that the `hf` CLI can report "Not logged in" even when this
+  credential exists — they are separate stores; don't be misled.
+- Working-tree deploys used to require exporting a clean snapshot of `main` first, because
+  the upload carried `dist/`, caches and untracked notes. `scripts/deploy_hf.py` now filters
+  to git-tracked files itself, so run it straight from the checkout. If you ever bypass the
+  script, export the snapshot: `git archive main | tar -x -C D:/hfdeploy`, and use a **native
+  Windows path** — Git Bash `/tmp` and Windows-Python `/tmp` resolve differently, and the
+  upload fails with "is not a directory".
 - HF keeps the old container live during `RUNNING_BUILDING`, so the page does not
   change instantly. Detect rollout by polling the live homepage's JS asset hash
   for a **change** (`assets/index-<hash>.js`) — do NOT wait for a specific local
