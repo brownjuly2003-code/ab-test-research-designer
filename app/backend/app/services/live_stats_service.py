@@ -674,10 +674,10 @@ def _build_sequential_block(
     try:
         calculation = calculate_experiment_metrics(_calc_payload_from_design(project_payload))
     except (ValueError, KeyError):
-        # Sizing is not yet available for every metric type (e.g. ratio metrics, whose sample-size
-        # planning is a later sub-phase). Without a planned sample size the boundary cannot be
-        # placed, so report insufficient data rather than crash the whole live read; the
-        # frequentist comparison stays valid at the planned horizon.
+        # Some legacy or partially specified designs still cannot produce a planned sample size.
+        # Without that denominator the sequential boundary cannot be placed, so report insufficient
+        # data rather than crash the whole live read; the frequentist comparison stays valid at the
+        # planned horizon.
         return {
             "status": "insufficient_data",
             "n_looks": n_looks,
