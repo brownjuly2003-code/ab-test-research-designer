@@ -53,9 +53,10 @@ p ≈ 4.2e-5); the k-sample and weighted variants are frozen against ``lifelines
 neither is a runtime dependency. Stdlib-only, pure functions reusing ``srm.chi_square_cdf`` for the
 χ²(df) tail; the response shapes are assembled in the service layer.
 
-Explicitly OUT OF SCOPE for this module (documented deferrals, not implemented): Cox
-proportional-hazards regression (T4 of the 2026-07-06 plan), parametric survival (Weibull /
-exponential), competing risks, survival sample-size / power, median-survival estimation.
+Cox proportional-hazards treatment-effect estimation is implemented separately in ``stats.cox_ph``.
+Still explicitly OUT OF SCOPE for this log-rank/Kaplan-Meier module: multi-covariate Cox,
+parametric survival (Weibull / exponential), competing risks, survival sample-size / power, and
+median-survival estimation.
 """
 
 import math
