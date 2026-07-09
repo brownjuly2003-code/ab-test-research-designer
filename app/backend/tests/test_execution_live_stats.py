@@ -477,8 +477,8 @@ def test_live_stats_ratio_multi_arm_uses_bonferroni() -> None:
 
 
 def test_live_stats_ratio_sequential_does_not_crash_with_multiple_looks() -> None:
-    # Ratio sizing is a later sub-phase; calculate_experiment_metrics rejects metric_type "ratio".
-    # The sequential block must degrade to insufficient_data, not crash the whole live read.
+    # Ratio sizing can produce a planned denominator, but this tiny live read has too little
+    # exposure to place a usable sequential boundary.
     result = build_live_stats(
         "e",
         _ratio_design(n_looks=4),
