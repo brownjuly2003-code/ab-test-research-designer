@@ -30,6 +30,7 @@ dist/
 build/
 app/frontend/playwright-report/
 app/frontend/test-results/
+.lighthouseci/
 
 # db
 *.sqlite3
