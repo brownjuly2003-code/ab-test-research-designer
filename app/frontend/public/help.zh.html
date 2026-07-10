@@ -1,0 +1,1911 @@
+<!doctype html>
+<html lang="zh" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A/B 测试 — 理论与公式 · AB Test Research Designer</title>
+<meta name="description" content="A/B 测试的理论与公式参考：样本量、多重比较、结果分析与实时监控——平台运行的全部 22 种统计方法，用简单语言讲清楚。">
+<link rel="alternate" hreflang="en" href="/help.html">
+<link rel="alternate" hreflang="ru" href="/help.ru.html">
+<link rel="alternate" hreflang="de" href="/help.de.html">
+<link rel="alternate" hreflang="fr" href="/help.fr.html">
+<link rel="alternate" hreflang="es" href="/help.es.html">
+<link rel="alternate" hreflang="zh" href="/help.zh.html">
+<link rel="alternate" hreflang="ar" href="/help.ar.html">
+<link rel="alternate" hreflang="x-default" href="/help.html">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="/theme-init.js"></script>
+<style>
+  /* ============================================================
+     Design system — the app's tokens verbatim (tokens.css):
+     teal #0d9488, Manrope + JetBrains Mono, slate neutrals.
+     Light default + dark via prefers-color-scheme AND the app's
+     data-theme attribute (set early by /theme-init.js, shared
+     localStorage key — the page follows the app's theme).
+     Static page, no framework; MathML for formulas; the language
+     is fixed per file (this file is generated per language).
+     RTL-safe: logical properties throughout; math and SVG stay LTR.
+     ============================================================ */
+  :root {
+    --font: "Manrope", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    --mono: "JetBrains Mono", "SFMono-Regular", "Consolas", ui-monospace, monospace;
+
+    --bg: #f5f7fa;
+    --surface: #ffffff;
+    --surface-muted: #f3f5f9;
+    --surface-subtle: #f8fafc;
+    --border: #e6e9ef;
+    --border-strong: #d3d9e3;
+
+    --ink: #0f1729;
+    --ink-2: #5a6473;
+    --ink-3: #8b95a3;
+
+    --accent: #0d9488;
+    --accent-strong: #0f766e;
+    --accent-soft: #d6f3ee;
+    --accent-ring: rgba(13, 148, 136, 0.16);
+
+    --info: #2f6df0;
+    --info-soft: #e3ecfd;
+    --warning: #c77d11;
+    --warning-soft: #fbf0db;
+    --danger: #e1493f;
+    --danger-soft: #fdecea;
+    --success: #0f9d76;
+    --success-soft: #d8f3e9;
+    --violet: #6d4bd6;
+    --violet-soft: #ebe6fb;
+
+    --radius-s: 8px;
+    --radius-m: 12px;
+    --radius-l: 16px;
+    --shadow-s: 0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06);
+    --shadow-m: 0 4px 6px -1px rgba(16,24,40,.06), 0 2px 4px -2px rgba(16,24,40,.06);
+    --shadow-l: 0 18px 40px -20px rgba(16,24,40,.28);
+
+    --maxw: 1180px;
+    --content: 74ch;
+    color-scheme: light;
+  }
+
+  /* Dark palette = the app's dark tokens (bg #0e1421, card #161d2c,
+     border #28324a, text #eef2f8/#9aa5b8/#6b7689). Exception, documented:
+     text-size accent uses the brighter #2dd4bf (not the app's #0d9488)
+     so accent-coloured TEXT keeps AA contrast on dark cards; the brand
+     tile below pins the app's exact teal gradient instead. */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0e1421;
+      --surface: #161d2c;
+      --surface-muted: #1b2334;
+      --surface-subtle: #141b29;
+      --border: #28324a;
+      --border-strong: #3a4763;
+
+      --ink: #eef2f8;
+      --ink-2: #9aa5b8;
+      --ink-3: #6b7689;
+
+      --accent: #2dd4bf;
+      --accent-strong: #5eead4;
+      --accent-soft: #11463f;
+      --accent-ring: rgba(45, 212, 191, 0.20);
+
+      --info: #7aa2ff;
+      --info-soft: #17233f;
+      --warning: #e0b25a;
+      --warning-soft: #33280f;
+      --danger: #f0928a;
+      --danger-soft: #3a1f1d;
+      --success: #52c9a3;
+      --success-soft: #133a2e;
+      --violet: #b39cf5;
+      --violet-soft: #241b40;
+
+      --shadow-s: 0 1px 2px rgba(0,0,0,.30);
+      --shadow-m: 0 4px 10px -2px rgba(0,0,0,.40);
+      --shadow-l: 0 18px 44px -20px rgba(0,0,0,.65);
+      color-scheme: dark;
+    }
+  }
+  /* Explicit app-theme override wins over the media query in both directions. */
+  :root[data-theme="light"] { color-scheme: light; }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg:#0e1421;--surface:#161d2c;--surface-muted:#1b2334;--surface-subtle:#141b29;
+    --border:#28324a;--border-strong:#3a4763;--ink:#eef2f8;--ink-2:#9aa5b8;--ink-3:#6b7689;
+    --accent:#2dd4bf;--accent-strong:#5eead4;--accent-soft:#11463f;--accent-ring:rgba(45,212,191,.20);
+    --info:#7aa2ff;--info-soft:#17233f;--warning:#e0b25a;--warning-soft:#33280f;
+    --danger:#f0928a;--danger-soft:#3a1f1d;--success:#52c9a3;--success-soft:#133a2e;--violet:#b39cf5;--violet-soft:#241b40;
+    --shadow-s:0 1px 2px rgba(0,0,0,.30);--shadow-m:0 4px 10px -2px rgba(0,0,0,.40);--shadow-l:0 18px 44px -20px rgba(0,0,0,.65);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+  body {
+    margin: 0;
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.68;
+    font-size: 16.5px;
+    letter-spacing: -0.003em;
+    font-feature-settings: "tnum" 1;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Manrope has no CJK/Arabic glyphs — give those pages system stacks,
+     and drop the negative latin tracking that hurts Arabic shaping. */
+  html[lang="zh"] {
+    --font: "Manrope", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+  }
+  html[lang="ar"] {
+    --font: "Manrope", "Segoe UI", "Tahoma", "Noto Naskh Arabic", "Geeza Pro", system-ui, sans-serif;
+  }
+  html[lang="ar"] body, html[lang="ar"] h1, html[lang="ar"] h2, html[lang="ar"] h3, html[lang="ar"] h4 { letter-spacing: 0; }
+
+  /* Math and diagrams are direction-neutral: keep them LTR even on RTL pages. */
+  math { direction: ltr; }
+  svg { direction: ltr; }
+
+  a { color: var(--accent-strong); text-underline-offset: 2px; }
+
+  /* ---------- top bar (mirrors the app: sticky, blur, brand tile) ---------- */
+  .topbar {
+    position: sticky; top: 0; z-index: 40;
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    backdrop-filter: saturate(140%) blur(10px);
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar-inner {
+    max-width: var(--maxw); margin: 0 auto; min-height: 60px; padding: 10px 24px;
+    display: flex; align-items: center; gap: 16px; justify-content: space-between;
+  }
+  .brand { display: inline-flex; align-items: center; gap: 11px; text-decoration: none; color: inherit; min-width: 0; }
+  .brand-mark {
+    display: inline-flex; align-items: center; justify-content: center; flex: none;
+    width: 32px; height: 32px; border-radius: 9px;
+    /* Pinned to the app's exact tile gradient (identical in both themes). */
+    background: linear-gradient(150deg, #0d9488, #0f766e);
+    color: #ffffff; font-weight: 800; font-size: 13px; letter-spacing: 0.02em;
+    box-shadow: 0 6px 14px -6px #0d9488;
+  }
+  .brand-text { display: grid; line-height: 1.15; }
+  .brand-name { font-weight: 700; font-size: 0.95rem; letter-spacing: -0.01em; white-space: nowrap; }
+  .brand-tag {
+    font-size: 11px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--ink-3); white-space: nowrap;
+  }
+  @media (max-width: 720px) { .brand-text { display: none; } }
+
+  /* ---------- language menu: 7 static links, one per generated page ---------- */
+  .langbar {
+    display: inline-flex; flex-wrap: wrap; justify-content: flex-end;
+    padding: 3px; gap: 2px; background: var(--surface-muted);
+    border: 1px solid var(--border); border-radius: 999px;
+  }
+  .langlink {
+    font-size: 12.5px; font-weight: 700; letter-spacing: .01em;
+    padding: 5px 11px; border-radius: 999px; color: var(--ink-2);
+    text-decoration: none; white-space: nowrap; transition: background .15s, color .15s;
+  }
+  .langlink:hover { color: var(--ink); background: color-mix(in srgb, var(--accent-soft) 55%, transparent); }
+  .langlink.current { background: var(--accent); color: #fff; box-shadow: var(--shadow-s); cursor: default; }
+  :root[data-theme="dark"] .langlink.current { color: #06201c; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .langlink.current { color: #06201c; } }
+  @media (max-width: 640px) {
+    .langlink { font-size: 11.5px; padding: 4px 8px; }
+    .topbar-inner { padding: 8px 16px; }
+  }
+
+  /* ---------- layout ---------- */
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+  .layout { display: grid; grid-template-columns: 244px minmax(0, 1fr); gap: 52px; align-items: start; padding-bottom: 96px; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; gap: 8px; } }
+
+  /* ---------- hero ---------- */
+  .hero { padding: 74px 0 8px; position: relative; }
+  .hero .kicker {
+    display: inline-block; font-size: 12.5px; font-weight: 700; letter-spacing: .18em;
+    text-transform: uppercase; color: var(--accent-strong); margin: 0 0 20px;
+    opacity: 0; animation: rise .7s .02s cubic-bezier(.16,1,.3,1) forwards;
+  }
+  .hero h1 {
+    font-size: clamp(2.3rem, 5.6vw, 3.7rem); line-height: 1.0; letter-spacing: -.035em;
+    margin: 0 0 22px; font-weight: 800;
+    opacity: 0; animation: rise .7s .08s cubic-bezier(.16,1,.3,1) forwards;
+  }
+  .hero h1 .accent-word { color: var(--accent); }
+  .hero > p { font-size: clamp(1.02rem, 1.5vw, 1.2rem); color: var(--ink-2); max-width: 62ch; margin: 0; opacity: 0; animation: rise .7s .16s cubic-bezier(.16,1,.3,1) forwards; }
+  .hero .lede-note {
+    margin-top: 22px; font-size: 14px; color: var(--ink-3); max-width: 62ch;
+    padding-inline-start: 14px; border-inline-start: 3px solid var(--border-strong);
+    opacity: 0; animation: rise .7s .24s cubic-bezier(.16,1,.3,1) forwards;
+  }
+  .heromedia { margin: 40px 0 0; opacity: 0; animation: fade 1.1s .3s ease forwards; }
+  .heromedia svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .hero-line { fill: none; stroke: var(--accent); stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round; }
+  .hero-fill { fill: url(#heroGrad); }
+  .hero-base { stroke: var(--border-strong); stroke-width: 1; stroke-dasharray: 2 5; }
+  .hero-tick { stroke: var(--border-strong); stroke-width: 1; }
+  .hero-tlabel { fill: var(--ink-3); font-family: var(--mono); font-size: 12px; }
+  @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  @keyframes fade { to { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) {
+    .hero .kicker, .hero h1, .hero > p, .hero .lede-note, .heromedia { animation: none; opacity: 1; }
+  }
+
+  /* ---------- TOC ---------- */
+  .toc { position: sticky; top: 78px; }
+  .toc > summary { list-style: none; }
+  .toc > summary::-webkit-details-marker { display: none; }
+  .toc-title { font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 12px; padding-inline-start: 12px; }
+  .toc ol { list-style: none; margin: 0; padding: 0; counter-reset: toc; }
+  .toc li { counter-increment: toc; }
+  .toc a {
+    display: flex; gap: 10px; align-items: baseline;
+    padding: 7px 12px; color: var(--ink-2);
+    text-decoration: none; font-size: 14px; font-weight: 600; line-height: 1.35;
+    border-inline-start: 2px solid transparent; border-radius: var(--radius-s);
+    transition: background .15s, color .15s, border-color .15s;
+  }
+  .toc a::before { content: counter(toc); font-variant-numeric: tabular-nums; color: var(--accent); font-weight: 800; font-size: 12px; min-width: 14px; }
+  .toc a:hover { background: var(--surface-muted); color: var(--ink); }
+  @media (min-width: 901px) {
+    .toc { max-height: calc(100vh - 100px); overflow-y: auto; }
+    .toc > summary { display: none; }
+    .toc > .toc-body { display: block !important; }
+    .toc > .toc-body nav { border-inline-start: 1px solid var(--border); padding-inline-start: 4px; }
+    .toc a { margin-inline-start: -1px; }
+    .toc a:hover { border-inline-start-color: var(--accent); background: color-mix(in srgb, var(--accent-soft) 45%, transparent); }
+  }
+  @media (max-width: 900px) {
+    .toc {
+      position: static; margin: 14px 0 8px; background: var(--surface);
+      border: 1px solid var(--border); border-radius: var(--radius-m); box-shadow: var(--shadow-s);
+    }
+    .toc > summary {
+      padding: 14px 16px; cursor: pointer; font-weight: 700; color: var(--ink);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .toc > summary::after { content: "+"; color: var(--accent); font-size: 20px; font-weight: 700; }
+    .toc[open] > summary::after { content: "\2212"; }
+    .toc > .toc-body { padding: 0 8px 12px; }
+    .toc-title { display: none; }
+  }
+
+  /* ---------- content & sections ---------- */
+  main { min-width: 0; }
+  section[id] { scroll-margin-top: 84px; padding-top: 30px; }
+  .sec-head { display: flex; align-items: center; gap: 14px; margin: 0 0 -0.28em; }
+  .sec-num {
+    display: inline-block;
+    font-family: var(--mono); font-weight: 800; letter-spacing: -.05em;
+    font-size: clamp(3.4rem, 7.5vw, 5.4rem); line-height: .82; color: var(--accent);
+    opacity: .15; user-select: none;
+  }
+  h2 { font-size: clamp(1.62rem, 3.1vw, 2.25rem); letter-spacing: -.025em; margin: 6px 0 10px; font-weight: 800; line-height: 1.15; position: relative; }
+  h3 { font-size: 1.28rem; letter-spacing: -.015em; margin: 46px 0 6px; font-weight: 750; }
+  h3::before {
+    content: ""; display: inline-block; width: 15px; height: 2px; vertical-align: middle;
+    background: var(--accent); margin-inline-end: 11px; border-radius: 2px; transform: translateY(-3px);
+  }
+  .group-lead { color: var(--ink-2); max-width: var(--content); margin: 4px 0 14px; }
+  .sec-intro { color: var(--ink-2); max-width: var(--content); margin: 0 0 8px; }
+  p { max-width: var(--content); }
+  main p { margin: 14px 0; }
+  strong, b { font-weight: 700; color: var(--ink); }
+  code, .k { font-family: var(--mono); font-size: .89em; background: var(--surface-muted); padding: .1em .42em; border-radius: 6px; color: var(--ink); border: 1px solid var(--border); }
+  .divider { height: 0; background: none; border: 0; border-top: 1px solid var(--border); margin: 64px 0 0; position: relative; }
+  .divider::after { content: ""; position: absolute; inset-inline-start: 0; top: -1px; width: 40px; height: 2px; background: var(--accent); }
+
+  /* ---------- concept card ---------- */
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 18px;
+    padding: 26px 28px; margin: 22px 0; box-shadow: var(--shadow-s);
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+  }
+  .card:hover { transform: translateY(-2px); box-shadow: var(--shadow-m); border-color: var(--border-strong); }
+  @media (prefers-reduced-motion: reduce) { .card:hover { transform: none; } }
+  .card > :first-child { margin-top: 0; }
+  .card > :last-child { margin-bottom: 0; }
+  .card h4 { font-size: 1.12rem; font-weight: 750; margin: 0 0 4px; letter-spacing: -.01em; }
+  .tag {
+    display: inline-block; font-size: 10.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
+    padding: 4px 11px; border-radius: 999px; margin-bottom: 12px;
+  }
+  .tag.plan   { background: var(--accent-soft); color: var(--accent-strong); }
+  .tag.multi  { background: var(--info-soft); color: var(--info); }
+  .tag.analyze{ background: var(--violet-soft); color: var(--violet); }
+  .tag.monitor{ background: var(--warning-soft); color: var(--warning); }
+
+  /* ---------- formula block (MathML, notebook dot-grid) ---------- */
+  .formula {
+    margin: 18px 0; padding: 26px 26px 24px; overflow-x: auto;
+    background-color: var(--surface-subtle); border: 1px solid var(--border);
+    border-inline-start: 3px solid var(--accent); border-radius: 14px;
+    background-image: radial-gradient(color-mix(in srgb, var(--accent) 20%, transparent) 1px, transparent 1.5px);
+    background-size: 22px 22px; background-position: 10px 10px;
+    text-align: center;
+  }
+  .formula math { font-size: 1.4rem; color: var(--ink); }
+  .formula .flabel { display: block; text-align: start; font-size: 12px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--accent-strong); margin-bottom: 12px; }
+  math { font-family: "Latin Modern Math", "STIX Two Math", "Cambria Math", var(--mono); }
+  mi, mn, mo { color: inherit; }
+
+  /* ---------- "where" symbol list ---------- */
+  .where { margin: 16px 0 4px; }
+  .where-title { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 8px; }
+  .where dl { display: grid; grid-template-columns: auto 1fr; gap: 8px 18px; margin: 0; }
+  .where dt { font-family: var(--mono); font-weight: 600; font-size: 14.5px; color: var(--accent-strong); white-space: nowrap; padding-top: 1px; }
+  .where dd { margin: 0; color: var(--ink-2); font-size: 14.5px; }
+
+  /* ---------- callouts ---------- */
+  .callout {
+    margin: 18px 0; padding: 16px 20px; border-radius: 14px;
+    border: 1px solid var(--border); border-inline-start: 3px solid var(--ink-3);
+    background: var(--surface-muted); font-size: 14.5px;
+  }
+  .callout > :first-child { margin-top: 0; } .callout > :last-child { margin-bottom: 0; }
+  .callout .clabel { font-weight: 750; font-size: .96em; margin-inline-end: 6px; color: var(--ink); }
+  .callout.intuition { border-inline-start-color: var(--accent); background: color-mix(in srgb, var(--accent-soft) 40%, var(--surface)); }
+  .callout.intuition .clabel { color: var(--accent-strong); }
+  .callout.warn { border-inline-start-color: var(--warning); background: color-mix(in srgb, var(--warning-soft) 45%, var(--surface)); }
+  .callout.warn .clabel { color: var(--warning); }
+  .callout.example { border-inline-start-color: var(--border-strong); background: var(--surface-subtle); }
+  .callout.example .num { font-family: var(--mono); font-weight: 600; color: var(--ink); }
+
+  details.more { margin: 14px 0 2px; border-top: 1px dashed var(--border); padding-top: 6px; }
+  details.more > summary {
+    cursor: pointer; font-size: 13.5px; font-weight: 700; color: var(--accent-strong);
+    list-style: none; padding: 8px 0; display: inline-flex; align-items: center; gap: 7px;
+  }
+  details.more > summary::-webkit-details-marker { display: none; }
+  details.more > summary::before { content: "+"; font-size: 16px; line-height: 1; color: var(--accent); }
+  details.more[open] > summary::before { content: "\2212"; }
+  details.more > summary + * { margin-top: 6px; }
+
+  /* ---------- tables ---------- */
+  .tablewrap { overflow-x: auto; margin: 20px 0; border: 1px solid var(--border); border-radius: var(--radius-m); }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { text-align: start; padding: 11px 15px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  thead th { background: var(--surface-muted); font-weight: 700; color: var(--ink-2); font-size: 11.5px; letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; }
+  tbody tr:last-child td { border-bottom: 0; }
+  tbody tr:nth-child(even) { background: var(--surface-subtle); }
+  tbody tr { transition: background .12s ease; }
+  tbody tr:hover { background: color-mix(in srgb, var(--accent-soft) 30%, transparent); }
+  td .k, th .k { background: var(--surface); }
+  .sym { font-family: var(--mono); color: var(--accent-strong); font-weight: 600; white-space: nowrap; }
+  .dim { color: var(--ink-3); font-family: var(--font); font-weight: 500; }
+  tr.group td {
+    background: var(--surface-muted); color: var(--ink); font-weight: 750;
+    font-size: 12px; letter-spacing: .05em; text-transform: uppercase;
+  }
+  tbody tr.group:hover { background: var(--surface-muted); }
+
+  /* ---------- figure (annotated diagram) ---------- */
+  .figure { margin: 24px 0; padding: 20px 20px 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; box-shadow: var(--shadow-s); }
+  .figure svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .figure figcaption { margin: 12px 4px 6px; font-size: 13.5px; color: var(--ink-3); text-align: center; }
+  .fig-axis { stroke: var(--border-strong); stroke-width: 1.25; }
+  .fig-crit { stroke: var(--ink-3); stroke-width: 1.25; stroke-dasharray: 4 4; }
+  .fig-h0 { fill: none; stroke: var(--ink-3); stroke-width: 2; stroke-linejoin: round; }
+  .fig-h1 { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; }
+  .fig-alpha { fill: color-mix(in srgb, var(--danger) 42%, transparent); }
+  .fig-power { fill: color-mix(in srgb, var(--accent) 26%, transparent); }
+  .fig-lab { font-family: var(--font); font-weight: 700; font-size: 15px; }
+  .fig-lab.h0 { fill: var(--ink-2); } .fig-lab.h1 { fill: var(--accent-strong); }
+  .fig-lab.a { fill: var(--danger); font-size: 14px; } .fig-lab.pw { fill: var(--accent-strong); font-size: 13px; }
+  .fig-tick { fill: var(--ink-3); font-family: var(--mono); font-size: 12px; }
+  .fig-line { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+  .fig-ref { fill: none; stroke: var(--ink-3); stroke-width: 1.5; stroke-dasharray: 4 4; }
+  .fig-dot { fill: var(--accent); }
+  .fig-dot-h { fill: var(--surface); stroke: var(--accent); stroke-width: 2; }
+  .fig-before { fill: none; stroke: var(--ink-3); stroke-width: 2; stroke-dasharray: 5 4; }
+  .fig-after { fill: none; stroke: var(--accent); stroke-width: 2.5; }
+  .fig-after-fill { fill: color-mix(in srgb, var(--accent) 20%, transparent); }
+  .fig-cap-in { fill: var(--ink-2); font-family: var(--font); font-size: 13px; font-weight: 650; }
+  .fig-cap-a { fill: var(--danger); }
+
+  /* ---------- footer ---------- */
+  footer { border-top: 1px solid var(--border); background: var(--surface); }
+  .footer-inner { max-width: var(--maxw); margin: 0 auto; padding: 28px 24px 40px; color: var(--ink-3); font-size: 13.5px; display: flex; flex-wrap: wrap; gap: 8px 20px; justify-content: space-between; }
+  .footer-inner a { color: var(--ink-2); }
+
+  .lead-in { color: var(--ink-2); font-size: 15px; margin: 4px 0 20px; max-width: var(--content); }
+
+  @media (max-width: 640px) {
+    body { font-size: 16px; }
+    .wrap { padding: 0 18px; }
+    .card { padding: 20px 18px; }
+    .formula { padding: 18px 14px; }
+    .formula math { font-size: 1.16rem; }
+    .where dl { grid-template-columns: 1fr; gap: 2px 0; }
+    .where dd { margin-bottom: 8px; }
+  }
+
+  /* ============================================================
+     INTERACTIVE LAYER — progressive enhancement (needs help.js).
+     Hidden until the .js class is set by the script.
+     ============================================================ */
+  .js-only { display: none; }
+  html.js .js-only { display: revert; }
+  html.js .pe-top { display: grid; }
+  html.js .pe-sliders { display: grid; }
+  html.js .sizer-grid { display: grid; }
+  html.js .sizer-out { display: grid; }
+
+  .tool {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--accent-soft) 34%, var(--surface)), var(--surface));
+    border: 1px solid var(--border-strong); border-radius: 18px; box-shadow: var(--shadow-s);
+    padding: 22px 24px; margin: 22px 0;
+  }
+  .tool > .tag { margin-bottom: 8px; }
+  .tool h4 { margin: 0 0 16px; font-size: 1.1rem; font-weight: 750; }
+
+  input[type="range"] { accent-color: var(--accent); width: 100%; height: 24px; cursor: pointer; margin: 2px 0 0; }
+  input[type="number"], select {
+    font: inherit; font-size: 15px; color: var(--ink); background: var(--surface);
+    border: 1px solid var(--border-strong); border-radius: 8px; padding: 8px 10px; width: 100%;
+  }
+  input[type="number"]:focus, select:focus { outline: 2px solid var(--accent-ring); border-color: var(--accent); }
+
+  .pe-top { grid-template-columns: 1.1fr 0.9fr; gap: 22px; align-items: center; margin-bottom: 14px; }
+  .pe-sliders { gap: 14px; }
+  .ctl { display: block; }
+  .ctl-lab { display: flex; justify-content: space-between; align-items: baseline; font-size: 13.5px; font-weight: 650; color: var(--ink-2); margin-bottom: 2px; }
+  .ctl-lab b { font-family: var(--mono); font-weight: 700; color: var(--accent-strong); font-size: 14px; }
+  .pe-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .stat {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 12px 14px; display: flex; flex-direction: column; gap: 3px; text-align: start;
+  }
+  .stat-num { font-family: var(--mono); font-weight: 800; font-size: 1.5rem; letter-spacing: -.02em; line-height: 1; }
+  .stat-cap { font-size: 11.5px; color: var(--ink-3); line-height: 1.3; }
+  .stat.stat-a { border-inline-start: 3px solid var(--danger); } .stat.stat-a .stat-num { color: var(--danger); }
+  .stat.stat-p { border-inline-start: 3px solid var(--accent); } .stat.stat-p .stat-num { color: var(--accent-strong); }
+
+  .sizer-grid { grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 18px; }
+  .fld { display: flex; flex-direction: column; gap: 5px; font-size: 13px; font-weight: 650; color: var(--ink-2); }
+  .sizer-out { grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .sizer-out .stat { border-inline-start: 3px solid var(--accent); }
+  .sizer-out .stat-num { color: var(--accent-strong); }
+  .sizer-note { margin: 12px 0 0; font-size: 13.5px; color: var(--danger); font-weight: 650; }
+  .sizer-fine { margin: 14px 0 0; font-size: 12.5px; color: var(--ink-3); }
+
+  @media (max-width: 640px) {
+    .pe-top { grid-template-columns: 1fr; gap: 14px; }
+    .sizer-grid { grid-template-columns: 1fr 1fr; }
+    .sizer-out { grid-template-columns: 1fr; }
+    .stat-num { font-size: 1.35rem; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="/" aria-label="返回应用">
+        <span class="brand-mark" aria-hidden="true">AB</span>
+        <span class="brand-text">
+          <span class="brand-name">AB Test Research Designer</span>
+          <span class="brand-tag">理论参考</span>
+        </span>
+      </a>
+      <nav class="langbar" aria-label="页面语言"><a class="langlink" href="/help.html" hreflang="en" lang="en" title="English">EN</a><a class="langlink" href="/help.ru.html" hreflang="ru" lang="ru" title="Русский">RU</a><a class="langlink" href="/help.de.html" hreflang="de" lang="de" title="Deutsch">DE</a><a class="langlink" href="/help.fr.html" hreflang="fr" lang="fr" title="Français">FR</a><a class="langlink" href="/help.es.html" hreflang="es" lang="es" title="Español">ES</a><a class="langlink current" href="/help.zh.html" hreflang="zh" lang="zh" title="中文" aria-current="page">中文</a><a class="langlink" href="/help.ar.html" hreflang="ar" lang="ar" title="العربية">عربي</a></nav>
+    </div>
+  </div>
+
+  <header class="wrap hero">
+    <p class="kicker">理论 · 公式 · 简单语言</p>
+    <h1>A/B 测试：<br>全部理论与<span class='accent-word'>公式</span></h1>
+    <p>这个平台运行的每一种统计方法——从样本量计算到结果分析再到实时监控——都配有通俗直觉、精确公式和每个符号的解释。</p>
+    <p class="lede-note">公式与引擎的实际计算完全一致。数学在所有语言中相同，只有解释文字不同。配色主题自动跟随应用的设置。</p>
+    <div class="heromedia" aria-hidden="true">
+      <svg viewBox="0 0 720 152" role="img">
+        <defs>
+          <linearGradient id="heroGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" style="stop-color:var(--accent);stop-opacity:.22"/>
+            <stop offset="1" style="stop-color:var(--accent);stop-opacity:0"/>
+          </linearGradient>
+        </defs>
+        <line class="hero-base" x1="0" y1="140" x2="720" y2="140"/>
+        <path class="hero-fill" d="M 0,140 8,140 16,140 24,140 32,139 40,139 48,139 56,139 64,138 72,138 80,137 88,137 96,136 104,135 112,134 120,133 128,131 136,130 144,128 152,125 160,123 168,120 176,116 184,113 192,109 200,104 208,100 216,95 224,89 232,84 240,78 248,72 256,65 264,59 272,53 280,47 288,41 296,36 304,31 312,26 320,22 328,18 336,16 344,14 352,12 360,12 368,12 376,14 384,16 392,18 400,22 408,26 416,31 424,36 432,41 440,47 448,53 456,59 464,65 472,72 480,78 488,84 496,89 504,95 512,100 520,104 528,109 536,113 544,116 552,120 560,123 568,125 576,128 584,130 592,131 600,133 608,134 616,135 624,136 632,137 640,137 648,138 656,138 664,139 672,139 680,139 688,139 696,140 704,140 712,140 720,140 Z"/>
+        <path class="hero-line" d="M 0,140 8,140 16,140 24,140 32,139 40,139 48,139 56,139 64,138 72,138 80,137 88,137 96,136 104,135 112,134 120,133 128,131 136,130 144,128 152,125 160,123 168,120 176,116 184,113 192,109 200,104 208,100 216,95 224,89 232,84 240,78 248,72 256,65 264,59 272,53 280,47 288,41 296,36 304,31 312,26 320,22 328,18 336,16 344,14 352,12 360,12 368,12 376,14 384,16 392,18 400,22 408,26 416,31 424,36 432,41 440,47 448,53 456,59 464,65 472,72 480,78 488,84 496,89 504,95 512,100 520,104 528,109 536,113 544,116 552,120 560,123 568,125 576,128 584,130 592,131 600,133 608,134 616,135 624,136 632,137 640,137 648,138 656,138 664,139 672,139 680,139 688,139 696,140 704,140 712,140 720,140"/>
+        <g>
+          <line class="hero-tick" x1="160" y1="140" x2="160" y2="147"/><text class="hero-tlabel" x="160" y="150" text-anchor="middle" dominant-baseline="hanging">&#x2212;2&#x3C3;</text>
+          <line class="hero-tick" x1="260" y1="140" x2="260" y2="147"/><text class="hero-tlabel" x="260" y="150" text-anchor="middle" dominant-baseline="hanging">&#x2212;1&#x3C3;</text>
+          <line class="hero-tick" x1="360" y1="140" x2="360" y2="147"/><text class="hero-tlabel" x="360" y="150" text-anchor="middle" dominant-baseline="hanging">&#x3BC;</text>
+          <line class="hero-tick" x1="460" y1="140" x2="460" y2="147"/><text class="hero-tlabel" x="460" y="150" text-anchor="middle" dominant-baseline="hanging">+1&#x3C3;</text>
+          <line class="hero-tick" x1="560" y1="140" x2="560" y2="147"/><text class="hero-tlabel" x="560" y="150" text-anchor="middle" dominant-baseline="hanging">+2&#x3C3;</text>
+        </g>
+      </svg>
+    </div>
+  </header>
+
+  <div class="wrap layout">
+    <details class="toc" open>
+      <summary>目录</summary>
+      <div class="toc-body">
+        <p class="toc-title">章节</p>
+        <nav>
+          <ol>
+            <li><a href="#fundamentals">基础：假设、错误、p 值</a></li>
+            <li><a href="#planning">规划：样本量与时长</a></li>
+            <li><a href="#multiple">多重比较与聚类</a></li>
+            <li><a href="#analysis">结果分析：全部 22 种检验</a></li>
+            <li><a href="#monitoring">实验的实时监控</a></li>
+            <li><a href="#cheatsheet">速查表与符号</a></li>
+          </ol>
+        </nav>
+      </div>
+    </details>
+
+    <main>
+      <!-- ================= 1. FUNDAMENTALS ================= -->
+      <section id="fundamentals">
+        <div class="sec-head"><span class="sec-num">01</span></div>
+        <h2>基础：所有检验的根基</h2>
+        <p class="sec-intro">A/B 测试用来诚实地回答一个问题：“改动是真的带来了提升，还是只是看起来如此？”。在计算样本量或阅读 p 值之前，需要先确定五个概念。本页其余内容都建立在它们之上。</p>
+
+        <h3>两个假设</h3>
+        <p>我们总是在比较世界的两个版本。<strong>零假设</strong> <span class='k'>H₀</span> 说“各版本之间没有差异”。<strong>备择假设</strong> <span class='k'>H₁</span> 说“存在差异”。检验并不“证明”H₁；它检查的是：<em>假如</em> H₀ 为真，数据看起来有多荒谬。足够荒谬时，就拒绝 H₀。</p>
+
+        <h3>定义一个检验的四个数字</h3>
+        <div class="card">
+          <div class="where">
+            <p class="where-title">启动前约定</p>
+            <dl>
+              <dt>&#x3B1;</dt><dd><strong>显著性水平。</strong>可容忍的“误报”风险——宣布一个并不存在的效应。通常取 0.05（5%）。</dd>
+              <dt>&#x3B2;</dt><dd><strong>漏报风险。</strong>没有察觉真实效应的概率。通常取 0.2（20%）。</dd>
+              <dt>1 &#x2212; &#x3B2;</dt><dd><strong>功效（power）。</strong>效应存在时能够捕捉到它的概率。通常取 0.8（80%）。</dd>
+              <dt>MDE</dt><dd><strong>最小可检测效应。</strong>您在意要捕捉的最小变化（例如转化率 +5%）。更小的效应可能被漏掉——这是有意的取舍。</dd>
+            </dl>
+          </div>
+        </div>
+
+        <h3>可能犯的两种错误</h3>
+        <p>现实与检验的裁决共给出四种结果。两种正确，两种是错误。规划的全部意义就是把两种错误都控制在可接受的水平：<span class='k'>α</span> 控制第一类错误，<span class='k'>β</span> 控制第二类错误。</p>
+        <div class="tablewrap">
+          <table>
+            <thead>
+              <tr>
+                <th></th>
+                <th>H₀ 为真（无效应）</th>
+                <th>H₁ 为真（效应存在）</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th>检验说“有效应”</th>
+                <td><strong style='color:var(--danger)'>第一类错误</strong>——误报。概率 = α。</td>
+                <td><strong style='color:var(--success)'>正确</strong>——捕到效应。概率 = 1 − β（功效）。</td>
+              </tr>
+              <tr>
+                <th>检验说“无差异”</th>
+                <td><strong style='color:var(--success)'>正确</strong>——没有误报。概率 = 1 − α。</td>
+                <td><strong style='color:var(--warning)'>第二类错误</strong>——漏掉效应。概率 = β。</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <figure class="figure tool" id="powerExplorer">
+          <div class="pe-top js-only">
+            <div class="pe-sliders">
+              <label class="ctl">
+                <span class="ctl-lab"><span>决策阈值</span> <b id="peOutZ">1.64</b></span>
+                <input type="range" id="peThresh" min="0" max="4" step="0.02" value="1.645" aria-label="threshold">
+              </label>
+              <label class="ctl">
+                <span class="ctl-lab"><span>效应大小</span> <b id="peOutEff">3.0 σ</b></span>
+                <input type="range" id="peEffect" min="0" max="4" step="0.05" value="3" aria-label="effect size">
+              </label>
+            </div>
+            <div class="pe-stats">
+              <div class="stat stat-a"><span class="stat-num" id="peOutAlpha">5.0%</span><span class="stat-cap">α · 误报</span></div>
+              <div class="stat stat-p"><span class="stat-num" id="peOutPower">91.2%</span><span class="stat-cap">1−β · 功效</span></div>
+            </div>
+          </div>
+          <svg viewBox="0 0 640 236" role="img" aria-label="Normal distributions of H0 and H1 with alpha and power regions">
+            <path class="fig-alpha pe-alpha" d="M 347,205 347,179 353,184 360,189 367,192 373,195 380,198 387,200 393,201 400,202 407,203 413,204 420,204 427,204 433,205 640,205 640,205 Z"/>
+            <path class="fig-power pe-power" d="M 347,205 347,101 353,88 360,76 367,65 373,54 380,44 387,37 393,31 400,27 407,26 413,27 420,30 427,36 433,43 440,52 447,63 453,74 460,86 467,99 473,111 480,123 487,135 493,145 500,155 507,163 513,171 520,178 527,183 533,188 540,192 547,195 553,197 560,199 567,201 573,202 580,203 587,203 593,204 600,204 607,204 613,205 640,205 640,205 Z"/>
+            <line class="fig-axis" x1="0" y1="205" x2="640" y2="205"/>
+            <line class="fig-crit pe-crit" x1="347" y1="205" x2="347" y2="14"/>
+            <path class="fig-h0 pe-h0" d="M 0,205 26,205 51,204 77,200 96,194 115,182 134,162 154,134 173,100 192,65 211,38 230,26 250,33 269,57 288,91 307,126 326,156 346,178 371,194 397,202 422,204 448,205 480,205 520,205 570,205 640,205"/>
+            <path class="fig-h1 pe-h1" d="M 205,205 218,204 237,203 256,199 275,191 294,178 314,156 333,126 352,91 371,57 390,33 410,26 429,38 448,65 467,100 486,134 506,162 525,182 544,194 563,200 589,204 614,205 640,205"/>
+            <text class="fig-lab h0" x="233" y="18" text-anchor="middle">H&#x2080;</text>
+            <text class="fig-lab h1 pe-lab-h1" x="407" y="18" text-anchor="middle">H&#x2081;</text>
+            <text class="fig-lab a pe-lab-a" x="372" y="199" text-anchor="middle">&#x3B1;</text>
+            <text class="fig-lab pw pe-lab-pw" x="452" y="150" text-anchor="middle">1&#x2212;&#x3B2;</text>
+          </svg>
+          <figcaption>把两个假设画成分布。决策阈值把图一分为二：在它右侧我们宣布效应。红色区域是 <strong style='color:var(--danger)'>α</strong>（H₀ 下的误报），青色是<strong style='color:var(--accent-strong)'>功效 1−β</strong>（H₁ 下捕到效应）。<span class='js-only'><strong>拖动滑块</strong>，看看阈值如何在 α 与功效之间做交换。</span></figcaption>
+        </figure>
+
+        <h3>p 值：它是什么，不是什么</h3>
+        <p>检验返回一个 <strong>p 值</strong>：<em>假如</em> H₀ 为真，看到<em>不小于</em>观察值的差距的概率。p 很小意味着“这样的数据在没有效应的世界里很罕见”——这就是拒绝 H₀ 的理由。</p>
+        <div class="callout warn">
+          <span class="clabel">常见错误。</span>
+          <span>p 值<strong>不是</strong> H₀ 为真的概率，也不是您犯错的概率。它谈论的是 H₀ 成立时的数据，而不是 H₀ 本身。p = 0.03 并不意味着“有 3% 的可能没有效应”。</span>
+        </div>
+
+        <h3>置信区间</h3>
+        <p>p 值只说“有没有效应”；<strong>置信区间</strong>（CI）回答更有用的问题：“效应有多大？”。(1 − α) 区间是效应的可信取值范围。如果转化率差异的 95% CI 为 <span class='k'>[+0.4%; +2.1%]</span> 且不含零，效应就是显著的——而且可以直接读出它的大小。</p>
+        <div class="callout intuition">
+          <span class="clabel">关联。</span>
+          <span>α 水平的双侧检验和 (1 − α) 区间是同一枚硬币的两面：效应在 α 水平显著，当且仅当区间不覆盖零。这正是平台处处同时展示 p 值和区间的原因。</span>
+        </div>
+
+        <h3>随机化：谁进入哪个版本</h3>
+        <div class="card">
+          <span class="tag plan">基础 · 分流</span>
+          <p>平台的分流是确定性的——没有存储任何“抛硬币”结果。单元的标识符与实验的盐一起做哈希，哈希落入 10,000 个桶之一，各版本的累积权重把桶的范围切开。同一个 id 总是落在同一个版本，分配在重试和换设备后保持不变，而且启动前可以用 assignment preview 检查分流。</p>
+          <div class="formula">
+            <span class="flabel">确定性分桶</span>
+            <math display="block">
+              <mtext>bucket</mtext><mo>=</mo>
+              <mi>H</mi><mo>(</mo><mtext>id</mtext><mo>&#x2225;</mo><mtext>salt</mtext><mo>)</mo>
+              <mspace width="0.3em"/><mtext>mod</mtext><mspace width="0.3em"/>
+              <msup><mn>10</mn><mn>4</mn></msup>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">其中</p>
+            <dl>
+              <dt>H</dt><dd>快速且稳定的哈希（均匀散布，不是密码学）</dd>
+              <dt>id</dt><dd>随机化单元：用户、会话或聚类的 id</dd>
+              <dt>salt</dt><dd>每个实验的盐——不同实验独立分流</dd>
+            </dl>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">单元很重要。</span>
+            <span>随机化单元就是独立性单元。若按会话随机化却按用户分析（或反之），观测就不再独立——方差在说谎。下文的 ratio 指标 delta 方法和聚类设计效应处理的正是这一点。</span>
+          </div>
+        </div>
+        <hr class="divider">
+      </section>
+      <!-- ================= 2. PLANNING ================= -->
+      <section id="planning">
+        <div class="sec-head"><span class="sec-num">02</span></div>
+        <h2>规划：需要多少用户，跑多久</h2>
+        <p class="sec-intro">样本量在启动<strong>之前</strong>计算。太小的测试连真实效应都会漏掉（功效低），太大的测试白白烧流量。公式把您的四个数字（α、功效、MDE、基线）换算成每个版本所需的观测数。</p>
+
+        <h3>转化率（比例）的样本量</h3>
+        <div class="card">
+          <span class="tag plan">规划 · 二元指标</span>
+          <p>当指标是“买了 / 没买”“点了 / 没点”时用这个公式。分子是两个比例的“噪声”，分母是要捕捉的效应的平方。效应 <span class='k'>δ</span> 越小，需要的样本越大（按 1/δ² 增长：效应减半 → 样本翻四倍）。</p>
+          <div class="formula">
+            <span class="flabel">每个版本的观测数</span>
+            <math display="block">
+              <mi>n</mi><mo>=</mo>
+              <mfrac>
+                <msup>
+                  <mrow><mo>(</mo>
+                    <msub><mi>z</mi><mi>&#x3B1;</mi></msub><mspace width="0.15em"/>
+                    <msqrt><mrow><mn>2</mn><mo>&#x2062;</mo><mover><mi>p</mi><mo>&#xAF;</mo></mover><mo>(</mo><mn>1</mn><mo>&#x2212;</mo><mover><mi>p</mi><mo>&#xAF;</mo></mover><mo>)</mo></mrow></msqrt>
+                    <mo>+</mo>
+                    <msub><mi>z</mi><mi>&#x3B2;</mi></msub><mspace width="0.15em"/>
+                    <msqrt><mrow><msub><mi>p</mi><mn>0</mn></msub><mo>(</mo><mn>1</mn><mo>&#x2212;</mo><msub><mi>p</mi><mn>0</mn></msub><mo>)</mo><mo>+</mo><msub><mi>p</mi><mn>1</mn></msub><mo>(</mo><mn>1</mn><mo>&#x2212;</mo><msub><mi>p</mi><mn>1</mn></msub><mo>)</mo></mrow></msqrt>
+                  <mo>)</mo></mrow>
+                  <mn>2</mn>
+                </msup>
+                <msup><mi>&#x3B4;</mi><mn>2</mn></msup>
+              </mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">其中</p>
+            <dl>
+              <dt>p&#x2080;, p&#x2081;</dt><dd>基线转化率与版本转化率；p₁ = p₀·(1 + MDE)</dd>
+              <dt>&#x3B4;</dt><dd>绝对效应，δ = p₁ − p₀</dd>
+              <dt>p&#x304;</dt><dd>合并比例 (p₀ + p₁)/2</dd>
+              <dt>z<sub>&#x3B1;</sub></dt><dd>α 的正态分位数（双侧）：α = 0.05 时为 1.96</dd>
+              <dt>z<sub>&#x3B2;</sub></dt><dd>功效的分位数：power = 0.80 时为 0.84</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>基线 <span class='num'>10%</span>，要捕捉相对提升 <span class='num'>+10%</span>（→ 11%），α = 0.05，功效 0.80 → <strong>每个</strong>版本约需 <span class='num'>14,751</span> 人。</span>
+          </div>
+        </div>
+
+        <div class="tool js-only" id="sizer">
+          <span class="tag plan">交互 · 计算器</span>
+          <h4>算算您自己的测试</h4>
+          <div class="sizer-grid">
+            <label class="fld"><span>基线转化率，%</span><input id="szBase" type="number" value="10" min="0.1" max="99" step="0.1"></label>
+            <label class="fld"><span>相对提升，%</span><input id="szMde" type="number" value="10" min="0.1" step="0.1"></label>
+            <label class="fld"><span>进入测试的流量，/天</span><input id="szTraffic" type="number" value="5000" min="1" step="100"></label>
+            <label class="fld"><span>显著性 α</span><select id="szAlpha"><option value="1.6449">0.10</option><option value="1.9600" selected>0.05</option><option value="2.5758">0.01</option></select></label>
+            <label class="fld"><span>功效</span><select id="szPower"><option value="0.5244">0.70</option><option value="0.8416" selected>0.80</option><option value="1.2816">0.90</option><option value="1.6449">0.95</option></select></label>
+          </div>
+          <div class="sizer-out">
+            <div class="stat"><span class="stat-num" id="szPer">&#8212;</span><span class="stat-cap">每版本</span></div>
+            <div class="stat"><span class="stat-num" id="szTotal">&#8212;</span><span class="stat-cap">总计</span></div>
+            <div class="stat"><span class="stat-num" id="szDays">&#8212;</span><span class="stat-cap">天</span></div>
+          </div>
+          <p class="sizer-note" id="szNote" hidden>基线与提升算出的转化率 ≥ 100%——请调低数值。</p>
+          <p class="sizer-fine">与上文同一公式。假定：2 个等量版本、双侧检验、全部流量进入测试。</p>
+        </div>
+
+        <h3>均值（连续指标）的样本量</h3>
+        <div class="card">
+          <span class="tag plan">规划 · 连续指标</span>
+          <p>当指标是一个数（人均收入、站内时长、客单价）时，“噪声”由离散度 <span class='k'>σ</span> 给出。公式更简单：离散度越大、效应越小，样本就越大。</p>
+          <div class="formula">
+            <span class="flabel">每个版本的观测数</span>
+            <math display="block">
+              <mi>n</mi><mo>=</mo><mn>2</mn>
+              <msup>
+                <mrow><mo>(</mo><mfrac><mrow><mo>(</mo><msub><mi>z</mi><mi>&#x3B1;</mi></msub><mo>+</mo><msub><mi>z</mi><mi>&#x3B2;</mi></msub><mo>)</mo><mo>&#x2062;</mo><mi>&#x3C3;</mi></mrow><mi>&#x3B4;</mi></mfrac><mo>)</mo></mrow>
+                <mn>2</mn>
+              </msup>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">其中</p>
+            <dl>
+              <dt>&#x3C3;</dt><dd>指标的标准差（用户之间的离散度）</dd>
+              <dt>&#x3B4;</dt><dd>以指标单位表示的绝对效应，δ = 均值·MDE</dd>
+              <dt>z<sub>&#x3B1;</sub>, z<sub>&#x3B2;</sub></dt><dd>与上文相同的正态分位数</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>平均客单价 <span class='num'>100</span>，离散度 σ = <span class='num'>40</span>，要捕捉 <span class='num'>+5%</span>（δ = 5），α = 0.05，功效 0.80 → 每个版本约 <span class='num'>1,005</span> 人。</span>
+          </div>
+        </div>
+
+        <h3>反过来问：我究竟能检测到多大的效应？</h3>
+        <div class="card">
+          <span class="tag plan">规划 · MDE</span>
+          <p>流量常常是固定的。这时把公式倒过来更有用：样本量 <span class='k'>n</span> 固定时，能捕捉到的最小效应是多少？对均值存在解析解。</p>
+          <div class="formula">
+            <span class="flabel">最小可检测效应（均值）</span>
+            <math display="block">
+              <mi>MDE</mi><mo>=</mo><mo>(</mo><msub><mi>z</mi><mi>&#x3B1;</mi></msub><mo>+</mo><msub><mi>z</mi><mi>&#x3B2;</mi></msub><mo>)</mo><mo>&#x2062;</mo><mi>&#x3C3;</mi><mo>&#x2062;</mo><msqrt><mfrac><mn>2</mn><mi>n</mi></mfrac></msqrt>
+            </math>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">含义。</span>
+            <span>灵敏度按 √n 增长：要捕捉小一半的效应，需要四倍的数据。对转化率，引擎用数值方法解同一方程（二分法）。</span>
+          </div>
+        </div>
+
+        <h3>测试时长</h3>
+        <div class="card">
+          <span class="tag plan">规划 · 时长</span>
+          <p>样本量是“需要多少人”，时长是“凑齐他们要多少天”。用所需样本除以流入<em>最小</em>版本的日流量——它才是瓶颈。</p>
+          <div class="formula">
+            <span class="flabel">凑齐样本所需天数</span>
+            <math display="block">
+              <mtext>天数</mtext><mo>=</mo>
+              <mrow><mo>&#x2308;</mo>
+                <mfrac>
+                  <mi>n</mi>
+                  <mrow><mi>T</mi><mo>&#x2062;</mo><mi>s</mi><mo>&#x2062;</mo><mi>a</mi><mo>&#x2062;</mo><msub><mi>w</mi><mtext>min</mtext></msub></mrow>
+                </mfrac>
+              <mo>&#x2309;</mo></mrow>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">其中</p>
+            <dl>
+              <dt>T</dt><dd>预期日流量</dd>
+              <dt>s</dt><dd>进入测试的受众比例（0…1）</dd>
+              <dt>a</dt><dd>分配给测试的流量份额（holdout / 互斥测试）</dd>
+              <dt>w<sub>min</sub></dt><dd>分流中最小版本的权重</dd>
+              <dt>&#x2308; &#x2309;</dt><dd>向上取整——一天不可分割</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>每版本需要 14,751 人，日流量 5,000，100% 进入测试，两个等量版本（各 50%）→ 较小组每天获得 2,500 人 → <span class='num'>6 天</span>。</span>
+          </div>
+          <div class="callout warn">
+            <span class="clabel">至少一周。</span>
+            <span>即使公式算出 2–3 天，也要按整周运行：工作日与周末表现不同，而且改动的新鲜感会扭曲最初几天。</span>
+          </div>
+        </div>
+
+        <h3>贝叶斯“按精度”规划</h3>
+        <div class="card">
+          <span class="tag plan">规划 · 贝叶斯</span>
+          <p>有时目标不是“捕捉效应 X”，而是“把指标估计到 ±d 的精度”。这时样本量由后验区间的目标半宽决定，而不是功效。取平坦先验时，几乎回到同一个正态公式。</p>
+          <div class="formula">
+            <span class="flabel">目标精度下的样本量（比例 / 均值）</span>
+            <math display="block">
+              <mi>N</mi><mo>=</mo><mn>2</mn><mo>&#x2062;</mo><mi>p</mi><mo>(</mo><mn>1</mn><mo>&#x2212;</mo><mi>p</mi><mo>)</mo><msup><mrow><mo>(</mo><mfrac><mi>z</mi><mi>d</mi></mfrac><mo>)</mo></mrow><mn>2</mn></msup>
+              <mspace width="1.4em"/>
+              <mtext>/</mtext>
+              <mspace width="1.4em"/>
+              <mi>N</mi><mo>=</mo><mn>2</mn><mo>&#x2062;</mo><msup><mi>&#x3C3;</mi><mn>2</mn></msup><msup><mrow><mo>(</mo><mfrac><mi>z</mi><mi>d</mi></mfrac><mo>)</mo></mrow><mn>2</mn></msup>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">其中</p>
+            <dl>
+              <dt>d</dt><dd>目标精度——区间半宽</dd>
+              <dt>z</dt><dd>可信度分位数：95% 时为 1.96</dd>
+              <dt>p / &#x3C3;</dt><dd>基线比例或指标的离散度</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>以 95% 可信度把 ~10% 的转化率估计到 <span class='num'>±1 个百分点</span> → 每版本约 <span class='num'>6,915</span> 人。</span>
+          </div>
+        </div>
+
+        <h3>等价性检验（TOST）：“证明什么都没坏”</h3>
+        <div class="card">
+          <span class="tag plan">规划 · 等价性</span>
+          <p>普通检验寻找差异。有时需要相反的事情：确认重构、迁移或降本<em>没有</em>把指标移出容差 <span class='k'>±M</span>。这就是 <strong>TOST</strong>（两个单侧检验）。它的样本量单独计算——由容差决定，而不是 MDE。</p>
+          <div class="formula">
+            <span class="flabel">等价性所需样本量</span>
+            <math display="block">
+              <mi>n</mi><mo>=</mo><mn>2</mn>
+              <msup>
+                <mrow><mo>(</mo><mfrac><mrow><mi>&#x3C3;</mi><mo>(</mo><msub><mi>z</mi><mi>&#x3B1;</mi></msub><mo>+</mo><msub><mi>z</mi><mrow><mn>1</mn><mo>&#x2212;</mo><mi>&#x3B2;</mi><mo>/</mo><mn>2</mn></mrow></msub><mo>)</mo></mrow><mi>M</mi></mfrac><mo>)</mo></mrow>
+                <mn>2</mn>
+              </msup>
+            </math>
+          </div>
+          <div class="callout example">
+            <span>基线 100，σ = 40，容差 ±5%（M = 5），α = 0.05，功效 0.80 → 每版本 <span class='num'>1,097</span> 人——相比之下，同样数字的优越性检验只需 <span class='num'>1,005</span> 人。证明“不更差”更贵。</span>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">细节。</span>
+            <span>两个单侧检验各自都在 <span class='k'>α</span> 水平进行（不除以 2），而功效项用 <span class='k'>z<sub>1−β/2</sub></span>，因为在真实差异为零时，功效在 <span class='k'>−M</span> 和 <span class='k'>+M</span> 两条边界之间对称分配。</span>
+          </div>
+        </div>
+
+        <div class="callout intuition">
+          <span class="clabel">版本多于两个？</span>
+          <span>当以 k &gt; 2 个版本规划测试时，平台会在计算样本量之前自动把显著性水平收紧到 α/(k−1)——对“版本对照控制组”的比较做 Bonferroni 校正。数字里已经含了多重性的代价。</span>
+        </div>
+        <hr class="divider">
+      </section>
+      <!-- ================= 3. MULTIPLE COMPARISONS ================= -->
+      <section id="multiple">
+        <div class="sec-head"><span class="sec-num">03</span></div>
+        <h2>多版本、多指标、聚类</h2>
+        <p class="sec-intro">只要比较多于一次，误报就会累积。以 5% 水平检查 20 个指标——平均就有一个纯属偶然地“报警”。这里讲如何修复——以及当您随机化的不是人而是门店或城市时该怎么办。</p>
+
+        <h3>多重比较问题</h3>
+        <p>若每个检验相互独立且都在 α 水平进行，<span class='k'>m</span> 次检查中<em>至少一次</em>误报的概率是 1 − (1 − α)<sup>m</sup>。α = 0.05、m = 10 时已达 <strong>40%</strong>。可控制的量有两种：</p>
+        <div class="tablewrap">
+          <table>
+            <thead><tr>
+              <th>控制什么</th>
+              <th>问题</th>
+              <th>方法</th>
+            </tr></thead>
+            <tbody>
+              <tr>
+                <td><strong>FWER</strong><br><span style='color:var(--ink-3)'>family-wise error rate</span></td>
+                <td>出现<em>任何一个</em>假发现的概率是多少？</td>
+                <td>Bonferroni、Holm。更严格；随 m 增大而丧失功效。</td>
+              </tr>
+              <tr>
+                <td><strong>FDR</strong><br><span style='color:var(--ink-3)'>false discovery rate</span></td>
+                <td>“发现”中有多大<em>比例</em>是假的？</td>
+                <td>Benjamini–Hochberg。指标很多时更有功效。</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <figure class="figure">
+          <svg viewBox="0 0 560 216" role="img" aria-label="Family-wise error rate grows with the number of metrics">
+            <line class="fig-axis" x1="40" y1="188" x2="548" y2="188"/>
+            <line class="fig-axis" x1="40" y1="188" x2="40" y2="16"/>
+            <line class="fig-ref" x1="40" y1="175" x2="548" y2="175"/>
+            <path class="fig-line" style="stroke:var(--danger)" d="M 50,175 76,163 102,152 127,141 153,130 179,120 205,111 231,102 256,94 282,86 308,78 334,71 359,64 385,57 411,51 437,45 463,39 488,34 514,29 540,24"/>
+            <circle class="fig-dot" style="fill:var(--danger)" cx="153" cy="130" r="4"/>
+            <circle class="fig-dot" style="fill:var(--danger)" cx="282" cy="86" r="4"/>
+            <circle class="fig-dot" style="fill:var(--danger)" cx="540" cy="24" r="4.5"/>
+            <text class="fig-cap-in fig-cap-a" x="150" y="122" text-anchor="middle">23%</text>
+            <text class="fig-cap-in fig-cap-a" x="279" y="78" text-anchor="middle">40%</text>
+            <text class="fig-cap-in fig-cap-a" x="540" y="17" text-anchor="middle">64%</text>
+            <text class="fig-tick" x="44" y="171">5%</text>
+            <text class="fig-tick" x="50" y="202" text-anchor="middle">1</text>
+            <text class="fig-tick" x="153" y="202" text-anchor="middle">5</text>
+            <text class="fig-tick" x="282" y="202" text-anchor="middle">10</text>
+            <text class="fig-tick" x="540" y="202" text-anchor="middle">20</text>
+          </svg>
+          <figcaption>以 5% 水平检查多个指标时出现<strong style='color:var(--danger)'>至少一个</strong>假发现的概率：1 − (1 − 0.05)<sup>m</sup>。10 个指标时已是 40%，20 个时是 64%。虚线是单次检查的“诚实” 5%。这就是下文各种校正的由来。</figcaption>
+        </figure>
+
+        <h3>Bonferroni 校正</h3>
+        <div class="card">
+          <span class="tag multi">多重性 · FWER</span>
+          <p>最简单的配方：把阈值除以比较次数。当版本多于两个时平台自动应用——那是 <span class='k'>k − 1</span> 次“版本对照控制组”的比较。</p>
+          <div class="formula">
+            <span class="flabel">校正后的阈值</span>
+            <math display="block">
+              <msub><mi>&#x3B1;</mi><mtext>adj</mtext></msub><mo>=</mo><mfrac><mi>&#x3B1;</mi><mrow><mi>k</mi><mo>&#x2212;</mo><mn>1</mn></mrow></mfrac>
+              <mspace width="2em"/><mtext>(</mtext><mspace width="0.2em"/><mtext>跨指标：</mtext><mspace width="0.4em"/><msub><mi>&#x3B1;</mi><mtext>adj</mtext></msub><mo>=</mo><mfrac><mi>&#x3B1;</mi><mi>m</mi></mfrac><mspace width="0.2em"/><mtext>)</mtext>
+            </math>
+          </div>
+          <div class="callout example">
+            <span>3 个版本 → 2 次比较 → 阈值 0.05 / 2 = <span class='num'>0.025</span>（z 从 1.96 升到 2.24）。保守但安全。</span>
+          </div>
+        </div>
+
+        <h3>Holm 与 Benjamini–Hochberg：比平均分摊更聪明</h3>
+        <div class="card">
+          <span class="tag multi">多重性 · 逐步程序</span>
+          <p>Bonferroni 对所有指标一视同仁地惩罚。逐步程序把 p 值升序排列 <span class='k'>p₍₁₎ ≤ … ≤ p₍ₘ₎</span>，再把每个 p 与它自己的、逐渐放宽的阈值比较。</p>
+          <div class="formula">
+            <span class="flabel">Holm（FWER，step-down）</span>
+            <math display="block">
+              <mtext>拒绝</mtext><mspace width="0.4em"/><msub><mi>p</mi><mrow><mo>(</mo><mi>k</mi><mo>)</mo></mrow></msub><mspace width="0.5em"/><mtext>只要</mtext><mspace width="0.5em"/>
+              <msub><mi>p</mi><mrow><mo>(</mo><mi>k</mi><mo>)</mo></mrow></msub><mo>&#x2264;</mo><mfrac><mi>&#x3B1;</mi><mrow><mi>m</mi><mo>&#x2212;</mo><mi>k</mi><mo>+</mo><mn>1</mn></mrow></mfrac>
+            </math>
+          </div>
+          <div class="formula">
+            <span class="flabel">Benjamini–Hochberg（FDR，step-up）</span>
+            <math display="block">
+              <msup><mi>k</mi><mo>&#x2217;</mo></msup><mo>=</mo><mi>max</mi><mo>&#x2061;</mo><mrow><mo>{</mo><mi>k</mi><mo>:</mo><mspace width="0.3em"/><msub><mi>p</mi><mrow><mo>(</mo><mi>k</mi><mo>)</mo></mrow></msub><mo>&#x2264;</mo><mfrac><mi>k</mi><mi>m</mi></mfrac><mo>&#x2062;</mo><mi>q</mi><mo>}</mo></mrow>
+              <mspace width="0.6em"/><mo>&#x21D2;</mo><mspace width="0.4em"/><mtext>拒绝秩</mtext><mspace width="0.3em"/><mn>1</mn><mo>&#x2026;</mo><msup><mi>k</mi><mo>&#x2217;</mo></msup>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">其中</p>
+            <dl>
+              <dt>m</dt><dd>被检验指标的个数</dd>
+              <dt>k</dt><dd>p 值在排序表中的秩</dd>
+              <dt>q</dt><dd>可容忍的假发现比例（如 0.05）</dd>
+            </dl>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">如何选择。</span>
+            <span>指标少且需要严格控制——Holm（总是强于裸 Bonferroni）。指标多且可接受少量假发现——Benjamini–Hochberg。</span>
+          </div>
+        </div>
+
+        <h3>聚类随机化：设计效应与 ICC</h3>
+        <div class="card">
+          <span class="tag multi">聚类 · 样本量</span>
+          <p>如果分配到各版本的不是个人而是<em>群体</em>——门店、城市、班级——群体内部的观测彼此相似。有效信息比人数显示的少，朴素样本量必须乘以<strong>设计效应</strong>（design effect，DEFF）。</p>
+          <div class="formula">
+            <span class="flabel">设计效应（Kish）</span>
+            <math display="block">
+              <mtext>DEFF</mtext><mo>=</mo><mn>1</mn><mo>+</mo><mo>(</mo><mi>m</mi><mo>&#x2212;</mo><mn>1</mn><mo>)</mo><mo>&#x2062;</mo><mtext>ICC</mtext>
+              <mspace width="2em"/>
+              <msub><mi>n</mi><mtext>clust</mtext></msub><mo>=</mo><mi>n</mi><mo>&#x00D7;</mo><mtext>DEFF</mtext>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">其中</p>
+            <dl>
+              <dt>m</dt><dd>平均聚类规模（每组人数）</dd>
+              <dt>ICC</dt><dd>组内相关 0…1：组内的人有多相似。0 = 独立，此时 DEFF = 1</dd>
+              <dt>n</dt><dd>按普通个体随机化算出的样本量</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>每簇 <span class='num'>50</span> 人，ICC = <span class='num'>0.02</span>：DEFF = 1 + 49·0.02 = <span class='num'>1.98</span>。朴素的 1,000/版本变成 <span class='num'>1,980</span>/版本 ≈ 每版本 <span class='num'>40 个聚类</span>。</span>
+          </div>
+          <div class="callout warn">
+            <span class="clabel">注意。</span>
+            <span>聚类很大时，哪怕微小的 ICC 也会给出巨大的 DEFF。这是“我们按城市跑了测试却什么也没捕到”的最常见原因。</span>
+          </div>
+        </div>
+        <hr class="divider">
+      </section>
+      <!-- ================= 4. ANALYSIS ================= -->
+      <section id="analysis">
+        <div class="sec-head"><span class="sec-num">04</span></div>
+        <h2>结果分析：测试结束了，然后呢</h2>
+        <p class="sec-intro">数据已经收好。现在按实验的<em>设计</em>和指标的<em>形态</em>选择检验。平台内置<strong>二十二个分析器</strong>；本节按设计逐一讲解——两个独立组、配对观测、多于两组、事件时间——最后给出全部 22 个的完整表格。</p>
+
+        <!-- ---- 4.1 two independent groups ---- -->
+        <h3>两个独立组</h3>
+        <p class="group-lead">经典 A/B：每个单元恰好看到一个版本。比例用 z 检验或精确家族，均值用 Welch 和稳健四重奏，事件计数用泊松，“按事件”的比值用 delta 方法。</p>
+
+        <div class="card">
+          <span class="tag analyze">分析 · 二元</span>
+          <h4>两比例 z 检验（转化率）</h4>
+          <p>标准的“转化率 A 对转化率 B”检验。度量比例差跨越了多少个“标准误”。方差用合并比例 <span class='k'>p̄</span>——H₀ 下两比例相等。</p>
+          <div class="formula">
+            <span class="flabel">统计量</span>
+            <math display="block">
+              <mi>z</mi><mo>=</mo>
+              <mfrac>
+                <mrow><msub><mover><mi>p</mi><mo>^</mo></mover><mi>t</mi></msub><mo>&#x2212;</mo><msub><mover><mi>p</mi><mo>^</mo></mover><mi>c</mi></msub></mrow>
+                <msqrt><mrow><mover><mi>p</mi><mo>&#xAF;</mo></mover><mo>(</mo><mn>1</mn><mo>&#x2212;</mo><mover><mi>p</mi><mo>&#xAF;</mo></mover><mo>)</mo><mo>(</mo><mfrac><mn>1</mn><msub><mi>n</mi><mi>c</mi></msub></mfrac><mo>+</mo><mfrac><mn>1</mn><msub><mi>n</mi><mi>t</mi></msub></mfrac><mo>)</mo></mrow></msqrt>
+              </mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">其中</p>
+            <dl>
+              <dt>p&#x302;<sub>c</sub>, p&#x302;<sub>t</sub></dt><dd>对照组与实验组的观测比例</dd>
+              <dt>p&#x304;</dt><dd>合并比例（全部转化 / 全部用户）</dd>
+              <dt>n<sub>c</sub>, n<sub>t</sub></dt><dd>组的规模</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>对照 1,000/10,000 = 10.0%，实验 1,120/10,000 = 11.2% → z = <span class='num'>2.76</span>，p = <span class='num'>0.006</span>。差异显著。实验组比例的 Wilson 区间：<span class='num'>[10.60%; 11.83%]</span>。</span>
+          </div>
+          <details class="more">
+            <summary>比例的区间：为什么用 Wilson 而不是 Wald</summary>
+            <p>朴素区间 <span class='k'>p̂ ± z·√(p̂(1−p̂)/n)</span>（Wald）在边缘（接近 0 或 1）和小 n 时表现糟糕——在 p̂ = 0 时甚至塌缩成“零宽度”。平台使用 <strong>Wilson 得分区间</strong>（得分检验的反演）：始终落在 [0, 1] 内、覆盖率诚实。比例之差用两个 Wilson 区间的 <strong>Newcombe</strong> 混合。</p>
+            <div class="formula">
+              <span class="flabel">Wilson 得分区间</span>
+              <math display="block">
+                <mfrac>
+                  <mrow><mover><mi>p</mi><mo>^</mo></mover><mo>+</mo><mfrac><msup><mi>z</mi><mn>2</mn></msup><mrow><mn>2</mn><mi>n</mi></mrow></mfrac><mo>&#x00B1;</mo><mi>z</mi><msqrt><mrow><mfrac><mrow><mover><mi>p</mi><mo>^</mo></mover><mo>(</mo><mn>1</mn><mo>&#x2212;</mo><mover><mi>p</mi><mo>^</mo></mover><mo>)</mo></mrow><mi>n</mi></mfrac><mo>+</mo><mfrac><msup><mi>z</mi><mn>2</mn></msup><mrow><mn>4</mn><msup><mi>n</mi><mn>2</mn></msup></mrow></mfrac></mrow></msqrt></mrow>
+                  <mrow><mn>1</mn><mo>+</mo><msup><mi>z</mi><mn>2</mn></msup><mo>/</mo><mi>n</mi></mrow>
+                </mfrac>
+              </math>
+            </div>
+          </details>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">分析 · 二元，精确</span>
+          <h4>小样本计数：Fisher、Boschloo、Barnard</h4>
+          <p>当成功次数稀少——个位数的转化、接近零的比例——z 检验的正态近似就靠不住了。精确检验直接从 2×2 表计算 p 值。<strong>Fisher</strong> 对两侧边缘取条件（超几何分布）。<strong>Boschloo</strong> 与 <strong>Barnard</strong> 是无条件的：它们对未知的共同比例 π 取最大值，在典型 A/B 数据上严格强于 Fisher。引擎对精确计算限制了表的规模（Fisher 为 50 万；无条件的一对共用一个上限）。</p>
+          <div class="formula">
+            <span class="flabel">Fisher：一张表的超几何概率</span>
+            <math display="block">
+              <mi>P</mi><mo>(</mo><mi>a</mi><mo>)</mo><mo>=</mo>
+              <mfrac>
+                <mrow><mi>C</mi><mo>(</mo><msub><mi>m</mi><mn>1</mn></msub><mo>,</mo><mi>a</mi><mo>)</mo><mo>&#x2062;</mo><mi>C</mi><mo>(</mo><msub><mi>m</mi><mn>2</mn></msub><mo>,</mo><mi>c</mi><mo>)</mo></mrow>
+                <mrow><mi>C</mi><mo>(</mo><mi>n</mi><mo>,</mo><mi>a</mi><mo>+</mo><mi>c</mi><mo>)</mo></mrow>
+              </mfrac>
+            </math>
+          </div>
+          <div class="formula">
+            <span class="flabel">无条件（Boschloo / Barnard）：对讨厌参数取最大</span>
+            <math display="block">
+              <mi>p</mi><mo>=</mo>
+              <munder><mi>max</mi><mi>&#x3C0;</mi></munder>
+              <munder><mo>&#x2211;</mo><mrow><mi>T</mi><mo>&#x2AB0;</mo><mtext>obs</mtext></mrow></munder>
+              <msub><mi>P</mi><mi>&#x3C0;</mi></msub><mo>(</mo><mi>T</mi><mo>)</mo>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">其中</p>
+            <dl>
+              <dt>m&#x2081;, m&#x2082;</dt><dd>行合计——两组的规模</dd>
+              <dt>a, c</dt><dd>对照组与实验组中的成功数</dd>
+              <dt>&#x3C0;</dt><dd>H₀ 下未知的共同比例——“讨厌”参数</dd>
+              <dt>T &#x2AB0; obs</dt><dd>至少与观测同样极端的表：Boschloo 按 Fisher 的 p 排序，Barnard 按合并 Wald z 排序</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>3/40（7.5%）对 11/40（27.5%）：Fisher p = <span class='num'>0.0367</span>；Boschloo p = <span class='num'>0.0206</span>；Barnard p = <span class='num'>0.0204</span>（排序 z = −2.354）。无条件的一对认为同样的数据大约有两倍的说服力。</span>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">选哪个？</span>
+            <span>当某个期望格子很小时（经验法则：小于 5）就该用精确检验。家族内务实的默认是 Boschloo——从不弱于 Fisher。Barnard 有时能再榨出一点功效，但计算更贵。</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">分析 · 连续</span>
+          <h4>Welch t 检验（均值）</h4>
+          <p>当两组的离散度可能不同（常见情形）时比较均值。与经典 t 检验不同，Welch <em>不</em>假设方差相等——因此是合理的默认选择。</p>
+          <div class="formula">
+            <span class="flabel">统计量与自由度（Welch–Satterthwaite）</span>
+            <math display="block">
+              <mi>t</mi><mo>=</mo>
+              <mfrac>
+                <mrow><msub><mover><mi>x</mi><mo>&#xAF;</mo></mover><mi>t</mi></msub><mo>&#x2212;</mo><msub><mover><mi>x</mi><mo>&#xAF;</mo></mover><mi>c</mi></msub></mrow>
+                <msqrt><mrow><mfrac><msubsup><mi>s</mi><mi>c</mi><mn>2</mn></msubsup><msub><mi>n</mi><mi>c</mi></msub></mfrac><mo>+</mo><mfrac><msubsup><mi>s</mi><mi>t</mi><mn>2</mn></msubsup><msub><mi>n</mi><mi>t</mi></msub></mfrac></mrow></msqrt>
+              </mfrac>
+              <mspace width="1.6em"/>
+              <mi>&#x3BD;</mi><mo>=</mo>
+              <mfrac>
+                <msup><mrow><mo>(</mo><msubsup><mi>s</mi><mi>c</mi><mn>2</mn></msubsup><mo>/</mo><msub><mi>n</mi><mi>c</mi></msub><mo>+</mo><msubsup><mi>s</mi><mi>t</mi><mn>2</mn></msubsup><mo>/</mo><msub><mi>n</mi><mi>t</mi></msub><mo>)</mo></mrow><mn>2</mn></msup>
+                <mrow><mfrac><msup><mrow><mo>(</mo><msubsup><mi>s</mi><mi>c</mi><mn>2</mn></msubsup><mo>/</mo><msub><mi>n</mi><mi>c</mi></msub><mo>)</mo></mrow><mn>2</mn></msup><mrow><msub><mi>n</mi><mi>c</mi></msub><mo>&#x2212;</mo><mn>1</mn></mrow></mfrac><mo>+</mo><mfrac><msup><mrow><mo>(</mo><msubsup><mi>s</mi><mi>t</mi><mn>2</mn></msubsup><mo>/</mo><msub><mi>n</mi><mi>t</mi></msub><mo>)</mo></mrow><mn>2</mn></msup><mrow><msub><mi>n</mi><mi>t</mi></msub><mo>&#x2212;</mo><mn>1</mn></mrow></mfrac></mrow>
+              </mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">其中</p>
+            <dl>
+              <dt>x&#x304;<sub>c</sub>, x&#x304;<sub>t</sub></dt><dd>各组均值</dd>
+              <dt>s<sub>c</sub>, s<sub>t</sub></dt><dd>各组标准差</dd>
+              <dt>&#x3BD;</dt><dd>有效自由度——学生 t 参考分布用它</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>对照 100 ± 40（n = 1,005），实验 105 ± 41（n = 1,005）→ t = <span class='num'>2.77</span>，ν ≈ <span class='num'>2,007</span>，p ≈ 0.006。效应大小以 <span class='k'>Cohen's d</span> = 差值 / 合并离散度 一并报告。</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">分析 · 稳健</span>
+          <h4>厚尾与离群值：稳健四重奏</h4>
+          <p>收入类指标——偏态、厚尾、离群值——会破坏 t 检验的前提。引擎内置四个不信任分布形态的检验，这里在<strong>同一个数据集</strong>上展示（每组 n = 10），便于直接对比输出。<strong>Mann–Whitney</strong> 按秩比较；<strong>bootstrap / 置换</strong>对观测数据重采样而不是假设曲线；<strong>分位数检验</strong>把问题移到中位数（或任意百分位）；<strong>Yuen 截尾 t</strong> 先切掉每侧尾部最极端的 20% 再比较均值。</p>
+          <div class="callout example">
+            <span>四个检验共用一个数据集：C = [12, 15, 9, 22, 30, 14, 18, 25, 11, 16]，T = [18, 24, 13, 29, 41, 19, 26, 33, 15, 22]。</span>
+          </div>
+          <div class="formula">
+            <span class="flabel">Mann–Whitney：统计量与正态近似</span>
+            <math display="block">
+              <mi>U</mi><mo>=</mo><msub><mi>R</mi><mn>1</mn></msub><mo>&#x2212;</mo><mfrac><mrow><msub><mi>n</mi><mn>1</mn></msub><mo>(</mo><msub><mi>n</mi><mn>1</mn></msub><mo>+</mo><mn>1</mn><mo>)</mo></mrow><mn>2</mn></mfrac>
+              <mspace width="1.6em"/>
+              <mi>z</mi><mo>=</mo><mfrac><mrow><mi>U</mi><mo>&#x2212;</mo><msub><mi>n</mi><mn>1</mn></msub><msub><mi>n</mi><mn>2</mn></msub><mo>/</mo><mn>2</mn></mrow><msub><mi>&#x3C3;</mi><mi>U</mi></msub></mfrac>
+            </math>
+          </div>
+          <div class="formula">
+            <span class="flabel">效应量：Hodges–Lehmann 位移与秩双列相关</span>
+            <math display="block">
+              <mtext>HL</mtext><mo>=</mo><mi>med</mi><mo>&#x2061;</mo><mrow><mo>{</mo><msub><mi>y</mi><mi>j</mi></msub><mo>&#x2212;</mo><msub><mi>x</mi><mi>i</mi></msub><mo>}</mo></mrow>
+              <mspace width="1.6em"/>
+              <msub><mi>r</mi><mtext>rb</mtext></msub><mo>=</mo><mfrac><mrow><mn>2</mn><mi>U</mi></mrow><mrow><msub><mi>n</mi><mn>1</mn></msub><msub><mi>n</mi><mn>2</mn></msub></mrow></mfrac><mo>&#x2212;</mo><mn>1</mn>
+            </math>
+          </div>
+          <div class="formula">
+            <span class="flabel">置换 p 值与百分位 bootstrap 置信区间</span>
+            <math display="block">
+              <msub><mi>p</mi><mtext>perm</mtext></msub><mo>=</mo>
+              <mfrac>
+                <mrow><mn>1</mn><mo>+</mo><mo>#</mo><mrow><mo>{</mo><mrow><mo>|</mo><msup><mi>&#x394;</mi><mo>&#x2217;</mo></msup><mo>|</mo></mrow><mo>&#x2265;</mo><mrow><mo>|</mo><mover><mi>&#x394;</mi><mo>^</mo></mover><mo>|</mo></mrow><mo>}</mo></mrow></mrow>
+                <mrow><mi>B</mi><mo>+</mo><mn>1</mn></mrow>
+              </mfrac>
+              <mspace width="1.6em"/>
+              <msub><mtext>CI</mtext><mn>95</mn></msub><mo>=</mo><mrow><mo>[</mo><msubsup><mi>&#x394;</mi><mrow><mo>(</mo><mn>2.5</mn><mo>%</mo><mo>)</mo></mrow><mo>&#x2217;</mo></msubsup><mo>;</mo><mspace width="0.3em"/><msubsup><mi>&#x394;</mi><mrow><mo>(</mo><mn>97.5</mn><mo>%</mo><mo>)</mo></mrow><mo>&#x2217;</mo></msubsup><mo>]</mo></mrow>
+            </math>
+          </div>
+          <div class="formula">
+            <span class="flabel">Yuen：20% 截尾均值上的 t</span>
+            <math display="block">
+              <msub><mi>t</mi><mtext>Yuen</mtext></msub><mo>=</mo>
+              <mfrac>
+                <mrow><msub><mover><mi>x</mi><mo>&#xAF;</mo></mover><mrow><mi>t</mi><mo>,</mo><mtext>tr</mtext></mrow></msub><mo>&#x2212;</mo><msub><mover><mi>x</mi><mo>&#xAF;</mo></mover><mrow><mi>c</mi><mo>,</mo><mtext>tr</mtext></mrow></msub></mrow>
+                <msqrt><mrow><msub><mi>d</mi><mi>c</mi></msub><mo>+</mo><msub><mi>d</mi><mi>t</mi></msub></mrow></msqrt>
+              </mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">其中</p>
+            <dl>
+              <dt>R&#x2081;</dt><dd>第一组在合并样本中的秩和</dd>
+              <dt>&#x3C3;<sub>U</sub></dt><dd>H₀ 下 U 的标准差——含结（ties）校正与连续性校正；小且无结的样本引擎会精确枚举</dd>
+              <dt>&#x394;*</dt><dd>在重采样 / 置换数据上重算的差值统计量；B = 重采样次数</dd>
+              <dt>x&#x304;<sub>tr</sub>, d</dt><dd>截尾均值与温莎化方差项；截掉 20% 后这里每组有效 n = 6</dd>
+            </dl>
+          </div>
+          <div class="tablewrap">
+            <table>
+              <thead><tr>
+                <th>检验</th>
+                <th>回答的问题</th>
+                <th>在这份数据上</th>
+              </tr></thead>
+              <tbody>
+                <tr><td class="sym">Mann&#8211;Whitney U</td><td>T 的取值总体更大吗？</td><td>U = 74.5，z = 1.816，p = 0.069；HL = +6.5 [−1; 14]；中位数 15.5 → 23.0；CLES 0.745，r<sub>rb</sub> = 0.49</td></tr>
+                <tr><td class="sym">bootstrap / permutation</td><td>均值差能用偶然解释吗？</td><td>Δ = 6.8，p = 0.0665，CI [0.4; 13.2]，d = 0.88（2,000 次重采样，固定种子）</td></tr>
+                <tr><td class="sym">quantile (median)</td><td>中位数移动了吗？</td><td>位移 +7.5，p = 0.123，CI [−1.5; 15]</td></tr>
+                <tr><td class="sym">Yuen trimmed t (20%)</td><td>切掉尾部后均值有差异吗？</td><td>16.17 对 23.0，t = 1.94，df 9.84，p = 0.082</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">合起来读。</span>
+            <span>这里四个检验意见一致：效应约 +6…7，p 在 0.07 到 0.12 之间——有希望，但在 n = 10 下不显著。当四重奏出现分歧时，分歧本身就是信息：“均值对中位数”的裂缝说明是离群值或厚尾在拉动“平均”的胜利。</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">分析 · 计数</span>
+          <h4>事件计数：泊松强度检验</h4>
+          <p>当指标是单位曝光上的事件计数——每千次会话的错误数、每用户-天的订单数——比较的是强度，不是份额。引擎用精确条件检验：给定事件总数，实验组所占份额在 H₀ 下服从二项分布（事件至 100 万内为精确）。效应是强度比，并给出强度差的置信区间。</p>
+          <div class="formula">
+            <span class="flabel">条件二项与强度比</span>
+            <math display="block">
+              <msub><mi>X</mi><mi>t</mi></msub><mo>&#x2223;</mo><mrow><mo>(</mo><msub><mi>X</mi><mi>t</mi></msub><mo>+</mo><msub><mi>X</mi><mi>c</mi></msub><mo>)</mo></mrow>
+              <mo>&#x223C;</mo><mtext>Bin</mtext><mrow><mo>(</mo><msub><mi>X</mi><mi>t</mi></msub><mo>+</mo><msub><mi>X</mi><mi>c</mi></msub><mo>,</mo><mspace width="0.25em"/><mfrac><msub><mi>e</mi><mi>t</mi></msub><mrow><msub><mi>e</mi><mi>t</mi></msub><mo>+</mo><msub><mi>e</mi><mi>c</mi></msub></mrow></mfrac><mo>)</mo></mrow>
+              <mspace width="1.6em"/>
+              <mtext>RR</mtext><mo>=</mo><mfrac><mrow><msub><mi>X</mi><mi>t</mi></msub><mo>/</mo><msub><mi>e</mi><mi>t</mi></msub></mrow><mrow><msub><mi>X</mi><mi>c</mi></msub><mo>/</mo><msub><mi>e</mi><mi>c</mi></msub></mrow></mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">其中</p>
+            <dl>
+              <dt>X<sub>c</sub>, X<sub>t</sub></dt><dd>对照组与实验组的事件数</dd>
+              <dt>e<sub>c</sub>, e<sub>t</sub></dt><dd>曝光量（用户、会话、用户-天）</dd>
+              <dt>RR</dt><dd>强度比——乘法效应</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>46 起事件 / 11,500 对 72 / 11,800：强度 0.40% → 0.61%，比值 <span class='num'>1.525</span>，精确 p = <span class='num'>0.0269</span>，差值 CI [0.0003; 0.0039]。</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">分析 · 比值</span>
+          <h4>Ratio 指标：delta 方法</h4>
+          <p>CTR、“每次展示的点击”、“每次会话的收入”是比值 <span class='k'>R = ΣY / ΣX</span>：随机化的是<em>用户</em>，计数却按<em>事件</em>。这里朴素方差是<strong>错的</strong>：它忽略了用户内部分子与分母的关联。delta 方法把比值线性化，恢复正确的方差。</p>
+          <div class="formula">
+            <span class="flabel">比值的方差（delta 方法）</span>
+            <math display="block">
+              <mtext>Var</mtext><mo>(</mo><mover><mi>R</mi><mo>^</mo></mover><mo>)</mo><mo>=</mo>
+              <mfrac>
+                <mrow><msubsup><mi>&#x3C3;</mi><mi>Y</mi><mn>2</mn></msubsup><mo>&#x2212;</mo><mn>2</mn><mover><mi>R</mi><mo>^</mo></mover><msub><mi>&#x3C3;</mi><mrow><mi>X</mi><mi>Y</mi></mrow></msub><mo>+</mo><msup><mover><mi>R</mi><mo>^</mo></mover><mn>2</mn></msup><msubsup><mi>&#x3C3;</mi><mi>X</mi><mn>2</mn></msubsup></mrow>
+                <mrow><mi>n</mi><mo>&#x2062;</mo><msubsup><mi>&#x3BC;</mi><mi>X</mi><mn>2</mn></msubsup></mrow>
+              </mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">其中</p>
+            <dl>
+              <dt>&#x3BC;<sub>X</sub></dt><dd>每用户的平均分母</dd>
+              <dt>&#x3C3;&#xB2;<sub>X</sub>, &#x3C3;&#xB2;<sub>Y</sub></dt><dd>每用户分子与分母的方差</dd>
+              <dt>&#x3C3;<sub>XY</sub></dt><dd>它们的协方差——朴素公式丢掉的正是它</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>来自引擎的冻结测试：每次展示点击 0.436 → 0.538，Δ = <span class='num'>0.1018</span>，z = <span class='num'>8.74</span>——强显著的比值提升，且用户内协方差被正确计入。</span>
+          </div>
+        </div>
+
+        <!-- ---- 4.2 paired designs ---- -->
+        <h3>配对观测</h3>
+        <p class="group-lead">同一批单元测量两次——前/后，或匹配成对。配对在每一对内部消掉了用户间方差，因此配对设计用一小部分样本就能达到显著。分析单元是对子，不是用户。</p>
+
+        <div class="card">
+          <span class="tag analyze">分析 · 配对均值</span>
+          <h4>配对 t 检验</h4>
+          <p>取对内差值 <span class='k'>d</span>，检验其均值是否为零。稳定的用户间差异在每对内部相互抵消；只有变化本身还有噪声。效应量是 Cohen's <span class='k'>d<sub>z</sub></span>——以差值离散度为单位。</p>
+          <div class="formula">
+            <span class="flabel">统计量与配对效应量</span>
+            <math display="block">
+              <mi>t</mi><mo>=</mo><mfrac><mover><mi>d</mi><mo>&#xAF;</mo></mover><mrow><msub><mi>s</mi><mi>d</mi></msub><mo>/</mo><msqrt><mi>n</mi></msqrt></mrow></mfrac>
+              <mspace width="1.6em"/>
+              <mtext>df</mtext><mo>=</mo><mi>n</mi><mo>&#x2212;</mo><mn>1</mn>
+              <mspace width="1.6em"/>
+              <msub><mi>d</mi><mi>z</mi></msub><mo>=</mo><mfrac><mover><mi>d</mi><mo>&#xAF;</mo></mover><msub><mi>s</mi><mi>d</mi></msub></mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">其中</p>
+            <dl>
+              <dt>d&#x304;</dt><dd>对内差值的均值</dd>
+              <dt>s<sub>d</sub></dt><dd>差值的标准差</dd>
+              <dt>d<sub>z</sub></dt><dd>配对效应量：平均差值除以其离散度</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>12 对前/后（309.2 → 318.3）：Δ = <span class='num'>+9.17</span>，t = 6.46，df 11，p &lt; 0.001，CI [6.04; 12.29]，d<sub>z</sub> = 1.87。两组各 12 人的独立设计永远看不到这一点。</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">分析 · 配对，秩</span>
+          <h4>Wilcoxon 符号秩检验</h4>
+          <p>配对 t 的非参数孪生：对差值的绝对值排秩，分别求正差与负差的秩和，检验较小的那个（正态近似）。对差值中的离群值稳健；效应是配对差值的 Hodges–Lehmann <strong>伪中位数</strong>。</p>
+          <div class="formula">
+            <span class="flabel">统计量与正态近似</span>
+            <math display="block">
+              <mi>W</mi><mo>=</mo><mi>min</mi><mo>&#x2061;</mo><mo>(</mo><msup><mi>W</mi><mo>+</mo></msup><mo>,</mo><mspace width="0.2em"/><msup><mi>W</mi><mo>&#x2212;</mo></msup><mo>)</mo>
+              <mspace width="1.6em"/>
+              <mi>z</mi><mo>=</mo><mfrac><mrow><mi>W</mi><mo>&#x2212;</mo><msub><mi>&#x3BC;</mi><mi>W</mi></msub></mrow><msub><mi>&#x3C3;</mi><mi>W</mi></msub></mfrac>
+            </math>
+          </div>
+          <div class="callout example">
+            <span>同样的 12 对：W = <span class='num'>1</span>，z = −2.945，p = <span class='num'>0.0032</span>，伪中位数 +9.5 [6; 12.5]。</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">分析 · 配对，二元</span>
+          <h4>McNemar：配对比例</h4>
+          <p>对配对的二元结局（同一批人前后是否转化），只有<strong>不一致</strong>的对子携带信息：<span class='k'>b</span> 对从 0→1，<span class='k'>c</span> 对从 1→0；一致的对子相互抵消。引擎应用连续性校正，并报告优势比 b/c 与比例差。</p>
+          <div class="formula">
+            <span class="flabel">带校正的统计量与优势比</span>
+            <math display="block">
+              <msup><mi>&#x3C7;</mi><mn>2</mn></msup><mo>=</mo>
+              <mfrac>
+                <msup><mrow><mo>(</mo><mrow><mo>|</mo><mi>b</mi><mo>&#x2212;</mo><mi>c</mi><mo>|</mo></mrow><mo>&#x2212;</mo><mn>1</mn><mo>)</mo></mrow><mn>2</mn></msup>
+                <mrow><mi>b</mi><mo>+</mo><mi>c</mi></mrow>
+              </mfrac>
+              <mspace width="1.6em"/>
+              <mtext>OR</mtext><mo>=</mo><mfrac><mi>b</mi><mi>c</mi></mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">其中</p>
+            <dl>
+              <dt>b</dt><dd>变好的对子（0→1）</dd>
+              <dt>c</dt><dd>变差的对子（1→0）</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>1,000 对，b = 30，c = 12：χ² = <span class='num'>6.881</span>（带校正），p = <span class='num'>0.0087</span>，OR = 2.5，Δ = +1.8 个百分点 [0.53; 3.07]。</span>
+          </div>
+        </div>
+
+        <!-- ---- 4.3 more than two groups & categories ---- -->
+        <h3>多于两组，以及类别</h3>
+        <p class="group-lead">有 k 个版本时，先做一个综合（omnibus）检验——“到底有没有任何差异？”——然后才做带多重性校正的两两比较（第 03 节）。直接跳到两两检验会成倍放大误报。</p>
+
+        <div class="card">
+          <span class="tag analyze">分析 · k 组</span>
+          <h4>综合检验：Welch ANOVA 与 Kruskal–Wallis</h4>
+          <p><strong>Welch ANOVA</strong> 在不假设方差相等的前提下比较 k 个均值（与 Welch t 同一哲学）。<strong>Kruskal–Wallis</strong> 是它的秩版孪生。效应量：<span class='k'>η²</span> 与 <span class='k'>ε²</span>——组别所解释的方差份额。</p>
+          <div class="formula">
+            <span class="flabel">Welch ANOVA（方差不等）</span>
+            <math display="block">
+              <msub><mi>w</mi><mi>i</mi></msub><mo>=</mo><mfrac><msub><mi>n</mi><mi>i</mi></msub><msubsup><mi>s</mi><mi>i</mi><mn>2</mn></msubsup></mfrac>
+              <mspace width="1.4em"/>
+              <msup><mi>F</mi><mo>&#x2217;</mo></msup><mo>=</mo>
+              <mfrac>
+                <mrow><munder><mo>&#x2211;</mo><mi>i</mi></munder><msub><mi>w</mi><mi>i</mi></msub><msup><mrow><mo>(</mo><msub><mover><mi>x</mi><mo>&#xAF;</mo></mover><mi>i</mi></msub><mo>&#x2212;</mo><msub><mover><mi>x</mi><mo>&#xAF;</mo></mover><mi>w</mi></msub><mo>)</mo></mrow><mn>2</mn></msup><mo>/</mo><mrow><mo>(</mo><mi>k</mi><mo>&#x2212;</mo><mn>1</mn><mo>)</mo></mrow></mrow>
+                <mi>D</mi>
+              </mfrac>
+            </math>
+          </div>
+          <div class="formula">
+            <span class="flabel">Kruskal–Wallis 及其效应量</span>
+            <math display="block">
+              <mi>H</mi><mo>=</mo>
+              <mfrac><mn>12</mn><mrow><mi>N</mi><mo>(</mo><mi>N</mi><mo>+</mo><mn>1</mn><mo>)</mo></mrow></mfrac>
+              <munder><mo>&#x2211;</mo><mi>i</mi></munder><mfrac><msubsup><mi>R</mi><mi>i</mi><mn>2</mn></msubsup><msub><mi>n</mi><mi>i</mi></msub></mfrac>
+              <mo>&#x2212;</mo><mn>3</mn><mo>(</mo><mi>N</mi><mo>+</mo><mn>1</mn><mo>)</mo>
+              <mspace width="1.4em"/>
+              <msup><mi>&#x3B5;</mi><mn>2</mn></msup><mo>=</mo><mfrac><mrow><mi>H</mi><mo>&#x2212;</mo><mi>k</mi><mo>+</mo><mn>1</mn></mrow><mrow><mi>N</mi><mo>&#x2212;</mo><mi>k</mi></mrow></mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">其中</p>
+            <dl>
+              <dt>k, N</dt><dd>组数与总样本量</dd>
+              <dt>x&#x304;<sub>w</sub>, D</dt><dd>按方差加权的总均值；D 是校正方差不等的 Welch 分母——参考分布为 F(k−1, df)，df 按 Welch 计算</dd>
+              <dt>R<sub>i</sub></dt><dd>第 i 组在合并样本中的秩和</dd>
+              <dt>&#x3B7;&#xB2;, &#x3B5;&#xB2;</dt><dd>解释方差的份额：ANOVA 用 η²，Kruskal–Wallis 用 ε²</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>3 组 × 10（第三组更低）：Welch ANOVA F* = <span class='num'>3.58</span>，df (2; 16.87)，p = <span class='num'>0.0506</span>——不显著；同一数据上的 Kruskal–Wallis H = <span class='num'>6.44</span>，p = <span class='num'>0.0399</span>——显著，ε² = 0.222。</span>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">一次有教益的分歧。</span>
+            <span>同样的数据、两个都站得住脚的检验，在 α = 0.05 下裁决相反（0.0506 对 0.0399）。厚尾削弱基于均值的检验，却几乎不影响秩检验。把阈值附近的 p 值当作边界证据，而不是二元真理——并且在看数据之前就定好检验家族。</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">分析 · 类别</span>
+          <h4>类别：χ² r×c、Cramér V、G 检验</h4>
+          <p>当结局是若干类别之一（所选套餐、点击目标）且版本有多个时，χ² 独立性检验问的是分布是否随版本不同，而 <strong>Cramér V</strong>（0…1）说明差异有多强。<strong>G 检验</strong>是同一问题的似然比版本——大表上答案一致，且可跨切片相加。</p>
+          <div class="formula">
+            <span class="flabel">独立性检验与关联强度</span>
+            <math display="block">
+              <msup><mi>&#x3C7;</mi><mn>2</mn></msup><mo>=</mo>
+              <munder><mo>&#x2211;</mo><mrow><mi>i</mi><mo>,</mo><mi>j</mi></mrow></munder>
+              <mfrac><msup><mrow><mo>(</mo><msub><mi>O</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo>&#x2212;</mo><msub><mi>E</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo>)</mo></mrow><mn>2</mn></msup><msub><mi>E</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub></mfrac>
+              <mspace width="1.4em"/>
+              <mi>V</mi><mo>=</mo><msqrt><mfrac><msup><mi>&#x3C7;</mi><mn>2</mn></msup><mrow><mi>n</mi><mo>&#x2062;</mo><mi>min</mi><mo>&#x2061;</mo><mo>(</mo><mi>r</mi><mo>&#x2212;</mo><mn>1</mn><mo>,</mo><mi>c</mi><mo>&#x2212;</mo><mn>1</mn><mo>)</mo></mrow></mfrac></msqrt>
+            </math>
+          </div>
+          <div class="formula">
+            <span class="flabel">G 检验（似然比）</span>
+            <math display="block">
+              <mi>G</mi><mo>=</mo><mn>2</mn>
+              <munder><mo>&#x2211;</mo><mrow><mi>i</mi><mo>,</mo><mi>j</mi></mrow></munder>
+              <msub><mi>O</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo>&#x2062;</mo><mi>ln</mi><mo>&#x2061;</mo><mfrac><msub><mi>O</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><msub><mi>E</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub></mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">其中</p>
+            <dl>
+              <dt>O<sub>ij</sub>, E<sub>ij</sub></dt><dd>观测与期望频数；E = (行合计 × 列合计) / n</dd>
+              <dt>r, c</dt><dd>行数与列数</dd>
+              <dt>V</dt><dd>关联强度：0 —— 独立，1 —— 完全决定</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>3 种套餐 × 3 个版本 [[420, 380, 200], [410, 360, 230], [380, 340, 280]]：χ² = <span class='num'>18.17</span>，df 4，p = <span class='num'>0.0011</span>；G = <span class='num'>18.07</span>，p = 0.0012；Cramér V = <span class='num'>0.055</span>——显著，但关联很弱。n ≈ 3,000 时显著性很廉价；V 让人保持诚实。</span>
+          </div>
+          <div class="callout warn">
+            <span class="clabel">Cochran 规则。</span>
+            <span>χ² 近似要求（几乎）每个格子的期望频数不少于 5——这里 min E = 236.7，没有问题。格子稀疏时，请合并类别或改用精确检验。</span>
+          </div>
+        </div>
+
+        <!-- ---- 4.4 time-to-event ---- -->
+        <h3>事件时间（生存分析）</h3>
+        <p class="group-lead">有时指标是“到事件发生要多久”——流失、首购、激活——而窗口结束时一部分用户还没有发生事件。把他们扔掉会让一切产生偏倚；生存方法把他们保留为<strong>删失</strong>观测：他们贡献的信息是“至少坚持了这么久”。</p>
+
+        <div class="card">
+          <span class="tag analyze">分析 · 生存</span>
+          <h4>Kaplan–Meier：生存曲线</h4>
+          <p>乘积极限估计构造 <span class='k'>S(t)</span>——“活过” t 的概率——在每个观测到的事件时点，把处于风险中且未发生事件者的比例连乘。删失用户离开风险集但不计为事件。</p>
+          <div class="formula">
+            <span class="flabel">乘积极限估计</span>
+            <math display="block">
+              <mover><mi>S</mi><mo>^</mo></mover><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo>
+              <munder><mo>&#x220F;</mo><mrow><msub><mi>t</mi><mi>i</mi></msub><mo>&#x2264;</mo><mi>t</mi></mrow></munder>
+              <mrow><mo>(</mo><mn>1</mn><mo>&#x2212;</mo><mfrac><msub><mi>d</mi><mi>i</mi></msub><msub><mi>n</mi><mi>i</mi></msub></mfrac><mo>)</mo></mrow>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">其中</p>
+            <dl>
+              <dt>t<sub>i</sub></dt><dd>互不相同的事件时点</dd>
+              <dt>d<sub>i</sub></dt><dd>时点 t<sub>i</sub> 上的事件数</dd>
+              <dt>n<sub>i</sub></dt><dd>t<sub>i</sub> 之前一刻处于风险中的数量</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>下方数据集中对照组的流失曲线：Ŝ(25) = <span class='num'>0.25</span> [0.005; 0.495]——到第 25 天只留存四分之一，而在这个样本量下区间诚实地表明这个数字有多不确定。</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">分析 · 生存</span>
+          <h4>Log-rank 与 Fleming–Harrington</h4>
+          <p>Log-rank 检验比较的是整条曲线，而不是一个点：在每个事件时点累计第 1 组观测与期望的事件数（Mantel–Cox，O − E 除以方差 V）。<strong>Fleming–Harrington G(ρ,γ)</strong> 是加权家族：ρ &gt; 0 强调早期差异，γ &gt; 0 强调晚期；G(0,0) 恰好是 log-rank。k 组时统计量是二次型 zᵀV⁻¹z ~ χ²(k−1)。</p>
+          <div class="formula">
+            <span class="flabel">Log-rank（Mantel–Cox）</span>
+            <math display="block">
+              <msup><mi>&#x3C7;</mi><mn>2</mn></msup><mo>=</mo>
+              <mfrac>
+                <msup><mrow><mo>(</mo><msub><mi>O</mi><mn>1</mn></msub><mo>&#x2212;</mo><msub><mi>E</mi><mn>1</mn></msub><mo>)</mo></mrow><mn>2</mn></msup>
+                <mi>V</mi>
+              </mfrac>
+            </math>
+          </div>
+          <div class="formula">
+            <span class="flabel">Fleming–Harrington 权重与 k 样本形式</span>
+            <math display="block">
+              <mi>w</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo>
+              <mover><mi>S</mi><mo>^</mo></mover><msup><mrow><mo>(</mo><msup><mi>t</mi><mo>&#x2212;</mo></msup><mo>)</mo></mrow><mi>&#x3C1;</mi></msup>
+              <msup><mrow><mo>(</mo><mn>1</mn><mo>&#x2212;</mo><mover><mi>S</mi><mo>^</mo></mover><mo>(</mo><msup><mi>t</mi><mo>&#x2212;</mo></msup><mo>)</mo><mo>)</mo></mrow><mi>&#x3B3;</mi></msup>
+              <mspace width="1.6em"/>
+              <msup><mi>&#x3C7;</mi><mn>2</mn></msup><mo>=</mo><msup><mi>z</mi><mi>T</mi></msup><msup><mi>V</mi><mrow><mo>&#x2212;</mo><mn>1</mn></mrow></msup><mi>z</mi>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">其中</p>
+            <dl>
+              <dt>O&#x2081;, E&#x2081;</dt><dd>第 1 组的观测与期望事件数，按事件时点求和</dd>
+              <dt>V</dt><dd>O₁ 的超几何方差</dd>
+              <dt>&#x3C1;, &#x3B3;</dt><dd>权重旋钮：(0,0)——经典；ρ &gt; 0——早期差异；γ &gt; 0——晚期差异</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>流失天数 C = [3, 5, 7, 9, 12, 14, 18, 21, 25] + 3 个在第 30 天删失，对 T = [6, 10, 15, 22, 28] + 7 个删失：χ² = <span class='num'>3.32</span>，p = <span class='num'>0.068</span>（O₁ = 9 对 E₁ = 5.68）。G(0,0) 完全重现这一结果。</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">分析 · 生存</span>
+          <h4>Cox 比例风险</h4>
+          <p>Cox 模型把组间差异变成<strong>风险比</strong>：HR = e<sup>β</sup> 在每个时刻乘上事件的瞬时风险。引擎用偏似然为处理指示变量拟合 β，并用 Wald z 检验；基线风险 h₀(t) 保持不设定。</p>
+          <div class="formula">
+            <span class="flabel">模型、效应与 Wald 检验</span>
+            <math display="block">
+              <mi>h</mi><mo>(</mo><mi>t</mi><mo>&#x2223;</mo><mi>x</mi><mo>)</mo><mo>=</mo>
+              <msub><mi>h</mi><mn>0</mn></msub><mo>(</mo><mi>t</mi><mo>)</mo><mo>&#x2062;</mo>
+              <msup><mi>e</mi><mrow><mi>&#x3B2;</mi><mi>x</mi></mrow></msup>
+              <mspace width="1.4em"/>
+              <mtext>HR</mtext><mo>=</mo><msup><mi>e</mi><mover><mi>&#x3B2;</mi><mo>^</mo></mover></msup>
+              <mspace width="1.4em"/>
+              <mi>z</mi><mo>=</mo><mfrac><mover><mi>&#x3B2;</mi><mo>^</mo></mover><mrow><mtext>SE</mtext><mo>(</mo><mover><mi>&#x3B2;</mi><mo>^</mo></mover><mo>)</mo></mrow></mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">其中</p>
+            <dl>
+              <dt>h&#x2080;(t)</dt><dd>基线风险——从不估计，在偏似然中约掉</dd>
+              <dt>x</dt><dd>处理指示变量（0 = 对照，1 = 实验）</dd>
+              <dt>HR</dt><dd>风险比：HR &lt; 1——事件被放慢（对流失是好事），HR &gt; 1——被加速</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>同一数据集：HR = <span class='num'>0.372</span> [0.123; 1.123]，β = −0.988，SE 0.563，p = <span class='num'>0.079</span>。点估计说“流失风险低了近三倍”；区间说数据还撑不起这一结论。效应大小与显著性是两个不同的问题。</span>
+          </div>
+          <div class="callout warn">
+            <span class="clabel">PH 假设。</span>
+            <span>“比例风险”意味着该比值随时间不变；若曲线相交，HR 会把符号变化平均掉——先看 KM 曲线。在似然单调的退化数据上（例如所有事件都在一组），引擎会拒绝拟合，而不是报告一个虚假的 HR。</span>
+          </div>
+        </div>
+
+        <!-- ---- 4.5 all 22 analyzers ---- -->
+        <h3>全部二十二个分析器</h3>
+        <p class="lead-in">按实验设计分组。组内的选择依据指标类型和数据形态。</p>
+        <div class="tablewrap">
+          <table>
+            <thead><tr>
+              <th>分析器</th>
+              <th>用于</th>
+              <th>备注</th>
+            </tr></thead>
+            <tbody>
+              <tr class="group"><td colspan="3">两个独立组——比例与计数</td></tr>
+              <tr><td class="sym">z &#183; 2 proportions</td><td>比例，2 组</td><td>基础转化检验；Wilson / Newcombe 区间</td></tr>
+              <tr><td class="sym">Fisher exact</td><td>比例，小样本</td><td>精确 2×2；对边缘取条件</td></tr>
+              <tr><td class="sym">Boschloo exact</td><td>比例，小样本</td><td>无条件精确，按 Fisher 的 p 排序——有力的默认</td></tr>
+              <tr><td class="sym">Barnard exact</td><td>比例，小样本</td><td>无条件精确，按合并 z 排序；功效略高，更慢</td></tr>
+              <tr><td class="sym">Poisson rate</td><td>单位曝光的事件数</td><td>精确条件二项；强度比</td></tr>
+              <tr class="group"><td colspan="3">两个独立组——均值与分布</td></tr>
+              <tr><td class="sym">Welch t</td><td>均值，2 组</td><td>方差不等——默认选择</td></tr>
+              <tr><td class="sym">TOST</td><td>均值的等价性</td><td>“证明不比 ±M 更差”</td></tr>
+              <tr><td class="sym">Mann&#8211;Whitney U</td><td>秩 / 随机占优</td><td>Hodges–Lehmann 位移，秩双列相关</td></tr>
+              <tr><td class="sym">bootstrap / permutation</td><td>任意分布</td><td>无假设重采样，固定种子</td></tr>
+              <tr><td class="sym">quantile effect</td><td>中位数 / 百分位</td><td>效应在尾部，不在均值</td></tr>
+              <tr><td class="sym">Yuen trimmed t</td><td>带离群值的均值</td><td>20% 截尾，温莎化方差</td></tr>
+              <tr class="group"><td colspan="3">Ratio 指标</td></tr>
+              <tr><td class="sym">ratio delta-method</td><td>CTR，每次展示 / 每次会话</td><td>delta 方法恢复诚实的方差</td></tr>
+              <tr class="group"><td colspan="3">配对观测</td></tr>
+              <tr><td class="sym">paired t</td><td>配对均值</td><td>前/后；Cohen's d<sub>z</sub></td></tr>
+              <tr><td class="sym">Wilcoxon signed-rank</td><td>配对，秩</td><td>配对差值的伪中位数</td></tr>
+              <tr><td class="sym">McNemar</td><td>配对比例</td><td>只用不一致对子；带连续性校正</td></tr>
+              <tr class="group"><td colspan="3">多于两组与类别</td></tr>
+              <tr><td class="sym">Welch ANOVA</td><td>均值，k 组</td><td>综合检验，方差不等，η²</td></tr>
+              <tr><td class="sym">Kruskal&#8211;Wallis</td><td>秩，k 组</td><td>非参数综合检验，ε²</td></tr>
+              <tr><td class="sym">&#x3C7;&#xB2; r&#xD7;c + Cram&#xE9;r V</td><td>类别 × 版本</td><td>独立性 + 关联强度</td></tr>
+              <tr><td class="sym">G-test</td><td>类别 × 版本</td><td>χ² 的似然比孪生</td></tr>
+              <tr class="group"><td colspan="3">事件时间</td></tr>
+              <tr><td class="sym">log-rank</td><td>生存曲线，2+ 组</td><td>Mantel–Cox O−E；处理删失</td></tr>
+              <tr><td class="sym">Fleming&#8211;Harrington G(&#x3C1;,&#x3B3;)</td><td>曲线的早期 / 晚期差异</td><td>权重 Ŝ(t)^ρ(1−Ŝ(t))^γ；k 样本 zᵀV⁻¹z</td></tr>
+              <tr><td class="sym">Cox PH</td><td>以风险比作为效应量</td><td>对 β̂ 的 Wald 检验；PH 假设</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <hr class="divider">
+      </section>
+      <!-- ================= 5. MONITORING ================= -->
+      <section id="monitoring">
+        <div class="sec-head"><span class="sec-num">05</span></div>
+        <h2>实时监控：测试进行中</h2>
+        <p class="sec-intro">规划并不是终点。实验运行期间，需要捕捉随机化的故障、避免以错误的方式“偷看”、通过降低方差加速结论，并确保主指标的胜利不会弄坏其他东西。</p>
+
+        <h3>SRM：随机化散架了吗</h3>
+        <div class="card">
+          <span class="tag monitor">监控 · 健康</span>
+          <p><strong>Sample Ratio Mismatch</strong>——实际流量分配（比如 50/50）偏离期望的程度超出了偶然允许的范围。这是红色警报：分流器坏了、事件丢失、机器人。存在 SRM 时结果<em>不可信</em>——必须修复原因。用 χ² 拟合优度检验探测。</p>
+          <div class="formula">
+            <span class="flabel">拟合优度统计量</span>
+            <math display="block">
+              <msup><mi>&#x3C7;</mi><mn>2</mn></msup><mo>=</mo><munderover><mo>&#x2211;</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>k</mi></munderover><mfrac><msup><mrow><mo>(</mo><msub><mi>O</mi><mi>i</mi></msub><mo>&#x2212;</mo><msub><mi>E</mi><mi>i</mi></msub><mo>)</mo></mrow><mn>2</mn></msup><msub><mi>E</mi><mi>i</mi></msub></mfrac>
+              <mspace width="1.6em"/><mtext>df</mtext><mo>=</mo><mi>k</mi><mo>&#x2212;</mo><mn>1</mn>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">其中</p>
+            <dl>
+              <dt>O<sub>i</sub></dt><dd>落入版本 i 的实际人数</dd>
+              <dt>E<sub>i</sub></dt><dd>期望 = 份额·总数</dd>
+              <dt>k</dt><dd>版本数</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>期望 20,000 人按 50/50 分，实际看到 10,300 / 9,700 → χ² = <span class='num'>18.0</span>，p ≈ <span class='num'>0.00002</span>。警报阈值 <span class='k'>p &lt; 0.001</span> 被突破 → <strong style='color:var(--danger)'>SRM，停</strong>。</span>
+          </div>
+        </div>
+
+        <h3>偷看问题与成组序贯设计</h3>
+        <div class="card">
+          <span class="tag monitor">监控 · 提前停止</span>
+          <p>每天盯着 p 值、一旦跌破 0.05 就停——真实的误报率不是 5%，而是它的好几倍。每一次“看”都是一次新的犯错机会。<strong>O'Brien–Fleming 边界</strong>解决了这一点：早期的查看要求几乎不可能的 z，阈值向终点逐渐放宽，而总 α 保持 0.05。</p>
+          <div class="formula">
+            <span class="flabel">信息比例 t 上的边界</span>
+            <math display="block">
+              <msub><mi>z</mi><mi>k</mi></msub><mo>=</mo><mfrac><msub><mi>z</mi><mtext>final</mtext></msub><msqrt><msub><mi>t</mi><mi>k</mi></msub></msqrt></mfrac>
+              <mspace width="1.6em"/><msub><mi>t</mi><mi>k</mi></msub><mo>=</mo><mfrac><mtext>查看</mtext><mrow><mtext>总查看次数</mtext></mrow></mfrac>
+            </math>
+          </div>
+          <div class="callout example">
+            <span>计划查看 5 次时，第一次（t = 0.2）要求 ≈ <span class='num'>z = 4.5</span>（p ≈ 0.000007）：这么早停下几乎不可能。这防住了偶然的早期“胜利”。代价——计划样本略增（× ~1.03；引擎对校准的最终锚点做插值）。</span>
+          </div>
+        </div>
+
+        <figure class="figure">
+          <svg viewBox="0 0 560 216" role="img" aria-label="O'Brien-Fleming z-boundaries relax across looks">
+            <line class="fig-axis" x1="40" y1="188" x2="548" y2="188"/>
+            <line class="fig-axis" x1="40" y1="188" x2="40" y2="16"/>
+            <line class="fig-ref" x1="40" y1="123" x2="548" y2="123"/>
+            <text class="fig-tick" x="44" y="118">1.96</text>
+            <path class="fig-line" d="M 148,37 246,81 344,101 442,112 540,120"/>
+            <circle class="fig-dot-h" cx="148" cy="37" r="5"/><text class="fig-cap-in" x="148" y="28" text-anchor="middle">4.56</text>
+            <circle class="fig-dot-h" cx="246" cy="81" r="5"/><text class="fig-cap-in" x="246" y="72" text-anchor="middle">3.23</text>
+            <circle class="fig-dot-h" cx="344" cy="101" r="5"/><text class="fig-cap-in" x="344" y="92" text-anchor="middle">2.63</text>
+            <circle class="fig-dot-h" cx="442" cy="112" r="5"/><text class="fig-cap-in" x="442" y="103" text-anchor="middle">2.28</text>
+            <circle class="fig-dot" cx="540" cy="120" r="5.5"/><text class="fig-cap-in" x="540" y="111" text-anchor="middle">2.04</text>
+            <text class="fig-tick" x="148" y="202" text-anchor="middle">1</text>
+            <text class="fig-tick" x="246" y="202" text-anchor="middle">2</text>
+            <text class="fig-tick" x="344" y="202" text-anchor="middle">3</text>
+            <text class="fig-tick" x="442" y="202" text-anchor="middle">4</text>
+            <text class="fig-tick" x="540" y="202" text-anchor="middle">5</text>
+          </svg>
+          <figcaption>五次计划查看的 z 边界。早期查看要求几乎不可能的 z ≈ 4.6——偶然不会这么早“报警”。接近终点时边界放宽到 ≈ 2.04，而总 α 保持在 0.05。虚线是朴素的固定 1.96，偷看时它会产生过多误报。</figcaption>
+        </figure>
+
+        <h3>Always-valid：想什么时候看就什么时候看</h3>
+        <div class="card">
+          <span class="tag monitor">监控 · anytime</span>
+          <p>O'Brien–Fleming 需要预先计划的查看。实时仪表盘上的查看是<em>没有</em>计划的。这时用 <strong>always-valid</strong> 推断（混合 mSPRT）：p 值和区间在<em>连续</em>监控下保持正确——任意次数、任意时刻。</p>
+          <div class="formula">
+            <span class="flabel">混合似然比与 anytime-p</span>
+            <math display="block">
+              <msub><mi>&#x39B;</mi><mi>n</mi></msub><mo>=</mo><msqrt><mfrac><mi>V</mi><mrow><mi>V</mi><mo>+</mo><msup><mi>&#x3C4;</mi><mn>2</mn></msup></mrow></mfrac></msqrt><mo>&#x2062;</mo><mi>exp</mi><mo>&#x2061;</mo><mrow><mo>(</mo><mfrac><mrow><msup><mi>&#x3C4;</mi><mn>2</mn></msup><msup><mover><mi>&#x3B8;</mi><mo>^</mo></mover><mn>2</mn></msup></mrow><mrow><mn>2</mn><mi>V</mi><mo>(</mo><mi>V</mi><mo>+</mo><msup><mi>&#x3C4;</mi><mn>2</mn></msup><mo>)</mo></mrow></mfrac><mo>)</mo></mrow>
+              <mspace width="1.4em"/><mi>p</mi><mo>=</mo><mi>min</mi><mo>&#x2061;</mo><mo>(</mo><mn>1</mn><mo>,</mo><mspace width="0.2em"/><mn>1</mn><mo>/</mo><msub><mi>&#x39B;</mi><mi>n</mi></msub><mo>)</mo>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">其中</p>
+            <dl>
+              <dt>&#x3B8;&#x302;</dt><dd>观测到的效应（均值 / 比例之差）</dd>
+              <dt>V</dt><dd>效应估计的方差</dd>
+              <dt>&#x3C4;&#xB2;</dt><dd>“混合”的散布——按预期效应调节；不影响有效性，只影响功效</dd>
+            </dl>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">置信序列。</span>
+            <span>该方法有配套区间 <span class='k'>θ̂ ± r</span>，它以概率 1 − α <em>同时在所有</em>样本量上覆盖真实效应。它恰好在 anytime-p 跌破 α 时不再包含零。</span>
+          </div>
+        </div>
+
+        <h3>贝叶斯视角：P(B &gt; A)</h3>
+        <div class="card">
+          <span class="tag monitor">监控 · 贝叶斯</span>
+          <p>贝叶斯不回答“显著 / 不显著”，而是直接回答业务问题：<strong>B 胜过 A 的概率是多少？</strong>对转化率，为每个版本取 Beta 后验，统计 B 的抽样超过 A 的抽样的频率。引擎用固定种子的蒙特卡洛模拟完成——可复现，不是闭式解。</p>
+          <div class="formula">
+            <span class="flabel">后验与优胜概率</span>
+            <math display="block">
+              <msub><mi>p</mi><mi>i</mi></msub><mo>&#x223C;</mo><mtext>Beta</mtext><mo>(</mo><mn>1</mn><mo>+</mo><msub><mi>x</mi><mi>i</mi></msub><mo>,</mo><mspace width="0.2em"/><mn>1</mn><mo>+</mo><msub><mi>n</mi><mi>i</mi></msub><mo>&#x2212;</mo><msub><mi>x</mi><mi>i</mi></msub><mo>)</mo>
+              <mspace width="1.4em"/><mi>P</mi><mo>(</mo><mi>B</mi><mo>&gt;</mo><mi>A</mi><mo>)</mo><mo>=</mo><mi>P</mi><mo>(</mo><msub><mi>p</mi><mi>B</mi></msub><mo>&gt;</mo><msub><mi>p</mi><mi>A</mi></msub><mo>)</mo>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">其中</p>
+            <dl>
+              <dt>x<sub>i</sub>, n<sub>i</sub></dt><dd>版本 i 的转化数与规模</dd>
+              <dt>Beta(1+x, 1+n&#x2212;x)</dt><dd>均匀先验 Beta(1,1) 下的后验</dd>
+            </dl>
+          </div>
+          <div class="callout warn">
+            <span class="clabel">别和 p 值混淆。</span>
+            <span>P(B &gt; A) = 97% <em>不是</em>“1 − p”。它是在给定数据和先验下 B 更好的概率。便于决策，但需要和频率学派同样的停止纪律。</span>
+          </div>
+        </div>
+
+        <h3>CUPED：噪声更少——结论更快</h3>
+        <div class="card">
+          <span class="tag monitor">监控 · 方差缩减</span>
+          <p>指标的一部分波动可以由用户在测试<em>之前</em>的样子解释。<strong>CUPED</strong> 用实验前协变量 <span class='k'>X</span>（比如历史活跃度）减去这可预测的部分。方差下降 <span class='k'>ρ²</span>——检验在不增加一个用户的情况下“长出”功效。</p>
+          <div class="formula">
+            <span class="flabel">校正后的指标与方差缩减</span>
+            <math display="block">
+              <msub><mi>Y</mi><mtext>cuped</mtext></msub><mo>=</mo><mi>Y</mi><mo>&#x2212;</mo><mi>&#x3B8;</mi><mo>(</mo><mi>X</mi><mo>&#x2212;</mo><mover><mi>X</mi><mo>&#xAF;</mo></mover><mo>)</mo><mo>,</mo>
+              <mspace width="1em"/><mi>&#x3B8;</mi><mo>=</mo><mfrac><mrow><mtext>cov</mtext><mo>(</mo><mi>Y</mi><mo>,</mo><mi>X</mi><mo>)</mo></mrow><mrow><mtext>var</mtext><mo>(</mo><mi>X</mi><mo>)</mo></mrow></mfrac>
+              <mspace width="1.4em"/><mfrac><msub><mtext>var</mtext><mtext>new</mtext></msub><msub><mtext>var</mtext><mtext>old</mtext></msub></mfrac><mo>=</mo><mn>1</mn><mo>&#x2212;</mo><msup><mi>&#x3C1;</mi><mn>2</mn></msup>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">其中</p>
+            <dl>
+              <dt>X</dt><dd>实验前协变量（与版本无关！）</dd>
+              <dt>&#x3B8;</dt><dd>最优系数 = cov(Y,X)/var(X)</dd>
+              <dt>&#x3C1;</dt><dd>Y 与 X 的相关</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>相关 ρ = 0.6 → 方差下降 <span class='num'>36%</span>，标准误下降 20%。相当于免费把样本扩大约 1.5 倍。</span>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">引擎里：多协变量。</span>
+            <span>平台的 CUPED 是多协变量的：θ 是向量，由协方差方程组解出（一次小型线性求解），多个实验前信号可以一起减噪。上面的公式是单协变量的情形。</span>
+          </div>
+        </div>
+
+        <figure class="figure">
+          <svg viewBox="0 0 520 188" role="img" aria-label="CUPED narrows the metric distribution">
+            <line class="fig-axis" x1="10" y1="165" x2="510" y2="165"/>
+            <path class="fig-after-fill" d="M 10,165 70,164 80,164 90,163 100,162 110,160 120,158 130,154 140,149 150,142 160,133 170,122 180,110 190,96 200,80 210,65 220,50 230,37 240,27 250,20 260,18 270,20 280,27 290,37 300,50 310,65 320,80 330,96 340,110 350,122 360,133 370,142 380,149 390,154 400,158 410,160 420,162 430,163 440,164 460,165 510,165 L 510,165 L 10,165 Z"/>
+            <path class="fig-before" d="M 10,165 40,164 65,162 80,160 95,157 110,152 120,148 130,143 140,136 150,129 160,121 170,112 180,102 190,92 200,82 210,73 220,64 230,57 240,52 250,49 260,47 270,49 280,52 290,57 300,64 310,73 320,82 330,92 340,102 350,112 360,121 370,129 380,136 390,143 400,148 410,152 420,155 430,158 440,160 450,162 460,163 475,164 510,165"/>
+            <path class="fig-after" d="M 10,165 70,164 80,164 90,163 100,162 110,160 120,158 130,154 140,149 150,142 160,133 170,122 180,110 190,96 200,80 210,65 220,50 230,37 240,27 250,20 260,18 270,20 280,27 290,37 300,50 310,65 320,80 330,96 340,110 350,122 360,133 370,142 380,149 390,154 400,158 410,160 420,162 430,163 440,164 460,165 510,165"/>
+            <text class="fig-cap-in" x="405" y="86">实验前</text>
+            <text class="fig-cap-in" x="262" y="12" text-anchor="middle" style="fill:var(--accent-strong)">CUPED 之后</text>
+          </svg>
+          <figcaption>CUPED 减去噪声中可预测（实验前）的部分，估计的分布随之收窄。相关 ρ = 0.6 时方差下降 <strong style='color:var(--accent-strong)'>36%</strong>——同样的灵敏度更早达到，而不需要一个额外用户。</figcaption>
+        </figure>
+
+        <h3>事后分层：先在层内估计，再合并</h3>
+        <div class="card">
+          <span class="tag monitor">监控 · 方差缩减</span>
+          <p>如果流量是基线各异的已知分层的混合——平台、国家、新客/回访——就在每层内估计效应，再按规模加权合并。层间的随机化不平衡不再漏进效应估计：CUPED 的一个便宜、少假设的近亲。</p>
+          <div class="formula">
+            <span class="flabel">按规模加权合并</span>
+            <math display="block">
+              <mover><mi>&#x394;</mi><mo>^</mo></mover><mo>=</mo>
+              <munder><mo>&#x2211;</mo><mi>s</mi></munder>
+              <msub><mi>w</mi><mi>s</mi></msub><msub><mover><mi>&#x394;</mi><mo>^</mo></mover><mi>s</mi></msub>
+              <mspace width="1.6em"/>
+              <mtext>Var</mtext><mo>=</mo>
+              <munder><mo>&#x2211;</mo><mi>s</mi></munder>
+              <msubsup><mi>w</mi><mi>s</mi><mn>2</mn></msubsup><msub><mtext>Var</mtext><mi>s</mi></msub>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">其中</p>
+            <dl>
+              <dt>s</dt><dd>层的下标</dd>
+              <dt>w<sub>s</sub></dt><dd>该层的流量份额，Σw = 1</dd>
+              <dt>&#x394;&#x302;<sub>s</sub>, Var<sub>s</sub></dt><dd>层内效应估计及其方差</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>层 A：6,000 用户，Δ = 1.2 个百分点，方差 3·10⁻⁵；层 B：4,000，Δ = 1.8 个百分点，方差 5·10⁻⁵ → 合并 Δ = <span class='num'>1.44 个百分点</span>，z = 3.32，p = <span class='num'>0.0009</span>，CI [0.59; 2.29] 个百分点。</span>
+          </div>
+        </div>
+
+        <h3>护栏指标：胜利不能弄坏任何东西</h3>
+        <div class="card">
+          <span class="tag monitor">监控 · 保护</span>
+          <p>一个版本可能在转化率上获胜，却同时推高加载时间、支付错误或退订。<strong>护栏（guardrail）</strong>提出单侧问题：“版本是否把指标朝<em>有害</em>方向推过了可容忍界限 <span class='k'>M</span>？”。这是非劣效检验，不是找差异。</p>
+          <div class="formula">
+            <span class="flabel">单侧越界检验</span>
+            <math display="block">
+              <mi>z</mi><mo>=</mo><mfrac><mrow><mtext>损害</mtext><mo>&#x2212;</mo><mi>M</mi></mrow><msqrt><mtext>Var</mtext><mo>(</mo><mi>&#x394;</mi><mo>)</mo></msqrt></mfrac>
+              <mspace width="1.4em"/><mi>p</mi><mo>=</mo><mn>1</mn><mo>&#x2212;</mo><mi>&#x3A6;</mi><mo>(</mo><mi>z</mi><mo>)</mo>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">其中</p>
+            <dl>
+              <dt>损害</dt><dd>朝有害方向的位移：增长有害（延迟）时取 +Δ，下降有害（收入）时取 −Δ</dd>
+              <dt>M</dt><dd>可容忍的损害界限（0 = 任何显著损害都算越界）</dd>
+              <dt>&#x3A6;</dt><dd>标准正态分布函数</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>延迟上升 <span class='num'>+15 毫秒</span>（SE = 2），容差 M = 10 毫秒 → z = (15 − 10)/2 = <span class='num'>2.5</span>，p ≈ 0.006 → <strong style='color:var(--danger)'>越界</strong>。“正常”与“越界”之间还有黄色“warning”地带：估计超出容差，但不显著。</span>
+          </div>
+        </div>
+
+        <h3>数据卫生：在一切统计之前就能毁掉测试的东西</h3>
+        <div class="card">
+          <span class="tag monitor">监控 · 健康</span>
+          <p>没有公式能修好坏数据。四个习惯远在 p 值出场之前就在保护实验：</p>
+          <div class="where">
+            <dl>
+              <dt>1</dt><dd><strong>身份归并。</strong>一个人 = 一个单元。若同一用户以 web + app + 无痕模式进入测试，两个组都被污染，测得的效应被稀释。</dd>
+              <dt>2</dt><dd><strong>迟到事件。</strong>转化比点击晚几小时甚至几天到达；在停止时刻切断窗口会悄悄偏向不利于较新的组。固定一个归因窗口，并对称地应用于两组。</dd>
+              <dt>3</dt><dd><strong>过滤机器人。</strong>机器人转化率约为 0% 且会撑大分母——一旦两组的定向规则不同就是不对称的。分析之前过滤，处处用同一条规则。</dd>
+              <dt>4</dt><dd><strong>Holdout。</strong>一小片永远的对照切片度量批量上线众多“赢家”的长期累积效应——并能捕捉“赢家诅咒”的膨胀。</dd>
+            </dl>
+          </div>
+        </div>
+
+        <h3>什么时候不做 A/B：Thompson 采样</h3>
+        <div class="card">
+          <span class="tag monitor">监控 · 老虎机</span>
+          <p>固定测试直到最后都把一半流量花在输家身上。当目标是在短窗口内最大化收益（促销横幅、邮件主题）而不是精确度量效应时，<strong>老虎机（bandit）</strong>随着证据积累重新分配流量。Thompson 采样：为每个臂从其 Beta 后验抽一个可信的转化率，展示赢得这次抽样的臂。平台把它作为规划模拟器提供（Beta-Bernoulli 蒙特卡洛），不是实时流量分配器。</p>
+          <div class="formula">
+            <span class="flabel">一步分配</span>
+            <math display="block">
+              <msub><mover><mi>&#x3B8;</mi><mo>&#x223C;</mo></mover><mi>i</mi></msub><mo>&#x223C;</mo><mtext>Beta</mtext><mo>(</mo><mn>1</mn><mo>+</mo><msub><mi>x</mi><mi>i</mi></msub><mo>,</mo><mspace width="0.2em"/><mn>1</mn><mo>+</mo><msub><mi>n</mi><mi>i</mi></msub><mo>&#x2212;</mo><msub><mi>x</mi><mi>i</mi></msub><mo>)</mo>
+              <mspace width="1.4em"/>
+              <msup><mi>a</mi><mo>&#x2217;</mo></msup><mo>=</mo><munder><mtext>argmax</mtext><mi>i</mi></munder><mspace width="0.2em"/><msub><mover><mi>&#x3B8;</mi><mo>&#x223C;</mo></mover><mi>i</mi></msub>
+            </math>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">代价。</span>
+            <span>老虎机不是免费升级：输家臂的估计始终嘈杂且有偏，偷看规则无法迁移，用于决策级别的度量仍然需要固定测试。探索的代价是度量。</span>
+          </div>
+        </div>
+        <hr class="divider">
+      </section>
+      <!-- ================= 6. CHEAT SHEET ================= -->
+      <section id="cheatsheet">
+        <div class="sec-head"><span class="sec-num">06</span></div>
+        <h2>速查表与符号</h2>
+        <p class="sec-intro">一屏看全：典型取值、如何选检验、每个符号的含义、健康实验长什么样。</p>
+
+        <h3>典型取值</h3>
+        <div class="tablewrap">
+          <table>
+            <thead><tr>
+              <th>参数</th>
+              <th>通常</th>
+              <th>含义</th>
+            </tr></thead>
+            <tbody>
+              <tr><td><span class="sym">&#x3B1;</span></td><td>0.05</td><td>误报风险，z = 1.96</td></tr>
+              <tr><td>功效 <span class="sym">1&#x2212;&#x3B2;</span></td><td>0.80</td><td>捕到效应的机会，z = 0.84</td></tr>
+              <tr><td>尾侧</td><td>双侧</td><td>效应可能朝任一方向</td></tr>
+              <tr><td>SRM 阈值</td><td>p &lt; 0.001</td><td>非常严格——否则误报太多</td></tr>
+              <tr><td>时长</td><td>≥ 1–2 周</td><td>按整周；吸收新鲜感与星期几效应</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>选哪个检验</h3>
+        <div class="tablewrap">
+          <table>
+            <thead><tr>
+              <th>指标 / 场景</th>
+              <th>检验</th>
+            </tr></thead>
+            <tbody>
+              <tr><td>转化率，2 组</td><td><span class='sym'>z · 2 proportions</span> <span class='dim'>（小样本 → Fisher / Boschloo / Barnard）</span></td></tr>
+              <tr><td>均值（收入、时长），2 组</td><td><span class='sym'>Welch t</span> <span class='dim'>（离群值 → 稳健四重奏）</span></td></tr>
+              <tr><td>中位数 / 百分位</td><td><span class='sym'>quantile effect</span></td></tr>
+              <tr><td>CTR，“每次展示 / 每次会话”</td><td><span class='sym'>ratio delta-method</span></td></tr>
+              <tr><td>单位曝光的事件计数</td><td><span class='sym'>Poisson rate</span></td></tr>
+              <tr><td>“证明不更差”</td><td><span class='sym'>TOST</span> <span class='dim'>（单侧损害界限 → guardrail）</span></td></tr>
+              <tr><td>多于 2 组</td><td><span class='sym'>Welch ANOVA / Kruskal–Wallis</span> <span class='dim'>（随后两两比较 + 校正）</span></td></tr>
+              <tr><td>类别 × 版本</td><td><span class='sym'>χ² r×c + Cramér V / G-test</span></td></tr>
+              <tr><td>前/后，同一批用户</td><td><span class='sym'>paired t / Wilcoxon / McNemar</span></td></tr>
+              <tr><td>事件时间，删失</td><td><span class='sym'>log-rank / Fleming–Harrington / Cox</span></td></tr>
+              <tr><td>实时仪表盘，未计划的查看</td><td><span class='sym'>always-valid (mSPRT)</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>符号</h3>
+        <div class="tablewrap">
+          <table>
+            <thead><tr>
+              <th>符号</th>
+              <th>含义</th>
+            </tr></thead>
+            <tbody>
+              <tr><td class="sym">&#x3B1;</td><td>显著性水平（第一类风险）</td></tr>
+              <tr><td class="sym">&#x3B2; &#183; 1&#x2212;&#x3B2;</td><td>第二类风险 · 功效</td></tr>
+              <tr><td class="sym">z<sub>&#x3B1;</sub>, z<sub>&#x3B2;</sub></td><td>标准正态分位数</td></tr>
+              <tr><td class="sym">&#x3A6;</td><td>标准正态分布函数</td></tr>
+              <tr><td class="sym">p&#x2080;, p&#x2081;, p&#x302;, p&#x304;</td><td>基线 · 版本 · 估计 · 合并比例</td></tr>
+              <tr><td class="sym">&#x3B4; &#183; MDE</td><td>绝对效应 · 最小可检测效应</td></tr>
+              <tr><td class="sym">&#x3C3;, s</td><td>标准差（总体、样本）</td></tr>
+              <tr><td class="sym">&#x3BD;</td><td>自由度（Welch–Satterthwaite）</td></tr>
+              <tr><td class="sym">&#x3C1; &#183; &#x3B8;</td><td>相关 · CUPED 系数</td></tr>
+              <tr><td class="sym">ICC &#183; DEFF &#183; m</td><td>组内相关 · 设计效应 · 聚类规模</td></tr>
+              <tr><td class="sym">&#x3C7;&#xB2;</td><td>卡方统计量（SRM、类别）</td></tr>
+              <tr><td class="sym">&#x39B;<sub>n</sub> &#183; &#x3C4;&#xB2;</td><td>混合似然 · 混合散布（always-valid）</td></tr>
+              <tr><td class="sym">M</td><td>界限（等价性、guardrail）</td></tr>
+              <tr><td class="sym">m &#183; q &#183; k</td><td>指标个数 · FDR 水平 · p 值的秩</td></tr>
+              <tr><td class="sym">U &#183; r<sub>rb</sub> &#183; HL</td><td>Mann–Whitney 统计量 · 秩双列相关 · Hodges–Lehmann 位移</td></tr>
+              <tr><td class="sym">W</td><td>Wilcoxon 符号秩统计量</td></tr>
+              <tr><td class="sym">F* &#183; &#x3B7;&#xB2;</td><td>Welch ANOVA 统计量 · 解释方差份额</td></tr>
+              <tr><td class="sym">H &#183; &#x3B5;&#xB2;</td><td>Kruskal–Wallis 统计量 · 其效应量</td></tr>
+              <tr><td class="sym">b, c</td><td>不一致对子数（McNemar）</td></tr>
+              <tr><td class="sym">S(t)</td><td>生存函数——活过 t 的概率</td></tr>
+              <tr><td class="sym">HR &#183; &#x3B2;</td><td>风险比 · Cox 对数风险系数</td></tr>
+              <tr><td class="sym">O&#x2081;, E&#x2081;, V</td><td>观测 · 期望事件数 · 其方差（log-rank）</td></tr>
+              <tr><td class="sym">&#x3C1;, &#x3B3; (FH)</td><td>Fleming–Harrington 权重：早期 / 晚期侧重</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>健康测试清单</h3>
+        <div class="card">
+          <div class="where">
+            <dl>
+              <dt>1</dt><dd><strong>假设与指标在启动前锁定</strong>——包括 MDE 与主指标。</dd>
+              <dt>2</dt><dd><strong>样本量已计算</strong>，时长按整周。</dd>
+              <dt>3</dt><dd><strong>没有 SRM</strong>——流量分配与计划一致。</dd>
+              <dt>4</dt><dd><strong>多重性校正</strong>——只要指标或版本多于一个。</dd>
+              <dt>5</dt><dd><strong>护栏指标</strong>在监控中——胜利不弄坏延迟、错误、收入。</dd>
+              <dt>6</dt><dd><strong>正确的停止</strong>：计划期限、序贯边界或 always-valid——而不是“跌破了 0.05”。</dd>
+              <dt>7</dt><dd><strong>按区间决策</strong>，不只看 p 值——效应大小很重要。</dd>
+              <dt>8</dt><dd><strong>数据卫生已检查</strong>——每用户一个身份、对称的归因窗口、机器人已过滤、holdout 就位。</dd>
+            </dl>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <footer>
+    <div class="footer-inner">
+      <span>AB Test Research Designer——理论参考。公式与平台的统计引擎一致。</span>
+      <span><a href="/">← 返回应用</a></span>
+    </div>
+  </footer>
+</div>
+<script src="help.js" defer></script>
+</body>
+</html>

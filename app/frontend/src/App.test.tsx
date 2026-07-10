@@ -43,9 +43,11 @@ vi.mock("./lib/api", () => ({
   saveProjectRequest: vi.fn()
 }));
 
+import ruLocale from "../public/locales/ru.json";
 import App from "./App";
 import Accordion from "./components/Accordion";
 import WizardDraftStep from "./components/WizardDraftStep";
+import i18n from "./i18n";
 import {
   type AnalysisResponse,
   archiveProjectRequest,
@@ -725,6 +727,50 @@ describe("App UI flow", () => {
       expect(mainRegion.tagName).toBe("MAIN");
       expect(mainRegion.getAttribute("tabindex")).toBe("-1");
     } finally {
+      await view.unmount();
+    }
+  });
+
+  it("links the topbar to the theory page for the active language", async () => {
+    // The suite-wide afterEach calls vi.unstubAllGlobals(), which removes the
+    // locale-serving fetch stub from test/setup.ts once the first test finishes;
+    // restub it here so changeLanguage("ru") can load its bundle instead of
+    // silently falling back to English.
+    vi.stubGlobal("fetch", async () =>
+      new Response(JSON.stringify(ruLocale), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      })
+    );
+
+    const view = await renderIntoDocument(<App />);
+    try {
+      await flushEffects();
+
+      let link = view.container.querySelector(".topbar-link");
+      if (!(link instanceof HTMLAnchorElement)) {
+        throw new Error("Topbar theory link was not rendered");
+      }
+
+      expect(link.getAttribute("href")).toBe("/help.html");
+      expect(link.textContent).toBe("Theory");
+
+      await act(async () => {
+        await i18n.changeLanguage("ru");
+      });
+      await flushEffects();
+
+      link = view.container.querySelector(".topbar-link");
+      if (!(link instanceof HTMLAnchorElement)) {
+        throw new Error("Topbar theory link disappeared after the language change");
+      }
+
+      expect(link.getAttribute("href")).toBe("/help.ru.html");
+      expect(link.textContent).toBe("Теория");
+    } finally {
+      await act(async () => {
+        await i18n.changeLanguage("en");
+      });
       await view.unmount();
     }
   });

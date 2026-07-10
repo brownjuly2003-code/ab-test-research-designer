@@ -4,6 +4,7 @@
     "eyebrow": "Planificador local de experimentos",
     "title": "Diseñador de investigación de pruebas A/B",
     "tagline": "Planifica el tamaño de muestra y la duración de tu test A/B, descubre en qué resultados puedes confiar y exporta una decisión clara, todo en tu navegador.",
+    "helpLink": "Teoría",
     "language": {
       "label": "Idioma",
       "ariaLabel": "Language preference",

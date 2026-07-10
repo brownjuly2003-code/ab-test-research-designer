@@ -4,6 +4,7 @@
     "eyebrow": "Lokaler Experimentplaner",
     "title": "A/B-Test-Forschungsdesigner",
     "tagline": "Plane Stichprobengröße und Laufzeit deines A/B-Tests, erkenne, welchen Ergebnissen du vertrauen kannst, und exportiere eine klare Entscheidung — direkt im Browser.",
+    "helpLink": "Theorie",
     "language": {
       "label": "Sprache",
       "ariaLabel": "Language preference",

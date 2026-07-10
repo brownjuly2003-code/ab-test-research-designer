@@ -1,0 +1,1904 @@
+<!doctype html>
+<html lang="{{@lang}}" dir="{{@dir}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{meta.title}}</title>
+<meta name="description" content="{{meta.desc}}">
+{{@alternates}}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="/theme-init.js"></script>
+<style>
+  /* ============================================================
+     Design system — the app's tokens verbatim (tokens.css):
+     teal #0d9488, Manrope + JetBrains Mono, slate neutrals.
+     Light default + dark via prefers-color-scheme AND the app's
+     data-theme attribute (set early by /theme-init.js, shared
+     localStorage key — the page follows the app's theme).
+     Static page, no framework; MathML for formulas; the language
+     is fixed per file (this file is generated per language).
+     RTL-safe: logical properties throughout; math and SVG stay LTR.
+     ============================================================ */
+  :root {
+    --font: "Manrope", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    --mono: "JetBrains Mono", "SFMono-Regular", "Consolas", ui-monospace, monospace;
+
+    --bg: #f5f7fa;
+    --surface: #ffffff;
+    --surface-muted: #f3f5f9;
+    --surface-subtle: #f8fafc;
+    --border: #e6e9ef;
+    --border-strong: #d3d9e3;
+
+    --ink: #0f1729;
+    --ink-2: #5a6473;
+    --ink-3: #8b95a3;
+
+    --accent: #0d9488;
+    --accent-strong: #0f766e;
+    --accent-soft: #d6f3ee;
+    --accent-ring: rgba(13, 148, 136, 0.16);
+
+    --info: #2f6df0;
+    --info-soft: #e3ecfd;
+    --warning: #c77d11;
+    --warning-soft: #fbf0db;
+    --danger: #e1493f;
+    --danger-soft: #fdecea;
+    --success: #0f9d76;
+    --success-soft: #d8f3e9;
+    --violet: #6d4bd6;
+    --violet-soft: #ebe6fb;
+
+    --radius-s: 8px;
+    --radius-m: 12px;
+    --radius-l: 16px;
+    --shadow-s: 0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06);
+    --shadow-m: 0 4px 6px -1px rgba(16,24,40,.06), 0 2px 4px -2px rgba(16,24,40,.06);
+    --shadow-l: 0 18px 40px -20px rgba(16,24,40,.28);
+
+    --maxw: 1180px;
+    --content: 74ch;
+    color-scheme: light;
+  }
+
+  /* Dark palette = the app's dark tokens (bg #0e1421, card #161d2c,
+     border #28324a, text #eef2f8/#9aa5b8/#6b7689). Exception, documented:
+     text-size accent uses the brighter #2dd4bf (not the app's #0d9488)
+     so accent-coloured TEXT keeps AA contrast on dark cards; the brand
+     tile below pins the app's exact teal gradient instead. */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0e1421;
+      --surface: #161d2c;
+      --surface-muted: #1b2334;
+      --surface-subtle: #141b29;
+      --border: #28324a;
+      --border-strong: #3a4763;
+
+      --ink: #eef2f8;
+      --ink-2: #9aa5b8;
+      --ink-3: #6b7689;
+
+      --accent: #2dd4bf;
+      --accent-strong: #5eead4;
+      --accent-soft: #11463f;
+      --accent-ring: rgba(45, 212, 191, 0.20);
+
+      --info: #7aa2ff;
+      --info-soft: #17233f;
+      --warning: #e0b25a;
+      --warning-soft: #33280f;
+      --danger: #f0928a;
+      --danger-soft: #3a1f1d;
+      --success: #52c9a3;
+      --success-soft: #133a2e;
+      --violet: #b39cf5;
+      --violet-soft: #241b40;
+
+      --shadow-s: 0 1px 2px rgba(0,0,0,.30);
+      --shadow-m: 0 4px 10px -2px rgba(0,0,0,.40);
+      --shadow-l: 0 18px 44px -20px rgba(0,0,0,.65);
+      color-scheme: dark;
+    }
+  }
+  /* Explicit app-theme override wins over the media query in both directions. */
+  :root[data-theme="light"] { color-scheme: light; }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg:#0e1421;--surface:#161d2c;--surface-muted:#1b2334;--surface-subtle:#141b29;
+    --border:#28324a;--border-strong:#3a4763;--ink:#eef2f8;--ink-2:#9aa5b8;--ink-3:#6b7689;
+    --accent:#2dd4bf;--accent-strong:#5eead4;--accent-soft:#11463f;--accent-ring:rgba(45,212,191,.20);
+    --info:#7aa2ff;--info-soft:#17233f;--warning:#e0b25a;--warning-soft:#33280f;
+    --danger:#f0928a;--danger-soft:#3a1f1d;--success:#52c9a3;--success-soft:#133a2e;--violet:#b39cf5;--violet-soft:#241b40;
+    --shadow-s:0 1px 2px rgba(0,0,0,.30);--shadow-m:0 4px 10px -2px rgba(0,0,0,.40);--shadow-l:0 18px 44px -20px rgba(0,0,0,.65);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+  body {
+    margin: 0;
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.68;
+    font-size: 16.5px;
+    letter-spacing: -0.003em;
+    font-feature-settings: "tnum" 1;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Manrope has no CJK/Arabic glyphs — give those pages system stacks,
+     and drop the negative latin tracking that hurts Arabic shaping. */
+  html[lang="zh"] {
+    --font: "Manrope", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+  }
+  html[lang="ar"] {
+    --font: "Manrope", "Segoe UI", "Tahoma", "Noto Naskh Arabic", "Geeza Pro", system-ui, sans-serif;
+  }
+  html[lang="ar"] body, html[lang="ar"] h1, html[lang="ar"] h2, html[lang="ar"] h3, html[lang="ar"] h4 { letter-spacing: 0; }
+
+  /* Math and diagrams are direction-neutral: keep them LTR even on RTL pages. */
+  math { direction: ltr; }
+  svg { direction: ltr; }
+
+  a { color: var(--accent-strong); text-underline-offset: 2px; }
+
+  /* ---------- top bar (mirrors the app: sticky, blur, brand tile) ---------- */
+  .topbar {
+    position: sticky; top: 0; z-index: 40;
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    backdrop-filter: saturate(140%) blur(10px);
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar-inner {
+    max-width: var(--maxw); margin: 0 auto; min-height: 60px; padding: 10px 24px;
+    display: flex; align-items: center; gap: 16px; justify-content: space-between;
+  }
+  .brand { display: inline-flex; align-items: center; gap: 11px; text-decoration: none; color: inherit; min-width: 0; }
+  .brand-mark {
+    display: inline-flex; align-items: center; justify-content: center; flex: none;
+    width: 32px; height: 32px; border-radius: 9px;
+    /* Pinned to the app's exact tile gradient (identical in both themes). */
+    background: linear-gradient(150deg, #0d9488, #0f766e);
+    color: #ffffff; font-weight: 800; font-size: 13px; letter-spacing: 0.02em;
+    box-shadow: 0 6px 14px -6px #0d9488;
+  }
+  .brand-text { display: grid; line-height: 1.15; }
+  .brand-name { font-weight: 700; font-size: 0.95rem; letter-spacing: -0.01em; white-space: nowrap; }
+  .brand-tag {
+    font-size: 11px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--ink-3); white-space: nowrap;
+  }
+  @media (max-width: 720px) { .brand-text { display: none; } }
+
+  /* ---------- language menu: 7 static links, one per generated page ---------- */
+  .langbar {
+    display: inline-flex; flex-wrap: wrap; justify-content: flex-end;
+    padding: 3px; gap: 2px; background: var(--surface-muted);
+    border: 1px solid var(--border); border-radius: 999px;
+  }
+  .langlink {
+    font-size: 12.5px; font-weight: 700; letter-spacing: .01em;
+    padding: 5px 11px; border-radius: 999px; color: var(--ink-2);
+    text-decoration: none; white-space: nowrap; transition: background .15s, color .15s;
+  }
+  .langlink:hover { color: var(--ink); background: color-mix(in srgb, var(--accent-soft) 55%, transparent); }
+  .langlink.current { background: var(--accent); color: #fff; box-shadow: var(--shadow-s); cursor: default; }
+  :root[data-theme="dark"] .langlink.current { color: #06201c; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .langlink.current { color: #06201c; } }
+  @media (max-width: 640px) {
+    .langlink { font-size: 11.5px; padding: 4px 8px; }
+    .topbar-inner { padding: 8px 16px; }
+  }
+
+  /* ---------- layout ---------- */
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+  .layout { display: grid; grid-template-columns: 244px minmax(0, 1fr); gap: 52px; align-items: start; padding-bottom: 96px; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; gap: 8px; } }
+
+  /* ---------- hero ---------- */
+  .hero { padding: 74px 0 8px; position: relative; }
+  .hero .kicker {
+    display: inline-block; font-size: 12.5px; font-weight: 700; letter-spacing: .18em;
+    text-transform: uppercase; color: var(--accent-strong); margin: 0 0 20px;
+    opacity: 0; animation: rise .7s .02s cubic-bezier(.16,1,.3,1) forwards;
+  }
+  .hero h1 {
+    font-size: clamp(2.3rem, 5.6vw, 3.7rem); line-height: 1.0; letter-spacing: -.035em;
+    margin: 0 0 22px; font-weight: 800;
+    opacity: 0; animation: rise .7s .08s cubic-bezier(.16,1,.3,1) forwards;
+  }
+  .hero h1 .accent-word { color: var(--accent); }
+  .hero > p { font-size: clamp(1.02rem, 1.5vw, 1.2rem); color: var(--ink-2); max-width: 62ch; margin: 0; opacity: 0; animation: rise .7s .16s cubic-bezier(.16,1,.3,1) forwards; }
+  .hero .lede-note {
+    margin-top: 22px; font-size: 14px; color: var(--ink-3); max-width: 62ch;
+    padding-inline-start: 14px; border-inline-start: 3px solid var(--border-strong);
+    opacity: 0; animation: rise .7s .24s cubic-bezier(.16,1,.3,1) forwards;
+  }
+  .heromedia { margin: 40px 0 0; opacity: 0; animation: fade 1.1s .3s ease forwards; }
+  .heromedia svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .hero-line { fill: none; stroke: var(--accent); stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round; }
+  .hero-fill { fill: url(#heroGrad); }
+  .hero-base { stroke: var(--border-strong); stroke-width: 1; stroke-dasharray: 2 5; }
+  .hero-tick { stroke: var(--border-strong); stroke-width: 1; }
+  .hero-tlabel { fill: var(--ink-3); font-family: var(--mono); font-size: 12px; }
+  @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  @keyframes fade { to { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) {
+    .hero .kicker, .hero h1, .hero > p, .hero .lede-note, .heromedia { animation: none; opacity: 1; }
+  }
+
+  /* ---------- TOC ---------- */
+  .toc { position: sticky; top: 78px; }
+  .toc > summary { list-style: none; }
+  .toc > summary::-webkit-details-marker { display: none; }
+  .toc-title { font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 12px; padding-inline-start: 12px; }
+  .toc ol { list-style: none; margin: 0; padding: 0; counter-reset: toc; }
+  .toc li { counter-increment: toc; }
+  .toc a {
+    display: flex; gap: 10px; align-items: baseline;
+    padding: 7px 12px; color: var(--ink-2);
+    text-decoration: none; font-size: 14px; font-weight: 600; line-height: 1.35;
+    border-inline-start: 2px solid transparent; border-radius: var(--radius-s);
+    transition: background .15s, color .15s, border-color .15s;
+  }
+  .toc a::before { content: counter(toc); font-variant-numeric: tabular-nums; color: var(--accent); font-weight: 800; font-size: 12px; min-width: 14px; }
+  .toc a:hover { background: var(--surface-muted); color: var(--ink); }
+  @media (min-width: 901px) {
+    .toc { max-height: calc(100vh - 100px); overflow-y: auto; }
+    .toc > summary { display: none; }
+    .toc > .toc-body { display: block !important; }
+    .toc > .toc-body nav { border-inline-start: 1px solid var(--border); padding-inline-start: 4px; }
+    .toc a { margin-inline-start: -1px; }
+    .toc a:hover { border-inline-start-color: var(--accent); background: color-mix(in srgb, var(--accent-soft) 45%, transparent); }
+  }
+  @media (max-width: 900px) {
+    .toc {
+      position: static; margin: 14px 0 8px; background: var(--surface);
+      border: 1px solid var(--border); border-radius: var(--radius-m); box-shadow: var(--shadow-s);
+    }
+    .toc > summary {
+      padding: 14px 16px; cursor: pointer; font-weight: 700; color: var(--ink);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .toc > summary::after { content: "+"; color: var(--accent); font-size: 20px; font-weight: 700; }
+    .toc[open] > summary::after { content: "\2212"; }
+    .toc > .toc-body { padding: 0 8px 12px; }
+    .toc-title { display: none; }
+  }
+
+  /* ---------- content & sections ---------- */
+  main { min-width: 0; }
+  section[id] { scroll-margin-top: 84px; padding-top: 30px; }
+  .sec-head { display: flex; align-items: center; gap: 14px; margin: 0 0 -0.28em; }
+  .sec-num {
+    display: inline-block;
+    font-family: var(--mono); font-weight: 800; letter-spacing: -.05em;
+    font-size: clamp(3.4rem, 7.5vw, 5.4rem); line-height: .82; color: var(--accent);
+    opacity: .15; user-select: none;
+  }
+  h2 { font-size: clamp(1.62rem, 3.1vw, 2.25rem); letter-spacing: -.025em; margin: 6px 0 10px; font-weight: 800; line-height: 1.15; position: relative; }
+  h3 { font-size: 1.28rem; letter-spacing: -.015em; margin: 46px 0 6px; font-weight: 750; }
+  h3::before {
+    content: ""; display: inline-block; width: 15px; height: 2px; vertical-align: middle;
+    background: var(--accent); margin-inline-end: 11px; border-radius: 2px; transform: translateY(-3px);
+  }
+  .group-lead { color: var(--ink-2); max-width: var(--content); margin: 4px 0 14px; }
+  .sec-intro { color: var(--ink-2); max-width: var(--content); margin: 0 0 8px; }
+  p { max-width: var(--content); }
+  main p { margin: 14px 0; }
+  strong, b { font-weight: 700; color: var(--ink); }
+  code, .k { font-family: var(--mono); font-size: .89em; background: var(--surface-muted); padding: .1em .42em; border-radius: 6px; color: var(--ink); border: 1px solid var(--border); }
+  .divider { height: 0; background: none; border: 0; border-top: 1px solid var(--border); margin: 64px 0 0; position: relative; }
+  .divider::after { content: ""; position: absolute; inset-inline-start: 0; top: -1px; width: 40px; height: 2px; background: var(--accent); }
+
+  /* ---------- concept card ---------- */
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 18px;
+    padding: 26px 28px; margin: 22px 0; box-shadow: var(--shadow-s);
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+  }
+  .card:hover { transform: translateY(-2px); box-shadow: var(--shadow-m); border-color: var(--border-strong); }
+  @media (prefers-reduced-motion: reduce) { .card:hover { transform: none; } }
+  .card > :first-child { margin-top: 0; }
+  .card > :last-child { margin-bottom: 0; }
+  .card h4 { font-size: 1.12rem; font-weight: 750; margin: 0 0 4px; letter-spacing: -.01em; }
+  .tag {
+    display: inline-block; font-size: 10.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
+    padding: 4px 11px; border-radius: 999px; margin-bottom: 12px;
+  }
+  .tag.plan   { background: var(--accent-soft); color: var(--accent-strong); }
+  .tag.multi  { background: var(--info-soft); color: var(--info); }
+  .tag.analyze{ background: var(--violet-soft); color: var(--violet); }
+  .tag.monitor{ background: var(--warning-soft); color: var(--warning); }
+
+  /* ---------- formula block (MathML, notebook dot-grid) ---------- */
+  .formula {
+    margin: 18px 0; padding: 26px 26px 24px; overflow-x: auto;
+    background-color: var(--surface-subtle); border: 1px solid var(--border);
+    border-inline-start: 3px solid var(--accent); border-radius: 14px;
+    background-image: radial-gradient(color-mix(in srgb, var(--accent) 20%, transparent) 1px, transparent 1.5px);
+    background-size: 22px 22px; background-position: 10px 10px;
+    text-align: center;
+  }
+  .formula math { font-size: 1.4rem; color: var(--ink); }
+  .formula .flabel { display: block; text-align: start; font-size: 12px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--accent-strong); margin-bottom: 12px; }
+  math { font-family: "Latin Modern Math", "STIX Two Math", "Cambria Math", var(--mono); }
+  mi, mn, mo { color: inherit; }
+
+  /* ---------- "where" symbol list ---------- */
+  .where { margin: 16px 0 4px; }
+  .where-title { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 8px; }
+  .where dl { display: grid; grid-template-columns: auto 1fr; gap: 8px 18px; margin: 0; }
+  .where dt { font-family: var(--mono); font-weight: 600; font-size: 14.5px; color: var(--accent-strong); white-space: nowrap; padding-top: 1px; }
+  .where dd { margin: 0; color: var(--ink-2); font-size: 14.5px; }
+
+  /* ---------- callouts ---------- */
+  .callout {
+    margin: 18px 0; padding: 16px 20px; border-radius: 14px;
+    border: 1px solid var(--border); border-inline-start: 3px solid var(--ink-3);
+    background: var(--surface-muted); font-size: 14.5px;
+  }
+  .callout > :first-child { margin-top: 0; } .callout > :last-child { margin-bottom: 0; }
+  .callout .clabel { font-weight: 750; font-size: .96em; margin-inline-end: 6px; color: var(--ink); }
+  .callout.intuition { border-inline-start-color: var(--accent); background: color-mix(in srgb, var(--accent-soft) 40%, var(--surface)); }
+  .callout.intuition .clabel { color: var(--accent-strong); }
+  .callout.warn { border-inline-start-color: var(--warning); background: color-mix(in srgb, var(--warning-soft) 45%, var(--surface)); }
+  .callout.warn .clabel { color: var(--warning); }
+  .callout.example { border-inline-start-color: var(--border-strong); background: var(--surface-subtle); }
+  .callout.example .num { font-family: var(--mono); font-weight: 600; color: var(--ink); }
+
+  details.more { margin: 14px 0 2px; border-top: 1px dashed var(--border); padding-top: 6px; }
+  details.more > summary {
+    cursor: pointer; font-size: 13.5px; font-weight: 700; color: var(--accent-strong);
+    list-style: none; padding: 8px 0; display: inline-flex; align-items: center; gap: 7px;
+  }
+  details.more > summary::-webkit-details-marker { display: none; }
+  details.more > summary::before { content: "+"; font-size: 16px; line-height: 1; color: var(--accent); }
+  details.more[open] > summary::before { content: "\2212"; }
+  details.more > summary + * { margin-top: 6px; }
+
+  /* ---------- tables ---------- */
+  .tablewrap { overflow-x: auto; margin: 20px 0; border: 1px solid var(--border); border-radius: var(--radius-m); }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { text-align: start; padding: 11px 15px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  thead th { background: var(--surface-muted); font-weight: 700; color: var(--ink-2); font-size: 11.5px; letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; }
+  tbody tr:last-child td { border-bottom: 0; }
+  tbody tr:nth-child(even) { background: var(--surface-subtle); }
+  tbody tr { transition: background .12s ease; }
+  tbody tr:hover { background: color-mix(in srgb, var(--accent-soft) 30%, transparent); }
+  td .k, th .k { background: var(--surface); }
+  .sym { font-family: var(--mono); color: var(--accent-strong); font-weight: 600; white-space: nowrap; }
+  .dim { color: var(--ink-3); font-family: var(--font); font-weight: 500; }
+  tr.group td {
+    background: var(--surface-muted); color: var(--ink); font-weight: 750;
+    font-size: 12px; letter-spacing: .05em; text-transform: uppercase;
+  }
+  tbody tr.group:hover { background: var(--surface-muted); }
+
+  /* ---------- figure (annotated diagram) ---------- */
+  .figure { margin: 24px 0; padding: 20px 20px 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; box-shadow: var(--shadow-s); }
+  .figure svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .figure figcaption { margin: 12px 4px 6px; font-size: 13.5px; color: var(--ink-3); text-align: center; }
+  .fig-axis { stroke: var(--border-strong); stroke-width: 1.25; }
+  .fig-crit { stroke: var(--ink-3); stroke-width: 1.25; stroke-dasharray: 4 4; }
+  .fig-h0 { fill: none; stroke: var(--ink-3); stroke-width: 2; stroke-linejoin: round; }
+  .fig-h1 { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; }
+  .fig-alpha { fill: color-mix(in srgb, var(--danger) 42%, transparent); }
+  .fig-power { fill: color-mix(in srgb, var(--accent) 26%, transparent); }
+  .fig-lab { font-family: var(--font); font-weight: 700; font-size: 15px; }
+  .fig-lab.h0 { fill: var(--ink-2); } .fig-lab.h1 { fill: var(--accent-strong); }
+  .fig-lab.a { fill: var(--danger); font-size: 14px; } .fig-lab.pw { fill: var(--accent-strong); font-size: 13px; }
+  .fig-tick { fill: var(--ink-3); font-family: var(--mono); font-size: 12px; }
+  .fig-line { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+  .fig-ref { fill: none; stroke: var(--ink-3); stroke-width: 1.5; stroke-dasharray: 4 4; }
+  .fig-dot { fill: var(--accent); }
+  .fig-dot-h { fill: var(--surface); stroke: var(--accent); stroke-width: 2; }
+  .fig-before { fill: none; stroke: var(--ink-3); stroke-width: 2; stroke-dasharray: 5 4; }
+  .fig-after { fill: none; stroke: var(--accent); stroke-width: 2.5; }
+  .fig-after-fill { fill: color-mix(in srgb, var(--accent) 20%, transparent); }
+  .fig-cap-in { fill: var(--ink-2); font-family: var(--font); font-size: 13px; font-weight: 650; }
+  .fig-cap-a { fill: var(--danger); }
+
+  /* ---------- footer ---------- */
+  footer { border-top: 1px solid var(--border); background: var(--surface); }
+  .footer-inner { max-width: var(--maxw); margin: 0 auto; padding: 28px 24px 40px; color: var(--ink-3); font-size: 13.5px; display: flex; flex-wrap: wrap; gap: 8px 20px; justify-content: space-between; }
+  .footer-inner a { color: var(--ink-2); }
+
+  .lead-in { color: var(--ink-2); font-size: 15px; margin: 4px 0 20px; max-width: var(--content); }
+
+  @media (max-width: 640px) {
+    body { font-size: 16px; }
+    .wrap { padding: 0 18px; }
+    .card { padding: 20px 18px; }
+    .formula { padding: 18px 14px; }
+    .formula math { font-size: 1.16rem; }
+    .where dl { grid-template-columns: 1fr; gap: 2px 0; }
+    .where dd { margin-bottom: 8px; }
+  }
+
+  /* ============================================================
+     INTERACTIVE LAYER — progressive enhancement (needs help.js).
+     Hidden until the .js class is set by the script.
+     ============================================================ */
+  .js-only { display: none; }
+  html.js .js-only { display: revert; }
+  html.js .pe-top { display: grid; }
+  html.js .pe-sliders { display: grid; }
+  html.js .sizer-grid { display: grid; }
+  html.js .sizer-out { display: grid; }
+
+  .tool {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--accent-soft) 34%, var(--surface)), var(--surface));
+    border: 1px solid var(--border-strong); border-radius: 18px; box-shadow: var(--shadow-s);
+    padding: 22px 24px; margin: 22px 0;
+  }
+  .tool > .tag { margin-bottom: 8px; }
+  .tool h4 { margin: 0 0 16px; font-size: 1.1rem; font-weight: 750; }
+
+  input[type="range"] { accent-color: var(--accent); width: 100%; height: 24px; cursor: pointer; margin: 2px 0 0; }
+  input[type="number"], select {
+    font: inherit; font-size: 15px; color: var(--ink); background: var(--surface);
+    border: 1px solid var(--border-strong); border-radius: 8px; padding: 8px 10px; width: 100%;
+  }
+  input[type="number"]:focus, select:focus { outline: 2px solid var(--accent-ring); border-color: var(--accent); }
+
+  .pe-top { grid-template-columns: 1.1fr 0.9fr; gap: 22px; align-items: center; margin-bottom: 14px; }
+  .pe-sliders { gap: 14px; }
+  .ctl { display: block; }
+  .ctl-lab { display: flex; justify-content: space-between; align-items: baseline; font-size: 13.5px; font-weight: 650; color: var(--ink-2); margin-bottom: 2px; }
+  .ctl-lab b { font-family: var(--mono); font-weight: 700; color: var(--accent-strong); font-size: 14px; }
+  .pe-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .stat {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 12px 14px; display: flex; flex-direction: column; gap: 3px; text-align: start;
+  }
+  .stat-num { font-family: var(--mono); font-weight: 800; font-size: 1.5rem; letter-spacing: -.02em; line-height: 1; }
+  .stat-cap { font-size: 11.5px; color: var(--ink-3); line-height: 1.3; }
+  .stat.stat-a { border-inline-start: 3px solid var(--danger); } .stat.stat-a .stat-num { color: var(--danger); }
+  .stat.stat-p { border-inline-start: 3px solid var(--accent); } .stat.stat-p .stat-num { color: var(--accent-strong); }
+
+  .sizer-grid { grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 18px; }
+  .fld { display: flex; flex-direction: column; gap: 5px; font-size: 13px; font-weight: 650; color: var(--ink-2); }
+  .sizer-out { grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .sizer-out .stat { border-inline-start: 3px solid var(--accent); }
+  .sizer-out .stat-num { color: var(--accent-strong); }
+  .sizer-note { margin: 12px 0 0; font-size: 13.5px; color: var(--danger); font-weight: 650; }
+  .sizer-fine { margin: 14px 0 0; font-size: 12.5px; color: var(--ink-3); }
+
+  @media (max-width: 640px) {
+    .pe-top { grid-template-columns: 1fr; gap: 14px; }
+    .sizer-grid { grid-template-columns: 1fr 1fr; }
+    .sizer-out { grid-template-columns: 1fr; }
+    .stat-num { font-size: 1.35rem; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="/" aria-label="{{top.backAria}}">
+        <span class="brand-mark" aria-hidden="true">AB</span>
+        <span class="brand-text">
+          <span class="brand-name">{{top.brandName}}</span>
+          <span class="brand-tag">{{top.brandTag}}</span>
+        </span>
+      </a>
+      <nav class="langbar" aria-label="{{top.langAria}}">{{@langmenu}}</nav>
+    </div>
+  </div>
+
+  <header class="wrap hero">
+    <p class="kicker">{{hero.kicker}}</p>
+    <h1>{{hero.title}}</h1>
+    <p>{{hero.lede}}</p>
+    <p class="lede-note">{{hero.note}}</p>
+    <div class="heromedia" aria-hidden="true">
+      <svg viewBox="0 0 720 152" role="img">
+        <defs>
+          <linearGradient id="heroGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" style="stop-color:var(--accent);stop-opacity:.22"/>
+            <stop offset="1" style="stop-color:var(--accent);stop-opacity:0"/>
+          </linearGradient>
+        </defs>
+        <line class="hero-base" x1="0" y1="140" x2="720" y2="140"/>
+        <path class="hero-fill" d="M 0,140 8,140 16,140 24,140 32,139 40,139 48,139 56,139 64,138 72,138 80,137 88,137 96,136 104,135 112,134 120,133 128,131 136,130 144,128 152,125 160,123 168,120 176,116 184,113 192,109 200,104 208,100 216,95 224,89 232,84 240,78 248,72 256,65 264,59 272,53 280,47 288,41 296,36 304,31 312,26 320,22 328,18 336,16 344,14 352,12 360,12 368,12 376,14 384,16 392,18 400,22 408,26 416,31 424,36 432,41 440,47 448,53 456,59 464,65 472,72 480,78 488,84 496,89 504,95 512,100 520,104 528,109 536,113 544,116 552,120 560,123 568,125 576,128 584,130 592,131 600,133 608,134 616,135 624,136 632,137 640,137 648,138 656,138 664,139 672,139 680,139 688,139 696,140 704,140 712,140 720,140 Z"/>
+        <path class="hero-line" d="M 0,140 8,140 16,140 24,140 32,139 40,139 48,139 56,139 64,138 72,138 80,137 88,137 96,136 104,135 112,134 120,133 128,131 136,130 144,128 152,125 160,123 168,120 176,116 184,113 192,109 200,104 208,100 216,95 224,89 232,84 240,78 248,72 256,65 264,59 272,53 280,47 288,41 296,36 304,31 312,26 320,22 328,18 336,16 344,14 352,12 360,12 368,12 376,14 384,16 392,18 400,22 408,26 416,31 424,36 432,41 440,47 448,53 456,59 464,65 472,72 480,78 488,84 496,89 504,95 512,100 520,104 528,109 536,113 544,116 552,120 560,123 568,125 576,128 584,130 592,131 600,133 608,134 616,135 624,136 632,137 640,137 648,138 656,138 664,139 672,139 680,139 688,139 696,140 704,140 712,140 720,140"/>
+        <g>
+          <line class="hero-tick" x1="160" y1="140" x2="160" y2="147"/><text class="hero-tlabel" x="160" y="150" text-anchor="middle" dominant-baseline="hanging">&#x2212;2&#x3C3;</text>
+          <line class="hero-tick" x1="260" y1="140" x2="260" y2="147"/><text class="hero-tlabel" x="260" y="150" text-anchor="middle" dominant-baseline="hanging">&#x2212;1&#x3C3;</text>
+          <line class="hero-tick" x1="360" y1="140" x2="360" y2="147"/><text class="hero-tlabel" x="360" y="150" text-anchor="middle" dominant-baseline="hanging">&#x3BC;</text>
+          <line class="hero-tick" x1="460" y1="140" x2="460" y2="147"/><text class="hero-tlabel" x="460" y="150" text-anchor="middle" dominant-baseline="hanging">+1&#x3C3;</text>
+          <line class="hero-tick" x1="560" y1="140" x2="560" y2="147"/><text class="hero-tlabel" x="560" y="150" text-anchor="middle" dominant-baseline="hanging">+2&#x3C3;</text>
+        </g>
+      </svg>
+    </div>
+  </header>
+
+  <div class="wrap layout">
+    <details class="toc" open>
+      <summary>{{toc.summary}}</summary>
+      <div class="toc-body">
+        <p class="toc-title">{{toc.title}}</p>
+        <nav>
+          <ol>
+            <li><a href="#fundamentals">{{toc.s1}}</a></li>
+            <li><a href="#planning">{{toc.s2}}</a></li>
+            <li><a href="#multiple">{{toc.s3}}</a></li>
+            <li><a href="#analysis">{{toc.s4}}</a></li>
+            <li><a href="#monitoring">{{toc.s5}}</a></li>
+            <li><a href="#cheatsheet">{{toc.s6}}</a></li>
+          </ol>
+        </nav>
+      </div>
+    </details>
+
+    <main>
+      <!-- ================= 1. FUNDAMENTALS ================= -->
+      <section id="fundamentals">
+        <div class="sec-head"><span class="sec-num">01</span></div>
+        <h2>{{f.h2}}</h2>
+        <p class="sec-intro">{{f.intro}}</p>
+
+        <h3>{{f.hyp.h3}}</h3>
+        <p>{{f.hyp.p}}</p>
+
+        <h3>{{f.four.h3}}</h3>
+        <div class="card">
+          <div class="where">
+            <p class="where-title">{{f.four.title}}</p>
+            <dl>
+              <dt>&#x3B1;</dt><dd>{{f.four.alpha}}</dd>
+              <dt>&#x3B2;</dt><dd>{{f.four.beta}}</dd>
+              <dt>1 &#x2212; &#x3B2;</dt><dd>{{f.four.power}}</dd>
+              <dt>MDE</dt><dd>{{f.four.mde}}</dd>
+            </dl>
+          </div>
+        </div>
+
+        <h3>{{f.err.h3}}</h3>
+        <p>{{f.err.p}}</p>
+        <div class="tablewrap">
+          <table>
+            <thead>
+              <tr>
+                <th></th>
+                <th>{{f.err.thH0}}</th>
+                <th>{{f.err.thH1}}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th>{{f.err.rowEff}}</th>
+                <td>{{f.err.c11}}</td>
+                <td>{{f.err.c12}}</td>
+              </tr>
+              <tr>
+                <th>{{f.err.rowNo}}</th>
+                <td>{{f.err.c21}}</td>
+                <td>{{f.err.c22}}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <figure class="figure tool" id="powerExplorer">
+          <div class="pe-top js-only">
+            <div class="pe-sliders">
+              <label class="ctl">
+                <span class="ctl-lab"><span>{{f.pe.thresh}}</span> <b id="peOutZ">{{f.pe.defZ}}</b></span>
+                <input type="range" id="peThresh" min="0" max="4" step="0.02" value="1.645" aria-label="threshold">
+              </label>
+              <label class="ctl">
+                <span class="ctl-lab"><span>{{f.pe.eff}}</span> <b id="peOutEff">{{f.pe.defEff}}</b></span>
+                <input type="range" id="peEffect" min="0" max="4" step="0.05" value="3" aria-label="effect size">
+              </label>
+            </div>
+            <div class="pe-stats">
+              <div class="stat stat-a"><span class="stat-num" id="peOutAlpha">{{f.pe.defAlpha}}</span><span class="stat-cap">{{f.pe.alphaCap}}</span></div>
+              <div class="stat stat-p"><span class="stat-num" id="peOutPower">{{f.pe.defPower}}</span><span class="stat-cap">{{f.pe.powerCap}}</span></div>
+            </div>
+          </div>
+          <svg viewBox="0 0 640 236" role="img" aria-label="Normal distributions of H0 and H1 with alpha and power regions">
+            <path class="fig-alpha pe-alpha" d="M 347,205 347,179 353,184 360,189 367,192 373,195 380,198 387,200 393,201 400,202 407,203 413,204 420,204 427,204 433,205 640,205 640,205 Z"/>
+            <path class="fig-power pe-power" d="M 347,205 347,101 353,88 360,76 367,65 373,54 380,44 387,37 393,31 400,27 407,26 413,27 420,30 427,36 433,43 440,52 447,63 453,74 460,86 467,99 473,111 480,123 487,135 493,145 500,155 507,163 513,171 520,178 527,183 533,188 540,192 547,195 553,197 560,199 567,201 573,202 580,203 587,203 593,204 600,204 607,204 613,205 640,205 640,205 Z"/>
+            <line class="fig-axis" x1="0" y1="205" x2="640" y2="205"/>
+            <line class="fig-crit pe-crit" x1="347" y1="205" x2="347" y2="14"/>
+            <path class="fig-h0 pe-h0" d="M 0,205 26,205 51,204 77,200 96,194 115,182 134,162 154,134 173,100 192,65 211,38 230,26 250,33 269,57 288,91 307,126 326,156 346,178 371,194 397,202 422,204 448,205 480,205 520,205 570,205 640,205"/>
+            <path class="fig-h1 pe-h1" d="M 205,205 218,204 237,203 256,199 275,191 294,178 314,156 333,126 352,91 371,57 390,33 410,26 429,38 448,65 467,100 486,134 506,162 525,182 544,194 563,200 589,204 614,205 640,205"/>
+            <text class="fig-lab h0" x="233" y="18" text-anchor="middle">H&#x2080;</text>
+            <text class="fig-lab h1 pe-lab-h1" x="407" y="18" text-anchor="middle">H&#x2081;</text>
+            <text class="fig-lab a pe-lab-a" x="372" y="199" text-anchor="middle">&#x3B1;</text>
+            <text class="fig-lab pw pe-lab-pw" x="452" y="150" text-anchor="middle">1&#x2212;&#x3B2;</text>
+          </svg>
+          <figcaption>{{f.pe.cap}}</figcaption>
+        </figure>
+
+        <h3>{{f.pv.h3}}</h3>
+        <p>{{f.pv.p}}</p>
+        <div class="callout warn">
+          <span class="clabel">{{f.pv.warnLabel}}</span>
+          <span>{{f.pv.warn}}</span>
+        </div>
+
+        <h3>{{f.ci.h3}}</h3>
+        <p>{{f.ci.p}}</p>
+        <div class="callout intuition">
+          <span class="clabel">{{f.ci.linkLabel}}</span>
+          <span>{{f.ci.link}}</span>
+        </div>
+
+        <h3>{{f.rand.h3}}</h3>
+        <div class="card">
+          <span class="tag plan">{{f.rand.tag}}</span>
+          <p>{{f.rand.p}}</p>
+          <div class="formula">
+            <span class="flabel">{{f.rand.flabel}}</span>
+            <math display="block">
+              <mtext>bucket</mtext><mo>=</mo>
+              <mi>H</mi><mo>(</mo><mtext>id</mtext><mo>&#x2225;</mo><mtext>salt</mtext><mo>)</mo>
+              <mspace width="0.3em"/><mtext>mod</mtext><mspace width="0.3em"/>
+              <msup><mn>10</mn><mn>4</mn></msup>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">{{lbl.where}}</p>
+            <dl>
+              <dt>H</dt><dd>{{f.rand.wH}}</dd>
+              <dt>id</dt><dd>{{f.rand.wId}}</dd>
+              <dt>salt</dt><dd>{{f.rand.wSalt}}</dd>
+            </dl>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">{{f.rand.noteLabel}}</span>
+            <span>{{f.rand.note}}</span>
+          </div>
+        </div>
+        <hr class="divider">
+      </section>
+      <!-- ================= 2. PLANNING ================= -->
+      <section id="planning">
+        <div class="sec-head"><span class="sec-num">02</span></div>
+        <h2>{{p.h2}}</h2>
+        <p class="sec-intro">{{p.intro}}</p>
+
+        <h3>{{p.bin.h3}}</h3>
+        <div class="card">
+          <span class="tag plan">{{p.bin.tag}}</span>
+          <p>{{p.bin.p}}</p>
+          <div class="formula">
+            <span class="flabel">{{p.bin.flabel}}</span>
+            <math display="block">
+              <mi>n</mi><mo>=</mo>
+              <mfrac>
+                <msup>
+                  <mrow><mo>(</mo>
+                    <msub><mi>z</mi><mi>&#x3B1;</mi></msub><mspace width="0.15em"/>
+                    <msqrt><mrow><mn>2</mn><mo>&#x2062;</mo><mover><mi>p</mi><mo>&#xAF;</mo></mover><mo>(</mo><mn>1</mn><mo>&#x2212;</mo><mover><mi>p</mi><mo>&#xAF;</mo></mover><mo>)</mo></mrow></msqrt>
+                    <mo>+</mo>
+                    <msub><mi>z</mi><mi>&#x3B2;</mi></msub><mspace width="0.15em"/>
+                    <msqrt><mrow><msub><mi>p</mi><mn>0</mn></msub><mo>(</mo><mn>1</mn><mo>&#x2212;</mo><msub><mi>p</mi><mn>0</mn></msub><mo>)</mo><mo>+</mo><msub><mi>p</mi><mn>1</mn></msub><mo>(</mo><mn>1</mn><mo>&#x2212;</mo><msub><mi>p</mi><mn>1</mn></msub><mo>)</mo></mrow></msqrt>
+                  <mo>)</mo></mrow>
+                  <mn>2</mn>
+                </msup>
+                <msup><mi>&#x3B4;</mi><mn>2</mn></msup>
+              </mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">{{lbl.where}}</p>
+            <dl>
+              <dt>p&#x2080;, p&#x2081;</dt><dd>{{p.bin.wP01}}</dd>
+              <dt>&#x3B4;</dt><dd>{{p.bin.wDelta}}</dd>
+              <dt>p&#x304;</dt><dd>{{p.bin.wPbar}}</dd>
+              <dt>z<sub>&#x3B1;</sub></dt><dd>{{p.bin.wZa}}</dd>
+              <dt>z<sub>&#x3B2;</sub></dt><dd>{{p.bin.wZb}}</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>{{p.bin.ex}}</span>
+          </div>
+        </div>
+
+        <div class="tool js-only" id="sizer">
+          <span class="tag plan">{{p.sz.tag}}</span>
+          <h4>{{p.sz.h4}}</h4>
+          <div class="sizer-grid">
+            <label class="fld"><span>{{p.sz.base}}</span><input id="szBase" type="number" value="10" min="0.1" max="99" step="0.1"></label>
+            <label class="fld"><span>{{p.sz.lift}}</span><input id="szMde" type="number" value="10" min="0.1" step="0.1"></label>
+            <label class="fld"><span>{{p.sz.traffic}}</span><input id="szTraffic" type="number" value="5000" min="1" step="100"></label>
+            <label class="fld"><span>{{p.sz.alpha}}</span><select id="szAlpha"><option value="1.6449">{{p.sz.a10}}</option><option value="1.9600" selected>{{p.sz.a05}}</option><option value="2.5758">{{p.sz.a01}}</option></select></label>
+            <label class="fld"><span>{{p.sz.power}}</span><select id="szPower"><option value="0.5244">{{p.sz.pw70}}</option><option value="0.8416" selected>{{p.sz.pw80}}</option><option value="1.2816">{{p.sz.pw90}}</option><option value="1.6449">{{p.sz.pw95}}</option></select></label>
+          </div>
+          <div class="sizer-out">
+            <div class="stat"><span class="stat-num" id="szPer">&#8212;</span><span class="stat-cap">{{p.sz.per}}</span></div>
+            <div class="stat"><span class="stat-num" id="szTotal">&#8212;</span><span class="stat-cap">{{p.sz.total}}</span></div>
+            <div class="stat"><span class="stat-num" id="szDays">&#8212;</span><span class="stat-cap">{{p.sz.days}}</span></div>
+          </div>
+          <p class="sizer-note" id="szNote" hidden>{{p.sz.note}}</p>
+          <p class="sizer-fine">{{p.sz.fine}}</p>
+        </div>
+
+        <h3>{{p.cont.h3}}</h3>
+        <div class="card">
+          <span class="tag plan">{{p.cont.tag}}</span>
+          <p>{{p.cont.p}}</p>
+          <div class="formula">
+            <span class="flabel">{{p.cont.flabel}}</span>
+            <math display="block">
+              <mi>n</mi><mo>=</mo><mn>2</mn>
+              <msup>
+                <mrow><mo>(</mo><mfrac><mrow><mo>(</mo><msub><mi>z</mi><mi>&#x3B1;</mi></msub><mo>+</mo><msub><mi>z</mi><mi>&#x3B2;</mi></msub><mo>)</mo><mo>&#x2062;</mo><mi>&#x3C3;</mi></mrow><mi>&#x3B4;</mi></mfrac><mo>)</mo></mrow>
+                <mn>2</mn>
+              </msup>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">{{lbl.where}}</p>
+            <dl>
+              <dt>&#x3C3;</dt><dd>{{p.cont.wSigma}}</dd>
+              <dt>&#x3B4;</dt><dd>{{p.cont.wDelta}}</dd>
+              <dt>z<sub>&#x3B1;</sub>, z<sub>&#x3B2;</sub></dt><dd>{{p.cont.wZ}}</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>{{p.cont.ex}}</span>
+          </div>
+        </div>
+
+        <h3>{{p.mde.h3}}</h3>
+        <div class="card">
+          <span class="tag plan">{{p.mde.tag}}</span>
+          <p>{{p.mde.p}}</p>
+          <div class="formula">
+            <span class="flabel">{{p.mde.flabel}}</span>
+            <math display="block">
+              <mi>MDE</mi><mo>=</mo><mo>(</mo><msub><mi>z</mi><mi>&#x3B1;</mi></msub><mo>+</mo><msub><mi>z</mi><mi>&#x3B2;</mi></msub><mo>)</mo><mo>&#x2062;</mo><mi>&#x3C3;</mi><mo>&#x2062;</mo><msqrt><mfrac><mn>2</mn><mi>n</mi></mfrac></msqrt>
+            </math>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">{{p.mde.noteLabel}}</span>
+            <span>{{p.mde.note}}</span>
+          </div>
+        </div>
+
+        <h3>{{p.dur.h3}}</h3>
+        <div class="card">
+          <span class="tag plan">{{p.dur.tag}}</span>
+          <p>{{p.dur.p}}</p>
+          <div class="formula">
+            <span class="flabel">{{p.dur.flabel}}</span>
+            <math display="block">
+              <mtext>{{math.days}}</mtext><mo>=</mo>
+              <mrow><mo>&#x2308;</mo>
+                <mfrac>
+                  <mi>n</mi>
+                  <mrow><mi>T</mi><mo>&#x2062;</mo><mi>s</mi><mo>&#x2062;</mo><mi>a</mi><mo>&#x2062;</mo><msub><mi>w</mi><mtext>min</mtext></msub></mrow>
+                </mfrac>
+              <mo>&#x2309;</mo></mrow>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">{{lbl.where}}</p>
+            <dl>
+              <dt>T</dt><dd>{{p.dur.wT}}</dd>
+              <dt>s</dt><dd>{{p.dur.wS}}</dd>
+              <dt>a</dt><dd>{{p.dur.wA}}</dd>
+              <dt>w<sub>min</sub></dt><dd>{{p.dur.wWmin}}</dd>
+              <dt>&#x2308; &#x2309;</dt><dd>{{p.dur.wCeil}}</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>{{p.dur.ex}}</span>
+          </div>
+          <div class="callout warn">
+            <span class="clabel">{{p.dur.warnLabel}}</span>
+            <span>{{p.dur.warn}}</span>
+          </div>
+        </div>
+
+        <h3>{{p.bay.h3}}</h3>
+        <div class="card">
+          <span class="tag plan">{{p.bay.tag}}</span>
+          <p>{{p.bay.p}}</p>
+          <div class="formula">
+            <span class="flabel">{{p.bay.flabel}}</span>
+            <math display="block">
+              <mi>N</mi><mo>=</mo><mn>2</mn><mo>&#x2062;</mo><mi>p</mi><mo>(</mo><mn>1</mn><mo>&#x2212;</mo><mi>p</mi><mo>)</mo><msup><mrow><mo>(</mo><mfrac><mi>z</mi><mi>d</mi></mfrac><mo>)</mo></mrow><mn>2</mn></msup>
+              <mspace width="1.4em"/>
+              <mtext>/</mtext>
+              <mspace width="1.4em"/>
+              <mi>N</mi><mo>=</mo><mn>2</mn><mo>&#x2062;</mo><msup><mi>&#x3C3;</mi><mn>2</mn></msup><msup><mrow><mo>(</mo><mfrac><mi>z</mi><mi>d</mi></mfrac><mo>)</mo></mrow><mn>2</mn></msup>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">{{lbl.where}}</p>
+            <dl>
+              <dt>d</dt><dd>{{p.bay.wD}}</dd>
+              <dt>z</dt><dd>{{p.bay.wZ}}</dd>
+              <dt>p / &#x3C3;</dt><dd>{{p.bay.wPsigma}}</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>{{p.bay.ex}}</span>
+          </div>
+        </div>
+
+        <h3>{{p.tost.h3}}</h3>
+        <div class="card">
+          <span class="tag plan">{{p.tost.tag}}</span>
+          <p>{{p.tost.p}}</p>
+          <div class="formula">
+            <span class="flabel">{{p.tost.flabel}}</span>
+            <math display="block">
+              <mi>n</mi><mo>=</mo><mn>2</mn>
+              <msup>
+                <mrow><mo>(</mo><mfrac><mrow><mi>&#x3C3;</mi><mo>(</mo><msub><mi>z</mi><mi>&#x3B1;</mi></msub><mo>+</mo><msub><mi>z</mi><mrow><mn>1</mn><mo>&#x2212;</mo><mi>&#x3B2;</mi><mo>/</mo><mn>2</mn></mrow></msub><mo>)</mo></mrow><mi>M</mi></mfrac><mo>)</mo></mrow>
+                <mn>2</mn>
+              </msup>
+            </math>
+          </div>
+          <div class="callout example">
+            <span>{{p.tost.ex}}</span>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">{{p.tost.noteLabel}}</span>
+            <span>{{p.tost.note}}</span>
+          </div>
+        </div>
+
+        <div class="callout intuition">
+          <span class="clabel">{{p.kadj.label}}</span>
+          <span>{{p.kadj.body}}</span>
+        </div>
+        <hr class="divider">
+      </section>
+      <!-- ================= 3. MULTIPLE COMPARISONS ================= -->
+      <section id="multiple">
+        <div class="sec-head"><span class="sec-num">03</span></div>
+        <h2>{{m.h2}}</h2>
+        <p class="sec-intro">{{m.intro}}</p>
+
+        <h3>{{m.prob.h3}}</h3>
+        <p>{{m.prob.p}}</p>
+        <div class="tablewrap">
+          <table>
+            <thead><tr>
+              <th>{{m.t.what}}</th>
+              <th>{{m.t.q}}</th>
+              <th>{{m.t.methods}}</th>
+            </tr></thead>
+            <tbody>
+              <tr>
+                <td>{{m.t.fwerCell}}</td>
+                <td>{{m.t.fwerQ}}</td>
+                <td>{{m.t.fwerMethods}}</td>
+              </tr>
+              <tr>
+                <td>{{m.t.fdrCell}}</td>
+                <td>{{m.t.fdrQ}}</td>
+                <td>{{m.t.fdrMethods}}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <figure class="figure">
+          <svg viewBox="0 0 560 216" role="img" aria-label="Family-wise error rate grows with the number of metrics">
+            <line class="fig-axis" x1="40" y1="188" x2="548" y2="188"/>
+            <line class="fig-axis" x1="40" y1="188" x2="40" y2="16"/>
+            <line class="fig-ref" x1="40" y1="175" x2="548" y2="175"/>
+            <path class="fig-line" style="stroke:var(--danger)" d="M 50,175 76,163 102,152 127,141 153,130 179,120 205,111 231,102 256,94 282,86 308,78 334,71 359,64 385,57 411,51 437,45 463,39 488,34 514,29 540,24"/>
+            <circle class="fig-dot" style="fill:var(--danger)" cx="153" cy="130" r="4"/>
+            <circle class="fig-dot" style="fill:var(--danger)" cx="282" cy="86" r="4"/>
+            <circle class="fig-dot" style="fill:var(--danger)" cx="540" cy="24" r="4.5"/>
+            <text class="fig-cap-in fig-cap-a" x="150" y="122" text-anchor="middle">23%</text>
+            <text class="fig-cap-in fig-cap-a" x="279" y="78" text-anchor="middle">40%</text>
+            <text class="fig-cap-in fig-cap-a" x="540" y="17" text-anchor="middle">64%</text>
+            <text class="fig-tick" x="44" y="171">5%</text>
+            <text class="fig-tick" x="50" y="202" text-anchor="middle">1</text>
+            <text class="fig-tick" x="153" y="202" text-anchor="middle">5</text>
+            <text class="fig-tick" x="282" y="202" text-anchor="middle">10</text>
+            <text class="fig-tick" x="540" y="202" text-anchor="middle">20</text>
+          </svg>
+          <figcaption>{{m.fig.cap}}</figcaption>
+        </figure>
+
+        <h3>{{m.bonf.h3}}</h3>
+        <div class="card">
+          <span class="tag multi">{{m.bonf.tag}}</span>
+          <p>{{m.bonf.p}}</p>
+          <div class="formula">
+            <span class="flabel">{{m.bonf.flabel}}</span>
+            <math display="block">
+              <msub><mi>&#x3B1;</mi><mtext>adj</mtext></msub><mo>=</mo><mfrac><mi>&#x3B1;</mi><mrow><mi>k</mi><mo>&#x2212;</mo><mn>1</mn></mrow></mfrac>
+              <mspace width="2em"/><mtext>(</mtext><mspace width="0.2em"/><mtext>{{math.acrossMetrics}}</mtext><mspace width="0.4em"/><msub><mi>&#x3B1;</mi><mtext>adj</mtext></msub><mo>=</mo><mfrac><mi>&#x3B1;</mi><mi>m</mi></mfrac><mspace width="0.2em"/><mtext>)</mtext>
+            </math>
+          </div>
+          <div class="callout example">
+            <span>{{m.bonf.ex}}</span>
+          </div>
+        </div>
+
+        <h3>{{m.step.h3}}</h3>
+        <div class="card">
+          <span class="tag multi">{{m.step.tag}}</span>
+          <p>{{m.step.p}}</p>
+          <div class="formula">
+            <span class="flabel">{{m.step.flabelHolm}}</span>
+            <math display="block">
+              <mtext>{{math.reject}}</mtext><mspace width="0.4em"/><msub><mi>p</mi><mrow><mo>(</mo><mi>k</mi><mo>)</mo></mrow></msub><mspace width="0.5em"/><mtext>{{math.while}}</mtext><mspace width="0.5em"/>
+              <msub><mi>p</mi><mrow><mo>(</mo><mi>k</mi><mo>)</mo></mrow></msub><mo>&#x2264;</mo><mfrac><mi>&#x3B1;</mi><mrow><mi>m</mi><mo>&#x2212;</mo><mi>k</mi><mo>+</mo><mn>1</mn></mrow></mfrac>
+            </math>
+          </div>
+          <div class="formula">
+            <span class="flabel">{{m.step.flabelBH}}</span>
+            <math display="block">
+              <msup><mi>k</mi><mo>&#x2217;</mo></msup><mo>=</mo><mi>max</mi><mo>&#x2061;</mo><mrow><mo>{</mo><mi>k</mi><mo>:</mo><mspace width="0.3em"/><msub><mi>p</mi><mrow><mo>(</mo><mi>k</mi><mo>)</mo></mrow></msub><mo>&#x2264;</mo><mfrac><mi>k</mi><mi>m</mi></mfrac><mo>&#x2062;</mo><mi>q</mi><mo>}</mo></mrow>
+              <mspace width="0.6em"/><mo>&#x21D2;</mo><mspace width="0.4em"/><mtext>{{math.rejectRanks}}</mtext><mspace width="0.3em"/><mn>1</mn><mo>&#x2026;</mo><msup><mi>k</mi><mo>&#x2217;</mo></msup>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">{{lbl.where}}</p>
+            <dl>
+              <dt>m</dt><dd>{{m.step.wM}}</dd>
+              <dt>k</dt><dd>{{m.step.wK}}</dd>
+              <dt>q</dt><dd>{{m.step.wQ}}</dd>
+            </dl>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">{{m.step.noteLabel}}</span>
+            <span>{{m.step.note}}</span>
+          </div>
+        </div>
+
+        <h3>{{m.clust.h3}}</h3>
+        <div class="card">
+          <span class="tag multi">{{m.clust.tag}}</span>
+          <p>{{m.clust.p}}</p>
+          <div class="formula">
+            <span class="flabel">{{m.clust.flabel}}</span>
+            <math display="block">
+              <mtext>DEFF</mtext><mo>=</mo><mn>1</mn><mo>+</mo><mo>(</mo><mi>m</mi><mo>&#x2212;</mo><mn>1</mn><mo>)</mo><mo>&#x2062;</mo><mtext>ICC</mtext>
+              <mspace width="2em"/>
+              <msub><mi>n</mi><mtext>clust</mtext></msub><mo>=</mo><mi>n</mi><mo>&#x00D7;</mo><mtext>DEFF</mtext>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">{{lbl.where}}</p>
+            <dl>
+              <dt>m</dt><dd>{{m.clust.wM}}</dd>
+              <dt>ICC</dt><dd>{{m.clust.wIcc}}</dd>
+              <dt>n</dt><dd>{{m.clust.wN}}</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>{{m.clust.ex}}</span>
+          </div>
+          <div class="callout warn">
+            <span class="clabel">{{m.clust.warnLabel}}</span>
+            <span>{{m.clust.warn}}</span>
+          </div>
+        </div>
+        <hr class="divider">
+      </section>
+      <!-- ================= 4. ANALYSIS ================= -->
+      <section id="analysis">
+        <div class="sec-head"><span class="sec-num">04</span></div>
+        <h2>{{a.h2}}</h2>
+        <p class="sec-intro">{{a.intro}}</p>
+
+        <!-- ---- 4.1 two independent groups ---- -->
+        <h3>{{a.g1.h3}}</h3>
+        <p class="group-lead">{{a.g1.p}}</p>
+
+        <div class="card">
+          <span class="tag analyze">{{a.z.tag}}</span>
+          <h4>{{a.z.h4}}</h4>
+          <p>{{a.z.p}}</p>
+          <div class="formula">
+            <span class="flabel">{{a.z.flabel}}</span>
+            <math display="block">
+              <mi>z</mi><mo>=</mo>
+              <mfrac>
+                <mrow><msub><mover><mi>p</mi><mo>^</mo></mover><mi>t</mi></msub><mo>&#x2212;</mo><msub><mover><mi>p</mi><mo>^</mo></mover><mi>c</mi></msub></mrow>
+                <msqrt><mrow><mover><mi>p</mi><mo>&#xAF;</mo></mover><mo>(</mo><mn>1</mn><mo>&#x2212;</mo><mover><mi>p</mi><mo>&#xAF;</mo></mover><mo>)</mo><mo>(</mo><mfrac><mn>1</mn><msub><mi>n</mi><mi>c</mi></msub></mfrac><mo>+</mo><mfrac><mn>1</mn><msub><mi>n</mi><mi>t</mi></msub></mfrac><mo>)</mo></mrow></msqrt>
+              </mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">{{lbl.where}}</p>
+            <dl>
+              <dt>p&#x302;<sub>c</sub>, p&#x302;<sub>t</sub></dt><dd>{{a.z.wP}}</dd>
+              <dt>p&#x304;</dt><dd>{{a.z.wPbar}}</dd>
+              <dt>n<sub>c</sub>, n<sub>t</sub></dt><dd>{{a.z.wN}}</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>{{a.z.ex}}</span>
+          </div>
+          <details class="more">
+            <summary>{{a.z.moreSummary}}</summary>
+            <p>{{a.z.moreP}}</p>
+            <div class="formula">
+              <span class="flabel">{{a.z.moreFlabel}}</span>
+              <math display="block">
+                <mfrac>
+                  <mrow><mover><mi>p</mi><mo>^</mo></mover><mo>+</mo><mfrac><msup><mi>z</mi><mn>2</mn></msup><mrow><mn>2</mn><mi>n</mi></mrow></mfrac><mo>&#x00B1;</mo><mi>z</mi><msqrt><mrow><mfrac><mrow><mover><mi>p</mi><mo>^</mo></mover><mo>(</mo><mn>1</mn><mo>&#x2212;</mo><mover><mi>p</mi><mo>^</mo></mover><mo>)</mo></mrow><mi>n</mi></mfrac><mo>+</mo><mfrac><msup><mi>z</mi><mn>2</mn></msup><mrow><mn>4</mn><msup><mi>n</mi><mn>2</mn></msup></mrow></mfrac></mrow></msqrt></mrow>
+                  <mrow><mn>1</mn><mo>+</mo><msup><mi>z</mi><mn>2</mn></msup><mo>/</mo><mi>n</mi></mrow>
+                </mfrac>
+              </math>
+            </div>
+          </details>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">{{a.ex.tag}}</span>
+          <h4>{{a.ex.h4}}</h4>
+          <p>{{a.ex.p}}</p>
+          <div class="formula">
+            <span class="flabel">{{a.ex.flabel1}}</span>
+            <math display="block">
+              <mi>P</mi><mo>(</mo><mi>a</mi><mo>)</mo><mo>=</mo>
+              <mfrac>
+                <mrow><mi>C</mi><mo>(</mo><msub><mi>m</mi><mn>1</mn></msub><mo>,</mo><mi>a</mi><mo>)</mo><mo>&#x2062;</mo><mi>C</mi><mo>(</mo><msub><mi>m</mi><mn>2</mn></msub><mo>,</mo><mi>c</mi><mo>)</mo></mrow>
+                <mrow><mi>C</mi><mo>(</mo><mi>n</mi><mo>,</mo><mi>a</mi><mo>+</mo><mi>c</mi><mo>)</mo></mrow>
+              </mfrac>
+            </math>
+          </div>
+          <div class="formula">
+            <span class="flabel">{{a.ex.flabel2}}</span>
+            <math display="block">
+              <mi>p</mi><mo>=</mo>
+              <munder><mi>max</mi><mi>&#x3C0;</mi></munder>
+              <munder><mo>&#x2211;</mo><mrow><mi>T</mi><mo>&#x2AB0;</mo><mtext>obs</mtext></mrow></munder>
+              <msub><mi>P</mi><mi>&#x3C0;</mi></msub><mo>(</mo><mi>T</mi><mo>)</mo>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">{{lbl.where}}</p>
+            <dl>
+              <dt>m&#x2081;, m&#x2082;</dt><dd>{{a.ex.wM}}</dd>
+              <dt>a, c</dt><dd>{{a.ex.wAc}}</dd>
+              <dt>&#x3C0;</dt><dd>{{a.ex.wPi}}</dd>
+              <dt>T &#x2AB0; obs</dt><dd>{{a.ex.wT}}</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>{{a.ex.ex}}</span>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">{{a.ex.noteLabel}}</span>
+            <span>{{a.ex.note}}</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">{{a.t.tag}}</span>
+          <h4>{{a.t.h4}}</h4>
+          <p>{{a.t.p}}</p>
+          <div class="formula">
+            <span class="flabel">{{a.t.flabel}}</span>
+            <math display="block">
+              <mi>t</mi><mo>=</mo>
+              <mfrac>
+                <mrow><msub><mover><mi>x</mi><mo>&#xAF;</mo></mover><mi>t</mi></msub><mo>&#x2212;</mo><msub><mover><mi>x</mi><mo>&#xAF;</mo></mover><mi>c</mi></msub></mrow>
+                <msqrt><mrow><mfrac><msubsup><mi>s</mi><mi>c</mi><mn>2</mn></msubsup><msub><mi>n</mi><mi>c</mi></msub></mfrac><mo>+</mo><mfrac><msubsup><mi>s</mi><mi>t</mi><mn>2</mn></msubsup><msub><mi>n</mi><mi>t</mi></msub></mfrac></mrow></msqrt>
+              </mfrac>
+              <mspace width="1.6em"/>
+              <mi>&#x3BD;</mi><mo>=</mo>
+              <mfrac>
+                <msup><mrow><mo>(</mo><msubsup><mi>s</mi><mi>c</mi><mn>2</mn></msubsup><mo>/</mo><msub><mi>n</mi><mi>c</mi></msub><mo>+</mo><msubsup><mi>s</mi><mi>t</mi><mn>2</mn></msubsup><mo>/</mo><msub><mi>n</mi><mi>t</mi></msub><mo>)</mo></mrow><mn>2</mn></msup>
+                <mrow><mfrac><msup><mrow><mo>(</mo><msubsup><mi>s</mi><mi>c</mi><mn>2</mn></msubsup><mo>/</mo><msub><mi>n</mi><mi>c</mi></msub><mo>)</mo></mrow><mn>2</mn></msup><mrow><msub><mi>n</mi><mi>c</mi></msub><mo>&#x2212;</mo><mn>1</mn></mrow></mfrac><mo>+</mo><mfrac><msup><mrow><mo>(</mo><msubsup><mi>s</mi><mi>t</mi><mn>2</mn></msubsup><mo>/</mo><msub><mi>n</mi><mi>t</mi></msub><mo>)</mo></mrow><mn>2</mn></msup><mrow><msub><mi>n</mi><mi>t</mi></msub><mo>&#x2212;</mo><mn>1</mn></mrow></mfrac></mrow>
+              </mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">{{lbl.where}}</p>
+            <dl>
+              <dt>x&#x304;<sub>c</sub>, x&#x304;<sub>t</sub></dt><dd>{{a.t.wX}}</dd>
+              <dt>s<sub>c</sub>, s<sub>t</sub></dt><dd>{{a.t.wS}}</dd>
+              <dt>&#x3BD;</dt><dd>{{a.t.wNu}}</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>{{a.t.ex}}</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">{{a.rob.tag}}</span>
+          <h4>{{a.rob.h4}}</h4>
+          <p>{{a.rob.p}}</p>
+          <div class="callout example">
+            <span>{{a.rob.data}}</span>
+          </div>
+          <div class="formula">
+            <span class="flabel">{{a.rob.fl1}}</span>
+            <math display="block">
+              <mi>U</mi><mo>=</mo><msub><mi>R</mi><mn>1</mn></msub><mo>&#x2212;</mo><mfrac><mrow><msub><mi>n</mi><mn>1</mn></msub><mo>(</mo><msub><mi>n</mi><mn>1</mn></msub><mo>+</mo><mn>1</mn><mo>)</mo></mrow><mn>2</mn></mfrac>
+              <mspace width="1.6em"/>
+              <mi>z</mi><mo>=</mo><mfrac><mrow><mi>U</mi><mo>&#x2212;</mo><msub><mi>n</mi><mn>1</mn></msub><msub><mi>n</mi><mn>2</mn></msub><mo>/</mo><mn>2</mn></mrow><msub><mi>&#x3C3;</mi><mi>U</mi></msub></mfrac>
+            </math>
+          </div>
+          <div class="formula">
+            <span class="flabel">{{a.rob.fl2}}</span>
+            <math display="block">
+              <mtext>HL</mtext><mo>=</mo><mi>med</mi><mo>&#x2061;</mo><mrow><mo>{</mo><msub><mi>y</mi><mi>j</mi></msub><mo>&#x2212;</mo><msub><mi>x</mi><mi>i</mi></msub><mo>}</mo></mrow>
+              <mspace width="1.6em"/>
+              <msub><mi>r</mi><mtext>rb</mtext></msub><mo>=</mo><mfrac><mrow><mn>2</mn><mi>U</mi></mrow><mrow><msub><mi>n</mi><mn>1</mn></msub><msub><mi>n</mi><mn>2</mn></msub></mrow></mfrac><mo>&#x2212;</mo><mn>1</mn>
+            </math>
+          </div>
+          <div class="formula">
+            <span class="flabel">{{a.rob.fl3}}</span>
+            <math display="block">
+              <msub><mi>p</mi><mtext>perm</mtext></msub><mo>=</mo>
+              <mfrac>
+                <mrow><mn>1</mn><mo>+</mo><mo>#</mo><mrow><mo>{</mo><mrow><mo>|</mo><msup><mi>&#x394;</mi><mo>&#x2217;</mo></msup><mo>|</mo></mrow><mo>&#x2265;</mo><mrow><mo>|</mo><mover><mi>&#x394;</mi><mo>^</mo></mover><mo>|</mo></mrow><mo>}</mo></mrow></mrow>
+                <mrow><mi>B</mi><mo>+</mo><mn>1</mn></mrow>
+              </mfrac>
+              <mspace width="1.6em"/>
+              <msub><mtext>CI</mtext><mn>95</mn></msub><mo>=</mo><mrow><mo>[</mo><msubsup><mi>&#x394;</mi><mrow><mo>(</mo><mn>2.5</mn><mo>%</mo><mo>)</mo></mrow><mo>&#x2217;</mo></msubsup><mo>;</mo><mspace width="0.3em"/><msubsup><mi>&#x394;</mi><mrow><mo>(</mo><mn>97.5</mn><mo>%</mo><mo>)</mo></mrow><mo>&#x2217;</mo></msubsup><mo>]</mo></mrow>
+            </math>
+          </div>
+          <div class="formula">
+            <span class="flabel">{{a.rob.fl4}}</span>
+            <math display="block">
+              <msub><mi>t</mi><mtext>Yuen</mtext></msub><mo>=</mo>
+              <mfrac>
+                <mrow><msub><mover><mi>x</mi><mo>&#xAF;</mo></mover><mrow><mi>t</mi><mo>,</mo><mtext>tr</mtext></mrow></msub><mo>&#x2212;</mo><msub><mover><mi>x</mi><mo>&#xAF;</mo></mover><mrow><mi>c</mi><mo>,</mo><mtext>tr</mtext></mrow></msub></mrow>
+                <msqrt><mrow><msub><mi>d</mi><mi>c</mi></msub><mo>+</mo><msub><mi>d</mi><mi>t</mi></msub></mrow></msqrt>
+              </mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">{{lbl.where}}</p>
+            <dl>
+              <dt>R&#x2081;</dt><dd>{{a.rob.wR}}</dd>
+              <dt>&#x3C3;<sub>U</sub></dt><dd>{{a.rob.wSigmaU}}</dd>
+              <dt>&#x394;*</dt><dd>{{a.rob.wDelta}}</dd>
+              <dt>x&#x304;<sub>tr</sub>, d</dt><dd>{{a.rob.wTr}}</dd>
+            </dl>
+          </div>
+          <div class="tablewrap">
+            <table>
+              <thead><tr>
+                <th>{{a.rob.th1}}</th>
+                <th>{{a.rob.th2}}</th>
+                <th>{{a.rob.th3}}</th>
+              </tr></thead>
+              <tbody>
+                <tr><td class="sym">Mann&#8211;Whitney U</td><td>{{a.rob.mw.q}}</td><td>{{a.rob.mw.r}}</td></tr>
+                <tr><td class="sym">bootstrap / permutation</td><td>{{a.rob.bs.q}}</td><td>{{a.rob.bs.r}}</td></tr>
+                <tr><td class="sym">quantile (median)</td><td>{{a.rob.q.q}}</td><td>{{a.rob.q.r}}</td></tr>
+                <tr><td class="sym">Yuen trimmed t (20%)</td><td>{{a.rob.yu.q}}</td><td>{{a.rob.yu.r}}</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">{{a.rob.noteLabel}}</span>
+            <span>{{a.rob.note}}</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">{{a.po.tag}}</span>
+          <h4>{{a.po.h4}}</h4>
+          <p>{{a.po.p}}</p>
+          <div class="formula">
+            <span class="flabel">{{a.po.flabel}}</span>
+            <math display="block">
+              <msub><mi>X</mi><mi>t</mi></msub><mo>&#x2223;</mo><mrow><mo>(</mo><msub><mi>X</mi><mi>t</mi></msub><mo>+</mo><msub><mi>X</mi><mi>c</mi></msub><mo>)</mo></mrow>
+              <mo>&#x223C;</mo><mtext>Bin</mtext><mrow><mo>(</mo><msub><mi>X</mi><mi>t</mi></msub><mo>+</mo><msub><mi>X</mi><mi>c</mi></msub><mo>,</mo><mspace width="0.25em"/><mfrac><msub><mi>e</mi><mi>t</mi></msub><mrow><msub><mi>e</mi><mi>t</mi></msub><mo>+</mo><msub><mi>e</mi><mi>c</mi></msub></mrow></mfrac><mo>)</mo></mrow>
+              <mspace width="1.6em"/>
+              <mtext>RR</mtext><mo>=</mo><mfrac><mrow><msub><mi>X</mi><mi>t</mi></msub><mo>/</mo><msub><mi>e</mi><mi>t</mi></msub></mrow><mrow><msub><mi>X</mi><mi>c</mi></msub><mo>/</mo><msub><mi>e</mi><mi>c</mi></msub></mrow></mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">{{lbl.where}}</p>
+            <dl>
+              <dt>X<sub>c</sub>, X<sub>t</sub></dt><dd>{{a.po.wX}}</dd>
+              <dt>e<sub>c</sub>, e<sub>t</sub></dt><dd>{{a.po.wE}}</dd>
+              <dt>RR</dt><dd>{{a.po.wRR}}</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>{{a.po.ex}}</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">{{a.ra.tag}}</span>
+          <h4>{{a.ra.h4}}</h4>
+          <p>{{a.ra.p}}</p>
+          <div class="formula">
+            <span class="flabel">{{a.ra.flabel}}</span>
+            <math display="block">
+              <mtext>Var</mtext><mo>(</mo><mover><mi>R</mi><mo>^</mo></mover><mo>)</mo><mo>=</mo>
+              <mfrac>
+                <mrow><msubsup><mi>&#x3C3;</mi><mi>Y</mi><mn>2</mn></msubsup><mo>&#x2212;</mo><mn>2</mn><mover><mi>R</mi><mo>^</mo></mover><msub><mi>&#x3C3;</mi><mrow><mi>X</mi><mi>Y</mi></mrow></msub><mo>+</mo><msup><mover><mi>R</mi><mo>^</mo></mover><mn>2</mn></msup><msubsup><mi>&#x3C3;</mi><mi>X</mi><mn>2</mn></msubsup></mrow>
+                <mrow><mi>n</mi><mo>&#x2062;</mo><msubsup><mi>&#x3BC;</mi><mi>X</mi><mn>2</mn></msubsup></mrow>
+              </mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">{{lbl.where}}</p>
+            <dl>
+              <dt>&#x3BC;<sub>X</sub></dt><dd>{{a.ra.wMu}}</dd>
+              <dt>&#x3C3;&#xB2;<sub>X</sub>, &#x3C3;&#xB2;<sub>Y</sub></dt><dd>{{a.ra.wVar}}</dd>
+              <dt>&#x3C3;<sub>XY</sub></dt><dd>{{a.ra.wCov}}</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>{{a.ra.ex}}</span>
+          </div>
+        </div>
+
+        <!-- ---- 4.2 paired designs ---- -->
+        <h3>{{a.g2.h3}}</h3>
+        <p class="group-lead">{{a.g2.p}}</p>
+
+        <div class="card">
+          <span class="tag analyze">{{a.pt.tag}}</span>
+          <h4>{{a.pt.h4}}</h4>
+          <p>{{a.pt.p}}</p>
+          <div class="formula">
+            <span class="flabel">{{a.pt.flabel}}</span>
+            <math display="block">
+              <mi>t</mi><mo>=</mo><mfrac><mover><mi>d</mi><mo>&#xAF;</mo></mover><mrow><msub><mi>s</mi><mi>d</mi></msub><mo>/</mo><msqrt><mi>n</mi></msqrt></mrow></mfrac>
+              <mspace width="1.6em"/>
+              <mtext>df</mtext><mo>=</mo><mi>n</mi><mo>&#x2212;</mo><mn>1</mn>
+              <mspace width="1.6em"/>
+              <msub><mi>d</mi><mi>z</mi></msub><mo>=</mo><mfrac><mover><mi>d</mi><mo>&#xAF;</mo></mover><msub><mi>s</mi><mi>d</mi></msub></mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">{{lbl.where}}</p>
+            <dl>
+              <dt>d&#x304;</dt><dd>{{a.pt.wD}}</dd>
+              <dt>s<sub>d</sub></dt><dd>{{a.pt.wSd}}</dd>
+              <dt>d<sub>z</sub></dt><dd>{{a.pt.wDz}}</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>{{a.pt.ex}}</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">{{a.wx.tag}}</span>
+          <h4>{{a.wx.h4}}</h4>
+          <p>{{a.wx.p}}</p>
+          <div class="formula">
+            <span class="flabel">{{a.wx.flabel}}</span>
+            <math display="block">
+              <mi>W</mi><mo>=</mo><mi>min</mi><mo>&#x2061;</mo><mo>(</mo><msup><mi>W</mi><mo>+</mo></msup><mo>,</mo><mspace width="0.2em"/><msup><mi>W</mi><mo>&#x2212;</mo></msup><mo>)</mo>
+              <mspace width="1.6em"/>
+              <mi>z</mi><mo>=</mo><mfrac><mrow><mi>W</mi><mo>&#x2212;</mo><msub><mi>&#x3BC;</mi><mi>W</mi></msub></mrow><msub><mi>&#x3C3;</mi><mi>W</mi></msub></mfrac>
+            </math>
+          </div>
+          <div class="callout example">
+            <span>{{a.wx.ex}}</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">{{a.mc.tag}}</span>
+          <h4>{{a.mc.h4}}</h4>
+          <p>{{a.mc.p}}</p>
+          <div class="formula">
+            <span class="flabel">{{a.mc.flabel}}</span>
+            <math display="block">
+              <msup><mi>&#x3C7;</mi><mn>2</mn></msup><mo>=</mo>
+              <mfrac>
+                <msup><mrow><mo>(</mo><mrow><mo>|</mo><mi>b</mi><mo>&#x2212;</mo><mi>c</mi><mo>|</mo></mrow><mo>&#x2212;</mo><mn>1</mn><mo>)</mo></mrow><mn>2</mn></msup>
+                <mrow><mi>b</mi><mo>+</mo><mi>c</mi></mrow>
+              </mfrac>
+              <mspace width="1.6em"/>
+              <mtext>OR</mtext><mo>=</mo><mfrac><mi>b</mi><mi>c</mi></mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">{{lbl.where}}</p>
+            <dl>
+              <dt>b</dt><dd>{{a.mc.wB}}</dd>
+              <dt>c</dt><dd>{{a.mc.wC}}</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>{{a.mc.ex}}</span>
+          </div>
+        </div>
+
+        <!-- ---- 4.3 more than two groups & categories ---- -->
+        <h3>{{a.g3.h3}}</h3>
+        <p class="group-lead">{{a.g3.p}}</p>
+
+        <div class="card">
+          <span class="tag analyze">{{a.om.tag}}</span>
+          <h4>{{a.om.h4}}</h4>
+          <p>{{a.om.p}}</p>
+          <div class="formula">
+            <span class="flabel">{{a.om.flabel1}}</span>
+            <math display="block">
+              <msub><mi>w</mi><mi>i</mi></msub><mo>=</mo><mfrac><msub><mi>n</mi><mi>i</mi></msub><msubsup><mi>s</mi><mi>i</mi><mn>2</mn></msubsup></mfrac>
+              <mspace width="1.4em"/>
+              <msup><mi>F</mi><mo>&#x2217;</mo></msup><mo>=</mo>
+              <mfrac>
+                <mrow><munder><mo>&#x2211;</mo><mi>i</mi></munder><msub><mi>w</mi><mi>i</mi></msub><msup><mrow><mo>(</mo><msub><mover><mi>x</mi><mo>&#xAF;</mo></mover><mi>i</mi></msub><mo>&#x2212;</mo><msub><mover><mi>x</mi><mo>&#xAF;</mo></mover><mi>w</mi></msub><mo>)</mo></mrow><mn>2</mn></msup><mo>/</mo><mrow><mo>(</mo><mi>k</mi><mo>&#x2212;</mo><mn>1</mn><mo>)</mo></mrow></mrow>
+                <mi>D</mi>
+              </mfrac>
+            </math>
+          </div>
+          <div class="formula">
+            <span class="flabel">{{a.om.flabel2}}</span>
+            <math display="block">
+              <mi>H</mi><mo>=</mo>
+              <mfrac><mn>12</mn><mrow><mi>N</mi><mo>(</mo><mi>N</mi><mo>+</mo><mn>1</mn><mo>)</mo></mrow></mfrac>
+              <munder><mo>&#x2211;</mo><mi>i</mi></munder><mfrac><msubsup><mi>R</mi><mi>i</mi><mn>2</mn></msubsup><msub><mi>n</mi><mi>i</mi></msub></mfrac>
+              <mo>&#x2212;</mo><mn>3</mn><mo>(</mo><mi>N</mi><mo>+</mo><mn>1</mn><mo>)</mo>
+              <mspace width="1.4em"/>
+              <msup><mi>&#x3B5;</mi><mn>2</mn></msup><mo>=</mo><mfrac><mrow><mi>H</mi><mo>&#x2212;</mo><mi>k</mi><mo>+</mo><mn>1</mn></mrow><mrow><mi>N</mi><mo>&#x2212;</mo><mi>k</mi></mrow></mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">{{lbl.where}}</p>
+            <dl>
+              <dt>k, N</dt><dd>{{a.om.wKN}}</dd>
+              <dt>x&#x304;<sub>w</sub>, D</dt><dd>{{a.om.wD}}</dd>
+              <dt>R<sub>i</sub></dt><dd>{{a.om.wR}}</dd>
+              <dt>&#x3B7;&#xB2;, &#x3B5;&#xB2;</dt><dd>{{a.om.wEta}}</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>{{a.om.ex}}</span>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">{{a.om.noteLabel}}</span>
+            <span>{{a.om.note}}</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">{{a.chi.tag}}</span>
+          <h4>{{a.chi.h4}}</h4>
+          <p>{{a.chi.p}}</p>
+          <div class="formula">
+            <span class="flabel">{{a.chi.flabel1}}</span>
+            <math display="block">
+              <msup><mi>&#x3C7;</mi><mn>2</mn></msup><mo>=</mo>
+              <munder><mo>&#x2211;</mo><mrow><mi>i</mi><mo>,</mo><mi>j</mi></mrow></munder>
+              <mfrac><msup><mrow><mo>(</mo><msub><mi>O</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo>&#x2212;</mo><msub><mi>E</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo>)</mo></mrow><mn>2</mn></msup><msub><mi>E</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub></mfrac>
+              <mspace width="1.4em"/>
+              <mi>V</mi><mo>=</mo><msqrt><mfrac><msup><mi>&#x3C7;</mi><mn>2</mn></msup><mrow><mi>n</mi><mo>&#x2062;</mo><mi>min</mi><mo>&#x2061;</mo><mo>(</mo><mi>r</mi><mo>&#x2212;</mo><mn>1</mn><mo>,</mo><mi>c</mi><mo>&#x2212;</mo><mn>1</mn><mo>)</mo></mrow></mfrac></msqrt>
+            </math>
+          </div>
+          <div class="formula">
+            <span class="flabel">{{a.chi.flabel2}}</span>
+            <math display="block">
+              <mi>G</mi><mo>=</mo><mn>2</mn>
+              <munder><mo>&#x2211;</mo><mrow><mi>i</mi><mo>,</mo><mi>j</mi></mrow></munder>
+              <msub><mi>O</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo>&#x2062;</mo><mi>ln</mi><mo>&#x2061;</mo><mfrac><msub><mi>O</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><msub><mi>E</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub></mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">{{lbl.where}}</p>
+            <dl>
+              <dt>O<sub>ij</sub>, E<sub>ij</sub></dt><dd>{{a.chi.wOE}}</dd>
+              <dt>r, c</dt><dd>{{a.chi.wRc}}</dd>
+              <dt>V</dt><dd>{{a.chi.wV}}</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>{{a.chi.ex}}</span>
+          </div>
+          <div class="callout warn">
+            <span class="clabel">{{a.chi.warnLabel}}</span>
+            <span>{{a.chi.warn}}</span>
+          </div>
+        </div>
+
+        <!-- ---- 4.4 time-to-event ---- -->
+        <h3>{{a.g4.h3}}</h3>
+        <p class="group-lead">{{a.g4.p}}</p>
+
+        <div class="card">
+          <span class="tag analyze">{{a.km.tag}}</span>
+          <h4>{{a.km.h4}}</h4>
+          <p>{{a.km.p}}</p>
+          <div class="formula">
+            <span class="flabel">{{a.km.flabel}}</span>
+            <math display="block">
+              <mover><mi>S</mi><mo>^</mo></mover><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo>
+              <munder><mo>&#x220F;</mo><mrow><msub><mi>t</mi><mi>i</mi></msub><mo>&#x2264;</mo><mi>t</mi></mrow></munder>
+              <mrow><mo>(</mo><mn>1</mn><mo>&#x2212;</mo><mfrac><msub><mi>d</mi><mi>i</mi></msub><msub><mi>n</mi><mi>i</mi></msub></mfrac><mo>)</mo></mrow>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">{{lbl.where}}</p>
+            <dl>
+              <dt>t<sub>i</sub></dt><dd>{{a.km.wT}}</dd>
+              <dt>d<sub>i</sub></dt><dd>{{a.km.wD}}</dd>
+              <dt>n<sub>i</sub></dt><dd>{{a.km.wN}}</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>{{a.km.ex}}</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">{{a.lr.tag}}</span>
+          <h4>{{a.lr.h4}}</h4>
+          <p>{{a.lr.p}}</p>
+          <div class="formula">
+            <span class="flabel">{{a.lr.flabel1}}</span>
+            <math display="block">
+              <msup><mi>&#x3C7;</mi><mn>2</mn></msup><mo>=</mo>
+              <mfrac>
+                <msup><mrow><mo>(</mo><msub><mi>O</mi><mn>1</mn></msub><mo>&#x2212;</mo><msub><mi>E</mi><mn>1</mn></msub><mo>)</mo></mrow><mn>2</mn></msup>
+                <mi>V</mi>
+              </mfrac>
+            </math>
+          </div>
+          <div class="formula">
+            <span class="flabel">{{a.lr.flabel2}}</span>
+            <math display="block">
+              <mi>w</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo>
+              <mover><mi>S</mi><mo>^</mo></mover><msup><mrow><mo>(</mo><msup><mi>t</mi><mo>&#x2212;</mo></msup><mo>)</mo></mrow><mi>&#x3C1;</mi></msup>
+              <msup><mrow><mo>(</mo><mn>1</mn><mo>&#x2212;</mo><mover><mi>S</mi><mo>^</mo></mover><mo>(</mo><msup><mi>t</mi><mo>&#x2212;</mo></msup><mo>)</mo><mo>)</mo></mrow><mi>&#x3B3;</mi></msup>
+              <mspace width="1.6em"/>
+              <msup><mi>&#x3C7;</mi><mn>2</mn></msup><mo>=</mo><msup><mi>z</mi><mi>T</mi></msup><msup><mi>V</mi><mrow><mo>&#x2212;</mo><mn>1</mn></mrow></msup><mi>z</mi>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">{{lbl.where}}</p>
+            <dl>
+              <dt>O&#x2081;, E&#x2081;</dt><dd>{{a.lr.wOE}}</dd>
+              <dt>V</dt><dd>{{a.lr.wV}}</dd>
+              <dt>&#x3C1;, &#x3B3;</dt><dd>{{a.lr.wRho}}</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>{{a.lr.ex}}</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">{{a.cox.tag}}</span>
+          <h4>{{a.cox.h4}}</h4>
+          <p>{{a.cox.p}}</p>
+          <div class="formula">
+            <span class="flabel">{{a.cox.flabel}}</span>
+            <math display="block">
+              <mi>h</mi><mo>(</mo><mi>t</mi><mo>&#x2223;</mo><mi>x</mi><mo>)</mo><mo>=</mo>
+              <msub><mi>h</mi><mn>0</mn></msub><mo>(</mo><mi>t</mi><mo>)</mo><mo>&#x2062;</mo>
+              <msup><mi>e</mi><mrow><mi>&#x3B2;</mi><mi>x</mi></mrow></msup>
+              <mspace width="1.4em"/>
+              <mtext>HR</mtext><mo>=</mo><msup><mi>e</mi><mover><mi>&#x3B2;</mi><mo>^</mo></mover></msup>
+              <mspace width="1.4em"/>
+              <mi>z</mi><mo>=</mo><mfrac><mover><mi>&#x3B2;</mi><mo>^</mo></mover><mrow><mtext>SE</mtext><mo>(</mo><mover><mi>&#x3B2;</mi><mo>^</mo></mover><mo>)</mo></mrow></mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">{{lbl.where}}</p>
+            <dl>
+              <dt>h&#x2080;(t)</dt><dd>{{a.cox.wH0}}</dd>
+              <dt>x</dt><dd>{{a.cox.wX}}</dd>
+              <dt>HR</dt><dd>{{a.cox.wHR}}</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>{{a.cox.ex}}</span>
+          </div>
+          <div class="callout warn">
+            <span class="clabel">{{a.cox.warnLabel}}</span>
+            <span>{{a.cox.warn}}</span>
+          </div>
+        </div>
+
+        <!-- ---- 4.5 all 22 analyzers ---- -->
+        <h3>{{a.all.h3}}</h3>
+        <p class="lead-in">{{a.all.p}}</p>
+        <div class="tablewrap">
+          <table>
+            <thead><tr>
+              <th>{{a.all.th1}}</th>
+              <th>{{a.all.th2}}</th>
+              <th>{{a.all.th3}}</th>
+            </tr></thead>
+            <tbody>
+              <tr class="group"><td colspan="3">{{a.all.g1}}</td></tr>
+              <tr><td class="sym">z &#183; 2 proportions</td><td>{{a.all.z.for}}</td><td>{{a.all.z.note}}</td></tr>
+              <tr><td class="sym">Fisher exact</td><td>{{a.all.fi.for}}</td><td>{{a.all.fi.note}}</td></tr>
+              <tr><td class="sym">Boschloo exact</td><td>{{a.all.bo.for}}</td><td>{{a.all.bo.note}}</td></tr>
+              <tr><td class="sym">Barnard exact</td><td>{{a.all.ba.for}}</td><td>{{a.all.ba.note}}</td></tr>
+              <tr><td class="sym">Poisson rate</td><td>{{a.all.po.for}}</td><td>{{a.all.po.note}}</td></tr>
+              <tr class="group"><td colspan="3">{{a.all.g2}}</td></tr>
+              <tr><td class="sym">Welch t</td><td>{{a.all.t.for}}</td><td>{{a.all.t.note}}</td></tr>
+              <tr><td class="sym">TOST</td><td>{{a.all.tost.for}}</td><td>{{a.all.tost.note}}</td></tr>
+              <tr><td class="sym">Mann&#8211;Whitney U</td><td>{{a.all.mw.for}}</td><td>{{a.all.mw.note}}</td></tr>
+              <tr><td class="sym">bootstrap / permutation</td><td>{{a.all.bs.for}}</td><td>{{a.all.bs.note}}</td></tr>
+              <tr><td class="sym">quantile effect</td><td>{{a.all.q.for}}</td><td>{{a.all.q.note}}</td></tr>
+              <tr><td class="sym">Yuen trimmed t</td><td>{{a.all.yu.for}}</td><td>{{a.all.yu.note}}</td></tr>
+              <tr class="group"><td colspan="3">{{a.all.g3}}</td></tr>
+              <tr><td class="sym">ratio delta-method</td><td>{{a.all.ra.for}}</td><td>{{a.all.ra.note}}</td></tr>
+              <tr class="group"><td colspan="3">{{a.all.g4}}</td></tr>
+              <tr><td class="sym">paired t</td><td>{{a.all.pt.for}}</td><td>{{a.all.pt.note}}</td></tr>
+              <tr><td class="sym">Wilcoxon signed-rank</td><td>{{a.all.wx.for}}</td><td>{{a.all.wx.note}}</td></tr>
+              <tr><td class="sym">McNemar</td><td>{{a.all.mc.for}}</td><td>{{a.all.mc.note}}</td></tr>
+              <tr class="group"><td colspan="3">{{a.all.g5}}</td></tr>
+              <tr><td class="sym">Welch ANOVA</td><td>{{a.all.om1.for}}</td><td>{{a.all.om1.note}}</td></tr>
+              <tr><td class="sym">Kruskal&#8211;Wallis</td><td>{{a.all.om2.for}}</td><td>{{a.all.om2.note}}</td></tr>
+              <tr><td class="sym">&#x3C7;&#xB2; r&#xD7;c + Cram&#xE9;r V</td><td>{{a.all.chi.for}}</td><td>{{a.all.chi.note}}</td></tr>
+              <tr><td class="sym">G-test</td><td>{{a.all.g.for}}</td><td>{{a.all.g.note}}</td></tr>
+              <tr class="group"><td colspan="3">{{a.all.g6}}</td></tr>
+              <tr><td class="sym">log-rank</td><td>{{a.all.lr.for}}</td><td>{{a.all.lr.note}}</td></tr>
+              <tr><td class="sym">Fleming&#8211;Harrington G(&#x3C1;,&#x3B3;)</td><td>{{a.all.fh.for}}</td><td>{{a.all.fh.note}}</td></tr>
+              <tr><td class="sym">Cox PH</td><td>{{a.all.cox.for}}</td><td>{{a.all.cox.note}}</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <hr class="divider">
+      </section>
+      <!-- ================= 5. MONITORING ================= -->
+      <section id="monitoring">
+        <div class="sec-head"><span class="sec-num">05</span></div>
+        <h2>{{mon.h2}}</h2>
+        <p class="sec-intro">{{mon.intro}}</p>
+
+        <h3>{{mon.srm.h3}}</h3>
+        <div class="card">
+          <span class="tag monitor">{{mon.srm.tag}}</span>
+          <p>{{mon.srm.p}}</p>
+          <div class="formula">
+            <span class="flabel">{{mon.srm.flabel}}</span>
+            <math display="block">
+              <msup><mi>&#x3C7;</mi><mn>2</mn></msup><mo>=</mo><munderover><mo>&#x2211;</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>k</mi></munderover><mfrac><msup><mrow><mo>(</mo><msub><mi>O</mi><mi>i</mi></msub><mo>&#x2212;</mo><msub><mi>E</mi><mi>i</mi></msub><mo>)</mo></mrow><mn>2</mn></msup><msub><mi>E</mi><mi>i</mi></msub></mfrac>
+              <mspace width="1.6em"/><mtext>df</mtext><mo>=</mo><mi>k</mi><mo>&#x2212;</mo><mn>1</mn>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">{{lbl.where}}</p>
+            <dl>
+              <dt>O<sub>i</sub></dt><dd>{{mon.srm.wO}}</dd>
+              <dt>E<sub>i</sub></dt><dd>{{mon.srm.wE}}</dd>
+              <dt>k</dt><dd>{{mon.srm.wK}}</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>{{mon.srm.ex}}</span>
+          </div>
+        </div>
+
+        <h3>{{mon.obf.h3}}</h3>
+        <div class="card">
+          <span class="tag monitor">{{mon.obf.tag}}</span>
+          <p>{{mon.obf.p}}</p>
+          <div class="formula">
+            <span class="flabel">{{mon.obf.flabel}}</span>
+            <math display="block">
+              <msub><mi>z</mi><mi>k</mi></msub><mo>=</mo><mfrac><msub><mi>z</mi><mtext>final</mtext></msub><msqrt><msub><mi>t</mi><mi>k</mi></msub></msqrt></mfrac>
+              <mspace width="1.6em"/><msub><mi>t</mi><mi>k</mi></msub><mo>=</mo><mfrac><mtext>{{math.look}}</mtext><mrow><mtext>{{math.totalLooks}}</mtext></mrow></mfrac>
+            </math>
+          </div>
+          <div class="callout example">
+            <span>{{mon.obf.ex}}</span>
+          </div>
+        </div>
+
+        <figure class="figure">
+          <svg viewBox="0 0 560 216" role="img" aria-label="O'Brien-Fleming z-boundaries relax across looks">
+            <line class="fig-axis" x1="40" y1="188" x2="548" y2="188"/>
+            <line class="fig-axis" x1="40" y1="188" x2="40" y2="16"/>
+            <line class="fig-ref" x1="40" y1="123" x2="548" y2="123"/>
+            <text class="fig-tick" x="44" y="118">{{fig.obf.ref}}</text>
+            <path class="fig-line" d="M 148,37 246,81 344,101 442,112 540,120"/>
+            <circle class="fig-dot-h" cx="148" cy="37" r="5"/><text class="fig-cap-in" x="148" y="28" text-anchor="middle">{{fig.obf.z1}}</text>
+            <circle class="fig-dot-h" cx="246" cy="81" r="5"/><text class="fig-cap-in" x="246" y="72" text-anchor="middle">{{fig.obf.z2}}</text>
+            <circle class="fig-dot-h" cx="344" cy="101" r="5"/><text class="fig-cap-in" x="344" y="92" text-anchor="middle">{{fig.obf.z3}}</text>
+            <circle class="fig-dot-h" cx="442" cy="112" r="5"/><text class="fig-cap-in" x="442" y="103" text-anchor="middle">{{fig.obf.z4}}</text>
+            <circle class="fig-dot" cx="540" cy="120" r="5.5"/><text class="fig-cap-in" x="540" y="111" text-anchor="middle">{{fig.obf.z5}}</text>
+            <text class="fig-tick" x="148" y="202" text-anchor="middle">1</text>
+            <text class="fig-tick" x="246" y="202" text-anchor="middle">2</text>
+            <text class="fig-tick" x="344" y="202" text-anchor="middle">3</text>
+            <text class="fig-tick" x="442" y="202" text-anchor="middle">4</text>
+            <text class="fig-tick" x="540" y="202" text-anchor="middle">5</text>
+          </svg>
+          <figcaption>{{mon.obf.figcap}}</figcaption>
+        </figure>
+
+        <h3>{{mon.av.h3}}</h3>
+        <div class="card">
+          <span class="tag monitor">{{mon.av.tag}}</span>
+          <p>{{mon.av.p}}</p>
+          <div class="formula">
+            <span class="flabel">{{mon.av.flabel}}</span>
+            <math display="block">
+              <msub><mi>&#x39B;</mi><mi>n</mi></msub><mo>=</mo><msqrt><mfrac><mi>V</mi><mrow><mi>V</mi><mo>+</mo><msup><mi>&#x3C4;</mi><mn>2</mn></msup></mrow></mfrac></msqrt><mo>&#x2062;</mo><mi>exp</mi><mo>&#x2061;</mo><mrow><mo>(</mo><mfrac><mrow><msup><mi>&#x3C4;</mi><mn>2</mn></msup><msup><mover><mi>&#x3B8;</mi><mo>^</mo></mover><mn>2</mn></msup></mrow><mrow><mn>2</mn><mi>V</mi><mo>(</mo><mi>V</mi><mo>+</mo><msup><mi>&#x3C4;</mi><mn>2</mn></msup><mo>)</mo></mrow></mfrac><mo>)</mo></mrow>
+              <mspace width="1.4em"/><mi>p</mi><mo>=</mo><mi>min</mi><mo>&#x2061;</mo><mo>(</mo><mn>1</mn><mo>,</mo><mspace width="0.2em"/><mn>1</mn><mo>/</mo><msub><mi>&#x39B;</mi><mi>n</mi></msub><mo>)</mo>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">{{lbl.where}}</p>
+            <dl>
+              <dt>&#x3B8;&#x302;</dt><dd>{{mon.av.wTheta}}</dd>
+              <dt>V</dt><dd>{{mon.av.wV}}</dd>
+              <dt>&#x3C4;&#xB2;</dt><dd>{{mon.av.wTau}}</dd>
+            </dl>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">{{mon.av.noteLabel}}</span>
+            <span>{{mon.av.note}}</span>
+          </div>
+        </div>
+
+        <h3>{{mon.bay.h3}}</h3>
+        <div class="card">
+          <span class="tag monitor">{{mon.bay.tag}}</span>
+          <p>{{mon.bay.p}}</p>
+          <div class="formula">
+            <span class="flabel">{{mon.bay.flabel}}</span>
+            <math display="block">
+              <msub><mi>p</mi><mi>i</mi></msub><mo>&#x223C;</mo><mtext>Beta</mtext><mo>(</mo><mn>1</mn><mo>+</mo><msub><mi>x</mi><mi>i</mi></msub><mo>,</mo><mspace width="0.2em"/><mn>1</mn><mo>+</mo><msub><mi>n</mi><mi>i</mi></msub><mo>&#x2212;</mo><msub><mi>x</mi><mi>i</mi></msub><mo>)</mo>
+              <mspace width="1.4em"/><mi>P</mi><mo>(</mo><mi>B</mi><mo>&gt;</mo><mi>A</mi><mo>)</mo><mo>=</mo><mi>P</mi><mo>(</mo><msub><mi>p</mi><mi>B</mi></msub><mo>&gt;</mo><msub><mi>p</mi><mi>A</mi></msub><mo>)</mo>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">{{lbl.where}}</p>
+            <dl>
+              <dt>x<sub>i</sub>, n<sub>i</sub></dt><dd>{{mon.bay.wXn}}</dd>
+              <dt>Beta(1+x, 1+n&#x2212;x)</dt><dd>{{mon.bay.wBeta}}</dd>
+            </dl>
+          </div>
+          <div class="callout warn">
+            <span class="clabel">{{mon.bay.warnLabel}}</span>
+            <span>{{mon.bay.warn}}</span>
+          </div>
+        </div>
+
+        <h3>{{mon.cu.h3}}</h3>
+        <div class="card">
+          <span class="tag monitor">{{mon.cu.tag}}</span>
+          <p>{{mon.cu.p}}</p>
+          <div class="formula">
+            <span class="flabel">{{mon.cu.flabel}}</span>
+            <math display="block">
+              <msub><mi>Y</mi><mtext>cuped</mtext></msub><mo>=</mo><mi>Y</mi><mo>&#x2212;</mo><mi>&#x3B8;</mi><mo>(</mo><mi>X</mi><mo>&#x2212;</mo><mover><mi>X</mi><mo>&#xAF;</mo></mover><mo>)</mo><mo>,</mo>
+              <mspace width="1em"/><mi>&#x3B8;</mi><mo>=</mo><mfrac><mrow><mtext>cov</mtext><mo>(</mo><mi>Y</mi><mo>,</mo><mi>X</mi><mo>)</mo></mrow><mrow><mtext>var</mtext><mo>(</mo><mi>X</mi><mo>)</mo></mrow></mfrac>
+              <mspace width="1.4em"/><mfrac><msub><mtext>var</mtext><mtext>new</mtext></msub><msub><mtext>var</mtext><mtext>old</mtext></msub></mfrac><mo>=</mo><mn>1</mn><mo>&#x2212;</mo><msup><mi>&#x3C1;</mi><mn>2</mn></msup>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">{{lbl.where}}</p>
+            <dl>
+              <dt>X</dt><dd>{{mon.cu.wX}}</dd>
+              <dt>&#x3B8;</dt><dd>{{mon.cu.wTheta}}</dd>
+              <dt>&#x3C1;</dt><dd>{{mon.cu.wRho}}</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>{{mon.cu.ex}}</span>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">{{mon.cu.multiLabel}}</span>
+            <span>{{mon.cu.multi}}</span>
+          </div>
+        </div>
+
+        <figure class="figure">
+          <svg viewBox="0 0 520 188" role="img" aria-label="CUPED narrows the metric distribution">
+            <line class="fig-axis" x1="10" y1="165" x2="510" y2="165"/>
+            <path class="fig-after-fill" d="M 10,165 70,164 80,164 90,163 100,162 110,160 120,158 130,154 140,149 150,142 160,133 170,122 180,110 190,96 200,80 210,65 220,50 230,37 240,27 250,20 260,18 270,20 280,27 290,37 300,50 310,65 320,80 330,96 340,110 350,122 360,133 370,142 380,149 390,154 400,158 410,160 420,162 430,163 440,164 460,165 510,165 L 510,165 L 10,165 Z"/>
+            <path class="fig-before" d="M 10,165 40,164 65,162 80,160 95,157 110,152 120,148 130,143 140,136 150,129 160,121 170,112 180,102 190,92 200,82 210,73 220,64 230,57 240,52 250,49 260,47 270,49 280,52 290,57 300,64 310,73 320,82 330,92 340,102 350,112 360,121 370,129 380,136 390,143 400,148 410,152 420,155 430,158 440,160 450,162 460,163 475,164 510,165"/>
+            <path class="fig-after" d="M 10,165 70,164 80,164 90,163 100,162 110,160 120,158 130,154 140,149 150,142 160,133 170,122 180,110 190,96 200,80 210,65 220,50 230,37 240,27 250,20 260,18 270,20 280,27 290,37 300,50 310,65 320,80 330,96 340,110 350,122 360,133 370,142 380,149 390,154 400,158 410,160 420,162 430,163 440,164 460,165 510,165"/>
+            <text class="fig-cap-in" x="405" y="86">{{fig.cu.before}}</text>
+            <text class="fig-cap-in" x="262" y="12" text-anchor="middle" style="fill:var(--accent-strong)">{{fig.cu.after}}</text>
+          </svg>
+          <figcaption>{{mon.cu.figcap}}</figcaption>
+        </figure>
+
+        <h3>{{mon.ps.h3}}</h3>
+        <div class="card">
+          <span class="tag monitor">{{mon.ps.tag}}</span>
+          <p>{{mon.ps.p}}</p>
+          <div class="formula">
+            <span class="flabel">{{mon.ps.flabel}}</span>
+            <math display="block">
+              <mover><mi>&#x394;</mi><mo>^</mo></mover><mo>=</mo>
+              <munder><mo>&#x2211;</mo><mi>s</mi></munder>
+              <msub><mi>w</mi><mi>s</mi></msub><msub><mover><mi>&#x394;</mi><mo>^</mo></mover><mi>s</mi></msub>
+              <mspace width="1.6em"/>
+              <mtext>Var</mtext><mo>=</mo>
+              <munder><mo>&#x2211;</mo><mi>s</mi></munder>
+              <msubsup><mi>w</mi><mi>s</mi><mn>2</mn></msubsup><msub><mtext>Var</mtext><mi>s</mi></msub>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">{{lbl.where}}</p>
+            <dl>
+              <dt>s</dt><dd>{{mon.ps.wS}}</dd>
+              <dt>w<sub>s</sub></dt><dd>{{mon.ps.wW}}</dd>
+              <dt>&#x394;&#x302;<sub>s</sub>, Var<sub>s</sub></dt><dd>{{mon.ps.wD}}</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>{{mon.ps.ex}}</span>
+          </div>
+        </div>
+
+        <h3>{{mon.gr.h3}}</h3>
+        <div class="card">
+          <span class="tag monitor">{{mon.gr.tag}}</span>
+          <p>{{mon.gr.p}}</p>
+          <div class="formula">
+            <span class="flabel">{{mon.gr.flabel}}</span>
+            <math display="block">
+              <mi>z</mi><mo>=</mo><mfrac><mrow><mtext>{{math.harm}}</mtext><mo>&#x2212;</mo><mi>M</mi></mrow><msqrt><mtext>Var</mtext><mo>(</mo><mi>&#x394;</mi><mo>)</mo></msqrt></mfrac>
+              <mspace width="1.4em"/><mi>p</mi><mo>=</mo><mn>1</mn><mo>&#x2212;</mo><mi>&#x3A6;</mi><mo>(</mo><mi>z</mi><mo>)</mo>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">{{lbl.where}}</p>
+            <dl>
+              <dt>{{math.harm}}</dt><dd>{{mon.gr.wHarm}}</dd>
+              <dt>M</dt><dd>{{mon.gr.wM}}</dd>
+              <dt>&#x3A6;</dt><dd>{{mon.gr.wPhi}}</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>{{mon.gr.ex}}</span>
+          </div>
+        </div>
+
+        <h3>{{mon.hy.h3}}</h3>
+        <div class="card">
+          <span class="tag monitor">{{mon.hy.tag}}</span>
+          <p>{{mon.hy.p}}</p>
+          <div class="where">
+            <dl>
+              <dt>1</dt><dd>{{mon.hy.i1}}</dd>
+              <dt>2</dt><dd>{{mon.hy.i2}}</dd>
+              <dt>3</dt><dd>{{mon.hy.i3}}</dd>
+              <dt>4</dt><dd>{{mon.hy.i4}}</dd>
+            </dl>
+          </div>
+        </div>
+
+        <h3>{{mon.tb.h3}}</h3>
+        <div class="card">
+          <span class="tag monitor">{{mon.tb.tag}}</span>
+          <p>{{mon.tb.p}}</p>
+          <div class="formula">
+            <span class="flabel">{{mon.tb.flabel}}</span>
+            <math display="block">
+              <msub><mover><mi>&#x3B8;</mi><mo>&#x223C;</mo></mover><mi>i</mi></msub><mo>&#x223C;</mo><mtext>Beta</mtext><mo>(</mo><mn>1</mn><mo>+</mo><msub><mi>x</mi><mi>i</mi></msub><mo>,</mo><mspace width="0.2em"/><mn>1</mn><mo>+</mo><msub><mi>n</mi><mi>i</mi></msub><mo>&#x2212;</mo><msub><mi>x</mi><mi>i</mi></msub><mo>)</mo>
+              <mspace width="1.4em"/>
+              <msup><mi>a</mi><mo>&#x2217;</mo></msup><mo>=</mo><munder><mtext>argmax</mtext><mi>i</mi></munder><mspace width="0.2em"/><msub><mover><mi>&#x3B8;</mi><mo>&#x223C;</mo></mover><mi>i</mi></msub>
+            </math>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">{{mon.tb.noteLabel}}</span>
+            <span>{{mon.tb.note}}</span>
+          </div>
+        </div>
+        <hr class="divider">
+      </section>
+      <!-- ================= 6. CHEAT SHEET ================= -->
+      <section id="cheatsheet">
+        <div class="sec-head"><span class="sec-num">06</span></div>
+        <h2>{{c.h2}}</h2>
+        <p class="sec-intro">{{c.intro}}</p>
+
+        <h3>{{c.tv.h3}}</h3>
+        <div class="tablewrap">
+          <table>
+            <thead><tr>
+              <th>{{c.tv.th1}}</th>
+              <th>{{c.tv.th2}}</th>
+              <th>{{c.tv.th3}}</th>
+            </tr></thead>
+            <tbody>
+              <tr><td><span class="sym">&#x3B1;</span></td><td>{{c.tv.alphaV}}</td><td>{{c.tv.alphaM}}</td></tr>
+              <tr><td>{{c.tv.powerL}} <span class="sym">1&#x2212;&#x3B2;</span></td><td>{{c.tv.powerV}}</td><td>{{c.tv.powerM}}</td></tr>
+              <tr><td>{{c.tv.tailsL}}</td><td>{{c.tv.tailsV}}</td><td>{{c.tv.tailsM}}</td></tr>
+              <tr><td>{{c.tv.srmL}}</td><td>{{c.tv.srmV}}</td><td>{{c.tv.srmM}}</td></tr>
+              <tr><td>{{c.tv.durL}}</td><td>{{c.tv.durV}}</td><td>{{c.tv.durM}}</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>{{c.ch.h3}}</h3>
+        <div class="tablewrap">
+          <table>
+            <thead><tr>
+              <th>{{c.ch.th1}}</th>
+              <th>{{c.ch.th2}}</th>
+            </tr></thead>
+            <tbody>
+              <tr><td>{{c.ch.r1s}}</td><td>{{c.ch.r1t}}</td></tr>
+              <tr><td>{{c.ch.r2s}}</td><td>{{c.ch.r2t}}</td></tr>
+              <tr><td>{{c.ch.r3s}}</td><td>{{c.ch.r3t}}</td></tr>
+              <tr><td>{{c.ch.r4s}}</td><td>{{c.ch.r4t}}</td></tr>
+              <tr><td>{{c.ch.r5s}}</td><td>{{c.ch.r5t}}</td></tr>
+              <tr><td>{{c.ch.r6s}}</td><td>{{c.ch.r6t}}</td></tr>
+              <tr><td>{{c.ch.r7s}}</td><td>{{c.ch.r7t}}</td></tr>
+              <tr><td>{{c.ch.r8s}}</td><td>{{c.ch.r8t}}</td></tr>
+              <tr><td>{{c.ch.r9s}}</td><td>{{c.ch.r9t}}</td></tr>
+              <tr><td>{{c.ch.r10s}}</td><td>{{c.ch.r10t}}</td></tr>
+              <tr><td>{{c.ch.r11s}}</td><td>{{c.ch.r11t}}</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>{{c.no.h3}}</h3>
+        <div class="tablewrap">
+          <table>
+            <thead><tr>
+              <th>{{c.no.th1}}</th>
+              <th>{{c.no.th2}}</th>
+            </tr></thead>
+            <tbody>
+              <tr><td class="sym">&#x3B1;</td><td>{{c.no.alpha}}</td></tr>
+              <tr><td class="sym">&#x3B2; &#183; 1&#x2212;&#x3B2;</td><td>{{c.no.beta}}</td></tr>
+              <tr><td class="sym">z<sub>&#x3B1;</sub>, z<sub>&#x3B2;</sub></td><td>{{c.no.z}}</td></tr>
+              <tr><td class="sym">&#x3A6;</td><td>{{c.no.phi}}</td></tr>
+              <tr><td class="sym">p&#x2080;, p&#x2081;, p&#x302;, p&#x304;</td><td>{{c.no.p}}</td></tr>
+              <tr><td class="sym">&#x3B4; &#183; MDE</td><td>{{c.no.delta}}</td></tr>
+              <tr><td class="sym">&#x3C3;, s</td><td>{{c.no.sigma}}</td></tr>
+              <tr><td class="sym">&#x3BD;</td><td>{{c.no.nu}}</td></tr>
+              <tr><td class="sym">&#x3C1; &#183; &#x3B8;</td><td>{{c.no.rho}}</td></tr>
+              <tr><td class="sym">ICC &#183; DEFF &#183; m</td><td>{{c.no.icc}}</td></tr>
+              <tr><td class="sym">&#x3C7;&#xB2;</td><td>{{c.no.chi}}</td></tr>
+              <tr><td class="sym">&#x39B;<sub>n</sub> &#183; &#x3C4;&#xB2;</td><td>{{c.no.lambda}}</td></tr>
+              <tr><td class="sym">M</td><td>{{c.no.m}}</td></tr>
+              <tr><td class="sym">m &#183; q &#183; k</td><td>{{c.no.mqk}}</td></tr>
+              <tr><td class="sym">U &#183; r<sub>rb</sub> &#183; HL</td><td>{{c.no.u}}</td></tr>
+              <tr><td class="sym">W</td><td>{{c.no.w}}</td></tr>
+              <tr><td class="sym">F* &#183; &#x3B7;&#xB2;</td><td>{{c.no.f}}</td></tr>
+              <tr><td class="sym">H &#183; &#x3B5;&#xB2;</td><td>{{c.no.h}}</td></tr>
+              <tr><td class="sym">b, c</td><td>{{c.no.bc}}</td></tr>
+              <tr><td class="sym">S(t)</td><td>{{c.no.st}}</td></tr>
+              <tr><td class="sym">HR &#183; &#x3B2;</td><td>{{c.no.hr}}</td></tr>
+              <tr><td class="sym">O&#x2081;, E&#x2081;, V</td><td>{{c.no.oev}}</td></tr>
+              <tr><td class="sym">&#x3C1;, &#x3B3; (FH)</td><td>{{c.no.rhogamma}}</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>{{c.ck.h3}}</h3>
+        <div class="card">
+          <div class="where">
+            <dl>
+              <dt>1</dt><dd>{{c.ck.i1}}</dd>
+              <dt>2</dt><dd>{{c.ck.i2}}</dd>
+              <dt>3</dt><dd>{{c.ck.i3}}</dd>
+              <dt>4</dt><dd>{{c.ck.i4}}</dd>
+              <dt>5</dt><dd>{{c.ck.i5}}</dd>
+              <dt>6</dt><dd>{{c.ck.i6}}</dd>
+              <dt>7</dt><dd>{{c.ck.i7}}</dd>
+              <dt>8</dt><dd>{{c.ck.i8}}</dd>
+            </dl>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <footer>
+    <div class="footer-inner">
+      <span>{{foot.text}}</span>
+      <span><a href="/">{{foot.back}}</a></span>
+    </div>
+  </footer>
+</div>
+<script src="help.js" defer></script>
+</body>
+</html>

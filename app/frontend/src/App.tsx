@@ -29,6 +29,7 @@ export default function App() {
   const activeProjectId = useProjectStore((state) => state.activeProjectId);
   const isEmptyState = showOnboarding && !isDirty && !activeProjectId && step === 0;
   const language = resolveLanguage(i18n.resolvedLanguage);
+  const helpHref = language === "en" ? "/help.html" : `/help.${language}.html`;
   // Operator surfaces (saved-project sidebar) are hidden from the public app.
   const [admin] = useState(isAdminMode);
 
@@ -58,6 +59,9 @@ export default function App() {
             </span>
           </a>
           <div className="topbar-controls">
+            <a className="topbar-link" href={helpHref}>
+              {t("app.helpLink")}
+            </a>
             <select
               className="lang-select"
               value={language}

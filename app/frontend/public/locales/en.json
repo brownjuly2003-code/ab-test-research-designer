@@ -4,6 +4,7 @@
     "eyebrow": "Local Experiment Planner",
     "title": "AB Test Research Designer",
     "tagline": "Plan the sample size and runtime for your A/B test, see which results you can trust, and export a clear decision — right in your browser.",
+    "helpLink": "Theory",
     "language": {
       "label": "Language",
       "ariaLabel": "Language preference",

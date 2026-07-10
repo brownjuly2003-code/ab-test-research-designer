@@ -1,0 +1,1911 @@
+<!doctype html>
+<html lang="ru" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A/B-тестирование — теория и формулы · AB Test Research Designer</title>
+<meta name="description" content="Справочник по теории и формулам A/B-тестов: размер выборки, множественные сравнения, анализ результатов и живой мониторинг — все 22 статистических метода платформы, объяснённые просто.">
+<link rel="alternate" hreflang="en" href="/help.html">
+<link rel="alternate" hreflang="ru" href="/help.ru.html">
+<link rel="alternate" hreflang="de" href="/help.de.html">
+<link rel="alternate" hreflang="fr" href="/help.fr.html">
+<link rel="alternate" hreflang="es" href="/help.es.html">
+<link rel="alternate" hreflang="zh" href="/help.zh.html">
+<link rel="alternate" hreflang="ar" href="/help.ar.html">
+<link rel="alternate" hreflang="x-default" href="/help.html">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="/theme-init.js"></script>
+<style>
+  /* ============================================================
+     Design system — the app's tokens verbatim (tokens.css):
+     teal #0d9488, Manrope + JetBrains Mono, slate neutrals.
+     Light default + dark via prefers-color-scheme AND the app's
+     data-theme attribute (set early by /theme-init.js, shared
+     localStorage key — the page follows the app's theme).
+     Static page, no framework; MathML for formulas; the language
+     is fixed per file (this file is generated per language).
+     RTL-safe: logical properties throughout; math and SVG stay LTR.
+     ============================================================ */
+  :root {
+    --font: "Manrope", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    --mono: "JetBrains Mono", "SFMono-Regular", "Consolas", ui-monospace, monospace;
+
+    --bg: #f5f7fa;
+    --surface: #ffffff;
+    --surface-muted: #f3f5f9;
+    --surface-subtle: #f8fafc;
+    --border: #e6e9ef;
+    --border-strong: #d3d9e3;
+
+    --ink: #0f1729;
+    --ink-2: #5a6473;
+    --ink-3: #8b95a3;
+
+    --accent: #0d9488;
+    --accent-strong: #0f766e;
+    --accent-soft: #d6f3ee;
+    --accent-ring: rgba(13, 148, 136, 0.16);
+
+    --info: #2f6df0;
+    --info-soft: #e3ecfd;
+    --warning: #c77d11;
+    --warning-soft: #fbf0db;
+    --danger: #e1493f;
+    --danger-soft: #fdecea;
+    --success: #0f9d76;
+    --success-soft: #d8f3e9;
+    --violet: #6d4bd6;
+    --violet-soft: #ebe6fb;
+
+    --radius-s: 8px;
+    --radius-m: 12px;
+    --radius-l: 16px;
+    --shadow-s: 0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06);
+    --shadow-m: 0 4px 6px -1px rgba(16,24,40,.06), 0 2px 4px -2px rgba(16,24,40,.06);
+    --shadow-l: 0 18px 40px -20px rgba(16,24,40,.28);
+
+    --maxw: 1180px;
+    --content: 74ch;
+    color-scheme: light;
+  }
+
+  /* Dark palette = the app's dark tokens (bg #0e1421, card #161d2c,
+     border #28324a, text #eef2f8/#9aa5b8/#6b7689). Exception, documented:
+     text-size accent uses the brighter #2dd4bf (not the app's #0d9488)
+     so accent-coloured TEXT keeps AA contrast on dark cards; the brand
+     tile below pins the app's exact teal gradient instead. */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0e1421;
+      --surface: #161d2c;
+      --surface-muted: #1b2334;
+      --surface-subtle: #141b29;
+      --border: #28324a;
+      --border-strong: #3a4763;
+
+      --ink: #eef2f8;
+      --ink-2: #9aa5b8;
+      --ink-3: #6b7689;
+
+      --accent: #2dd4bf;
+      --accent-strong: #5eead4;
+      --accent-soft: #11463f;
+      --accent-ring: rgba(45, 212, 191, 0.20);
+
+      --info: #7aa2ff;
+      --info-soft: #17233f;
+      --warning: #e0b25a;
+      --warning-soft: #33280f;
+      --danger: #f0928a;
+      --danger-soft: #3a1f1d;
+      --success: #52c9a3;
+      --success-soft: #133a2e;
+      --violet: #b39cf5;
+      --violet-soft: #241b40;
+
+      --shadow-s: 0 1px 2px rgba(0,0,0,.30);
+      --shadow-m: 0 4px 10px -2px rgba(0,0,0,.40);
+      --shadow-l: 0 18px 44px -20px rgba(0,0,0,.65);
+      color-scheme: dark;
+    }
+  }
+  /* Explicit app-theme override wins over the media query in both directions. */
+  :root[data-theme="light"] { color-scheme: light; }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg:#0e1421;--surface:#161d2c;--surface-muted:#1b2334;--surface-subtle:#141b29;
+    --border:#28324a;--border-strong:#3a4763;--ink:#eef2f8;--ink-2:#9aa5b8;--ink-3:#6b7689;
+    --accent:#2dd4bf;--accent-strong:#5eead4;--accent-soft:#11463f;--accent-ring:rgba(45,212,191,.20);
+    --info:#7aa2ff;--info-soft:#17233f;--warning:#e0b25a;--warning-soft:#33280f;
+    --danger:#f0928a;--danger-soft:#3a1f1d;--success:#52c9a3;--success-soft:#133a2e;--violet:#b39cf5;--violet-soft:#241b40;
+    --shadow-s:0 1px 2px rgba(0,0,0,.30);--shadow-m:0 4px 10px -2px rgba(0,0,0,.40);--shadow-l:0 18px 44px -20px rgba(0,0,0,.65);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+  body {
+    margin: 0;
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.68;
+    font-size: 16.5px;
+    letter-spacing: -0.003em;
+    font-feature-settings: "tnum" 1;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Manrope has no CJK/Arabic glyphs — give those pages system stacks,
+     and drop the negative latin tracking that hurts Arabic shaping. */
+  html[lang="zh"] {
+    --font: "Manrope", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+  }
+  html[lang="ar"] {
+    --font: "Manrope", "Segoe UI", "Tahoma", "Noto Naskh Arabic", "Geeza Pro", system-ui, sans-serif;
+  }
+  html[lang="ar"] body, html[lang="ar"] h1, html[lang="ar"] h2, html[lang="ar"] h3, html[lang="ar"] h4 { letter-spacing: 0; }
+
+  /* Math and diagrams are direction-neutral: keep them LTR even on RTL pages. */
+  math { direction: ltr; }
+  svg { direction: ltr; }
+
+  a { color: var(--accent-strong); text-underline-offset: 2px; }
+
+  /* ---------- top bar (mirrors the app: sticky, blur, brand tile) ---------- */
+  .topbar {
+    position: sticky; top: 0; z-index: 40;
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    backdrop-filter: saturate(140%) blur(10px);
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar-inner {
+    max-width: var(--maxw); margin: 0 auto; min-height: 60px; padding: 10px 24px;
+    display: flex; align-items: center; gap: 16px; justify-content: space-between;
+  }
+  .brand { display: inline-flex; align-items: center; gap: 11px; text-decoration: none; color: inherit; min-width: 0; }
+  .brand-mark {
+    display: inline-flex; align-items: center; justify-content: center; flex: none;
+    width: 32px; height: 32px; border-radius: 9px;
+    /* Pinned to the app's exact tile gradient (identical in both themes). */
+    background: linear-gradient(150deg, #0d9488, #0f766e);
+    color: #ffffff; font-weight: 800; font-size: 13px; letter-spacing: 0.02em;
+    box-shadow: 0 6px 14px -6px #0d9488;
+  }
+  .brand-text { display: grid; line-height: 1.15; }
+  .brand-name { font-weight: 700; font-size: 0.95rem; letter-spacing: -0.01em; white-space: nowrap; }
+  .brand-tag {
+    font-size: 11px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--ink-3); white-space: nowrap;
+  }
+  @media (max-width: 720px) { .brand-text { display: none; } }
+
+  /* ---------- language menu: 7 static links, one per generated page ---------- */
+  .langbar {
+    display: inline-flex; flex-wrap: wrap; justify-content: flex-end;
+    padding: 3px; gap: 2px; background: var(--surface-muted);
+    border: 1px solid var(--border); border-radius: 999px;
+  }
+  .langlink {
+    font-size: 12.5px; font-weight: 700; letter-spacing: .01em;
+    padding: 5px 11px; border-radius: 999px; color: var(--ink-2);
+    text-decoration: none; white-space: nowrap; transition: background .15s, color .15s;
+  }
+  .langlink:hover { color: var(--ink); background: color-mix(in srgb, var(--accent-soft) 55%, transparent); }
+  .langlink.current { background: var(--accent); color: #fff; box-shadow: var(--shadow-s); cursor: default; }
+  :root[data-theme="dark"] .langlink.current { color: #06201c; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .langlink.current { color: #06201c; } }
+  @media (max-width: 640px) {
+    .langlink { font-size: 11.5px; padding: 4px 8px; }
+    .topbar-inner { padding: 8px 16px; }
+  }
+
+  /* ---------- layout ---------- */
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+  .layout { display: grid; grid-template-columns: 244px minmax(0, 1fr); gap: 52px; align-items: start; padding-bottom: 96px; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; gap: 8px; } }
+
+  /* ---------- hero ---------- */
+  .hero { padding: 74px 0 8px; position: relative; }
+  .hero .kicker {
+    display: inline-block; font-size: 12.5px; font-weight: 700; letter-spacing: .18em;
+    text-transform: uppercase; color: var(--accent-strong); margin: 0 0 20px;
+    opacity: 0; animation: rise .7s .02s cubic-bezier(.16,1,.3,1) forwards;
+  }
+  .hero h1 {
+    font-size: clamp(2.3rem, 5.6vw, 3.7rem); line-height: 1.0; letter-spacing: -.035em;
+    margin: 0 0 22px; font-weight: 800;
+    opacity: 0; animation: rise .7s .08s cubic-bezier(.16,1,.3,1) forwards;
+  }
+  .hero h1 .accent-word { color: var(--accent); }
+  .hero > p { font-size: clamp(1.02rem, 1.5vw, 1.2rem); color: var(--ink-2); max-width: 62ch; margin: 0; opacity: 0; animation: rise .7s .16s cubic-bezier(.16,1,.3,1) forwards; }
+  .hero .lede-note {
+    margin-top: 22px; font-size: 14px; color: var(--ink-3); max-width: 62ch;
+    padding-inline-start: 14px; border-inline-start: 3px solid var(--border-strong);
+    opacity: 0; animation: rise .7s .24s cubic-bezier(.16,1,.3,1) forwards;
+  }
+  .heromedia { margin: 40px 0 0; opacity: 0; animation: fade 1.1s .3s ease forwards; }
+  .heromedia svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .hero-line { fill: none; stroke: var(--accent); stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round; }
+  .hero-fill { fill: url(#heroGrad); }
+  .hero-base { stroke: var(--border-strong); stroke-width: 1; stroke-dasharray: 2 5; }
+  .hero-tick { stroke: var(--border-strong); stroke-width: 1; }
+  .hero-tlabel { fill: var(--ink-3); font-family: var(--mono); font-size: 12px; }
+  @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  @keyframes fade { to { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) {
+    .hero .kicker, .hero h1, .hero > p, .hero .lede-note, .heromedia { animation: none; opacity: 1; }
+  }
+
+  /* ---------- TOC ---------- */
+  .toc { position: sticky; top: 78px; }
+  .toc > summary { list-style: none; }
+  .toc > summary::-webkit-details-marker { display: none; }
+  .toc-title { font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 12px; padding-inline-start: 12px; }
+  .toc ol { list-style: none; margin: 0; padding: 0; counter-reset: toc; }
+  .toc li { counter-increment: toc; }
+  .toc a {
+    display: flex; gap: 10px; align-items: baseline;
+    padding: 7px 12px; color: var(--ink-2);
+    text-decoration: none; font-size: 14px; font-weight: 600; line-height: 1.35;
+    border-inline-start: 2px solid transparent; border-radius: var(--radius-s);
+    transition: background .15s, color .15s, border-color .15s;
+  }
+  .toc a::before { content: counter(toc); font-variant-numeric: tabular-nums; color: var(--accent); font-weight: 800; font-size: 12px; min-width: 14px; }
+  .toc a:hover { background: var(--surface-muted); color: var(--ink); }
+  @media (min-width: 901px) {
+    .toc { max-height: calc(100vh - 100px); overflow-y: auto; }
+    .toc > summary { display: none; }
+    .toc > .toc-body { display: block !important; }
+    .toc > .toc-body nav { border-inline-start: 1px solid var(--border); padding-inline-start: 4px; }
+    .toc a { margin-inline-start: -1px; }
+    .toc a:hover { border-inline-start-color: var(--accent); background: color-mix(in srgb, var(--accent-soft) 45%, transparent); }
+  }
+  @media (max-width: 900px) {
+    .toc {
+      position: static; margin: 14px 0 8px; background: var(--surface);
+      border: 1px solid var(--border); border-radius: var(--radius-m); box-shadow: var(--shadow-s);
+    }
+    .toc > summary {
+      padding: 14px 16px; cursor: pointer; font-weight: 700; color: var(--ink);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .toc > summary::after { content: "+"; color: var(--accent); font-size: 20px; font-weight: 700; }
+    .toc[open] > summary::after { content: "\2212"; }
+    .toc > .toc-body { padding: 0 8px 12px; }
+    .toc-title { display: none; }
+  }
+
+  /* ---------- content & sections ---------- */
+  main { min-width: 0; }
+  section[id] { scroll-margin-top: 84px; padding-top: 30px; }
+  .sec-head { display: flex; align-items: center; gap: 14px; margin: 0 0 -0.28em; }
+  .sec-num {
+    display: inline-block;
+    font-family: var(--mono); font-weight: 800; letter-spacing: -.05em;
+    font-size: clamp(3.4rem, 7.5vw, 5.4rem); line-height: .82; color: var(--accent);
+    opacity: .15; user-select: none;
+  }
+  h2 { font-size: clamp(1.62rem, 3.1vw, 2.25rem); letter-spacing: -.025em; margin: 6px 0 10px; font-weight: 800; line-height: 1.15; position: relative; }
+  h3 { font-size: 1.28rem; letter-spacing: -.015em; margin: 46px 0 6px; font-weight: 750; }
+  h3::before {
+    content: ""; display: inline-block; width: 15px; height: 2px; vertical-align: middle;
+    background: var(--accent); margin-inline-end: 11px; border-radius: 2px; transform: translateY(-3px);
+  }
+  .group-lead { color: var(--ink-2); max-width: var(--content); margin: 4px 0 14px; }
+  .sec-intro { color: var(--ink-2); max-width: var(--content); margin: 0 0 8px; }
+  p { max-width: var(--content); }
+  main p { margin: 14px 0; }
+  strong, b { font-weight: 700; color: var(--ink); }
+  code, .k { font-family: var(--mono); font-size: .89em; background: var(--surface-muted); padding: .1em .42em; border-radius: 6px; color: var(--ink); border: 1px solid var(--border); }
+  .divider { height: 0; background: none; border: 0; border-top: 1px solid var(--border); margin: 64px 0 0; position: relative; }
+  .divider::after { content: ""; position: absolute; inset-inline-start: 0; top: -1px; width: 40px; height: 2px; background: var(--accent); }
+
+  /* ---------- concept card ---------- */
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 18px;
+    padding: 26px 28px; margin: 22px 0; box-shadow: var(--shadow-s);
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+  }
+  .card:hover { transform: translateY(-2px); box-shadow: var(--shadow-m); border-color: var(--border-strong); }
+  @media (prefers-reduced-motion: reduce) { .card:hover { transform: none; } }
+  .card > :first-child { margin-top: 0; }
+  .card > :last-child { margin-bottom: 0; }
+  .card h4 { font-size: 1.12rem; font-weight: 750; margin: 0 0 4px; letter-spacing: -.01em; }
+  .tag {
+    display: inline-block; font-size: 10.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
+    padding: 4px 11px; border-radius: 999px; margin-bottom: 12px;
+  }
+  .tag.plan   { background: var(--accent-soft); color: var(--accent-strong); }
+  .tag.multi  { background: var(--info-soft); color: var(--info); }
+  .tag.analyze{ background: var(--violet-soft); color: var(--violet); }
+  .tag.monitor{ background: var(--warning-soft); color: var(--warning); }
+
+  /* ---------- formula block (MathML, notebook dot-grid) ---------- */
+  .formula {
+    margin: 18px 0; padding: 26px 26px 24px; overflow-x: auto;
+    background-color: var(--surface-subtle); border: 1px solid var(--border);
+    border-inline-start: 3px solid var(--accent); border-radius: 14px;
+    background-image: radial-gradient(color-mix(in srgb, var(--accent) 20%, transparent) 1px, transparent 1.5px);
+    background-size: 22px 22px; background-position: 10px 10px;
+    text-align: center;
+  }
+  .formula math { font-size: 1.4rem; color: var(--ink); }
+  .formula .flabel { display: block; text-align: start; font-size: 12px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--accent-strong); margin-bottom: 12px; }
+  math { font-family: "Latin Modern Math", "STIX Two Math", "Cambria Math", var(--mono); }
+  mi, mn, mo { color: inherit; }
+
+  /* ---------- "where" symbol list ---------- */
+  .where { margin: 16px 0 4px; }
+  .where-title { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 8px; }
+  .where dl { display: grid; grid-template-columns: auto 1fr; gap: 8px 18px; margin: 0; }
+  .where dt { font-family: var(--mono); font-weight: 600; font-size: 14.5px; color: var(--accent-strong); white-space: nowrap; padding-top: 1px; }
+  .where dd { margin: 0; color: var(--ink-2); font-size: 14.5px; }
+
+  /* ---------- callouts ---------- */
+  .callout {
+    margin: 18px 0; padding: 16px 20px; border-radius: 14px;
+    border: 1px solid var(--border); border-inline-start: 3px solid var(--ink-3);
+    background: var(--surface-muted); font-size: 14.5px;
+  }
+  .callout > :first-child { margin-top: 0; } .callout > :last-child { margin-bottom: 0; }
+  .callout .clabel { font-weight: 750; font-size: .96em; margin-inline-end: 6px; color: var(--ink); }
+  .callout.intuition { border-inline-start-color: var(--accent); background: color-mix(in srgb, var(--accent-soft) 40%, var(--surface)); }
+  .callout.intuition .clabel { color: var(--accent-strong); }
+  .callout.warn { border-inline-start-color: var(--warning); background: color-mix(in srgb, var(--warning-soft) 45%, var(--surface)); }
+  .callout.warn .clabel { color: var(--warning); }
+  .callout.example { border-inline-start-color: var(--border-strong); background: var(--surface-subtle); }
+  .callout.example .num { font-family: var(--mono); font-weight: 600; color: var(--ink); }
+
+  details.more { margin: 14px 0 2px; border-top: 1px dashed var(--border); padding-top: 6px; }
+  details.more > summary {
+    cursor: pointer; font-size: 13.5px; font-weight: 700; color: var(--accent-strong);
+    list-style: none; padding: 8px 0; display: inline-flex; align-items: center; gap: 7px;
+  }
+  details.more > summary::-webkit-details-marker { display: none; }
+  details.more > summary::before { content: "+"; font-size: 16px; line-height: 1; color: var(--accent); }
+  details.more[open] > summary::before { content: "\2212"; }
+  details.more > summary + * { margin-top: 6px; }
+
+  /* ---------- tables ---------- */
+  .tablewrap { overflow-x: auto; margin: 20px 0; border: 1px solid var(--border); border-radius: var(--radius-m); }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { text-align: start; padding: 11px 15px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  thead th { background: var(--surface-muted); font-weight: 700; color: var(--ink-2); font-size: 11.5px; letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; }
+  tbody tr:last-child td { border-bottom: 0; }
+  tbody tr:nth-child(even) { background: var(--surface-subtle); }
+  tbody tr { transition: background .12s ease; }
+  tbody tr:hover { background: color-mix(in srgb, var(--accent-soft) 30%, transparent); }
+  td .k, th .k { background: var(--surface); }
+  .sym { font-family: var(--mono); color: var(--accent-strong); font-weight: 600; white-space: nowrap; }
+  .dim { color: var(--ink-3); font-family: var(--font); font-weight: 500; }
+  tr.group td {
+    background: var(--surface-muted); color: var(--ink); font-weight: 750;
+    font-size: 12px; letter-spacing: .05em; text-transform: uppercase;
+  }
+  tbody tr.group:hover { background: var(--surface-muted); }
+
+  /* ---------- figure (annotated diagram) ---------- */
+  .figure { margin: 24px 0; padding: 20px 20px 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; box-shadow: var(--shadow-s); }
+  .figure svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .figure figcaption { margin: 12px 4px 6px; font-size: 13.5px; color: var(--ink-3); text-align: center; }
+  .fig-axis { stroke: var(--border-strong); stroke-width: 1.25; }
+  .fig-crit { stroke: var(--ink-3); stroke-width: 1.25; stroke-dasharray: 4 4; }
+  .fig-h0 { fill: none; stroke: var(--ink-3); stroke-width: 2; stroke-linejoin: round; }
+  .fig-h1 { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; }
+  .fig-alpha { fill: color-mix(in srgb, var(--danger) 42%, transparent); }
+  .fig-power { fill: color-mix(in srgb, var(--accent) 26%, transparent); }
+  .fig-lab { font-family: var(--font); font-weight: 700; font-size: 15px; }
+  .fig-lab.h0 { fill: var(--ink-2); } .fig-lab.h1 { fill: var(--accent-strong); }
+  .fig-lab.a { fill: var(--danger); font-size: 14px; } .fig-lab.pw { fill: var(--accent-strong); font-size: 13px; }
+  .fig-tick { fill: var(--ink-3); font-family: var(--mono); font-size: 12px; }
+  .fig-line { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+  .fig-ref { fill: none; stroke: var(--ink-3); stroke-width: 1.5; stroke-dasharray: 4 4; }
+  .fig-dot { fill: var(--accent); }
+  .fig-dot-h { fill: var(--surface); stroke: var(--accent); stroke-width: 2; }
+  .fig-before { fill: none; stroke: var(--ink-3); stroke-width: 2; stroke-dasharray: 5 4; }
+  .fig-after { fill: none; stroke: var(--accent); stroke-width: 2.5; }
+  .fig-after-fill { fill: color-mix(in srgb, var(--accent) 20%, transparent); }
+  .fig-cap-in { fill: var(--ink-2); font-family: var(--font); font-size: 13px; font-weight: 650; }
+  .fig-cap-a { fill: var(--danger); }
+
+  /* ---------- footer ---------- */
+  footer { border-top: 1px solid var(--border); background: var(--surface); }
+  .footer-inner { max-width: var(--maxw); margin: 0 auto; padding: 28px 24px 40px; color: var(--ink-3); font-size: 13.5px; display: flex; flex-wrap: wrap; gap: 8px 20px; justify-content: space-between; }
+  .footer-inner a { color: var(--ink-2); }
+
+  .lead-in { color: var(--ink-2); font-size: 15px; margin: 4px 0 20px; max-width: var(--content); }
+
+  @media (max-width: 640px) {
+    body { font-size: 16px; }
+    .wrap { padding: 0 18px; }
+    .card { padding: 20px 18px; }
+    .formula { padding: 18px 14px; }
+    .formula math { font-size: 1.16rem; }
+    .where dl { grid-template-columns: 1fr; gap: 2px 0; }
+    .where dd { margin-bottom: 8px; }
+  }
+
+  /* ============================================================
+     INTERACTIVE LAYER — progressive enhancement (needs help.js).
+     Hidden until the .js class is set by the script.
+     ============================================================ */
+  .js-only { display: none; }
+  html.js .js-only { display: revert; }
+  html.js .pe-top { display: grid; }
+  html.js .pe-sliders { display: grid; }
+  html.js .sizer-grid { display: grid; }
+  html.js .sizer-out { display: grid; }
+
+  .tool {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--accent-soft) 34%, var(--surface)), var(--surface));
+    border: 1px solid var(--border-strong); border-radius: 18px; box-shadow: var(--shadow-s);
+    padding: 22px 24px; margin: 22px 0;
+  }
+  .tool > .tag { margin-bottom: 8px; }
+  .tool h4 { margin: 0 0 16px; font-size: 1.1rem; font-weight: 750; }
+
+  input[type="range"] { accent-color: var(--accent); width: 100%; height: 24px; cursor: pointer; margin: 2px 0 0; }
+  input[type="number"], select {
+    font: inherit; font-size: 15px; color: var(--ink); background: var(--surface);
+    border: 1px solid var(--border-strong); border-radius: 8px; padding: 8px 10px; width: 100%;
+  }
+  input[type="number"]:focus, select:focus { outline: 2px solid var(--accent-ring); border-color: var(--accent); }
+
+  .pe-top { grid-template-columns: 1.1fr 0.9fr; gap: 22px; align-items: center; margin-bottom: 14px; }
+  .pe-sliders { gap: 14px; }
+  .ctl { display: block; }
+  .ctl-lab { display: flex; justify-content: space-between; align-items: baseline; font-size: 13.5px; font-weight: 650; color: var(--ink-2); margin-bottom: 2px; }
+  .ctl-lab b { font-family: var(--mono); font-weight: 700; color: var(--accent-strong); font-size: 14px; }
+  .pe-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .stat {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 12px 14px; display: flex; flex-direction: column; gap: 3px; text-align: start;
+  }
+  .stat-num { font-family: var(--mono); font-weight: 800; font-size: 1.5rem; letter-spacing: -.02em; line-height: 1; }
+  .stat-cap { font-size: 11.5px; color: var(--ink-3); line-height: 1.3; }
+  .stat.stat-a { border-inline-start: 3px solid var(--danger); } .stat.stat-a .stat-num { color: var(--danger); }
+  .stat.stat-p { border-inline-start: 3px solid var(--accent); } .stat.stat-p .stat-num { color: var(--accent-strong); }
+
+  .sizer-grid { grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 18px; }
+  .fld { display: flex; flex-direction: column; gap: 5px; font-size: 13px; font-weight: 650; color: var(--ink-2); }
+  .sizer-out { grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .sizer-out .stat { border-inline-start: 3px solid var(--accent); }
+  .sizer-out .stat-num { color: var(--accent-strong); }
+  .sizer-note { margin: 12px 0 0; font-size: 13.5px; color: var(--danger); font-weight: 650; }
+  .sizer-fine { margin: 14px 0 0; font-size: 12.5px; color: var(--ink-3); }
+
+  @media (max-width: 640px) {
+    .pe-top { grid-template-columns: 1fr; gap: 14px; }
+    .sizer-grid { grid-template-columns: 1fr 1fr; }
+    .sizer-out { grid-template-columns: 1fr; }
+    .stat-num { font-size: 1.35rem; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="/" aria-label="К приложению">
+        <span class="brand-mark" aria-hidden="true">AB</span>
+        <span class="brand-text">
+          <span class="brand-name">AB Test Research Designer</span>
+          <span class="brand-tag">Теоретический справочник</span>
+        </span>
+      </a>
+      <nav class="langbar" aria-label="Язык страницы"><a class="langlink" href="/help.html" hreflang="en" lang="en" title="English">EN</a><a class="langlink current" href="/help.ru.html" hreflang="ru" lang="ru" title="Русский" aria-current="page">RU</a><a class="langlink" href="/help.de.html" hreflang="de" lang="de" title="Deutsch">DE</a><a class="langlink" href="/help.fr.html" hreflang="fr" lang="fr" title="Français">FR</a><a class="langlink" href="/help.es.html" hreflang="es" lang="es" title="Español">ES</a><a class="langlink" href="/help.zh.html" hreflang="zh" lang="zh" title="中文">中文</a><a class="langlink" href="/help.ar.html" hreflang="ar" lang="ar" title="العربية">عربي</a></nav>
+    </div>
+  </div>
+
+  <header class="wrap hero">
+    <p class="kicker">Теория · формулы · простыми словами</p>
+    <h1>A/B-тестирование:<br>вся теория и <span class='accent-word'>формулы</span></h1>
+    <p>Каждый статистический метод этой платформы — от расчёта размера выборки до анализа результатов и живого мониторинга — с интуицией простыми словами, точной формулой и разбором каждого символа.</p>
+    <p class="lede-note">Формулы приведены ровно в том виде, в котором их считает движок. Математика одинакова на всех языках; меняется только текст пояснений. Тема оформления автоматически следует настройке приложения.</p>
+    <div class="heromedia" aria-hidden="true">
+      <svg viewBox="0 0 720 152" role="img">
+        <defs>
+          <linearGradient id="heroGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" style="stop-color:var(--accent);stop-opacity:.22"/>
+            <stop offset="1" style="stop-color:var(--accent);stop-opacity:0"/>
+          </linearGradient>
+        </defs>
+        <line class="hero-base" x1="0" y1="140" x2="720" y2="140"/>
+        <path class="hero-fill" d="M 0,140 8,140 16,140 24,140 32,139 40,139 48,139 56,139 64,138 72,138 80,137 88,137 96,136 104,135 112,134 120,133 128,131 136,130 144,128 152,125 160,123 168,120 176,116 184,113 192,109 200,104 208,100 216,95 224,89 232,84 240,78 248,72 256,65 264,59 272,53 280,47 288,41 296,36 304,31 312,26 320,22 328,18 336,16 344,14 352,12 360,12 368,12 376,14 384,16 392,18 400,22 408,26 416,31 424,36 432,41 440,47 448,53 456,59 464,65 472,72 480,78 488,84 496,89 504,95 512,100 520,104 528,109 536,113 544,116 552,120 560,123 568,125 576,128 584,130 592,131 600,133 608,134 616,135 624,136 632,137 640,137 648,138 656,138 664,139 672,139 680,139 688,139 696,140 704,140 712,140 720,140 Z"/>
+        <path class="hero-line" d="M 0,140 8,140 16,140 24,140 32,139 40,139 48,139 56,139 64,138 72,138 80,137 88,137 96,136 104,135 112,134 120,133 128,131 136,130 144,128 152,125 160,123 168,120 176,116 184,113 192,109 200,104 208,100 216,95 224,89 232,84 240,78 248,72 256,65 264,59 272,53 280,47 288,41 296,36 304,31 312,26 320,22 328,18 336,16 344,14 352,12 360,12 368,12 376,14 384,16 392,18 400,22 408,26 416,31 424,36 432,41 440,47 448,53 456,59 464,65 472,72 480,78 488,84 496,89 504,95 512,100 520,104 528,109 536,113 544,116 552,120 560,123 568,125 576,128 584,130 592,131 600,133 608,134 616,135 624,136 632,137 640,137 648,138 656,138 664,139 672,139 680,139 688,139 696,140 704,140 712,140 720,140"/>
+        <g>
+          <line class="hero-tick" x1="160" y1="140" x2="160" y2="147"/><text class="hero-tlabel" x="160" y="150" text-anchor="middle" dominant-baseline="hanging">&#x2212;2&#x3C3;</text>
+          <line class="hero-tick" x1="260" y1="140" x2="260" y2="147"/><text class="hero-tlabel" x="260" y="150" text-anchor="middle" dominant-baseline="hanging">&#x2212;1&#x3C3;</text>
+          <line class="hero-tick" x1="360" y1="140" x2="360" y2="147"/><text class="hero-tlabel" x="360" y="150" text-anchor="middle" dominant-baseline="hanging">&#x3BC;</text>
+          <line class="hero-tick" x1="460" y1="140" x2="460" y2="147"/><text class="hero-tlabel" x="460" y="150" text-anchor="middle" dominant-baseline="hanging">+1&#x3C3;</text>
+          <line class="hero-tick" x1="560" y1="140" x2="560" y2="147"/><text class="hero-tlabel" x="560" y="150" text-anchor="middle" dominant-baseline="hanging">+2&#x3C3;</text>
+        </g>
+      </svg>
+    </div>
+  </header>
+
+  <div class="wrap layout">
+    <details class="toc" open>
+      <summary>Содержание</summary>
+      <div class="toc-body">
+        <p class="toc-title">Разделы</p>
+        <nav>
+          <ol>
+            <li><a href="#fundamentals">Основы: гипотезы, ошибки, p-value</a></li>
+            <li><a href="#planning">Планирование: размер выборки и срок</a></li>
+            <li><a href="#multiple">Множественные сравнения и кластеры</a></li>
+            <li><a href="#analysis">Анализ результатов: все 22 теста</a></li>
+            <li><a href="#monitoring">Живой мониторинг эксперимента</a></li>
+            <li><a href="#cheatsheet">Шпаргалка и обозначения</a></li>
+          </ol>
+        </nav>
+      </div>
+    </details>
+
+    <main>
+      <!-- ================= 1. FUNDAMENTALS ================= -->
+      <section id="fundamentals">
+        <div class="sec-head"><span class="sec-num">01</span></div>
+        <h2>Основы: на чём стоит любой тест</h2>
+        <p class="sec-intro">A/B-тест — это способ честно ответить на вопрос «изменение реально что-то улучшило или нам показалось?». Прежде чем считать выборки и p-value, нужно договориться о пяти понятиях. Дальше вся страница опирается на них.</p>
+
+        <h3>Две гипотезы</h3>
+        <p>Мы всегда сравниваем две версии мира. <strong>Нулевая гипотеза</strong> <span class='k'>H₀</span> говорит «разницы между вариантами нет». <strong>Альтернативная</strong> <span class='k'>H₁</span> — «разница есть». Тест не «доказывает» H₁; он проверяет, насколько нелепо выглядят данные, <em>если бы</em> H₀ была правдой. Если слишком нелепо — H₀ отвергают.</p>
+
+        <h3>Четыре числа, которые задают тест</h3>
+        <div class="card">
+          <div class="where">
+            <p class="where-title">Договорённости до старта</p>
+            <dl>
+              <dt>&#x3B1;</dt><dd><strong>Уровень значимости.</strong> Допустимый риск «ложной тревоги» — объявить эффект там, где его нет. Обычно 0,05 (5%).</dd>
+              <dt>&#x3B2;</dt><dd><strong>Риск пропуска.</strong> Вероятность не заметить реальный эффект. Обычно 0,2 (20%).</dd>
+              <dt>1 &#x2212; &#x3B2;</dt><dd><strong>Мощность (power).</strong> Вероятность заметить эффект, если он есть. Обычно 0,8 (80%).</dd>
+              <dt>MDE</dt><dd><strong>Минимально значимый эффект.</strong> Наименьшее изменение, которое вам не всё равно поймать (например, +5% к конверсии). Меньший эффект тест может и пропустить — это осознанный выбор.</dd>
+            </dl>
+          </div>
+        </div>
+
+        <h3>Две ошибки, которые можно совершить</h3>
+        <p>Реальность и решение теста дают четыре исхода. Два — верные, два — ошибки. Весь смысл планирования в том, чтобы держать обе ошибки на приемлемом уровне: <span class='k'>α</span> контролирует ошибку I рода, <span class='k'>β</span> — II рода.</p>
+        <div class="tablewrap">
+          <table>
+            <thead>
+              <tr>
+                <th></th>
+                <th>H₀ верна (эффекта нет)</th>
+                <th>H₁ верна (эффект есть)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th>Тест: «эффект есть»</th>
+                <td><strong style='color:var(--danger)'>Ошибка I рода</strong> — ложная тревога. Вероятность = α.</td>
+                <td><strong style='color:var(--success)'>Верно</strong> — эффект пойман. Вероятность = 1 − β (мощность).</td>
+              </tr>
+              <tr>
+                <th>Тест: «разницы нет»</th>
+                <td><strong style='color:var(--success)'>Верно</strong> — тревоги нет. Вероятность = 1 − α.</td>
+                <td><strong style='color:var(--warning)'>Ошибка II рода</strong> — эффект пропущен. Вероятность = β.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <figure class="figure tool" id="powerExplorer">
+          <div class="pe-top js-only">
+            <div class="pe-sliders">
+              <label class="ctl">
+                <span class="ctl-lab"><span>Порог решения</span> <b id="peOutZ">1,64</b></span>
+                <input type="range" id="peThresh" min="0" max="4" step="0.02" value="1.645" aria-label="threshold">
+              </label>
+              <label class="ctl">
+                <span class="ctl-lab"><span>Размер эффекта</span> <b id="peOutEff">3,0 σ</b></span>
+                <input type="range" id="peEffect" min="0" max="4" step="0.05" value="3" aria-label="effect size">
+              </label>
+            </div>
+            <div class="pe-stats">
+              <div class="stat stat-a"><span class="stat-num" id="peOutAlpha">5,0%</span><span class="stat-cap">α · ложная тревога</span></div>
+              <div class="stat stat-p"><span class="stat-num" id="peOutPower">91,2%</span><span class="stat-cap">1−β · мощность</span></div>
+            </div>
+          </div>
+          <svg viewBox="0 0 640 236" role="img" aria-label="Normal distributions of H0 and H1 with alpha and power regions">
+            <path class="fig-alpha pe-alpha" d="M 347,205 347,179 353,184 360,189 367,192 373,195 380,198 387,200 393,201 400,202 407,203 413,204 420,204 427,204 433,205 640,205 640,205 Z"/>
+            <path class="fig-power pe-power" d="M 347,205 347,101 353,88 360,76 367,65 373,54 380,44 387,37 393,31 400,27 407,26 413,27 420,30 427,36 433,43 440,52 447,63 453,74 460,86 467,99 473,111 480,123 487,135 493,145 500,155 507,163 513,171 520,178 527,183 533,188 540,192 547,195 553,197 560,199 567,201 573,202 580,203 587,203 593,204 600,204 607,204 613,205 640,205 640,205 Z"/>
+            <line class="fig-axis" x1="0" y1="205" x2="640" y2="205"/>
+            <line class="fig-crit pe-crit" x1="347" y1="205" x2="347" y2="14"/>
+            <path class="fig-h0 pe-h0" d="M 0,205 26,205 51,204 77,200 96,194 115,182 134,162 154,134 173,100 192,65 211,38 230,26 250,33 269,57 288,91 307,126 326,156 346,178 371,194 397,202 422,204 448,205 480,205 520,205 570,205 640,205"/>
+            <path class="fig-h1 pe-h1" d="M 205,205 218,204 237,203 256,199 275,191 294,178 314,156 333,126 352,91 371,57 390,33 410,26 429,38 448,65 467,100 486,134 506,162 525,182 544,194 563,200 589,204 614,205 640,205"/>
+            <text class="fig-lab h0" x="233" y="18" text-anchor="middle">H&#x2080;</text>
+            <text class="fig-lab h1 pe-lab-h1" x="407" y="18" text-anchor="middle">H&#x2081;</text>
+            <text class="fig-lab a pe-lab-a" x="372" y="199" text-anchor="middle">&#x3B1;</text>
+            <text class="fig-lab pw pe-lab-pw" x="452" y="150" text-anchor="middle">1&#x2212;&#x3B2;</text>
+          </svg>
+          <figcaption>Две гипотезы как распределения. Порог решения делит картину: правее него мы объявляем эффект. Красная зона — <strong style='color:var(--danger)'>α</strong> (ложная тревога при H₀), бирюзовая — <strong style='color:var(--accent-strong)'>мощность 1−β</strong> (эффект пойман при H₁). <span class='js-only'><strong>Потяните ползунки</strong> — и увидите, как порог разменивает α на мощность.</span></figcaption>
+        </figure>
+
+        <h3>p-value: что это и чем не является</h3>
+        <p>После теста вы получаете <strong>p-value</strong>. Это вероятность увидеть расхождение <em>не меньше</em> наблюдаемого, <em>если бы</em> H₀ была правдой. Маленькое p значит «такие данные редки в мире без эффекта» — и это повод отвергнуть H₀.</p>
+        <div class="callout warn">
+          <span class="clabel">Частая ошибка.</span>
+          <span>p-value — это <strong>не</strong> вероятность того, что H₀ верна, и <strong>не</strong> вероятность того, что вы ошибаетесь. Оно говорит о данных при H₀, а не о самой H₀. p = 0,03 не значит «есть 3% шанс, что эффекта нет».</span>
+        </div>
+
+        <h3>Доверительный интервал</h3>
+        <p>p-value говорит «есть эффект или нет», а <strong>доверительный интервал</strong> (CI) отвечает на более полезный вопрос: «насколько велик эффект?». Интервал (1 − α) — это диапазон правдоподобных значений эффекта. Если 95%-й CI разницы конверсий равен <span class='k'>[+0,4%; +2,1%]</span> и не содержит нуля — эффект значим, и вы сразу видите его величину.</p>
+        <div class="callout intuition">
+          <span class="clabel">Связка.</span>
+          <span>Двусторонний тест на уровне α и (1 − α)-интервал — это две стороны одной монеты: эффект значим на уровне α тогда и только тогда, когда интервал не накрывает ноль. Платформа везде показывает и p-value, и интервал именно поэтому.</span>
+        </div>
+
+        <h3>Рандомизация: кто попадает в какой вариант</h3>
+        <div class="card">
+          <span class="tag plan">Основы · распределение</span>
+          <p>Распределение в платформе детерминированное — никаких сохранённых «подбрасываний монеты». Идентификатор юнита хешируется вместе с солью эксперимента, хеш попадает в одну из 10 000 корзин, а накопленные веса вариантов режут диапазон корзин на части. Один и тот же id всегда попадает в один и тот же вариант, распределение переживает повторы и смену устройств, а сплит можно посмотреть до запуска через assignment preview.</p>
+          <div class="formula">
+            <span class="flabel">Детерминированная корзина</span>
+            <math display="block">
+              <mtext>bucket</mtext><mo>=</mo>
+              <mi>H</mi><mo>(</mo><mtext>id</mtext><mo>&#x2225;</mo><mtext>salt</mtext><mo>)</mo>
+              <mspace width="0.3em"/><mtext>mod</mtext><mspace width="0.3em"/>
+              <msup><mn>10</mn><mn>4</mn></msup>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Где</p>
+            <dl>
+              <dt>H</dt><dd>быстрый стабильный хеш (равномерное рассеивание, не криптография)</dd>
+              <dt>id</dt><dd>юнит рандомизации: id пользователя, сессии или кластера</dd>
+              <dt>salt</dt><dd>соль эксперимента — разные эксперименты делят трафик независимо</dd>
+            </dl>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">Юнит важен.</span>
+            <span>Юнит рандомизации — это юнит независимости. Если рандомизировать сессии, а анализировать пользователей (или наоборот), наблюдения перестают быть независимыми — дисперсия врёт. Именно с этим работают дельта-метод для ratio-метрик и кластерный эффект дизайна ниже.</span>
+          </div>
+        </div>
+        <hr class="divider">
+      </section>
+      <!-- ================= 2. PLANNING ================= -->
+      <section id="planning">
+        <div class="sec-head"><span class="sec-num">02</span></div>
+        <h2>Планирование: сколько людей и как долго</h2>
+        <p class="sec-intro">Размер выборки считают <strong>до</strong> запуска. Слишком маленький тест не заметит даже реального эффекта (низкая мощность), слишком большой — жжёт трафик впустую. Формула переводит ваши четыре числа (α, мощность, MDE, базовый уровень) в нужное число наблюдений на вариант.</p>
+
+        <h3>Размер выборки для конверсии (доля)</h3>
+        <div class="card">
+          <span class="tag plan">Планирование · бинарная метрика</span>
+          <p>Когда метрика — «купил / не купил», «кликнул / нет», считаем так. Числитель — «шум» двух долей, знаменатель — квадрат эффекта, который ловим. Чем меньше эффект <span class='k'>δ</span>, тем больше нужна выборка (растёт как 1/δ²: эффект вдвое меньше → выборка вчетверо больше).</p>
+          <div class="formula">
+            <span class="flabel">Наблюдений на вариант</span>
+            <math display="block">
+              <mi>n</mi><mo>=</mo>
+              <mfrac>
+                <msup>
+                  <mrow><mo>(</mo>
+                    <msub><mi>z</mi><mi>&#x3B1;</mi></msub><mspace width="0.15em"/>
+                    <msqrt><mrow><mn>2</mn><mo>&#x2062;</mo><mover><mi>p</mi><mo>&#xAF;</mo></mover><mo>(</mo><mn>1</mn><mo>&#x2212;</mo><mover><mi>p</mi><mo>&#xAF;</mo></mover><mo>)</mo></mrow></msqrt>
+                    <mo>+</mo>
+                    <msub><mi>z</mi><mi>&#x3B2;</mi></msub><mspace width="0.15em"/>
+                    <msqrt><mrow><msub><mi>p</mi><mn>0</mn></msub><mo>(</mo><mn>1</mn><mo>&#x2212;</mo><msub><mi>p</mi><mn>0</mn></msub><mo>)</mo><mo>+</mo><msub><mi>p</mi><mn>1</mn></msub><mo>(</mo><mn>1</mn><mo>&#x2212;</mo><msub><mi>p</mi><mn>1</mn></msub><mo>)</mo></mrow></msqrt>
+                  <mo>)</mo></mrow>
+                  <mn>2</mn>
+                </msup>
+                <msup><mi>&#x3B4;</mi><mn>2</mn></msup>
+              </mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Где</p>
+            <dl>
+              <dt>p&#x2080;, p&#x2081;</dt><dd>базовая конверсия и конверсия варианта; p₁ = p₀·(1 + MDE)</dd>
+              <dt>&#x3B4;</dt><dd>абсолютный эффект, δ = p₁ − p₀</dd>
+              <dt>p&#x304;</dt><dd>усреднённая доля (p₀ + p₁)/2</dd>
+              <dt>z<sub>&#x3B1;</sub></dt><dd>квантиль нормали для α (двусторонний): 1,96 при α = 0,05</dd>
+              <dt>z<sub>&#x3B2;</sub></dt><dd>квантиль для мощности: 0,84 при power = 0,80</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>База <span class='num'>10%</span>, ловим относительный прирост <span class='num'>+10%</span> (→ 11%), α = 0,05, мощность 0,80 → нужно <span class='num'>≈ 14 751</span> человек <strong>на каждый</strong> вариант.</span>
+          </div>
+        </div>
+
+        <div class="tool js-only" id="sizer">
+          <span class="tag plan">Интерактивно · калькулятор</span>
+          <h4>Посчитайте свой тест</h4>
+          <div class="sizer-grid">
+            <label class="fld"><span>Базовая конверсия, %</span><input id="szBase" type="number" value="10" min="0.1" max="99" step="0.1"></label>
+            <label class="fld"><span>Прирост (отн.), %</span><input id="szMde" type="number" value="10" min="0.1" step="0.1"></label>
+            <label class="fld"><span>Трафик в тест, /день</span><input id="szTraffic" type="number" value="5000" min="1" step="100"></label>
+            <label class="fld"><span>Значимость α</span><select id="szAlpha"><option value="1.6449">0,10</option><option value="1.9600" selected>0,05</option><option value="2.5758">0,01</option></select></label>
+            <label class="fld"><span>Мощность</span><select id="szPower"><option value="0.5244">0,70</option><option value="0.8416" selected>0,80</option><option value="1.2816">0,90</option><option value="1.6449">0,95</option></select></label>
+          </div>
+          <div class="sizer-out">
+            <div class="stat"><span class="stat-num" id="szPer">&#8212;</span><span class="stat-cap">на вариант</span></div>
+            <div class="stat"><span class="stat-num" id="szTotal">&#8212;</span><span class="stat-cap">всего</span></div>
+            <div class="stat"><span class="stat-num" id="szDays">&#8212;</span><span class="stat-cap">дней</span></div>
+          </div>
+          <p class="sizer-note" id="szNote" hidden>База и прирост дают конверсию ≥ 100% — уменьшите значения.</p>
+          <p class="sizer-fine">Та же формула, что выше. Допущения: 2 равных варианта, двусторонний тест, весь трафик в тесте.</p>
+        </div>
+
+        <h3>Размер выборки для среднего (непрерывная метрика)</h3>
+        <div class="card">
+          <span class="tag plan">Планирование · непрерывная метрика</span>
+          <p>Когда метрика — число (выручка на пользователя, время на сайте, чек), «шум» задаётся разбросом <span class='k'>σ</span>. Формула проще: чем больше разброс и чем меньше эффект, тем больше выборка.</p>
+          <div class="formula">
+            <span class="flabel">Наблюдений на вариант</span>
+            <math display="block">
+              <mi>n</mi><mo>=</mo><mn>2</mn>
+              <msup>
+                <mrow><mo>(</mo><mfrac><mrow><mo>(</mo><msub><mi>z</mi><mi>&#x3B1;</mi></msub><mo>+</mo><msub><mi>z</mi><mi>&#x3B2;</mi></msub><mo>)</mo><mo>&#x2062;</mo><mi>&#x3C3;</mi></mrow><mi>&#x3B4;</mi></mfrac><mo>)</mo></mrow>
+                <mn>2</mn>
+              </msup>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Где</p>
+            <dl>
+              <dt>&#x3C3;</dt><dd>стандартное отклонение метрики (разброс между пользователями)</dd>
+              <dt>&#x3B4;</dt><dd>абсолютный эффект в единицах метрики, δ = среднее·MDE</dd>
+              <dt>z<sub>&#x3B1;</sub>, z<sub>&#x3B2;</sub></dt><dd>те же квантили нормали, что и выше</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>Средний чек <span class='num'>100</span>, разброс σ = <span class='num'>40</span>, ловим <span class='num'>+5%</span> (δ = 5), α = 0,05, мощность 0,80 → <span class='num'>≈ 1 005</span> человек на вариант.</span>
+          </div>
+        </div>
+
+        <h3>Обратный вопрос: какой эффект я вообще замечу?</h3>
+        <div class="card">
+          <span class="tag plan">Планирование · MDE</span>
+          <p>Трафик часто ограничен. Тогда полезно перевернуть формулу: при фиксированной выборке <span class='k'>n</span> какой минимальный эффект вы сможете поймать? Для среднего это выражается в явном виде.</p>
+          <div class="formula">
+            <span class="flabel">Минимально детектируемый эффект (среднее)</span>
+            <math display="block">
+              <mi>MDE</mi><mo>=</mo><mo>(</mo><msub><mi>z</mi><mi>&#x3B1;</mi></msub><mo>+</mo><msub><mi>z</mi><mi>&#x3B2;</mi></msub><mo>)</mo><mo>&#x2062;</mo><mi>&#x3C3;</mi><mo>&#x2062;</mo><msqrt><mfrac><mn>2</mn><mi>n</mi></mfrac></msqrt>
+            </math>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">Смысл.</span>
+            <span>Чувствительность растёт как √n: чтобы ловить вдвое меньший эффект, нужно вчетверо больше данных. Для конверсий движок решает то же уравнение численно (двоичным поиском).</span>
+          </div>
+        </div>
+
+        <h3>Длительность теста</h3>
+        <div class="card">
+          <span class="tag plan">Планирование · срок</span>
+          <p>Размер выборки — это «сколько людей», длительность — «сколько дней их набирать». Делим нужную выборку на дневной приток трафика в <em>самый маленький</em> вариант: именно он «узкое горло».</p>
+          <div class="formula">
+            <span class="flabel">Дней до нужной выборки</span>
+            <math display="block">
+              <mtext>дней</mtext><mo>=</mo>
+              <mrow><mo>&#x2308;</mo>
+                <mfrac>
+                  <mi>n</mi>
+                  <mrow><mi>T</mi><mo>&#x2062;</mo><mi>s</mi><mo>&#x2062;</mo><mi>a</mi><mo>&#x2062;</mo><msub><mi>w</mi><mtext>min</mtext></msub></mrow>
+                </mfrac>
+              <mo>&#x2309;</mo></mrow>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Где</p>
+            <dl>
+              <dt>T</dt><dd>ожидаемый дневной трафик</dd>
+              <dt>s</dt><dd>доля аудитории, попадающей в тест (0…1)</dd>
+              <dt>a</dt><dd>доля выделенного тесту трафика (холдаут / взаимоисключающие тесты)</dd>
+              <dt>w<sub>min</sub></dt><dd>вес наименьшего варианта в сплите</dd>
+              <dt>&#x2308; &#x2309;</dt><dd>округление вверх — день неделим</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>Нужно 14 751 на вариант, приток 5 000/день, в тест идёт 100%, два равных варианта (по 50%) → на меньший вариант приходит 2 500/день → <span class='num'>6 дней</span>.</span>
+          </div>
+          <div class="callout warn">
+            <span class="clabel">Не меньше недели.</span>
+            <span>Даже если формула даёт 2–3 дня, гоняйте тест кратно неделям: будни и выходные ведут себя по-разному, а новизна изменения искажает первые дни.</span>
+          </div>
+        </div>
+
+        <h3>Байесовское планирование «по точности»</h3>
+        <div class="card">
+          <span class="tag plan">Планирование · Байес</span>
+          <p>Иногда цель не «поймать эффект size X», а «оценить показатель с точностью ±d». Тогда размер выборки задаётся не мощностью, а желаемой полушириной апостериорного интервала. При плоском приоре получается почти та же нормальная формула.</p>
+          <div class="formula">
+            <span class="flabel">Выборка под точность (доля / среднее)</span>
+            <math display="block">
+              <mi>N</mi><mo>=</mo><mn>2</mn><mo>&#x2062;</mo><mi>p</mi><mo>(</mo><mn>1</mn><mo>&#x2212;</mo><mi>p</mi><mo>)</mo><msup><mrow><mo>(</mo><mfrac><mi>z</mi><mi>d</mi></mfrac><mo>)</mo></mrow><mn>2</mn></msup>
+              <mspace width="1.4em"/>
+              <mtext>/</mtext>
+              <mspace width="1.4em"/>
+              <mi>N</mi><mo>=</mo><mn>2</mn><mo>&#x2062;</mo><msup><mi>&#x3C3;</mi><mn>2</mn></msup><msup><mrow><mo>(</mo><mfrac><mi>z</mi><mi>d</mi></mfrac><mo>)</mo></mrow><mn>2</mn></msup>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Где</p>
+            <dl>
+              <dt>d</dt><dd>желаемая точность — полуширина интервала</dd>
+              <dt>z</dt><dd>квантиль доверия: 1,96 при 95%</dd>
+              <dt>p / &#x3C3;</dt><dd>базовая доля или разброс метрики</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>Оценить конверсию ~10% с точностью <span class='num'>±1 п.п.</span> при 95% → <span class='num'>≈ 6 915</span> на вариант.</span>
+          </div>
+        </div>
+
+        <h3>Тест на эквивалентность (TOST): «докажи, что не сломалось»</h3>
+        <div class="card">
+          <span class="tag plan">Планирование · эквивалентность</span>
+          <p>Обычный тест ищет разницу. Иногда нужно обратное: подтвердить, что рефакторинг, миграция или удешевление <em>не</em> сдвинули метрику дальше допуска <span class='k'>±M</span>. Это делает <strong>TOST</strong> (два односторонних теста). Выборку под него считают отдельно — её задаёт допуск, а не MDE.</p>
+          <div class="formula">
+            <span class="flabel">Выборка под эквивалентность</span>
+            <math display="block">
+              <mi>n</mi><mo>=</mo><mn>2</mn>
+              <msup>
+                <mrow><mo>(</mo><mfrac><mrow><mi>&#x3C3;</mi><mo>(</mo><msub><mi>z</mi><mi>&#x3B1;</mi></msub><mo>+</mo><msub><mi>z</mi><mrow><mn>1</mn><mo>&#x2212;</mo><mi>&#x3B2;</mi><mo>/</mo><mn>2</mn></mrow></msub><mo>)</mo></mrow><mi>M</mi></mfrac><mo>)</mo></mrow>
+                <mn>2</mn>
+              </msup>
+            </math>
+          </div>
+          <div class="callout example">
+            <span>База 100, σ = 40, допуск ±5% (M = 5), α = 0,05, мощность 0,80 → <span class='num'>1 097</span> на вариант — против <span class='num'>1 005</span> у теста на превосходство с теми же числами. Доказывать «не хуже» дороже.</span>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">Тонкость.</span>
+            <span>Каждый из двух односторонних тестов идёт на уровне <span class='k'>α</span> (без деления на 2), а в терме мощности стоит <span class='k'>z<sub>1−β/2</sub></span>, потому что при истинной нулевой разнице мощность симметрично делится между двумя границами <span class='k'>−M</span> и <span class='k'>+M</span>.</span>
+          </div>
+        </div>
+
+        <div class="callout intuition">
+          <span class="clabel">Вариантов больше двух?</span>
+          <span>Когда тест планируется с k &gt; 2 вариантами, платформа автоматически ужесточает уровень значимости до α/(k−1) — Бонферрони по сравнениям «вариант против контроля» — ещё до расчёта выборки. Числа уже включают цену множественности.</span>
+        </div>
+        <hr class="divider">
+      </section>
+      <!-- ================= 3. MULTIPLE COMPARISONS ================= -->
+      <section id="multiple">
+        <div class="sec-head"><span class="sec-num">03</span></div>
+        <h2>Много вариантов, много метрик, кластеры</h2>
+        <p class="sec-intro">Как только сравнений становится больше одного, «ложные тревоги» копятся. Проверяете 20 метрик на уровне 5% — и в среднем одна «выстрелит» просто случайно. Здесь — как это чинят, и что делать, если рандомизируете не людей, а магазины или города.</p>
+
+        <h3>Проблема множественных сравнений</h3>
+        <p>Если каждый тест независим и идёт на уровне α, вероятность <em>хотя бы одной</em> ложной тревоги среди <span class='k'>m</span> проверок равна 1 − (1 − α)<sup>m</sup>. При α = 0,05 и m = 10 это уже <strong>40%</strong>. Контролируют одну из двух величин:</p>
+        <div class="tablewrap">
+          <table>
+            <thead><tr>
+              <th>Что контролируем</th>
+              <th>Вопрос</th>
+              <th>Методы</th>
+            </tr></thead>
+            <tbody>
+              <tr>
+                <td><strong>FWER</strong><br><span style='color:var(--ink-3)'>family-wise error rate</span></td>
+                <td>Какова вероятность <em>хоть одной</em> ложной находки?</td>
+                <td>Бонферрони, Холм. Строже, теряет мощность с ростом m.</td>
+              </tr>
+              <tr>
+                <td><strong>FDR</strong><br><span style='color:var(--ink-3)'>false discovery rate</span></td>
+                <td>Какая <em>доля</em> «находок» ложная?</td>
+                <td>Бенджамини — Хохберг. Мощнее, когда метрик много.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <figure class="figure">
+          <svg viewBox="0 0 560 216" role="img" aria-label="Family-wise error rate grows with the number of metrics">
+            <line class="fig-axis" x1="40" y1="188" x2="548" y2="188"/>
+            <line class="fig-axis" x1="40" y1="188" x2="40" y2="16"/>
+            <line class="fig-ref" x1="40" y1="175" x2="548" y2="175"/>
+            <path class="fig-line" style="stroke:var(--danger)" d="M 50,175 76,163 102,152 127,141 153,130 179,120 205,111 231,102 256,94 282,86 308,78 334,71 359,64 385,57 411,51 437,45 463,39 488,34 514,29 540,24"/>
+            <circle class="fig-dot" style="fill:var(--danger)" cx="153" cy="130" r="4"/>
+            <circle class="fig-dot" style="fill:var(--danger)" cx="282" cy="86" r="4"/>
+            <circle class="fig-dot" style="fill:var(--danger)" cx="540" cy="24" r="4.5"/>
+            <text class="fig-cap-in fig-cap-a" x="150" y="122" text-anchor="middle">23%</text>
+            <text class="fig-cap-in fig-cap-a" x="279" y="78" text-anchor="middle">40%</text>
+            <text class="fig-cap-in fig-cap-a" x="540" y="17" text-anchor="middle">64%</text>
+            <text class="fig-tick" x="44" y="171">5%</text>
+            <text class="fig-tick" x="50" y="202" text-anchor="middle">1</text>
+            <text class="fig-tick" x="153" y="202" text-anchor="middle">5</text>
+            <text class="fig-tick" x="282" y="202" text-anchor="middle">10</text>
+            <text class="fig-tick" x="540" y="202" text-anchor="middle">20</text>
+          </svg>
+          <figcaption>Вероятность <strong style='color:var(--danger)'>хотя бы одной</strong> ложной находки при проверке нескольких метрик на уровне 5%: 1 − (1 − 0,05)<sup>m</sup>. На 10 метриках — уже 40%, на 20 — 64%. Пунктир — «честные» 5% одной проверки. Отсюда и нужны поправки ниже.</figcaption>
+        </figure>
+
+        <h3>Поправка Бонферрони</h3>
+        <div class="card">
+          <span class="tag multi">Множественность · FWER</span>
+          <p>Самый простой рецепт: разделите порог на число сравнений. Платформа применяет его автоматически, когда вариантов больше двух — там <span class='k'>k − 1</span> сравнений «вариант против контроля».</p>
+          <div class="formula">
+            <span class="flabel">Скорректированный порог</span>
+            <math display="block">
+              <msub><mi>&#x3B1;</mi><mtext>adj</mtext></msub><mo>=</mo><mfrac><mi>&#x3B1;</mi><mrow><mi>k</mi><mo>&#x2212;</mo><mn>1</mn></mrow></mfrac>
+              <mspace width="2em"/><mtext>(</mtext><mspace width="0.2em"/><mtext>по метрикам:</mtext><mspace width="0.4em"/><msub><mi>&#x3B1;</mi><mtext>adj</mtext></msub><mo>=</mo><mfrac><mi>&#x3B1;</mi><mi>m</mi></mfrac><mspace width="0.2em"/><mtext>)</mtext>
+            </math>
+          </div>
+          <div class="callout example">
+            <span>3 варианта → 2 сравнения → порог 0,05 / 2 = <span class='num'>0,025</span> (z вырастает 1,96 → 2,24). Консервативно, но безопасно.</span>
+          </div>
+        </div>
+
+        <h3>Холм и Бенджамини — Хохберг: умнее, чем делить поровну</h3>
+        <div class="card">
+          <span class="tag multi">Множественность · пошаговые</span>
+          <p>Бонферрони одинаково штрафует все метрики. Пошаговые процедуры сортируют p-value по возрастанию <span class='k'>p₍₁₎ ≤ … ≤ p₍ₘ₎</span> и сравнивают каждое со своим, всё более мягким порогом.</p>
+          <div class="formula">
+            <span class="flabel">Холм (FWER, «сверху вниз»)</span>
+            <math display="block">
+              <mtext>отвергаем</mtext><mspace width="0.4em"/><msub><mi>p</mi><mrow><mo>(</mo><mi>k</mi><mo>)</mo></mrow></msub><mspace width="0.5em"/><mtext>пока</mtext><mspace width="0.5em"/>
+              <msub><mi>p</mi><mrow><mo>(</mo><mi>k</mi><mo>)</mo></mrow></msub><mo>&#x2264;</mo><mfrac><mi>&#x3B1;</mi><mrow><mi>m</mi><mo>&#x2212;</mo><mi>k</mi><mo>+</mo><mn>1</mn></mrow></mfrac>
+            </math>
+          </div>
+          <div class="formula">
+            <span class="flabel">Бенджамини — Хохберг (FDR, «снизу вверх»)</span>
+            <math display="block">
+              <msup><mi>k</mi><mo>&#x2217;</mo></msup><mo>=</mo><mi>max</mi><mo>&#x2061;</mo><mrow><mo>{</mo><mi>k</mi><mo>:</mo><mspace width="0.3em"/><msub><mi>p</mi><mrow><mo>(</mo><mi>k</mi><mo>)</mo></mrow></msub><mo>&#x2264;</mo><mfrac><mi>k</mi><mi>m</mi></mfrac><mo>&#x2062;</mo><mi>q</mi><mo>}</mo></mrow>
+              <mspace width="0.6em"/><mo>&#x21D2;</mo><mspace width="0.4em"/><mtext>отвергаем ранги</mtext><mspace width="0.3em"/><mn>1</mn><mo>&#x2026;</mo><msup><mi>k</mi><mo>&#x2217;</mo></msup>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Где</p>
+            <dl>
+              <dt>m</dt><dd>число проверяемых метрик</dd>
+              <dt>k</dt><dd>ранг p-value в отсортированном списке</dd>
+              <dt>q</dt><dd>допустимая доля ложных находок (напр. 0,05)</dd>
+            </dl>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">Как выбрать.</span>
+            <span>Мало метрик и нужен жёсткий контроль — Холм (всегда мощнее «голого» Бонферрони). Много метрик и допустима небольшая доля ложных находок — Бенджамини — Хохберг.</span>
+          </div>
+        </div>
+
+        <h3>Кластерная рандомизация: эффект дизайна и ICC</h3>
+        <div class="card">
+          <span class="tag multi">Кластеры · размер выборки</span>
+          <p>Если вы распределяете по вариантам не людей, а <em>группы</em> — магазины, города, классы — наблюдения внутри группы похожи друг на друга. Значит эффективной информации меньше, чем кажется по числу людей, и наивную выборку нужно увеличить на <strong>эффект дизайна</strong> (design effect, DEFF).</p>
+          <div class="formula">
+            <span class="flabel">Эффект дизайна (Kish)</span>
+            <math display="block">
+              <mtext>DEFF</mtext><mo>=</mo><mn>1</mn><mo>+</mo><mo>(</mo><mi>m</mi><mo>&#x2212;</mo><mn>1</mn><mo>)</mo><mo>&#x2062;</mo><mtext>ICC</mtext>
+              <mspace width="2em"/>
+              <msub><mi>n</mi><mtext>clust</mtext></msub><mo>=</mo><mi>n</mi><mo>&#x00D7;</mo><mtext>DEFF</mtext>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Где</p>
+            <dl>
+              <dt>m</dt><dd>средний размер кластера (людей в группе)</dd>
+              <dt>ICC</dt><dd>внутриклассовая корреляция 0…1: насколько люди внутри группы похожи. 0 = независимы, тогда DEFF = 1</dd>
+              <dt>n</dt><dd>выборка как для обычной рандомизации людей</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>Кластеры по <span class='num'>50</span> человек, ICC = <span class='num'>0,02</span>: DEFF = 1 + 49·0,02 = <span class='num'>1,98</span>. Наивные 1 000/вариант превращаются в <span class='num'>1 980</span>/вариант ≈ <span class='num'>40 кластеров</span> на вариант.</span>
+          </div>
+          <div class="callout warn">
+            <span class="clabel">Важно.</span>
+            <span>Даже крошечная ICC при больших кластерах даёт огромный DEFF. Это самая частая причина «мы запустили тест по городам и ничего не поймали».</span>
+          </div>
+        </div>
+        <hr class="divider">
+      </section>
+      <!-- ================= 4. ANALYSIS ================= -->
+      <section id="analysis">
+        <div class="sec-head"><span class="sec-num">04</span></div>
+        <h2>Анализ результатов: тест закончился, что дальше</h2>
+        <p class="sec-intro">Данные собраны. Теперь выбираем тест под <em>дизайн</em> эксперимента и <em>форму</em> метрики. В платформе <strong>двадцать два анализатора</strong>; этот раздел идёт по дизайнам — две независимые группы, парные наблюдения, больше двух групп, время до события — и заканчивается полной таблицей всех 22.</p>
+
+        <!-- ---- 4.1 two independent groups ---- -->
+        <h3>Две независимые группы</h3>
+        <p class="group-lead">Классический A/B: каждый юнит видит ровно один вариант. Доли — z-тест или точное семейство, средние — Уэлч и робастный квартет, счётчики событий — Пуассон, отношения «на событие» — дельта-метод.</p>
+
+        <div class="card">
+          <span class="tag analyze">Анализ · бинарная</span>
+          <h4>Z-тест двух долей (конверсии)</h4>
+          <p>Стандартный тест «конверсия A против конверсии B». Считаем, во сколько «стандартных ошибок» уложилась разница долей. Дисперсию берём по объединённой доле <span class='k'>p̄</span> — под H₀ доли равны.</p>
+          <div class="formula">
+            <span class="flabel">Статистика</span>
+            <math display="block">
+              <mi>z</mi><mo>=</mo>
+              <mfrac>
+                <mrow><msub><mover><mi>p</mi><mo>^</mo></mover><mi>t</mi></msub><mo>&#x2212;</mo><msub><mover><mi>p</mi><mo>^</mo></mover><mi>c</mi></msub></mrow>
+                <msqrt><mrow><mover><mi>p</mi><mo>&#xAF;</mo></mover><mo>(</mo><mn>1</mn><mo>&#x2212;</mo><mover><mi>p</mi><mo>&#xAF;</mo></mover><mo>)</mo><mo>(</mo><mfrac><mn>1</mn><msub><mi>n</mi><mi>c</mi></msub></mfrac><mo>+</mo><mfrac><mn>1</mn><msub><mi>n</mi><mi>t</mi></msub></mfrac><mo>)</mo></mrow></msqrt>
+              </mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Где</p>
+            <dl>
+              <dt>p&#x302;<sub>c</sub>, p&#x302;<sub>t</sub></dt><dd>наблюдаемые доли контроля и варианта</dd>
+              <dt>p&#x304;</dt><dd>объединённая доля (все конверсии / все пользователи)</dd>
+              <dt>n<sub>c</sub>, n<sub>t</sub></dt><dd>размеры групп</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>Контроль 1 000/10 000 = 10,0%, вариант 1 120/10 000 = 11,2% → z = <span class='num'>2,76</span>, p = <span class='num'>0,006</span>. Разница значима. Интервал Уилсона для доли варианта: <span class='num'>[10,60%; 11,83%]</span>.</span>
+          </div>
+          <details class="more">
+            <summary>Интервал для доли: почему Уилсон, а не Вальд</summary>
+            <p>Наивный интервал <span class='k'>p̂ ± z·√(p̂(1−p̂)/n)</span> (Вальд) плохо ведёт себя у краёв (около 0 или 1) и при малом n — вплоть до «нулевой ширины» на p̂ = 0. Платформа использует <strong>интервал Уилсона</strong> (обращение score-теста): он всегда внутри [0, 1] и держит покрытие. Для разницы долей — гибрид <strong>Ньюкомба</strong> из двух интервалов Уилсона.</p>
+            <div class="formula">
+              <span class="flabel">Интервал Уилсона</span>
+              <math display="block">
+                <mfrac>
+                  <mrow><mover><mi>p</mi><mo>^</mo></mover><mo>+</mo><mfrac><msup><mi>z</mi><mn>2</mn></msup><mrow><mn>2</mn><mi>n</mi></mrow></mfrac><mo>&#x00B1;</mo><mi>z</mi><msqrt><mrow><mfrac><mrow><mover><mi>p</mi><mo>^</mo></mover><mo>(</mo><mn>1</mn><mo>&#x2212;</mo><mover><mi>p</mi><mo>^</mo></mover><mo>)</mo></mrow><mi>n</mi></mfrac><mo>+</mo><mfrac><msup><mi>z</mi><mn>2</mn></msup><mrow><mn>4</mn><msup><mi>n</mi><mn>2</mn></msup></mrow></mfrac></mrow></msqrt></mrow>
+                  <mrow><mn>1</mn><mo>+</mo><msup><mi>z</mi><mn>2</mn></msup><mo>/</mo><mi>n</mi></mrow>
+                </mfrac>
+              </math>
+            </div>
+          </details>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">Анализ · бинарная, точные</span>
+          <h4>Малые числа: Фишер, Бошлу, Барнард</h4>
+          <p>Нормальное приближение z-теста шатается, когда успехов мало — единичные конверсии, доли около нуля. Точные тесты считают p-value прямо по таблице 2×2. <strong>Фишер</strong> фиксирует обе маргинальные суммы (гипергеометрическое распределение). <strong>Бошлу</strong> и <strong>Барнард</strong> — безусловные: они максимизируют по неизвестной общей доле π, и на типичных A/B-данных строго мощнее Фишера. Движок ограничивает размер таблиц для точного счёта (500k для Фишера; общий лимит для безусловной пары).</p>
+          <div class="formula">
+            <span class="flabel">Фишер: гипергеометрическая вероятность таблицы</span>
+            <math display="block">
+              <mi>P</mi><mo>(</mo><mi>a</mi><mo>)</mo><mo>=</mo>
+              <mfrac>
+                <mrow><mi>C</mi><mo>(</mo><msub><mi>m</mi><mn>1</mn></msub><mo>,</mo><mi>a</mi><mo>)</mo><mo>&#x2062;</mo><mi>C</mi><mo>(</mo><msub><mi>m</mi><mn>2</mn></msub><mo>,</mo><mi>c</mi><mo>)</mo></mrow>
+                <mrow><mi>C</mi><mo>(</mo><mi>n</mi><mo>,</mo><mi>a</mi><mo>+</mo><mi>c</mi><mo>)</mo></mrow>
+              </mfrac>
+            </math>
+          </div>
+          <div class="formula">
+            <span class="flabel">Безусловные (Бошлу / Барнард): максимум по мешающему параметру</span>
+            <math display="block">
+              <mi>p</mi><mo>=</mo>
+              <munder><mi>max</mi><mi>&#x3C0;</mi></munder>
+              <munder><mo>&#x2211;</mo><mrow><mi>T</mi><mo>&#x2AB0;</mo><mtext>obs</mtext></mrow></munder>
+              <msub><mi>P</mi><mi>&#x3C0;</mi></msub><mo>(</mo><mi>T</mi><mo>)</mo>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Где</p>
+            <dl>
+              <dt>m&#x2081;, m&#x2082;</dt><dd>итоги строк — размеры двух групп</dd>
+              <dt>a, c</dt><dd>успехи в контроле и варианте</dd>
+              <dt>&#x3C0;</dt><dd>неизвестная общая доля при H₀ — «мешающий» параметр</dd>
+              <dt>T &#x2AB0; obs</dt><dd>таблицы не менее экстремальные, чем наблюдаемая: Бошлу упорядочивает их по p Фишера, Барнард — по pooled z</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>3/40 (7,5%) против 11/40 (27,5%): Фишер p = <span class='num'>0,0367</span>; Бошлу p = <span class='num'>0,0206</span>; Барнард p = <span class='num'>0,0204</span> (упорядочение z = −2,354). Безусловная пара видит те же данные примерно вдвое убедительнее.</span>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">Какой выбрать?</span>
+            <span>К точному тесту стоит идти, когда какая-то ожидаемая ячейка мала (эмпирически: меньше 5). Внутри семейства прагматичный дефолт — Бошлу: никогда не слабее Фишера. Барнард может выжать чуть больше мощности, но считается дороже.</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">Анализ · непрерывная</span>
+          <h4>t-тест Уэлча (средние)</h4>
+          <p>Сравнение средних, когда разброс в группах может отличаться (обычный случай). В отличие от классического t-теста, Уэлч <em>не</em> предполагает равные дисперсии — поэтому это разумный дефолт.</p>
+          <div class="formula">
+            <span class="flabel">Статистика и степени свободы (Уэлч — Саттертуэйт)</span>
+            <math display="block">
+              <mi>t</mi><mo>=</mo>
+              <mfrac>
+                <mrow><msub><mover><mi>x</mi><mo>&#xAF;</mo></mover><mi>t</mi></msub><mo>&#x2212;</mo><msub><mover><mi>x</mi><mo>&#xAF;</mo></mover><mi>c</mi></msub></mrow>
+                <msqrt><mrow><mfrac><msubsup><mi>s</mi><mi>c</mi><mn>2</mn></msubsup><msub><mi>n</mi><mi>c</mi></msub></mfrac><mo>+</mo><mfrac><msubsup><mi>s</mi><mi>t</mi><mn>2</mn></msubsup><msub><mi>n</mi><mi>t</mi></msub></mfrac></mrow></msqrt>
+              </mfrac>
+              <mspace width="1.6em"/>
+              <mi>&#x3BD;</mi><mo>=</mo>
+              <mfrac>
+                <msup><mrow><mo>(</mo><msubsup><mi>s</mi><mi>c</mi><mn>2</mn></msubsup><mo>/</mo><msub><mi>n</mi><mi>c</mi></msub><mo>+</mo><msubsup><mi>s</mi><mi>t</mi><mn>2</mn></msubsup><mo>/</mo><msub><mi>n</mi><mi>t</mi></msub><mo>)</mo></mrow><mn>2</mn></msup>
+                <mrow><mfrac><msup><mrow><mo>(</mo><msubsup><mi>s</mi><mi>c</mi><mn>2</mn></msubsup><mo>/</mo><msub><mi>n</mi><mi>c</mi></msub><mo>)</mo></mrow><mn>2</mn></msup><mrow><msub><mi>n</mi><mi>c</mi></msub><mo>&#x2212;</mo><mn>1</mn></mrow></mfrac><mo>+</mo><mfrac><msup><mrow><mo>(</mo><msubsup><mi>s</mi><mi>t</mi><mn>2</mn></msubsup><mo>/</mo><msub><mi>n</mi><mi>t</mi></msub><mo>)</mo></mrow><mn>2</mn></msup><mrow><msub><mi>n</mi><mi>t</mi></msub><mo>&#x2212;</mo><mn>1</mn></mrow></mfrac></mrow>
+              </mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Где</p>
+            <dl>
+              <dt>x&#x304;<sub>c</sub>, x&#x304;<sub>t</sub></dt><dd>средние в группах</dd>
+              <dt>s<sub>c</sub>, s<sub>t</sub></dt><dd>стандартные отклонения в группах</dd>
+              <dt>&#x3BD;</dt><dd>эффективные степени свободы — по ним берётся распределение Стьюдента</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>Контроль 100 ± 40 (n = 1 005), вариант 105 ± 41 (n = 1 005) → t = <span class='num'>2,77</span>, ν ≈ <span class='num'>2 007</span>, p ≈ 0,006. Величину эффекта дополняет <span class='k'>Cohen's d</span> = разница / общий разброс.</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">Анализ · робастные</span>
+          <h4>Тяжёлые хвосты и выбросы: робастный квартет</h4>
+          <p>Метрики типа выручки — перекос, тяжёлые хвосты, выбросы — ломают предпосылки t-теста. В движке четыре теста, которые не верят в форму распределения; здесь они показаны на <strong>одном и том же датасете</strong> (n = 10 в группе), чтобы выводы можно было сравнить напрямую. <strong>Манн — Уитни</strong> сравнивает по рангам; <strong>бутстрап / перестановки</strong> пересэмплируют наблюдаемые данные вместо предположений о кривой; <strong>квантильный тест</strong> переносит вопрос на медиану (или любой перцентиль); <strong>усечённый t Юэна</strong> срезает крайние 20% каждого хвоста и сравнивает средние.</p>
+          <div class="callout example">
+            <span>Один датасет для всех четырёх: C = [12, 15, 9, 22, 30, 14, 18, 25, 11, 16], T = [18, 24, 13, 29, 41, 19, 26, 33, 15, 22].</span>
+          </div>
+          <div class="formula">
+            <span class="flabel">Манн — Уитни: статистика и нормальное приближение</span>
+            <math display="block">
+              <mi>U</mi><mo>=</mo><msub><mi>R</mi><mn>1</mn></msub><mo>&#x2212;</mo><mfrac><mrow><msub><mi>n</mi><mn>1</mn></msub><mo>(</mo><msub><mi>n</mi><mn>1</mn></msub><mo>+</mo><mn>1</mn><mo>)</mo></mrow><mn>2</mn></mfrac>
+              <mspace width="1.6em"/>
+              <mi>z</mi><mo>=</mo><mfrac><mrow><mi>U</mi><mo>&#x2212;</mo><msub><mi>n</mi><mn>1</mn></msub><msub><mi>n</mi><mn>2</mn></msub><mo>/</mo><mn>2</mn></mrow><msub><mi>&#x3C3;</mi><mi>U</mi></msub></mfrac>
+            </math>
+          </div>
+          <div class="formula">
+            <span class="flabel">Размеры эффекта: сдвиг Ходжеса — Лемана и rank-biserial корреляция</span>
+            <math display="block">
+              <mtext>HL</mtext><mo>=</mo><mi>med</mi><mo>&#x2061;</mo><mrow><mo>{</mo><msub><mi>y</mi><mi>j</mi></msub><mo>&#x2212;</mo><msub><mi>x</mi><mi>i</mi></msub><mo>}</mo></mrow>
+              <mspace width="1.6em"/>
+              <msub><mi>r</mi><mtext>rb</mtext></msub><mo>=</mo><mfrac><mrow><mn>2</mn><mi>U</mi></mrow><mrow><msub><mi>n</mi><mn>1</mn></msub><msub><mi>n</mi><mn>2</mn></msub></mrow></mfrac><mo>&#x2212;</mo><mn>1</mn>
+            </math>
+          </div>
+          <div class="formula">
+            <span class="flabel">Перестановочное p-value и перцентильный бутстрап-CI</span>
+            <math display="block">
+              <msub><mi>p</mi><mtext>perm</mtext></msub><mo>=</mo>
+              <mfrac>
+                <mrow><mn>1</mn><mo>+</mo><mo>#</mo><mrow><mo>{</mo><mrow><mo>|</mo><msup><mi>&#x394;</mi><mo>&#x2217;</mo></msup><mo>|</mo></mrow><mo>&#x2265;</mo><mrow><mo>|</mo><mover><mi>&#x394;</mi><mo>^</mo></mover><mo>|</mo></mrow><mo>}</mo></mrow></mrow>
+                <mrow><mi>B</mi><mo>+</mo><mn>1</mn></mrow>
+              </mfrac>
+              <mspace width="1.6em"/>
+              <msub><mtext>CI</mtext><mn>95</mn></msub><mo>=</mo><mrow><mo>[</mo><msubsup><mi>&#x394;</mi><mrow><mo>(</mo><mn>2.5</mn><mo>%</mo><mo>)</mo></mrow><mo>&#x2217;</mo></msubsup><mo>;</mo><mspace width="0.3em"/><msubsup><mi>&#x394;</mi><mrow><mo>(</mo><mn>97.5</mn><mo>%</mo><mo>)</mo></mrow><mo>&#x2217;</mo></msubsup><mo>]</mo></mrow>
+            </math>
+          </div>
+          <div class="formula">
+            <span class="flabel">Юэн: t на 20%-усечённых средних</span>
+            <math display="block">
+              <msub><mi>t</mi><mtext>Yuen</mtext></msub><mo>=</mo>
+              <mfrac>
+                <mrow><msub><mover><mi>x</mi><mo>&#xAF;</mo></mover><mrow><mi>t</mi><mo>,</mo><mtext>tr</mtext></mrow></msub><mo>&#x2212;</mo><msub><mover><mi>x</mi><mo>&#xAF;</mo></mover><mrow><mi>c</mi><mo>,</mo><mtext>tr</mtext></mrow></msub></mrow>
+                <msqrt><mrow><msub><mi>d</mi><mi>c</mi></msub><mo>+</mo><msub><mi>d</mi><mi>t</mi></msub></mrow></msqrt>
+              </mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Где</p>
+            <dl>
+              <dt>R&#x2081;</dt><dd>сумма рангов первой группы в объединённой выборке</dd>
+              <dt>&#x3C3;<sub>U</sub></dt><dd>СКО U при H₀ — с поправкой на связки (ties) и на непрерывность; на малых выборках без связок движок перебирает точно</dd>
+              <dt>&#x394;*</dt><dd>статистика разницы, пересчитанная на ресемпле / перестановке; B — число ресемплов</dd>
+              <dt>x&#x304;<sub>tr</sub>, d</dt><dd>усечённые средние и винзоризованные дисперсии; усечение 20% оставляет здесь эффективные n = 6 в группе</dd>
+            </dl>
+          </div>
+          <div class="tablewrap">
+            <table>
+              <thead><tr>
+                <th>Тест</th>
+                <th>На какой вопрос отвечает</th>
+                <th>На этом датасете</th>
+              </tr></thead>
+              <tbody>
+                <tr><td class="sym">Mann&#8211;Whitney U</td><td>Значения T в целом больше?</td><td>U = 74,5, z = 1,816, p = 0,069; HL = +6,5 [−1; 14]; медианы 15,5 → 23,0; CLES 0,745, r<sub>rb</sub> = 0,49</td></tr>
+                <tr><td class="sym">bootstrap / permutation</td><td>Объяснима ли разница средних случайностью?</td><td>Δ = 6,8, p = 0,0665, CI [0,4; 13,2], d = 0,88 (2 000 ресемплов, фиксированный сид)</td></tr>
+                <tr><td class="sym">quantile (median)</td><td>Сдвинулась ли медиана?</td><td>сдвиг +7,5, p = 0,123, CI [−1,5; 15]</td></tr>
+                <tr><td class="sym">Yuen trimmed t (20%)</td><td>Различаются ли средние после срезки хвостов?</td><td>16,17 против 23,0, t = 1,94, df 9,84, p = 0,082</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">Читать вместе.</span>
+            <span>Здесь все четыре согласны: эффект около +6…7 при p от 0,07 до 0,12 — многообещающе, но не значимо на n = 10. Когда квартет расходится, само расхождение — информация: разрыв «среднее против медианы» указывает, что «средний» выигрыш тянут выбросы или тяжёлый хвост.</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">Анализ · счётчики</span>
+          <h4>Счётчики событий: тест интенсивностей Пуассона</h4>
+          <p>Когда метрика — число событий на объём экспозиции (ошибки на тысячу сессий, заказы на пользователя-день), сравнивают интенсивности, а не доли. Движок использует точный условный тест: при данном общем числе событий доля варианта в них биномиальна под H₀ (точно до 1 млн событий). Эффект — отношение интенсивностей плюс CI для их разницы.</p>
+          <div class="formula">
+            <span class="flabel">Условный биномиальный и отношение интенсивностей</span>
+            <math display="block">
+              <msub><mi>X</mi><mi>t</mi></msub><mo>&#x2223;</mo><mrow><mo>(</mo><msub><mi>X</mi><mi>t</mi></msub><mo>+</mo><msub><mi>X</mi><mi>c</mi></msub><mo>)</mo></mrow>
+              <mo>&#x223C;</mo><mtext>Bin</mtext><mrow><mo>(</mo><msub><mi>X</mi><mi>t</mi></msub><mo>+</mo><msub><mi>X</mi><mi>c</mi></msub><mo>,</mo><mspace width="0.25em"/><mfrac><msub><mi>e</mi><mi>t</mi></msub><mrow><msub><mi>e</mi><mi>t</mi></msub><mo>+</mo><msub><mi>e</mi><mi>c</mi></msub></mrow></mfrac><mo>)</mo></mrow>
+              <mspace width="1.6em"/>
+              <mtext>RR</mtext><mo>=</mo><mfrac><mrow><msub><mi>X</mi><mi>t</mi></msub><mo>/</mo><msub><mi>e</mi><mi>t</mi></msub></mrow><mrow><msub><mi>X</mi><mi>c</mi></msub><mo>/</mo><msub><mi>e</mi><mi>c</mi></msub></mrow></mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Где</p>
+            <dl>
+              <dt>X<sub>c</sub>, X<sub>t</sub></dt><dd>число событий в контроле и варианте</dd>
+              <dt>e<sub>c</sub>, e<sub>t</sub></dt><dd>экспозиции (пользователи, сессии, пользователь-дни)</dd>
+              <dt>RR</dt><dd>отношение интенсивностей — мультипликативный эффект</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>46 событий / 11 500 против 72 / 11 800: интенсивность 0,40% → 0,61%, отношение <span class='num'>1,525</span>, точное p = <span class='num'>0,0269</span>, CI разницы [0,0003; 0,0039].</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">Анализ · отношение</span>
+          <h4>Ratio-метрики: дельта-метод</h4>
+          <p>CTR, «клики на показ», «выручка на сессию» — это отношение <span class='k'>R = ΣY / ΣX</span>, где рандомизирован <em>пользователь</em>, а считаем по <em>событиям</em>. Наивная дисперсия здесь <strong>неверна</strong>: она игнорирует связь числителя и знаменателя внутри пользователя. Дельта-метод линеаризует отношение и возвращает правильную дисперсию.</p>
+          <div class="formula">
+            <span class="flabel">Дисперсия отношения (дельта-метод)</span>
+            <math display="block">
+              <mtext>Var</mtext><mo>(</mo><mover><mi>R</mi><mo>^</mo></mover><mo>)</mo><mo>=</mo>
+              <mfrac>
+                <mrow><msubsup><mi>&#x3C3;</mi><mi>Y</mi><mn>2</mn></msubsup><mo>&#x2212;</mo><mn>2</mn><mover><mi>R</mi><mo>^</mo></mover><msub><mi>&#x3C3;</mi><mrow><mi>X</mi><mi>Y</mi></mrow></msub><mo>+</mo><msup><mover><mi>R</mi><mo>^</mo></mover><mn>2</mn></msup><msubsup><mi>&#x3C3;</mi><mi>X</mi><mn>2</mn></msubsup></mrow>
+                <mrow><mi>n</mi><mo>&#x2062;</mo><msubsup><mi>&#x3BC;</mi><mi>X</mi><mn>2</mn></msubsup></mrow>
+              </mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Где</p>
+            <dl>
+              <dt>&#x3BC;<sub>X</sub></dt><dd>средний знаменатель на пользователя</dd>
+              <dt>&#x3C3;&#xB2;<sub>X</sub>, &#x3C3;&#xB2;<sub>Y</sub></dt><dd>дисперсии числителя и знаменателя на пользователя</dd>
+              <dt>&#x3C3;<sub>XY</sub></dt><dd>их ковариация — именно её теряет наивная формула</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>Из frozen-тестов движка: клики-на-показ 0,436 → 0,538, Δ = <span class='num'>0,1018</span>, z = <span class='num'>8,74</span> — сильно значимый прирост отношения, с честно учтённой внутрипользовательской ковариацией.</span>
+          </div>
+        </div>
+
+        <!-- ---- 4.2 paired designs ---- -->
+        <h3>Парные наблюдения</h3>
+        <p class="group-lead">Одни и те же юниты, измеренные дважды — до/после или сматченные пары. Парность гасит межпользовательскую дисперсию внутри каждой пары, поэтому парные дизайны достигают значимости на доле выборки. Юнит анализа — пара, а не пользователь.</p>
+
+        <div class="card">
+          <span class="tag analyze">Анализ · парные средние</span>
+          <h4>Парный t-тест</h4>
+          <p>Берём внутрипарные разности <span class='k'>d</span> и проверяем, равно ли их среднее нулю. Вся стабильная межпользовательская вариация сокращается внутри пары; шумит только само изменение. Размер эффекта — Cohen's <span class='k'>d<sub>z</sub></span>, в единицах разброса разностей.</p>
+          <div class="formula">
+            <span class="flabel">Статистика и парный размер эффекта</span>
+            <math display="block">
+              <mi>t</mi><mo>=</mo><mfrac><mover><mi>d</mi><mo>&#xAF;</mo></mover><mrow><msub><mi>s</mi><mi>d</mi></msub><mo>/</mo><msqrt><mi>n</mi></msqrt></mrow></mfrac>
+              <mspace width="1.6em"/>
+              <mtext>df</mtext><mo>=</mo><mi>n</mi><mo>&#x2212;</mo><mn>1</mn>
+              <mspace width="1.6em"/>
+              <msub><mi>d</mi><mi>z</mi></msub><mo>=</mo><mfrac><mover><mi>d</mi><mo>&#xAF;</mo></mover><msub><mi>s</mi><mi>d</mi></msub></mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Где</p>
+            <dl>
+              <dt>d&#x304;</dt><dd>среднее внутрипарных разностей</dd>
+              <dt>s<sub>d</sub></dt><dd>стандартное отклонение разностей</dd>
+              <dt>d<sub>z</sub></dt><dd>парный размер эффекта: средняя разность к её разбросу</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>12 пар «до/после» (309,2 → 318,3): Δ = <span class='num'>+9,17</span>, t = 6,46, df 11, p &lt; 0,001, CI [6,04; 12,29], d<sub>z</sub> = 1,87. Две независимые группы по 12 такого не увидели бы никогда.</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">Анализ · парные, ранги</span>
+          <h4>Знаковый ранговый Уилкоксона</h4>
+          <p>Непараметрический близнец парного t: ранжируем модули разностей, отдельно суммируем ранги положительных и отрицательных, тестируем меньшую сумму (нормальное приближение). Устойчив к выбросам среди разностей; эффект — <strong>псевдомедиана</strong> Ходжеса — Лемана парных разностей.</p>
+          <div class="formula">
+            <span class="flabel">Статистика и нормальное приближение</span>
+            <math display="block">
+              <mi>W</mi><mo>=</mo><mi>min</mi><mo>&#x2061;</mo><mo>(</mo><msup><mi>W</mi><mo>+</mo></msup><mo>,</mo><mspace width="0.2em"/><msup><mi>W</mi><mo>&#x2212;</mo></msup><mo>)</mo>
+              <mspace width="1.6em"/>
+              <mi>z</mi><mo>=</mo><mfrac><mrow><mi>W</mi><mo>&#x2212;</mo><msub><mi>&#x3BC;</mi><mi>W</mi></msub></mrow><msub><mi>&#x3C3;</mi><mi>W</mi></msub></mfrac>
+            </math>
+          </div>
+          <div class="callout example">
+            <span>Те же 12 пар: W = <span class='num'>1</span>, z = −2,945, p = <span class='num'>0,0032</span>, псевдомедиана +9,5 [6; 12,5].</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">Анализ · парные, бинарная</span>
+          <h4>Мак-Немар: парные доли</h4>
+          <p>Для парных бинарных исходов (конвертировался до / после, те же люди) информацию несут только <strong>несогласованные</strong> пары: <span class='k'>b</span> пар перешли 0→1, <span class='k'>c</span> пар — 1→0; согласованные сокращаются. Движок применяет поправку на непрерывность и отдаёт отношение шансов b/c и разницу долей.</p>
+          <div class="formula">
+            <span class="flabel">Статистика с поправкой и отношение шансов</span>
+            <math display="block">
+              <msup><mi>&#x3C7;</mi><mn>2</mn></msup><mo>=</mo>
+              <mfrac>
+                <msup><mrow><mo>(</mo><mrow><mo>|</mo><mi>b</mi><mo>&#x2212;</mo><mi>c</mi><mo>|</mo></mrow><mo>&#x2212;</mo><mn>1</mn><mo>)</mo></mrow><mn>2</mn></msup>
+                <mrow><mi>b</mi><mo>+</mo><mi>c</mi></mrow>
+              </mfrac>
+              <mspace width="1.6em"/>
+              <mtext>OR</mtext><mo>=</mo><mfrac><mi>b</mi><mi>c</mi></mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Где</p>
+            <dl>
+              <dt>b</dt><dd>пары, которые улучшились (0→1)</dd>
+              <dt>c</dt><dd>пары, которые ухудшились (1→0)</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>1 000 пар, b = 30, c = 12: χ² = <span class='num'>6,881</span> (с поправкой), p = <span class='num'>0,0087</span>, OR = 2,5, Δ = +1,8 п.п. [0,53; 3,07].</span>
+          </div>
+        </div>
+
+        <!-- ---- 4.3 more than two groups & categories ---- -->
+        <h3>Больше двух групп и категории</h3>
+        <p class="group-lead">При k вариантах сначала один омнибус-тест — «различается ли хоть что-то?» — и только потом парные сравнения с поправкой на множественность (раздел 03). Прыжок сразу к парным тестам множит ложные тревоги.</p>
+
+        <div class="card">
+          <span class="tag analyze">Анализ · k групп</span>
+          <h4>Омнибус: Welch ANOVA и Краскел — Уоллис</h4>
+          <p><strong>Welch ANOVA</strong> сравнивает k средних, не предполагая равных дисперсий (та же философия, что у t Уэлча). <strong>Краскел — Уоллис</strong> — его ранговый близнец. Размеры эффекта: <span class='k'>η²</span> и <span class='k'>ε²</span> — доля дисперсии, объяснённая принадлежностью к группе.</p>
+          <div class="formula">
+            <span class="flabel">Welch ANOVA (неравные дисперсии)</span>
+            <math display="block">
+              <msub><mi>w</mi><mi>i</mi></msub><mo>=</mo><mfrac><msub><mi>n</mi><mi>i</mi></msub><msubsup><mi>s</mi><mi>i</mi><mn>2</mn></msubsup></mfrac>
+              <mspace width="1.4em"/>
+              <msup><mi>F</mi><mo>&#x2217;</mo></msup><mo>=</mo>
+              <mfrac>
+                <mrow><munder><mo>&#x2211;</mo><mi>i</mi></munder><msub><mi>w</mi><mi>i</mi></msub><msup><mrow><mo>(</mo><msub><mover><mi>x</mi><mo>&#xAF;</mo></mover><mi>i</mi></msub><mo>&#x2212;</mo><msub><mover><mi>x</mi><mo>&#xAF;</mo></mover><mi>w</mi></msub><mo>)</mo></mrow><mn>2</mn></msup><mo>/</mo><mrow><mo>(</mo><mi>k</mi><mo>&#x2212;</mo><mn>1</mn><mo>)</mo></mrow></mrow>
+                <mi>D</mi>
+              </mfrac>
+            </math>
+          </div>
+          <div class="formula">
+            <span class="flabel">Краскел — Уоллис и его размер эффекта</span>
+            <math display="block">
+              <mi>H</mi><mo>=</mo>
+              <mfrac><mn>12</mn><mrow><mi>N</mi><mo>(</mo><mi>N</mi><mo>+</mo><mn>1</mn><mo>)</mo></mrow></mfrac>
+              <munder><mo>&#x2211;</mo><mi>i</mi></munder><mfrac><msubsup><mi>R</mi><mi>i</mi><mn>2</mn></msubsup><msub><mi>n</mi><mi>i</mi></msub></mfrac>
+              <mo>&#x2212;</mo><mn>3</mn><mo>(</mo><mi>N</mi><mo>+</mo><mn>1</mn><mo>)</mo>
+              <mspace width="1.4em"/>
+              <msup><mi>&#x3B5;</mi><mn>2</mn></msup><mo>=</mo><mfrac><mrow><mi>H</mi><mo>&#x2212;</mo><mi>k</mi><mo>+</mo><mn>1</mn></mrow><mrow><mi>N</mi><mo>&#x2212;</mo><mi>k</mi></mrow></mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Где</p>
+            <dl>
+              <dt>k, N</dt><dd>число групп и общий размер выборки</dd>
+              <dt>x&#x304;<sub>w</sub>, D</dt><dd>средневзвешенное по дисперсиям общее среднее; D — знаменатель Уэлча с поправкой на неравные дисперсии, распределение F(k−1, df) со степенями свободы по Уэлчу</dd>
+              <dt>R<sub>i</sub></dt><dd>сумма рангов группы i в объединённой выборке</dd>
+              <dt>&#x3B7;&#xB2;, &#x3B5;&#xB2;</dt><dd>доли объяснённой дисперсии: η² у ANOVA, ε² у Краскела — Уоллиса</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>3 группы × 10 (третья ниже): Welch ANOVA F* = <span class='num'>3,58</span>, df (2; 16,87), p = <span class='num'>0,0506</span> — не значимо; Краскел — Уоллис на тех же данных H = <span class='num'>6,44</span>, p = <span class='num'>0,0399</span> — значимо, ε² = 0,222.</span>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">Поучительное расхождение.</span>
+            <span>Одни данные, два корректных теста, противоположные вердикты на α = 0,05 (0,0506 против 0,0399). Тяжёлые хвосты ослабляют тест по средним и почти не трогают ранговый. p-value около порога — пограничное свидетельство, а не бинарная истина; и семейство теста выбирают до того, как посмотрели на данные.</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">Анализ · категориальная</span>
+          <h4>Категории: χ² r×c, Крамер V, G-тест</h4>
+          <p>Когда исход — одна из нескольких категорий (выбранный тариф, цель клика) по нескольким вариантам, χ²-тест независимости спрашивает, различается ли распределение по вариантам, а <strong>Крамер V</strong> (0…1) — насколько сильно. <strong>G-тест</strong> — версия того же вопроса через отношение правдоподобий: на больших таблицах ответ тот же, зато статистика аддитивна по разрезам.</p>
+          <div class="formula">
+            <span class="flabel">Тест независимости и размер связи</span>
+            <math display="block">
+              <msup><mi>&#x3C7;</mi><mn>2</mn></msup><mo>=</mo>
+              <munder><mo>&#x2211;</mo><mrow><mi>i</mi><mo>,</mo><mi>j</mi></mrow></munder>
+              <mfrac><msup><mrow><mo>(</mo><msub><mi>O</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo>&#x2212;</mo><msub><mi>E</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo>)</mo></mrow><mn>2</mn></msup><msub><mi>E</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub></mfrac>
+              <mspace width="1.4em"/>
+              <mi>V</mi><mo>=</mo><msqrt><mfrac><msup><mi>&#x3C7;</mi><mn>2</mn></msup><mrow><mi>n</mi><mo>&#x2062;</mo><mi>min</mi><mo>&#x2061;</mo><mo>(</mo><mi>r</mi><mo>&#x2212;</mo><mn>1</mn><mo>,</mo><mi>c</mi><mo>&#x2212;</mo><mn>1</mn><mo>)</mo></mrow></mfrac></msqrt>
+            </math>
+          </div>
+          <div class="formula">
+            <span class="flabel">G-тест (отношение правдоподобий)</span>
+            <math display="block">
+              <mi>G</mi><mo>=</mo><mn>2</mn>
+              <munder><mo>&#x2211;</mo><mrow><mi>i</mi><mo>,</mo><mi>j</mi></mrow></munder>
+              <msub><mi>O</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo>&#x2062;</mo><mi>ln</mi><mo>&#x2061;</mo><mfrac><msub><mi>O</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><msub><mi>E</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub></mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Где</p>
+            <dl>
+              <dt>O<sub>ij</sub>, E<sub>ij</sub></dt><dd>наблюдаемые и ожидаемые частоты; E = (итог строки × итог столбца) / n</dd>
+              <dt>r, c</dt><dd>число строк и столбцов</dd>
+              <dt>V</dt><dd>размер связи: 0 — независимость, 1 — полная определённость</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>3 тарифа × 3 варианта [[420, 380, 200], [410, 360, 230], [380, 340, 280]]: χ² = <span class='num'>18,17</span>, df 4, p = <span class='num'>0,0011</span>; G = <span class='num'>18,07</span>, p = 0,0012; Крамер V = <span class='num'>0,055</span> — значимо, но связь слабая. При n ≈ 3 000 значимость дешёвая; честность возвращает V.</span>
+          </div>
+          <div class="callout warn">
+            <span class="clabel">Правило Кокрена.</span>
+            <span>Приближение χ² требует ожидаемых частот не меньше 5 (почти) в каждой ячейке — здесь min E = 236,7, всё в порядке. При разреженных ячейках укрупняйте категории или переходите на точный тест.</span>
+          </div>
+        </div>
+
+        <!-- ---- 4.4 time-to-event ---- -->
+        <h3>Время до события (выживаемость)</h3>
+        <p class="group-lead">Иногда метрика — «сколько времени до события»: отток, первая покупка, активация. К концу окна у части пользователей событие ещё не наступило. Выбрасывать их — смещать всё; методы выживаемости оставляют их как <strong>цензурированные</strong>: они сообщают «продержался как минимум столько».</p>
+
+        <div class="card">
+          <span class="tag analyze">Анализ · выживаемость</span>
+          <h4>Каплан — Мейер: кривая выживаемости</h4>
+          <p>Product-limit оценка строит <span class='k'>S(t)</span> — вероятность «дожить» дальше t — перемножая в каждый момент события долю тех, кто был под риском и события не получил. Цензурированные выходят из-под риска, не считаясь событиями.</p>
+          <div class="formula">
+            <span class="flabel">Оценка product-limit</span>
+            <math display="block">
+              <mover><mi>S</mi><mo>^</mo></mover><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo>
+              <munder><mo>&#x220F;</mo><mrow><msub><mi>t</mi><mi>i</mi></msub><mo>&#x2264;</mo><mi>t</mi></mrow></munder>
+              <mrow><mo>(</mo><mn>1</mn><mo>&#x2212;</mo><mfrac><msub><mi>d</mi><mi>i</mi></msub><msub><mi>n</mi><mi>i</mi></msub></mfrac><mo>)</mo></mrow>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Где</p>
+            <dl>
+              <dt>t<sub>i</sub></dt><dd>различные моменты событий</dd>
+              <dt>d<sub>i</sub></dt><dd>событий в момент t<sub>i</sub></dd>
+              <dt>n<sub>i</sub></dt><dd>под риском непосредственно перед t<sub>i</sub></dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>Кривая оттока контроля из датасета ниже: Ŝ(25) = <span class='num'>0,25</span> [0,005; 0,495] — к 25-му дню удержана лишь четверть, и на такой выборке интервал честно показывает, как мало это определено.</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">Анализ · выживаемость</span>
+          <h4>Log-rank и Флеминг — Харрингтон</h4>
+          <p>Log-rank сравнивает кривые целиком, а не в точке: в каждый момент события он копит наблюдаемые против ожидаемых событий в группе 1 (Мантель — Кокс, O − E на дисперсию V). <strong>Флеминг — Харрингтон G(ρ,γ)</strong> — взвешенное семейство: ρ &gt; 0 подчёркивает ранние различия, γ &gt; 0 — поздние; G(0,0) — в точности log-rank. Для k групп статистика — квадратичная форма zᵀV⁻¹z ~ χ²(k−1).</p>
+          <div class="formula">
+            <span class="flabel">Log-rank (Мантель — Кокс)</span>
+            <math display="block">
+              <msup><mi>&#x3C7;</mi><mn>2</mn></msup><mo>=</mo>
+              <mfrac>
+                <msup><mrow><mo>(</mo><msub><mi>O</mi><mn>1</mn></msub><mo>&#x2212;</mo><msub><mi>E</mi><mn>1</mn></msub><mo>)</mo></mrow><mn>2</mn></msup>
+                <mi>V</mi>
+              </mfrac>
+            </math>
+          </div>
+          <div class="formula">
+            <span class="flabel">Веса Флеминга — Харрингтона и k-выборочная форма</span>
+            <math display="block">
+              <mi>w</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo>
+              <mover><mi>S</mi><mo>^</mo></mover><msup><mrow><mo>(</mo><msup><mi>t</mi><mo>&#x2212;</mo></msup><mo>)</mo></mrow><mi>&#x3C1;</mi></msup>
+              <msup><mrow><mo>(</mo><mn>1</mn><mo>&#x2212;</mo><mover><mi>S</mi><mo>^</mo></mover><mo>(</mo><msup><mi>t</mi><mo>&#x2212;</mo></msup><mo>)</mo><mo>)</mo></mrow><mi>&#x3B3;</mi></msup>
+              <mspace width="1.6em"/>
+              <msup><mi>&#x3C7;</mi><mn>2</mn></msup><mo>=</mo><msup><mi>z</mi><mi>T</mi></msup><msup><mi>V</mi><mrow><mo>&#x2212;</mo><mn>1</mn></mrow></msup><mi>z</mi>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Где</p>
+            <dl>
+              <dt>O&#x2081;, E&#x2081;</dt><dd>наблюдаемые и ожидаемые события в группе 1, суммированные по моментам событий</dd>
+              <dt>V</dt><dd>гипергеометрическая дисперсия O₁</dd>
+              <dt>&#x3C1;, &#x3B3;</dt><dd>ручки весов: (0,0) — классика; ρ &gt; 0 — ранние; γ &gt; 0 — поздние различия</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>Дни оттока C = [3, 5, 7, 9, 12, 14, 18, 21, 25] + 3 цензурированных на 30-й день против T = [6, 10, 15, 22, 28] + 7 цензурированных: χ² = <span class='num'>3,32</span>, p = <span class='num'>0,068</span> (O₁ = 9 против E₁ = 5,68). G(0,0) воспроизводит это в точности.</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">Анализ · выживаемость</span>
+          <h4>Пропорциональные риски Кокса</h4>
+          <p>Модель Кокса превращает различие групп в <strong>hazard ratio</strong>: HR = e<sup>β</sup> умножает мгновенный риск события в каждый момент. Движок оценивает β для индикатора варианта по частичному правдоподобию и тестирует его Wald-z; базовый риск h₀(t) остаётся неспецифицированным.</p>
+          <div class="formula">
+            <span class="flabel">Модель, эффект и тест Вальда</span>
+            <math display="block">
+              <mi>h</mi><mo>(</mo><mi>t</mi><mo>&#x2223;</mo><mi>x</mi><mo>)</mo><mo>=</mo>
+              <msub><mi>h</mi><mn>0</mn></msub><mo>(</mo><mi>t</mi><mo>)</mo><mo>&#x2062;</mo>
+              <msup><mi>e</mi><mrow><mi>&#x3B2;</mi><mi>x</mi></mrow></msup>
+              <mspace width="1.4em"/>
+              <mtext>HR</mtext><mo>=</mo><msup><mi>e</mi><mover><mi>&#x3B2;</mi><mo>^</mo></mover></msup>
+              <mspace width="1.4em"/>
+              <mi>z</mi><mo>=</mo><mfrac><mover><mi>&#x3B2;</mi><mo>^</mo></mover><mrow><mtext>SE</mtext><mo>(</mo><mover><mi>&#x3B2;</mi><mo>^</mo></mover><mo>)</mo></mrow></mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Где</p>
+            <dl>
+              <dt>h&#x2080;(t)</dt><dd>базовый риск — никогда не оценивается, сокращается в частичном правдоподобии</dd>
+              <dt>x</dt><dd>индикатор варианта (0 = контроль, 1 = вариант)</dd>
+              <dt>HR</dt><dd>hazard ratio: HR &lt; 1 — событие замедлено (для оттока это хорошо), HR &gt; 1 — ускорено</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>Тот же датасет: HR = <span class='num'>0,372</span> [0,123; 1,123], β = −0,988, SE 0,563, p = <span class='num'>0,079</span>. Точечная оценка говорит «риск оттока почти втрое ниже»; интервал — что данные пока не могут это подтвердить. Величина эффекта и значимость — разные вопросы.</span>
+          </div>
+          <div class="callout warn">
+            <span class="clabel">Допущение PH.</span>
+            <span>«Пропорциональные риски» — значит отношение постоянно во времени; если кривые пересекаются, HR усредняет смену знака — сначала посмотрите кривые Каплана — Мейера. На вырожденных данных с монотонным правдоподобием (например, все события в одной группе) движок отказывается оценивать модель, а не выдаёт фиктивный HR.</span>
+          </div>
+        </div>
+
+        <!-- ---- 4.5 all 22 analyzers ---- -->
+        <h3>Все двадцать два анализатора</h3>
+        <p class="lead-in">Сгруппированы по дизайну эксперимента. Внутри группы выбор идёт по типу метрики и форме данных.</p>
+        <div class="tablewrap">
+          <table>
+            <thead><tr>
+              <th>Анализатор</th>
+              <th>Для чего</th>
+              <th>Заметки</th>
+            </tr></thead>
+            <tbody>
+              <tr class="group"><td colspan="3">Две независимые группы — доли и счётчики</td></tr>
+              <tr><td class="sym">z &#183; 2 proportions</td><td>доли, 2 группы</td><td>базовый тест конверсий; интервалы Уилсона / Ньюкомба</td></tr>
+              <tr><td class="sym">Fisher exact</td><td>доли, малые числа</td><td>точный 2×2; фиксирует маргинальные суммы</td></tr>
+              <tr><td class="sym">Boschloo exact</td><td>доли, малые числа</td><td>безусловный точный, упорядочение по p Фишера — мощный дефолт</td></tr>
+              <tr><td class="sym">Barnard exact</td><td>доли, малые числа</td><td>безусловный точный, упорядочение по pooled z; чуть мощнее, дороже</td></tr>
+              <tr><td class="sym">Poisson rate</td><td>события на экспозицию</td><td>точный условный биномиальный; rate ratio</td></tr>
+              <tr class="group"><td colspan="3">Две независимые группы — средние и распределения</td></tr>
+              <tr><td class="sym">Welch t</td><td>средние, 2 группы</td><td>неравные дисперсии — дефолт</td></tr>
+              <tr><td class="sym">TOST</td><td>эквивалентность средних</td><td>«докажи, что не хуже ±M»</td></tr>
+              <tr><td class="sym">Mann&#8211;Whitney U</td><td>ранги / стохастическое доминирование</td><td>сдвиг Ходжеса — Лемана, rank-biserial</td></tr>
+              <tr><td class="sym">bootstrap / permutation</td><td>любое распределение</td><td>без предположений, ресемплинг с фиксированным сидом</td></tr>
+              <tr><td class="sym">quantile effect</td><td>медиана / перцентиль</td><td>эффект в хвосте, не в среднем</td></tr>
+              <tr><td class="sym">Yuen trimmed t</td><td>средние с выбросами</td><td>усечение 20%, винзоризованная дисперсия</td></tr>
+              <tr class="group"><td colspan="3">Ratio-метрики</td></tr>
+              <tr><td class="sym">ratio delta-method</td><td>CTR, «на показ» / «на сессию»</td><td>дельта-метод возвращает честную дисперсию</td></tr>
+              <tr class="group"><td colspan="3">Парные наблюдения</td></tr>
+              <tr><td class="sym">paired t</td><td>парные средние</td><td>до/после; Cohen's d<sub>z</sub></td></tr>
+              <tr><td class="sym">Wilcoxon signed-rank</td><td>парные, ранги</td><td>псевдомедиана парных разностей</td></tr>
+              <tr><td class="sym">McNemar</td><td>парные доли</td><td>только несогласованные пары; с поправкой на непрерывность</td></tr>
+              <tr class="group"><td colspan="3">Больше двух групп и категории</td></tr>
+              <tr><td class="sym">Welch ANOVA</td><td>средние, k групп</td><td>омнибус, неравные дисперсии, η²</td></tr>
+              <tr><td class="sym">Kruskal&#8211;Wallis</td><td>ранги, k групп</td><td>непараметрический омнибус, ε²</td></tr>
+              <tr><td class="sym">&#x3C7;&#xB2; r&#xD7;c + Cram&#xE9;r V</td><td>категории × варианты</td><td>независимость + размер связи</td></tr>
+              <tr><td class="sym">G-test</td><td>категории × варианты</td><td>близнец χ² через отношение правдоподобий</td></tr>
+              <tr class="group"><td colspan="3">Время до события</td></tr>
+              <tr><td class="sym">log-rank</td><td>кривые выживаемости, 2+ группы</td><td>Мантель — Кокс O−E; цензурирование учтено</td></tr>
+              <tr><td class="sym">Fleming&#8211;Harrington G(&#x3C1;,&#x3B3;)</td><td>ранние / поздние различия кривых</td><td>веса Ŝ(t)^ρ(1−Ŝ(t))^γ; k-выборочная zᵀV⁻¹z</td></tr>
+              <tr><td class="sym">Cox PH</td><td>hazard ratio как размер эффекта</td><td>тест Вальда по β̂; допущение PH</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <hr class="divider">
+      </section>
+      <!-- ================= 5. MONITORING ================= -->
+      <section id="monitoring">
+        <div class="sec-head"><span class="sec-num">05</span></div>
+        <h2>Живой мониторинг: пока тест идёт</h2>
+        <p class="sec-intro">Планированием дело не кончается. Пока эксперимент работает, нужно ловить поломки рандомизации, не «подглядывать» неправильно, ускорять выводы за счёт снижения дисперсии и следить, чтобы победа по главной метрике не ломала остальное.</p>
+
+        <h3>SRM: рассыпалась ли рандомизация</h3>
+        <div class="card">
+          <span class="tag monitor">Мониторинг · здоровье</span>
+          <p><strong>Sample Ratio Mismatch</strong> — когда фактическое деление трафика (скажем, 50/50) расходится с ожидаемым сильнее, чем допускает случайность. Это красный флаг: сломался сплиттер, часть событий теряется, боты. Если есть SRM — результатам верить <em>нельзя</em>, чинить надо причину. Проверяется χ²-тестом согласия.</p>
+          <div class="formula">
+            <span class="flabel">Статистика согласия</span>
+            <math display="block">
+              <msup><mi>&#x3C7;</mi><mn>2</mn></msup><mo>=</mo><munderover><mo>&#x2211;</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>k</mi></munderover><mfrac><msup><mrow><mo>(</mo><msub><mi>O</mi><mi>i</mi></msub><mo>&#x2212;</mo><msub><mi>E</mi><mi>i</mi></msub><mo>)</mo></mrow><mn>2</mn></msup><msub><mi>E</mi><mi>i</mi></msub></mfrac>
+              <mspace width="1.6em"/><mtext>df</mtext><mo>=</mo><mi>k</mi><mo>&#x2212;</mo><mn>1</mn>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Где</p>
+            <dl>
+              <dt>O<sub>i</sub></dt><dd>фактическое число попавших в вариант i</dd>
+              <dt>E<sub>i</sub></dt><dd>ожидаемое = доля·общее</dd>
+              <dt>k</dt><dd>число вариантов</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>Ждём 50/50 из 20 000, видим 10 300 / 9 700 → χ² = <span class='num'>18,0</span>, p ≈ <span class='num'>0,00002</span>. Порог тревоги <span class='k'>p &lt; 0,001</span> перейдён → <strong style='color:var(--danger)'>SRM, стоп</strong>.</span>
+          </div>
+        </div>
+
+        <h3>Проблема подглядывания и групповой sequential-дизайн</h3>
+        <div class="card">
+          <span class="tag monitor">Мониторинг · ранние остановки</span>
+          <p>Если смотреть на p-value каждый день и останавливаться, как только оно «пробьёт» 0,05 — реальная частота ложных тревог не 5%, а в разы выше. Каждый «взгляд» — новый шанс ошибиться. <strong>Границы О'Брайена — Флеминга</strong> решают это: ранние заглядывания требуют почти невозможного z, порог смягчается к финалу, а суммарный α остаётся 0,05.</p>
+          <div class="formula">
+            <span class="flabel">Граница на доле информации t</span>
+            <math display="block">
+              <msub><mi>z</mi><mi>k</mi></msub><mo>=</mo><mfrac><msub><mi>z</mi><mtext>final</mtext></msub><msqrt><msub><mi>t</mi><mi>k</mi></msub></msqrt></mfrac>
+              <mspace width="1.6em"/><msub><mi>t</mi><mi>k</mi></msub><mo>=</mo><mfrac><mtext>взгляд</mtext><mrow><mtext>всего взглядов</mtext></mrow></mfrac>
+            </math>
+          </div>
+          <div class="callout example">
+            <span>При 5 плановых взглядах на первом (t = 0,2) порог ≈ <span class='num'>z = 4,5</span> (p ≈ 0,000007): остановиться так рано почти нереально. Это защищает от случайных ранних «побед». Плата — выборку планируют чуть больше (× ~1,03; движок интерполирует калиброванный финальный анкор).</span>
+          </div>
+        </div>
+
+        <figure class="figure">
+          <svg viewBox="0 0 560 216" role="img" aria-label="O'Brien-Fleming z-boundaries relax across looks">
+            <line class="fig-axis" x1="40" y1="188" x2="548" y2="188"/>
+            <line class="fig-axis" x1="40" y1="188" x2="40" y2="16"/>
+            <line class="fig-ref" x1="40" y1="123" x2="548" y2="123"/>
+            <text class="fig-tick" x="44" y="118">1,96</text>
+            <path class="fig-line" d="M 148,37 246,81 344,101 442,112 540,120"/>
+            <circle class="fig-dot-h" cx="148" cy="37" r="5"/><text class="fig-cap-in" x="148" y="28" text-anchor="middle">4,56</text>
+            <circle class="fig-dot-h" cx="246" cy="81" r="5"/><text class="fig-cap-in" x="246" y="72" text-anchor="middle">3,23</text>
+            <circle class="fig-dot-h" cx="344" cy="101" r="5"/><text class="fig-cap-in" x="344" y="92" text-anchor="middle">2,63</text>
+            <circle class="fig-dot-h" cx="442" cy="112" r="5"/><text class="fig-cap-in" x="442" y="103" text-anchor="middle">2,28</text>
+            <circle class="fig-dot" cx="540" cy="120" r="5.5"/><text class="fig-cap-in" x="540" y="111" text-anchor="middle">2,04</text>
+            <text class="fig-tick" x="148" y="202" text-anchor="middle">1</text>
+            <text class="fig-tick" x="246" y="202" text-anchor="middle">2</text>
+            <text class="fig-tick" x="344" y="202" text-anchor="middle">3</text>
+            <text class="fig-tick" x="442" y="202" text-anchor="middle">4</text>
+            <text class="fig-tick" x="540" y="202" text-anchor="middle">5</text>
+          </svg>
+          <figcaption>Порог z по пяти плановым взглядам. Ранний взгляд требует почти невозможного z ≈ 4,6 — случайно так рано не «выстрелит». К финалу порог смягчается до ≈ 2,04, а суммарный α держится на 0,05. Пунктир — наивный фиксированный 1,96, который при подглядывании даёт слишком много ложных тревог.</figcaption>
+        </figure>
+
+        <h3>Always-valid: смотри когда хочешь</h3>
+        <div class="card">
+          <span class="tag monitor">Мониторинг · anytime</span>
+          <p>Границы О'Брайена — Флеминга требуют заранее запланированных взглядов. На живом дашборде взгляды <em>не</em> запланированы. Тогда берут <strong>always-valid</strong> вывод (смесевой mSPRT): p-value и интервал остаются корректными при <em>непрерывном</em> подглядывании — сколько угодно раз, в любой момент.</p>
+          <div class="formula">
+            <span class="flabel">Смесевое отношение правдоподобия и anytime-p</span>
+            <math display="block">
+              <msub><mi>&#x39B;</mi><mi>n</mi></msub><mo>=</mo><msqrt><mfrac><mi>V</mi><mrow><mi>V</mi><mo>+</mo><msup><mi>&#x3C4;</mi><mn>2</mn></msup></mrow></mfrac></msqrt><mo>&#x2062;</mo><mi>exp</mi><mo>&#x2061;</mo><mrow><mo>(</mo><mfrac><mrow><msup><mi>&#x3C4;</mi><mn>2</mn></msup><msup><mover><mi>&#x3B8;</mi><mo>^</mo></mover><mn>2</mn></msup></mrow><mrow><mn>2</mn><mi>V</mi><mo>(</mo><mi>V</mi><mo>+</mo><msup><mi>&#x3C4;</mi><mn>2</mn></msup><mo>)</mo></mrow></mfrac><mo>)</mo></mrow>
+              <mspace width="1.4em"/><mi>p</mi><mo>=</mo><mi>min</mi><mo>&#x2061;</mo><mo>(</mo><mn>1</mn><mo>,</mo><mspace width="0.2em"/><mn>1</mn><mo>/</mo><msub><mi>&#x39B;</mi><mi>n</mi></msub><mo>)</mo>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Где</p>
+            <dl>
+              <dt>&#x3B8;&#x302;</dt><dd>наблюдаемый эффект (разница средних / долей)</dd>
+              <dt>V</dt><dd>дисперсия оценки эффекта</dd>
+              <dt>&#x3C4;&#xB2;</dt><dd>разброс «смеси» — настройка под ожидаемый эффект; не влияет на корректность, только на мощность</dd>
+            </dl>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">Доверительная последовательность.</span>
+            <span>У метода есть парный интервал <span class='k'>θ̂ ± r</span>, который накрывает истинный эффект с вероятностью 1 − α <em>одновременно на всех</em> размерах выборки. Он исключает ноль ровно тогда, когда anytime-p опускается ниже α.</span>
+          </div>
+        </div>
+
+        <h3>Байесовский взгляд: P(B &gt; A)</h3>
+        <div class="card">
+          <span class="tag monitor">Мониторинг · Байес</span>
+          <p>Вместо «значимо / нет» Байес отвечает на прямой вопрос бизнеса: <strong>какова вероятность, что вариант B лучше A?</strong> Для конверсий берут апостериорные распределения Beta по каждому варианту и считают, как часто отсчёт B превосходит отсчёт A. Движок делает это симуляцией Монте-Карло с фиксированным сидом — воспроизводимо, а не по замкнутой формуле.</p>
+          <div class="formula">
+            <span class="flabel">Апостериор и вероятность превосходства</span>
+            <math display="block">
+              <msub><mi>p</mi><mi>i</mi></msub><mo>&#x223C;</mo><mtext>Beta</mtext><mo>(</mo><mn>1</mn><mo>+</mo><msub><mi>x</mi><mi>i</mi></msub><mo>,</mo><mspace width="0.2em"/><mn>1</mn><mo>+</mo><msub><mi>n</mi><mi>i</mi></msub><mo>&#x2212;</mo><msub><mi>x</mi><mi>i</mi></msub><mo>)</mo>
+              <mspace width="1.4em"/><mi>P</mi><mo>(</mo><mi>B</mi><mo>&gt;</mo><mi>A</mi><mo>)</mo><mo>=</mo><mi>P</mi><mo>(</mo><msub><mi>p</mi><mi>B</mi></msub><mo>&gt;</mo><msub><mi>p</mi><mi>A</mi></msub><mo>)</mo>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Где</p>
+            <dl>
+              <dt>x<sub>i</sub>, n<sub>i</sub></dt><dd>конверсии и размер варианта i</dd>
+              <dt>Beta(1+x, 1+n&#x2212;x)</dt><dd>апостериор при равномерном приоре Beta(1,1)</dd>
+            </dl>
+          </div>
+          <div class="callout warn">
+            <span class="clabel">Не путать с p-value.</span>
+            <span>P(B &gt; A) = 97% — это <em>не</em> «1 − p». Это вероятность того, что B лучше, при данных и приоре. Удобно для решения, но требует такой же дисциплины по остановке, как и частотный подход.</span>
+          </div>
+        </div>
+
+        <h3>CUPED: меньше шума — быстрее вывод</h3>
+        <div class="card">
+          <span class="tag monitor">Мониторинг · снижение дисперсии</span>
+          <p>Часть разброса метрики объясняется тем, каким пользователь был <em>до</em> теста. <strong>CUPED</strong> вычитает эту предсказуемую часть, используя доэкспериментальный ковариат <span class='k'>X</span> (например, прошлую активность). Дисперсия падает на <span class='k'>ρ²</span> — и тест «набирает мощность» без единого лишнего пользователя.</p>
+          <div class="formula">
+            <span class="flabel">Скорректированная метрика и снижение дисперсии</span>
+            <math display="block">
+              <msub><mi>Y</mi><mtext>cuped</mtext></msub><mo>=</mo><mi>Y</mi><mo>&#x2212;</mo><mi>&#x3B8;</mi><mo>(</mo><mi>X</mi><mo>&#x2212;</mo><mover><mi>X</mi><mo>&#xAF;</mo></mover><mo>)</mo><mo>,</mo>
+              <mspace width="1em"/><mi>&#x3B8;</mi><mo>=</mo><mfrac><mrow><mtext>cov</mtext><mo>(</mo><mi>Y</mi><mo>,</mo><mi>X</mi><mo>)</mo></mrow><mrow><mtext>var</mtext><mo>(</mo><mi>X</mi><mo>)</mo></mrow></mfrac>
+              <mspace width="1.4em"/><mfrac><msub><mtext>var</mtext><mtext>new</mtext></msub><msub><mtext>var</mtext><mtext>old</mtext></msub></mfrac><mo>=</mo><mn>1</mn><mo>&#x2212;</mo><msup><mi>&#x3C1;</mi><mn>2</mn></msup>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Где</p>
+            <dl>
+              <dt>X</dt><dd>доэкспериментальный ковариат (не зависит от варианта!)</dd>
+              <dt>&#x3B8;</dt><dd>оптимальный коэффициент = cov(Y,X)/var(X)</dd>
+              <dt>&#x3C1;</dt><dd>корреляция Y и X</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>Корреляция ρ = 0,6 → дисперсия падает на <span class='num'>36%</span>, стандартная ошибка — на 20%. Это как бесплатно увеличить выборку в ~1,5 раза.</span>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">В движке: несколько ковариат.</span>
+            <span>CUPED платформы многоковариатный: θ — вектор, решение системы ковариаций (небольшая линейная система), так что шум могут вычитать сразу несколько доэкспериментальных сигналов. Формула выше — случай одной ковариаты.</span>
+          </div>
+        </div>
+
+        <figure class="figure">
+          <svg viewBox="0 0 520 188" role="img" aria-label="CUPED narrows the metric distribution">
+            <line class="fig-axis" x1="10" y1="165" x2="510" y2="165"/>
+            <path class="fig-after-fill" d="M 10,165 70,164 80,164 90,163 100,162 110,160 120,158 130,154 140,149 150,142 160,133 170,122 180,110 190,96 200,80 210,65 220,50 230,37 240,27 250,20 260,18 270,20 280,27 290,37 300,50 310,65 320,80 330,96 340,110 350,122 360,133 370,142 380,149 390,154 400,158 410,160 420,162 430,163 440,164 460,165 510,165 L 510,165 L 10,165 Z"/>
+            <path class="fig-before" d="M 10,165 40,164 65,162 80,160 95,157 110,152 120,148 130,143 140,136 150,129 160,121 170,112 180,102 190,92 200,82 210,73 220,64 230,57 240,52 250,49 260,47 270,49 280,52 290,57 300,64 310,73 320,82 330,92 340,102 350,112 360,121 370,129 380,136 390,143 400,148 410,152 420,155 430,158 440,160 450,162 460,163 475,164 510,165"/>
+            <path class="fig-after" d="M 10,165 70,164 80,164 90,163 100,162 110,160 120,158 130,154 140,149 150,142 160,133 170,122 180,110 190,96 200,80 210,65 220,50 230,37 240,27 250,20 260,18 270,20 280,27 290,37 300,50 310,65 320,80 330,96 340,110 350,122 360,133 370,142 380,149 390,154 400,158 410,160 420,162 430,163 440,164 460,165 510,165"/>
+            <text class="fig-cap-in" x="405" y="86">до теста</text>
+            <text class="fig-cap-in" x="262" y="12" text-anchor="middle" style="fill:var(--accent-strong)">после CUPED</text>
+          </svg>
+          <figcaption>CUPED вычитает предсказуемую (доэкспериментальную) часть шума, и распределение оценки сужается. При корреляции ρ = 0,6 дисперсия падает на <strong style='color:var(--accent-strong)'>36%</strong> — та же чувствительность достигается быстрее, без единого лишнего пользователя.</figcaption>
+        </figure>
+
+        <h3>Пост-стратификация: оценить внутри страт и склеить</h3>
+        <div class="card">
+          <span class="tag monitor">Мониторинг · снижение дисперсии</span>
+          <p>Если трафик — смесь известных страт с разной базой (платформа, страна, новые/вернувшиеся), оцените эффект внутри каждой страты и склейте с весами по размеру. Дисбаланс рандомизации между стратами перестаёт протекать в оценку эффекта: дешёвый и почти безусловный родственник CUPED.</p>
+          <div class="formula">
+            <span class="flabel">Склейка с весами по размеру</span>
+            <math display="block">
+              <mover><mi>&#x394;</mi><mo>^</mo></mover><mo>=</mo>
+              <munder><mo>&#x2211;</mo><mi>s</mi></munder>
+              <msub><mi>w</mi><mi>s</mi></msub><msub><mover><mi>&#x394;</mi><mo>^</mo></mover><mi>s</mi></msub>
+              <mspace width="1.6em"/>
+              <mtext>Var</mtext><mo>=</mo>
+              <munder><mo>&#x2211;</mo><mi>s</mi></munder>
+              <msubsup><mi>w</mi><mi>s</mi><mn>2</mn></msubsup><msub><mtext>Var</mtext><mi>s</mi></msub>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Где</p>
+            <dl>
+              <dt>s</dt><dd>индекс страты</dd>
+              <dt>w<sub>s</sub></dt><dd>доля страты в трафике, Σw = 1</dd>
+              <dt>&#x394;&#x302;<sub>s</sub>, Var<sub>s</sub></dt><dd>оценка эффекта в страте и её дисперсия</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>Страта A: 6 000 пользователей, Δ = 1,2 п.п., дисперсия 3·10⁻⁵; страта B: 4 000, Δ = 1,8 п.п., дисперсия 5·10⁻⁵ → склейка Δ = <span class='num'>1,44 п.п.</span>, z = 3,32, p = <span class='num'>0,0009</span>, CI [0,59; 2,29] п.п.</span>
+          </div>
+        </div>
+
+        <h3>Guardrail-метрики: победа не должна ничего сломать</h3>
+        <div class="card">
+          <span class="tag monitor">Мониторинг · защита</span>
+          <p>Вариант может выиграть по конверсии и при этом раздуть время загрузки, ошибки оплаты или отписки. <strong>Guardrail</strong> задаёт односторонний вопрос: «сдвинул ли вариант метрику во <em>вред</em> больше допустимого предела <span class='k'>M</span>?». Это тест не-хуже (non-inferiority), а не поиск разницы.</p>
+          <div class="formula">
+            <span class="flabel">Односторонний тест нарушения</span>
+            <math display="block">
+              <mi>z</mi><mo>=</mo><mfrac><mrow><mtext>вред</mtext><mo>&#x2212;</mo><mi>M</mi></mrow><msqrt><mtext>Var</mtext><mo>(</mo><mi>&#x394;</mi><mo>)</mo></msqrt></mfrac>
+              <mspace width="1.4em"/><mi>p</mi><mo>=</mo><mn>1</mn><mo>&#x2212;</mo><mi>&#x3A6;</mi><mo>(</mo><mi>z</mi><mo>)</mo>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Где</p>
+            <dl>
+              <dt>вред</dt><dd>сдвиг во вредную сторону: +Δ, если рост плох (латентность), −Δ, если плохо падение (выручка)</dd>
+              <dt>M</dt><dd>допустимый предел ущерба (0 = любой значимый вред — нарушение)</dd>
+              <dt>&#x3A6;</dt><dd>функция стандартной нормали</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>Латентность выросла на <span class='num'>+15 мс</span> (SE = 2), допуск M = 10 мс → z = (15 − 10)/2 = <span class='num'>2,5</span>, p ≈ 0,006 → <strong style='color:var(--danger)'>предел пробит</strong>. Между «ок» и «пробит» есть жёлтая зона «warning»: оценка хуже допуска, но незначимо.</span>
+          </div>
+        </div>
+
+        <h3>Гигиена данных: что ломает тесты до всякой статистики</h3>
+        <div class="card">
+          <span class="tag monitor">Мониторинг · здоровье</span>
+          <p>Никакая формула не чинит сломанные данные. Четыре привычки защищают эксперимент задолго до p-value:</p>
+          <div class="where">
+            <dl>
+              <dt>1</dt><dd><strong>Склейка идентичности.</strong> Один человек = один юнит. Если пользователь заходит в тест как web + app + инкогнито, загрязняются обе руки, и измеряемый эффект размывается.</dd>
+              <dt>2</dt><dd><strong>Поздние события.</strong> Конверсии приходят через часы и дни после кликов; резать окно моментом остановки — тихо смещать против более «свежей» руки. Зафиксируйте одно окно атрибуции и примените его к обеим рукам симметрично.</dd>
+              <dt>3</dt><dd><strong>Фильтр ботов.</strong> Боты конвертируются в ~0% и раздувают знаменатели — асимметрично, если таргетинг рук различается. Фильтровать до анализа, одним правилом везде.</dd>
+              <dt>4</dt><dd><strong>Холдаут.</strong> Небольшой постоянный контрольный срез измеряет долгосрочный накопленный эффект множества выкаченных «побед» — и ловит инфляцию «проклятия победителя».</dd>
+            </dl>
+          </div>
+        </div>
+
+        <h3>Когда не A/B: сэмплирование Томпсона</h3>
+        <div class="card">
+          <span class="tag monitor">Мониторинг · бандиты</span>
+          <p>Фиксированный тест до самого конца тратит половину трафика на проигравшего. Когда цель — максимизировать отдачу за короткое окно (промо-баннеры, темы писем), а не точно измерить эффект, <strong>бандит</strong> перераспределяет трафик по мере накопления свидетельств. Сэмплирование Томпсона: для каждой руки тянем правдоподобную конверсию из её Beta-постериора и показываем руку, выигравшую розыгрыш. В платформе это планировочный симулятор (Beta-Bernoulli Монте-Карло), а не живой раздатчик трафика.</p>
+          <div class="formula">
+            <span class="flabel">Один шаг распределения</span>
+            <math display="block">
+              <msub><mover><mi>&#x3B8;</mi><mo>&#x223C;</mo></mover><mi>i</mi></msub><mo>&#x223C;</mo><mtext>Beta</mtext><mo>(</mo><mn>1</mn><mo>+</mo><msub><mi>x</mi><mi>i</mi></msub><mo>,</mo><mspace width="0.2em"/><mn>1</mn><mo>+</mo><msub><mi>n</mi><mi>i</mi></msub><mo>&#x2212;</mo><msub><mi>x</mi><mi>i</mi></msub><mo>)</mo>
+              <mspace width="1.4em"/>
+              <msup><mi>a</mi><mo>&#x2217;</mo></msup><mo>=</mo><munder><mtext>argmax</mtext><mi>i</mi></munder><mspace width="0.2em"/><msub><mover><mi>&#x3B8;</mi><mo>&#x223C;</mo></mover><mi>i</mi></msub>
+            </math>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">Цена.</span>
+            <span>Бандит — не бесплатный апгрейд: оценки проигрывающих рук остаются шумными и смещёнными, правила подглядывания не переносятся, а измерение «для решения» по-прежнему требует фиксированного теста. Исследование стоит измерения.</span>
+          </div>
+        </div>
+        <hr class="divider">
+      </section>
+      <!-- ================= 6. CHEAT SHEET ================= -->
+      <section id="cheatsheet">
+        <div class="sec-head"><span class="sec-num">06</span></div>
+        <h2>Шпаргалка и обозначения</h2>
+        <p class="sec-intro">Всё на одном экране: типовые значения, как выбрать тест, что означает каждый символ и как выглядит здоровый эксперимент.</p>
+
+        <h3>Типовые значения</h3>
+        <div class="tablewrap">
+          <table>
+            <thead><tr>
+              <th>Параметр</th>
+              <th>Обычно</th>
+              <th>Смысл</th>
+            </tr></thead>
+            <tbody>
+              <tr><td><span class="sym">&#x3B1;</span></td><td>0,05</td><td>риск ложной тревоги, z = 1,96</td></tr>
+              <tr><td>Мощность <span class="sym">1&#x2212;&#x3B2;</span></td><td>0,80</td><td>шанс поймать эффект, z = 0,84</td></tr>
+              <tr><td>Хвосты</td><td>два</td><td>эффект может быть в любую сторону</td></tr>
+              <tr><td>SRM-порог</td><td>p &lt; 0,001</td><td>очень строго — иначе много ложных тревог</td></tr>
+              <tr><td>Срок</td><td>≥ 1–2 недели</td><td>кратно неделям, гасит новизну и день недели</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Какой тест выбрать</h3>
+        <div class="tablewrap">
+          <table>
+            <thead><tr>
+              <th>Метрика / ситуация</th>
+              <th>Тест</th>
+            </tr></thead>
+            <tbody>
+              <tr><td>Конверсия, 2 группы</td><td><span class='sym'>z · 2 proportions</span> <span class='dim'>(малые числа → Фишер / Бошлу / Барнард)</span></td></tr>
+              <tr><td>Среднее (выручка, время), 2 группы</td><td><span class='sym'>Welch t</span> <span class='dim'>(выбросы → робастный квартет)</span></td></tr>
+              <tr><td>Медиана / перцентиль</td><td><span class='sym'>quantile effect</span></td></tr>
+              <tr><td>CTR, «на показ / на сессию»</td><td><span class='sym'>ratio delta-method</span></td></tr>
+              <tr><td>Счётчик событий на экспозицию</td><td><span class='sym'>Poisson rate</span></td></tr>
+              <tr><td>«Докажи, что не хуже»</td><td><span class='sym'>TOST</span> <span class='dim'>(односторонний предел вреда → guardrail)</span></td></tr>
+              <tr><td>Больше 2 групп</td><td><span class='sym'>Welch ANOVA / Kruskal–Wallis</span> <span class='dim'>(затем парные + поправка)</span></td></tr>
+              <tr><td>Категории × варианты</td><td><span class='sym'>χ² r×c + Cramér V / G-test</span></td></tr>
+              <tr><td>До/после на тех же людях</td><td><span class='sym'>paired t / Wilcoxon / McNemar</span></td></tr>
+              <tr><td>Время до события, цензурирование</td><td><span class='sym'>log-rank / Fleming–Harrington / Cox</span></td></tr>
+              <tr><td>Живой дашборд, незапланированные взгляды</td><td><span class='sym'>always-valid (mSPRT)</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Обозначения</h3>
+        <div class="tablewrap">
+          <table>
+            <thead><tr>
+              <th>Символ</th>
+              <th>Значение</th>
+            </tr></thead>
+            <tbody>
+              <tr><td class="sym">&#x3B1;</td><td>уровень значимости (риск I рода)</td></tr>
+              <tr><td class="sym">&#x3B2; &#183; 1&#x2212;&#x3B2;</td><td>риск II рода · мощность</td></tr>
+              <tr><td class="sym">z<sub>&#x3B1;</sub>, z<sub>&#x3B2;</sub></td><td>квантили стандартной нормали</td></tr>
+              <tr><td class="sym">&#x3A6;</td><td>функция распределения стандартной нормали</td></tr>
+              <tr><td class="sym">p&#x2080;, p&#x2081;, p&#x302;, p&#x304;</td><td>база · вариант · оценка · объединённая доли</td></tr>
+              <tr><td class="sym">&#x3B4; &#183; MDE</td><td>абсолютный эффект · мин. детектируемый эффект</td></tr>
+              <tr><td class="sym">&#x3C3;, s</td><td>стандартное отклонение (генеральное, выборочное)</td></tr>
+              <tr><td class="sym">&#x3BD;</td><td>степени свободы (Уэлч — Саттертуэйт)</td></tr>
+              <tr><td class="sym">&#x3C1; &#183; &#x3B8;</td><td>корреляция · коэффициент CUPED</td></tr>
+              <tr><td class="sym">ICC &#183; DEFF &#183; m</td><td>внутриклассовая корреляция · эффект дизайна · размер кластера</td></tr>
+              <tr><td class="sym">&#x3C7;&#xB2;</td><td>статистика хи-квадрат (SRM, категории)</td></tr>
+              <tr><td class="sym">&#x39B;<sub>n</sub> &#183; &#x3C4;&#xB2;</td><td>смесевое правдоподобие · разброс смеси (always-valid)</td></tr>
+              <tr><td class="sym">M</td><td>предел (эквивалентность, guardrail)</td></tr>
+              <tr><td class="sym">m &#183; q &#183; k</td><td>число метрик · порог FDR · ранг p-value</td></tr>
+              <tr><td class="sym">U &#183; r<sub>rb</sub> &#183; HL</td><td>статистика Манна — Уитни · rank-biserial корреляция · сдвиг Ходжеса — Лемана</td></tr>
+              <tr><td class="sym">W</td><td>статистика знакового рангового Уилкоксона</td></tr>
+              <tr><td class="sym">F* &#183; &#x3B7;&#xB2;</td><td>статистика Welch ANOVA · доля объяснённой дисперсии</td></tr>
+              <tr><td class="sym">H &#183; &#x3B5;&#xB2;</td><td>статистика Краскела — Уоллиса · её размер эффекта</td></tr>
+              <tr><td class="sym">b, c</td><td>несогласованные пары (Мак-Немар)</td></tr>
+              <tr><td class="sym">S(t)</td><td>функция выживаемости — вероятность прожить дальше t</td></tr>
+              <tr><td class="sym">HR &#183; &#x3B2;</td><td>hazard ratio · лог-риск коэффициент Кокса</td></tr>
+              <tr><td class="sym">O&#x2081;, E&#x2081;, V</td><td>наблюдаемые · ожидаемые события · их дисперсия (log-rank)</td></tr>
+              <tr><td class="sym">&#x3C1;, &#x3B3; (FH)</td><td>веса Флеминга — Харрингтона: акцент на ранние / поздние</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Чек-лист здорового теста</h3>
+        <div class="card">
+          <div class="where">
+            <dl>
+              <dt>1</dt><dd><strong>Гипотеза и метрика зафиксированы</strong> до старта — включая MDE и главную метрику.</dd>
+              <dt>2</dt><dd><strong>Размер выборки посчитан</strong>, срок кратен неделям.</dd>
+              <dt>3</dt><dd><strong>Нет SRM</strong> — деление трафика совпадает с планом.</dd>
+              <dt>4</dt><dd><strong>Поправка на множественность</strong>, если метрик или вариантов больше одного.</dd>
+              <dt>5</dt><dd><strong>Guardrail-метрики</strong> под наблюдением — победа не ломает латентность, ошибки, выручку.</dd>
+              <dt>6</dt><dd><strong>Правильная остановка</strong>: плановый срок, sequential-границы или always-valid — не «пробило 0,05».</dd>
+              <dt>7</dt><dd><strong>Решение по интервалу</strong>, а не только по p-value — важна величина эффекта.</dd>
+              <dt>8</dt><dd><strong>Гигиена данных проверена</strong> — одна идентичность на пользователя, симметричное окно атрибуции, боты отфильтрованы, холдаут на месте.</dd>
+            </dl>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <footer>
+    <div class="footer-inner">
+      <span>AB Test Research Designer — теоретический справочник. Формулы соответствуют статистическому движку платформы.</span>
+      <span><a href="/">← К приложению</a></span>
+    </div>
+  </footer>
+</div>
+<script src="help.js" defer></script>
+</body>
+</html>

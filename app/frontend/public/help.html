@@ -1,0 +1,1911 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A/B Testing — Theory & Formulas · AB Test Research Designer</title>
+<meta name="description" content="Theory & formula reference for A/B testing: sample sizing, multiple comparisons, post-hoc analysis, and live monitoring — all 22 statistical methods the platform runs, explained simply.">
+<link rel="alternate" hreflang="en" href="/help.html">
+<link rel="alternate" hreflang="ru" href="/help.ru.html">
+<link rel="alternate" hreflang="de" href="/help.de.html">
+<link rel="alternate" hreflang="fr" href="/help.fr.html">
+<link rel="alternate" hreflang="es" href="/help.es.html">
+<link rel="alternate" hreflang="zh" href="/help.zh.html">
+<link rel="alternate" hreflang="ar" href="/help.ar.html">
+<link rel="alternate" hreflang="x-default" href="/help.html">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="/theme-init.js"></script>
+<style>
+  /* ============================================================
+     Design system — the app's tokens verbatim (tokens.css):
+     teal #0d9488, Manrope + JetBrains Mono, slate neutrals.
+     Light default + dark via prefers-color-scheme AND the app's
+     data-theme attribute (set early by /theme-init.js, shared
+     localStorage key — the page follows the app's theme).
+     Static page, no framework; MathML for formulas; the language
+     is fixed per file (this file is generated per language).
+     RTL-safe: logical properties throughout; math and SVG stay LTR.
+     ============================================================ */
+  :root {
+    --font: "Manrope", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    --mono: "JetBrains Mono", "SFMono-Regular", "Consolas", ui-monospace, monospace;
+
+    --bg: #f5f7fa;
+    --surface: #ffffff;
+    --surface-muted: #f3f5f9;
+    --surface-subtle: #f8fafc;
+    --border: #e6e9ef;
+    --border-strong: #d3d9e3;
+
+    --ink: #0f1729;
+    --ink-2: #5a6473;
+    --ink-3: #8b95a3;
+
+    --accent: #0d9488;
+    --accent-strong: #0f766e;
+    --accent-soft: #d6f3ee;
+    --accent-ring: rgba(13, 148, 136, 0.16);
+
+    --info: #2f6df0;
+    --info-soft: #e3ecfd;
+    --warning: #c77d11;
+    --warning-soft: #fbf0db;
+    --danger: #e1493f;
+    --danger-soft: #fdecea;
+    --success: #0f9d76;
+    --success-soft: #d8f3e9;
+    --violet: #6d4bd6;
+    --violet-soft: #ebe6fb;
+
+    --radius-s: 8px;
+    --radius-m: 12px;
+    --radius-l: 16px;
+    --shadow-s: 0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06);
+    --shadow-m: 0 4px 6px -1px rgba(16,24,40,.06), 0 2px 4px -2px rgba(16,24,40,.06);
+    --shadow-l: 0 18px 40px -20px rgba(16,24,40,.28);
+
+    --maxw: 1180px;
+    --content: 74ch;
+    color-scheme: light;
+  }
+
+  /* Dark palette = the app's dark tokens (bg #0e1421, card #161d2c,
+     border #28324a, text #eef2f8/#9aa5b8/#6b7689). Exception, documented:
+     text-size accent uses the brighter #2dd4bf (not the app's #0d9488)
+     so accent-coloured TEXT keeps AA contrast on dark cards; the brand
+     tile below pins the app's exact teal gradient instead. */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0e1421;
+      --surface: #161d2c;
+      --surface-muted: #1b2334;
+      --surface-subtle: #141b29;
+      --border: #28324a;
+      --border-strong: #3a4763;
+
+      --ink: #eef2f8;
+      --ink-2: #9aa5b8;
+      --ink-3: #6b7689;
+
+      --accent: #2dd4bf;
+      --accent-strong: #5eead4;
+      --accent-soft: #11463f;
+      --accent-ring: rgba(45, 212, 191, 0.20);
+
+      --info: #7aa2ff;
+      --info-soft: #17233f;
+      --warning: #e0b25a;
+      --warning-soft: #33280f;
+      --danger: #f0928a;
+      --danger-soft: #3a1f1d;
+      --success: #52c9a3;
+      --success-soft: #133a2e;
+      --violet: #b39cf5;
+      --violet-soft: #241b40;
+
+      --shadow-s: 0 1px 2px rgba(0,0,0,.30);
+      --shadow-m: 0 4px 10px -2px rgba(0,0,0,.40);
+      --shadow-l: 0 18px 44px -20px rgba(0,0,0,.65);
+      color-scheme: dark;
+    }
+  }
+  /* Explicit app-theme override wins over the media query in both directions. */
+  :root[data-theme="light"] { color-scheme: light; }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg:#0e1421;--surface:#161d2c;--surface-muted:#1b2334;--surface-subtle:#141b29;
+    --border:#28324a;--border-strong:#3a4763;--ink:#eef2f8;--ink-2:#9aa5b8;--ink-3:#6b7689;
+    --accent:#2dd4bf;--accent-strong:#5eead4;--accent-soft:#11463f;--accent-ring:rgba(45,212,191,.20);
+    --info:#7aa2ff;--info-soft:#17233f;--warning:#e0b25a;--warning-soft:#33280f;
+    --danger:#f0928a;--danger-soft:#3a1f1d;--success:#52c9a3;--success-soft:#133a2e;--violet:#b39cf5;--violet-soft:#241b40;
+    --shadow-s:0 1px 2px rgba(0,0,0,.30);--shadow-m:0 4px 10px -2px rgba(0,0,0,.40);--shadow-l:0 18px 44px -20px rgba(0,0,0,.65);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+  body {
+    margin: 0;
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.68;
+    font-size: 16.5px;
+    letter-spacing: -0.003em;
+    font-feature-settings: "tnum" 1;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Manrope has no CJK/Arabic glyphs — give those pages system stacks,
+     and drop the negative latin tracking that hurts Arabic shaping. */
+  html[lang="zh"] {
+    --font: "Manrope", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+  }
+  html[lang="ar"] {
+    --font: "Manrope", "Segoe UI", "Tahoma", "Noto Naskh Arabic", "Geeza Pro", system-ui, sans-serif;
+  }
+  html[lang="ar"] body, html[lang="ar"] h1, html[lang="ar"] h2, html[lang="ar"] h3, html[lang="ar"] h4 { letter-spacing: 0; }
+
+  /* Math and diagrams are direction-neutral: keep them LTR even on RTL pages. */
+  math { direction: ltr; }
+  svg { direction: ltr; }
+
+  a { color: var(--accent-strong); text-underline-offset: 2px; }
+
+  /* ---------- top bar (mirrors the app: sticky, blur, brand tile) ---------- */
+  .topbar {
+    position: sticky; top: 0; z-index: 40;
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    backdrop-filter: saturate(140%) blur(10px);
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar-inner {
+    max-width: var(--maxw); margin: 0 auto; min-height: 60px; padding: 10px 24px;
+    display: flex; align-items: center; gap: 16px; justify-content: space-between;
+  }
+  .brand { display: inline-flex; align-items: center; gap: 11px; text-decoration: none; color: inherit; min-width: 0; }
+  .brand-mark {
+    display: inline-flex; align-items: center; justify-content: center; flex: none;
+    width: 32px; height: 32px; border-radius: 9px;
+    /* Pinned to the app's exact tile gradient (identical in both themes). */
+    background: linear-gradient(150deg, #0d9488, #0f766e);
+    color: #ffffff; font-weight: 800; font-size: 13px; letter-spacing: 0.02em;
+    box-shadow: 0 6px 14px -6px #0d9488;
+  }
+  .brand-text { display: grid; line-height: 1.15; }
+  .brand-name { font-weight: 700; font-size: 0.95rem; letter-spacing: -0.01em; white-space: nowrap; }
+  .brand-tag {
+    font-size: 11px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--ink-3); white-space: nowrap;
+  }
+  @media (max-width: 720px) { .brand-text { display: none; } }
+
+  /* ---------- language menu: 7 static links, one per generated page ---------- */
+  .langbar {
+    display: inline-flex; flex-wrap: wrap; justify-content: flex-end;
+    padding: 3px; gap: 2px; background: var(--surface-muted);
+    border: 1px solid var(--border); border-radius: 999px;
+  }
+  .langlink {
+    font-size: 12.5px; font-weight: 700; letter-spacing: .01em;
+    padding: 5px 11px; border-radius: 999px; color: var(--ink-2);
+    text-decoration: none; white-space: nowrap; transition: background .15s, color .15s;
+  }
+  .langlink:hover { color: var(--ink); background: color-mix(in srgb, var(--accent-soft) 55%, transparent); }
+  .langlink.current { background: var(--accent); color: #fff; box-shadow: var(--shadow-s); cursor: default; }
+  :root[data-theme="dark"] .langlink.current { color: #06201c; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .langlink.current { color: #06201c; } }
+  @media (max-width: 640px) {
+    .langlink { font-size: 11.5px; padding: 4px 8px; }
+    .topbar-inner { padding: 8px 16px; }
+  }
+
+  /* ---------- layout ---------- */
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+  .layout { display: grid; grid-template-columns: 244px minmax(0, 1fr); gap: 52px; align-items: start; padding-bottom: 96px; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; gap: 8px; } }
+
+  /* ---------- hero ---------- */
+  .hero { padding: 74px 0 8px; position: relative; }
+  .hero .kicker {
+    display: inline-block; font-size: 12.5px; font-weight: 700; letter-spacing: .18em;
+    text-transform: uppercase; color: var(--accent-strong); margin: 0 0 20px;
+    opacity: 0; animation: rise .7s .02s cubic-bezier(.16,1,.3,1) forwards;
+  }
+  .hero h1 {
+    font-size: clamp(2.3rem, 5.6vw, 3.7rem); line-height: 1.0; letter-spacing: -.035em;
+    margin: 0 0 22px; font-weight: 800;
+    opacity: 0; animation: rise .7s .08s cubic-bezier(.16,1,.3,1) forwards;
+  }
+  .hero h1 .accent-word { color: var(--accent); }
+  .hero > p { font-size: clamp(1.02rem, 1.5vw, 1.2rem); color: var(--ink-2); max-width: 62ch; margin: 0; opacity: 0; animation: rise .7s .16s cubic-bezier(.16,1,.3,1) forwards; }
+  .hero .lede-note {
+    margin-top: 22px; font-size: 14px; color: var(--ink-3); max-width: 62ch;
+    padding-inline-start: 14px; border-inline-start: 3px solid var(--border-strong);
+    opacity: 0; animation: rise .7s .24s cubic-bezier(.16,1,.3,1) forwards;
+  }
+  .heromedia { margin: 40px 0 0; opacity: 0; animation: fade 1.1s .3s ease forwards; }
+  .heromedia svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .hero-line { fill: none; stroke: var(--accent); stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round; }
+  .hero-fill { fill: url(#heroGrad); }
+  .hero-base { stroke: var(--border-strong); stroke-width: 1; stroke-dasharray: 2 5; }
+  .hero-tick { stroke: var(--border-strong); stroke-width: 1; }
+  .hero-tlabel { fill: var(--ink-3); font-family: var(--mono); font-size: 12px; }
+  @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  @keyframes fade { to { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) {
+    .hero .kicker, .hero h1, .hero > p, .hero .lede-note, .heromedia { animation: none; opacity: 1; }
+  }
+
+  /* ---------- TOC ---------- */
+  .toc { position: sticky; top: 78px; }
+  .toc > summary { list-style: none; }
+  .toc > summary::-webkit-details-marker { display: none; }
+  .toc-title { font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 12px; padding-inline-start: 12px; }
+  .toc ol { list-style: none; margin: 0; padding: 0; counter-reset: toc; }
+  .toc li { counter-increment: toc; }
+  .toc a {
+    display: flex; gap: 10px; align-items: baseline;
+    padding: 7px 12px; color: var(--ink-2);
+    text-decoration: none; font-size: 14px; font-weight: 600; line-height: 1.35;
+    border-inline-start: 2px solid transparent; border-radius: var(--radius-s);
+    transition: background .15s, color .15s, border-color .15s;
+  }
+  .toc a::before { content: counter(toc); font-variant-numeric: tabular-nums; color: var(--accent); font-weight: 800; font-size: 12px; min-width: 14px; }
+  .toc a:hover { background: var(--surface-muted); color: var(--ink); }
+  @media (min-width: 901px) {
+    .toc { max-height: calc(100vh - 100px); overflow-y: auto; }
+    .toc > summary { display: none; }
+    .toc > .toc-body { display: block !important; }
+    .toc > .toc-body nav { border-inline-start: 1px solid var(--border); padding-inline-start: 4px; }
+    .toc a { margin-inline-start: -1px; }
+    .toc a:hover { border-inline-start-color: var(--accent); background: color-mix(in srgb, var(--accent-soft) 45%, transparent); }
+  }
+  @media (max-width: 900px) {
+    .toc {
+      position: static; margin: 14px 0 8px; background: var(--surface);
+      border: 1px solid var(--border); border-radius: var(--radius-m); box-shadow: var(--shadow-s);
+    }
+    .toc > summary {
+      padding: 14px 16px; cursor: pointer; font-weight: 700; color: var(--ink);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .toc > summary::after { content: "+"; color: var(--accent); font-size: 20px; font-weight: 700; }
+    .toc[open] > summary::after { content: "\2212"; }
+    .toc > .toc-body { padding: 0 8px 12px; }
+    .toc-title { display: none; }
+  }
+
+  /* ---------- content & sections ---------- */
+  main { min-width: 0; }
+  section[id] { scroll-margin-top: 84px; padding-top: 30px; }
+  .sec-head { display: flex; align-items: center; gap: 14px; margin: 0 0 -0.28em; }
+  .sec-num {
+    display: inline-block;
+    font-family: var(--mono); font-weight: 800; letter-spacing: -.05em;
+    font-size: clamp(3.4rem, 7.5vw, 5.4rem); line-height: .82; color: var(--accent);
+    opacity: .15; user-select: none;
+  }
+  h2 { font-size: clamp(1.62rem, 3.1vw, 2.25rem); letter-spacing: -.025em; margin: 6px 0 10px; font-weight: 800; line-height: 1.15; position: relative; }
+  h3 { font-size: 1.28rem; letter-spacing: -.015em; margin: 46px 0 6px; font-weight: 750; }
+  h3::before {
+    content: ""; display: inline-block; width: 15px; height: 2px; vertical-align: middle;
+    background: var(--accent); margin-inline-end: 11px; border-radius: 2px; transform: translateY(-3px);
+  }
+  .group-lead { color: var(--ink-2); max-width: var(--content); margin: 4px 0 14px; }
+  .sec-intro { color: var(--ink-2); max-width: var(--content); margin: 0 0 8px; }
+  p { max-width: var(--content); }
+  main p { margin: 14px 0; }
+  strong, b { font-weight: 700; color: var(--ink); }
+  code, .k { font-family: var(--mono); font-size: .89em; background: var(--surface-muted); padding: .1em .42em; border-radius: 6px; color: var(--ink); border: 1px solid var(--border); }
+  .divider { height: 0; background: none; border: 0; border-top: 1px solid var(--border); margin: 64px 0 0; position: relative; }
+  .divider::after { content: ""; position: absolute; inset-inline-start: 0; top: -1px; width: 40px; height: 2px; background: var(--accent); }
+
+  /* ---------- concept card ---------- */
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 18px;
+    padding: 26px 28px; margin: 22px 0; box-shadow: var(--shadow-s);
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+  }
+  .card:hover { transform: translateY(-2px); box-shadow: var(--shadow-m); border-color: var(--border-strong); }
+  @media (prefers-reduced-motion: reduce) { .card:hover { transform: none; } }
+  .card > :first-child { margin-top: 0; }
+  .card > :last-child { margin-bottom: 0; }
+  .card h4 { font-size: 1.12rem; font-weight: 750; margin: 0 0 4px; letter-spacing: -.01em; }
+  .tag {
+    display: inline-block; font-size: 10.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
+    padding: 4px 11px; border-radius: 999px; margin-bottom: 12px;
+  }
+  .tag.plan   { background: var(--accent-soft); color: var(--accent-strong); }
+  .tag.multi  { background: var(--info-soft); color: var(--info); }
+  .tag.analyze{ background: var(--violet-soft); color: var(--violet); }
+  .tag.monitor{ background: var(--warning-soft); color: var(--warning); }
+
+  /* ---------- formula block (MathML, notebook dot-grid) ---------- */
+  .formula {
+    margin: 18px 0; padding: 26px 26px 24px; overflow-x: auto;
+    background-color: var(--surface-subtle); border: 1px solid var(--border);
+    border-inline-start: 3px solid var(--accent); border-radius: 14px;
+    background-image: radial-gradient(color-mix(in srgb, var(--accent) 20%, transparent) 1px, transparent 1.5px);
+    background-size: 22px 22px; background-position: 10px 10px;
+    text-align: center;
+  }
+  .formula math { font-size: 1.4rem; color: var(--ink); }
+  .formula .flabel { display: block; text-align: start; font-size: 12px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--accent-strong); margin-bottom: 12px; }
+  math { font-family: "Latin Modern Math", "STIX Two Math", "Cambria Math", var(--mono); }
+  mi, mn, mo { color: inherit; }
+
+  /* ---------- "where" symbol list ---------- */
+  .where { margin: 16px 0 4px; }
+  .where-title { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 8px; }
+  .where dl { display: grid; grid-template-columns: auto 1fr; gap: 8px 18px; margin: 0; }
+  .where dt { font-family: var(--mono); font-weight: 600; font-size: 14.5px; color: var(--accent-strong); white-space: nowrap; padding-top: 1px; }
+  .where dd { margin: 0; color: var(--ink-2); font-size: 14.5px; }
+
+  /* ---------- callouts ---------- */
+  .callout {
+    margin: 18px 0; padding: 16px 20px; border-radius: 14px;
+    border: 1px solid var(--border); border-inline-start: 3px solid var(--ink-3);
+    background: var(--surface-muted); font-size: 14.5px;
+  }
+  .callout > :first-child { margin-top: 0; } .callout > :last-child { margin-bottom: 0; }
+  .callout .clabel { font-weight: 750; font-size: .96em; margin-inline-end: 6px; color: var(--ink); }
+  .callout.intuition { border-inline-start-color: var(--accent); background: color-mix(in srgb, var(--accent-soft) 40%, var(--surface)); }
+  .callout.intuition .clabel { color: var(--accent-strong); }
+  .callout.warn { border-inline-start-color: var(--warning); background: color-mix(in srgb, var(--warning-soft) 45%, var(--surface)); }
+  .callout.warn .clabel { color: var(--warning); }
+  .callout.example { border-inline-start-color: var(--border-strong); background: var(--surface-subtle); }
+  .callout.example .num { font-family: var(--mono); font-weight: 600; color: var(--ink); }
+
+  details.more { margin: 14px 0 2px; border-top: 1px dashed var(--border); padding-top: 6px; }
+  details.more > summary {
+    cursor: pointer; font-size: 13.5px; font-weight: 700; color: var(--accent-strong);
+    list-style: none; padding: 8px 0; display: inline-flex; align-items: center; gap: 7px;
+  }
+  details.more > summary::-webkit-details-marker { display: none; }
+  details.more > summary::before { content: "+"; font-size: 16px; line-height: 1; color: var(--accent); }
+  details.more[open] > summary::before { content: "\2212"; }
+  details.more > summary + * { margin-top: 6px; }
+
+  /* ---------- tables ---------- */
+  .tablewrap { overflow-x: auto; margin: 20px 0; border: 1px solid var(--border); border-radius: var(--radius-m); }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { text-align: start; padding: 11px 15px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  thead th { background: var(--surface-muted); font-weight: 700; color: var(--ink-2); font-size: 11.5px; letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; }
+  tbody tr:last-child td { border-bottom: 0; }
+  tbody tr:nth-child(even) { background: var(--surface-subtle); }
+  tbody tr { transition: background .12s ease; }
+  tbody tr:hover { background: color-mix(in srgb, var(--accent-soft) 30%, transparent); }
+  td .k, th .k { background: var(--surface); }
+  .sym { font-family: var(--mono); color: var(--accent-strong); font-weight: 600; white-space: nowrap; }
+  .dim { color: var(--ink-3); font-family: var(--font); font-weight: 500; }
+  tr.group td {
+    background: var(--surface-muted); color: var(--ink); font-weight: 750;
+    font-size: 12px; letter-spacing: .05em; text-transform: uppercase;
+  }
+  tbody tr.group:hover { background: var(--surface-muted); }
+
+  /* ---------- figure (annotated diagram) ---------- */
+  .figure { margin: 24px 0; padding: 20px 20px 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; box-shadow: var(--shadow-s); }
+  .figure svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .figure figcaption { margin: 12px 4px 6px; font-size: 13.5px; color: var(--ink-3); text-align: center; }
+  .fig-axis { stroke: var(--border-strong); stroke-width: 1.25; }
+  .fig-crit { stroke: var(--ink-3); stroke-width: 1.25; stroke-dasharray: 4 4; }
+  .fig-h0 { fill: none; stroke: var(--ink-3); stroke-width: 2; stroke-linejoin: round; }
+  .fig-h1 { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; }
+  .fig-alpha { fill: color-mix(in srgb, var(--danger) 42%, transparent); }
+  .fig-power { fill: color-mix(in srgb, var(--accent) 26%, transparent); }
+  .fig-lab { font-family: var(--font); font-weight: 700; font-size: 15px; }
+  .fig-lab.h0 { fill: var(--ink-2); } .fig-lab.h1 { fill: var(--accent-strong); }
+  .fig-lab.a { fill: var(--danger); font-size: 14px; } .fig-lab.pw { fill: var(--accent-strong); font-size: 13px; }
+  .fig-tick { fill: var(--ink-3); font-family: var(--mono); font-size: 12px; }
+  .fig-line { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+  .fig-ref { fill: none; stroke: var(--ink-3); stroke-width: 1.5; stroke-dasharray: 4 4; }
+  .fig-dot { fill: var(--accent); }
+  .fig-dot-h { fill: var(--surface); stroke: var(--accent); stroke-width: 2; }
+  .fig-before { fill: none; stroke: var(--ink-3); stroke-width: 2; stroke-dasharray: 5 4; }
+  .fig-after { fill: none; stroke: var(--accent); stroke-width: 2.5; }
+  .fig-after-fill { fill: color-mix(in srgb, var(--accent) 20%, transparent); }
+  .fig-cap-in { fill: var(--ink-2); font-family: var(--font); font-size: 13px; font-weight: 650; }
+  .fig-cap-a { fill: var(--danger); }
+
+  /* ---------- footer ---------- */
+  footer { border-top: 1px solid var(--border); background: var(--surface); }
+  .footer-inner { max-width: var(--maxw); margin: 0 auto; padding: 28px 24px 40px; color: var(--ink-3); font-size: 13.5px; display: flex; flex-wrap: wrap; gap: 8px 20px; justify-content: space-between; }
+  .footer-inner a { color: var(--ink-2); }
+
+  .lead-in { color: var(--ink-2); font-size: 15px; margin: 4px 0 20px; max-width: var(--content); }
+
+  @media (max-width: 640px) {
+    body { font-size: 16px; }
+    .wrap { padding: 0 18px; }
+    .card { padding: 20px 18px; }
+    .formula { padding: 18px 14px; }
+    .formula math { font-size: 1.16rem; }
+    .where dl { grid-template-columns: 1fr; gap: 2px 0; }
+    .where dd { margin-bottom: 8px; }
+  }
+
+  /* ============================================================
+     INTERACTIVE LAYER — progressive enhancement (needs help.js).
+     Hidden until the .js class is set by the script.
+     ============================================================ */
+  .js-only { display: none; }
+  html.js .js-only { display: revert; }
+  html.js .pe-top { display: grid; }
+  html.js .pe-sliders { display: grid; }
+  html.js .sizer-grid { display: grid; }
+  html.js .sizer-out { display: grid; }
+
+  .tool {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--accent-soft) 34%, var(--surface)), var(--surface));
+    border: 1px solid var(--border-strong); border-radius: 18px; box-shadow: var(--shadow-s);
+    padding: 22px 24px; margin: 22px 0;
+  }
+  .tool > .tag { margin-bottom: 8px; }
+  .tool h4 { margin: 0 0 16px; font-size: 1.1rem; font-weight: 750; }
+
+  input[type="range"] { accent-color: var(--accent); width: 100%; height: 24px; cursor: pointer; margin: 2px 0 0; }
+  input[type="number"], select {
+    font: inherit; font-size: 15px; color: var(--ink); background: var(--surface);
+    border: 1px solid var(--border-strong); border-radius: 8px; padding: 8px 10px; width: 100%;
+  }
+  input[type="number"]:focus, select:focus { outline: 2px solid var(--accent-ring); border-color: var(--accent); }
+
+  .pe-top { grid-template-columns: 1.1fr 0.9fr; gap: 22px; align-items: center; margin-bottom: 14px; }
+  .pe-sliders { gap: 14px; }
+  .ctl { display: block; }
+  .ctl-lab { display: flex; justify-content: space-between; align-items: baseline; font-size: 13.5px; font-weight: 650; color: var(--ink-2); margin-bottom: 2px; }
+  .ctl-lab b { font-family: var(--mono); font-weight: 700; color: var(--accent-strong); font-size: 14px; }
+  .pe-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .stat {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 12px 14px; display: flex; flex-direction: column; gap: 3px; text-align: start;
+  }
+  .stat-num { font-family: var(--mono); font-weight: 800; font-size: 1.5rem; letter-spacing: -.02em; line-height: 1; }
+  .stat-cap { font-size: 11.5px; color: var(--ink-3); line-height: 1.3; }
+  .stat.stat-a { border-inline-start: 3px solid var(--danger); } .stat.stat-a .stat-num { color: var(--danger); }
+  .stat.stat-p { border-inline-start: 3px solid var(--accent); } .stat.stat-p .stat-num { color: var(--accent-strong); }
+
+  .sizer-grid { grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 18px; }
+  .fld { display: flex; flex-direction: column; gap: 5px; font-size: 13px; font-weight: 650; color: var(--ink-2); }
+  .sizer-out { grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .sizer-out .stat { border-inline-start: 3px solid var(--accent); }
+  .sizer-out .stat-num { color: var(--accent-strong); }
+  .sizer-note { margin: 12px 0 0; font-size: 13.5px; color: var(--danger); font-weight: 650; }
+  .sizer-fine { margin: 14px 0 0; font-size: 12.5px; color: var(--ink-3); }
+
+  @media (max-width: 640px) {
+    .pe-top { grid-template-columns: 1fr; gap: 14px; }
+    .sizer-grid { grid-template-columns: 1fr 1fr; }
+    .sizer-out { grid-template-columns: 1fr; }
+    .stat-num { font-size: 1.35rem; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="/" aria-label="Back to the app">
+        <span class="brand-mark" aria-hidden="true">AB</span>
+        <span class="brand-text">
+          <span class="brand-name">AB Test Research Designer</span>
+          <span class="brand-tag">Theory reference</span>
+        </span>
+      </a>
+      <nav class="langbar" aria-label="Page language"><a class="langlink current" href="/help.html" hreflang="en" lang="en" title="English" aria-current="page">EN</a><a class="langlink" href="/help.ru.html" hreflang="ru" lang="ru" title="Русский">RU</a><a class="langlink" href="/help.de.html" hreflang="de" lang="de" title="Deutsch">DE</a><a class="langlink" href="/help.fr.html" hreflang="fr" lang="fr" title="Français">FR</a><a class="langlink" href="/help.es.html" hreflang="es" lang="es" title="Español">ES</a><a class="langlink" href="/help.zh.html" hreflang="zh" lang="zh" title="中文">中文</a><a class="langlink" href="/help.ar.html" hreflang="ar" lang="ar" title="العربية">عربي</a></nav>
+    </div>
+  </div>
+
+  <header class="wrap hero">
+    <p class="kicker">Theory · formulas · in plain words</p>
+    <h1>A/B testing:<br>the theory and the <span class='accent-word'>formulas</span></h1>
+    <p>Every statistical method this platform runs — from sample sizing to results analysis to live monitoring — with plain-language intuition, the exact formula, and a breakdown of every symbol.</p>
+    <p class="lede-note">The formulas are shown exactly as the engine computes them. The math is identical in every language; only the explanatory text changes. The colour theme follows the app's setting automatically.</p>
+    <div class="heromedia" aria-hidden="true">
+      <svg viewBox="0 0 720 152" role="img">
+        <defs>
+          <linearGradient id="heroGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" style="stop-color:var(--accent);stop-opacity:.22"/>
+            <stop offset="1" style="stop-color:var(--accent);stop-opacity:0"/>
+          </linearGradient>
+        </defs>
+        <line class="hero-base" x1="0" y1="140" x2="720" y2="140"/>
+        <path class="hero-fill" d="M 0,140 8,140 16,140 24,140 32,139 40,139 48,139 56,139 64,138 72,138 80,137 88,137 96,136 104,135 112,134 120,133 128,131 136,130 144,128 152,125 160,123 168,120 176,116 184,113 192,109 200,104 208,100 216,95 224,89 232,84 240,78 248,72 256,65 264,59 272,53 280,47 288,41 296,36 304,31 312,26 320,22 328,18 336,16 344,14 352,12 360,12 368,12 376,14 384,16 392,18 400,22 408,26 416,31 424,36 432,41 440,47 448,53 456,59 464,65 472,72 480,78 488,84 496,89 504,95 512,100 520,104 528,109 536,113 544,116 552,120 560,123 568,125 576,128 584,130 592,131 600,133 608,134 616,135 624,136 632,137 640,137 648,138 656,138 664,139 672,139 680,139 688,139 696,140 704,140 712,140 720,140 Z"/>
+        <path class="hero-line" d="M 0,140 8,140 16,140 24,140 32,139 40,139 48,139 56,139 64,138 72,138 80,137 88,137 96,136 104,135 112,134 120,133 128,131 136,130 144,128 152,125 160,123 168,120 176,116 184,113 192,109 200,104 208,100 216,95 224,89 232,84 240,78 248,72 256,65 264,59 272,53 280,47 288,41 296,36 304,31 312,26 320,22 328,18 336,16 344,14 352,12 360,12 368,12 376,14 384,16 392,18 400,22 408,26 416,31 424,36 432,41 440,47 448,53 456,59 464,65 472,72 480,78 488,84 496,89 504,95 512,100 520,104 528,109 536,113 544,116 552,120 560,123 568,125 576,128 584,130 592,131 600,133 608,134 616,135 624,136 632,137 640,137 648,138 656,138 664,139 672,139 680,139 688,139 696,140 704,140 712,140 720,140"/>
+        <g>
+          <line class="hero-tick" x1="160" y1="140" x2="160" y2="147"/><text class="hero-tlabel" x="160" y="150" text-anchor="middle" dominant-baseline="hanging">&#x2212;2&#x3C3;</text>
+          <line class="hero-tick" x1="260" y1="140" x2="260" y2="147"/><text class="hero-tlabel" x="260" y="150" text-anchor="middle" dominant-baseline="hanging">&#x2212;1&#x3C3;</text>
+          <line class="hero-tick" x1="360" y1="140" x2="360" y2="147"/><text class="hero-tlabel" x="360" y="150" text-anchor="middle" dominant-baseline="hanging">&#x3BC;</text>
+          <line class="hero-tick" x1="460" y1="140" x2="460" y2="147"/><text class="hero-tlabel" x="460" y="150" text-anchor="middle" dominant-baseline="hanging">+1&#x3C3;</text>
+          <line class="hero-tick" x1="560" y1="140" x2="560" y2="147"/><text class="hero-tlabel" x="560" y="150" text-anchor="middle" dominant-baseline="hanging">+2&#x3C3;</text>
+        </g>
+      </svg>
+    </div>
+  </header>
+
+  <div class="wrap layout">
+    <details class="toc" open>
+      <summary>Contents</summary>
+      <div class="toc-body">
+        <p class="toc-title">Sections</p>
+        <nav>
+          <ol>
+            <li><a href="#fundamentals">Fundamentals: hypotheses, errors, p-value</a></li>
+            <li><a href="#planning">Planning: sample size & duration</a></li>
+            <li><a href="#multiple">Multiple comparisons & clusters</a></li>
+            <li><a href="#analysis">Analysing results: all 22 tests</a></li>
+            <li><a href="#monitoring">Live experiment monitoring</a></li>
+            <li><a href="#cheatsheet">Cheat sheet & notation</a></li>
+          </ol>
+        </nav>
+      </div>
+    </details>
+
+    <main>
+      <!-- ================= 1. FUNDAMENTALS ================= -->
+      <section id="fundamentals">
+        <div class="sec-head"><span class="sec-num">01</span></div>
+        <h2>Fundamentals: what every test rests on</h2>
+        <p class="sec-intro">An A/B test is a way to answer honestly: “did the change really improve something, or does it just look that way?”. Before sizing samples or reading p-values, five ideas need to be pinned down. The rest of this page builds on them.</p>
+
+        <h3>Two hypotheses</h3>
+        <p>We always compare two versions of the world. The <strong>null hypothesis</strong> <span class='k'>H₀</span> says “there is no difference between the variants”. The <strong>alternative</strong> <span class='k'>H₁</span> says “there is a difference”. A test does not “prove” H₁; it checks how absurd the data look <em>if</em> H₀ were true. If they look absurd enough, H₀ is rejected.</p>
+
+        <h3>The four numbers that define a test</h3>
+        <div class="card">
+          <div class="where">
+            <p class="where-title">Agreed before launch</p>
+            <dl>
+              <dt>&#x3B1;</dt><dd><strong>Significance level.</strong> The tolerated “false alarm” risk — declaring an effect that is not there. Usually 0.05 (5%).</dd>
+              <dt>&#x3B2;</dt><dd><strong>Miss risk.</strong> The chance of not noticing a real effect. Usually 0.2 (20%).</dd>
+              <dt>1 &#x2212; &#x3B2;</dt><dd><strong>Power.</strong> The chance of catching an effect when it exists. Usually 0.8 (80%).</dd>
+              <dt>MDE</dt><dd><strong>Minimum detectable effect.</strong> The smallest change you care to catch (say, +5% conversion). A smaller effect may be missed — that is a deliberate trade-off.</dd>
+            </dl>
+          </div>
+        </div>
+
+        <h3>The two mistakes you can make</h3>
+        <p>Reality and the test's verdict give four outcomes. Two are correct, two are errors. The whole point of planning is to keep both errors acceptable: <span class='k'>α</span> controls the Type&nbsp;I error, <span class='k'>β</span> the Type&nbsp;II.</p>
+        <div class="tablewrap">
+          <table>
+            <thead>
+              <tr>
+                <th></th>
+                <th>H₀ true (no effect)</th>
+                <th>H₁ true (effect exists)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th>Test says “effect”</th>
+                <td><strong style='color:var(--danger)'>Type I error</strong> — false alarm. Probability = α.</td>
+                <td><strong style='color:var(--success)'>Correct</strong> — effect caught. Probability = 1 − β (power).</td>
+              </tr>
+              <tr>
+                <th>Test says “no diff”</th>
+                <td><strong style='color:var(--success)'>Correct</strong> — no alarm. Probability = 1 − α.</td>
+                <td><strong style='color:var(--warning)'>Type II error</strong> — effect missed. Probability = β.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <figure class="figure tool" id="powerExplorer">
+          <div class="pe-top js-only">
+            <div class="pe-sliders">
+              <label class="ctl">
+                <span class="ctl-lab"><span>Decision threshold</span> <b id="peOutZ">1.64</b></span>
+                <input type="range" id="peThresh" min="0" max="4" step="0.02" value="1.645" aria-label="threshold">
+              </label>
+              <label class="ctl">
+                <span class="ctl-lab"><span>Effect size</span> <b id="peOutEff">3.0 σ</b></span>
+                <input type="range" id="peEffect" min="0" max="4" step="0.05" value="3" aria-label="effect size">
+              </label>
+            </div>
+            <div class="pe-stats">
+              <div class="stat stat-a"><span class="stat-num" id="peOutAlpha">5.0%</span><span class="stat-cap">α · false alarm</span></div>
+              <div class="stat stat-p"><span class="stat-num" id="peOutPower">91.2%</span><span class="stat-cap">1−β · power</span></div>
+            </div>
+          </div>
+          <svg viewBox="0 0 640 236" role="img" aria-label="Normal distributions of H0 and H1 with alpha and power regions">
+            <path class="fig-alpha pe-alpha" d="M 347,205 347,179 353,184 360,189 367,192 373,195 380,198 387,200 393,201 400,202 407,203 413,204 420,204 427,204 433,205 640,205 640,205 Z"/>
+            <path class="fig-power pe-power" d="M 347,205 347,101 353,88 360,76 367,65 373,54 380,44 387,37 393,31 400,27 407,26 413,27 420,30 427,36 433,43 440,52 447,63 453,74 460,86 467,99 473,111 480,123 487,135 493,145 500,155 507,163 513,171 520,178 527,183 533,188 540,192 547,195 553,197 560,199 567,201 573,202 580,203 587,203 593,204 600,204 607,204 613,205 640,205 640,205 Z"/>
+            <line class="fig-axis" x1="0" y1="205" x2="640" y2="205"/>
+            <line class="fig-crit pe-crit" x1="347" y1="205" x2="347" y2="14"/>
+            <path class="fig-h0 pe-h0" d="M 0,205 26,205 51,204 77,200 96,194 115,182 134,162 154,134 173,100 192,65 211,38 230,26 250,33 269,57 288,91 307,126 326,156 346,178 371,194 397,202 422,204 448,205 480,205 520,205 570,205 640,205"/>
+            <path class="fig-h1 pe-h1" d="M 205,205 218,204 237,203 256,199 275,191 294,178 314,156 333,126 352,91 371,57 390,33 410,26 429,38 448,65 467,100 486,134 506,162 525,182 544,194 563,200 589,204 614,205 640,205"/>
+            <text class="fig-lab h0" x="233" y="18" text-anchor="middle">H&#x2080;</text>
+            <text class="fig-lab h1 pe-lab-h1" x="407" y="18" text-anchor="middle">H&#x2081;</text>
+            <text class="fig-lab a pe-lab-a" x="372" y="199" text-anchor="middle">&#x3B1;</text>
+            <text class="fig-lab pw pe-lab-pw" x="452" y="150" text-anchor="middle">1&#x2212;&#x3B2;</text>
+          </svg>
+          <figcaption>Two hypotheses as distributions. The decision threshold splits the picture: to its right we declare an effect. Red is <strong style='color:var(--danger)'>α</strong> (false alarm under H₀); teal is <strong style='color:var(--accent-strong)'>power 1−β</strong> (effect caught under H₁). <span class='js-only'><strong>Drag the sliders</strong> to watch the threshold trade α against power.</span></figcaption>
+        </figure>
+
+        <h3>p-value: what it is and is not</h3>
+        <p>A test returns a <strong>p-value</strong>: the probability of seeing a gap <em>at least</em> as large as observed, <em>if</em> H₀ were true. A small p means “data like this are rare in a world with no effect” — grounds to reject H₀.</p>
+        <div class="callout warn">
+          <span class="clabel">Common mistake.</span>
+          <span>A p-value is <strong>not</strong> the probability that H₀ is true, nor the probability that you are wrong. It speaks about the data given H₀, not about H₀ itself. p = 0.03 does not mean “there is a 3% chance there is no effect”.</span>
+        </div>
+
+        <h3>Confidence interval</h3>
+        <p>A p-value says “effect or not”; a <strong>confidence interval</strong> (CI) answers the more useful question: “how big is the effect?”. A (1 − α) interval is the range of plausible effect values. If the 95% CI for a conversion difference is <span class='k'>[+0.4%, +2.1%]</span> and excludes zero, the effect is significant — and you can read its size directly.</p>
+        <div class="callout intuition">
+          <span class="clabel">The link.</span>
+          <span>A two-sided test at level α and a (1 − α) interval are two sides of one coin: an effect is significant at α exactly when the interval excludes zero. That is why the platform always shows both the p-value and the interval.</span>
+        </div>
+
+        <h3>Randomisation: who lands in which variant</h3>
+        <div class="card">
+          <span class="tag plan">Fundamentals · assignment</span>
+          <p>Assignment in the platform is deterministic — no stored coin flips. The unit's identifier is hashed together with the experiment's salt, the hash maps into one of 10,000 buckets, and cumulative variant weights slice the bucket range. The same id always lands in the same variant, assignments survive retries and devices, and the split can be inspected before launch with the assignment preview.</p>
+          <div class="formula">
+            <span class="flabel">Deterministic bucket</span>
+            <math display="block">
+              <mtext>bucket</mtext><mo>=</mo>
+              <mi>H</mi><mo>(</mo><mtext>id</mtext><mo>&#x2225;</mo><mtext>salt</mtext><mo>)</mo>
+              <mspace width="0.3em"/><mtext>mod</mtext><mspace width="0.3em"/>
+              <msup><mn>10</mn><mn>4</mn></msup>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Where</p>
+            <dl>
+              <dt>H</dt><dd>a fast stable hash (uniform spreading, not cryptography)</dd>
+              <dt>id</dt><dd>the randomisation unit: user, session, or cluster id</dd>
+              <dt>salt</dt><dd>per-experiment salt — different experiments split independently</dd>
+            </dl>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">The unit matters.</span>
+            <span>The unit of randomisation is the unit of independence. Randomise sessions but analyse users (or vice versa) and the observations are no longer independent — the variance is wrong. That mismatch is exactly what the ratio delta method and the cluster design effect below deal with.</span>
+          </div>
+        </div>
+        <hr class="divider">
+      </section>
+      <!-- ================= 2. PLANNING ================= -->
+      <section id="planning">
+        <div class="sec-head"><span class="sec-num">02</span></div>
+        <h2>Planning: how many users, and for how long</h2>
+        <p class="sec-intro">Sample size is computed <strong>before</strong> launch. Too small a test misses even a real effect (low power); too big wastes traffic. The formula turns your four numbers (α, power, MDE, baseline) into the observations needed per variant.</p>
+
+        <h3>Sample size for a conversion rate (proportion)</h3>
+        <div class="card">
+          <span class="tag plan">Planning · binary metric</span>
+          <p>When the metric is “bought / not”, “clicked / not”, this is the formula. The numerator is the “noise” of two rates; the denominator is the squared effect you want to catch. The smaller the effect <span class='k'>δ</span>, the larger the sample (it grows as 1/δ²: half the effect → four times the sample).</p>
+          <div class="formula">
+            <span class="flabel">Observations per variant</span>
+            <math display="block">
+              <mi>n</mi><mo>=</mo>
+              <mfrac>
+                <msup>
+                  <mrow><mo>(</mo>
+                    <msub><mi>z</mi><mi>&#x3B1;</mi></msub><mspace width="0.15em"/>
+                    <msqrt><mrow><mn>2</mn><mo>&#x2062;</mo><mover><mi>p</mi><mo>&#xAF;</mo></mover><mo>(</mo><mn>1</mn><mo>&#x2212;</mo><mover><mi>p</mi><mo>&#xAF;</mo></mover><mo>)</mo></mrow></msqrt>
+                    <mo>+</mo>
+                    <msub><mi>z</mi><mi>&#x3B2;</mi></msub><mspace width="0.15em"/>
+                    <msqrt><mrow><msub><mi>p</mi><mn>0</mn></msub><mo>(</mo><mn>1</mn><mo>&#x2212;</mo><msub><mi>p</mi><mn>0</mn></msub><mo>)</mo><mo>+</mo><msub><mi>p</mi><mn>1</mn></msub><mo>(</mo><mn>1</mn><mo>&#x2212;</mo><msub><mi>p</mi><mn>1</mn></msub><mo>)</mo></mrow></msqrt>
+                  <mo>)</mo></mrow>
+                  <mn>2</mn>
+                </msup>
+                <msup><mi>&#x3B4;</mi><mn>2</mn></msup>
+              </mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Where</p>
+            <dl>
+              <dt>p&#x2080;, p&#x2081;</dt><dd>baseline and variant conversion; p₁ = p₀·(1 + MDE)</dd>
+              <dt>&#x3B4;</dt><dd>absolute effect, δ = p₁ − p₀</dd>
+              <dt>p&#x304;</dt><dd>pooled rate (p₀ + p₁)/2</dd>
+              <dt>z<sub>&#x3B1;</sub></dt><dd>normal quantile for α (two-sided): 1.96 at α = 0.05</dd>
+              <dt>z<sub>&#x3B2;</sub></dt><dd>quantile for power: 0.84 at power = 0.80</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>Baseline <span class='num'>10%</span>, catching a relative <span class='num'>+10%</span> lift (→ 11%), α = 0.05, power 0.80 → about <span class='num'>14,751</span> users <strong>per</strong> variant.</span>
+          </div>
+        </div>
+
+        <div class="tool js-only" id="sizer">
+          <span class="tag plan">Interactive · calculator</span>
+          <h4>Size your own test</h4>
+          <div class="sizer-grid">
+            <label class="fld"><span>Baseline rate, %</span><input id="szBase" type="number" value="10" min="0.1" max="99" step="0.1"></label>
+            <label class="fld"><span>Relative lift, %</span><input id="szMde" type="number" value="10" min="0.1" step="0.1"></label>
+            <label class="fld"><span>Traffic in test, /day</span><input id="szTraffic" type="number" value="5000" min="1" step="100"></label>
+            <label class="fld"><span>Significance α</span><select id="szAlpha"><option value="1.6449">0.10</option><option value="1.9600" selected>0.05</option><option value="2.5758">0.01</option></select></label>
+            <label class="fld"><span>Power</span><select id="szPower"><option value="0.5244">0.70</option><option value="0.8416" selected>0.80</option><option value="1.2816">0.90</option><option value="1.6449">0.95</option></select></label>
+          </div>
+          <div class="sizer-out">
+            <div class="stat"><span class="stat-num" id="szPer">&#8212;</span><span class="stat-cap">per variant</span></div>
+            <div class="stat"><span class="stat-num" id="szTotal">&#8212;</span><span class="stat-cap">total</span></div>
+            <div class="stat"><span class="stat-num" id="szDays">&#8212;</span><span class="stat-cap">days</span></div>
+          </div>
+          <p class="sizer-note" id="szNote" hidden>Baseline and lift imply a rate ≥ 100% — lower the values.</p>
+          <p class="sizer-fine">The same formula as above. Assumes 2 equal variants, two-sided test, all traffic in the test.</p>
+        </div>
+
+        <h3>Sample size for a mean (continuous metric)</h3>
+        <div class="card">
+          <span class="tag plan">Planning · continuous metric</span>
+          <p>When the metric is a number (revenue per user, time on site, order value), the “noise” is the spread <span class='k'>σ</span>. The formula is simpler: more spread and a smaller effect both grow the sample.</p>
+          <div class="formula">
+            <span class="flabel">Observations per variant</span>
+            <math display="block">
+              <mi>n</mi><mo>=</mo><mn>2</mn>
+              <msup>
+                <mrow><mo>(</mo><mfrac><mrow><mo>(</mo><msub><mi>z</mi><mi>&#x3B1;</mi></msub><mo>+</mo><msub><mi>z</mi><mi>&#x3B2;</mi></msub><mo>)</mo><mo>&#x2062;</mo><mi>&#x3C3;</mi></mrow><mi>&#x3B4;</mi></mfrac><mo>)</mo></mrow>
+                <mn>2</mn>
+              </msup>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Where</p>
+            <dl>
+              <dt>&#x3C3;</dt><dd>standard deviation of the metric (spread across users)</dd>
+              <dt>&#x3B4;</dt><dd>absolute effect in metric units, δ = mean·MDE</dd>
+              <dt>z<sub>&#x3B1;</sub>, z<sub>&#x3B2;</sub></dt><dd>the same normal quantiles as above</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>Mean order <span class='num'>100</span>, spread σ = <span class='num'>40</span>, catching <span class='num'>+5%</span> (δ = 5), α = 0.05, power 0.80 → about <span class='num'>1,005</span> users per variant.</span>
+          </div>
+        </div>
+
+        <h3>The inverse question: what effect can I even detect?</h3>
+        <div class="card">
+          <span class="tag plan">Planning · MDE</span>
+          <p>Traffic is often fixed. Then it helps to invert the formula: at a fixed sample <span class='k'>n</span>, what is the smallest effect you can catch? For a mean this has a closed form.</p>
+          <div class="formula">
+            <span class="flabel">Minimum detectable effect (mean)</span>
+            <math display="block">
+              <mi>MDE</mi><mo>=</mo><mo>(</mo><msub><mi>z</mi><mi>&#x3B1;</mi></msub><mo>+</mo><msub><mi>z</mi><mi>&#x3B2;</mi></msub><mo>)</mo><mo>&#x2062;</mo><mi>&#x3C3;</mi><mo>&#x2062;</mo><msqrt><mfrac><mn>2</mn><mi>n</mi></mfrac></msqrt>
+            </math>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">Meaning.</span>
+            <span>Sensitivity scales as √n: to catch an effect half the size you need four times the data. For conversions the engine solves the same equation numerically (by bisection).</span>
+          </div>
+        </div>
+
+        <h3>Test duration</h3>
+        <div class="card">
+          <span class="tag plan">Planning · duration</span>
+          <p>Sample size is “how many users”; duration is “how many days to accrue them”. Divide the required sample by the daily traffic into the <em>smallest</em> variant — that arm is the bottleneck.</p>
+          <div class="formula">
+            <span class="flabel">Days to reach the sample</span>
+            <math display="block">
+              <mtext>days</mtext><mo>=</mo>
+              <mrow><mo>&#x2308;</mo>
+                <mfrac>
+                  <mi>n</mi>
+                  <mrow><mi>T</mi><mo>&#x2062;</mo><mi>s</mi><mo>&#x2062;</mo><mi>a</mi><mo>&#x2062;</mo><msub><mi>w</mi><mtext>min</mtext></msub></mrow>
+                </mfrac>
+              <mo>&#x2309;</mo></mrow>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Where</p>
+            <dl>
+              <dt>T</dt><dd>expected daily traffic</dd>
+              <dt>s</dt><dd>share of audience entering the test (0…1)</dd>
+              <dt>a</dt><dd>fraction of traffic allocated (holdout / mutually-exclusive tests)</dd>
+              <dt>w<sub>min</sub></dt><dd>weight of the smallest variant in the split</dd>
+              <dt>&#x2308; &#x2309;</dt><dd>round up — a day is indivisible</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>Need 14,751 per variant, 5,000/day traffic, 100% enters the test, two equal variants (50% each) → 2,500/day into the smaller arm → <span class='num'>6 days</span>.</span>
+          </div>
+          <div class="callout warn">
+            <span class="clabel">At least a week.</span>
+            <span>Even if the formula says 2–3 days, run in whole weeks: weekdays and weekends differ, and the novelty of a change distorts the first days.</span>
+          </div>
+        </div>
+
+        <h3>Bayesian “precision” planning</h3>
+        <div class="card">
+          <span class="tag plan">Planning · Bayesian</span>
+          <p>Sometimes the goal is not “catch effect X” but “estimate a metric to within ±d”. Then the sample is driven by the desired half-width of the posterior interval, not by power. With a flat prior this reduces to almost the same normal formula.</p>
+          <div class="formula">
+            <span class="flabel">Sample for a target precision (rate / mean)</span>
+            <math display="block">
+              <mi>N</mi><mo>=</mo><mn>2</mn><mo>&#x2062;</mo><mi>p</mi><mo>(</mo><mn>1</mn><mo>&#x2212;</mo><mi>p</mi><mo>)</mo><msup><mrow><mo>(</mo><mfrac><mi>z</mi><mi>d</mi></mfrac><mo>)</mo></mrow><mn>2</mn></msup>
+              <mspace width="1.4em"/>
+              <mtext>/</mtext>
+              <mspace width="1.4em"/>
+              <mi>N</mi><mo>=</mo><mn>2</mn><mo>&#x2062;</mo><msup><mi>&#x3C3;</mi><mn>2</mn></msup><msup><mrow><mo>(</mo><mfrac><mi>z</mi><mi>d</mi></mfrac><mo>)</mo></mrow><mn>2</mn></msup>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Where</p>
+            <dl>
+              <dt>d</dt><dd>target precision — the interval half-width</dd>
+              <dt>z</dt><dd>credibility quantile: 1.96 at 95%</dd>
+              <dt>p / &#x3C3;</dt><dd>baseline rate or metric spread</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>Estimate a ~10% rate to <span class='num'>±1 pp</span> at 95% → about <span class='num'>6,915</span> per variant.</span>
+          </div>
+        </div>
+
+        <h3>Equivalence test (TOST): “prove nothing broke”</h3>
+        <div class="card">
+          <span class="tag plan">Planning · equivalence</span>
+          <p>A normal test looks for a difference. Sometimes you want the opposite: confirm a refactor, migration, or cost cut did <em>not</em> move the metric beyond a tolerance <span class='k'>±M</span>. That is <strong>TOST</strong> (two one-sided tests). Its sample is sized separately — driven by the tolerance, not the MDE.</p>
+          <div class="formula">
+            <span class="flabel">Sample for equivalence</span>
+            <math display="block">
+              <mi>n</mi><mo>=</mo><mn>2</mn>
+              <msup>
+                <mrow><mo>(</mo><mfrac><mrow><mi>&#x3C3;</mi><mo>(</mo><msub><mi>z</mi><mi>&#x3B1;</mi></msub><mo>+</mo><msub><mi>z</mi><mrow><mn>1</mn><mo>&#x2212;</mo><mi>&#x3B2;</mi><mo>/</mo><mn>2</mn></mrow></msub><mo>)</mo></mrow><mi>M</mi></mfrac><mo>)</mo></mrow>
+                <mn>2</mn>
+              </msup>
+            </math>
+          </div>
+          <div class="callout example">
+            <span>Base 100, σ = 40, tolerance ±5% (M = 5), α = 0.05, power 0.80 → <span class='num'>1,097</span> per variant — against <span class='num'>1,005</span> for the superiority test on the same numbers. Proving “no worse” costs more.</span>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">Subtlety.</span>
+            <span>Each one-sided test runs at level <span class='k'>α</span> (no split by 2), and the power term uses <span class='k'>z<sub>1−β/2</sub></span> because at a true zero difference the power splits symmetrically between the two bounds <span class='k'>−M</span> and <span class='k'>+M</span>.</span>
+          </div>
+        </div>
+
+        <div class="callout intuition">
+          <span class="clabel">More than two variants?</span>
+          <span>When a test is sized with k &gt; 2 variants, the platform automatically tightens the significance level to α/(k−1) — Bonferroni over the variant-vs-control comparisons — before computing the sample. The numbers already include the multiplicity price.</span>
+        </div>
+        <hr class="divider">
+      </section>
+      <!-- ================= 3. MULTIPLE COMPARISONS ================= -->
+      <section id="multiple">
+        <div class="sec-head"><span class="sec-num">03</span></div>
+        <h2>Many variants, many metrics, clusters</h2>
+        <p class="sec-intro">The moment you make more than one comparison, false alarms pile up. Test 20 metrics at 5% and, on average, one “fires” by pure chance. Here is how that is fixed — and what to do when you randomise stores or cities rather than people.</p>
+
+        <h3>The multiple-comparisons problem</h3>
+        <p>If each test is independent and runs at level α, the chance of <em>at least one</em> false alarm across <span class='k'>m</span> checks is 1 − (1 − α)<sup>m</sup>. At α = 0.05 and m = 10 that is already <strong>40%</strong>. You control one of two quantities:</p>
+        <div class="tablewrap">
+          <table>
+            <thead><tr>
+              <th>What is controlled</th>
+              <th>Question</th>
+              <th>Methods</th>
+            </tr></thead>
+            <tbody>
+              <tr>
+                <td><strong>FWER</strong><br><span style='color:var(--ink-3)'>family-wise error rate</span></td>
+                <td>What is the chance of <em>any</em> false finding?</td>
+                <td>Bonferroni, Holm. Stricter; loses power as m grows.</td>
+              </tr>
+              <tr>
+                <td><strong>FDR</strong><br><span style='color:var(--ink-3)'>false discovery rate</span></td>
+                <td>What <em>fraction</em> of “discoveries” is false?</td>
+                <td>Benjamini–Hochberg. More powerful when metrics are many.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <figure class="figure">
+          <svg viewBox="0 0 560 216" role="img" aria-label="Family-wise error rate grows with the number of metrics">
+            <line class="fig-axis" x1="40" y1="188" x2="548" y2="188"/>
+            <line class="fig-axis" x1="40" y1="188" x2="40" y2="16"/>
+            <line class="fig-ref" x1="40" y1="175" x2="548" y2="175"/>
+            <path class="fig-line" style="stroke:var(--danger)" d="M 50,175 76,163 102,152 127,141 153,130 179,120 205,111 231,102 256,94 282,86 308,78 334,71 359,64 385,57 411,51 437,45 463,39 488,34 514,29 540,24"/>
+            <circle class="fig-dot" style="fill:var(--danger)" cx="153" cy="130" r="4"/>
+            <circle class="fig-dot" style="fill:var(--danger)" cx="282" cy="86" r="4"/>
+            <circle class="fig-dot" style="fill:var(--danger)" cx="540" cy="24" r="4.5"/>
+            <text class="fig-cap-in fig-cap-a" x="150" y="122" text-anchor="middle">23%</text>
+            <text class="fig-cap-in fig-cap-a" x="279" y="78" text-anchor="middle">40%</text>
+            <text class="fig-cap-in fig-cap-a" x="540" y="17" text-anchor="middle">64%</text>
+            <text class="fig-tick" x="44" y="171">5%</text>
+            <text class="fig-tick" x="50" y="202" text-anchor="middle">1</text>
+            <text class="fig-tick" x="153" y="202" text-anchor="middle">5</text>
+            <text class="fig-tick" x="282" y="202" text-anchor="middle">10</text>
+            <text class="fig-tick" x="540" y="202" text-anchor="middle">20</text>
+          </svg>
+          <figcaption>The chance of <strong style='color:var(--danger)'>at least one</strong> false finding when testing several metrics at 5%: 1 − (1 − 0.05)<sup>m</sup>. At 10 metrics it is already 40%, at 20 it is 64%. The dashed line is the “honest” 5% of a single check. Hence the corrections below.</figcaption>
+        </figure>
+
+        <h3>Bonferroni correction</h3>
+        <div class="card">
+          <span class="tag multi">Multiplicity · FWER</span>
+          <p>The simplest recipe: divide the threshold by the number of comparisons. The platform applies it automatically when there are more than two variants — that means <span class='k'>k − 1</span> “variant vs control” comparisons.</p>
+          <div class="formula">
+            <span class="flabel">Adjusted threshold</span>
+            <math display="block">
+              <msub><mi>&#x3B1;</mi><mtext>adj</mtext></msub><mo>=</mo><mfrac><mi>&#x3B1;</mi><mrow><mi>k</mi><mo>&#x2212;</mo><mn>1</mn></mrow></mfrac>
+              <mspace width="2em"/><mtext>(</mtext><mspace width="0.2em"/><mtext>across metrics:</mtext><mspace width="0.4em"/><msub><mi>&#x3B1;</mi><mtext>adj</mtext></msub><mo>=</mo><mfrac><mi>&#x3B1;</mi><mi>m</mi></mfrac><mspace width="0.2em"/><mtext>)</mtext>
+            </math>
+          </div>
+          <div class="callout example">
+            <span>3 variants → 2 comparisons → threshold 0.05 / 2 = <span class='num'>0.025</span> (z rises 1.96 → 2.24). Conservative but safe.</span>
+          </div>
+        </div>
+
+        <h3>Holm and Benjamini–Hochberg: smarter than dividing equally</h3>
+        <div class="card">
+          <span class="tag multi">Multiplicity · step procedures</span>
+          <p>Bonferroni penalises every metric equally. Step procedures sort the p-values ascending <span class='k'>p₍₁₎ ≤ … ≤ p₍ₘ₎</span> and compare each with its own, progressively looser threshold.</p>
+          <div class="formula">
+            <span class="flabel">Holm (FWER, step-down)</span>
+            <math display="block">
+              <mtext>reject</mtext><mspace width="0.4em"/><msub><mi>p</mi><mrow><mo>(</mo><mi>k</mi><mo>)</mo></mrow></msub><mspace width="0.5em"/><mtext>while</mtext><mspace width="0.5em"/>
+              <msub><mi>p</mi><mrow><mo>(</mo><mi>k</mi><mo>)</mo></mrow></msub><mo>&#x2264;</mo><mfrac><mi>&#x3B1;</mi><mrow><mi>m</mi><mo>&#x2212;</mo><mi>k</mi><mo>+</mo><mn>1</mn></mrow></mfrac>
+            </math>
+          </div>
+          <div class="formula">
+            <span class="flabel">Benjamini–Hochberg (FDR, step-up)</span>
+            <math display="block">
+              <msup><mi>k</mi><mo>&#x2217;</mo></msup><mo>=</mo><mi>max</mi><mo>&#x2061;</mo><mrow><mo>{</mo><mi>k</mi><mo>:</mo><mspace width="0.3em"/><msub><mi>p</mi><mrow><mo>(</mo><mi>k</mi><mo>)</mo></mrow></msub><mo>&#x2264;</mo><mfrac><mi>k</mi><mi>m</mi></mfrac><mo>&#x2062;</mo><mi>q</mi><mo>}</mo></mrow>
+              <mspace width="0.6em"/><mo>&#x21D2;</mo><mspace width="0.4em"/><mtext>reject ranks</mtext><mspace width="0.3em"/><mn>1</mn><mo>&#x2026;</mo><msup><mi>k</mi><mo>&#x2217;</mo></msup>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Where</p>
+            <dl>
+              <dt>m</dt><dd>number of metrics tested</dd>
+              <dt>k</dt><dd>rank of a p-value in the sorted list</dd>
+              <dt>q</dt><dd>tolerated false-discovery fraction (e.g. 0.05)</dd>
+            </dl>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">How to choose.</span>
+            <span>Few metrics and strict control — Holm (always beats plain Bonferroni). Many metrics and a small false share is acceptable — Benjamini–Hochberg.</span>
+          </div>
+        </div>
+
+        <h3>Cluster randomisation: the design effect and ICC</h3>
+        <div class="card">
+          <span class="tag multi">Clusters · sample size</span>
+          <p>If you assign <em>groups</em> to variants — stores, cities, classrooms — rather than individuals, observations inside a group resemble each other. There is less effective information than the head-count suggests, so the naive sample must be inflated by the <strong>design effect</strong> (DEFF).</p>
+          <div class="formula">
+            <span class="flabel">Design effect (Kish)</span>
+            <math display="block">
+              <mtext>DEFF</mtext><mo>=</mo><mn>1</mn><mo>+</mo><mo>(</mo><mi>m</mi><mo>&#x2212;</mo><mn>1</mn><mo>)</mo><mo>&#x2062;</mo><mtext>ICC</mtext>
+              <mspace width="2em"/>
+              <msub><mi>n</mi><mtext>clust</mtext></msub><mo>=</mo><mi>n</mi><mo>&#x00D7;</mo><mtext>DEFF</mtext>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Where</p>
+            <dl>
+              <dt>m</dt><dd>average cluster size (people per group)</dd>
+              <dt>ICC</dt><dd>intraclass correlation 0…1: how alike people inside a group are. 0 = independent, then DEFF = 1</dd>
+              <dt>n</dt><dd>the sample from ordinary individual randomisation</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>Clusters of <span class='num'>50</span>, ICC = <span class='num'>0.02</span>: DEFF = 1 + 49·0.02 = <span class='num'>1.98</span>. A naive 1,000/variant becomes <span class='num'>1,980</span>/variant ≈ <span class='num'>40 clusters</span> per variant.</span>
+          </div>
+          <div class="callout warn">
+            <span class="clabel">Watch out.</span>
+            <span>Even a tiny ICC with large clusters yields a huge DEFF. This is the most common reason behind “we ran a city-level test and caught nothing”.</span>
+          </div>
+        </div>
+        <hr class="divider">
+      </section>
+      <!-- ================= 4. ANALYSIS ================= -->
+      <section id="analysis">
+        <div class="sec-head"><span class="sec-num">04</span></div>
+        <h2>Analysing results: the test is over, now what</h2>
+        <p class="sec-intro">The data is in. Now pick a test by the <em>design</em> of the experiment and the <em>shape</em> of the metric. The platform ships <strong>twenty-two analyzers</strong>; this section walks through them by design — two independent groups, paired observations, more than two groups, time-to-event — and ends with the full table of all 22.</p>
+
+        <!-- ---- 4.1 two independent groups ---- -->
+        <h3>Two independent groups</h3>
+        <p class="group-lead">The classic A/B: every unit sees exactly one variant. Rates take the z-test or the exact family, means take Welch and the robust quartet, event counts take Poisson, per-event ratios take the delta method.</p>
+
+        <div class="card">
+          <span class="tag analyze">Analysis · binary</span>
+          <h4>Two-proportion z-test (conversions)</h4>
+          <p>The standard “conversion A vs conversion B” test. Measure how many “standard errors” the rate difference spans. The variance uses the pooled rate <span class='k'>p̄</span> — under H₀ the rates are equal.</p>
+          <div class="formula">
+            <span class="flabel">Statistic</span>
+            <math display="block">
+              <mi>z</mi><mo>=</mo>
+              <mfrac>
+                <mrow><msub><mover><mi>p</mi><mo>^</mo></mover><mi>t</mi></msub><mo>&#x2212;</mo><msub><mover><mi>p</mi><mo>^</mo></mover><mi>c</mi></msub></mrow>
+                <msqrt><mrow><mover><mi>p</mi><mo>&#xAF;</mo></mover><mo>(</mo><mn>1</mn><mo>&#x2212;</mo><mover><mi>p</mi><mo>&#xAF;</mo></mover><mo>)</mo><mo>(</mo><mfrac><mn>1</mn><msub><mi>n</mi><mi>c</mi></msub></mfrac><mo>+</mo><mfrac><mn>1</mn><msub><mi>n</mi><mi>t</mi></msub></mfrac><mo>)</mo></mrow></msqrt>
+              </mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Where</p>
+            <dl>
+              <dt>p&#x302;<sub>c</sub>, p&#x302;<sub>t</sub></dt><dd>observed control and treatment rates</dd>
+              <dt>p&#x304;</dt><dd>pooled rate (all conversions / all users)</dd>
+              <dt>n<sub>c</sub>, n<sub>t</sub></dt><dd>group sizes</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>Control 1,000/10,000 = 10.0%, treatment 1,120/10,000 = 11.2% → z = <span class='num'>2.76</span>, p = <span class='num'>0.006</span>. The difference is significant. The Wilson interval for the treatment rate: <span class='num'>[10.60%; 11.83%]</span>.</span>
+          </div>
+          <details class="more">
+            <summary>Interval for a proportion: why Wilson, not Wald</summary>
+            <p>The naive interval <span class='k'>p̂ ± z·√(p̂(1−p̂)/n)</span> (Wald) misbehaves near the edges (0 or 1) and at small n — collapsing to zero width at p̂ = 0. The platform uses the <strong>Wilson score interval</strong> (inverting the score test): always inside [0, 1], with honest coverage. For the difference of rates, the <strong>Newcombe</strong> hybrid of two Wilson intervals.</p>
+            <div class="formula">
+              <span class="flabel">Wilson score interval</span>
+              <math display="block">
+                <mfrac>
+                  <mrow><mover><mi>p</mi><mo>^</mo></mover><mo>+</mo><mfrac><msup><mi>z</mi><mn>2</mn></msup><mrow><mn>2</mn><mi>n</mi></mrow></mfrac><mo>&#x00B1;</mo><mi>z</mi><msqrt><mrow><mfrac><mrow><mover><mi>p</mi><mo>^</mo></mover><mo>(</mo><mn>1</mn><mo>&#x2212;</mo><mover><mi>p</mi><mo>^</mo></mover><mo>)</mo></mrow><mi>n</mi></mfrac><mo>+</mo><mfrac><msup><mi>z</mi><mn>2</mn></msup><mrow><mn>4</mn><msup><mi>n</mi><mn>2</mn></msup></mrow></mfrac></mrow></msqrt></mrow>
+                  <mrow><mn>1</mn><mo>+</mo><msup><mi>z</mi><mn>2</mn></msup><mo>/</mo><mi>n</mi></mrow>
+                </mfrac>
+              </math>
+            </div>
+          </details>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">Analysis · binary, exact</span>
+          <h4>Small counts: Fisher, Boschloo, Barnard</h4>
+          <p>The z-test's normal approximation gets shaky when successes are scarce — a handful of conversions, near-zero rates. Exact tests compute the p-value directly from the 2×2 table. <strong>Fisher</strong> conditions on both margins (hypergeometric). <strong>Boschloo</strong> and <strong>Barnard</strong> are unconditional: they maximise over the unknown common rate π, which makes them strictly more powerful than Fisher on typical A/B data. The engine caps table sizes for the exact computations (500k totals for Fisher; a shared cap for the unconditional pair).</p>
+          <div class="formula">
+            <span class="flabel">Fisher: hypergeometric probability of a table</span>
+            <math display="block">
+              <mi>P</mi><mo>(</mo><mi>a</mi><mo>)</mo><mo>=</mo>
+              <mfrac>
+                <mrow><mi>C</mi><mo>(</mo><msub><mi>m</mi><mn>1</mn></msub><mo>,</mo><mi>a</mi><mo>)</mo><mo>&#x2062;</mo><mi>C</mi><mo>(</mo><msub><mi>m</mi><mn>2</mn></msub><mo>,</mo><mi>c</mi><mo>)</mo></mrow>
+                <mrow><mi>C</mi><mo>(</mo><mi>n</mi><mo>,</mo><mi>a</mi><mo>+</mo><mi>c</mi><mo>)</mo></mrow>
+              </mfrac>
+            </math>
+          </div>
+          <div class="formula">
+            <span class="flabel">Unconditional (Boschloo / Barnard): maximise over the nuisance rate</span>
+            <math display="block">
+              <mi>p</mi><mo>=</mo>
+              <munder><mi>max</mi><mi>&#x3C0;</mi></munder>
+              <munder><mo>&#x2211;</mo><mrow><mi>T</mi><mo>&#x2AB0;</mo><mtext>obs</mtext></mrow></munder>
+              <msub><mi>P</mi><mi>&#x3C0;</mi></msub><mo>(</mo><mi>T</mi><mo>)</mo>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Where</p>
+            <dl>
+              <dt>m&#x2081;, m&#x2082;</dt><dd>row totals — the two group sizes</dd>
+              <dt>a, c</dt><dd>successes in control and treatment</dd>
+              <dt>&#x3C0;</dt><dd>the unknown common rate under H₀ — the “nuisance” parameter</dd>
+              <dt>T &#x2AB0; obs</dt><dd>tables at least as extreme as observed: Boschloo orders them by Fisher's p, Barnard by the pooled Wald z</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>3/40 (7.5%) vs 11/40 (27.5%): Fisher p = <span class='num'>0.0367</span>; Boschloo p = <span class='num'>0.0206</span>; Barnard p = <span class='num'>0.0204</span> (ordering z = −2.354). The unconditional pair finds the same data roughly twice as convincing.</span>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">Which one?</span>
+            <span>Reach for an exact test when any expected cell is small (rule of thumb: below 5). Between them, Boschloo is the pragmatic default — never less powerful than Fisher. Barnard can squeeze out slightly more power but costs more to compute.</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">Analysis · continuous</span>
+          <h4>Welch's t-test (means)</h4>
+          <p>Comparing means when the spread may differ between groups (the usual case). Unlike the classic t-test, Welch does <em>not</em> assume equal variances — which makes it the sensible default.</p>
+          <div class="formula">
+            <span class="flabel">Statistic and degrees of freedom (Welch–Satterthwaite)</span>
+            <math display="block">
+              <mi>t</mi><mo>=</mo>
+              <mfrac>
+                <mrow><msub><mover><mi>x</mi><mo>&#xAF;</mo></mover><mi>t</mi></msub><mo>&#x2212;</mo><msub><mover><mi>x</mi><mo>&#xAF;</mo></mover><mi>c</mi></msub></mrow>
+                <msqrt><mrow><mfrac><msubsup><mi>s</mi><mi>c</mi><mn>2</mn></msubsup><msub><mi>n</mi><mi>c</mi></msub></mfrac><mo>+</mo><mfrac><msubsup><mi>s</mi><mi>t</mi><mn>2</mn></msubsup><msub><mi>n</mi><mi>t</mi></msub></mfrac></mrow></msqrt>
+              </mfrac>
+              <mspace width="1.6em"/>
+              <mi>&#x3BD;</mi><mo>=</mo>
+              <mfrac>
+                <msup><mrow><mo>(</mo><msubsup><mi>s</mi><mi>c</mi><mn>2</mn></msubsup><mo>/</mo><msub><mi>n</mi><mi>c</mi></msub><mo>+</mo><msubsup><mi>s</mi><mi>t</mi><mn>2</mn></msubsup><mo>/</mo><msub><mi>n</mi><mi>t</mi></msub><mo>)</mo></mrow><mn>2</mn></msup>
+                <mrow><mfrac><msup><mrow><mo>(</mo><msubsup><mi>s</mi><mi>c</mi><mn>2</mn></msubsup><mo>/</mo><msub><mi>n</mi><mi>c</mi></msub><mo>)</mo></mrow><mn>2</mn></msup><mrow><msub><mi>n</mi><mi>c</mi></msub><mo>&#x2212;</mo><mn>1</mn></mrow></mfrac><mo>+</mo><mfrac><msup><mrow><mo>(</mo><msubsup><mi>s</mi><mi>t</mi><mn>2</mn></msubsup><mo>/</mo><msub><mi>n</mi><mi>t</mi></msub><mo>)</mo></mrow><mn>2</mn></msup><mrow><msub><mi>n</mi><mi>t</mi></msub><mo>&#x2212;</mo><mn>1</mn></mrow></mfrac></mrow>
+              </mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Where</p>
+            <dl>
+              <dt>x&#x304;<sub>c</sub>, x&#x304;<sub>t</sub></dt><dd>group means</dd>
+              <dt>s<sub>c</sub>, s<sub>t</sub></dt><dd>group standard deviations</dd>
+              <dt>&#x3BD;</dt><dd>effective degrees of freedom — the Student-t reference uses these</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>Control 100 ± 40 (n = 1,005), treatment 105 ± 41 (n = 1,005) → t = <span class='num'>2.77</span>, ν ≈ <span class='num'>2,007</span>, p ≈ 0.006. Effect magnitude is reported alongside as <span class='k'>Cohen's d</span> = difference / pooled spread.</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">Analysis · robust</span>
+          <h4>Heavy tails and outliers: the robust quartet</h4>
+          <p>Revenue-like metrics — skew, heavy tails, outliers — break the t-test's assumptions. The engine ships four tests that do not trust the shape of the distribution, shown here on <strong>one and the same dataset</strong> (n = 10 per group) so their outputs can be compared side by side. <strong>Mann–Whitney</strong> compares by ranks; <strong>bootstrap / permutation</strong> resamples the observed data instead of assuming a curve; the <strong>quantile test</strong> moves the question to the median (or any percentile); <strong>Yuen's trimmed t</strong> cuts the extreme 20% of each tail before comparing means.</p>
+          <div class="callout example">
+            <span>One dataset for all four: C = [12, 15, 9, 22, 30, 14, 18, 25, 11, 16], T = [18, 24, 13, 29, 41, 19, 26, 33, 15, 22].</span>
+          </div>
+          <div class="formula">
+            <span class="flabel">Mann–Whitney: statistic and normal approximation</span>
+            <math display="block">
+              <mi>U</mi><mo>=</mo><msub><mi>R</mi><mn>1</mn></msub><mo>&#x2212;</mo><mfrac><mrow><msub><mi>n</mi><mn>1</mn></msub><mo>(</mo><msub><mi>n</mi><mn>1</mn></msub><mo>+</mo><mn>1</mn><mo>)</mo></mrow><mn>2</mn></mfrac>
+              <mspace width="1.6em"/>
+              <mi>z</mi><mo>=</mo><mfrac><mrow><mi>U</mi><mo>&#x2212;</mo><msub><mi>n</mi><mn>1</mn></msub><msub><mi>n</mi><mn>2</mn></msub><mo>/</mo><mn>2</mn></mrow><msub><mi>&#x3C3;</mi><mi>U</mi></msub></mfrac>
+            </math>
+          </div>
+          <div class="formula">
+            <span class="flabel">Effect sizes: Hodges–Lehmann shift and rank-biserial correlation</span>
+            <math display="block">
+              <mtext>HL</mtext><mo>=</mo><mi>med</mi><mo>&#x2061;</mo><mrow><mo>{</mo><msub><mi>y</mi><mi>j</mi></msub><mo>&#x2212;</mo><msub><mi>x</mi><mi>i</mi></msub><mo>}</mo></mrow>
+              <mspace width="1.6em"/>
+              <msub><mi>r</mi><mtext>rb</mtext></msub><mo>=</mo><mfrac><mrow><mn>2</mn><mi>U</mi></mrow><mrow><msub><mi>n</mi><mn>1</mn></msub><msub><mi>n</mi><mn>2</mn></msub></mrow></mfrac><mo>&#x2212;</mo><mn>1</mn>
+            </math>
+          </div>
+          <div class="formula">
+            <span class="flabel">Permutation p-value and percentile bootstrap CI</span>
+            <math display="block">
+              <msub><mi>p</mi><mtext>perm</mtext></msub><mo>=</mo>
+              <mfrac>
+                <mrow><mn>1</mn><mo>+</mo><mo>#</mo><mrow><mo>{</mo><mrow><mo>|</mo><msup><mi>&#x394;</mi><mo>&#x2217;</mo></msup><mo>|</mo></mrow><mo>&#x2265;</mo><mrow><mo>|</mo><mover><mi>&#x394;</mi><mo>^</mo></mover><mo>|</mo></mrow><mo>}</mo></mrow></mrow>
+                <mrow><mi>B</mi><mo>+</mo><mn>1</mn></mrow>
+              </mfrac>
+              <mspace width="1.6em"/>
+              <msub><mtext>CI</mtext><mn>95</mn></msub><mo>=</mo><mrow><mo>[</mo><msubsup><mi>&#x394;</mi><mrow><mo>(</mo><mn>2.5</mn><mo>%</mo><mo>)</mo></mrow><mo>&#x2217;</mo></msubsup><mo>;</mo><mspace width="0.3em"/><msubsup><mi>&#x394;</mi><mrow><mo>(</mo><mn>97.5</mn><mo>%</mo><mo>)</mo></mrow><mo>&#x2217;</mo></msubsup><mo>]</mo></mrow>
+            </math>
+          </div>
+          <div class="formula">
+            <span class="flabel">Yuen: t on 20%-trimmed means</span>
+            <math display="block">
+              <msub><mi>t</mi><mtext>Yuen</mtext></msub><mo>=</mo>
+              <mfrac>
+                <mrow><msub><mover><mi>x</mi><mo>&#xAF;</mo></mover><mrow><mi>t</mi><mo>,</mo><mtext>tr</mtext></mrow></msub><mo>&#x2212;</mo><msub><mover><mi>x</mi><mo>&#xAF;</mo></mover><mrow><mi>c</mi><mo>,</mo><mtext>tr</mtext></mrow></msub></mrow>
+                <msqrt><mrow><msub><mi>d</mi><mi>c</mi></msub><mo>+</mo><msub><mi>d</mi><mi>t</mi></msub></mrow></msqrt>
+              </mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Where</p>
+            <dl>
+              <dt>R&#x2081;</dt><dd>sum of the first group's ranks in the pooled sample</dd>
+              <dt>&#x3C3;<sub>U</sub></dt><dd>SD of U under H₀ — tie-corrected, with continuity correction; on small tie-free samples the engine enumerates exactly</dd>
+              <dt>&#x394;*</dt><dd>the difference statistic recomputed on resampled / permuted data; B = number of resamples</dd>
+              <dt>x&#x304;<sub>tr</sub>, d</dt><dd>trimmed means and winsorised variance terms; 20% trimming leaves effective n = 6 per group here</dd>
+            </dl>
+          </div>
+          <div class="tablewrap">
+            <table>
+              <thead><tr>
+                <th>Test</th>
+                <th>Question it answers</th>
+                <th>On this dataset</th>
+              </tr></thead>
+              <tbody>
+                <tr><td class="sym">Mann&#8211;Whitney U</td><td>Do T's values tend to be larger?</td><td>U = 74.5, z = 1.816, p = 0.069; HL = +6.5 [−1; 14]; medians 15.5 → 23.0; CLES 0.745, r<sub>rb</sub> = 0.49</td></tr>
+                <tr><td class="sym">bootstrap / permutation</td><td>Is the mean difference explainable by chance?</td><td>Δ = 6.8, p = 0.0665, CI [0.4; 13.2], d = 0.88 (2,000 resamples, fixed seed)</td></tr>
+                <tr><td class="sym">quantile (median)</td><td>Did the median shift?</td><td>shift +7.5, p = 0.123, CI [−1.5; 15]</td></tr>
+                <tr><td class="sym">Yuen trimmed t (20%)</td><td>Do means differ once the tails are cut?</td><td>16.17 vs 23.0, t = 1.94, df 9.84, p = 0.082</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">Read them together.</span>
+            <span>All four agree here: the effect is about +6…7 with p between 0.07 and 0.12 — promising, not significant at n = 10. When the quartet disagrees, the disagreement itself is information: a mean–median gap points at outliers or a heavy tail driving the “average” win.</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">Analysis · counts</span>
+          <h4>Event counts: Poisson rate test</h4>
+          <p>When the metric is a count of events over exposure — errors per thousand sessions, orders per user-day — compare intensities, not shares. The engine uses the exact conditional test: given the total number of events, the treatment's share of them is Binomial under H₀ (exact up to 1M events). The effect is a rate ratio, with a CI for the rate difference.</p>
+          <div class="formula">
+            <span class="flabel">Conditional binomial and the rate ratio</span>
+            <math display="block">
+              <msub><mi>X</mi><mi>t</mi></msub><mo>&#x2223;</mo><mrow><mo>(</mo><msub><mi>X</mi><mi>t</mi></msub><mo>+</mo><msub><mi>X</mi><mi>c</mi></msub><mo>)</mo></mrow>
+              <mo>&#x223C;</mo><mtext>Bin</mtext><mrow><mo>(</mo><msub><mi>X</mi><mi>t</mi></msub><mo>+</mo><msub><mi>X</mi><mi>c</mi></msub><mo>,</mo><mspace width="0.25em"/><mfrac><msub><mi>e</mi><mi>t</mi></msub><mrow><msub><mi>e</mi><mi>t</mi></msub><mo>+</mo><msub><mi>e</mi><mi>c</mi></msub></mrow></mfrac><mo>)</mo></mrow>
+              <mspace width="1.6em"/>
+              <mtext>RR</mtext><mo>=</mo><mfrac><mrow><msub><mi>X</mi><mi>t</mi></msub><mo>/</mo><msub><mi>e</mi><mi>t</mi></msub></mrow><mrow><msub><mi>X</mi><mi>c</mi></msub><mo>/</mo><msub><mi>e</mi><mi>c</mi></msub></mrow></mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Where</p>
+            <dl>
+              <dt>X<sub>c</sub>, X<sub>t</sub></dt><dd>event counts in control and treatment</dd>
+              <dt>e<sub>c</sub>, e<sub>t</sub></dt><dd>exposures (users, sessions, user-days)</dd>
+              <dt>RR</dt><dd>rate ratio — the multiplicative effect</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>46 events / 11,500 vs 72 / 11,800: rate 0.40% → 0.61%, ratio <span class='num'>1.525</span>, exact p = <span class='num'>0.0269</span>, CI for the difference [0.0003; 0.0039].</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">Analysis · ratio</span>
+          <h4>Ratio metrics: the delta method</h4>
+          <p>CTR, “clicks per impression”, “revenue per session” are a ratio <span class='k'>R = ΣY / ΣX</span> where the <em>user</em> is randomised but counting is by <em>events</em>. The naive variance here is <strong>wrong</strong>: it ignores the within-user link between numerator and denominator. The delta method linearises the ratio and recovers the correct variance.</p>
+          <div class="formula">
+            <span class="flabel">Variance of the ratio (delta method)</span>
+            <math display="block">
+              <mtext>Var</mtext><mo>(</mo><mover><mi>R</mi><mo>^</mo></mover><mo>)</mo><mo>=</mo>
+              <mfrac>
+                <mrow><msubsup><mi>&#x3C3;</mi><mi>Y</mi><mn>2</mn></msubsup><mo>&#x2212;</mo><mn>2</mn><mover><mi>R</mi><mo>^</mo></mover><msub><mi>&#x3C3;</mi><mrow><mi>X</mi><mi>Y</mi></mrow></msub><mo>+</mo><msup><mover><mi>R</mi><mo>^</mo></mover><mn>2</mn></msup><msubsup><mi>&#x3C3;</mi><mi>X</mi><mn>2</mn></msubsup></mrow>
+                <mrow><mi>n</mi><mo>&#x2062;</mo><msubsup><mi>&#x3BC;</mi><mi>X</mi><mn>2</mn></msubsup></mrow>
+              </mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Where</p>
+            <dl>
+              <dt>&#x3BC;<sub>X</sub></dt><dd>mean denominator per user</dd>
+              <dt>&#x3C3;&#xB2;<sub>X</sub>, &#x3C3;&#xB2;<sub>Y</sub></dt><dd>per-user numerator and denominator variances</dd>
+              <dt>&#x3C3;<sub>XY</sub></dt><dd>their covariance — exactly what the naive formula drops</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>From the engine's frozen tests: clicks-per-impression 0.436 → 0.538, Δ = <span class='num'>0.1018</span>, z = <span class='num'>8.74</span> — a strongly significant ratio lift, with the within-user covariance properly accounted for.</span>
+          </div>
+        </div>
+
+        <!-- ---- 4.2 paired designs ---- -->
+        <h3>Paired observations</h3>
+        <p class="group-lead">The same units measured twice — before/after, or matched pairs. Pairing cancels the between-user variance inside each pair, which is why paired designs reach significance on a fraction of the sample. The pair, not the user, is the unit of analysis.</p>
+
+        <div class="card">
+          <span class="tag analyze">Analysis · paired means</span>
+          <h4>Paired t-test</h4>
+          <p>Take the within-pair differences <span class='k'>d</span> and test whether their mean is zero. All the stable between-user spread cancels inside each pair; only the change itself carries noise. The effect size is Cohen's <span class='k'>d<sub>z</sub></span> — in units of the differences' spread.</p>
+          <div class="formula">
+            <span class="flabel">Statistic and paired effect size</span>
+            <math display="block">
+              <mi>t</mi><mo>=</mo><mfrac><mover><mi>d</mi><mo>&#xAF;</mo></mover><mrow><msub><mi>s</mi><mi>d</mi></msub><mo>/</mo><msqrt><mi>n</mi></msqrt></mrow></mfrac>
+              <mspace width="1.6em"/>
+              <mtext>df</mtext><mo>=</mo><mi>n</mi><mo>&#x2212;</mo><mn>1</mn>
+              <mspace width="1.6em"/>
+              <msub><mi>d</mi><mi>z</mi></msub><mo>=</mo><mfrac><mover><mi>d</mi><mo>&#xAF;</mo></mover><msub><mi>s</mi><mi>d</mi></msub></mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Where</p>
+            <dl>
+              <dt>d&#x304;</dt><dd>mean of the within-pair differences</dd>
+              <dt>s<sub>d</sub></dt><dd>standard deviation of the differences</dd>
+              <dt>d<sub>z</sub></dt><dd>paired effect size: mean difference over its spread</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>12 before/after pairs (309.2 → 318.3): Δ = <span class='num'>+9.17</span>, t = 6.46, df 11, p &lt; 0.001, CI [6.04; 12.29], d<sub>z</sub> = 1.87. Two independent groups of 12 would never see this.</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">Analysis · paired, ranks</span>
+          <h4>Wilcoxon signed-rank</h4>
+          <p>The nonparametric twin of the paired t: rank the absolute differences, sum the ranks of the positive and the negative ones separately, test the smaller sum (normal approximation for the reference). Robust to outliers among the differences; the effect is the Hodges–Lehmann <strong>pseudomedian</strong> of the pair differences.</p>
+          <div class="formula">
+            <span class="flabel">Statistic and normal approximation</span>
+            <math display="block">
+              <mi>W</mi><mo>=</mo><mi>min</mi><mo>&#x2061;</mo><mo>(</mo><msup><mi>W</mi><mo>+</mo></msup><mo>,</mo><mspace width="0.2em"/><msup><mi>W</mi><mo>&#x2212;</mo></msup><mo>)</mo>
+              <mspace width="1.6em"/>
+              <mi>z</mi><mo>=</mo><mfrac><mrow><mi>W</mi><mo>&#x2212;</mo><msub><mi>&#x3BC;</mi><mi>W</mi></msub></mrow><msub><mi>&#x3C3;</mi><mi>W</mi></msub></mfrac>
+            </math>
+          </div>
+          <div class="callout example">
+            <span>The same 12 pairs: W = <span class='num'>1</span>, z = −2.945, p = <span class='num'>0.0032</span>, pseudomedian +9.5 [6; 12.5].</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">Analysis · paired, binary</span>
+          <h4>McNemar: paired rates</h4>
+          <p>For paired binary outcomes (converted before vs after, same users) only the <strong>discordant</strong> pairs carry information: <span class='k'>b</span> pairs switched 0→1, <span class='k'>c</span> pairs switched 1→0; concordant pairs cancel out. The engine applies the continuity correction and reports the odds ratio b/c and the difference in rates.</p>
+          <div class="formula">
+            <span class="flabel">Continuity-corrected statistic and odds ratio</span>
+            <math display="block">
+              <msup><mi>&#x3C7;</mi><mn>2</mn></msup><mo>=</mo>
+              <mfrac>
+                <msup><mrow><mo>(</mo><mrow><mo>|</mo><mi>b</mi><mo>&#x2212;</mo><mi>c</mi><mo>|</mo></mrow><mo>&#x2212;</mo><mn>1</mn><mo>)</mo></mrow><mn>2</mn></msup>
+                <mrow><mi>b</mi><mo>+</mo><mi>c</mi></mrow>
+              </mfrac>
+              <mspace width="1.6em"/>
+              <mtext>OR</mtext><mo>=</mo><mfrac><mi>b</mi><mi>c</mi></mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Where</p>
+            <dl>
+              <dt>b</dt><dd>pairs that improved (0→1)</dd>
+              <dt>c</dt><dd>pairs that worsened (1→0)</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>1,000 pairs, b = 30, c = 12: χ² = <span class='num'>6.881</span> (corrected), p = <span class='num'>0.0087</span>, OR = 2.5, Δ = +1.8 pp [0.53; 3.07].</span>
+          </div>
+        </div>
+
+        <!-- ---- 4.3 more than two groups & categories ---- -->
+        <h3>More than two groups, and categories</h3>
+        <p class="group-lead">With k variants, run one omnibus test first — “is anything different at all?” — and only then pairwise comparisons with a multiplicity correction (section 03). Jumping straight into pairwise tests multiplies false alarms.</p>
+
+        <div class="card">
+          <span class="tag analyze">Analysis · k groups</span>
+          <h4>Omnibus: Welch ANOVA and Kruskal–Wallis</h4>
+          <p><strong>Welch ANOVA</strong> compares k means without assuming equal variances (the same philosophy as Welch's t). <strong>Kruskal–Wallis</strong> is its rank-based twin. Effect sizes: <span class='k'>η²</span> and <span class='k'>ε²</span> — the share of variance explained by group membership.</p>
+          <div class="formula">
+            <span class="flabel">Welch ANOVA (unequal variances)</span>
+            <math display="block">
+              <msub><mi>w</mi><mi>i</mi></msub><mo>=</mo><mfrac><msub><mi>n</mi><mi>i</mi></msub><msubsup><mi>s</mi><mi>i</mi><mn>2</mn></msubsup></mfrac>
+              <mspace width="1.4em"/>
+              <msup><mi>F</mi><mo>&#x2217;</mo></msup><mo>=</mo>
+              <mfrac>
+                <mrow><munder><mo>&#x2211;</mo><mi>i</mi></munder><msub><mi>w</mi><mi>i</mi></msub><msup><mrow><mo>(</mo><msub><mover><mi>x</mi><mo>&#xAF;</mo></mover><mi>i</mi></msub><mo>&#x2212;</mo><msub><mover><mi>x</mi><mo>&#xAF;</mo></mover><mi>w</mi></msub><mo>)</mo></mrow><mn>2</mn></msup><mo>/</mo><mrow><mo>(</mo><mi>k</mi><mo>&#x2212;</mo><mn>1</mn><mo>)</mo></mrow></mrow>
+                <mi>D</mi>
+              </mfrac>
+            </math>
+          </div>
+          <div class="formula">
+            <span class="flabel">Kruskal–Wallis and its effect size</span>
+            <math display="block">
+              <mi>H</mi><mo>=</mo>
+              <mfrac><mn>12</mn><mrow><mi>N</mi><mo>(</mo><mi>N</mi><mo>+</mo><mn>1</mn><mo>)</mo></mrow></mfrac>
+              <munder><mo>&#x2211;</mo><mi>i</mi></munder><mfrac><msubsup><mi>R</mi><mi>i</mi><mn>2</mn></msubsup><msub><mi>n</mi><mi>i</mi></msub></mfrac>
+              <mo>&#x2212;</mo><mn>3</mn><mo>(</mo><mi>N</mi><mo>+</mo><mn>1</mn><mo>)</mo>
+              <mspace width="1.4em"/>
+              <msup><mi>&#x3B5;</mi><mn>2</mn></msup><mo>=</mo><mfrac><mrow><mi>H</mi><mo>&#x2212;</mo><mi>k</mi><mo>+</mo><mn>1</mn></mrow><mrow><mi>N</mi><mo>&#x2212;</mo><mi>k</mi></mrow></mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Where</p>
+            <dl>
+              <dt>k, N</dt><dd>number of groups and total sample size</dd>
+              <dt>x&#x304;<sub>w</sub>, D</dt><dd>variance-weighted grand mean; D is Welch's denominator correcting for unequal variances — the reference is F(k−1, df) with Welch's df</dd>
+              <dt>R<sub>i</sub></dt><dd>sum of ranks of group i in the pooled sample</dd>
+              <dt>&#x3B7;&#xB2;, &#x3B5;&#xB2;</dt><dd>explained-variance shares: η² for ANOVA, ε² for Kruskal–Wallis</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>3 groups × 10 (the third one lower): Welch ANOVA F* = <span class='num'>3.58</span>, df (2; 16.87), p = <span class='num'>0.0506</span> — not significant; Kruskal–Wallis on the same data H = <span class='num'>6.44</span>, p = <span class='num'>0.0399</span> — significant, ε² = 0.222.</span>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">An instructive split.</span>
+            <span>The same data, two defensible tests, opposite verdicts at α = 0.05 (0.0506 vs 0.0399). Heavy tails weaken the mean-based test but barely touch the rank-based one. Treat p-values near the threshold as borderline evidence, not binary truth — and fix the test family before looking at the data.</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">Analysis · categorical</span>
+          <h4>Categories: χ² r×c, Cramér V, G-test</h4>
+          <p>When the outcome is one of several categories (chosen tariff, click target) across several variants, the χ² independence test asks whether the distribution differs by variant, and <strong>Cramér V</strong> (0…1) says how strongly. The <strong>G-test</strong> is the likelihood-ratio version of the same question — same answer on large tables, and additive across breakdowns.</p>
+          <div class="formula">
+            <span class="flabel">Independence test and association size</span>
+            <math display="block">
+              <msup><mi>&#x3C7;</mi><mn>2</mn></msup><mo>=</mo>
+              <munder><mo>&#x2211;</mo><mrow><mi>i</mi><mo>,</mo><mi>j</mi></mrow></munder>
+              <mfrac><msup><mrow><mo>(</mo><msub><mi>O</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo>&#x2212;</mo><msub><mi>E</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo>)</mo></mrow><mn>2</mn></msup><msub><mi>E</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub></mfrac>
+              <mspace width="1.4em"/>
+              <mi>V</mi><mo>=</mo><msqrt><mfrac><msup><mi>&#x3C7;</mi><mn>2</mn></msup><mrow><mi>n</mi><mo>&#x2062;</mo><mi>min</mi><mo>&#x2061;</mo><mo>(</mo><mi>r</mi><mo>&#x2212;</mo><mn>1</mn><mo>,</mo><mi>c</mi><mo>&#x2212;</mo><mn>1</mn><mo>)</mo></mrow></mfrac></msqrt>
+            </math>
+          </div>
+          <div class="formula">
+            <span class="flabel">G-test (likelihood ratio)</span>
+            <math display="block">
+              <mi>G</mi><mo>=</mo><mn>2</mn>
+              <munder><mo>&#x2211;</mo><mrow><mi>i</mi><mo>,</mo><mi>j</mi></mrow></munder>
+              <msub><mi>O</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo>&#x2062;</mo><mi>ln</mi><mo>&#x2061;</mo><mfrac><msub><mi>O</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><msub><mi>E</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub></mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Where</p>
+            <dl>
+              <dt>O<sub>ij</sub>, E<sub>ij</sub></dt><dd>observed and expected counts; E = (row total × column total) / n</dd>
+              <dt>r, c</dt><dd>numbers of rows and columns</dd>
+              <dt>V</dt><dd>association size: 0 — independent, 1 — perfectly determined</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>3 tariffs × 3 variants [[420, 380, 200], [410, 360, 230], [380, 340, 280]]: χ² = <span class='num'>18.17</span>, df 4, p = <span class='num'>0.0011</span>; G = <span class='num'>18.07</span>, p = 0.0012; Cramér V = <span class='num'>0.055</span> — significant, yet the association is weak. With n ≈ 3,000 significance is cheap; V keeps you honest.</span>
+          </div>
+          <div class="callout warn">
+            <span class="clabel">Cochran's rule.</span>
+            <span>The χ² approximation wants expected counts of at least 5 in (nearly) every cell — here min E = 236.7, fine. With sparse cells, collapse categories or use an exact test.</span>
+          </div>
+        </div>
+
+        <!-- ---- 4.4 time-to-event ---- -->
+        <h3>Time-to-event (survival)</h3>
+        <p class="group-lead">Sometimes the metric is “how long until the event” — churn, first purchase, activation — and at the end of the window some users have not had the event yet. Dropping them biases everything; survival methods keep them as <strong>censored</strong>: they contribute “survived at least this long”.</p>
+
+        <div class="card">
+          <span class="tag analyze">Analysis · survival</span>
+          <h4>Kaplan–Meier: the survival curve</h4>
+          <p>The product-limit estimator builds <span class='k'>S(t)</span> — the probability of surviving past t — by multiplying, at every observed event time, the fraction of those still at risk who did not have the event. Censored users leave the risk set without counting as events.</p>
+          <div class="formula">
+            <span class="flabel">Product-limit estimator</span>
+            <math display="block">
+              <mover><mi>S</mi><mo>^</mo></mover><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo>
+              <munder><mo>&#x220F;</mo><mrow><msub><mi>t</mi><mi>i</mi></msub><mo>&#x2264;</mo><mi>t</mi></mrow></munder>
+              <mrow><mo>(</mo><mn>1</mn><mo>&#x2212;</mo><mfrac><msub><mi>d</mi><mi>i</mi></msub><msub><mi>n</mi><mi>i</mi></msub></mfrac><mo>)</mo></mrow>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Where</p>
+            <dl>
+              <dt>t<sub>i</sub></dt><dd>distinct event times</dd>
+              <dt>d<sub>i</sub></dt><dd>events at time t<sub>i</sub></dd>
+              <dt>n<sub>i</sub></dt><dd>units at risk just before t<sub>i</sub></dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>Control churn curve from the dataset below: Ŝ(25) = <span class='num'>0.25</span> [0.005; 0.495] — by day 25 only a quarter is retained, and at this sample size the interval is honest about how little that pins down.</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">Analysis · survival</span>
+          <h4>Log-rank and Fleming–Harrington</h4>
+          <p>The log-rank test compares whole curves, not one point: at every event time it tallies observed vs expected events in group 1 (Mantel–Cox O − E over the variance V). <strong>Fleming–Harrington G(ρ,γ)</strong> is the weighted family: ρ &gt; 0 emphasises early differences, γ &gt; 0 late ones; G(0,0) is exactly log-rank. For k groups the statistic is the quadratic form zᵀV⁻¹z ~ χ²(k−1).</p>
+          <div class="formula">
+            <span class="flabel">Log-rank (Mantel–Cox)</span>
+            <math display="block">
+              <msup><mi>&#x3C7;</mi><mn>2</mn></msup><mo>=</mo>
+              <mfrac>
+                <msup><mrow><mo>(</mo><msub><mi>O</mi><mn>1</mn></msub><mo>&#x2212;</mo><msub><mi>E</mi><mn>1</mn></msub><mo>)</mo></mrow><mn>2</mn></msup>
+                <mi>V</mi>
+              </mfrac>
+            </math>
+          </div>
+          <div class="formula">
+            <span class="flabel">Fleming–Harrington weights and the k-sample form</span>
+            <math display="block">
+              <mi>w</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo>
+              <mover><mi>S</mi><mo>^</mo></mover><msup><mrow><mo>(</mo><msup><mi>t</mi><mo>&#x2212;</mo></msup><mo>)</mo></mrow><mi>&#x3C1;</mi></msup>
+              <msup><mrow><mo>(</mo><mn>1</mn><mo>&#x2212;</mo><mover><mi>S</mi><mo>^</mo></mover><mo>(</mo><msup><mi>t</mi><mo>&#x2212;</mo></msup><mo>)</mo><mo>)</mo></mrow><mi>&#x3B3;</mi></msup>
+              <mspace width="1.6em"/>
+              <msup><mi>&#x3C7;</mi><mn>2</mn></msup><mo>=</mo><msup><mi>z</mi><mi>T</mi></msup><msup><mi>V</mi><mrow><mo>&#x2212;</mo><mn>1</mn></mrow></msup><mi>z</mi>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Where</p>
+            <dl>
+              <dt>O&#x2081;, E&#x2081;</dt><dd>observed and expected events in group 1, summed over event times</dd>
+              <dt>V</dt><dd>hypergeometric variance of O₁</dd>
+              <dt>&#x3C1;, &#x3B3;</dt><dd>the weighting knobs: (0,0) — classic; ρ &gt; 0 — early; γ &gt; 0 — late differences</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>Churn days C = [3, 5, 7, 9, 12, 14, 18, 21, 25] + 3 censored at day 30 vs T = [6, 10, 15, 22, 28] + 7 censored: χ² = <span class='num'>3.32</span>, p = <span class='num'>0.068</span> (O₁ = 9 vs E₁ = 5.68). G(0,0) reproduces it exactly.</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">Analysis · survival</span>
+          <h4>Cox proportional hazards</h4>
+          <p>The Cox model turns the group difference into a <strong>hazard ratio</strong>: HR = e<sup>β</sup> multiplies the instantaneous risk of the event at every moment. The engine fits β for the treatment indicator by partial likelihood and tests it with the Wald z; the baseline hazard h₀(t) stays unspecified.</p>
+          <div class="formula">
+            <span class="flabel">Model, effect, and Wald test</span>
+            <math display="block">
+              <mi>h</mi><mo>(</mo><mi>t</mi><mo>&#x2223;</mo><mi>x</mi><mo>)</mo><mo>=</mo>
+              <msub><mi>h</mi><mn>0</mn></msub><mo>(</mo><mi>t</mi><mo>)</mo><mo>&#x2062;</mo>
+              <msup><mi>e</mi><mrow><mi>&#x3B2;</mi><mi>x</mi></mrow></msup>
+              <mspace width="1.4em"/>
+              <mtext>HR</mtext><mo>=</mo><msup><mi>e</mi><mover><mi>&#x3B2;</mi><mo>^</mo></mover></msup>
+              <mspace width="1.4em"/>
+              <mi>z</mi><mo>=</mo><mfrac><mover><mi>&#x3B2;</mi><mo>^</mo></mover><mrow><mtext>SE</mtext><mo>(</mo><mover><mi>&#x3B2;</mi><mo>^</mo></mover><mo>)</mo></mrow></mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Where</p>
+            <dl>
+              <dt>h&#x2080;(t)</dt><dd>baseline hazard — never estimated; cancels out of the partial likelihood</dd>
+              <dt>x</dt><dd>treatment indicator (0 = control, 1 = treatment)</dd>
+              <dt>HR</dt><dd>hazard ratio: HR &lt; 1 — the event is slowed (good for churn), HR &gt; 1 — accelerated</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>Same dataset: HR = <span class='num'>0.372</span> [0.123; 1.123], β = −0.988, SE 0.563, p = <span class='num'>0.079</span>. The point estimate says “churn hazard almost ×3 lower”; the interval says the data cannot yet back that up. Effect size and significance are different questions.</span>
+          </div>
+          <div class="callout warn">
+            <span class="clabel">PH assumption.</span>
+            <span>“Proportional hazards” means the ratio is constant over time; if the curves cross, HR averages a sign change — look at the KM curves first. On degenerate data with a monotone likelihood (e.g. all events in one arm) the engine refuses to fit rather than report a fake HR.</span>
+          </div>
+        </div>
+
+        <!-- ---- 4.5 all 22 analyzers ---- -->
+        <h3>All twenty-two analyzers</h3>
+        <p class="lead-in">Grouped by experimental design. Within a group, selection follows the metric type and the shape of the data.</p>
+        <div class="tablewrap">
+          <table>
+            <thead><tr>
+              <th>Analyzer</th>
+              <th>Used for</th>
+              <th>Notes</th>
+            </tr></thead>
+            <tbody>
+              <tr class="group"><td colspan="3">Two independent groups — rates & counts</td></tr>
+              <tr><td class="sym">z &#183; 2 proportions</td><td>rates, 2 groups</td><td>the baseline conversion test; Wilson / Newcombe intervals</td></tr>
+              <tr><td class="sym">Fisher exact</td><td>rates, small counts</td><td>exact 2×2; conditions on the margins</td></tr>
+              <tr><td class="sym">Boschloo exact</td><td>rates, small counts</td><td>unconditional exact, ordered by Fisher's p — the powerful default</td></tr>
+              <tr><td class="sym">Barnard exact</td><td>rates, small counts</td><td>unconditional exact, ordered by pooled z; a touch more power, slower</td></tr>
+              <tr><td class="sym">Poisson rate</td><td>event counts vs exposure</td><td>exact conditional binomial; rate ratio</td></tr>
+              <tr class="group"><td colspan="3">Two independent groups — means & distributions</td></tr>
+              <tr><td class="sym">Welch t</td><td>means, 2 groups</td><td>unequal variances — the default</td></tr>
+              <tr><td class="sym">TOST</td><td>equivalence of means</td><td>“prove no worse than ±M”</td></tr>
+              <tr><td class="sym">Mann&#8211;Whitney U</td><td>ranks / stochastic dominance</td><td>Hodges–Lehmann shift, rank-biserial</td></tr>
+              <tr><td class="sym">bootstrap / permutation</td><td>any distribution</td><td>assumption-free resampling, fixed seed</td></tr>
+              <tr><td class="sym">quantile effect</td><td>median / percentile</td><td>effect in the tail, not the mean</td></tr>
+              <tr><td class="sym">Yuen trimmed t</td><td>means with outliers</td><td>20% trimming, winsorised variance</td></tr>
+              <tr class="group"><td colspan="3">Ratio metrics</td></tr>
+              <tr><td class="sym">ratio delta-method</td><td>CTR, per-impression / per-session</td><td>delta method recovers the honest variance</td></tr>
+              <tr class="group"><td colspan="3">Paired observations</td></tr>
+              <tr><td class="sym">paired t</td><td>paired means</td><td>before/after; Cohen's d<sub>z</sub></td></tr>
+              <tr><td class="sym">Wilcoxon signed-rank</td><td>paired, ranks</td><td>pseudomedian of pair differences</td></tr>
+              <tr><td class="sym">McNemar</td><td>paired rates</td><td>discordant pairs only; continuity-corrected</td></tr>
+              <tr class="group"><td colspan="3">More than two groups & categories</td></tr>
+              <tr><td class="sym">Welch ANOVA</td><td>means, k groups</td><td>omnibus, unequal variances, η²</td></tr>
+              <tr><td class="sym">Kruskal&#8211;Wallis</td><td>ranks, k groups</td><td>nonparametric omnibus, ε²</td></tr>
+              <tr><td class="sym">&#x3C7;&#xB2; r&#xD7;c + Cram&#xE9;r V</td><td>categories × variants</td><td>independence + association size</td></tr>
+              <tr><td class="sym">G-test</td><td>categories × variants</td><td>likelihood-ratio twin of χ²</td></tr>
+              <tr class="group"><td colspan="3">Time-to-event</td></tr>
+              <tr><td class="sym">log-rank</td><td>survival curves, 2+ groups</td><td>Mantel–Cox O−E; censoring handled</td></tr>
+              <tr><td class="sym">Fleming&#8211;Harrington G(&#x3C1;,&#x3B3;)</td><td>early / late curve differences</td><td>weights Ŝ(t)^ρ(1−Ŝ(t))^γ; k-sample zᵀV⁻¹z</td></tr>
+              <tr><td class="sym">Cox PH</td><td>hazard ratio as effect size</td><td>Wald test on β̂; PH assumption</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <hr class="divider">
+      </section>
+      <!-- ================= 5. MONITORING ================= -->
+      <section id="monitoring">
+        <div class="sec-head"><span class="sec-num">05</span></div>
+        <h2>Live monitoring: while the test runs</h2>
+        <p class="sec-intro">Planning is not the end. While the experiment runs you must catch randomisation faults, avoid “peeking” the wrong way, speed up conclusions by cutting variance, and make sure a win on the primary metric does not break everything else.</p>
+
+        <h3>SRM: did randomisation break</h3>
+        <div class="card">
+          <span class="tag monitor">Monitoring · health</span>
+          <p><strong>Sample Ratio Mismatch</strong> — when the actual traffic split (say 50/50) diverges from the expected one beyond chance. A red flag: a broken splitter, dropped events, bots. With SRM the results are <em>not</em> trustworthy — fix the cause. Detected by a chi-square goodness-of-fit test.</p>
+          <div class="formula">
+            <span class="flabel">Goodness-of-fit statistic</span>
+            <math display="block">
+              <msup><mi>&#x3C7;</mi><mn>2</mn></msup><mo>=</mo><munderover><mo>&#x2211;</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>k</mi></munderover><mfrac><msup><mrow><mo>(</mo><msub><mi>O</mi><mi>i</mi></msub><mo>&#x2212;</mo><msub><mi>E</mi><mi>i</mi></msub><mo>)</mo></mrow><mn>2</mn></msup><msub><mi>E</mi><mi>i</mi></msub></mfrac>
+              <mspace width="1.6em"/><mtext>df</mtext><mo>=</mo><mi>k</mi><mo>&#x2212;</mo><mn>1</mn>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Where</p>
+            <dl>
+              <dt>O<sub>i</sub></dt><dd>observed count in variant i</dd>
+              <dt>E<sub>i</sub></dt><dd>expected = share·total</dd>
+              <dt>k</dt><dd>number of variants</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>Expect 50/50 of 20,000, see 10,300 / 9,700 → χ² = <span class='num'>18.0</span>, p ≈ <span class='num'>0.00002</span>. The alert threshold <span class='k'>p &lt; 0.001</span> is crossed → <strong style='color:var(--danger)'>SRM, stop</strong>.</span>
+          </div>
+        </div>
+
+        <h3>The peeking problem and group-sequential design</h3>
+        <div class="card">
+          <span class="tag monitor">Monitoring · early stops</span>
+          <p>Peek at the p-value daily and stop the moment it dips below 0.05 — and the true false-alarm rate is not 5% but several times higher. Every “look” is a fresh chance to err. <strong>O'Brien–Fleming boundaries</strong> fix this: early looks demand a near-impossible z, the threshold relaxes toward the end, and the total α stays 0.05.</p>
+          <div class="formula">
+            <span class="flabel">Boundary at information fraction t</span>
+            <math display="block">
+              <msub><mi>z</mi><mi>k</mi></msub><mo>=</mo><mfrac><msub><mi>z</mi><mtext>final</mtext></msub><msqrt><msub><mi>t</mi><mi>k</mi></msub></msqrt></mfrac>
+              <mspace width="1.6em"/><msub><mi>t</mi><mi>k</mi></msub><mo>=</mo><mfrac><mtext>look</mtext><mrow><mtext>total looks</mtext></mrow></mfrac>
+            </math>
+          </div>
+          <div class="callout example">
+            <span>With 5 planned looks, the first (t = 0.2) needs ≈ <span class='num'>z = 4.5</span> (p ≈ 0.000007): stopping that early is nearly impossible. That guards against random early “wins”. The price — the planned sample grows slightly (× ~1.03, the engine interpolates the calibrated final anchor).</span>
+          </div>
+        </div>
+
+        <figure class="figure">
+          <svg viewBox="0 0 560 216" role="img" aria-label="O'Brien-Fleming z-boundaries relax across looks">
+            <line class="fig-axis" x1="40" y1="188" x2="548" y2="188"/>
+            <line class="fig-axis" x1="40" y1="188" x2="40" y2="16"/>
+            <line class="fig-ref" x1="40" y1="123" x2="548" y2="123"/>
+            <text class="fig-tick" x="44" y="118">1.96</text>
+            <path class="fig-line" d="M 148,37 246,81 344,101 442,112 540,120"/>
+            <circle class="fig-dot-h" cx="148" cy="37" r="5"/><text class="fig-cap-in" x="148" y="28" text-anchor="middle">4.56</text>
+            <circle class="fig-dot-h" cx="246" cy="81" r="5"/><text class="fig-cap-in" x="246" y="72" text-anchor="middle">3.23</text>
+            <circle class="fig-dot-h" cx="344" cy="101" r="5"/><text class="fig-cap-in" x="344" y="92" text-anchor="middle">2.63</text>
+            <circle class="fig-dot-h" cx="442" cy="112" r="5"/><text class="fig-cap-in" x="442" y="103" text-anchor="middle">2.28</text>
+            <circle class="fig-dot" cx="540" cy="120" r="5.5"/><text class="fig-cap-in" x="540" y="111" text-anchor="middle">2.04</text>
+            <text class="fig-tick" x="148" y="202" text-anchor="middle">1</text>
+            <text class="fig-tick" x="246" y="202" text-anchor="middle">2</text>
+            <text class="fig-tick" x="344" y="202" text-anchor="middle">3</text>
+            <text class="fig-tick" x="442" y="202" text-anchor="middle">4</text>
+            <text class="fig-tick" x="540" y="202" text-anchor="middle">5</text>
+          </svg>
+          <figcaption>The z-boundary across five planned looks. An early look demands a near-impossible z ≈ 4.6 — it will not “fire” that early by chance. Toward the end the boundary relaxes to ≈ 2.04, while the total α stays at 0.05. The dashed line is the naive fixed 1.96, which under peeking yields too many false alarms.</figcaption>
+        </figure>
+
+        <h3>Always-valid: look whenever you like</h3>
+        <div class="card">
+          <span class="tag monitor">Monitoring · anytime</span>
+          <p>O'Brien–Fleming needs pre-planned looks. On a live dashboard the looks are <em>not</em> planned. Then use <strong>always-valid</strong> inference (a mixture mSPRT): the p-value and interval stay correct under <em>continuous</em> monitoring — any number of times, at any moment.</p>
+          <div class="formula">
+            <span class="flabel">Mixture likelihood ratio and anytime-p</span>
+            <math display="block">
+              <msub><mi>&#x39B;</mi><mi>n</mi></msub><mo>=</mo><msqrt><mfrac><mi>V</mi><mrow><mi>V</mi><mo>+</mo><msup><mi>&#x3C4;</mi><mn>2</mn></msup></mrow></mfrac></msqrt><mo>&#x2062;</mo><mi>exp</mi><mo>&#x2061;</mo><mrow><mo>(</mo><mfrac><mrow><msup><mi>&#x3C4;</mi><mn>2</mn></msup><msup><mover><mi>&#x3B8;</mi><mo>^</mo></mover><mn>2</mn></msup></mrow><mrow><mn>2</mn><mi>V</mi><mo>(</mo><mi>V</mi><mo>+</mo><msup><mi>&#x3C4;</mi><mn>2</mn></msup><mo>)</mo></mrow></mfrac><mo>)</mo></mrow>
+              <mspace width="1.4em"/><mi>p</mi><mo>=</mo><mi>min</mi><mo>&#x2061;</mo><mo>(</mo><mn>1</mn><mo>,</mo><mspace width="0.2em"/><mn>1</mn><mo>/</mo><msub><mi>&#x39B;</mi><mi>n</mi></msub><mo>)</mo>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Where</p>
+            <dl>
+              <dt>&#x3B8;&#x302;</dt><dd>observed effect (difference of means / rates)</dd>
+              <dt>V</dt><dd>variance of the effect estimate</dd>
+              <dt>&#x3C4;&#xB2;</dt><dd>the mixture spread — tuned to the expected effect; does not affect validity, only power</dd>
+            </dl>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">Confidence sequence.</span>
+            <span>The method has a companion interval <span class='k'>θ̂ ± r</span> that covers the true effect with probability 1 − α <em>simultaneously at all</em> sample sizes. It excludes zero exactly when the anytime-p drops below α.</span>
+          </div>
+        </div>
+
+        <h3>The Bayesian view: P(B &gt; A)</h3>
+        <div class="card">
+          <span class="tag monitor">Monitoring · Bayesian</span>
+          <p>Instead of “significant / not”, the Bayesian view answers the direct business question: <strong>what is the probability that B beats A?</strong> For conversions, take a Beta posterior per variant and count how often a draw of B exceeds a draw of A. The engine does this by Monte-Carlo simulation with a fixed seed — reproducible, not a closed form.</p>
+          <div class="formula">
+            <span class="flabel">Posterior and probability of superiority</span>
+            <math display="block">
+              <msub><mi>p</mi><mi>i</mi></msub><mo>&#x223C;</mo><mtext>Beta</mtext><mo>(</mo><mn>1</mn><mo>+</mo><msub><mi>x</mi><mi>i</mi></msub><mo>,</mo><mspace width="0.2em"/><mn>1</mn><mo>+</mo><msub><mi>n</mi><mi>i</mi></msub><mo>&#x2212;</mo><msub><mi>x</mi><mi>i</mi></msub><mo>)</mo>
+              <mspace width="1.4em"/><mi>P</mi><mo>(</mo><mi>B</mi><mo>&gt;</mo><mi>A</mi><mo>)</mo><mo>=</mo><mi>P</mi><mo>(</mo><msub><mi>p</mi><mi>B</mi></msub><mo>&gt;</mo><msub><mi>p</mi><mi>A</mi></msub><mo>)</mo>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Where</p>
+            <dl>
+              <dt>x<sub>i</sub>, n<sub>i</sub></dt><dd>conversions and size of variant i</dd>
+              <dt>Beta(1+x, 1+n&#x2212;x)</dt><dd>posterior under a uniform Beta(1,1) prior</dd>
+            </dl>
+          </div>
+          <div class="callout warn">
+            <span class="clabel">Not the same as a p-value.</span>
+            <span>P(B &gt; A) = 97% is <em>not</em> “1 − p”. It is the probability that B is better, given the data and prior. Handy for decisions, but it needs the same stopping discipline as the frequentist path.</span>
+          </div>
+        </div>
+
+        <h3>CUPED: less noise, faster conclusions</h3>
+        <div class="card">
+          <span class="tag monitor">Monitoring · variance reduction</span>
+          <p>Part of a metric's spread is explained by what the user was like <em>before</em> the test. <strong>CUPED</strong> subtracts that predictable part using a pre-experiment covariate <span class='k'>X</span> (say, past activity). Variance drops by <span class='k'>ρ²</span> — the test gains power with zero extra users.</p>
+          <div class="formula">
+            <span class="flabel">Adjusted metric and variance reduction</span>
+            <math display="block">
+              <msub><mi>Y</mi><mtext>cuped</mtext></msub><mo>=</mo><mi>Y</mi><mo>&#x2212;</mo><mi>&#x3B8;</mi><mo>(</mo><mi>X</mi><mo>&#x2212;</mo><mover><mi>X</mi><mo>&#xAF;</mo></mover><mo>)</mo><mo>,</mo>
+              <mspace width="1em"/><mi>&#x3B8;</mi><mo>=</mo><mfrac><mrow><mtext>cov</mtext><mo>(</mo><mi>Y</mi><mo>,</mo><mi>X</mi><mo>)</mo></mrow><mrow><mtext>var</mtext><mo>(</mo><mi>X</mi><mo>)</mo></mrow></mfrac>
+              <mspace width="1.4em"/><mfrac><msub><mtext>var</mtext><mtext>new</mtext></msub><msub><mtext>var</mtext><mtext>old</mtext></msub></mfrac><mo>=</mo><mn>1</mn><mo>&#x2212;</mo><msup><mi>&#x3C1;</mi><mn>2</mn></msup>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Where</p>
+            <dl>
+              <dt>X</dt><dd>pre-experiment covariate (independent of the variant!)</dd>
+              <dt>&#x3B8;</dt><dd>optimal coefficient = cov(Y,X)/var(X)</dd>
+              <dt>&#x3C1;</dt><dd>correlation of Y and X</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>Correlation ρ = 0.6 → variance falls by <span class='num'>36%</span>, the standard error by 20%. Equivalent to a ~1.5× larger sample, for free.</span>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">In the engine: several covariates.</span>
+            <span>The platform's CUPED is multi-covariate: θ is a vector solved from the covariance system (a small linear solve), so several pre-experiment signals can subtract noise together. The formula above is the one-covariate case.</span>
+          </div>
+        </div>
+
+        <figure class="figure">
+          <svg viewBox="0 0 520 188" role="img" aria-label="CUPED narrows the metric distribution">
+            <line class="fig-axis" x1="10" y1="165" x2="510" y2="165"/>
+            <path class="fig-after-fill" d="M 10,165 70,164 80,164 90,163 100,162 110,160 120,158 130,154 140,149 150,142 160,133 170,122 180,110 190,96 200,80 210,65 220,50 230,37 240,27 250,20 260,18 270,20 280,27 290,37 300,50 310,65 320,80 330,96 340,110 350,122 360,133 370,142 380,149 390,154 400,158 410,160 420,162 430,163 440,164 460,165 510,165 L 510,165 L 10,165 Z"/>
+            <path class="fig-before" d="M 10,165 40,164 65,162 80,160 95,157 110,152 120,148 130,143 140,136 150,129 160,121 170,112 180,102 190,92 200,82 210,73 220,64 230,57 240,52 250,49 260,47 270,49 280,52 290,57 300,64 310,73 320,82 330,92 340,102 350,112 360,121 370,129 380,136 390,143 400,148 410,152 420,155 430,158 440,160 450,162 460,163 475,164 510,165"/>
+            <path class="fig-after" d="M 10,165 70,164 80,164 90,163 100,162 110,160 120,158 130,154 140,149 150,142 160,133 170,122 180,110 190,96 200,80 210,65 220,50 230,37 240,27 250,20 260,18 270,20 280,27 290,37 300,50 310,65 320,80 330,96 340,110 350,122 360,133 370,142 380,149 390,154 400,158 410,160 420,162 430,163 440,164 460,165 510,165"/>
+            <text class="fig-cap-in" x="405" y="86">before</text>
+            <text class="fig-cap-in" x="262" y="12" text-anchor="middle" style="fill:var(--accent-strong)">after CUPED</text>
+          </svg>
+          <figcaption>CUPED subtracts the predictable (pre-experiment) part of the noise, and the estimate's distribution narrows. At correlation ρ = 0.6 the variance drops by <strong style='color:var(--accent-strong)'>36%</strong> — the same sensitivity is reached sooner, with zero extra users.</figcaption>
+        </figure>
+
+        <h3>Post-stratification: estimate inside strata, then combine</h3>
+        <div class="card">
+          <span class="tag monitor">Monitoring · variance reduction</span>
+          <p>If traffic is a mix of known strata with different baselines — platform, country, new vs returning — estimate the effect inside each stratum and combine with size weights. Randomisation imbalance across strata stops leaking into the effect estimate: a cheap, assumption-light cousin of CUPED.</p>
+          <div class="formula">
+            <span class="flabel">Size-weighted combination</span>
+            <math display="block">
+              <mover><mi>&#x394;</mi><mo>^</mo></mover><mo>=</mo>
+              <munder><mo>&#x2211;</mo><mi>s</mi></munder>
+              <msub><mi>w</mi><mi>s</mi></msub><msub><mover><mi>&#x394;</mi><mo>^</mo></mover><mi>s</mi></msub>
+              <mspace width="1.6em"/>
+              <mtext>Var</mtext><mo>=</mo>
+              <munder><mo>&#x2211;</mo><mi>s</mi></munder>
+              <msubsup><mi>w</mi><mi>s</mi><mn>2</mn></msubsup><msub><mtext>Var</mtext><mi>s</mi></msub>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Where</p>
+            <dl>
+              <dt>s</dt><dd>stratum index</dd>
+              <dt>w<sub>s</sub></dt><dd>stratum share of traffic, Σw = 1</dd>
+              <dt>&#x394;&#x302;<sub>s</sub>, Var<sub>s</sub></dt><dd>per-stratum effect estimate and its variance</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>Stratum A: 6,000 users, Δ = 1.2 pp, var 3·10⁻⁵; stratum B: 4,000 users, Δ = 1.8 pp, var 5·10⁻⁵ → combined Δ = <span class='num'>1.44 pp</span>, z = 3.32, p = <span class='num'>0.0009</span>, CI [0.59; 2.29] pp.</span>
+          </div>
+        </div>
+
+        <h3>Guardrail metrics: a win must not break anything</h3>
+        <div class="card">
+          <span class="tag monitor">Monitoring · protection</span>
+          <p>A variant can win on conversion yet inflate load time, payment errors, or unsubscribes. A <strong>guardrail</strong> asks a one-sided question: “did the variant move the metric the <em>harmful</em> way beyond a tolerable margin <span class='k'>M</span>?”. This is a non-inferiority test, not a search for a difference.</p>
+          <div class="formula">
+            <span class="flabel">One-sided breach test</span>
+            <math display="block">
+              <mi>z</mi><mo>=</mo><mfrac><mrow><mtext>harm</mtext><mo>&#x2212;</mo><mi>M</mi></mrow><msqrt><mtext>Var</mtext><mo>(</mo><mi>&#x394;</mi><mo>)</mo></msqrt></mfrac>
+              <mspace width="1.4em"/><mi>p</mi><mo>=</mo><mn>1</mn><mo>&#x2212;</mo><mi>&#x3A6;</mi><mo>(</mo><mi>z</mi><mo>)</mo>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">Where</p>
+            <dl>
+              <dt>harm</dt><dd>the shift in the harmful direction: +Δ if an increase is bad (latency), −Δ if a drop is bad (revenue)</dd>
+              <dt>M</dt><dd>tolerable harm margin (0 = any significant harm is a breach)</dd>
+              <dt>&#x3A6;</dt><dd>standard normal CDF</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>Latency rose <span class='num'>+15 ms</span> (SE = 2), tolerance M = 10 ms → z = (15 − 10)/2 = <span class='num'>2.5</span>, p ≈ 0.006 → <strong style='color:var(--danger)'>margin breached</strong>. Between “ok” and “breached” sits a yellow “warning” zone: the estimate is past the margin but not significantly.</span>
+          </div>
+        </div>
+
+        <h3>Data hygiene: what breaks tests before any statistics</h3>
+        <div class="card">
+          <span class="tag monitor">Monitoring · health</span>
+          <p>No formula repairs broken data. Four habits protect an experiment long before p-values enter the picture:</p>
+          <div class="where">
+            <dl>
+              <dt>1</dt><dd><strong>Identity resolution.</strong> One person = one unit. If the same user re-enters as web + app + incognito, both arms get polluted and the measured effect washes out.</dd>
+              <dt>2</dt><dd><strong>Late events.</strong> Conversions trail clicks by hours or days; cutting the window at the stop moment silently biases against the newer arm. Freeze one attribution window and apply it to both arms symmetrically.</dd>
+              <dt>3</dt><dd><strong>Bot filtering.</strong> Bots convert at ~0% and inflate denominators — asymmetrically, whenever targeting differs between arms. Filter before analysis, by the same rule everywhere.</dd>
+              <dt>4</dt><dd><strong>Holdout.</strong> A small always-control slice measures the long-term, cumulative effect of shipping many “winners” — and catches winner's-curse inflation.</dd>
+            </dl>
+          </div>
+        </div>
+
+        <h3>When not to A/B: Thompson sampling</h3>
+        <div class="card">
+          <span class="tag monitor">Monitoring · bandits</span>
+          <p>A fixed test spends half the traffic on the loser until the very end. When the goal is to maximise reward during a short window (promo banners, subject lines) rather than to measure the effect precisely, a <strong>bandit</strong> reallocates traffic as evidence accumulates. Thompson sampling: draw a plausible rate for each arm from its Beta posterior and serve the arm that won the draw. The platform ships this as a planning simulator (Beta-Bernoulli Monte-Carlo), not a live traffic allocator.</p>
+          <div class="formula">
+            <span class="flabel">One allocation step</span>
+            <math display="block">
+              <msub><mover><mi>&#x3B8;</mi><mo>&#x223C;</mo></mover><mi>i</mi></msub><mo>&#x223C;</mo><mtext>Beta</mtext><mo>(</mo><mn>1</mn><mo>+</mo><msub><mi>x</mi><mi>i</mi></msub><mo>,</mo><mspace width="0.2em"/><mn>1</mn><mo>+</mo><msub><mi>n</mi><mi>i</mi></msub><mo>&#x2212;</mo><msub><mi>x</mi><mi>i</mi></msub><mo>)</mo>
+              <mspace width="1.4em"/>
+              <msup><mi>a</mi><mo>&#x2217;</mo></msup><mo>=</mo><munder><mtext>argmax</mtext><mi>i</mi></munder><mspace width="0.2em"/><msub><mover><mi>&#x3B8;</mi><mo>&#x223C;</mo></mover><mi>i</mi></msub>
+            </math>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">The price.</span>
+            <span>A bandit is not a free upgrade: losing arms keep noisy, biased estimates; peeking rules do not transfer; and decision-grade measurement still wants a fixed test. Exploration costs measurement.</span>
+          </div>
+        </div>
+        <hr class="divider">
+      </section>
+      <!-- ================= 6. CHEAT SHEET ================= -->
+      <section id="cheatsheet">
+        <div class="sec-head"><span class="sec-num">06</span></div>
+        <h2>Cheat sheet & notation</h2>
+        <p class="sec-intro">Everything on one screen: typical values, how to pick a test, what every symbol means, and what a healthy experiment looks like.</p>
+
+        <h3>Typical values</h3>
+        <div class="tablewrap">
+          <table>
+            <thead><tr>
+              <th>Parameter</th>
+              <th>Usually</th>
+              <th>Meaning</th>
+            </tr></thead>
+            <tbody>
+              <tr><td><span class="sym">&#x3B1;</span></td><td>0.05</td><td>false-alarm risk, z = 1.96</td></tr>
+              <tr><td>Power <span class="sym">1&#x2212;&#x3B2;</span></td><td>0.80</td><td>chance to catch an effect, z = 0.84</td></tr>
+              <tr><td>Tails</td><td>two</td><td>effect can go either way</td></tr>
+              <tr><td>SRM threshold</td><td>p &lt; 0.001</td><td>very strict — else too many false alarms</td></tr>
+              <tr><td>Duration</td><td>≥ 1–2 weeks</td><td>whole weeks; absorbs novelty & weekday effects</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Which test to pick</h3>
+        <div class="tablewrap">
+          <table>
+            <thead><tr>
+              <th>Metric / situation</th>
+              <th>Test</th>
+            </tr></thead>
+            <tbody>
+              <tr><td>Conversion, 2 groups</td><td><span class='sym'>z · 2 proportions</span> <span class='dim'>(small counts → Fisher / Boschloo / Barnard)</span></td></tr>
+              <tr><td>Mean (revenue, time), 2 groups</td><td><span class='sym'>Welch t</span> <span class='dim'>(outliers → the robust quartet)</span></td></tr>
+              <tr><td>Median / percentile</td><td><span class='sym'>quantile effect</span></td></tr>
+              <tr><td>CTR, “per impression / session”</td><td><span class='sym'>ratio delta-method</span></td></tr>
+              <tr><td>Event counts vs exposure</td><td><span class='sym'>Poisson rate</span></td></tr>
+              <tr><td>“Prove no worse”</td><td><span class='sym'>TOST</span> <span class='dim'>(one-sided harm bound → guardrail)</span></td></tr>
+              <tr><td>More than 2 groups</td><td><span class='sym'>Welch ANOVA / Kruskal–Wallis</span> <span class='dim'>(then pairwise + correction)</span></td></tr>
+              <tr><td>Categories × variants</td><td><span class='sym'>χ² r×c + Cramér V / G-test</span></td></tr>
+              <tr><td>Before/after, same users</td><td><span class='sym'>paired t / Wilcoxon signed / McNemar</span></td></tr>
+              <tr><td>Time to event, censoring</td><td><span class='sym'>log-rank / Fleming–Harrington / Cox</span></td></tr>
+              <tr><td>Live dashboard, unplanned looks</td><td><span class='sym'>always-valid (mSPRT)</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Notation</h3>
+        <div class="tablewrap">
+          <table>
+            <thead><tr>
+              <th>Symbol</th>
+              <th>Meaning</th>
+            </tr></thead>
+            <tbody>
+              <tr><td class="sym">&#x3B1;</td><td>significance level (Type I risk)</td></tr>
+              <tr><td class="sym">&#x3B2; &#183; 1&#x2212;&#x3B2;</td><td>Type II risk · power</td></tr>
+              <tr><td class="sym">z<sub>&#x3B1;</sub>, z<sub>&#x3B2;</sub></td><td>standard-normal quantiles</td></tr>
+              <tr><td class="sym">&#x3A6;</td><td>standard-normal CDF</td></tr>
+              <tr><td class="sym">p&#x2080;, p&#x2081;, p&#x302;, p&#x304;</td><td>baseline · variant · estimate · pooled rate</td></tr>
+              <tr><td class="sym">&#x3B4; &#183; MDE</td><td>absolute effect · min. detectable effect</td></tr>
+              <tr><td class="sym">&#x3C3;, s</td><td>standard deviation (population, sample)</td></tr>
+              <tr><td class="sym">&#x3BD;</td><td>degrees of freedom (Welch–Satterthwaite)</td></tr>
+              <tr><td class="sym">&#x3C1; &#183; &#x3B8;</td><td>correlation · CUPED coefficient</td></tr>
+              <tr><td class="sym">ICC &#183; DEFF &#183; m</td><td>intraclass correlation · design effect · cluster size</td></tr>
+              <tr><td class="sym">&#x3C7;&#xB2;</td><td>chi-square statistic (SRM, categories)</td></tr>
+              <tr><td class="sym">&#x39B;<sub>n</sub> &#183; &#x3C4;&#xB2;</td><td>mixture likelihood · mixture spread (always-valid)</td></tr>
+              <tr><td class="sym">M</td><td>margin (equivalence, guardrail)</td></tr>
+              <tr><td class="sym">m &#183; q &#183; k</td><td>number of metrics · FDR level · p-value rank</td></tr>
+              <tr><td class="sym">U &#183; r<sub>rb</sub> &#183; HL</td><td>Mann–Whitney statistic · rank-biserial correlation · Hodges–Lehmann shift</td></tr>
+              <tr><td class="sym">W</td><td>Wilcoxon signed-rank statistic</td></tr>
+              <tr><td class="sym">F* &#183; &#x3B7;&#xB2;</td><td>Welch ANOVA statistic · explained-variance share</td></tr>
+              <tr><td class="sym">H &#183; &#x3B5;&#xB2;</td><td>Kruskal–Wallis statistic · its effect size</td></tr>
+              <tr><td class="sym">b, c</td><td>discordant pair counts (McNemar)</td></tr>
+              <tr><td class="sym">S(t)</td><td>survival function — probability of surviving past t</td></tr>
+              <tr><td class="sym">HR &#183; &#x3B2;</td><td>hazard ratio · Cox log-hazard coefficient</td></tr>
+              <tr><td class="sym">O&#x2081;, E&#x2081;, V</td><td>observed · expected events · their variance (log-rank)</td></tr>
+              <tr><td class="sym">&#x3C1;, &#x3B3; (FH)</td><td>Fleming–Harrington weights: early / late emphasis</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Healthy-test checklist</h3>
+        <div class="card">
+          <div class="where">
+            <dl>
+              <dt>1</dt><dd><strong>Hypothesis and metric fixed</strong> before launch — including the MDE and the primary metric.</dd>
+              <dt>2</dt><dd><strong>Sample size computed</strong>, duration in whole weeks.</dd>
+              <dt>3</dt><dd><strong>No SRM</strong> — the traffic split matches the plan.</dd>
+              <dt>4</dt><dd><strong>Multiplicity correction</strong> if more than one metric or variant.</dd>
+              <dt>5</dt><dd><strong>Guardrail metrics</strong> watched — the win does not break latency, errors, revenue.</dd>
+              <dt>6</dt><dd><strong>Correct stopping</strong>: planned horizon, sequential boundaries, or always-valid — not “it dipped below 0.05”.</dd>
+              <dt>7</dt><dd><strong>Decide on the interval</strong>, not the p-value alone — effect size matters.</dd>
+              <dt>8</dt><dd><strong>Data hygiene checked</strong> — one identity per user, a symmetric attribution window, bots filtered, a holdout in place.</dd>
+            </dl>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <footer>
+    <div class="footer-inner">
+      <span>AB Test Research Designer — theory reference. Formulas mirror the platform's statistics engine.</span>
+      <span><a href="/">← Back to the app</a></span>
+    </div>
+  </footer>
+</div>
+<script src="help.js" defer></script>
+</body>
+</html>

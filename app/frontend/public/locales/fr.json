@@ -4,6 +4,7 @@
     "eyebrow": "Planificateur d'expériences locales",
     "title": "Concepteur de recherche pour tests A/B",
     "tagline": "Planifiez la taille d'échantillon et la durée de votre test A/B, repérez les résultats fiables et exportez une décision claire, directement dans votre navigateur.",
+    "helpLink": "Théorie",
     "language": {
       "label": "Langue",
       "ariaLabel": "Language preference",

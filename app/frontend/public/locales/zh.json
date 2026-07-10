@@ -4,6 +4,7 @@
     "eyebrow": "本地实验计划员",
     "title": "A/B 实验研究设计器",
     "tagline": "在浏览器中规划 A/B 测试的样本量和时长，了解哪些结果值得信赖，并导出清晰的决策。",
+    "helpLink": "理论",
     "language": {
       "label": "语言",
       "ariaLabel": "Language preference",

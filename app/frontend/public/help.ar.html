@@ -1,0 +1,1911 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>اختبارات A/B — النظرية والصيغ · AB Test Research Designer</title>
+<meta name="description" content="مرجع نظري وصيغ لاختبارات A/B: حجم العينة، المقارنات المتعددة، تحليل النتائج والمراقبة الحية — جميع الطرق الإحصائية الـ22 التي تشغّلها المنصة، مشروحة ببساطة.">
+<link rel="alternate" hreflang="en" href="/help.html">
+<link rel="alternate" hreflang="ru" href="/help.ru.html">
+<link rel="alternate" hreflang="de" href="/help.de.html">
+<link rel="alternate" hreflang="fr" href="/help.fr.html">
+<link rel="alternate" hreflang="es" href="/help.es.html">
+<link rel="alternate" hreflang="zh" href="/help.zh.html">
+<link rel="alternate" hreflang="ar" href="/help.ar.html">
+<link rel="alternate" hreflang="x-default" href="/help.html">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="/theme-init.js"></script>
+<style>
+  /* ============================================================
+     Design system — the app's tokens verbatim (tokens.css):
+     teal #0d9488, Manrope + JetBrains Mono, slate neutrals.
+     Light default + dark via prefers-color-scheme AND the app's
+     data-theme attribute (set early by /theme-init.js, shared
+     localStorage key — the page follows the app's theme).
+     Static page, no framework; MathML for formulas; the language
+     is fixed per file (this file is generated per language).
+     RTL-safe: logical properties throughout; math and SVG stay LTR.
+     ============================================================ */
+  :root {
+    --font: "Manrope", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    --mono: "JetBrains Mono", "SFMono-Regular", "Consolas", ui-monospace, monospace;
+
+    --bg: #f5f7fa;
+    --surface: #ffffff;
+    --surface-muted: #f3f5f9;
+    --surface-subtle: #f8fafc;
+    --border: #e6e9ef;
+    --border-strong: #d3d9e3;
+
+    --ink: #0f1729;
+    --ink-2: #5a6473;
+    --ink-3: #8b95a3;
+
+    --accent: #0d9488;
+    --accent-strong: #0f766e;
+    --accent-soft: #d6f3ee;
+    --accent-ring: rgba(13, 148, 136, 0.16);
+
+    --info: #2f6df0;
+    --info-soft: #e3ecfd;
+    --warning: #c77d11;
+    --warning-soft: #fbf0db;
+    --danger: #e1493f;
+    --danger-soft: #fdecea;
+    --success: #0f9d76;
+    --success-soft: #d8f3e9;
+    --violet: #6d4bd6;
+    --violet-soft: #ebe6fb;
+
+    --radius-s: 8px;
+    --radius-m: 12px;
+    --radius-l: 16px;
+    --shadow-s: 0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06);
+    --shadow-m: 0 4px 6px -1px rgba(16,24,40,.06), 0 2px 4px -2px rgba(16,24,40,.06);
+    --shadow-l: 0 18px 40px -20px rgba(16,24,40,.28);
+
+    --maxw: 1180px;
+    --content: 74ch;
+    color-scheme: light;
+  }
+
+  /* Dark palette = the app's dark tokens (bg #0e1421, card #161d2c,
+     border #28324a, text #eef2f8/#9aa5b8/#6b7689). Exception, documented:
+     text-size accent uses the brighter #2dd4bf (not the app's #0d9488)
+     so accent-coloured TEXT keeps AA contrast on dark cards; the brand
+     tile below pins the app's exact teal gradient instead. */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0e1421;
+      --surface: #161d2c;
+      --surface-muted: #1b2334;
+      --surface-subtle: #141b29;
+      --border: #28324a;
+      --border-strong: #3a4763;
+
+      --ink: #eef2f8;
+      --ink-2: #9aa5b8;
+      --ink-3: #6b7689;
+
+      --accent: #2dd4bf;
+      --accent-strong: #5eead4;
+      --accent-soft: #11463f;
+      --accent-ring: rgba(45, 212, 191, 0.20);
+
+      --info: #7aa2ff;
+      --info-soft: #17233f;
+      --warning: #e0b25a;
+      --warning-soft: #33280f;
+      --danger: #f0928a;
+      --danger-soft: #3a1f1d;
+      --success: #52c9a3;
+      --success-soft: #133a2e;
+      --violet: #b39cf5;
+      --violet-soft: #241b40;
+
+      --shadow-s: 0 1px 2px rgba(0,0,0,.30);
+      --shadow-m: 0 4px 10px -2px rgba(0,0,0,.40);
+      --shadow-l: 0 18px 44px -20px rgba(0,0,0,.65);
+      color-scheme: dark;
+    }
+  }
+  /* Explicit app-theme override wins over the media query in both directions. */
+  :root[data-theme="light"] { color-scheme: light; }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg:#0e1421;--surface:#161d2c;--surface-muted:#1b2334;--surface-subtle:#141b29;
+    --border:#28324a;--border-strong:#3a4763;--ink:#eef2f8;--ink-2:#9aa5b8;--ink-3:#6b7689;
+    --accent:#2dd4bf;--accent-strong:#5eead4;--accent-soft:#11463f;--accent-ring:rgba(45,212,191,.20);
+    --info:#7aa2ff;--info-soft:#17233f;--warning:#e0b25a;--warning-soft:#33280f;
+    --danger:#f0928a;--danger-soft:#3a1f1d;--success:#52c9a3;--success-soft:#133a2e;--violet:#b39cf5;--violet-soft:#241b40;
+    --shadow-s:0 1px 2px rgba(0,0,0,.30);--shadow-m:0 4px 10px -2px rgba(0,0,0,.40);--shadow-l:0 18px 44px -20px rgba(0,0,0,.65);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+  body {
+    margin: 0;
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.68;
+    font-size: 16.5px;
+    letter-spacing: -0.003em;
+    font-feature-settings: "tnum" 1;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Manrope has no CJK/Arabic glyphs — give those pages system stacks,
+     and drop the negative latin tracking that hurts Arabic shaping. */
+  html[lang="zh"] {
+    --font: "Manrope", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+  }
+  html[lang="ar"] {
+    --font: "Manrope", "Segoe UI", "Tahoma", "Noto Naskh Arabic", "Geeza Pro", system-ui, sans-serif;
+  }
+  html[lang="ar"] body, html[lang="ar"] h1, html[lang="ar"] h2, html[lang="ar"] h3, html[lang="ar"] h4 { letter-spacing: 0; }
+
+  /* Math and diagrams are direction-neutral: keep them LTR even on RTL pages. */
+  math { direction: ltr; }
+  svg { direction: ltr; }
+
+  a { color: var(--accent-strong); text-underline-offset: 2px; }
+
+  /* ---------- top bar (mirrors the app: sticky, blur, brand tile) ---------- */
+  .topbar {
+    position: sticky; top: 0; z-index: 40;
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    backdrop-filter: saturate(140%) blur(10px);
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar-inner {
+    max-width: var(--maxw); margin: 0 auto; min-height: 60px; padding: 10px 24px;
+    display: flex; align-items: center; gap: 16px; justify-content: space-between;
+  }
+  .brand { display: inline-flex; align-items: center; gap: 11px; text-decoration: none; color: inherit; min-width: 0; }
+  .brand-mark {
+    display: inline-flex; align-items: center; justify-content: center; flex: none;
+    width: 32px; height: 32px; border-radius: 9px;
+    /* Pinned to the app's exact tile gradient (identical in both themes). */
+    background: linear-gradient(150deg, #0d9488, #0f766e);
+    color: #ffffff; font-weight: 800; font-size: 13px; letter-spacing: 0.02em;
+    box-shadow: 0 6px 14px -6px #0d9488;
+  }
+  .brand-text { display: grid; line-height: 1.15; }
+  .brand-name { font-weight: 700; font-size: 0.95rem; letter-spacing: -0.01em; white-space: nowrap; }
+  .brand-tag {
+    font-size: 11px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--ink-3); white-space: nowrap;
+  }
+  @media (max-width: 720px) { .brand-text { display: none; } }
+
+  /* ---------- language menu: 7 static links, one per generated page ---------- */
+  .langbar {
+    display: inline-flex; flex-wrap: wrap; justify-content: flex-end;
+    padding: 3px; gap: 2px; background: var(--surface-muted);
+    border: 1px solid var(--border); border-radius: 999px;
+  }
+  .langlink {
+    font-size: 12.5px; font-weight: 700; letter-spacing: .01em;
+    padding: 5px 11px; border-radius: 999px; color: var(--ink-2);
+    text-decoration: none; white-space: nowrap; transition: background .15s, color .15s;
+  }
+  .langlink:hover { color: var(--ink); background: color-mix(in srgb, var(--accent-soft) 55%, transparent); }
+  .langlink.current { background: var(--accent); color: #fff; box-shadow: var(--shadow-s); cursor: default; }
+  :root[data-theme="dark"] .langlink.current { color: #06201c; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .langlink.current { color: #06201c; } }
+  @media (max-width: 640px) {
+    .langlink { font-size: 11.5px; padding: 4px 8px; }
+    .topbar-inner { padding: 8px 16px; }
+  }
+
+  /* ---------- layout ---------- */
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+  .layout { display: grid; grid-template-columns: 244px minmax(0, 1fr); gap: 52px; align-items: start; padding-bottom: 96px; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; gap: 8px; } }
+
+  /* ---------- hero ---------- */
+  .hero { padding: 74px 0 8px; position: relative; }
+  .hero .kicker {
+    display: inline-block; font-size: 12.5px; font-weight: 700; letter-spacing: .18em;
+    text-transform: uppercase; color: var(--accent-strong); margin: 0 0 20px;
+    opacity: 0; animation: rise .7s .02s cubic-bezier(.16,1,.3,1) forwards;
+  }
+  .hero h1 {
+    font-size: clamp(2.3rem, 5.6vw, 3.7rem); line-height: 1.0; letter-spacing: -.035em;
+    margin: 0 0 22px; font-weight: 800;
+    opacity: 0; animation: rise .7s .08s cubic-bezier(.16,1,.3,1) forwards;
+  }
+  .hero h1 .accent-word { color: var(--accent); }
+  .hero > p { font-size: clamp(1.02rem, 1.5vw, 1.2rem); color: var(--ink-2); max-width: 62ch; margin: 0; opacity: 0; animation: rise .7s .16s cubic-bezier(.16,1,.3,1) forwards; }
+  .hero .lede-note {
+    margin-top: 22px; font-size: 14px; color: var(--ink-3); max-width: 62ch;
+    padding-inline-start: 14px; border-inline-start: 3px solid var(--border-strong);
+    opacity: 0; animation: rise .7s .24s cubic-bezier(.16,1,.3,1) forwards;
+  }
+  .heromedia { margin: 40px 0 0; opacity: 0; animation: fade 1.1s .3s ease forwards; }
+  .heromedia svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .hero-line { fill: none; stroke: var(--accent); stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round; }
+  .hero-fill { fill: url(#heroGrad); }
+  .hero-base { stroke: var(--border-strong); stroke-width: 1; stroke-dasharray: 2 5; }
+  .hero-tick { stroke: var(--border-strong); stroke-width: 1; }
+  .hero-tlabel { fill: var(--ink-3); font-family: var(--mono); font-size: 12px; }
+  @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  @keyframes fade { to { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) {
+    .hero .kicker, .hero h1, .hero > p, .hero .lede-note, .heromedia { animation: none; opacity: 1; }
+  }
+
+  /* ---------- TOC ---------- */
+  .toc { position: sticky; top: 78px; }
+  .toc > summary { list-style: none; }
+  .toc > summary::-webkit-details-marker { display: none; }
+  .toc-title { font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 12px; padding-inline-start: 12px; }
+  .toc ol { list-style: none; margin: 0; padding: 0; counter-reset: toc; }
+  .toc li { counter-increment: toc; }
+  .toc a {
+    display: flex; gap: 10px; align-items: baseline;
+    padding: 7px 12px; color: var(--ink-2);
+    text-decoration: none; font-size: 14px; font-weight: 600; line-height: 1.35;
+    border-inline-start: 2px solid transparent; border-radius: var(--radius-s);
+    transition: background .15s, color .15s, border-color .15s;
+  }
+  .toc a::before { content: counter(toc); font-variant-numeric: tabular-nums; color: var(--accent); font-weight: 800; font-size: 12px; min-width: 14px; }
+  .toc a:hover { background: var(--surface-muted); color: var(--ink); }
+  @media (min-width: 901px) {
+    .toc { max-height: calc(100vh - 100px); overflow-y: auto; }
+    .toc > summary { display: none; }
+    .toc > .toc-body { display: block !important; }
+    .toc > .toc-body nav { border-inline-start: 1px solid var(--border); padding-inline-start: 4px; }
+    .toc a { margin-inline-start: -1px; }
+    .toc a:hover { border-inline-start-color: var(--accent); background: color-mix(in srgb, var(--accent-soft) 45%, transparent); }
+  }
+  @media (max-width: 900px) {
+    .toc {
+      position: static; margin: 14px 0 8px; background: var(--surface);
+      border: 1px solid var(--border); border-radius: var(--radius-m); box-shadow: var(--shadow-s);
+    }
+    .toc > summary {
+      padding: 14px 16px; cursor: pointer; font-weight: 700; color: var(--ink);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .toc > summary::after { content: "+"; color: var(--accent); font-size: 20px; font-weight: 700; }
+    .toc[open] > summary::after { content: "\2212"; }
+    .toc > .toc-body { padding: 0 8px 12px; }
+    .toc-title { display: none; }
+  }
+
+  /* ---------- content & sections ---------- */
+  main { min-width: 0; }
+  section[id] { scroll-margin-top: 84px; padding-top: 30px; }
+  .sec-head { display: flex; align-items: center; gap: 14px; margin: 0 0 -0.28em; }
+  .sec-num {
+    display: inline-block;
+    font-family: var(--mono); font-weight: 800; letter-spacing: -.05em;
+    font-size: clamp(3.4rem, 7.5vw, 5.4rem); line-height: .82; color: var(--accent);
+    opacity: .15; user-select: none;
+  }
+  h2 { font-size: clamp(1.62rem, 3.1vw, 2.25rem); letter-spacing: -.025em; margin: 6px 0 10px; font-weight: 800; line-height: 1.15; position: relative; }
+  h3 { font-size: 1.28rem; letter-spacing: -.015em; margin: 46px 0 6px; font-weight: 750; }
+  h3::before {
+    content: ""; display: inline-block; width: 15px; height: 2px; vertical-align: middle;
+    background: var(--accent); margin-inline-end: 11px; border-radius: 2px; transform: translateY(-3px);
+  }
+  .group-lead { color: var(--ink-2); max-width: var(--content); margin: 4px 0 14px; }
+  .sec-intro { color: var(--ink-2); max-width: var(--content); margin: 0 0 8px; }
+  p { max-width: var(--content); }
+  main p { margin: 14px 0; }
+  strong, b { font-weight: 700; color: var(--ink); }
+  code, .k { font-family: var(--mono); font-size: .89em; background: var(--surface-muted); padding: .1em .42em; border-radius: 6px; color: var(--ink); border: 1px solid var(--border); }
+  .divider { height: 0; background: none; border: 0; border-top: 1px solid var(--border); margin: 64px 0 0; position: relative; }
+  .divider::after { content: ""; position: absolute; inset-inline-start: 0; top: -1px; width: 40px; height: 2px; background: var(--accent); }
+
+  /* ---------- concept card ---------- */
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 18px;
+    padding: 26px 28px; margin: 22px 0; box-shadow: var(--shadow-s);
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+  }
+  .card:hover { transform: translateY(-2px); box-shadow: var(--shadow-m); border-color: var(--border-strong); }
+  @media (prefers-reduced-motion: reduce) { .card:hover { transform: none; } }
+  .card > :first-child { margin-top: 0; }
+  .card > :last-child { margin-bottom: 0; }
+  .card h4 { font-size: 1.12rem; font-weight: 750; margin: 0 0 4px; letter-spacing: -.01em; }
+  .tag {
+    display: inline-block; font-size: 10.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
+    padding: 4px 11px; border-radius: 999px; margin-bottom: 12px;
+  }
+  .tag.plan   { background: var(--accent-soft); color: var(--accent-strong); }
+  .tag.multi  { background: var(--info-soft); color: var(--info); }
+  .tag.analyze{ background: var(--violet-soft); color: var(--violet); }
+  .tag.monitor{ background: var(--warning-soft); color: var(--warning); }
+
+  /* ---------- formula block (MathML, notebook dot-grid) ---------- */
+  .formula {
+    margin: 18px 0; padding: 26px 26px 24px; overflow-x: auto;
+    background-color: var(--surface-subtle); border: 1px solid var(--border);
+    border-inline-start: 3px solid var(--accent); border-radius: 14px;
+    background-image: radial-gradient(color-mix(in srgb, var(--accent) 20%, transparent) 1px, transparent 1.5px);
+    background-size: 22px 22px; background-position: 10px 10px;
+    text-align: center;
+  }
+  .formula math { font-size: 1.4rem; color: var(--ink); }
+  .formula .flabel { display: block; text-align: start; font-size: 12px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--accent-strong); margin-bottom: 12px; }
+  math { font-family: "Latin Modern Math", "STIX Two Math", "Cambria Math", var(--mono); }
+  mi, mn, mo { color: inherit; }
+
+  /* ---------- "where" symbol list ---------- */
+  .where { margin: 16px 0 4px; }
+  .where-title { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 8px; }
+  .where dl { display: grid; grid-template-columns: auto 1fr; gap: 8px 18px; margin: 0; }
+  .where dt { font-family: var(--mono); font-weight: 600; font-size: 14.5px; color: var(--accent-strong); white-space: nowrap; padding-top: 1px; }
+  .where dd { margin: 0; color: var(--ink-2); font-size: 14.5px; }
+
+  /* ---------- callouts ---------- */
+  .callout {
+    margin: 18px 0; padding: 16px 20px; border-radius: 14px;
+    border: 1px solid var(--border); border-inline-start: 3px solid var(--ink-3);
+    background: var(--surface-muted); font-size: 14.5px;
+  }
+  .callout > :first-child { margin-top: 0; } .callout > :last-child { margin-bottom: 0; }
+  .callout .clabel { font-weight: 750; font-size: .96em; margin-inline-end: 6px; color: var(--ink); }
+  .callout.intuition { border-inline-start-color: var(--accent); background: color-mix(in srgb, var(--accent-soft) 40%, var(--surface)); }
+  .callout.intuition .clabel { color: var(--accent-strong); }
+  .callout.warn { border-inline-start-color: var(--warning); background: color-mix(in srgb, var(--warning-soft) 45%, var(--surface)); }
+  .callout.warn .clabel { color: var(--warning); }
+  .callout.example { border-inline-start-color: var(--border-strong); background: var(--surface-subtle); }
+  .callout.example .num { font-family: var(--mono); font-weight: 600; color: var(--ink); }
+
+  details.more { margin: 14px 0 2px; border-top: 1px dashed var(--border); padding-top: 6px; }
+  details.more > summary {
+    cursor: pointer; font-size: 13.5px; font-weight: 700; color: var(--accent-strong);
+    list-style: none; padding: 8px 0; display: inline-flex; align-items: center; gap: 7px;
+  }
+  details.more > summary::-webkit-details-marker { display: none; }
+  details.more > summary::before { content: "+"; font-size: 16px; line-height: 1; color: var(--accent); }
+  details.more[open] > summary::before { content: "\2212"; }
+  details.more > summary + * { margin-top: 6px; }
+
+  /* ---------- tables ---------- */
+  .tablewrap { overflow-x: auto; margin: 20px 0; border: 1px solid var(--border); border-radius: var(--radius-m); }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { text-align: start; padding: 11px 15px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  thead th { background: var(--surface-muted); font-weight: 700; color: var(--ink-2); font-size: 11.5px; letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; }
+  tbody tr:last-child td { border-bottom: 0; }
+  tbody tr:nth-child(even) { background: var(--surface-subtle); }
+  tbody tr { transition: background .12s ease; }
+  tbody tr:hover { background: color-mix(in srgb, var(--accent-soft) 30%, transparent); }
+  td .k, th .k { background: var(--surface); }
+  .sym { font-family: var(--mono); color: var(--accent-strong); font-weight: 600; white-space: nowrap; }
+  .dim { color: var(--ink-3); font-family: var(--font); font-weight: 500; }
+  tr.group td {
+    background: var(--surface-muted); color: var(--ink); font-weight: 750;
+    font-size: 12px; letter-spacing: .05em; text-transform: uppercase;
+  }
+  tbody tr.group:hover { background: var(--surface-muted); }
+
+  /* ---------- figure (annotated diagram) ---------- */
+  .figure { margin: 24px 0; padding: 20px 20px 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; box-shadow: var(--shadow-s); }
+  .figure svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .figure figcaption { margin: 12px 4px 6px; font-size: 13.5px; color: var(--ink-3); text-align: center; }
+  .fig-axis { stroke: var(--border-strong); stroke-width: 1.25; }
+  .fig-crit { stroke: var(--ink-3); stroke-width: 1.25; stroke-dasharray: 4 4; }
+  .fig-h0 { fill: none; stroke: var(--ink-3); stroke-width: 2; stroke-linejoin: round; }
+  .fig-h1 { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; }
+  .fig-alpha { fill: color-mix(in srgb, var(--danger) 42%, transparent); }
+  .fig-power { fill: color-mix(in srgb, var(--accent) 26%, transparent); }
+  .fig-lab { font-family: var(--font); font-weight: 700; font-size: 15px; }
+  .fig-lab.h0 { fill: var(--ink-2); } .fig-lab.h1 { fill: var(--accent-strong); }
+  .fig-lab.a { fill: var(--danger); font-size: 14px; } .fig-lab.pw { fill: var(--accent-strong); font-size: 13px; }
+  .fig-tick { fill: var(--ink-3); font-family: var(--mono); font-size: 12px; }
+  .fig-line { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+  .fig-ref { fill: none; stroke: var(--ink-3); stroke-width: 1.5; stroke-dasharray: 4 4; }
+  .fig-dot { fill: var(--accent); }
+  .fig-dot-h { fill: var(--surface); stroke: var(--accent); stroke-width: 2; }
+  .fig-before { fill: none; stroke: var(--ink-3); stroke-width: 2; stroke-dasharray: 5 4; }
+  .fig-after { fill: none; stroke: var(--accent); stroke-width: 2.5; }
+  .fig-after-fill { fill: color-mix(in srgb, var(--accent) 20%, transparent); }
+  .fig-cap-in { fill: var(--ink-2); font-family: var(--font); font-size: 13px; font-weight: 650; }
+  .fig-cap-a { fill: var(--danger); }
+
+  /* ---------- footer ---------- */
+  footer { border-top: 1px solid var(--border); background: var(--surface); }
+  .footer-inner { max-width: var(--maxw); margin: 0 auto; padding: 28px 24px 40px; color: var(--ink-3); font-size: 13.5px; display: flex; flex-wrap: wrap; gap: 8px 20px; justify-content: space-between; }
+  .footer-inner a { color: var(--ink-2); }
+
+  .lead-in { color: var(--ink-2); font-size: 15px; margin: 4px 0 20px; max-width: var(--content); }
+
+  @media (max-width: 640px) {
+    body { font-size: 16px; }
+    .wrap { padding: 0 18px; }
+    .card { padding: 20px 18px; }
+    .formula { padding: 18px 14px; }
+    .formula math { font-size: 1.16rem; }
+    .where dl { grid-template-columns: 1fr; gap: 2px 0; }
+    .where dd { margin-bottom: 8px; }
+  }
+
+  /* ============================================================
+     INTERACTIVE LAYER — progressive enhancement (needs help.js).
+     Hidden until the .js class is set by the script.
+     ============================================================ */
+  .js-only { display: none; }
+  html.js .js-only { display: revert; }
+  html.js .pe-top { display: grid; }
+  html.js .pe-sliders { display: grid; }
+  html.js .sizer-grid { display: grid; }
+  html.js .sizer-out { display: grid; }
+
+  .tool {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--accent-soft) 34%, var(--surface)), var(--surface));
+    border: 1px solid var(--border-strong); border-radius: 18px; box-shadow: var(--shadow-s);
+    padding: 22px 24px; margin: 22px 0;
+  }
+  .tool > .tag { margin-bottom: 8px; }
+  .tool h4 { margin: 0 0 16px; font-size: 1.1rem; font-weight: 750; }
+
+  input[type="range"] { accent-color: var(--accent); width: 100%; height: 24px; cursor: pointer; margin: 2px 0 0; }
+  input[type="number"], select {
+    font: inherit; font-size: 15px; color: var(--ink); background: var(--surface);
+    border: 1px solid var(--border-strong); border-radius: 8px; padding: 8px 10px; width: 100%;
+  }
+  input[type="number"]:focus, select:focus { outline: 2px solid var(--accent-ring); border-color: var(--accent); }
+
+  .pe-top { grid-template-columns: 1.1fr 0.9fr; gap: 22px; align-items: center; margin-bottom: 14px; }
+  .pe-sliders { gap: 14px; }
+  .ctl { display: block; }
+  .ctl-lab { display: flex; justify-content: space-between; align-items: baseline; font-size: 13.5px; font-weight: 650; color: var(--ink-2); margin-bottom: 2px; }
+  .ctl-lab b { font-family: var(--mono); font-weight: 700; color: var(--accent-strong); font-size: 14px; }
+  .pe-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .stat {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 12px 14px; display: flex; flex-direction: column; gap: 3px; text-align: start;
+  }
+  .stat-num { font-family: var(--mono); font-weight: 800; font-size: 1.5rem; letter-spacing: -.02em; line-height: 1; }
+  .stat-cap { font-size: 11.5px; color: var(--ink-3); line-height: 1.3; }
+  .stat.stat-a { border-inline-start: 3px solid var(--danger); } .stat.stat-a .stat-num { color: var(--danger); }
+  .stat.stat-p { border-inline-start: 3px solid var(--accent); } .stat.stat-p .stat-num { color: var(--accent-strong); }
+
+  .sizer-grid { grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 18px; }
+  .fld { display: flex; flex-direction: column; gap: 5px; font-size: 13px; font-weight: 650; color: var(--ink-2); }
+  .sizer-out { grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .sizer-out .stat { border-inline-start: 3px solid var(--accent); }
+  .sizer-out .stat-num { color: var(--accent-strong); }
+  .sizer-note { margin: 12px 0 0; font-size: 13.5px; color: var(--danger); font-weight: 650; }
+  .sizer-fine { margin: 14px 0 0; font-size: 12.5px; color: var(--ink-3); }
+
+  @media (max-width: 640px) {
+    .pe-top { grid-template-columns: 1fr; gap: 14px; }
+    .sizer-grid { grid-template-columns: 1fr 1fr; }
+    .sizer-out { grid-template-columns: 1fr; }
+    .stat-num { font-size: 1.35rem; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="/" aria-label="العودة إلى التطبيق">
+        <span class="brand-mark" aria-hidden="true">AB</span>
+        <span class="brand-text">
+          <span class="brand-name">AB Test Research Designer</span>
+          <span class="brand-tag">مرجع نظري</span>
+        </span>
+      </a>
+      <nav class="langbar" aria-label="لغة الصفحة"><a class="langlink" href="/help.html" hreflang="en" lang="en" title="English">EN</a><a class="langlink" href="/help.ru.html" hreflang="ru" lang="ru" title="Русский">RU</a><a class="langlink" href="/help.de.html" hreflang="de" lang="de" title="Deutsch">DE</a><a class="langlink" href="/help.fr.html" hreflang="fr" lang="fr" title="Français">FR</a><a class="langlink" href="/help.es.html" hreflang="es" lang="es" title="Español">ES</a><a class="langlink" href="/help.zh.html" hreflang="zh" lang="zh" title="中文">中文</a><a class="langlink current" href="/help.ar.html" hreflang="ar" lang="ar" title="العربية" aria-current="page">عربي</a></nav>
+    </div>
+  </div>
+
+  <header class="wrap hero">
+    <p class="kicker">نظرية · صيغ · بكلمات بسيطة</p>
+    <h1>اختبارات A/B:<br>النظرية كلها و<span class='accent-word'>الصيغ</span></h1>
+    <p>كل طريقة إحصائية تشغّلها هذه المنصة — من حساب حجم العينة إلى تحليل النتائج والمراقبة الحية — مع حدسٍ بلغة واضحة، والصيغة الدقيقة، وشرح كل رمز.</p>
+    <p class="lede-note">تُعرض الصيغ تمامًا كما يحسبها المحرك. الرياضيات متطابقة في جميع اللغات؛ يتغيّر نص الشرح فقط. يتبع نظام الألوان إعداد التطبيق تلقائيًا.</p>
+    <div class="heromedia" aria-hidden="true">
+      <svg viewBox="0 0 720 152" role="img">
+        <defs>
+          <linearGradient id="heroGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" style="stop-color:var(--accent);stop-opacity:.22"/>
+            <stop offset="1" style="stop-color:var(--accent);stop-opacity:0"/>
+          </linearGradient>
+        </defs>
+        <line class="hero-base" x1="0" y1="140" x2="720" y2="140"/>
+        <path class="hero-fill" d="M 0,140 8,140 16,140 24,140 32,139 40,139 48,139 56,139 64,138 72,138 80,137 88,137 96,136 104,135 112,134 120,133 128,131 136,130 144,128 152,125 160,123 168,120 176,116 184,113 192,109 200,104 208,100 216,95 224,89 232,84 240,78 248,72 256,65 264,59 272,53 280,47 288,41 296,36 304,31 312,26 320,22 328,18 336,16 344,14 352,12 360,12 368,12 376,14 384,16 392,18 400,22 408,26 416,31 424,36 432,41 440,47 448,53 456,59 464,65 472,72 480,78 488,84 496,89 504,95 512,100 520,104 528,109 536,113 544,116 552,120 560,123 568,125 576,128 584,130 592,131 600,133 608,134 616,135 624,136 632,137 640,137 648,138 656,138 664,139 672,139 680,139 688,139 696,140 704,140 712,140 720,140 Z"/>
+        <path class="hero-line" d="M 0,140 8,140 16,140 24,140 32,139 40,139 48,139 56,139 64,138 72,138 80,137 88,137 96,136 104,135 112,134 120,133 128,131 136,130 144,128 152,125 160,123 168,120 176,116 184,113 192,109 200,104 208,100 216,95 224,89 232,84 240,78 248,72 256,65 264,59 272,53 280,47 288,41 296,36 304,31 312,26 320,22 328,18 336,16 344,14 352,12 360,12 368,12 376,14 384,16 392,18 400,22 408,26 416,31 424,36 432,41 440,47 448,53 456,59 464,65 472,72 480,78 488,84 496,89 504,95 512,100 520,104 528,109 536,113 544,116 552,120 560,123 568,125 576,128 584,130 592,131 600,133 608,134 616,135 624,136 632,137 640,137 648,138 656,138 664,139 672,139 680,139 688,139 696,140 704,140 712,140 720,140"/>
+        <g>
+          <line class="hero-tick" x1="160" y1="140" x2="160" y2="147"/><text class="hero-tlabel" x="160" y="150" text-anchor="middle" dominant-baseline="hanging">&#x2212;2&#x3C3;</text>
+          <line class="hero-tick" x1="260" y1="140" x2="260" y2="147"/><text class="hero-tlabel" x="260" y="150" text-anchor="middle" dominant-baseline="hanging">&#x2212;1&#x3C3;</text>
+          <line class="hero-tick" x1="360" y1="140" x2="360" y2="147"/><text class="hero-tlabel" x="360" y="150" text-anchor="middle" dominant-baseline="hanging">&#x3BC;</text>
+          <line class="hero-tick" x1="460" y1="140" x2="460" y2="147"/><text class="hero-tlabel" x="460" y="150" text-anchor="middle" dominant-baseline="hanging">+1&#x3C3;</text>
+          <line class="hero-tick" x1="560" y1="140" x2="560" y2="147"/><text class="hero-tlabel" x="560" y="150" text-anchor="middle" dominant-baseline="hanging">+2&#x3C3;</text>
+        </g>
+      </svg>
+    </div>
+  </header>
+
+  <div class="wrap layout">
+    <details class="toc" open>
+      <summary>المحتويات</summary>
+      <div class="toc-body">
+        <p class="toc-title">الأقسام</p>
+        <nav>
+          <ol>
+            <li><a href="#fundamentals">الأساسيات: الفرضيات، الأخطاء، قيمة p</a></li>
+            <li><a href="#planning">التخطيط: حجم العينة والمدة</a></li>
+            <li><a href="#multiple">المقارنات المتعددة والعناقيد</a></li>
+            <li><a href="#analysis">تحليل النتائج: الاختبارات الـ22 كلها</a></li>
+            <li><a href="#monitoring">المراقبة الحية للتجربة</a></li>
+            <li><a href="#cheatsheet">ورقة مرجعية ورموز</a></li>
+          </ol>
+        </nav>
+      </div>
+    </details>
+
+    <main>
+      <!-- ================= 1. FUNDAMENTALS ================= -->
+      <section id="fundamentals">
+        <div class="sec-head"><span class="sec-num">01</span></div>
+        <h2>الأساسيات: ما يقوم عليه كل اختبار</h2>
+        <p class="sec-intro">اختبار A/B هو طريقة للإجابة بصدق عن السؤال: «هل حسّن التغيير شيئًا فعلًا، أم أنه يبدو كذلك فقط؟». قبل حساب العينات أو قراءة قيم p يجب تثبيت خمسة مفاهيم. بقية هذه الصفحة تُبنى عليها.</p>
+
+        <h3>فرضيتان</h3>
+        <p>نقارن دائمًا نسختين من العالم. <strong>فرضية العدم</strong> <span class='k'>H₀</span> تقول: «لا فرق بين النسخ». <strong>الفرضية البديلة</strong> <span class='k'>H₁</span>: «يوجد فرق». الاختبار لا «يثبت» H₁؛ بل يفحص مدى غرابة البيانات <em>لو</em> كانت H₀ صحيحة. إذا بدت غريبة بما يكفي، تُرفض H₀.</p>
+
+        <h3>الأرقام الأربعة التي تعرّف الاختبار</h3>
+        <div class="card">
+          <div class="where">
+            <p class="where-title">يُتفق عليها قبل الإطلاق</p>
+            <dl>
+              <dt>&#x3B1;</dt><dd><strong>مستوى الدلالة.</strong> خطر «الإنذار الكاذب» المقبول — إعلان أثر غير موجود. عادةً 0.05 (5%).</dd>
+              <dt>&#x3B2;</dt><dd><strong>خطر التفويت.</strong> احتمال عدم ملاحظة أثر حقيقي. عادةً 0.2 (20%).</dd>
+              <dt>1 &#x2212; &#x3B2;</dt><dd><strong>القوة (power).</strong> احتمال التقاط الأثر إن وُجد. عادةً 0.8 (80%).</dd>
+              <dt>MDE</dt><dd><strong>أصغر أثر قابل للكشف.</strong> أصغر تغيير يهمك التقاطه (مثلًا +5% للتحويل). أثر أصغر قد يفلت — وهذه مقايضة مقصودة.</dd>
+            </dl>
+          </div>
+        </div>
+
+        <h3>الخطآن الممكنان</h3>
+        <p>الواقع وحكم الاختبار يعطيان أربع نتائج. اثنتان صحيحتان واثنتان خطأ. جوهر التخطيط كله هو إبقاء الخطأين عند مستوى مقبول: <span class='k'>α</span> يضبط خطأ النوع الأول، و<span class='k'>β</span> خطأ النوع الثاني.</p>
+        <div class="tablewrap">
+          <table>
+            <thead>
+              <tr>
+                <th></th>
+                <th>H₀ صحيحة (لا أثر)</th>
+                <th>H₁ صحيحة (الأثر موجود)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th>الاختبار يقول «يوجد أثر»</th>
+                <td><strong style='color:var(--danger)'>خطأ النوع الأول</strong> — إنذار كاذب. الاحتمال = α.</td>
+                <td><strong style='color:var(--success)'>صحيح</strong> — التُقط الأثر. الاحتمال = 1 − β (القوة).</td>
+              </tr>
+              <tr>
+                <th>الاختبار يقول «لا فرق»</th>
+                <td><strong style='color:var(--success)'>صحيح</strong> — لا إنذار. الاحتمال = 1 − α.</td>
+                <td><strong style='color:var(--warning)'>خطأ النوع الثاني</strong> — فات الأثر. الاحتمال = β.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <figure class="figure tool" id="powerExplorer">
+          <div class="pe-top js-only">
+            <div class="pe-sliders">
+              <label class="ctl">
+                <span class="ctl-lab"><span>عتبة القرار</span> <b id="peOutZ">1.64</b></span>
+                <input type="range" id="peThresh" min="0" max="4" step="0.02" value="1.645" aria-label="threshold">
+              </label>
+              <label class="ctl">
+                <span class="ctl-lab"><span>حجم الأثر</span> <b id="peOutEff">3.0 σ</b></span>
+                <input type="range" id="peEffect" min="0" max="4" step="0.05" value="3" aria-label="effect size">
+              </label>
+            </div>
+            <div class="pe-stats">
+              <div class="stat stat-a"><span class="stat-num" id="peOutAlpha">5.0%</span><span class="stat-cap">α · إنذار كاذب</span></div>
+              <div class="stat stat-p"><span class="stat-num" id="peOutPower">91.2%</span><span class="stat-cap">1−β · القوة</span></div>
+            </div>
+          </div>
+          <svg viewBox="0 0 640 236" role="img" aria-label="Normal distributions of H0 and H1 with alpha and power regions">
+            <path class="fig-alpha pe-alpha" d="M 347,205 347,179 353,184 360,189 367,192 373,195 380,198 387,200 393,201 400,202 407,203 413,204 420,204 427,204 433,205 640,205 640,205 Z"/>
+            <path class="fig-power pe-power" d="M 347,205 347,101 353,88 360,76 367,65 373,54 380,44 387,37 393,31 400,27 407,26 413,27 420,30 427,36 433,43 440,52 447,63 453,74 460,86 467,99 473,111 480,123 487,135 493,145 500,155 507,163 513,171 520,178 527,183 533,188 540,192 547,195 553,197 560,199 567,201 573,202 580,203 587,203 593,204 600,204 607,204 613,205 640,205 640,205 Z"/>
+            <line class="fig-axis" x1="0" y1="205" x2="640" y2="205"/>
+            <line class="fig-crit pe-crit" x1="347" y1="205" x2="347" y2="14"/>
+            <path class="fig-h0 pe-h0" d="M 0,205 26,205 51,204 77,200 96,194 115,182 134,162 154,134 173,100 192,65 211,38 230,26 250,33 269,57 288,91 307,126 326,156 346,178 371,194 397,202 422,204 448,205 480,205 520,205 570,205 640,205"/>
+            <path class="fig-h1 pe-h1" d="M 205,205 218,204 237,203 256,199 275,191 294,178 314,156 333,126 352,91 371,57 390,33 410,26 429,38 448,65 467,100 486,134 506,162 525,182 544,194 563,200 589,204 614,205 640,205"/>
+            <text class="fig-lab h0" x="233" y="18" text-anchor="middle">H&#x2080;</text>
+            <text class="fig-lab h1 pe-lab-h1" x="407" y="18" text-anchor="middle">H&#x2081;</text>
+            <text class="fig-lab a pe-lab-a" x="372" y="199" text-anchor="middle">&#x3B1;</text>
+            <text class="fig-lab pw pe-lab-pw" x="452" y="150" text-anchor="middle">1&#x2212;&#x3B2;</text>
+          </svg>
+          <figcaption>الفرضيتان كتوزيعين. عتبة القرار تقسم الصورة: على يمينها نعلن الأثر. الأحمر هو <strong style='color:var(--danger)'>α</strong> (إنذار كاذب في ظل H₀)، والفيروزي هو <strong style='color:var(--accent-strong)'>القوة 1−β</strong> (التُقط الأثر في ظل H₁). <span class='js-only'><strong>اسحب المنزلقات</strong> لترى كيف تقايض العتبة بين α والقوة.</span></figcaption>
+        </figure>
+
+        <h3>قيمة p: ما هي وما ليست</h3>
+        <p>يعيد الاختبار <strong>قيمة p</strong>: احتمال رؤية فجوة <em>لا تقل</em> عن المرصودة، <em>لو</em> كانت H₀ صحيحة. قيمة p صغيرة تعني «بيانات كهذه نادرة في عالم بلا أثر» — وهذا مبرر لرفض H₀.</p>
+        <div class="callout warn">
+          <span class="clabel">خطأ شائع.</span>
+          <span>قيمة p <strong>ليست</strong> احتمال أن تكون H₀ صحيحة، ولا احتمال أنك مخطئ. إنها تتحدث عن البيانات بافتراض H₀، لا عن H₀ نفسها. p = 0.03 لا تعني «هناك احتمال 3% ألا يكون هناك أثر».</span>
+        </div>
+
+        <h3>فترة الثقة</h3>
+        <p>قيمة p تقول «أثر أم لا»؛ أما <strong>فترة الثقة</strong> (CI) فتجيب عن السؤال الأنفع: «ما حجم الأثر؟». فترة (1 − α) هي نطاق القيم المعقولة للأثر. إذا كانت فترة 95% لفرق التحويل <span class='k'>[+0.4%; +2.1%]</span> ولا تشمل الصفر، فالأثر دالّ — وحجمه يُقرأ مباشرة.</p>
+        <div class="callout intuition">
+          <span class="clabel">الرابط.</span>
+          <span>اختبار ثنائي الطرف عند مستوى α وفترة (1 − α) وجهان لعملة واحدة: الأثر دالّ عند α تمامًا عندما تستبعد الفترة الصفر. لهذا تعرض المنصة دائمًا قيمة p والفترة معًا.</span>
+        </div>
+
+        <h3>العشوائية: من يقع في أي نسخة</h3>
+        <div class="card">
+          <span class="tag plan">أساسيات · توزيع</span>
+          <p>التوزيع في المنصة حتمي — لا «قطع نقود» مخزنة. يُهشّر معرّف الوحدة مع ملح التجربة، ويقع الهاش في واحد من 10,000 دلو، وتقطع أوزان النسخ التراكمية نطاق الدلاء. نفس المعرّف يقع دائمًا في نفس النسخة، وتصمد التوزيعات أمام إعادة المحاولة وتغيير الأجهزة، ويمكن فحص التقسيم قبل الإطلاق عبر assignment preview.</p>
+          <div class="formula">
+            <span class="flabel">دلو حتمي</span>
+            <math display="block">
+              <mtext>bucket</mtext><mo>=</mo>
+              <mi>H</mi><mo>(</mo><mtext>id</mtext><mo>&#x2225;</mo><mtext>salt</mtext><mo>)</mo>
+              <mspace width="0.3em"/><mtext>mod</mtext><mspace width="0.3em"/>
+              <msup><mn>10</mn><mn>4</mn></msup>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">حيث</p>
+            <dl>
+              <dt>H</dt><dd>هاش سريع ومستقر (نثر منتظم، ليس تشفيرًا)</dd>
+              <dt>id</dt><dd>وحدة العشوائية: معرّف مستخدم أو جلسة أو عنقود</dd>
+              <dt>salt</dt><dd>ملح لكل تجربة — التجارب المختلفة تقسم باستقلال</dd>
+            </dl>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">الوحدة مهمة.</span>
+            <span>وحدة العشوائية هي وحدة الاستقلال. إن وزّعت الجلسات عشوائيًا وحللت المستخدمين (أو العكس) لم تعد المشاهدات مستقلة — والتباين يكذب. هذا بالضبط ما تعالجه طريقة دلتا لمقاييس النسب وأثر التصميم العنقودي أدناه.</span>
+          </div>
+        </div>
+        <hr class="divider">
+      </section>
+      <!-- ================= 2. PLANNING ================= -->
+      <section id="planning">
+        <div class="sec-head"><span class="sec-num">02</span></div>
+        <h2>التخطيط: كم مستخدمًا، ولأي مدة</h2>
+        <p class="sec-intro">يُحسب حجم العينة <strong>قبل</strong> الإطلاق. اختبار أصغر من اللازم يفوّت حتى الأثر الحقيقي (قوة منخفضة)؛ وأكبر من اللازم يحرق الزيارات هدرًا. تحوّل الصيغة أرقامك الأربعة (α، القوة، MDE، المستوى الأساسي) إلى عدد المشاهدات المطلوب لكل نسخة.</p>
+
+        <h3>حجم العينة لمعدل التحويل (نسبة)</h3>
+        <div class="card">
+          <span class="tag plan">تخطيط · مقياس ثنائي</span>
+          <p>عندما يكون المقياس «اشترى / لم يشترِ»، «نقر / لم ينقر»، فهذه هي الصيغة. البسط هو «ضجيج» نسبتين؛ والمقام مربع الأثر الذي تريد التقاطه. كلما صغر الأثر <span class='k'>δ</span> كبرت العينة (تنمو كـ 1/δ²: نصف الأثر → أربعة أضعاف العينة).</p>
+          <div class="formula">
+            <span class="flabel">مشاهدات لكل نسخة</span>
+            <math display="block">
+              <mi>n</mi><mo>=</mo>
+              <mfrac>
+                <msup>
+                  <mrow><mo>(</mo>
+                    <msub><mi>z</mi><mi>&#x3B1;</mi></msub><mspace width="0.15em"/>
+                    <msqrt><mrow><mn>2</mn><mo>&#x2062;</mo><mover><mi>p</mi><mo>&#xAF;</mo></mover><mo>(</mo><mn>1</mn><mo>&#x2212;</mo><mover><mi>p</mi><mo>&#xAF;</mo></mover><mo>)</mo></mrow></msqrt>
+                    <mo>+</mo>
+                    <msub><mi>z</mi><mi>&#x3B2;</mi></msub><mspace width="0.15em"/>
+                    <msqrt><mrow><msub><mi>p</mi><mn>0</mn></msub><mo>(</mo><mn>1</mn><mo>&#x2212;</mo><msub><mi>p</mi><mn>0</mn></msub><mo>)</mo><mo>+</mo><msub><mi>p</mi><mn>1</mn></msub><mo>(</mo><mn>1</mn><mo>&#x2212;</mo><msub><mi>p</mi><mn>1</mn></msub><mo>)</mo></mrow></msqrt>
+                  <mo>)</mo></mrow>
+                  <mn>2</mn>
+                </msup>
+                <msup><mi>&#x3B4;</mi><mn>2</mn></msup>
+              </mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">حيث</p>
+            <dl>
+              <dt>p&#x2080;, p&#x2081;</dt><dd>تحويل الأساس وتحويل النسخة؛ p₁ = p₀·(1 + MDE)</dd>
+              <dt>&#x3B4;</dt><dd>الأثر المطلق، δ = p₁ − p₀</dd>
+              <dt>p&#x304;</dt><dd>النسبة المجمعة (p₀ + p₁)/2</dd>
+              <dt>z<sub>&#x3B1;</sub></dt><dd>الكمّي الطبيعي لـ α (ثنائي الطرف): 1.96 عند α = 0.05</dd>
+              <dt>z<sub>&#x3B2;</sub></dt><dd>الكمّي للقوة: 0.84 عند power = 0.80</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>أساس <span class='num'>10%</span>، نلتقط زيادة نسبية <span class='num'>+10%</span> (→ 11%)، α = 0.05، القوة 0.80 → نحو <span class='num'>14,751</span> مستخدمًا <strong>لكل</strong> نسخة.</span>
+          </div>
+        </div>
+
+        <div class="tool js-only" id="sizer">
+          <span class="tag plan">تفاعلي · حاسبة</span>
+          <h4>احسب اختبارك بنفسك</h4>
+          <div class="sizer-grid">
+            <label class="fld"><span>معدل الأساس، %</span><input id="szBase" type="number" value="10" min="0.1" max="99" step="0.1"></label>
+            <label class="fld"><span>الزيادة (نسبية)، %</span><input id="szMde" type="number" value="10" min="0.1" step="0.1"></label>
+            <label class="fld"><span>الزيارات في الاختبار، /يوم</span><input id="szTraffic" type="number" value="5000" min="1" step="100"></label>
+            <label class="fld"><span>الدلالة α</span><select id="szAlpha"><option value="1.6449">0.10</option><option value="1.9600" selected>0.05</option><option value="2.5758">0.01</option></select></label>
+            <label class="fld"><span>القوة</span><select id="szPower"><option value="0.5244">0.70</option><option value="0.8416" selected>0.80</option><option value="1.2816">0.90</option><option value="1.6449">0.95</option></select></label>
+          </div>
+          <div class="sizer-out">
+            <div class="stat"><span class="stat-num" id="szPer">&#8212;</span><span class="stat-cap">لكل نسخة</span></div>
+            <div class="stat"><span class="stat-num" id="szTotal">&#8212;</span><span class="stat-cap">الإجمالي</span></div>
+            <div class="stat"><span class="stat-num" id="szDays">&#8212;</span><span class="stat-cap">أيام</span></div>
+          </div>
+          <p class="sizer-note" id="szNote" hidden>الأساس والزيادة يعطيان معدلًا ≥ 100% — قلّل القيم.</p>
+          <p class="sizer-fine">نفس الصيغة أعلاه. الافتراضات: نسختان متساويتان، اختبار ثنائي الطرف، كل الزيارات في الاختبار.</p>
+        </div>
+
+        <h3>حجم العينة لمتوسط (مقياس متصل)</h3>
+        <div class="card">
+          <span class="tag plan">تخطيط · مقياس متصل</span>
+          <p>عندما يكون المقياس رقمًا (إيراد لكل مستخدم، وقت في الموقع، قيمة الطلب)، يُعطى «الضجيج» بالتشتت <span class='k'>σ</span>. الصيغة أبسط: تشتت أكبر وأثر أصغر كلاهما يكبّر العينة.</p>
+          <div class="formula">
+            <span class="flabel">مشاهدات لكل نسخة</span>
+            <math display="block">
+              <mi>n</mi><mo>=</mo><mn>2</mn>
+              <msup>
+                <mrow><mo>(</mo><mfrac><mrow><mo>(</mo><msub><mi>z</mi><mi>&#x3B1;</mi></msub><mo>+</mo><msub><mi>z</mi><mi>&#x3B2;</mi></msub><mo>)</mo><mo>&#x2062;</mo><mi>&#x3C3;</mi></mrow><mi>&#x3B4;</mi></mfrac><mo>)</mo></mrow>
+                <mn>2</mn>
+              </msup>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">حيث</p>
+            <dl>
+              <dt>&#x3C3;</dt><dd>الانحراف المعياري للمقياس (التشتت بين المستخدمين)</dd>
+              <dt>&#x3B4;</dt><dd>الأثر المطلق بوحدات المقياس، δ = المتوسط·MDE</dd>
+              <dt>z<sub>&#x3B1;</sub>, z<sub>&#x3B2;</sub></dt><dd>نفس الكمّيات الطبيعية أعلاه</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>متوسط الطلب <span class='num'>100</span>، التشتت σ = <span class='num'>40</span>، نلتقط <span class='num'>+5%</span> (δ = 5)، α = 0.05، القوة 0.80 → نحو <span class='num'>1,005</span> مستخدمين لكل نسخة.</span>
+          </div>
+        </div>
+
+        <h3>السؤال المعكوس: ما الأثر الذي أستطيع كشفه أصلًا؟</h3>
+        <div class="card">
+          <span class="tag plan">تخطيط · MDE</span>
+          <p>الزيارات غالبًا ثابتة. عندها من المفيد قلب الصيغة: عند عينة ثابتة <span class='k'>n</span>، ما أصغر أثر يمكن التقاطه؟ للمتوسط توجد صيغة مغلقة.</p>
+          <div class="formula">
+            <span class="flabel">أصغر أثر قابل للكشف (متوسط)</span>
+            <math display="block">
+              <mi>MDE</mi><mo>=</mo><mo>(</mo><msub><mi>z</mi><mi>&#x3B1;</mi></msub><mo>+</mo><msub><mi>z</mi><mi>&#x3B2;</mi></msub><mo>)</mo><mo>&#x2062;</mo><mi>&#x3C3;</mi><mo>&#x2062;</mo><msqrt><mfrac><mn>2</mn><mi>n</mi></mfrac></msqrt>
+            </math>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">المعنى.</span>
+            <span>تنمو الحساسية كـ √n: لالتقاط أثر بنصف الحجم تحتاج أربعة أضعاف البيانات. للتحويلات يحل المحرك المعادلة نفسها عدديًا (بالتنصيف).</span>
+          </div>
+        </div>
+
+        <h3>مدة الاختبار</h3>
+        <div class="card">
+          <span class="tag plan">تخطيط · مدة</span>
+          <p>حجم العينة هو «كم مستخدمًا»؛ والمدة «كم يومًا لجمعهم». اقسم العينة المطلوبة على التدفق اليومي إلى النسخة <em>الأصغر</em> — فهي عنق الزجاجة.</p>
+          <div class="formula">
+            <span class="flabel">أيام حتى اكتمال العينة</span>
+            <math display="block">
+              <mtext>أيام</mtext><mo>=</mo>
+              <mrow><mo>&#x2308;</mo>
+                <mfrac>
+                  <mi>n</mi>
+                  <mrow><mi>T</mi><mo>&#x2062;</mo><mi>s</mi><mo>&#x2062;</mo><mi>a</mi><mo>&#x2062;</mo><msub><mi>w</mi><mtext>min</mtext></msub></mrow>
+                </mfrac>
+              <mo>&#x2309;</mo></mrow>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">حيث</p>
+            <dl>
+              <dt>T</dt><dd>الزيارات اليومية المتوقعة</dd>
+              <dt>s</dt><dd>حصة الجمهور الداخلة في الاختبار (0…1)</dd>
+              <dt>a</dt><dd>حصة الزيارات المخصصة (holdout / اختبارات متنافية)</dd>
+              <dt>w<sub>min</sub></dt><dd>وزن النسخة الأصغر في التقسيم</dd>
+              <dt>&#x2308; &#x2309;</dt><dd>تقريب لأعلى — اليوم لا يتجزأ</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>نحتاج 14,751 لكل نسخة، تدفق 5,000/يوم، 100% تدخل الاختبار، نسختان متساويتان (50% لكل) → 2,500/يوم إلى الذراع الأصغر → <span class='num'>6 أيام</span>.</span>
+          </div>
+          <div class="callout warn">
+            <span class="clabel">أسبوع على الأقل.</span>
+            <span>حتى لو أعطت الصيغة 2–3 أيام، شغّل بأسابيع كاملة: أيام العمل وعطلات الأسبوع تتصرف باختلاف، وجِدّة التغيير تشوّه الأيام الأولى.</span>
+          </div>
+        </div>
+
+        <h3>التخطيط البايزي «حسب الدقة»</h3>
+        <div class="card">
+          <span class="tag plan">تخطيط · بايزي</span>
+          <p>أحيانًا لا يكون الهدف «التقاط الأثر X» بل «تقدير مقياس بدقة ±d». عندها يحدد العينةَ نصفُ عرض الفترة البعدية المطلوب، لا القوة. مع سابق مسطح نعود تقريبًا إلى نفس الصيغة الطبيعية.</p>
+          <div class="formula">
+            <span class="flabel">عينة لدقة مستهدفة (نسبة / متوسط)</span>
+            <math display="block">
+              <mi>N</mi><mo>=</mo><mn>2</mn><mo>&#x2062;</mo><mi>p</mi><mo>(</mo><mn>1</mn><mo>&#x2212;</mo><mi>p</mi><mo>)</mo><msup><mrow><mo>(</mo><mfrac><mi>z</mi><mi>d</mi></mfrac><mo>)</mo></mrow><mn>2</mn></msup>
+              <mspace width="1.4em"/>
+              <mtext>/</mtext>
+              <mspace width="1.4em"/>
+              <mi>N</mi><mo>=</mo><mn>2</mn><mo>&#x2062;</mo><msup><mi>&#x3C3;</mi><mn>2</mn></msup><msup><mrow><mo>(</mo><mfrac><mi>z</mi><mi>d</mi></mfrac><mo>)</mo></mrow><mn>2</mn></msup>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">حيث</p>
+            <dl>
+              <dt>d</dt><dd>الدقة المستهدفة — نصف عرض الفترة</dd>
+              <dt>z</dt><dd>كمّي المصداقية: 1.96 عند 95%</dd>
+              <dt>p / &#x3C3;</dt><dd>نسبة الأساس أو تشتت المقياس</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>تقدير معدل ~10% بدقة <span class='num'>±1 نقطة مئوية</span> عند 95% → نحو <span class='num'>6,915</span> لكل نسخة.</span>
+          </div>
+        </div>
+
+        <h3>اختبار التكافؤ (TOST): «أثبت أن شيئًا لم ينكسر»</h3>
+        <div class="card">
+          <span class="tag plan">تخطيط · تكافؤ</span>
+          <p>الاختبار العادي يبحث عن فرق. أحيانًا تحتاج العكس: تأكيد أن إعادة الهيكلة أو الترحيل أو خفض التكلفة <em>لم</em> يحرّك المقياس خارج السماحية <span class='k'>±M</span>. هذا عمل <strong>TOST</strong> (اختباران أحاديا الطرف). تُحسب عينته على حدة — تحددها السماحية، لا MDE.</p>
+          <div class="formula">
+            <span class="flabel">عينة للتكافؤ</span>
+            <math display="block">
+              <mi>n</mi><mo>=</mo><mn>2</mn>
+              <msup>
+                <mrow><mo>(</mo><mfrac><mrow><mi>&#x3C3;</mi><mo>(</mo><msub><mi>z</mi><mi>&#x3B1;</mi></msub><mo>+</mo><msub><mi>z</mi><mrow><mn>1</mn><mo>&#x2212;</mo><mi>&#x3B2;</mi><mo>/</mo><mn>2</mn></mrow></msub><mo>)</mo></mrow><mi>M</mi></mfrac><mo>)</mo></mrow>
+                <mn>2</mn>
+              </msup>
+            </math>
+          </div>
+          <div class="callout example">
+            <span>أساس 100، σ = 40، سماحية ±5% (M = 5)، α = 0.05، القوة 0.80 → <span class='num'>1,097</span> لكل نسخة — مقابل <span class='num'>1,005</span> لاختبار التفوق بنفس الأرقام. إثبات «ليس أسوأ» أغلى.</span>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">دقيقة.</span>
+            <span>كل من الاختبارين أحاديي الطرف يجري عند مستوى <span class='k'>α</span> (بلا قسمة على 2)، وحدّ القوة يستخدم <span class='k'>z<sub>1−β/2</sub></span> لأن القوة، عند فرق حقيقي صفري، تتوزع بتماثل بين الحدين <span class='k'>−M</span> و<span class='k'>+M</span>.</span>
+          </div>
+        </div>
+
+        <div class="callout intuition">
+          <span class="clabel">أكثر من نسختين؟</span>
+          <span>عند تخطيط اختبار بـ k &gt; 2 نسخة، تشدد المنصة مستوى الدلالة تلقائيًا إلى α/(k−1) — بونفيروني على مقارنات «النسخة مقابل الضابط» — قبل حساب العينة. الأرقام تتضمن ثمن التعددية سلفًا.</span>
+        </div>
+        <hr class="divider">
+      </section>
+      <!-- ================= 3. MULTIPLE COMPARISONS ================= -->
+      <section id="multiple">
+        <div class="sec-head"><span class="sec-num">03</span></div>
+        <h2>نسخ كثيرة، مقاييس كثيرة، عناقيد</h2>
+        <p class="sec-intro">بمجرد أن تتجاوز المقارنات الواحدة تتراكم الإنذارات الكاذبة. افحص 20 مقياسًا عند 5% — وفي المتوسط «يطلق» أحدها بمحض الصدفة. هنا كيف يُصلح ذلك — وماذا تفعل حين توزع عشوائيًا متاجر أو مدنًا لا أشخاصًا.</p>
+
+        <h3>مشكلة المقارنات المتعددة</h3>
+        <p>إذا كان كل اختبار مستقلًا ويجري عند مستوى α، فاحتمال <em>إنذار كاذب واحد على الأقل</em> عبر <span class='k'>m</span> فحصًا هو 1 − (1 − α)<sup>m</sup>. عند α = 0.05 وm = 10 يبلغ ذلك <strong>40%</strong> بالفعل. يُضبط أحد مقدارين:</p>
+        <div class="tablewrap">
+          <table>
+            <thead><tr>
+              <th>ما الذي يُضبط</th>
+              <th>السؤال</th>
+              <th>الطرق</th>
+            </tr></thead>
+            <tbody>
+              <tr>
+                <td><strong>FWER</strong><br><span style='color:var(--ink-3)'>family-wise error rate</span></td>
+                <td>ما احتمال <em>أي</em> اكتشاف كاذب؟</td>
+                <td>بونفيروني، هولم. أكثر صرامة؛ يفقد القوة مع نمو m.</td>
+              </tr>
+              <tr>
+                <td><strong>FDR</strong><br><span style='color:var(--ink-3)'>false discovery rate</span></td>
+                <td>أي <em>نسبة</em> من «الاكتشافات» كاذبة؟</td>
+                <td>بنجاميني–هوخبرغ. أقوى حين تكثر المقاييس.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <figure class="figure">
+          <svg viewBox="0 0 560 216" role="img" aria-label="Family-wise error rate grows with the number of metrics">
+            <line class="fig-axis" x1="40" y1="188" x2="548" y2="188"/>
+            <line class="fig-axis" x1="40" y1="188" x2="40" y2="16"/>
+            <line class="fig-ref" x1="40" y1="175" x2="548" y2="175"/>
+            <path class="fig-line" style="stroke:var(--danger)" d="M 50,175 76,163 102,152 127,141 153,130 179,120 205,111 231,102 256,94 282,86 308,78 334,71 359,64 385,57 411,51 437,45 463,39 488,34 514,29 540,24"/>
+            <circle class="fig-dot" style="fill:var(--danger)" cx="153" cy="130" r="4"/>
+            <circle class="fig-dot" style="fill:var(--danger)" cx="282" cy="86" r="4"/>
+            <circle class="fig-dot" style="fill:var(--danger)" cx="540" cy="24" r="4.5"/>
+            <text class="fig-cap-in fig-cap-a" x="150" y="122" text-anchor="middle">23%</text>
+            <text class="fig-cap-in fig-cap-a" x="279" y="78" text-anchor="middle">40%</text>
+            <text class="fig-cap-in fig-cap-a" x="540" y="17" text-anchor="middle">64%</text>
+            <text class="fig-tick" x="44" y="171">5%</text>
+            <text class="fig-tick" x="50" y="202" text-anchor="middle">1</text>
+            <text class="fig-tick" x="153" y="202" text-anchor="middle">5</text>
+            <text class="fig-tick" x="282" y="202" text-anchor="middle">10</text>
+            <text class="fig-tick" x="540" y="202" text-anchor="middle">20</text>
+          </svg>
+          <figcaption>احتمال <strong style='color:var(--danger)'>اكتشاف كاذب واحد على الأقل</strong> عند فحص عدة مقاييس عند 5%: 1 − (1 − 0.05)<sup>m</sup>. عند 10 مقاييس يبلغ 40% بالفعل، وعند 20 يبلغ 64%. الخط المتقطع هو «الـ5% الصادقة» لفحص واحد. ومن هنا التصحيحات أدناه.</figcaption>
+        </figure>
+
+        <h3>تصحيح بونفيروني</h3>
+        <div class="card">
+          <span class="tag multi">تعددية · FWER</span>
+          <p>أبسط وصفة: اقسم العتبة على عدد المقارنات. تطبقها المنصة تلقائيًا حين تزيد النسخ على اثنتين — فهناك <span class='k'>k − 1</span> مقارنة «نسخة مقابل ضابط».</p>
+          <div class="formula">
+            <span class="flabel">العتبة المصححة</span>
+            <math display="block">
+              <msub><mi>&#x3B1;</mi><mtext>adj</mtext></msub><mo>=</mo><mfrac><mi>&#x3B1;</mi><mrow><mi>k</mi><mo>&#x2212;</mo><mn>1</mn></mrow></mfrac>
+              <mspace width="2em"/><mtext>(</mtext><mspace width="0.2em"/><mtext>عبر المقاييس:</mtext><mspace width="0.4em"/><msub><mi>&#x3B1;</mi><mtext>adj</mtext></msub><mo>=</mo><mfrac><mi>&#x3B1;</mi><mi>m</mi></mfrac><mspace width="0.2em"/><mtext>)</mtext>
+            </math>
+          </div>
+          <div class="callout example">
+            <span>3 نسخ → مقارنتان → عتبة 0.05 / 2 = <span class='num'>0.025</span> (يرتفع z من 1.96 → 2.24). محافظ لكنه آمن.</span>
+          </div>
+        </div>
+
+        <h3>هولم وبنجاميني–هوخبرغ: أذكى من القسمة بالتساوي</h3>
+        <div class="card">
+          <span class="tag multi">تعددية · إجراءات تدريجية</span>
+          <p>بونفيروني يعاقب كل المقاييس بالتساوي. الإجراءات التدريجية ترتب قيم p تصاعديًا <span class='k'>p₍₁₎ ≤ … ≤ p₍ₘ₎</span> وتقارن كلًا منها بعتبتها الخاصة المتساهلة تدريجيًا.</p>
+          <div class="formula">
+            <span class="flabel">هولم (FWER، تنازلي)</span>
+            <math display="block">
+              <mtext>ارفض</mtext><mspace width="0.4em"/><msub><mi>p</mi><mrow><mo>(</mo><mi>k</mi><mo>)</mo></mrow></msub><mspace width="0.5em"/><mtext>طالما</mtext><mspace width="0.5em"/>
+              <msub><mi>p</mi><mrow><mo>(</mo><mi>k</mi><mo>)</mo></mrow></msub><mo>&#x2264;</mo><mfrac><mi>&#x3B1;</mi><mrow><mi>m</mi><mo>&#x2212;</mo><mi>k</mi><mo>+</mo><mn>1</mn></mrow></mfrac>
+            </math>
+          </div>
+          <div class="formula">
+            <span class="flabel">بنجاميني–هوخبرغ (FDR، تصاعدي)</span>
+            <math display="block">
+              <msup><mi>k</mi><mo>&#x2217;</mo></msup><mo>=</mo><mi>max</mi><mo>&#x2061;</mo><mrow><mo>{</mo><mi>k</mi><mo>:</mo><mspace width="0.3em"/><msub><mi>p</mi><mrow><mo>(</mo><mi>k</mi><mo>)</mo></mrow></msub><mo>&#x2264;</mo><mfrac><mi>k</mi><mi>m</mi></mfrac><mo>&#x2062;</mo><mi>q</mi><mo>}</mo></mrow>
+              <mspace width="0.6em"/><mo>&#x21D2;</mo><mspace width="0.4em"/><mtext>ارفض الرتب</mtext><mspace width="0.3em"/><mn>1</mn><mo>&#x2026;</mo><msup><mi>k</mi><mo>&#x2217;</mo></msup>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">حيث</p>
+            <dl>
+              <dt>m</dt><dd>عدد المقاييس المفحوصة</dd>
+              <dt>k</dt><dd>رتبة قيمة p في القائمة المرتبة</dd>
+              <dt>q</dt><dd>النسبة المقبولة من الاكتشافات الكاذبة (مثلًا 0.05)</dd>
+            </dl>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">كيف تختار.</span>
+            <span>مقاييس قليلة وضبط صارم — هولم (أقوى دائمًا من بونفيروني الخام). مقاييس كثيرة ونسبة كاذبة صغيرة مقبولة — بنجاميني–هوخبرغ.</span>
+          </div>
+        </div>
+
+        <h3>العشوائية العنقودية: أثر التصميم وICC</h3>
+        <div class="card">
+          <span class="tag multi">عناقيد · حجم العينة</span>
+          <p>إذا وزعت على النسخ <em>مجموعات</em> — متاجر، مدنًا، فصولًا — لا أفرادًا، فإن المشاهدات داخل المجموعة تتشابه. المعلومات الفعلية أقل مما يوحي به عدد الرؤوس، ويجب تضخيم العينة الساذجة بمقدار <strong>أثر التصميم</strong> (DEFF).</p>
+          <div class="formula">
+            <span class="flabel">أثر التصميم (Kish)</span>
+            <math display="block">
+              <mtext>DEFF</mtext><mo>=</mo><mn>1</mn><mo>+</mo><mo>(</mo><mi>m</mi><mo>&#x2212;</mo><mn>1</mn><mo>)</mo><mo>&#x2062;</mo><mtext>ICC</mtext>
+              <mspace width="2em"/>
+              <msub><mi>n</mi><mtext>clust</mtext></msub><mo>=</mo><mi>n</mi><mo>&#x00D7;</mo><mtext>DEFF</mtext>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">حيث</p>
+            <dl>
+              <dt>m</dt><dd>متوسط حجم العنقود (أشخاص لكل مجموعة)</dd>
+              <dt>ICC</dt><dd>الارتباط داخل الصنف 0…1: مدى تشابه الأشخاص داخل المجموعة. 0 = مستقلون، وعندها DEFF = 1</dd>
+              <dt>n</dt><dd>العينة كما في العشوائية الفردية العادية</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>عناقيد من <span class='num'>50</span> شخصًا، ICC = <span class='num'>0.02</span>: DEFF = 1 + 49·0.02 = <span class='num'>1.98</span>. تتحول 1,000/نسخة الساذجة إلى <span class='num'>1,980</span>/نسخة ≈ <span class='num'>40 عنقودًا</span> لكل نسخة.</span>
+          </div>
+          <div class="callout warn">
+            <span class="clabel">انتبه.</span>
+            <span>حتى ICC ضئيلة مع عناقيد كبيرة تعطي DEFF هائلًا. هذا أكثر سبب شيوعًا وراء «شغّلنا اختبارًا على مستوى المدن ولم نلتقط شيئًا».</span>
+          </div>
+        </div>
+        <hr class="divider">
+      </section>
+      <!-- ================= 4. ANALYSIS ================= -->
+      <section id="analysis">
+        <div class="sec-head"><span class="sec-num">04</span></div>
+        <h2>تحليل النتائج: انتهى الاختبار، ماذا الآن</h2>
+        <p class="sec-intro">البيانات جاهزة. الآن نختار الاختبار حسب <em>تصميم</em> التجربة و<em>شكل</em> المقياس. تضم المنصة <strong>اثنين وعشرين محللًا</strong>؛ يمر هذا القسم عليها حسب التصميم — مجموعتان مستقلتان، مشاهدات مزدوجة، أكثر من مجموعتين، الزمن حتى الحدث — وينتهي بجدول كامل للـ22 كلها.</p>
+
+        <!-- ---- 4.1 two independent groups ---- -->
+        <h3>مجموعتان مستقلتان</h3>
+        <p class="group-lead">الـA/B الكلاسيكي: كل وحدة ترى نسخة واحدة بالضبط. النسب تأخذ اختبار z أو العائلة الدقيقة، والمتوسطات تأخذ ولش والرباعية المتينة، وعدّادات الأحداث بواسون، ونسب «لكل حدث» طريقة دلتا.</p>
+
+        <div class="card">
+          <span class="tag analyze">تحليل · ثنائي</span>
+          <h4>اختبار z لنسبتين (التحويلات)</h4>
+          <p>الاختبار القياسي «تحويل A مقابل تحويل B». نقيس كم «خطأً معياريًا» يمتد فرق النسبتين. يستخدم التباين النسبة المجمعة <span class='k'>p̄</span> — فالنسبتان متساويتان في ظل H₀.</p>
+          <div class="formula">
+            <span class="flabel">الإحصاءة</span>
+            <math display="block">
+              <mi>z</mi><mo>=</mo>
+              <mfrac>
+                <mrow><msub><mover><mi>p</mi><mo>^</mo></mover><mi>t</mi></msub><mo>&#x2212;</mo><msub><mover><mi>p</mi><mo>^</mo></mover><mi>c</mi></msub></mrow>
+                <msqrt><mrow><mover><mi>p</mi><mo>&#xAF;</mo></mover><mo>(</mo><mn>1</mn><mo>&#x2212;</mo><mover><mi>p</mi><mo>&#xAF;</mo></mover><mo>)</mo><mo>(</mo><mfrac><mn>1</mn><msub><mi>n</mi><mi>c</mi></msub></mfrac><mo>+</mo><mfrac><mn>1</mn><msub><mi>n</mi><mi>t</mi></msub></mfrac><mo>)</mo></mrow></msqrt>
+              </mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">حيث</p>
+            <dl>
+              <dt>p&#x302;<sub>c</sub>, p&#x302;<sub>t</sub></dt><dd>النسبتان المرصودتان للضابط والنسخة</dd>
+              <dt>p&#x304;</dt><dd>النسبة المجمعة (كل التحويلات / كل المستخدمين)</dd>
+              <dt>n<sub>c</sub>, n<sub>t</sub></dt><dd>حجما المجموعتين</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>الضابط 1,000/10,000 = 10.0%، النسخة 1,120/10,000 = 11.2% → z = <span class='num'>2.76</span>، p = <span class='num'>0.006</span>. الفرق دالّ. فترة ويلسون لنسبة النسخة: <span class='num'>[10.60%; 11.83%]</span>.</span>
+          </div>
+          <details class="more">
+            <summary>فترة لنسبة: لماذا ويلسون لا والد</summary>
+            <p>الفترة الساذجة <span class='k'>p̂ ± z·√(p̂(1−p̂)/n)</span> (والد) تسيء التصرف قرب الحواف (0 أو 1) وعند n صغيرة — حتى «عرض صفري» عند p̂ = 0. تستخدم المنصة <strong>فترة درجات ويلسون</strong> (عكس اختبار الدرجات): دائمًا داخل [0, 1] وبتغطية صادقة. لفرق النسبتين، هجين <strong>نيوكومب</strong> من فترتي ويلسون.</p>
+            <div class="formula">
+              <span class="flabel">فترة درجات ويلسون</span>
+              <math display="block">
+                <mfrac>
+                  <mrow><mover><mi>p</mi><mo>^</mo></mover><mo>+</mo><mfrac><msup><mi>z</mi><mn>2</mn></msup><mrow><mn>2</mn><mi>n</mi></mrow></mfrac><mo>&#x00B1;</mo><mi>z</mi><msqrt><mrow><mfrac><mrow><mover><mi>p</mi><mo>^</mo></mover><mo>(</mo><mn>1</mn><mo>&#x2212;</mo><mover><mi>p</mi><mo>^</mo></mover><mo>)</mo></mrow><mi>n</mi></mfrac><mo>+</mo><mfrac><msup><mi>z</mi><mn>2</mn></msup><mrow><mn>4</mn><msup><mi>n</mi><mn>2</mn></msup></mrow></mfrac></mrow></msqrt></mrow>
+                  <mrow><mn>1</mn><mo>+</mo><msup><mi>z</mi><mn>2</mn></msup><mo>/</mo><mi>n</mi></mrow>
+                </mfrac>
+              </math>
+            </div>
+          </details>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">تحليل · ثنائي، دقيق</span>
+          <h4>أعداد صغيرة: فيشر، بوشلو، بارنارد</h4>
+          <p>يهتز التقريب الطبيعي لاختبار z حين تندر النجاحات — تحويلات معدودة، نسب قرب الصفر. تحسب الاختبارات الدقيقة قيمة p مباشرة من جدول 2×2. <strong>فيشر</strong> يُشرّط على الهامشين (فوق-هندسي). <strong>بوشلو</strong> و<strong>بارنارد</strong> غير مشروطين: يعظّمان على النسبة المشتركة المجهولة π، ما يجعلهما أقوى من فيشر بدقة على بيانات A/B النموذجية. يحدّ المحرك أحجام الجداول للحساب الدقيق (500 ألف لفيشر؛ سقف مشترك للثنائي غير المشروط).</p>
+          <div class="formula">
+            <span class="flabel">فيشر: الاحتمال فوق-الهندسي لجدول</span>
+            <math display="block">
+              <mi>P</mi><mo>(</mo><mi>a</mi><mo>)</mo><mo>=</mo>
+              <mfrac>
+                <mrow><mi>C</mi><mo>(</mo><msub><mi>m</mi><mn>1</mn></msub><mo>,</mo><mi>a</mi><mo>)</mo><mo>&#x2062;</mo><mi>C</mi><mo>(</mo><msub><mi>m</mi><mn>2</mn></msub><mo>,</mo><mi>c</mi><mo>)</mo></mrow>
+                <mrow><mi>C</mi><mo>(</mo><mi>n</mi><mo>,</mo><mi>a</mi><mo>+</mo><mi>c</mi><mo>)</mo></mrow>
+              </mfrac>
+            </math>
+          </div>
+          <div class="formula">
+            <span class="flabel">غير المشروطين (بوشلو / بارنارد): تعظيم على معامل الإزعاج</span>
+            <math display="block">
+              <mi>p</mi><mo>=</mo>
+              <munder><mi>max</mi><mi>&#x3C0;</mi></munder>
+              <munder><mo>&#x2211;</mo><mrow><mi>T</mi><mo>&#x2AB0;</mo><mtext>obs</mtext></mrow></munder>
+              <msub><mi>P</mi><mi>&#x3C0;</mi></msub><mo>(</mo><mi>T</mi><mo>)</mo>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">حيث</p>
+            <dl>
+              <dt>m&#x2081;, m&#x2082;</dt><dd>مجموعا الصفين — حجما المجموعتين</dd>
+              <dt>a, c</dt><dd>النجاحات في الضابط والنسخة</dd>
+              <dt>&#x3C0;</dt><dd>النسبة المشتركة المجهولة في ظل H₀ — معامل «الإزعاج»</dd>
+              <dt>T &#x2AB0; obs</dt><dd>جداول لا تقل تطرفًا عن المرصود: بوشلو يرتبها بقيمة p لفيشر، وبارنارد بـ z والد المجمعة</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>3/40 (7.5%) مقابل 11/40 (27.5%): فيشر p = <span class='num'>0.0367</span>؛ بوشلو p = <span class='num'>0.0206</span>؛ بارنارد p = <span class='num'>0.0204</span> (ترتيب z = −2.354). الثنائي غير المشروط يجد نفس البيانات مقنعة بنحو الضعف.</span>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">أيها تختار؟</span>
+            <span>الجأ إلى اختبار دقيق حين تصغر خلية متوقعة (قاعدة عملية: أقل من 5). داخل العائلة، بوشلو هو الافتراضي العملي — لا يضعف عن فيشر أبدًا. بارنارد قد يعصر قوة أكبر قليلًا لكنه أغلى حسابيًا.</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">تحليل · متصل</span>
+          <h4>اختبار t لولش (المتوسطات)</h4>
+          <p>مقارنة متوسطات حين قد يختلف التشتت بين المجموعتين (الحالة المعتادة). بخلاف اختبار t الكلاسيكي، ولش <em>لا</em> يفترض تساوي التباينات — ولهذا هو الافتراضي المعقول.</p>
+          <div class="formula">
+            <span class="flabel">الإحصاءة ودرجات الحرية (ولش–ساترثويت)</span>
+            <math display="block">
+              <mi>t</mi><mo>=</mo>
+              <mfrac>
+                <mrow><msub><mover><mi>x</mi><mo>&#xAF;</mo></mover><mi>t</mi></msub><mo>&#x2212;</mo><msub><mover><mi>x</mi><mo>&#xAF;</mo></mover><mi>c</mi></msub></mrow>
+                <msqrt><mrow><mfrac><msubsup><mi>s</mi><mi>c</mi><mn>2</mn></msubsup><msub><mi>n</mi><mi>c</mi></msub></mfrac><mo>+</mo><mfrac><msubsup><mi>s</mi><mi>t</mi><mn>2</mn></msubsup><msub><mi>n</mi><mi>t</mi></msub></mfrac></mrow></msqrt>
+              </mfrac>
+              <mspace width="1.6em"/>
+              <mi>&#x3BD;</mi><mo>=</mo>
+              <mfrac>
+                <msup><mrow><mo>(</mo><msubsup><mi>s</mi><mi>c</mi><mn>2</mn></msubsup><mo>/</mo><msub><mi>n</mi><mi>c</mi></msub><mo>+</mo><msubsup><mi>s</mi><mi>t</mi><mn>2</mn></msubsup><mo>/</mo><msub><mi>n</mi><mi>t</mi></msub><mo>)</mo></mrow><mn>2</mn></msup>
+                <mrow><mfrac><msup><mrow><mo>(</mo><msubsup><mi>s</mi><mi>c</mi><mn>2</mn></msubsup><mo>/</mo><msub><mi>n</mi><mi>c</mi></msub><mo>)</mo></mrow><mn>2</mn></msup><mrow><msub><mi>n</mi><mi>c</mi></msub><mo>&#x2212;</mo><mn>1</mn></mrow></mfrac><mo>+</mo><mfrac><msup><mrow><mo>(</mo><msubsup><mi>s</mi><mi>t</mi><mn>2</mn></msubsup><mo>/</mo><msub><mi>n</mi><mi>t</mi></msub><mo>)</mo></mrow><mn>2</mn></msup><mrow><msub><mi>n</mi><mi>t</mi></msub><mo>&#x2212;</mo><mn>1</mn></mrow></mfrac></mrow>
+              </mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">حيث</p>
+            <dl>
+              <dt>x&#x304;<sub>c</sub>, x&#x304;<sub>t</sub></dt><dd>متوسطا المجموعتين</dd>
+              <dt>s<sub>c</sub>, s<sub>t</sub></dt><dd>الانحرافان المعياريان للمجموعتين</dd>
+              <dt>&#x3BD;</dt><dd>درجات الحرية الفعلية — بها يؤخذ مرجع ستيودنت</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>الضابط 100 ± 40 (n = 1,005)، النسخة 105 ± 41 (n = 1,005) → t = <span class='num'>2.77</span>، ν ≈ <span class='num'>2,007</span>، p ≈ 0.006. يُبلغ حجم الأثر بجانبها كـ <span class='k'>Cohen's d</span> = الفرق / التشتت المشترك.</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">تحليل · متين</span>
+          <h4>ذيول ثقيلة وقيم شاذة: الرباعية المتينة</h4>
+          <p>المقاييس الشبيهة بالإيراد — الانحراف، الذيول الثقيلة، القيم الشاذة — تكسر افتراضات اختبار t. يضم المحرك أربعة اختبارات لا تثق بشكل التوزيع، معروضة هنا على <strong>مجموعة بيانات واحدة بعينها</strong> (n = 10 لكل مجموعة) ليمكن مقارنة مخرجاتها مباشرة. <strong>مان–ويتني</strong> يقارن بالرتب؛ <strong>البوتستراب / التبديل</strong> يعيدان معاينة البيانات المرصودة بدل افتراض منحنى؛ <strong>اختبار الكمّيات</strong> ينقل السؤال إلى الوسيط (أو أي مئيني)؛ <strong>t المقصوص ليوين</strong> يقص أقصى 20% من كل ذيل قبل مقارنة المتوسطات.</p>
+          <div class="callout example">
+            <span>بيانات واحدة للأربعة: C = [12, 15, 9, 22, 30, 14, 18, 25, 11, 16]، T = [18, 24, 13, 29, 41, 19, 26, 33, 15, 22].</span>
+          </div>
+          <div class="formula">
+            <span class="flabel">مان–ويتني: الإحصاءة والتقريب الطبيعي</span>
+            <math display="block">
+              <mi>U</mi><mo>=</mo><msub><mi>R</mi><mn>1</mn></msub><mo>&#x2212;</mo><mfrac><mrow><msub><mi>n</mi><mn>1</mn></msub><mo>(</mo><msub><mi>n</mi><mn>1</mn></msub><mo>+</mo><mn>1</mn><mo>)</mo></mrow><mn>2</mn></mfrac>
+              <mspace width="1.6em"/>
+              <mi>z</mi><mo>=</mo><mfrac><mrow><mi>U</mi><mo>&#x2212;</mo><msub><mi>n</mi><mn>1</mn></msub><msub><mi>n</mi><mn>2</mn></msub><mo>/</mo><mn>2</mn></mrow><msub><mi>&#x3C3;</mi><mi>U</mi></msub></mfrac>
+            </math>
+          </div>
+          <div class="formula">
+            <span class="flabel">أحجام الأثر: إزاحة هودجز–ليمان والارتباط الرتبي-الثنائي</span>
+            <math display="block">
+              <mtext>HL</mtext><mo>=</mo><mi>med</mi><mo>&#x2061;</mo><mrow><mo>{</mo><msub><mi>y</mi><mi>j</mi></msub><mo>&#x2212;</mo><msub><mi>x</mi><mi>i</mi></msub><mo>}</mo></mrow>
+              <mspace width="1.6em"/>
+              <msub><mi>r</mi><mtext>rb</mtext></msub><mo>=</mo><mfrac><mrow><mn>2</mn><mi>U</mi></mrow><mrow><msub><mi>n</mi><mn>1</mn></msub><msub><mi>n</mi><mn>2</mn></msub></mrow></mfrac><mo>&#x2212;</mo><mn>1</mn>
+            </math>
+          </div>
+          <div class="formula">
+            <span class="flabel">قيمة p التبديلية وفترة بوتستراب مئينية</span>
+            <math display="block">
+              <msub><mi>p</mi><mtext>perm</mtext></msub><mo>=</mo>
+              <mfrac>
+                <mrow><mn>1</mn><mo>+</mo><mo>#</mo><mrow><mo>{</mo><mrow><mo>|</mo><msup><mi>&#x394;</mi><mo>&#x2217;</mo></msup><mo>|</mo></mrow><mo>&#x2265;</mo><mrow><mo>|</mo><mover><mi>&#x394;</mi><mo>^</mo></mover><mo>|</mo></mrow><mo>}</mo></mrow></mrow>
+                <mrow><mi>B</mi><mo>+</mo><mn>1</mn></mrow>
+              </mfrac>
+              <mspace width="1.6em"/>
+              <msub><mtext>CI</mtext><mn>95</mn></msub><mo>=</mo><mrow><mo>[</mo><msubsup><mi>&#x394;</mi><mrow><mo>(</mo><mn>2.5</mn><mo>%</mo><mo>)</mo></mrow><mo>&#x2217;</mo></msubsup><mo>;</mo><mspace width="0.3em"/><msubsup><mi>&#x394;</mi><mrow><mo>(</mo><mn>97.5</mn><mo>%</mo><mo>)</mo></mrow><mo>&#x2217;</mo></msubsup><mo>]</mo></mrow>
+            </math>
+          </div>
+          <div class="formula">
+            <span class="flabel">يوين: t على متوسطات مقصوصة 20%</span>
+            <math display="block">
+              <msub><mi>t</mi><mtext>Yuen</mtext></msub><mo>=</mo>
+              <mfrac>
+                <mrow><msub><mover><mi>x</mi><mo>&#xAF;</mo></mover><mrow><mi>t</mi><mo>,</mo><mtext>tr</mtext></mrow></msub><mo>&#x2212;</mo><msub><mover><mi>x</mi><mo>&#xAF;</mo></mover><mrow><mi>c</mi><mo>,</mo><mtext>tr</mtext></mrow></msub></mrow>
+                <msqrt><mrow><msub><mi>d</mi><mi>c</mi></msub><mo>+</mo><msub><mi>d</mi><mi>t</mi></msub></mrow></msqrt>
+              </mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">حيث</p>
+            <dl>
+              <dt>R&#x2081;</dt><dd>مجموع رتب المجموعة الأولى في العينة المجمعة</dd>
+              <dt>&#x3C3;<sub>U</sub></dt><dd>انحراف U في ظل H₀ — مصحح للتعادلات ومع تصحيح استمرارية؛ وعلى العينات الصغيرة الخالية من التعادلات يعدّ المحرك بدقة</dd>
+              <dt>&#x394;*</dt><dd>إحصاءة الفرق معادًا حسابها على بيانات معاد معاينتها / مبدلة؛ B = عدد إعادات المعاينة</dd>
+              <dt>x&#x304;<sub>tr</sub>, d</dt><dd>متوسطات مقصوصة وحدود تباين منسور؛ قص 20% يترك هنا n فعلية = 6 لكل مجموعة</dd>
+            </dl>
+          </div>
+          <div class="tablewrap">
+            <table>
+              <thead><tr>
+                <th>الاختبار</th>
+                <th>السؤال الذي يجيب عنه</th>
+                <th>على هذه البيانات</th>
+              </tr></thead>
+              <tbody>
+                <tr><td class="sym">Mann&#8211;Whitney U</td><td>هل قيم T أكبر إجمالًا؟</td><td>U = 74.5، z = 1.816، p = 0.069؛ HL = +6.5 [−1; 14]؛ الوسيطان 15.5 → 23.0؛ CLES 0.745، r<sub>rb</sub> = 0.49</td></tr>
+                <tr><td class="sym">bootstrap / permutation</td><td>هل يفسَّر فرق المتوسطين بالصدفة؟</td><td>Δ = 6.8، p = 0.0665، CI [0.4; 13.2]، d = 0.88 (2,000 إعادة معاينة، بذرة ثابتة)</td></tr>
+                <tr><td class="sym">quantile (median)</td><td>هل تحرك الوسيط؟</td><td>إزاحة +7.5، p = 0.123، CI [−1.5; 15]</td></tr>
+                <tr><td class="sym">Yuen trimmed t (20%)</td><td>هل يختلف المتوسطان بعد قص الذيول؟</td><td>16.17 مقابل 23.0، t = 1.94، df 9.84، p = 0.082</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">اقرأها معًا.</span>
+            <span>هنا تتفق الأربعة: الأثر نحو +6…7 وp بين 0.07 و0.12 — واعد، غير دالّ عند n = 10. وحين تختلف الرباعية، يكون الاختلاف نفسه معلومة: فجوة «المتوسط مقابل الوسيط» تشير إلى أن قيمًا شاذة أو ذيلًا ثقيلًا يجرّ الفوز «المتوسط».</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">تحليل · عدّادات</span>
+          <h4>عدّادات الأحداث: اختبار معدلات بواسون</h4>
+          <p>حين يكون المقياس عدّ أحداث على تعرّض — أخطاء لكل ألف جلسة، طلبات لكل مستخدم-يوم — تُقارن الشدّات لا الحصص. يستخدم المحرك الاختبار الشرطي الدقيق: بمعلومية إجمالي الأحداث تكون حصة النسخة منها ثنائية الحد في ظل H₀ (دقيق حتى مليون حدث). الأثر نسبة معدلات، مع فترة لفرق المعدلين.</p>
+          <div class="formula">
+            <span class="flabel">ثنائي الحد الشرطي ونسبة المعدلات</span>
+            <math display="block">
+              <msub><mi>X</mi><mi>t</mi></msub><mo>&#x2223;</mo><mrow><mo>(</mo><msub><mi>X</mi><mi>t</mi></msub><mo>+</mo><msub><mi>X</mi><mi>c</mi></msub><mo>)</mo></mrow>
+              <mo>&#x223C;</mo><mtext>Bin</mtext><mrow><mo>(</mo><msub><mi>X</mi><mi>t</mi></msub><mo>+</mo><msub><mi>X</mi><mi>c</mi></msub><mo>,</mo><mspace width="0.25em"/><mfrac><msub><mi>e</mi><mi>t</mi></msub><mrow><msub><mi>e</mi><mi>t</mi></msub><mo>+</mo><msub><mi>e</mi><mi>c</mi></msub></mrow></mfrac><mo>)</mo></mrow>
+              <mspace width="1.6em"/>
+              <mtext>RR</mtext><mo>=</mo><mfrac><mrow><msub><mi>X</mi><mi>t</mi></msub><mo>/</mo><msub><mi>e</mi><mi>t</mi></msub></mrow><mrow><msub><mi>X</mi><mi>c</mi></msub><mo>/</mo><msub><mi>e</mi><mi>c</mi></msub></mrow></mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">حيث</p>
+            <dl>
+              <dt>X<sub>c</sub>, X<sub>t</sub></dt><dd>عددا الأحداث في الضابط والنسخة</dd>
+              <dt>e<sub>c</sub>, e<sub>t</sub></dt><dd>التعرّضات (مستخدمون، جلسات، مستخدم-أيام)</dd>
+              <dt>RR</dt><dd>نسبة المعدلات — الأثر الضربي</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>46 حدثًا / 11,500 مقابل 72 / 11,800: المعدل 0.40% → 0.61%، النسبة <span class='num'>1.525</span>، p الدقيقة = <span class='num'>0.0269</span>، فترة الفرق [0.0003; 0.0039].</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">تحليل · نسبة</span>
+          <h4>مقاييس النسب: طريقة دلتا</h4>
+          <p>CTR، «نقرات لكل ظهور»، «إيراد لكل جلسة» هي نسبة <span class='k'>R = ΣY / ΣX</span> حيث يوزَّع <em>المستخدم</em> عشوائيًا بينما العدّ بالـ<em>أحداث</em>. التباين الساذج هنا <strong>خاطئ</strong>: يتجاهل الارتباط داخل المستخدم بين البسط والمقام. طريقة دلتا تجعل النسبة خطية وتستعيد التباين الصحيح.</p>
+          <div class="formula">
+            <span class="flabel">تباين النسبة (طريقة دلتا)</span>
+            <math display="block">
+              <mtext>Var</mtext><mo>(</mo><mover><mi>R</mi><mo>^</mo></mover><mo>)</mo><mo>=</mo>
+              <mfrac>
+                <mrow><msubsup><mi>&#x3C3;</mi><mi>Y</mi><mn>2</mn></msubsup><mo>&#x2212;</mo><mn>2</mn><mover><mi>R</mi><mo>^</mo></mover><msub><mi>&#x3C3;</mi><mrow><mi>X</mi><mi>Y</mi></mrow></msub><mo>+</mo><msup><mover><mi>R</mi><mo>^</mo></mover><mn>2</mn></msup><msubsup><mi>&#x3C3;</mi><mi>X</mi><mn>2</mn></msubsup></mrow>
+                <mrow><mi>n</mi><mo>&#x2062;</mo><msubsup><mi>&#x3BC;</mi><mi>X</mi><mn>2</mn></msubsup></mrow>
+              </mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">حيث</p>
+            <dl>
+              <dt>&#x3BC;<sub>X</sub></dt><dd>متوسط المقام لكل مستخدم</dd>
+              <dt>&#x3C3;&#xB2;<sub>X</sub>, &#x3C3;&#xB2;<sub>Y</sub></dt><dd>تباينا البسط والمقام لكل مستخدم</dd>
+              <dt>&#x3C3;<sub>XY</sub></dt><dd>تغايرهما — هو بالضبط ما تفقده الصيغة الساذجة</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>من اختبارات المحرك المجمدة: نقرات-لكل-ظهور 0.436 → 0.538، Δ = <span class='num'>0.1018</span>، z = <span class='num'>8.74</span> — ارتفاع نسبة دالّ بقوة، مع احتساب التغاير داخل المستخدم كما ينبغي.</span>
+          </div>
+        </div>
+
+        <!-- ---- 4.2 paired designs ---- -->
+        <h3>مشاهدات مزدوجة</h3>
+        <p class="group-lead">نفس الوحدات مقاسة مرتين — قبل/بعد، أو أزواج متطابقة. الازدواج يلغي التباين بين المستخدمين داخل كل زوج، ولهذا تبلغ التصاميم المزدوجة الدلالة بجزء من العينة. وحدة التحليل هي الزوج، لا المستخدم.</p>
+
+        <div class="card">
+          <span class="tag analyze">تحليل · متوسطات مزدوجة</span>
+          <h4>اختبار t المزدوج</h4>
+          <p>نأخذ الفروق داخل الأزواج <span class='k'>d</span> ونختبر هل متوسطها صفر. التشتت الثابت بين المستخدمين يُلغى داخل كل زوج؛ لا يضج إلا التغيير نفسه. حجم الأثر هو <span class='k'>d<sub>z</sub></span> لكوهين — بوحدات تشتت الفروق.</p>
+          <div class="formula">
+            <span class="flabel">الإحصاءة وحجم الأثر المزدوج</span>
+            <math display="block">
+              <mi>t</mi><mo>=</mo><mfrac><mover><mi>d</mi><mo>&#xAF;</mo></mover><mrow><msub><mi>s</mi><mi>d</mi></msub><mo>/</mo><msqrt><mi>n</mi></msqrt></mrow></mfrac>
+              <mspace width="1.6em"/>
+              <mtext>df</mtext><mo>=</mo><mi>n</mi><mo>&#x2212;</mo><mn>1</mn>
+              <mspace width="1.6em"/>
+              <msub><mi>d</mi><mi>z</mi></msub><mo>=</mo><mfrac><mover><mi>d</mi><mo>&#xAF;</mo></mover><msub><mi>s</mi><mi>d</mi></msub></mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">حيث</p>
+            <dl>
+              <dt>d&#x304;</dt><dd>متوسط الفروق داخل الأزواج</dd>
+              <dt>s<sub>d</sub></dt><dd>الانحراف المعياري للفروق</dd>
+              <dt>d<sub>z</sub></dt><dd>حجم الأثر المزدوج: متوسط الفرق على تشتته</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>12 زوجًا قبل/بعد (309.2 → 318.3): Δ = <span class='num'>+9.17</span>، t = 6.46، df 11، p &lt; 0.001، CI [6.04; 12.29]، d<sub>z</sub> = 1.87. مجموعتان مستقلتان من 12 لن تريا هذا أبدًا.</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">تحليل · مزدوج، رتب</span>
+          <h4>اختبار ويلكوكسون للرتب الموقعة</h4>
+          <p>التوأم اللامعلمي لاختبار t المزدوج: نرتب القيم المطلقة للفروق، ونجمع رتب الموجبة والسالبة كلًا على حدة، ونختبر المجموع الأصغر (تقريب طبيعي). متين أمام الشواذ بين الفروق؛ الأثر هو <strong>الوسيط الزائف</strong> لهودجز–ليمان لفروق الأزواج.</p>
+          <div class="formula">
+            <span class="flabel">الإحصاءة والتقريب الطبيعي</span>
+            <math display="block">
+              <mi>W</mi><mo>=</mo><mi>min</mi><mo>&#x2061;</mo><mo>(</mo><msup><mi>W</mi><mo>+</mo></msup><mo>,</mo><mspace width="0.2em"/><msup><mi>W</mi><mo>&#x2212;</mo></msup><mo>)</mo>
+              <mspace width="1.6em"/>
+              <mi>z</mi><mo>=</mo><mfrac><mrow><mi>W</mi><mo>&#x2212;</mo><msub><mi>&#x3BC;</mi><mi>W</mi></msub></mrow><msub><mi>&#x3C3;</mi><mi>W</mi></msub></mfrac>
+            </math>
+          </div>
+          <div class="callout example">
+            <span>نفس الأزواج الـ12: W = <span class='num'>1</span>، z = −2.945، p = <span class='num'>0.0032</span>، الوسيط الزائف +9.5 [6; 12.5].</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">تحليل · مزدوج، ثنائي</span>
+          <h4>ماك-نمار: نسب مزدوجة</h4>
+          <p>في النواتج الثنائية المزدوجة (حوّل قبل مقابل بعد، نفس الأشخاص) لا يحمل المعلومة إلا الأزواج <strong>غير المتوافقة</strong>: <span class='k'>b</span> زوجًا انتقل 0→1، و<span class='k'>c</span> زوجًا انتقل 1→0؛ المتوافقة تتلاشى. يطبق المحرك تصحيح الاستمرارية ويبلغ نسبة الأرجحية b/c وفرق النسبتين.</p>
+          <div class="formula">
+            <span class="flabel">الإحصاءة المصححة ونسبة الأرجحية</span>
+            <math display="block">
+              <msup><mi>&#x3C7;</mi><mn>2</mn></msup><mo>=</mo>
+              <mfrac>
+                <msup><mrow><mo>(</mo><mrow><mo>|</mo><mi>b</mi><mo>&#x2212;</mo><mi>c</mi><mo>|</mo></mrow><mo>&#x2212;</mo><mn>1</mn><mo>)</mo></mrow><mn>2</mn></msup>
+                <mrow><mi>b</mi><mo>+</mo><mi>c</mi></mrow>
+              </mfrac>
+              <mspace width="1.6em"/>
+              <mtext>OR</mtext><mo>=</mo><mfrac><mi>b</mi><mi>c</mi></mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">حيث</p>
+            <dl>
+              <dt>b</dt><dd>أزواج تحسنت (0→1)</dd>
+              <dt>c</dt><dd>أزواج ساءت (1→0)</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>1,000 زوج، b = 30، c = 12: χ² = <span class='num'>6.881</span> (مع التصحيح)، p = <span class='num'>0.0087</span>، OR = 2.5، Δ = +1.8 نقطة مئوية [0.53; 3.07].</span>
+          </div>
+        </div>
+
+        <!-- ---- 4.3 more than two groups & categories ---- -->
+        <h3>أكثر من مجموعتين، وفئات</h3>
+        <p class="group-lead">مع k نسخة، شغّل أولًا اختبارًا شاملًا واحدًا — «هل يختلف أي شيء أصلًا؟» — وبعده فقط المقارنات الزوجية مع تصحيح التعددية (القسم 03). القفز مباشرة إلى الاختبارات الزوجية يضاعف الإنذارات الكاذبة.</p>
+
+        <div class="card">
+          <span class="tag analyze">تحليل · k مجموعة</span>
+          <h4>الشامل: Welch ANOVA وكروسكال–واليس</h4>
+          <p><strong>Welch ANOVA</strong> يقارن k متوسطًا دون افتراض تساوي التباينات (نفس فلسفة t لولش). <strong>كروسكال–واليس</strong> توأمه الرتبي. حجما الأثر: <span class='k'>η²</span> و<span class='k'>ε²</span> — حصة التباين التي تفسرها عضوية المجموعة.</p>
+          <div class="formula">
+            <span class="flabel">Welch ANOVA (تباينات غير متساوية)</span>
+            <math display="block">
+              <msub><mi>w</mi><mi>i</mi></msub><mo>=</mo><mfrac><msub><mi>n</mi><mi>i</mi></msub><msubsup><mi>s</mi><mi>i</mi><mn>2</mn></msubsup></mfrac>
+              <mspace width="1.4em"/>
+              <msup><mi>F</mi><mo>&#x2217;</mo></msup><mo>=</mo>
+              <mfrac>
+                <mrow><munder><mo>&#x2211;</mo><mi>i</mi></munder><msub><mi>w</mi><mi>i</mi></msub><msup><mrow><mo>(</mo><msub><mover><mi>x</mi><mo>&#xAF;</mo></mover><mi>i</mi></msub><mo>&#x2212;</mo><msub><mover><mi>x</mi><mo>&#xAF;</mo></mover><mi>w</mi></msub><mo>)</mo></mrow><mn>2</mn></msup><mo>/</mo><mrow><mo>(</mo><mi>k</mi><mo>&#x2212;</mo><mn>1</mn><mo>)</mo></mrow></mrow>
+                <mi>D</mi>
+              </mfrac>
+            </math>
+          </div>
+          <div class="formula">
+            <span class="flabel">كروسكال–واليس وحجم أثره</span>
+            <math display="block">
+              <mi>H</mi><mo>=</mo>
+              <mfrac><mn>12</mn><mrow><mi>N</mi><mo>(</mo><mi>N</mi><mo>+</mo><mn>1</mn><mo>)</mo></mrow></mfrac>
+              <munder><mo>&#x2211;</mo><mi>i</mi></munder><mfrac><msubsup><mi>R</mi><mi>i</mi><mn>2</mn></msubsup><msub><mi>n</mi><mi>i</mi></msub></mfrac>
+              <mo>&#x2212;</mo><mn>3</mn><mo>(</mo><mi>N</mi><mo>+</mo><mn>1</mn><mo>)</mo>
+              <mspace width="1.4em"/>
+              <msup><mi>&#x3B5;</mi><mn>2</mn></msup><mo>=</mo><mfrac><mrow><mi>H</mi><mo>&#x2212;</mo><mi>k</mi><mo>+</mo><mn>1</mn></mrow><mrow><mi>N</mi><mo>&#x2212;</mo><mi>k</mi></mrow></mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">حيث</p>
+            <dl>
+              <dt>k, N</dt><dd>عدد المجموعات وحجم العينة الكلي</dd>
+              <dt>x&#x304;<sub>w</sub>, D</dt><dd>المتوسط العام الموزون بالتباينات؛ D مقام ولش المصحح للتباينات غير المتساوية — المرجع F(k−1, df) بدرجات حرية ولش</dd>
+              <dt>R<sub>i</sub></dt><dd>مجموع رتب المجموعة i في العينة المجمعة</dd>
+              <dt>&#x3B7;&#xB2;, &#x3B5;&#xB2;</dt><dd>حصص التباين المفسر: η² لـANOVA وε² لكروسكال–واليس</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>3 مجموعات × 10 (الثالثة أدنى): Welch ANOVA F* = <span class='num'>3.58</span>، df (2; 16.87)، p = <span class='num'>0.0506</span> — غير دالّ؛ كروسكال–واليس على نفس البيانات H = <span class='num'>6.44</span>، p = <span class='num'>0.0399</span> — دالّ، ε² = 0.222.</span>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">خلاف مفيد.</span>
+            <span>نفس البيانات، اختباران وجيهان، حكمان متعاكسان عند α = 0.05 (0.0506 مقابل 0.0399). الذيول الثقيلة تضعف اختبار المتوسطات وبالكاد تمس الرتبي. عامل قيم p قرب العتبة كدليل حدّي لا كحقيقة ثنائية — وثبّت عائلة الاختبار قبل النظر إلى البيانات.</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">تحليل · فئوي</span>
+          <h4>الفئات: χ² r×c، وV لكرامير، واختبار G</h4>
+          <p>حين يكون الناتج فئة من عدة فئات (الباقة المختارة، هدف النقرة) عبر عدة نسخ، يسأل اختبار استقلال χ² هل يختلف التوزيع حسب النسخة، ويقول <strong>V لكرامير</strong> (0…1) ما قوة ذلك. <strong>اختبار G</strong> هو صيغة نسبة الإمكان لنفس السؤال — نفس الجواب على الجداول الكبيرة، وقابل للجمع عبر التقسيمات.</p>
+          <div class="formula">
+            <span class="flabel">اختبار الاستقلال وقوة الارتباط</span>
+            <math display="block">
+              <msup><mi>&#x3C7;</mi><mn>2</mn></msup><mo>=</mo>
+              <munder><mo>&#x2211;</mo><mrow><mi>i</mi><mo>,</mo><mi>j</mi></mrow></munder>
+              <mfrac><msup><mrow><mo>(</mo><msub><mi>O</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo>&#x2212;</mo><msub><mi>E</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo>)</mo></mrow><mn>2</mn></msup><msub><mi>E</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub></mfrac>
+              <mspace width="1.4em"/>
+              <mi>V</mi><mo>=</mo><msqrt><mfrac><msup><mi>&#x3C7;</mi><mn>2</mn></msup><mrow><mi>n</mi><mo>&#x2062;</mo><mi>min</mi><mo>&#x2061;</mo><mo>(</mo><mi>r</mi><mo>&#x2212;</mo><mn>1</mn><mo>,</mo><mi>c</mi><mo>&#x2212;</mo><mn>1</mn><mo>)</mo></mrow></mfrac></msqrt>
+            </math>
+          </div>
+          <div class="formula">
+            <span class="flabel">اختبار G (نسبة الإمكان)</span>
+            <math display="block">
+              <mi>G</mi><mo>=</mo><mn>2</mn>
+              <munder><mo>&#x2211;</mo><mrow><mi>i</mi><mo>,</mo><mi>j</mi></mrow></munder>
+              <msub><mi>O</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo>&#x2062;</mo><mi>ln</mi><mo>&#x2061;</mo><mfrac><msub><mi>O</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><msub><mi>E</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub></mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">حيث</p>
+            <dl>
+              <dt>O<sub>ij</sub>, E<sub>ij</sub></dt><dd>التكرارات المرصودة والمتوقعة؛ E = (مجموع الصف × مجموع العمود) / n</dd>
+              <dt>r, c</dt><dd>عددا الصفوف والأعمدة</dd>
+              <dt>V</dt><dd>قوة الارتباط: 0 — استقلال، 1 — تحديد تام</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>3 باقات × 3 نسخ [[420, 380, 200], [410, 360, 230], [380, 340, 280]]: χ² = <span class='num'>18.17</span>، df 4، p = <span class='num'>0.0011</span>؛ G = <span class='num'>18.07</span>، p = 0.0012؛ V لكرامير = <span class='num'>0.055</span> — دالّ لكن الارتباط ضعيف. عند n ≈ 3,000 الدلالة رخيصة؛ وV يبقيك صادقًا.</span>
+          </div>
+          <div class="callout warn">
+            <span class="clabel">قاعدة كوكران.</span>
+            <span>يتطلب تقريب χ² تكرارات متوقعة لا تقل عن 5 في كل خلية (تقريبًا) — هنا min E = 236.7، لا بأس. مع خلايا متناثرة، ادمج الفئات أو انتقل إلى اختبار دقيق.</span>
+          </div>
+        </div>
+
+        <!-- ---- 4.4 time-to-event ---- -->
+        <h3>الزمن حتى الحدث (البقاء)</h3>
+        <p class="group-lead">أحيانًا يكون المقياس «كم يمضي حتى الحدث» — الانسحاب، أول شراء، التفعيل — وعند نهاية النافذة لم يقع الحدث بعد لدى جزء من المستخدمين. رميهم يحرّف كل شيء؛ طرق البقاء تبقيهم <strong>مبتورين</strong> (censored): يساهمون بـ«صمد على الأقل هذه المدة».</p>
+
+        <div class="card">
+          <span class="tag analyze">تحليل · بقاء</span>
+          <h4>كابلان–ماير: منحنى البقاء</h4>
+          <p>مقدّر حد-الجداء يبني <span class='k'>S(t)</span> — احتمال «البقاء» بعد t — بضرب، عند كل لحظة حدث مرصودة، نسبة من كانوا تحت الخطر ولم يقع لهم الحدث. المبتورون يغادرون مجموعة الخطر دون أن يُحسبوا أحداثًا.</p>
+          <div class="formula">
+            <span class="flabel">مقدّر حد-الجداء</span>
+            <math display="block">
+              <mover><mi>S</mi><mo>^</mo></mover><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo>
+              <munder><mo>&#x220F;</mo><mrow><msub><mi>t</mi><mi>i</mi></msub><mo>&#x2264;</mo><mi>t</mi></mrow></munder>
+              <mrow><mo>(</mo><mn>1</mn><mo>&#x2212;</mo><mfrac><msub><mi>d</mi><mi>i</mi></msub><msub><mi>n</mi><mi>i</mi></msub></mfrac><mo>)</mo></mrow>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">حيث</p>
+            <dl>
+              <dt>t<sub>i</sub></dt><dd>لحظات الحدث المتمايزة</dd>
+              <dt>d<sub>i</sub></dt><dd>أحداث عند اللحظة t<sub>i</sub></dd>
+              <dt>n<sub>i</sub></dt><dd>تحت الخطر قبيل t<sub>i</sub> مباشرة</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>منحنى انسحاب الضابط من البيانات أدناه: Ŝ(25) = <span class='num'>0.25</span> [0.005; 0.495] — بحلول اليوم 25 لم يبقَ إلا الربع، وعند هذا الحجم تُظهر الفترة بصدق كم أن ذلك غير محدد.</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">تحليل · بقاء</span>
+          <h4>Log-rank وفليمنغ–هارينغتون</h4>
+          <p>يقارن اختبار log-rank المنحنيات كاملة لا نقطة واحدة: عند كل لحظة حدث يجمع الأحداث المرصودة مقابل المتوقعة في المجموعة 1 (مانتل–كوكس، O − E على التباين V). <strong>فليمنغ–هارينغتون G(ρ,γ)</strong> هي العائلة الموزونة: ρ &gt; 0 يبرز الفروق المبكرة، وγ &gt; 0 المتأخرة؛ وG(0,0) هو log-rank بالضبط. لـ k مجموعة تكون الإحصاءة الصيغة التربيعية zᵀV⁻¹z ~ χ²(k−1).</p>
+          <div class="formula">
+            <span class="flabel">Log-rank (مانتل–كوكس)</span>
+            <math display="block">
+              <msup><mi>&#x3C7;</mi><mn>2</mn></msup><mo>=</mo>
+              <mfrac>
+                <msup><mrow><mo>(</mo><msub><mi>O</mi><mn>1</mn></msub><mo>&#x2212;</mo><msub><mi>E</mi><mn>1</mn></msub><mo>)</mo></mrow><mn>2</mn></msup>
+                <mi>V</mi>
+              </mfrac>
+            </math>
+          </div>
+          <div class="formula">
+            <span class="flabel">أوزان فليمنغ–هارينغتون وصيغة k عينة</span>
+            <math display="block">
+              <mi>w</mi><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo>
+              <mover><mi>S</mi><mo>^</mo></mover><msup><mrow><mo>(</mo><msup><mi>t</mi><mo>&#x2212;</mo></msup><mo>)</mo></mrow><mi>&#x3C1;</mi></msup>
+              <msup><mrow><mo>(</mo><mn>1</mn><mo>&#x2212;</mo><mover><mi>S</mi><mo>^</mo></mover><mo>(</mo><msup><mi>t</mi><mo>&#x2212;</mo></msup><mo>)</mo><mo>)</mo></mrow><mi>&#x3B3;</mi></msup>
+              <mspace width="1.6em"/>
+              <msup><mi>&#x3C7;</mi><mn>2</mn></msup><mo>=</mo><msup><mi>z</mi><mi>T</mi></msup><msup><mi>V</mi><mrow><mo>&#x2212;</mo><mn>1</mn></mrow></msup><mi>z</mi>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">حيث</p>
+            <dl>
+              <dt>O&#x2081;, E&#x2081;</dt><dd>الأحداث المرصودة والمتوقعة في المجموعة 1، مجموعة عبر لحظات الحدث</dd>
+              <dt>V</dt><dd>التباين فوق-الهندسي لـ O₁</dd>
+              <dt>&#x3C1;, &#x3B3;</dt><dd>مقابض الأوزان: (0,0) — كلاسيكي؛ ρ &gt; 0 — فروق مبكرة؛ γ &gt; 0 — متأخرة</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>أيام الانسحاب C = [3, 5, 7, 9, 12, 14, 18, 21, 25] + 3 مبتورة عند اليوم 30 مقابل T = [6, 10, 15, 22, 28] + 7 مبتورة: χ² = <span class='num'>3.32</span>، p = <span class='num'>0.068</span> (O₁ = 9 مقابل E₁ = 5.68). G(0,0) يعيد إنتاجه تمامًا.</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="tag analyze">تحليل · بقاء</span>
+          <h4>مخاطر كوكس التناسبية</h4>
+          <p>يحوّل نموذج كوكس فرق المجموعتين إلى <strong>نسبة مخاطر</strong>: HR = e<sup>β</sup> تضرب الخطر اللحظي للحدث في كل لحظة. يقدّر المحرك β لمؤشر المعالجة بالإمكان الجزئي ويختبره بـ z والد؛ ويبقى الخطر الأساسي h₀(t) غير محدد.</p>
+          <div class="formula">
+            <span class="flabel">النموذج والأثر واختبار والد</span>
+            <math display="block">
+              <mi>h</mi><mo>(</mo><mi>t</mi><mo>&#x2223;</mo><mi>x</mi><mo>)</mo><mo>=</mo>
+              <msub><mi>h</mi><mn>0</mn></msub><mo>(</mo><mi>t</mi><mo>)</mo><mo>&#x2062;</mo>
+              <msup><mi>e</mi><mrow><mi>&#x3B2;</mi><mi>x</mi></mrow></msup>
+              <mspace width="1.4em"/>
+              <mtext>HR</mtext><mo>=</mo><msup><mi>e</mi><mover><mi>&#x3B2;</mi><mo>^</mo></mover></msup>
+              <mspace width="1.4em"/>
+              <mi>z</mi><mo>=</mo><mfrac><mover><mi>&#x3B2;</mi><mo>^</mo></mover><mrow><mtext>SE</mtext><mo>(</mo><mover><mi>&#x3B2;</mi><mo>^</mo></mover><mo>)</mo></mrow></mfrac>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">حيث</p>
+            <dl>
+              <dt>h&#x2080;(t)</dt><dd>الخطر الأساسي — لا يقدَّر أبدًا، يُختصر من الإمكان الجزئي</dd>
+              <dt>x</dt><dd>مؤشر المعالجة (0 = ضابط، 1 = نسخة)</dd>
+              <dt>HR</dt><dd>نسبة المخاطر: HR &lt; 1 — الحدث يتباطأ (جيد للانسحاب)، HR &gt; 1 — يتسارع</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>نفس البيانات: HR = <span class='num'>0.372</span> [0.123; 1.123]، β = −0.988، SE 0.563، p = <span class='num'>0.079</span>. التقدير النقطي يقول «خطر الانسحاب أدنى بنحو ثلاث مرات»؛ والفترة تقول إن البيانات لا تسند ذلك بعد. حجم الأثر والدلالة سؤالان مختلفان.</span>
+          </div>
+          <div class="callout warn">
+            <span class="clabel">افتراض PH.</span>
+            <span>«المخاطر التناسبية» تعني أن النسبة ثابتة عبر الزمن؛ إذا تقاطعت المنحنيات فإن HR يُعدّل تغيّرَ إشارة — انظر منحنيات KM أولًا. وعلى بيانات منحلة بإمكانٍ رتيب (مثلًا كل الأحداث في ذراع واحدة) يرفض المحرك الملاءمة بدل الإبلاغ عن HR زائف.</span>
+          </div>
+        </div>
+
+        <!-- ---- 4.5 all 22 analyzers ---- -->
+        <h3>المحللات الاثنان والعشرون كلها</h3>
+        <p class="lead-in">مجمّعة حسب تصميم التجربة. داخل المجموعة يتبع الاختيار نوع المقياس وشكل البيانات.</p>
+        <div class="tablewrap">
+          <table>
+            <thead><tr>
+              <th>المحلل</th>
+              <th>لماذا</th>
+              <th>ملاحظات</th>
+            </tr></thead>
+            <tbody>
+              <tr class="group"><td colspan="3">مجموعتان مستقلتان — نسب وعدّادات</td></tr>
+              <tr><td class="sym">z &#183; 2 proportions</td><td>نسب، مجموعتان</td><td>اختبار التحويل الأساسي؛ فترات ويلسون / نيوكومب</td></tr>
+              <tr><td class="sym">Fisher exact</td><td>نسب، أعداد صغيرة</td><td>دقيق 2×2؛ يُشرّط على الهوامش</td></tr>
+              <tr><td class="sym">Boschloo exact</td><td>نسب، أعداد صغيرة</td><td>دقيق غير مشروط، مرتب بقيمة p لفيشر — الافتراضي القوي</td></tr>
+              <tr><td class="sym">Barnard exact</td><td>نسب، أعداد صغيرة</td><td>دقيق غير مشروط، مرتب بـ z المجمعة؛ قوة أكبر قليلًا، أبطأ</td></tr>
+              <tr><td class="sym">Poisson rate</td><td>أحداث على تعرّض</td><td>ثنائي حد شرطي دقيق؛ نسبة معدلات</td></tr>
+              <tr class="group"><td colspan="3">مجموعتان مستقلتان — متوسطات وتوزيعات</td></tr>
+              <tr><td class="sym">Welch t</td><td>متوسطات، مجموعتان</td><td>تباينات غير متساوية — الافتراضي</td></tr>
+              <tr><td class="sym">TOST</td><td>تكافؤ المتوسطات</td><td>«أثبت أنه ليس أسوأ من ±M»</td></tr>
+              <tr><td class="sym">Mann&#8211;Whitney U</td><td>رتب / هيمنة إحصائية</td><td>إزاحة هودجز–ليمان، الارتباط الرتبي-الثنائي</td></tr>
+              <tr><td class="sym">bootstrap / permutation</td><td>أي توزيع</td><td>إعادة معاينة بلا افتراضات، بذرة ثابتة</td></tr>
+              <tr><td class="sym">quantile effect</td><td>وسيط / مئيني</td><td>الأثر في الذيل، لا في المتوسط</td></tr>
+              <tr><td class="sym">Yuen trimmed t</td><td>متوسطات مع شواذ</td><td>قص 20%، تباين منسور</td></tr>
+              <tr class="group"><td colspan="3">مقاييس النسب</td></tr>
+              <tr><td class="sym">ratio delta-method</td><td>CTR، لكل ظهور / جلسة</td><td>طريقة دلتا تستعيد التباين الصادق</td></tr>
+              <tr class="group"><td colspan="3">مشاهدات مزدوجة</td></tr>
+              <tr><td class="sym">paired t</td><td>متوسطات مزدوجة</td><td>قبل/بعد؛ d<sub>z</sub> لكوهين</td></tr>
+              <tr><td class="sym">Wilcoxon signed-rank</td><td>مزدوج، رتب</td><td>الوسيط الزائف لفروق الأزواج</td></tr>
+              <tr><td class="sym">McNemar</td><td>نسب مزدوجة</td><td>الأزواج غير المتوافقة فقط؛ بتصحيح الاستمرارية</td></tr>
+              <tr class="group"><td colspan="3">أكثر من مجموعتين وفئات</td></tr>
+              <tr><td class="sym">Welch ANOVA</td><td>متوسطات، k مجموعة</td><td>شامل، تباينات غير متساوية، η²</td></tr>
+              <tr><td class="sym">Kruskal&#8211;Wallis</td><td>رتب، k مجموعة</td><td>شامل لامعلمي، ε²</td></tr>
+              <tr><td class="sym">&#x3C7;&#xB2; r&#xD7;c + Cram&#xE9;r V</td><td>فئات × نسخ</td><td>استقلال + قوة الارتباط</td></tr>
+              <tr><td class="sym">G-test</td><td>فئات × نسخ</td><td>توأم χ² بنسبة الإمكان</td></tr>
+              <tr class="group"><td colspan="3">الزمن حتى الحدث</td></tr>
+              <tr><td class="sym">log-rank</td><td>منحنيات بقاء، 2+ مجموعة</td><td>مانتل–كوكس O−E؛ البتر معالج</td></tr>
+              <tr><td class="sym">Fleming&#8211;Harrington G(&#x3C1;,&#x3B3;)</td><td>فروق المنحنيات المبكرة / المتأخرة</td><td>أوزان Ŝ(t)^ρ(1−Ŝ(t))^γ؛ k عينة zᵀV⁻¹z</td></tr>
+              <tr><td class="sym">Cox PH</td><td>نسبة المخاطر كحجم أثر</td><td>اختبار والد على β̂؛ افتراض PH</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <hr class="divider">
+      </section>
+      <!-- ================= 5. MONITORING ================= -->
+      <section id="monitoring">
+        <div class="sec-head"><span class="sec-num">05</span></div>
+        <h2>المراقبة الحية: بينما يعمل الاختبار</h2>
+        <p class="sec-intro">التخطيط ليس النهاية. أثناء عمل التجربة يجب التقاط أعطال العشوائية، وتجنّب «الاختلاس» بالطريقة الخاطئة، وتسريع الاستنتاجات بخفض التباين، والتأكد من أن الفوز بالمقياس الرئيسي لا يكسر ما عداه.</p>
+
+        <h3>SRM: هل تفككت العشوائية</h3>
+        <div class="card">
+          <span class="tag monitor">مراقبة · صحة</span>
+          <p><strong>Sample Ratio Mismatch</strong> — حين ينحرف تقسيم الزيارات الفعلي (مثلًا 50/50) عن المتوقع أكثر مما تسمح به الصدفة. راية حمراء: مقسّم معطوب، أحداث ضائعة، بوتات. مع SRM النتائج <em>غير</em> موثوقة — أصلح السبب. يُكشف باختبار حسن مطابقة χ².</p>
+          <div class="formula">
+            <span class="flabel">إحصاءة حسن المطابقة</span>
+            <math display="block">
+              <msup><mi>&#x3C7;</mi><mn>2</mn></msup><mo>=</mo><munderover><mo>&#x2211;</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>k</mi></munderover><mfrac><msup><mrow><mo>(</mo><msub><mi>O</mi><mi>i</mi></msub><mo>&#x2212;</mo><msub><mi>E</mi><mi>i</mi></msub><mo>)</mo></mrow><mn>2</mn></msup><msub><mi>E</mi><mi>i</mi></msub></mfrac>
+              <mspace width="1.6em"/><mtext>df</mtext><mo>=</mo><mi>k</mi><mo>&#x2212;</mo><mn>1</mn>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">حيث</p>
+            <dl>
+              <dt>O<sub>i</sub></dt><dd>العدد الفعلي في النسخة i</dd>
+              <dt>E<sub>i</sub></dt><dd>المتوقع = الحصة·الإجمالي</dd>
+              <dt>k</dt><dd>عدد النسخ</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>نتوقع 50/50 من 20,000 فنرى 10,300 / 9,700 → χ² = <span class='num'>18.0</span>، p ≈ <span class='num'>0.00002</span>. عتبة الإنذار <span class='k'>p &lt; 0.001</span> مخترقة → <strong style='color:var(--danger)'>SRM، توقف</strong>.</span>
+          </div>
+        </div>
+
+        <h3>مشكلة الاختلاس والتصميم التتابعي الجماعي</h3>
+        <div class="card">
+          <span class="tag monitor">مراقبة · إيقاف مبكر</span>
+          <p>انظر إلى قيمة p يوميًا وتوقف لحظة نزولها تحت 0.05 — فيكون معدل الإنذارات الكاذبة الحقيقي ليس 5% بل أضعافه. كل «نظرة» فرصة جديدة للخطأ. <strong>حدود أوبراين–فليمنغ</strong> تحل ذلك: النظرات المبكرة تتطلب z شبه مستحيلة، وتتراخى العتبة نحو النهاية، ويبقى α الإجمالي 0.05.</p>
+          <div class="formula">
+            <span class="flabel">الحد عند كسر المعلومات t</span>
+            <math display="block">
+              <msub><mi>z</mi><mi>k</mi></msub><mo>=</mo><mfrac><msub><mi>z</mi><mtext>final</mtext></msub><msqrt><msub><mi>t</mi><mi>k</mi></msub></msqrt></mfrac>
+              <mspace width="1.6em"/><msub><mi>t</mi><mi>k</mi></msub><mo>=</mo><mfrac><mtext>نظرة</mtext><mrow><mtext>إجمالي النظرات</mtext></mrow></mfrac>
+            </math>
+          </div>
+          <div class="callout example">
+            <span>مع 5 نظرات مخططة، تتطلب الأولى (t = 0.2) ≈ <span class='num'>z = 4.5</span> (p ≈ 0.000007): التوقف بهذا التبكير شبه مستحيل. هذا يحمي من «انتصارات» مبكرة صدفية. الثمن — تكبر العينة المخططة قليلًا (× ~1.03؛ يستوفي المحرك المرساة النهائية المعايرة).</span>
+          </div>
+        </div>
+
+        <figure class="figure">
+          <svg viewBox="0 0 560 216" role="img" aria-label="O'Brien-Fleming z-boundaries relax across looks">
+            <line class="fig-axis" x1="40" y1="188" x2="548" y2="188"/>
+            <line class="fig-axis" x1="40" y1="188" x2="40" y2="16"/>
+            <line class="fig-ref" x1="40" y1="123" x2="548" y2="123"/>
+            <text class="fig-tick" x="44" y="118">1.96</text>
+            <path class="fig-line" d="M 148,37 246,81 344,101 442,112 540,120"/>
+            <circle class="fig-dot-h" cx="148" cy="37" r="5"/><text class="fig-cap-in" x="148" y="28" text-anchor="middle">4.56</text>
+            <circle class="fig-dot-h" cx="246" cy="81" r="5"/><text class="fig-cap-in" x="246" y="72" text-anchor="middle">3.23</text>
+            <circle class="fig-dot-h" cx="344" cy="101" r="5"/><text class="fig-cap-in" x="344" y="92" text-anchor="middle">2.63</text>
+            <circle class="fig-dot-h" cx="442" cy="112" r="5"/><text class="fig-cap-in" x="442" y="103" text-anchor="middle">2.28</text>
+            <circle class="fig-dot" cx="540" cy="120" r="5.5"/><text class="fig-cap-in" x="540" y="111" text-anchor="middle">2.04</text>
+            <text class="fig-tick" x="148" y="202" text-anchor="middle">1</text>
+            <text class="fig-tick" x="246" y="202" text-anchor="middle">2</text>
+            <text class="fig-tick" x="344" y="202" text-anchor="middle">3</text>
+            <text class="fig-tick" x="442" y="202" text-anchor="middle">4</text>
+            <text class="fig-tick" x="540" y="202" text-anchor="middle">5</text>
+          </svg>
+          <figcaption>حد z عبر خمس نظرات مخططة. النظرة المبكرة تتطلب z ≈ 4.6 شبه مستحيلة — لن «يطلق» شيء بهذا التبكير صدفة. قرب النهاية يتراخى الحد إلى ≈ 2.04 بينما يبقى α الإجمالي عند 0.05. المتقطع هو 1.96 الثابت الساذج الذي يعطي مع الاختلاس إنذارات كاذبة أكثر من اللازم.</figcaption>
+        </figure>
+
+        <h3>Always-valid: انظر متى شئت</h3>
+        <div class="card">
+          <span class="tag monitor">مراقبة · anytime</span>
+          <p>يحتاج أوبراين–فليمنغ نظرات مخططة سلفًا. على لوحة حية النظرات <em>غير</em> مخططة. عندها يُستخدم الاستدلال <strong>always-valid</strong> (مزيج mSPRT): تبقى قيمة p والفترة صحيحتين تحت مراقبة <em>مستمرة</em> — أي عدد من المرات، في أي لحظة.</p>
+          <div class="formula">
+            <span class="flabel">نسبة إمكان المزيج وanytime-p</span>
+            <math display="block">
+              <msub><mi>&#x39B;</mi><mi>n</mi></msub><mo>=</mo><msqrt><mfrac><mi>V</mi><mrow><mi>V</mi><mo>+</mo><msup><mi>&#x3C4;</mi><mn>2</mn></msup></mrow></mfrac></msqrt><mo>&#x2062;</mo><mi>exp</mi><mo>&#x2061;</mo><mrow><mo>(</mo><mfrac><mrow><msup><mi>&#x3C4;</mi><mn>2</mn></msup><msup><mover><mi>&#x3B8;</mi><mo>^</mo></mover><mn>2</mn></msup></mrow><mrow><mn>2</mn><mi>V</mi><mo>(</mo><mi>V</mi><mo>+</mo><msup><mi>&#x3C4;</mi><mn>2</mn></msup><mo>)</mo></mrow></mfrac><mo>)</mo></mrow>
+              <mspace width="1.4em"/><mi>p</mi><mo>=</mo><mi>min</mi><mo>&#x2061;</mo><mo>(</mo><mn>1</mn><mo>,</mo><mspace width="0.2em"/><mn>1</mn><mo>/</mo><msub><mi>&#x39B;</mi><mi>n</mi></msub><mo>)</mo>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">حيث</p>
+            <dl>
+              <dt>&#x3B8;&#x302;</dt><dd>الأثر المرصود (فرق متوسطات / نسب)</dd>
+              <dt>V</dt><dd>تباين تقدير الأثر</dd>
+              <dt>&#x3C4;&#xB2;</dt><dd>تشتت «المزيج» — يُضبط على الأثر المتوقع؛ لا يمس الصحة، بل القوة فقط</dd>
+            </dl>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">متتالية الثقة.</span>
+            <span>للطريقة فترة مرافقة <span class='k'>θ̂ ± r</span> تغطي الأثر الحقيقي باحتمال 1 − α <em>في كل أحجام العينات معًا</em>. وتستبعد الصفر تمامًا حين تهبط anytime-p تحت α.</span>
+          </div>
+        </div>
+
+        <h3>النظرة البايزية: P(B &gt; A)</h3>
+        <div class="card">
+          <span class="tag monitor">مراقبة · بايزي</span>
+          <p>بدل «دالّ / غير دالّ» يجيب البايزي عن سؤال العمل المباشر: <strong>ما احتمال أن تتفوق B على A؟</strong> للتحويلات، خذ بعديًا Beta لكل نسخة واحسب كم مرة تتجاوز سحبةُ B سحبةَ A. يفعل المحرك ذلك بمحاكاة مونت-كارلو ببذرة ثابتة — قابل للتكرار، وليس صيغة مغلقة.</p>
+          <div class="formula">
+            <span class="flabel">البعدي واحتمال التفوق</span>
+            <math display="block">
+              <msub><mi>p</mi><mi>i</mi></msub><mo>&#x223C;</mo><mtext>Beta</mtext><mo>(</mo><mn>1</mn><mo>+</mo><msub><mi>x</mi><mi>i</mi></msub><mo>,</mo><mspace width="0.2em"/><mn>1</mn><mo>+</mo><msub><mi>n</mi><mi>i</mi></msub><mo>&#x2212;</mo><msub><mi>x</mi><mi>i</mi></msub><mo>)</mo>
+              <mspace width="1.4em"/><mi>P</mi><mo>(</mo><mi>B</mi><mo>&gt;</mo><mi>A</mi><mo>)</mo><mo>=</mo><mi>P</mi><mo>(</mo><msub><mi>p</mi><mi>B</mi></msub><mo>&gt;</mo><msub><mi>p</mi><mi>A</mi></msub><mo>)</mo>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">حيث</p>
+            <dl>
+              <dt>x<sub>i</sub>, n<sub>i</sub></dt><dd>تحويلات وحجم النسخة i</dd>
+              <dt>Beta(1+x, 1+n&#x2212;x)</dt><dd>البعدي تحت سابق منتظم Beta(1,1)</dd>
+            </dl>
+          </div>
+          <div class="callout warn">
+            <span class="clabel">لا تخلطه بقيمة p.</span>
+            <span>P(B &gt; A) = 97% <em>ليست</em> «1 − p». إنها احتمال أن تكون B أفضل، بمعلومية البيانات والسابق. مريحة للقرار، لكنها تتطلب نفس انضباط الإيقاف كالمسار الترددي.</span>
+          </div>
+        </div>
+
+        <h3>CUPED: ضجيج أقل — استنتاج أسرع</h3>
+        <div class="card">
+          <span class="tag monitor">مراقبة · خفض التباين</span>
+          <p>جزء من تشتت المقياس يفسَّر بحال المستخدم <em>قبل</em> الاختبار. <strong>CUPED</strong> يطرح هذا الجزء القابل للتنبؤ باستخدام متغير مساعد سابق للتجربة <span class='k'>X</span> (مثلًا النشاط الماضي). يهبط التباين بمقدار <span class='k'>ρ²</span> — ويكسب الاختبار قوة دون مستخدم إضافي واحد.</p>
+          <div class="formula">
+            <span class="flabel">المقياس المصحح وخفض التباين</span>
+            <math display="block">
+              <msub><mi>Y</mi><mtext>cuped</mtext></msub><mo>=</mo><mi>Y</mi><mo>&#x2212;</mo><mi>&#x3B8;</mi><mo>(</mo><mi>X</mi><mo>&#x2212;</mo><mover><mi>X</mi><mo>&#xAF;</mo></mover><mo>)</mo><mo>,</mo>
+              <mspace width="1em"/><mi>&#x3B8;</mi><mo>=</mo><mfrac><mrow><mtext>cov</mtext><mo>(</mo><mi>Y</mi><mo>,</mo><mi>X</mi><mo>)</mo></mrow><mrow><mtext>var</mtext><mo>(</mo><mi>X</mi><mo>)</mo></mrow></mfrac>
+              <mspace width="1.4em"/><mfrac><msub><mtext>var</mtext><mtext>new</mtext></msub><msub><mtext>var</mtext><mtext>old</mtext></msub></mfrac><mo>=</mo><mn>1</mn><mo>&#x2212;</mo><msup><mi>&#x3C1;</mi><mn>2</mn></msup>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">حيث</p>
+            <dl>
+              <dt>X</dt><dd>متغير مساعد سابق للتجربة (مستقل عن النسخة!)</dd>
+              <dt>&#x3B8;</dt><dd>المعامل الأمثل = cov(Y,X)/var(X)</dd>
+              <dt>&#x3C1;</dt><dd>ارتباط Y وX</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>ارتباط ρ = 0.6 → يهبط التباين <span class='num'>36%</span>، والخطأ المعياري 20%. كأنك كبّرت العينة ~1.5 مرة مجانًا.</span>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">في المحرك: عدة متغيرات مساعدة.</span>
+            <span>CUPED المنصةِ متعدد المتغيرات: θ متجه يُحل من نظام التغايرات (حل خطي صغير)، فتستطيع عدة إشارات سابقة للتجربة طرح الضجيج معًا. الصيغة أعلاه هي حالة متغير واحد.</span>
+          </div>
+        </div>
+
+        <figure class="figure">
+          <svg viewBox="0 0 520 188" role="img" aria-label="CUPED narrows the metric distribution">
+            <line class="fig-axis" x1="10" y1="165" x2="510" y2="165"/>
+            <path class="fig-after-fill" d="M 10,165 70,164 80,164 90,163 100,162 110,160 120,158 130,154 140,149 150,142 160,133 170,122 180,110 190,96 200,80 210,65 220,50 230,37 240,27 250,20 260,18 270,20 280,27 290,37 300,50 310,65 320,80 330,96 340,110 350,122 360,133 370,142 380,149 390,154 400,158 410,160 420,162 430,163 440,164 460,165 510,165 L 510,165 L 10,165 Z"/>
+            <path class="fig-before" d="M 10,165 40,164 65,162 80,160 95,157 110,152 120,148 130,143 140,136 150,129 160,121 170,112 180,102 190,92 200,82 210,73 220,64 230,57 240,52 250,49 260,47 270,49 280,52 290,57 300,64 310,73 320,82 330,92 340,102 350,112 360,121 370,129 380,136 390,143 400,148 410,152 420,155 430,158 440,160 450,162 460,163 475,164 510,165"/>
+            <path class="fig-after" d="M 10,165 70,164 80,164 90,163 100,162 110,160 120,158 130,154 140,149 150,142 160,133 170,122 180,110 190,96 200,80 210,65 220,50 230,37 240,27 250,20 260,18 270,20 280,27 290,37 300,50 310,65 320,80 330,96 340,110 350,122 360,133 370,142 380,149 390,154 400,158 410,160 420,162 430,163 440,164 460,165 510,165"/>
+            <text class="fig-cap-in" x="405" y="86">قبل</text>
+            <text class="fig-cap-in" x="262" y="12" text-anchor="middle" style="fill:var(--accent-strong)">بعد CUPED</text>
+          </svg>
+          <figcaption>يطرح CUPED الجزء القابل للتنبؤ (السابق للتجربة) من الضجيج فيضيق توزيع التقدير. عند ارتباط ρ = 0.6 يهبط التباين <strong style='color:var(--accent-strong)'>36%</strong> — تُبلغ الحساسية نفسها أبكر، دون مستخدم إضافي واحد.</figcaption>
+        </figure>
+
+        <h3>التقسيم الطبقي البعدي: قدّر داخل الطبقات ثم اجمع</h3>
+        <div class="card">
+          <span class="tag monitor">مراقبة · خفض التباين</span>
+          <p>إذا كانت الزيارات خليط طبقات معروفة بأسس مختلفة — المنصة، البلد، جديد/عائد — فقدّر الأثر داخل كل طبقة واجمع بأوزان الحجم. يكفّ اختلال العشوائية بين الطبقات عن التسرب إلى تقدير الأثر: قريب CUPED رخيص وقليل الافتراضات.</p>
+          <div class="formula">
+            <span class="flabel">جمع موزون بالحجم</span>
+            <math display="block">
+              <mover><mi>&#x394;</mi><mo>^</mo></mover><mo>=</mo>
+              <munder><mo>&#x2211;</mo><mi>s</mi></munder>
+              <msub><mi>w</mi><mi>s</mi></msub><msub><mover><mi>&#x394;</mi><mo>^</mo></mover><mi>s</mi></msub>
+              <mspace width="1.6em"/>
+              <mtext>Var</mtext><mo>=</mo>
+              <munder><mo>&#x2211;</mo><mi>s</mi></munder>
+              <msubsup><mi>w</mi><mi>s</mi><mn>2</mn></msubsup><msub><mtext>Var</mtext><mi>s</mi></msub>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">حيث</p>
+            <dl>
+              <dt>s</dt><dd>دليل الطبقة</dd>
+              <dt>w<sub>s</sub></dt><dd>حصة الطبقة من الزيارات، Σw = 1</dd>
+              <dt>&#x394;&#x302;<sub>s</sub>, Var<sub>s</sub></dt><dd>تقدير الأثر في الطبقة وتباينه</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>الطبقة A: 6,000 مستخدم، Δ = 1.2 نقطة مئوية، تباين 3·10⁻⁵؛ الطبقة B: 4,000، Δ = 1.8 نقطة، تباين 5·10⁻⁵ → المجموع Δ = <span class='num'>1.44 نقطة مئوية</span>، z = 3.32، p = <span class='num'>0.0009</span>، CI [0.59; 2.29] نقطة.</span>
+          </div>
+        </div>
+
+        <h3>مقاييس الحماية (guardrail): الفوز يجب ألا يكسر شيئًا</h3>
+        <div class="card">
+          <span class="tag monitor">مراقبة · حماية</span>
+          <p>قد تفوز نسخة بالتحويل وتضخّم في الوقت نفسه زمن التحميل أو أخطاء الدفع أو إلغاء الاشتراك. يسأل <strong>guardrail</strong> سؤالًا أحادي الطرف: «هل حرّكت النسخة المقياس في الاتجاه <em>الضار</em> أبعد من الحد المقبول <span class='k'>M</span>؟». هذا اختبار عدم-دونية، لا بحث عن فرق.</p>
+          <div class="formula">
+            <span class="flabel">اختبار الاختراق أحادي الطرف</span>
+            <math display="block">
+              <mi>z</mi><mo>=</mo><mfrac><mrow><mtext>الضرر</mtext><mo>&#x2212;</mo><mi>M</mi></mrow><msqrt><mtext>Var</mtext><mo>(</mo><mi>&#x394;</mi><mo>)</mo></msqrt></mfrac>
+              <mspace width="1.4em"/><mi>p</mi><mo>=</mo><mn>1</mn><mo>&#x2212;</mo><mi>&#x3A6;</mi><mo>(</mo><mi>z</mi><mo>)</mo>
+            </math>
+          </div>
+          <div class="where">
+            <p class="where-title">حيث</p>
+            <dl>
+              <dt>الضرر</dt><dd>الإزاحة في الاتجاه الضار: +Δ إذا كانت الزيادة سيئة (زمن الاستجابة)، −Δ إذا كان الهبوط سيئًا (الإيراد)</dd>
+              <dt>M</dt><dd>حد الضرر المقبول (0 = أي ضرر دالّ يعد اختراقًا)</dd>
+              <dt>&#x3A6;</dt><dd>دالة التوزيع للطبيعي القياسي</dd>
+            </dl>
+          </div>
+          <div class="callout example">
+            <span>ارتفع زمن الاستجابة <span class='num'>+15 مللي ثانية</span> (SE = 2)، السماحية M = 10 → z = (15 − 10)/2 = <span class='num'>2.5</span>، p ≈ 0.006 → <strong style='color:var(--danger)'>الحد مخترق</strong>. بين «سليم» و«مخترق» منطقة صفراء «warning»: التقدير تجاوز الحد لكن ليس بدلالة.</span>
+          </div>
+        </div>
+
+        <h3>نظافة البيانات: ما يكسر الاختبارات قبل أي إحصاء</h3>
+        <div class="card">
+          <span class="tag monitor">مراقبة · صحة</span>
+          <p>لا صيغة تصلح بيانات مكسورة. أربع عادات تحمي التجربة قبل قيم p بكثير:</p>
+          <div class="where">
+            <dl>
+              <dt>1</dt><dd><strong>توحيد الهوية.</strong> شخص واحد = وحدة واحدة. إذا دخل المستخدم نفسه كويب + تطبيق + تصفح خفي تلوثت الذراعان معًا وذاب الأثر المقاس.</dd>
+              <dt>2</dt><dd><strong>الأحداث المتأخرة.</strong> التحويلات تلحق النقرات بساعات أو أيام؛ قطع النافذة لحظة الإيقاف يحرّف بصمت ضد الذراع الأحدث. ثبّت نافذة إسناد واحدة وطبّقها على الذراعين بتماثل.</dd>
+              <dt>3</dt><dd><strong>ترشيح البوتات.</strong> تحوّل البوتات بنحو 0% وتضخّم المقامات — بلا تماثل متى اختلف الاستهداف بين الذراعين. رشّح قبل التحليل، بنفس القاعدة في كل مكان.</dd>
+              <dt>4</dt><dd><strong>Holdout.</strong> شريحة ضابطة دائمة صغيرة تقيس الأثر التراكمي بعيد المدى لإطلاق «فائزين» كثر — وتلتقط تضخم لعنة الفائز.</dd>
+            </dl>
+          </div>
+        </div>
+
+        <h3>متى لا تجري A/B: معاينة طومسون</h3>
+        <div class="card">
+          <span class="tag monitor">مراقبة · قطاع طرق</span>
+          <p>الاختبار الثابت ينفق نصف الزيارات على الخاسر حتى النهاية. حين يكون الهدف تعظيم العائد في نافذة قصيرة (لافتات ترويجية، عناوين رسائل) لا قياس الأثر بدقة، يعيد <strong>البانديت</strong> توزيع الزيارات مع تراكم الأدلة. معاينة طومسون: اسحب لكل ذراع معدلًا معقولًا من بعديّها Beta واعرض الذراع التي فازت بالسحبة. تقدمها المنصة كمحاكي تخطيط (Beta-Bernoulli مونت-كارلو)، لا كموزع زيارات حي.</p>
+          <div class="formula">
+            <span class="flabel">خطوة توزيع واحدة</span>
+            <math display="block">
+              <msub><mover><mi>&#x3B8;</mi><mo>&#x223C;</mo></mover><mi>i</mi></msub><mo>&#x223C;</mo><mtext>Beta</mtext><mo>(</mo><mn>1</mn><mo>+</mo><msub><mi>x</mi><mi>i</mi></msub><mo>,</mo><mspace width="0.2em"/><mn>1</mn><mo>+</mo><msub><mi>n</mi><mi>i</mi></msub><mo>&#x2212;</mo><msub><mi>x</mi><mi>i</mi></msub><mo>)</mo>
+              <mspace width="1.4em"/>
+              <msup><mi>a</mi><mo>&#x2217;</mo></msup><mo>=</mo><munder><mtext>argmax</mtext><mi>i</mi></munder><mspace width="0.2em"/><msub><mover><mi>&#x3B8;</mi><mo>&#x223C;</mo></mover><mi>i</mi></msub>
+            </math>
+          </div>
+          <div class="callout intuition">
+            <span class="clabel">الثمن.</span>
+            <span>البانديت ليس ترقية مجانية: تظل تقديرات الأذرع الخاسرة صاخبة ومنحازة، وقواعد الاختلاس لا تنتقل، والقياس بمستوى القرار ما زال يريد اختبارًا ثابتًا. الاستكشاف يكلّف القياس.</span>
+          </div>
+        </div>
+        <hr class="divider">
+      </section>
+      <!-- ================= 6. CHEAT SHEET ================= -->
+      <section id="cheatsheet">
+        <div class="sec-head"><span class="sec-num">06</span></div>
+        <h2>ورقة مرجعية ورموز</h2>
+        <p class="sec-intro">كل شيء في شاشة واحدة: القيم النمطية، كيف تختار اختبارًا، معنى كل رمز، وكيف تبدو تجربة سليمة.</p>
+
+        <h3>قيم نمطية</h3>
+        <div class="tablewrap">
+          <table>
+            <thead><tr>
+              <th>المعامل</th>
+              <th>عادةً</th>
+              <th>المعنى</th>
+            </tr></thead>
+            <tbody>
+              <tr><td><span class="sym">&#x3B1;</span></td><td>0.05</td><td>خطر الإنذار الكاذب، z = 1.96</td></tr>
+              <tr><td>القوة <span class="sym">1&#x2212;&#x3B2;</span></td><td>0.80</td><td>فرصة التقاط الأثر، z = 0.84</td></tr>
+              <tr><td>الأطراف</td><td>اثنان</td><td>قد يذهب الأثر في أي اتجاه</td></tr>
+              <tr><td>عتبة SRM</td><td>p &lt; 0.001</td><td>صارمة جدًا — وإلا كثرت الإنذارات الكاذبة</td></tr>
+              <tr><td>المدة</td><td>≥ 1–2 أسبوع</td><td>أسابيع كاملة؛ تمتص الجِدّة وأثر يوم الأسبوع</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>أي اختبار تختار</h3>
+        <div class="tablewrap">
+          <table>
+            <thead><tr>
+              <th>المقياس / الحالة</th>
+              <th>الاختبار</th>
+            </tr></thead>
+            <tbody>
+              <tr><td>تحويل، مجموعتان</td><td><span class='sym'>z · 2 proportions</span> <span class='dim'>(أعداد صغيرة → فيشر / بوشلو / بارنارد)</span></td></tr>
+              <tr><td>متوسط (إيراد، وقت)، مجموعتان</td><td><span class='sym'>Welch t</span> <span class='dim'>(شواذ → الرباعية المتينة)</span></td></tr>
+              <tr><td>وسيط / مئيني</td><td><span class='sym'>quantile effect</span></td></tr>
+              <tr><td>CTR، «لكل ظهور / جلسة»</td><td><span class='sym'>ratio delta-method</span></td></tr>
+              <tr><td>عدّاد أحداث على تعرّض</td><td><span class='sym'>Poisson rate</span></td></tr>
+              <tr><td>«أثبت أنه ليس أسوأ»</td><td><span class='sym'>TOST</span> <span class='dim'>(حد ضرر أحادي الطرف → guardrail)</span></td></tr>
+              <tr><td>أكثر من مجموعتين</td><td><span class='sym'>Welch ANOVA / Kruskal–Wallis</span> <span class='dim'>(ثم زوجيًا + تصحيح)</span></td></tr>
+              <tr><td>فئات × نسخ</td><td><span class='sym'>χ² r×c + Cramér V / G-test</span></td></tr>
+              <tr><td>قبل/بعد، نفس المستخدمين</td><td><span class='sym'>paired t / Wilcoxon / McNemar</span></td></tr>
+              <tr><td>زمن حتى الحدث، بتر</td><td><span class='sym'>log-rank / Fleming–Harrington / Cox</span></td></tr>
+              <tr><td>لوحة حية، نظرات غير مخططة</td><td><span class='sym'>always-valid (mSPRT)</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>الرموز</h3>
+        <div class="tablewrap">
+          <table>
+            <thead><tr>
+              <th>الرمز</th>
+              <th>المعنى</th>
+            </tr></thead>
+            <tbody>
+              <tr><td class="sym">&#x3B1;</td><td>مستوى الدلالة (خطر النوع الأول)</td></tr>
+              <tr><td class="sym">&#x3B2; &#183; 1&#x2212;&#x3B2;</td><td>خطر النوع الثاني · القوة</td></tr>
+              <tr><td class="sym">z<sub>&#x3B1;</sub>, z<sub>&#x3B2;</sub></td><td>كمّيات الطبيعي القياسي</td></tr>
+              <tr><td class="sym">&#x3A6;</td><td>دالة التوزيع للطبيعي القياسي</td></tr>
+              <tr><td class="sym">p&#x2080;, p&#x2081;, p&#x302;, p&#x304;</td><td>الأساس · النسخة · التقدير · النسبة المجمعة</td></tr>
+              <tr><td class="sym">&#x3B4; &#183; MDE</td><td>الأثر المطلق · أصغر أثر قابل للكشف</td></tr>
+              <tr><td class="sym">&#x3C3;, s</td><td>الانحراف المعياري (مجتمع، عينة)</td></tr>
+              <tr><td class="sym">&#x3BD;</td><td>درجات الحرية (ولش–ساترثويت)</td></tr>
+              <tr><td class="sym">&#x3C1; &#183; &#x3B8;</td><td>الارتباط · معامل CUPED</td></tr>
+              <tr><td class="sym">ICC &#183; DEFF &#183; m</td><td>الارتباط داخل الصنف · أثر التصميم · حجم العنقود</td></tr>
+              <tr><td class="sym">&#x3C7;&#xB2;</td><td>إحصاءة كاي-تربيع (SRM، فئات)</td></tr>
+              <tr><td class="sym">&#x39B;<sub>n</sub> &#183; &#x3C4;&#xB2;</td><td>إمكان المزيج · تشتت المزيج (always-valid)</td></tr>
+              <tr><td class="sym">M</td><td>الحد (تكافؤ، guardrail)</td></tr>
+              <tr><td class="sym">m &#183; q &#183; k</td><td>عدد المقاييس · مستوى FDR · رتبة قيمة p</td></tr>
+              <tr><td class="sym">U &#183; r<sub>rb</sub> &#183; HL</td><td>إحصاءة مان–ويتني · الارتباط الرتبي-الثنائي · إزاحة هودجز–ليمان</td></tr>
+              <tr><td class="sym">W</td><td>إحصاءة ويلكوكسون للرتب الموقعة</td></tr>
+              <tr><td class="sym">F* &#183; &#x3B7;&#xB2;</td><td>إحصاءة Welch ANOVA · حصة التباين المفسر</td></tr>
+              <tr><td class="sym">H &#183; &#x3B5;&#xB2;</td><td>إحصاءة كروسكال–واليس · حجم أثرها</td></tr>
+              <tr><td class="sym">b, c</td><td>أعداد الأزواج غير المتوافقة (ماك-نمار)</td></tr>
+              <tr><td class="sym">S(t)</td><td>دالة البقاء — احتمال البقاء بعد t</td></tr>
+              <tr><td class="sym">HR &#183; &#x3B2;</td><td>نسبة المخاطر · معامل لوغاريتم الخطر لكوكس</td></tr>
+              <tr><td class="sym">O&#x2081;, E&#x2081;, V</td><td>الأحداث المرصودة · المتوقعة · تباينها (log-rank)</td></tr>
+              <tr><td class="sym">&#x3C1;, &#x3B3; (FH)</td><td>أوزان فليمنغ–هارينغتون: تركيز مبكر / متأخر</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>قائمة فحص التجربة السليمة</h3>
+        <div class="card">
+          <div class="where">
+            <dl>
+              <dt>1</dt><dd><strong>الفرضية والمقياس مثبتان</strong> قبل الإطلاق — بما فيهما MDE والمقياس الرئيسي.</dd>
+              <dt>2</dt><dd><strong>حجم العينة محسوب</strong>، والمدة بأسابيع كاملة.</dd>
+              <dt>3</dt><dd><strong>لا SRM</strong> — تقسيم الزيارات مطابق للخطة.</dd>
+              <dt>4</dt><dd><strong>تصحيح التعددية</strong> إن زاد عدد المقاييس أو النسخ على واحد.</dd>
+              <dt>5</dt><dd><strong>مقاييس guardrail</strong> تحت المراقبة — الفوز لا يكسر زمن الاستجابة ولا الأخطاء ولا الإيراد.</dd>
+              <dt>6</dt><dd><strong>إيقاف صحيح</strong>: أفق مخطط، حدود تتابعية أو always-valid — لا «هبطت تحت 0.05».</dd>
+              <dt>7</dt><dd><strong>القرار بالفترة</strong>، لا بقيمة p وحدها — حجم الأثر مهم.</dd>
+              <dt>8</dt><dd><strong>نظافة البيانات مفحوصة</strong> — هوية واحدة لكل مستخدم، نافذة إسناد متماثلة، بوتات مرشّحة، وholdout في مكانه.</dd>
+            </dl>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <footer>
+    <div class="footer-inner">
+      <span>AB Test Research Designer — مرجع نظري. الصيغ تطابق محرك الإحصاء في المنصة.</span>
+      <span><a href="/">→ العودة إلى التطبيق</a></span>
+    </div>
+  </footer>
+</div>
+<script src="help.js" defer></script>
+</body>
+</html>

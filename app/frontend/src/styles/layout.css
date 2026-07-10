@@ -100,6 +100,28 @@ body {
   gap: 10px;
 }
 
+.topbar-link {
+  padding: 8px 14px;
+  border: 1px solid var(--color-border-soft);
+  border-radius: 999px;
+  background: var(--color-surface-elevated);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  text-decoration: none;
+  transition: border-color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.topbar-link:hover {
+  border-color: var(--color-border-strong);
+}
+
+.topbar-link:focus-visible {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-ring);
+}
+
 .lang-select {
   appearance: none;
   -webkit-appearance: none;

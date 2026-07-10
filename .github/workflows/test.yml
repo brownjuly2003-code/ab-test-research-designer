@@ -106,6 +106,11 @@ jobs:
       - name: Verify the HF Space publish filter excludes internal notes
         run: python scripts/deploy_hf.py --self-test
 
+      # The seven help*.html theory pages are build artifacts of one template + string
+      # tables; fail if a committed page was hand-edited past its generator.
+      - name: Check help pages match their generator
+        run: python scripts/build_help_pages.py --check
+
   dependency-audit:
     runs-on: ubuntu-latest
     timeout-minutes: 10
