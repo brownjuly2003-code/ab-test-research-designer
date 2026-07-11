@@ -32,9 +32,12 @@ app/frontend/playwright-report/
 app/frontend/test-results/
 .lighthouseci/
 
-# db
+# db — including the WAL/SHM/journal sidecars, which hold real rows until a checkpoint
 *.sqlite3
 *.db
+*-wal
+*-shm
+*-journal
 
 # exports
 exports/*

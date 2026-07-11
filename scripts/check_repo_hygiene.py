@@ -36,6 +36,13 @@ def classify(path: str) -> str | None:
         return "internal archive/ doc or run artifact"
     if "/" not in path and path.startswith("audit_") and path.endswith(".md"):
         return "internal root-level audit report"
+    name = path.rsplit("/", 1)[-1]
+    if name.endswith((".sqlite3", ".db")):
+        return "local database file"
+    # A WAL/SHM/journal sidecar holds rows that have not been checkpointed into the
+    # main file yet, so committing one leaks working data just as the .sqlite3 would.
+    if name.endswith(("-wal", "-shm", "-journal")):
+        return "SQLite WAL/SHM/journal sidecar (holds uncheckpointed working data)"
     return None
 
 
@@ -70,6 +77,11 @@ def self_test() -> int:
         "audit_opus_2026-06-17.md",
         "audit_kimi_2026-04-26.md",
         "audit_кодекс_2026-04-27.md",
+        "app/backend/data/projects.sqlite3",
+        "app/backend/data/projects.sqlite3-wal",
+        "app/backend/data/projects.sqlite3-shm",
+        "app/backend/data/projects.sqlite3-journal",
+        "tmp/scratch.db",
     ]
     must_pass = [
         "README.md",
@@ -78,6 +90,7 @@ def self_test() -> int:
         "app/backend/app/audit_log.py",  # not a markdown audit report
         "scripts/check_repo_hygiene.py",
         "archived_examples/sample.md",  # 'archive' prefix but different top-level dir
+        "docs/journal.md",  # ends in 'journal' but not '-journal': a doc, not a sidecar
     ]
     failures: list[str] = []
     for path in must_flag:
