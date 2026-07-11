@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 
 import type { CalculationResponse } from "../lib/experiment";
+import { formatCount } from "../lib/formatNumber";
 import Spinner from "./Spinner";
 
 type LivePreviewPanelProps = {
@@ -45,7 +46,7 @@ export default function LivePreviewPanel({ result, isLoading, error }: LivePrevi
           <div className="live-preview-cards">
             <div className="live-preview-card">
               <span className="preview-title">{t("livePreview.sampleSizeTitle")}</span>
-              <span className="preview-value">{result.results.sample_size_per_variant.toLocaleString()}</span>
+              <span className="preview-value">{formatCount(result.results.sample_size_per_variant)}</span>
               <span className="preview-unit">{t("livePreview.usersPerVariant")}</span>
             </div>
             <div className="live-preview-card">
@@ -56,14 +57,14 @@ export default function LivePreviewPanel({ result, isLoading, error }: LivePrevi
             {hasCupedEstimate ? (
               <div className="live-preview-card">
                 <span className="preview-title">{t("livePreview.cupedTitle")}</span>
-                <span className="preview-value">{result.cuped_sample_size_per_variant?.toLocaleString()}</span>
+                <span className="preview-value">{result.cuped_sample_size_per_variant != null ? formatCount(result.cuped_sample_size_per_variant) : ""}</span>
                 <span className="preview-unit">{t("livePreview.usersPerVariant")}</span>
               </div>
             ) : null}
             {result.results.allocated_daily_traffic !== null && result.results.allocated_daily_traffic !== undefined ? (
               <div className="live-preview-card">
                 <span className="preview-title">{t("livePreview.allocatedTrafficTitle")}</span>
-                <span className="preview-value">{Math.round(result.results.allocated_daily_traffic).toLocaleString()}</span>
+                <span className="preview-value">{formatCount(Math.round(result.results.allocated_daily_traffic))}</span>
                 <span className="preview-unit">{t("livePreview.allocatedTrafficUnit")}</span>
               </div>
             ) : null}
@@ -76,7 +77,7 @@ export default function LivePreviewPanel({ result, isLoading, error }: LivePrevi
             <span className="preview-badge">
               {t("livePreview.clusterDesignBadge", {
                 deff: result.design_effect?.toFixed(2),
-                clusters: result.clusters_per_variant?.toLocaleString(),
+                clusters: result.clusters_per_variant != null ? formatCount(result.clusters_per_variant) : "",
                 size: result.avg_cluster_size
               })}
             </span>

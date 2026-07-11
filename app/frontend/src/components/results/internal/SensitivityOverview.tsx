@@ -3,6 +3,7 @@ import { useState } from "react";
 import type { AnalysisResponsePayload, ProjectHistory, SavedProject, WarningItem } from "../../../lib/experiment";
 import type { SensitivityResponse } from "../../../lib/generated/api-contract";
 import { t } from "../../../i18n";
+import { formatCount } from "../../../lib/formatNumber";
 import Icon from "../../Icon";
 import MetricCard from "../../MetricCard";
 import styles from "../../ResultsPanel.module.css";
@@ -132,13 +133,13 @@ export default function SensitivityOverview({
         <MetricCard
           icon="activity"
           title={t("results.sensitivityOverview.cards.perVariant")}
-          value={String(displayedAnalysis.calculations.results.sample_size_per_variant ?? "-")}
+          value={displayedAnalysis.calculations.results.sample_size_per_variant != null ? formatCount(displayedAnalysis.calculations.results.sample_size_per_variant) : "-"}
           subtitle={t("results.sensitivityOverview.cards.sampleSizePerVariant")}
           meta={t("results.sensitivityOverview.cards.powerMeta", { power: String(displayedAnalysis.calculations.calculation_summary.power ?? "-") })}
           badge={displayedAnalysis.calculations.bonferroni_note ? <span className={styles["inline-note"]}>{t("results.sensitivityOverview.cards.bonferroni")}</span> : null}
         />
-        <MetricCard icon="check" title={t("results.sensitivityOverview.cards.totalSample")} value={String(displayedAnalysis.calculations.results.total_sample_size ?? "-")} subtitle={t("results.sensitivityOverview.cards.totalSampleSubtitle")} meta={t("results.sensitivityOverview.cards.variantsMeta", { count: variantsCount })} />
-        <MetricCard icon="clock" title={t("results.sensitivityOverview.cards.duration")} value={t("results.sensitivityOverview.cards.durationValue", { days: String(displayedAnalysis.calculations.results.estimated_duration_days ?? "-") })} subtitle={t("results.sensitivityOverview.cards.durationSubtitle")} meta={t("results.sensitivityOverview.cards.perDayMeta", { traffic: String(displayedAnalysis.calculations.results.effective_daily_traffic ?? "-") })} />
+        <MetricCard icon="check" title={t("results.sensitivityOverview.cards.totalSample")} value={displayedAnalysis.calculations.results.total_sample_size != null ? formatCount(displayedAnalysis.calculations.results.total_sample_size) : "-"} subtitle={t("results.sensitivityOverview.cards.totalSampleSubtitle")} meta={t("results.sensitivityOverview.cards.variantsMeta", { count: variantsCount })} />
+        <MetricCard icon="clock" title={t("results.sensitivityOverview.cards.duration")} value={t("livePreview.days", { count: Number(displayedAnalysis.calculations.results.estimated_duration_days ?? 0) })} subtitle={t("results.sensitivityOverview.cards.durationSubtitle")} meta={t("results.sensitivityOverview.cards.perDayMeta", { traffic: displayedAnalysis.calculations.results.effective_daily_traffic != null ? formatCount(displayedAnalysis.calculations.results.effective_daily_traffic) : "-" })} />
         <MetricCard icon="warning" title={t("results.sensitivityOverview.cards.warnings")} value={String(warnings.length)} subtitle={t("results.sensitivityOverview.cards.warningsSubtitle")} meta={getWarningSeverityLabel(warnings, t)} tone={warningSeverity === "high" ? "warning" : "default"} />
         {displayedAnalysis.calculations.design_effect != null ? (
           <MetricCard
@@ -158,9 +159,9 @@ export default function SensitivityOverview({
         <div className={styles["cuped-panel"]}>
           <h3>{t("results.sensitivityOverview.bayesianEstimate.title")}</h3>
           <div className={styles["cuped-comparison"]}>
-            <div className={styles["cuped-card"]}><span className={styles["cuped-label"]}>{t("results.sensitivityOverview.bayesianEstimate.frequentist")}</span><span className={styles["cuped-value"]}>{displayedAnalysis.calculations.results.sample_size_per_variant.toLocaleString()}</span><span className={styles["cuped-unit"]}>{t("results.sensitivityOverview.bayesianEstimate.usersPerVariant")}</span></div>
+            <div className={styles["cuped-card"]}><span className={styles["cuped-label"]}>{t("results.sensitivityOverview.bayesianEstimate.frequentist")}</span><span className={styles["cuped-value"]}>{formatCount(displayedAnalysis.calculations.results.sample_size_per_variant)}</span><span className={styles["cuped-unit"]}>{t("results.sensitivityOverview.bayesianEstimate.usersPerVariant")}</span></div>
             <div className={styles["cuped-arrow"]}>{"->"}</div>
-            <div className={[styles["cuped-card"], styles["cuped-card-adjusted"]].join(" ")}><span className={styles["cuped-label"]}>{t("results.sensitivityOverview.bayesianEstimate.bayesian")}{displayedAnalysis.calculations.bayesian_credibility != null ? ` (${t("results.panel.credibilityInterval", { percent: Math.round(displayedAnalysis.calculations.bayesian_credibility * 100) })})` : ""}</span><span className={styles["cuped-value"]}>{displayedAnalysis.calculations.bayesian_sample_size_per_variant?.toLocaleString()}</span><span className={styles["cuped-unit"]}>{t("results.sensitivityOverview.bayesianEstimate.usersPerVariant")}</span></div>
+            <div className={[styles["cuped-card"], styles["cuped-card-adjusted"]].join(" ")}><span className={styles["cuped-label"]}>{t("results.sensitivityOverview.bayesianEstimate.bayesian")}{displayedAnalysis.calculations.bayesian_credibility != null ? ` (${t("results.panel.credibilityInterval", { percent: Math.round(displayedAnalysis.calculations.bayesian_credibility * 100) })})` : ""}</span><span className={styles["cuped-value"]}>{displayedAnalysis.calculations.bayesian_sample_size_per_variant != null ? formatCount(displayedAnalysis.calculations.bayesian_sample_size_per_variant) : ""}</span><span className={styles["cuped-unit"]}>{t("results.sensitivityOverview.bayesianEstimate.usersPerVariant")}</span></div>
           </div>
           {displayedAnalysis.calculations.bayesian_note ? <p className="muted">{displayedAnalysis.calculations.bayesian_note}</p> : null}
         </div>
@@ -169,9 +170,9 @@ export default function SensitivityOverview({
         <div className={styles["cuped-panel"]}>
           <h3>{t("results.sensitivityOverview.cuped.title")}</h3>
           <div className={styles["cuped-comparison"]}>
-            <div className={styles["cuped-card"]}><span className={styles["cuped-label"]}>{t("results.sensitivityOverview.cuped.without")}</span><span className={styles["cuped-value"]}>{displayedAnalysis.calculations.results.sample_size_per_variant.toLocaleString()}</span><span className={styles["cuped-unit"]}>{t("results.sensitivityOverview.bayesianEstimate.usersPerVariant")}</span></div>
+            <div className={styles["cuped-card"]}><span className={styles["cuped-label"]}>{t("results.sensitivityOverview.cuped.without")}</span><span className={styles["cuped-value"]}>{formatCount(displayedAnalysis.calculations.results.sample_size_per_variant)}</span><span className={styles["cuped-unit"]}>{t("results.sensitivityOverview.bayesianEstimate.usersPerVariant")}</span></div>
             <div className={styles["cuped-arrow"]}>{"->"}</div>
-            <div className={[styles["cuped-card"], styles["cuped-card-adjusted"]].join(" ")}><span className={styles["cuped-label"]}>{t("results.sensitivityOverview.cuped.with")}{displayedAnalysis.calculations.cuped_variance_reduction_pct !== null ? ` (rho squared=${displayedAnalysis.calculations.cuped_variance_reduction_pct}%)` : ""}</span><span className={styles["cuped-value"]}>{displayedAnalysis.calculations.cuped_sample_size_per_variant?.toLocaleString()}</span><span className={styles["cuped-unit"]}>{t("results.sensitivityOverview.bayesianEstimate.usersPerVariant")}</span></div>
+            <div className={[styles["cuped-card"], styles["cuped-card-adjusted"]].join(" ")}><span className={styles["cuped-label"]}>{t("results.sensitivityOverview.cuped.with")}{displayedAnalysis.calculations.cuped_variance_reduction_pct !== null ? ` (rho squared=${displayedAnalysis.calculations.cuped_variance_reduction_pct}%)` : ""}</span><span className={styles["cuped-value"]}>{displayedAnalysis.calculations.cuped_sample_size_per_variant != null ? formatCount(displayedAnalysis.calculations.cuped_sample_size_per_variant) : ""}</span><span className={styles["cuped-unit"]}>{t("results.sensitivityOverview.bayesianEstimate.usersPerVariant")}</span></div>
             {displayedAnalysis.calculations.cuped_variance_reduction_pct !== null ? <div className={styles["cuped-savings-badge"]}>{t("results.sensitivityOverview.cuped.sampleSizeSavings", { pct: displayedAnalysis.calculations.cuped_variance_reduction_pct })}</div> : null}
           </div>
           <p className="muted">
@@ -182,7 +183,7 @@ export default function SensitivityOverview({
         </div>
       ) : null}
       <div className="two-col" style={{ marginTop: "var(--space-4)" }}>
-        <div className="card">
+        <div className="card" style={{ minWidth: 0 }}>
           <h3>{t("results.sensitivityOverview.sensitivityTable.title")}</h3>
           <p className="muted">{t("results.sensitivityOverview.sensitivityTable.description")}</p>
           {sensitivityLoading ? <p className="muted">{t("results.sensitivityOverview.sensitivityTable.loading")}</p> : sensitivityData?.cells.length ? (

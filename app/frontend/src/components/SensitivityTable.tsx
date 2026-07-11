@@ -9,8 +9,14 @@ type SensitivityTableProps = {
   metricType: "binary" | "continuous";
 };
 
+// `minWidth: 0` lets this wrapper shrink below the table's 520px min-width inside a flex/grid
+// parent; without it the wrapper reports the table's min-content width, the parent grid track
+// inflates past the viewport, and the whole page scrolls sideways on mobile instead of the table
+// scrolling inside its own `overflow-x: auto` box.
 const wrapperStyle: CSSProperties = {
-  overflowX: "auto"
+  overflowX: "auto",
+  minWidth: 0,
+  maxWidth: "100%"
 };
 
 const tableStyle: CSSProperties = {
