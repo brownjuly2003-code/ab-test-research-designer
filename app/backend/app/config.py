@@ -9,6 +9,12 @@ from app.backend.app.constants import DEFAULT_CORS_HEADERS, DEFAULT_CORS_METHODS
 
 PRODUCTION_ENVIRONMENTS = frozenset({"production", "prod"})
 POSTGRES_URL_SCHEMES = frozenset({"postgres", "postgresql"})
+# Shared tokens (AB_API_TOKEN / AB_READONLY_API_TOKEN / AB_ADMIN_TOKEN) are bearer
+# secrets: whoever holds one is the caller. 8 characters is a typo guard, not a
+# strength floor — it stays for local/demo convenience, while production demands a
+# length no one reaches by hand-picking a password.
+MIN_SHARED_TOKEN_LENGTH = 8
+PRODUCTION_MIN_SHARED_TOKEN_LENGTH = 24
 
 
 @dataclass(frozen=True)
@@ -43,6 +49,7 @@ class Settings:
     api_token: str | None
     readonly_api_token: str | None
     admin_token: str | None
+    allow_insecure_production: bool
     workspace_signing_key: str | None
     slack_client_id: str | None
     slack_client_secret: str | None
@@ -157,12 +164,17 @@ def _validate_settings(settings: Settings) -> Settings:
         raise ValueError("AB_LOG_LEVEL must be one of DEBUG, INFO, WARNING, ERROR, CRITICAL")
     if settings.log_format not in allowed_log_formats:
         raise ValueError("AB_LOG_FORMAT must be one of plain, json")
-    if settings.api_token is not None and len(settings.api_token.strip()) < 8:
-        raise ValueError("AB_API_TOKEN must be at least 8 characters when configured")
-    if settings.readonly_api_token is not None and len(settings.readonly_api_token.strip()) < 8:
-        raise ValueError("AB_READONLY_API_TOKEN must be at least 8 characters when configured")
-    if settings.admin_token is not None and len(settings.admin_token.strip()) < 8:
-        raise ValueError("AB_ADMIN_TOKEN must be at least 8 characters when configured")
+    # Length policy is environment-dependent: production raises the floor so a
+    # hand-typed "changeme1" cannot end up guarding a real deployment. The
+    # non-production minimum is unchanged.
+    min_token_length = PRODUCTION_MIN_SHARED_TOKEN_LENGTH if settings.is_production else MIN_SHARED_TOKEN_LENGTH
+    for token_name, token_value in (
+        ("AB_API_TOKEN", settings.api_token),
+        ("AB_READONLY_API_TOKEN", settings.readonly_api_token),
+        ("AB_ADMIN_TOKEN", settings.admin_token),
+    ):
+        if token_value is not None and len(token_value.strip()) < min_token_length:
+            raise ValueError(f"{token_name} must be at least {min_token_length} characters when configured")
     if settings.workspace_signing_key is not None and len(settings.workspace_signing_key.strip()) < 16:
         raise ValueError("AB_WORKSPACE_SIGNING_KEY must be at least 16 characters when configured")
     if settings.rate_limit_requests < 1:
@@ -233,6 +245,9 @@ def get_settings() -> Settings:
         api_token=(os.getenv("AB_API_TOKEN") or "").strip() or None,
         readonly_api_token=(os.getenv("AB_READONLY_API_TOKEN") or "").strip() or None,
         admin_token=(os.getenv("AB_ADMIN_TOKEN") or "").strip() or None,
+        # Escape hatch for the production auth gate in main._verify_production_auth.
+        # Default false: production must not accept writes without auth material.
+        allow_insecure_production=_read_bool_env("AB_ALLOW_INSECURE_PRODUCTION", False),
         workspace_signing_key=(os.getenv("AB_WORKSPACE_SIGNING_KEY") or "").strip() or None,
         slack_client_id=(os.getenv("AB_SLACK_CLIENT_ID") or "").strip() or None,
         slack_client_secret=(os.getenv("AB_SLACK_CLIENT_SECRET") or "").strip() or None,

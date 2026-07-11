@@ -1,3 +1,21 @@
+from typing import Final, Literal, get_args
+
+# The metric families the planner supports end to end. Every union that names them — the
+# experiment schema, the project-list item, the list filter, the repository whitelists, the
+# generated frontend contract — must derive from this one type.
+#
+# Deriving them is not cosmetic. `count` was added to the wizard/calculate/design path but not
+# to the project-list contract, so a saved count project made `ProjectListItem` validation fail
+# and took the whole `GET /api/v1/projects` response down with it (400) — one count project
+# blanked the entire workspace sidebar. Parallel hand-maintained unions is how that happens.
+MetricType = Literal["binary", "continuous", "ratio", "count"]
+METRIC_TYPES: Final[tuple[MetricType, ...]] = get_args(MetricType)
+
+# The same families as a list filter, plus the "no filter" sentinel. Derived, not restated:
+# adding a family to MetricType must widen the filter with it.
+MetricTypeFilter = MetricType | Literal["all"]
+METRIC_TYPE_FILTERS: Final[frozenset[str]] = frozenset(METRIC_TYPES) | {"all"}
+
 MAX_SUPPORTED_VARIANTS = 10
 
 # Upper bound on the number of metric p-values accepted by the multiple-testing endpoint. A real

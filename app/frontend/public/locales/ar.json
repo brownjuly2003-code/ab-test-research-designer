@@ -1286,7 +1286,8 @@
       "all": "الجميع",
       "binary": "ثنائي",
       "continuous": "مستمر",
-      "ratio": "نسبي"
+      "ratio": "نسبي",
+      "count": "عدّي"
     },
     "sortLabel": "نوع",
     "sort": {

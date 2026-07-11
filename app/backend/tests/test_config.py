@@ -160,6 +160,76 @@ def test_settings_production_with_postgres_is_allowed(monkeypatch) -> None:
     get_settings.cache_clear()
 
 
+SHARED_TOKEN_ENV_NAMES = ("AB_API_TOKEN", "AB_READONLY_API_TOKEN", "AB_ADMIN_TOKEN")
+
+
+def _clear_shared_tokens(monkeypatch) -> None:
+    for token_name in SHARED_TOKEN_ENV_NAMES:
+        monkeypatch.delenv(token_name, raising=False)
+
+
+def test_settings_production_rejects_short_shared_tokens(monkeypatch) -> None:
+    """8 characters is a typo guard, not a strength floor: production demands 24."""
+    monkeypatch.setenv("AB_ENV", "production")
+    monkeypatch.setenv("AB_DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/abtest")
+
+    for token_name in SHARED_TOKEN_ENV_NAMES:
+        _clear_shared_tokens(monkeypatch)
+        monkeypatch.setenv(token_name, "changeme1")  # 9 chars: fine locally, too short in production
+        get_settings.cache_clear()
+
+        with pytest.raises(ValueError, match=f"{token_name} must be at least 24 characters when configured"):
+            get_settings()
+
+    get_settings.cache_clear()
+
+
+def test_settings_production_accepts_long_shared_tokens(monkeypatch) -> None:
+    monkeypatch.setenv("AB_ENV", "production")
+    monkeypatch.setenv("AB_DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/abtest")
+    _clear_shared_tokens(monkeypatch)
+    monkeypatch.setenv("AB_API_TOKEN", "w" * 24)
+    monkeypatch.setenv("AB_ADMIN_TOKEN", "a" * 24)
+    get_settings.cache_clear()
+
+    settings = get_settings()
+
+    assert settings.api_token == "w" * 24
+    assert settings.admin_token == "a" * 24
+
+    get_settings.cache_clear()
+
+
+def test_settings_non_production_keeps_the_eight_character_minimum(monkeypatch) -> None:
+    """The stricter production floor must not leak into local/demo runs."""
+    monkeypatch.setenv("AB_ENV", "local")
+    monkeypatch.delenv("AB_DATABASE_URL", raising=False)
+    _clear_shared_tokens(monkeypatch)
+    monkeypatch.setenv("AB_API_TOKEN", "changeme1")
+    get_settings.cache_clear()
+
+    settings = get_settings()
+
+    assert settings.is_production is False
+    assert settings.api_token == "changeme1"
+
+    get_settings.cache_clear()
+
+
+def test_settings_allow_insecure_production_defaults_to_false(monkeypatch) -> None:
+    monkeypatch.delenv("AB_ALLOW_INSECURE_PRODUCTION", raising=False)
+    get_settings.cache_clear()
+
+    assert get_settings().allow_insecure_production is False
+
+    monkeypatch.setenv("AB_ALLOW_INSECURE_PRODUCTION", "true")
+    get_settings.cache_clear()
+
+    assert get_settings().allow_insecure_production is True
+
+    get_settings.cache_clear()
+
+
 def test_settings_local_allows_sqlite_default(monkeypatch) -> None:
     monkeypatch.setenv("AB_ENV", "local")
     monkeypatch.delenv("AB_DATABASE_URL", raising=False)

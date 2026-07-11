@@ -346,7 +346,7 @@ export type DiagnosticsAuthSummary = {
 
 export type DiagnosticsFrontendSummary = {
   serve_frontend_dist: boolean;
-  dist_path: string;
+  dist_path?: string | null;
   dist_exists: boolean;
 };
 
@@ -363,7 +363,7 @@ export type DiagnosticsGuardsSummary = {
 
 export type DiagnosticsLlmSummary = {
   provider: string;
-  base_url: string;
+  base_url?: string | null;
   timeout_seconds: number;
   max_attempts: number;
   initial_backoff_seconds: number;
@@ -379,7 +379,7 @@ export type DiagnosticsNetworkSummary = {
   direct_peer: string | null;
   forwarded_for_chain: string[];
   trusted_proxy_hops: number;
-  trusted_proxies: string[];
+  trusted_proxies?: string[] | null;
   resolved_client: string;
   resolved_from: "forwarded_header" | "direct_peer";
 };
@@ -416,11 +416,11 @@ export type DiagnosticsRuntimeSummary = {
 };
 
 export type DiagnosticsStorageSummary = {
-  db_path: string;
-  db_parent_path: string;
+  db_path?: string | null;
+  db_parent_path?: string | null;
+  disk_free_bytes?: number | null;
   db_exists: boolean;
   db_size_bytes: number;
-  disk_free_bytes: number;
   schema_version: number;
   sqlite_user_version: number;
   busy_timeout_ms: number;
@@ -1193,7 +1193,7 @@ export type ProjectListItem = {
   id: string;
   project_name: string;
   hypothesis?: string | null;
-  metric_type?: ("binary" | "continuous" | "ratio") | null;
+  metric_type?: ("binary" | "continuous" | "ratio" | "count") | null;
   duration_days?: number | null;
   payload_schema_version: number;
   archived_at?: string | null;

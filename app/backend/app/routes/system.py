@@ -10,6 +10,7 @@ from app.backend.app.http_utils import (
     get_auth_mode,
     resolve_client_identity,
 )
+from app.backend.app.redaction import mask_inline_credentials
 from app.backend.app.schemas.api import (
     DiagnosticsAuthSummary,
     DiagnosticsFrontendSummary,
@@ -19,6 +20,7 @@ from app.backend.app.schemas.api import (
     DiagnosticsNetworkSummary,
     DiagnosticsResponse,
     DiagnosticsRuntimeSummary,
+    DiagnosticsStorageSummary,
     ReadinessCheck,
     ReadinessResponse,
 )
@@ -65,15 +67,25 @@ def create_system_router(
                     ReadinessCheck(
                         name="postgres_storage",
                         ok=True,
-                        detail=f"Database URL {storage_summary['db_path']}",
+                        detail="PostgreSQL reachable",
                     )
                 )
+                # storage_summary["schema_version"] is now READ from schema_migrations, so this
+                # compares the database's actual version against the one this build requires.
+                # It used to compare the code's constant with itself and could never fail.
+                applied_schema_version = storage_summary["schema_version"]
+                schema_current = applied_schema_version == repository.schema_version
                 checks.append(
                     ReadinessCheck(
                         name="postgres_schema_version",
-                        ok=storage_summary["schema_version"] == repository.schema_version,
+                        ok=schema_current,
                         detail=(
-                            f"schema_version={storage_summary['schema_version']} expected={repository.schema_version}"
+                            f"schema_version={applied_schema_version} expected={repository.schema_version}"
+                            if schema_current
+                            else (
+                                f"schema_version={applied_schema_version} expected={repository.schema_version} — "
+                                "pending migration: the database is not at the schema this build requires"
+                            )
                         ),
                     )
                 )
@@ -89,7 +101,7 @@ def create_system_router(
                     ReadinessCheck(
                         name="sqlite_storage",
                         ok=True,
-                        detail=f"Database path {storage_summary['db_path']}",
+                        detail="SQLite reachable",
                     )
                 )
                 checks.append(
@@ -120,7 +132,8 @@ def create_system_router(
                 ReadinessCheck(
                     name=f"{backend_name}_storage",
                     ok=False,
-                    detail=f"Storage diagnostics failed: {exc}",
+                    # A driver error can quote the connection string it failed on.
+                    detail=mask_inline_credentials(f"Storage diagnostics failed: {exc}"),
                 )
             )
         frontend_ready = (not settings.serve_frontend_dist) or frontend_index_path.exists()
@@ -131,7 +144,7 @@ def create_system_router(
                 detail=(
                     "Frontend dist serving disabled"
                     if not settings.serve_frontend_dist
-                    else f"Looking for {frontend_index_path}"
+                    else ("Frontend dist present" if frontend_ready else "Frontend dist missing")
                 ),
             )
         )
@@ -160,12 +173,34 @@ def create_system_router(
     @router.get("/api/v1/diagnostics", response_model=DiagnosticsResponse)
     def diagnostics(request: Request) -> DiagnosticsResponse:
         diagnostics_generated_at = datetime.now(UTC)
-        storage_summary = repository.get_diagnostics_summary()
+        storage_summary: dict[str, Any] = dict(repository.get_diagnostics_summary())
         api_keys_enabled = repository.has_api_keys()
         write_api_keys_enabled = repository.has_active_api_keys(scope="write")
         read_api_keys_enabled = repository.has_active_api_keys(scope="read")
         session_scope = getattr(request.state, "auth_scope", None)
         client_identity = resolve_client_identity(request, settings)
+
+        auth_configured = (
+            settings.api_token is not None
+            or settings.readonly_api_token is not None
+            or settings.admin_token is not None
+            or api_keys_enabled
+            or settings.public_demo
+        )
+        # Where the app stores its data, where it lives on disk and which networks it
+        # trusts are operator facts, not health facts. A read-scope session — which on
+        # the public demo is every anonymous visitor — gets none of them.
+        #
+        # The gate is the scope, not `admin_authenticated`: the admin token is only
+        # recognised on the admin-only paths (`/api/v1/keys`, `/api/v1/webhooks`, see
+        # http_runtime), so on this route it is never set. Whoever holds write scope
+        # owns the installation; with no auth configured at all the only caller is the
+        # owner on their own machine.
+        operator_detail_visible = session_scope in {"write", "admin"} or not auth_configured
+        if not operator_detail_visible:
+            for operator_only_field in ("db_path", "db_parent_path", "disk_free_bytes"):
+                storage_summary[operator_only_field] = None
+
         return DiagnosticsResponse(
             status="ok",
             generated_at=diagnostics_generated_at.isoformat(),
@@ -174,15 +209,15 @@ def create_system_router(
             environment=settings.environment,
             app_version=settings.app_version,
             request_timing_headers_enabled=True,
-            storage=storage_summary,
+            storage=DiagnosticsStorageSummary.model_validate(storage_summary),
             frontend=DiagnosticsFrontendSummary(
                 serve_frontend_dist=settings.serve_frontend_dist,
-                dist_path=settings.frontend_dist_path,
+                dist_path=settings.frontend_dist_path if operator_detail_visible else None,
                 dist_exists=frontend_dist_path.exists(),
             ),
             llm=DiagnosticsLlmSummary(
                 provider="local_orchestrator",
-                base_url=settings.llm_base_url,
+                base_url=settings.llm_base_url if operator_detail_visible else None,
                 timeout_seconds=settings.llm_timeout_seconds,
                 max_attempts=settings.llm_max_attempts,
                 initial_backoff_seconds=settings.llm_initial_backoff_seconds,
@@ -193,10 +228,7 @@ def create_system_router(
                 format=settings.log_format,
             ),
             auth=DiagnosticsAuthSummary(
-                enabled=settings.api_token is not None
-                or settings.readonly_api_token is not None
-                or api_keys_enabled
-                or settings.public_demo,
+                enabled=auth_configured,
                 mode=get_auth_mode(settings.api_token, settings.readonly_api_token, api_keys_enabled),
                 write_enabled=settings.api_token is not None or write_api_keys_enabled,
                 readonly_enabled=settings.readonly_api_token is not None or read_api_keys_enabled,
@@ -225,7 +257,7 @@ def create_system_router(
                 direct_peer=client_identity.direct_peer,
                 forwarded_for_chain=list(client_identity.forwarded_chain),
                 trusted_proxy_hops=settings.trusted_proxy_hops,
-                trusted_proxies=list(settings.trusted_proxies),
+                trusted_proxies=list(settings.trusted_proxies) if operator_detail_visible else None,
                 resolved_client=client_identity.identifier,
                 resolved_from=client_identity.source,
             ),

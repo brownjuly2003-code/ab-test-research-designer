@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
 
-import type { SavedProject } from "../../lib/types";
+import type { MetricType, SavedProject } from "../../lib/types";
 import { useAnalysisStore } from "../../stores/analysisStore";
 import { useProjectStore } from "../../stores/projectStore";
 
 export type ProjectStatusFilter = "active" | "archived" | "all";
-export type ProjectMetricTypeFilter = "all" | "binary" | "continuous" | "ratio";
+// Derived from the generated contract, not restated: a metric family the backend can save
+// must be a family the sidebar can filter by. Spelling the union out by hand is what let a
+// saved count project 400 the whole project list.
+export type ProjectMetricTypeFilter = "all" | MetricType;
 export type ProjectSortBy = "updated_desc" | "name_asc" | "duration_asc";
 
 const MAX_COMPARISON_PROJECTS = 5;

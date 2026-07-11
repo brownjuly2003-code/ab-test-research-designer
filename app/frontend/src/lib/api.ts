@@ -17,6 +17,7 @@ import {
   type ApiErrorResponse,
   type ExportFormat,
   type FullPayload,
+  type MetricType,
   type ProjectRecordPayload,
   type ReportResponse,
   type AuditLogResponse,
@@ -220,7 +221,7 @@ export type ProjectListRequestOptions = {
   includeArchived?: boolean;
   q?: string;
   status?: "active" | "archived" | "all";
-  metricType?: "binary" | "continuous" | "ratio" | "all";
+  metricType?: MetricType | "all";
   sortBy?: "created_at" | "updated_at" | "name" | "duration_days";
   sortDir?: "asc" | "desc";
   limit?: number;

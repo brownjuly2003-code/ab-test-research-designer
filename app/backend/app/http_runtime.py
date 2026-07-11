@@ -93,11 +93,23 @@ def register_http_runtime(
             runtime_counters["last_error_code"] = error_code
 
     def auth_enabled() -> bool:
+        # Any auth material at all closes the protected surface; anonymous callers
+        # then get 401 instead of an open door.
+        #
+        # admin_token counts. An admin-only deployment is a legitimate bootstrap —
+        # the admin token exists to issue the first write API key — and omitting it
+        # here left keys/webhooks protected while ordinary project mutations stayed
+        # open to anonymous callers.
+        #
         # public_demo alone (no tokens configured) still forces anonymous sessions
         # into the read scope — a hosted demo must never expose open mutations.
+        #
+        # has_api_keys() is last on purpose: it hits the database, so the static
+        # settings short-circuit it on every request of a token-configured deployment.
         return bool(
             settings.api_token
             or settings.readonly_api_token
+            or settings.admin_token
             or settings.public_demo
             or repository.has_api_keys()
         )

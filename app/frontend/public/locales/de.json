@@ -1287,7 +1287,8 @@
       "all": "Alle",
       "binary": "Binär",
       "continuous": "Kontinuierlich",
-      "ratio": "Ratio"
+      "ratio": "Ratio",
+      "count": "Zähler"
     },
     "sortLabel": "Sortieren",
     "sort": {

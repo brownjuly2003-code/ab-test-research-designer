@@ -37,6 +37,7 @@ import {
   type ApiHealthResponse,
   type ExportFormat,
   type FullPayload,
+  type MetricType,
   type MultiProjectComparison,
   type ProjectComparison,
   type ProjectHistory,
@@ -188,7 +189,7 @@ function toSavedProject(project: {
   id?: string;
   project_name?: string;
   hypothesis?: string | null;
-  metric_type?: "binary" | "continuous" | null;
+  metric_type?: MetricType | null;
   duration_days?: number | null;
   created_at?: string;
   updated_at?: string;

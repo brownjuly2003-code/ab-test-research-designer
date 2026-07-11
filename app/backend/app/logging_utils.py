@@ -7,17 +7,21 @@ from collections.abc import Mapping
 from datetime import UTC, datetime
 from typing import cast
 
+from app.backend.app.redaction import mask_inline_credentials
+
 SENSITIVE_HEADER_NAMES = {"authorization", "x-api-key", "x-ab-llm-token"}
 
 
 def _mask_sensitive_text(value: str) -> str:
     masked_value = re.sub(r"(Bearer\s+)[^\s,;]+", r"\1***", value, flags=re.IGNORECASE)
-    return re.sub(
+    masked_value = re.sub(
         r"((?:Authorization|X-API-Key|X-AB-LLM-Token)\s*[:=]\s*)([^\s,;]+)",
         r"\1***",
         masked_value,
         flags=re.IGNORECASE,
     )
+    # Second layer: a DSN reaching a log line through any path still loses its password.
+    return mask_inline_credentials(masked_value)
 
 
 def sanitize_for_logging(value: object) -> object:

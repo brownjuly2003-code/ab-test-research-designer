@@ -6,11 +6,14 @@ from pydantic import BaseModel
 
 
 class DiagnosticsStorageSummary(BaseModel):
-    db_path: str
-    db_parent_path: str
+    # Operator-only fields. A read-scope session (which on the public demo is every
+    # anonymous caller) gets None: the storage location and the host's free disk say
+    # nothing about the app's health and everything about where it runs.
+    db_path: str | None = None
+    db_parent_path: str | None = None
+    disk_free_bytes: int | None = None
     db_exists: bool
     db_size_bytes: int
-    disk_free_bytes: int
     schema_version: int
     sqlite_user_version: int
     busy_timeout_ms: int
@@ -30,13 +33,13 @@ class DiagnosticsStorageSummary(BaseModel):
 
 class DiagnosticsFrontendSummary(BaseModel):
     serve_frontend_dist: bool
-    dist_path: str
+    dist_path: str | None = None  # operator-only: absolute filesystem path
     dist_exists: bool
 
 
 class DiagnosticsLlmSummary(BaseModel):
     provider: str
-    base_url: str
+    base_url: str | None = None  # operator-only: internal network address
     timeout_seconds: float
     max_attempts: int
     initial_backoff_seconds: float
@@ -89,7 +92,7 @@ class DiagnosticsNetworkSummary(BaseModel):
     direct_peer: str | None
     forwarded_for_chain: list[str]
     trusted_proxy_hops: int
-    trusted_proxies: list[str]
+    trusted_proxies: list[str] | None = None  # operator-only: the configured CIDR allowlist
     resolved_client: str
     resolved_from: Literal["forwarded_header", "direct_peer"]
 
