@@ -4,6 +4,7 @@ import type { ResultsAnalysisResponse, SavedProject } from "../../../lib/experim
 import type { ProjectAnalysisRun } from "../../../lib/experiment";
 import type { ActualResultsState, BinaryResultsForm, ContinuousResultsForm, CountResultsForm, ObservedBaseMetricType, ObservedMetricType, ObservedTestSelection } from "../observedResultsShared";
 import { formatObservedValue, observedFormKind, observedTestButtons, observedTestHintKey } from "../observedResultsShared";
+import { formatPValue, formatStat } from "../../../lib/formatNumber";
 import ChartErrorBoundary from "../../ChartErrorBoundary";
 import ForestPlot from "../../ForestPlot";
 import Icon from "../../Icon";
@@ -235,17 +236,17 @@ export default function ObservedResultsView({
           <div style={{ display: "grid", gap: "var(--space-3)", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))" }}>
             <div className="card"><strong>{t("results.observedResults.cards.effect")}</strong><div style={{ marginTop: "8px" }}>{formatObservedValue(resultsAnalysis.observed_effect, analysisMetricType, { signed: true, withUnit: true })}</div></div>
             <div className="card"><strong>{t("results.observedResults.cards.ciLabel", { percent: Math.round(resultsAnalysis.ci_level * 100) })}</strong><div style={{ marginTop: "8px" }}>[{formatObservedValue(resultsAnalysis.ci_lower, analysisMetricType, { withUnit: true })}, {formatObservedValue(resultsAnalysis.ci_upper, analysisMetricType, { withUnit: true })}]</div></div>
-            <div className="card"><strong>{t("results.observedResults.cards.pValue")}</strong><div style={{ marginTop: "8px" }}>{resultsAnalysis.p_value.toFixed(6)}</div></div>
-            <div className="card"><strong>{t("results.observedResults.cards.testStatistic")}</strong><div style={{ marginTop: "8px" }}>{resultsAnalysis.test_statistic.toFixed(4)}</div></div>
+            <div className="card"><strong>{t("results.observedResults.cards.pValue")}</strong><div style={{ marginTop: "8px" }}>{formatPValue(resultsAnalysis.p_value)}</div></div>
+            <div className="card"><strong>{t("results.observedResults.cards.testStatistic")}</strong><div style={{ marginTop: "8px" }}>{formatStat(resultsAnalysis.test_statistic)}</div></div>
             <div className="card"><strong>{t("results.observedResults.cards.relativeChange")}</strong><div style={{ marginTop: "8px" }}>{resultsAnalysis.observed_effect_relative.toFixed(2)}%</div></div>
-            <div className="card"><strong>{t("results.observedResults.cards.powerAchieved")}</strong><div style={{ marginTop: "8px" }}>{resultsAnalysis.power_achieved.toFixed(3)}</div></div>
+            <div className="card"><strong>{t("results.observedResults.cards.powerAchieved")}</strong><div style={{ marginTop: "8px" }}>{formatStat(resultsAnalysis.power_achieved)}</div></div>
             {resultsAnalysis.effect_size != null ? (
-              <div className="card"><strong>{resultsAnalysis.effect_size_label ?? t("results.observedResults.cards.effectSize")}</strong><div style={{ marginTop: "8px" }}>{resultsAnalysis.effect_size.toFixed(4)}</div>{resultsAnalysis.effect_size_ci_lower != null ? (<div style={{ marginTop: "4px", fontSize: "0.85em", opacity: 0.75 }}>{t("results.observedResults.cards.ciLabel", { percent: Math.round(resultsAnalysis.ci_level * 100) })}: [{resultsAnalysis.effect_size_ci_lower.toFixed(4)}, {resultsAnalysis.effect_size_ci_upper != null ? resultsAnalysis.effect_size_ci_upper.toFixed(4) : "∞"}]</div>) : null}</div>
+              <div className="card"><strong>{resultsAnalysis.effect_size_label ?? t("results.observedResults.cards.effectSize")}</strong><div style={{ marginTop: "8px" }}>{formatStat(resultsAnalysis.effect_size)}</div>{resultsAnalysis.effect_size_ci_lower != null ? (<div style={{ marginTop: "4px", fontSize: "0.85em", opacity: 0.75 }}>{t("results.observedResults.cards.ciLabel", { percent: Math.round(resultsAnalysis.ci_level * 100) })}: [{formatStat(resultsAnalysis.effect_size_ci_lower)}, {resultsAnalysis.effect_size_ci_upper != null ? formatStat(resultsAnalysis.effect_size_ci_upper) : "∞"}]</div>) : null}</div>
             ) : null}
           </div>
           <div className="two-col">
             <div className="card"><h3>{t("results.observedResults.cards.forestPlot")}</h3><ChartErrorBoundary data={resultsAnalysis}><ForestPlot effect={resultsAnalysis.observed_effect} ciLower={resultsAnalysis.ci_lower} ciUpper={resultsAnalysis.ci_upper} metricType={formKind === "binary" ? "binary" : "continuous"} /></ChartErrorBoundary></div>
-            <div className="card"><h3>{t("results.observedResults.cards.observedSummary")}</h3><ul className="list">{formKind === "binary" ? <><li>{t("results.observedResults.cards.controlRate")}: {resultsAnalysis.control_rate?.toFixed(4) ?? "-"}%</li><li>{t("results.observedResults.cards.treatmentRate")}: {resultsAnalysis.treatment_rate?.toFixed(4) ?? "-"}%</li></> : null}<li>{t("results.observedResults.cards.significant")}: {resultsAnalysis.is_significant ? t("results.observedResults.yes") : t("results.observedResults.no")}</li><li>{t("results.observedResults.cards.verdict")}: {resultsAnalysis.verdict}</li></ul></div>
+            <div className="card"><h3>{t("results.observedResults.cards.observedSummary")}</h3><ul className="list">{formKind === "binary" ? <><li>{t("results.observedResults.cards.controlRate")}: {resultsAnalysis.control_rate != null ? formatStat(resultsAnalysis.control_rate) : "-"}%</li><li>{t("results.observedResults.cards.treatmentRate")}: {resultsAnalysis.treatment_rate != null ? formatStat(resultsAnalysis.treatment_rate) : "-"}%</li></> : null}<li>{t("results.observedResults.cards.significant")}: {resultsAnalysis.is_significant ? t("results.observedResults.yes") : t("results.observedResults.no")}</li><li>{t("results.observedResults.cards.verdict")}: {resultsAnalysis.verdict}</li></ul></div>
           </div>
         </div>
       ) : null}

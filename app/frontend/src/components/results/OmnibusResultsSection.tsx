@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { apiUrl } from "../../lib/experiment";
 import type { OmnibusResultsResponse } from "../../lib/generated/api-contract";
+import { formatPValue, formatStat } from "../../lib/formatNumber";
 import Icon from "../Icon";
 import { buildApiRequestHeaders } from "./resultsShared";
 
@@ -143,10 +144,10 @@ export default function OmnibusResultsSection() {
             <div style={{ display: "grid", gap: "6px" }}><strong>{analysis.verdict}</strong><span>{analysis.interpretation}</span></div>
           </div>
           <div style={{ display: "grid", gap: "var(--space-3)", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))" }}>
-            <div className="card"><strong>{t(`results.omnibusResults.statistic.${analysis.test_type}`)}</strong><div style={{ marginTop: "8px" }}>{analysis.test_statistic.toFixed(4)}</div></div>
+            <div className="card"><strong>{t(`results.omnibusResults.statistic.${analysis.test_type}`)}</strong><div style={{ marginTop: "8px" }}>{formatStat(analysis.test_statistic)}</div></div>
             <div className="card"><strong>{t("results.omnibusResults.results.degreesOfFreedom")}</strong><div style={{ marginTop: "8px" }}>{degreesOfFreedom}</div></div>
-            <div className="card"><strong>{t("results.omnibusResults.results.pValue")}</strong><div style={{ marginTop: "8px" }}>{analysis.p_value.toFixed(6)}</div></div>
-            <div className="card"><strong>{analysis.effect_size_label}</strong><div style={{ marginTop: "8px" }}>{analysis.effect_size.toFixed(4)}</div></div>
+            <div className="card"><strong>{t("results.omnibusResults.results.pValue")}</strong><div style={{ marginTop: "8px" }}>{formatPValue(analysis.p_value)}</div></div>
+            <div className="card"><strong>{analysis.effect_size_label}</strong><div style={{ marginTop: "8px" }}>{formatStat(analysis.effect_size)}</div></div>
             <div className="card"><strong>{t("results.omnibusResults.results.groups")}</strong><div style={{ marginTop: "8px" }}>{analysis.num_groups}</div></div>
             <div className="card"><strong>{t("results.omnibusResults.results.sampleSize")}</strong><div style={{ marginTop: "8px" }}>{analysis.n_total}</div></div>
           </div>
@@ -163,14 +164,18 @@ export default function OmnibusResultsSection() {
                   </tr>
                 </thead>
                 <tbody>
-                  {analysis.group_summaries.map((summary, index) => (
-                    <tr key={index}>
-                      <td>{index + 1}</td>
-                      <td>{summary.n}</td>
-                      <td>{isWelch ? summary.mean : summary.median}</td>
-                      <td>{isWelch ? summary.std : summary.mean_rank}</td>
-                    </tr>
-                  ))}
+                  {analysis.group_summaries.map((summary, index) => {
+                    const center = isWelch ? summary.mean : summary.median;
+                    const spread = isWelch ? summary.std : summary.mean_rank;
+                    return (
+                      <tr key={index}>
+                        <td>{index + 1}</td>
+                        <td>{summary.n}</td>
+                        <td>{center != null ? formatStat(center, 4) : "-"}</td>
+                        <td>{spread != null ? formatStat(spread, 4) : "-"}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

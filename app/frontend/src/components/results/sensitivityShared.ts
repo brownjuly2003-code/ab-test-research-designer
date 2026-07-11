@@ -18,12 +18,14 @@ export function resolveMetricType(metricType: string): "binary" | "continuous" {
   return metricType === "binary" ? "binary" : "continuous";
 }
 
-// Trims binary floating-point noise (e.g. 0.0021000000000000003 -> 0.0021) for display.
+// Trims binary floating-point noise (e.g. 0.0021000000000000003 -> 0.0021) and caps display to six
+// significant figures so a calc-summary value never spills a 12-digit tail (0.0333333333333 ->
+// "0.0333333"); the inputs it shows (baseline value, absolute MDE) never need more than that.
 export function formatStatNumber(value: number): string {
   if (!Number.isFinite(value)) {
     return String(value);
   }
-  return String(Number(value.toPrecision(12)));
+  return String(Number(value.toPrecision(6)));
 }
 
 export function resolveCurrentMde(analysis: AnalysisResponsePayload): number {

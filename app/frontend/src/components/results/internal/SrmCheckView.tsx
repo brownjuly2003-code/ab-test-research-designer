@@ -1,5 +1,6 @@
 import { t } from "../../../i18n";
 import type { SrmCheckResponse } from "../../../lib/api";
+import { formatPValue, formatStat } from "../../../lib/formatNumber";
 import Icon from "../../Icon";
 
 type SrmCheckViewProps = {
@@ -43,7 +44,7 @@ export default function SrmCheckView({
           <div style={{ display: "grid", gap: "6px" }}>
             <strong>{srmResult.is_srm ? t("results.srmCheck.detected") : t("results.srmCheck.notDetected")}</strong>
             <span>{srmResult.verdict}</span>
-            <span>{t("results.srmCheck.chiSquare", { chiSquare: String(srmResult.chi_square), pValue: srmResult.p_value.toFixed(6) })}</span>
+            <span>{t("results.srmCheck.chiSquare", { chiSquare: formatStat(srmResult.chi_square), pValue: formatPValue(srmResult.p_value) })}</span>
             {srmResult.is_srm ? <span>{t("results.srmCheck.expectedObserved", { expected: srmResult.expected_counts.map((count) => Math.round(count)).join(", "), observed: srmResult.observed_counts.join(", ") })}</span> : null}
           </div>
         </div>

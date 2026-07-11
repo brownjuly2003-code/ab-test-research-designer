@@ -69,7 +69,9 @@ export default function SequentialBoundaryChart({
       aria-label={`O'Brien-Fleming sequential boundaries across ${boundaries.length} looks`}
       style={{ height: 240, width: "100%" }}
     >
-      <ResponsiveContainer width="100%" height="100%" minWidth={320}>
+      {/* initialDimension height silences recharts' benign first-render width(-1)/height(-1) dev
+          warning; width stays -1 so it is still measured (no first-frame resize). */}
+      <ResponsiveContainer width="100%" height="100%" minWidth={320} initialDimension={{ width: -1, height: 240 }}>
         <LineChart data={boundaries} margin={{ top: 8, right: 20, bottom: 8, left: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
           <XAxis

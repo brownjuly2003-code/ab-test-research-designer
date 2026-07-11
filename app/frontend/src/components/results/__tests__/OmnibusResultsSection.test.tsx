@@ -86,9 +86,9 @@ describe("OmnibusResultsSection", () => {
 
       expect(view.container.textContent).toContain("At least one group differs");
       expect(view.container.textContent).toContain("eta squared");
-      // per-group summary table rendered (mean column value)
+      // per-group summary table rendered (mean column value, formatStat 4 sig figs: 5.4375 -> "5.438")
       expect(view.container.querySelector("table")).not.toBeNull();
-      expect(view.container.textContent).toContain("5.4375");
+      expect(view.container.textContent).toContain("5.438");
     } finally {
       await view.unmount();
     }

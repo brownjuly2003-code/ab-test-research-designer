@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { apiUrl } from "../../lib/experiment";
 import type { SurvivalCurvePoint, SurvivalResultsResponse } from "../../lib/generated/api-contract";
+import { formatPValue, formatStat } from "../../lib/formatNumber";
 import Icon from "../Icon";
 import SurvivalCurveChart, { type SurvivalSeriesPoint } from "../SurvivalCurveChart";
 import { buildApiRequestHeaders } from "./resultsShared";
@@ -105,7 +106,7 @@ function CurveTable({ points, caption }: { points: SurvivalCurvePoint[]; caption
                 <td>{point.time}</td>
                 <td>{point.at_risk}</td>
                 <td>{point.n_events}</td>
-                <td>{point.survival.toFixed(4)}</td>
+                <td>{point.survival.toFixed(3)}</td>
                 <td>
                   {point.ci_lower.toFixed(3)} – {point.ci_upper.toFixed(3)}
                 </td>
@@ -341,9 +342,9 @@ export default function SurvivalResultsSection() {
               <div className="card">
                 <strong>{t("results.survivalResults.results.hazardRatio")}</strong>
                 <div style={{ marginTop: "8px" }}>
-                  {analysis.hazard_ratio.toFixed(4)}{" "}
+                  {formatStat(analysis.hazard_ratio)}{" "}
                   <span className="muted">
-                    [{analysis.hazard_ratio_ci_lower?.toFixed(4)}, {analysis.hazard_ratio_ci_upper?.toFixed(4)}]
+                    [{analysis.hazard_ratio_ci_lower != null ? formatStat(analysis.hazard_ratio_ci_lower) : "-"}, {analysis.hazard_ratio_ci_upper != null ? formatStat(analysis.hazard_ratio_ci_upper) : "-"}]
                   </span>
                 </div>
               </div>
@@ -354,7 +355,7 @@ export default function SurvivalResultsSection() {
                   ? t("results.survivalResults.statistic.waldChiSquare")
                   : t("results.survivalResults.statistic.chiSquare")}
               </strong>
-              <div style={{ marginTop: "8px" }}>{analysis.chi_square.toFixed(4)}</div>
+              <div style={{ marginTop: "8px" }}>{formatStat(analysis.chi_square)}</div>
             </div>
             <div className="card">
               <strong>{t("results.survivalResults.results.degreesOfFreedom")}</strong>
@@ -362,7 +363,7 @@ export default function SurvivalResultsSection() {
             </div>
             <div className="card">
               <strong>{t("results.survivalResults.results.pValue")}</strong>
-              <div style={{ marginTop: "8px" }}>{analysis.p_value.toFixed(6)}</div>
+              <div style={{ marginTop: "8px" }}>{formatPValue(analysis.p_value)}</div>
             </div>
             <div className="card">
               <strong>{t("results.survivalResults.results.observedControl")}</strong>

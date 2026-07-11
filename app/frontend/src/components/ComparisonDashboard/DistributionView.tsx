@@ -323,7 +323,9 @@ export default function DistributionView({ comparison }: DistributionViewProps) 
 
               <div className="card" style={{ display: "grid", gap: 12 }}>
                 <div style={{ height: 320 }}>
-                  <ResponsiveContainer width="100%" height="100%">
+                  {/* initialDimension height silences recharts' benign first-render width(-1)/height(-1)
+                      dev warning; width stays -1 so it is still measured (no first-frame resize). */}
+                  <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: -1, height: 320 }}>
                     <BarChart data={histogramData} margin={{ top: 8, right: 16, bottom: 8, left: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
                       <XAxis

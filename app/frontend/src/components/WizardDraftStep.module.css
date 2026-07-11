@@ -257,7 +257,10 @@
 }
 
 :global(.preview-value) {
-  font-family: var(--font-mono);
+  /* Proportional sans + tabular figures so the grouped live-preview count reads "20,345", not the
+     spaced "20 , 345" the mono cell produces (matches .metric-value). */
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
   font-size: clamp(24px, 3vw, 32px);
   font-weight: 600;
   letter-spacing: -0.04em;

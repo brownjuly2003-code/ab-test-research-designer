@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { apiUrl } from "../../lib/experiment";
 import type { CategoricalResultsResponse } from "../../lib/generated/api-contract";
+import { formatPValue, formatStat } from "../../lib/formatNumber";
 import Icon from "../Icon";
 import { buildApiRequestHeaders } from "./resultsShared";
 
@@ -167,10 +168,10 @@ export default function CategoricalResultsSection() {
             </div>
           ) : null}
           <div style={{ display: "grid", gap: "var(--space-3)", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))" }}>
-            <div className="card"><strong>{t(`results.categoricalResults.statistic.${analysis.test_type}`)}</strong><div style={{ marginTop: "8px" }}>{analysis.chi_square.toFixed(4)}</div></div>
+            <div className="card"><strong>{t(`results.categoricalResults.statistic.${analysis.test_type}`)}</strong><div style={{ marginTop: "8px" }}>{formatStat(analysis.chi_square)}</div></div>
             <div className="card"><strong>{t("results.categoricalResults.results.degreesOfFreedom")}</strong><div style={{ marginTop: "8px" }}>{analysis.degrees_of_freedom}</div></div>
-            <div className="card"><strong>{t("results.categoricalResults.results.pValue")}</strong><div style={{ marginTop: "8px" }}>{analysis.p_value.toFixed(6)}</div></div>
-            <div className="card"><strong>{t("results.categoricalResults.results.cramersV")}</strong><div style={{ marginTop: "8px" }}>{analysis.cramers_v.toFixed(4)} <span className="muted">· {t(`results.categoricalResults.magnitude.${cramersVMagnitude(analysis.cramers_v, analysis.num_rows, analysis.num_cols)}`)}</span></div></div>
+            <div className="card"><strong>{t("results.categoricalResults.results.pValue")}</strong><div style={{ marginTop: "8px" }}>{formatPValue(analysis.p_value)}</div></div>
+            <div className="card"><strong>{t("results.categoricalResults.results.cramersV")}</strong><div style={{ marginTop: "8px" }}>{formatStat(analysis.cramers_v)} <span className="muted">· {t(`results.categoricalResults.magnitude.${cramersVMagnitude(analysis.cramers_v, analysis.num_rows, analysis.num_cols)}`)}</span></div></div>
             <div className="card"><strong>{t("results.categoricalResults.results.sampleSize")}</strong><div style={{ marginTop: "8px" }}>{analysis.n_total}</div></div>
             <div className="card"><strong>{t("results.categoricalResults.results.shape")}</strong><div style={{ marginTop: "8px" }}>{analysis.num_rows}×{analysis.num_cols}</div></div>
           </div>

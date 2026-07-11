@@ -105,9 +105,9 @@ describe("CategoricalResultsSection", () => {
 
       expect(view.container.textContent).toContain("Association detected");
       expect(view.container.textContent).toContain("20.0000");
-      expect(view.container.textContent).toContain("0.4082");
+      expect(view.container.textContent).toContain("0.408");
       expect(view.container.textContent).toContain("2×3");
-      // Cramér's V 0.4082 on a 2×3 table (min dimension 1) → w = 0.4082 → "medium".
+      // Cramér's V 0.408 on a 2×3 table (min dimension 1) → w = 0.408 → "medium".
       expect(view.container.textContent).toContain("medium");
       // The statistic card is labelled "Chi-square" for the Pearson test.
       expect(view.container.textContent).toContain("Chi-square");

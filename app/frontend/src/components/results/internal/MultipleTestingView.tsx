@@ -1,5 +1,6 @@
 import { t } from "../../../i18n";
 import type { MultipleTestingResponse } from "../../../lib/api";
+import { formatPValue } from "../../../lib/formatNumber";
 import Icon from "../../Icon";
 
 export type MetricRow = { label: string; pValue: string };
@@ -113,8 +114,8 @@ export default function MultipleTestingView({
                 {result.results.map((metric, index) => (
                   <tr key={`${metric.label}-${index}`} style={metric.rejected ? { fontWeight: 600 } : undefined}>
                     <td style={cellStyle}>{metric.label}</td>
-                    <td style={cellStyle}>{metric.p_value.toFixed(4)}</td>
-                    <td style={cellStyle}>{metric.adjusted_p_value.toFixed(4)}</td>
+                    <td style={cellStyle}>{formatPValue(metric.p_value)}</td>
+                    <td style={cellStyle}>{formatPValue(metric.adjusted_p_value)}</td>
                     <td style={cellStyle}>
                       {metric.rejected ? (
                         <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", color: "var(--color-success)" }}>

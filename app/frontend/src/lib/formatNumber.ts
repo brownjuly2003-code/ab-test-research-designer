@@ -26,3 +26,35 @@ export function formatCount(value: number, locale?: string): string {
   }
   return new Intl.NumberFormat(resolveLocale(locale), { maximumFractionDigits: 0 }).format(value);
 }
+
+// Significant-figures formatter for the small, few-digit statistics shown in result cards — test
+// statistics, effect sizes, hazard ratios, rates, achieved power. It trims trailing zeros so a value
+// never advertises more precision than it carries (0.2000 -> "0.2", 12.3456 -> "12.3"), while small
+// magnitudes keep their meaningful digits (0.012345 -> "0.0123"). This is the decimal counterpart to
+// formatCount (which groups integer counts); statistics keep a "." decimal separator to match the
+// rest of the numeric result UI. Non-finite input falls back to a plain string.
+export function formatStat(value: number, sig = 3): string {
+  if (!Number.isFinite(value)) {
+    return String(value);
+  }
+  if (value === 0) {
+    return "0";
+  }
+  // `toPrecision` yields `sig` significant digits; the Number() round-trip drops trailing zeros and,
+  // across the magnitudes shown here (roughly 1e-4 .. 1e4) never leaves exponential notation.
+  return String(Number(value.toPrecision(sig)));
+}
+
+// p-value formatter. Shows "< 0.001" for very small values — a plain toFixed(6) collapsed a genuine
+// 1e-9 to a misleading "0.000000" that reads as exactly zero — and otherwise up to four decimals with
+// trailing zeros trimmed (0.032000 -> "0.032", 0.0012 -> "0.0012"). Non-finite input falls back to a
+// plain string.
+export function formatPValue(value: number): string {
+  if (!Number.isFinite(value)) {
+    return String(value);
+  }
+  if (value < 0.001) {
+    return "< 0.001";
+  }
+  return String(Number(value.toFixed(4)));
+}

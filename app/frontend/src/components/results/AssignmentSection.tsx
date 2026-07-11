@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { t } from "../../i18n";
 import type { ExperimentAssignmentResponse } from "../../lib/api";
 import { apiUrl } from "../../lib/experiment";
+import { formatStat } from "../../lib/formatNumber";
 import { useAnalysisStore } from "../../stores/analysisStore";
 import { useProjectStore } from "../../stores/projectStore";
 import Icon from "../Icon";
@@ -154,7 +155,7 @@ export default function AssignmentSection() {
             <span className="muted">
               {t("results.assignment.bucketLine", {
                 user: result.user_id,
-                bucket: result.hash != null ? result.hash.toFixed(4) : "—"
+                bucket: result.hash != null ? formatStat(result.hash, 4) : "—"
               })}
             </span>
             {result.sticky ? <span className="muted">{t("results.assignment.stickyNote")}</span> : null}

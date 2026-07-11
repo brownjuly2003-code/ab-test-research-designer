@@ -56,7 +56,10 @@
 
 .metric-value {
   margin-top: var(--space-4);
-  font-family: var(--font-mono);
+  /* Proportional sans (with tabular-nums, set above) rather than mono: the mono comma sits centred
+     in a full monospace cell, so a grouped count reads "20 , 345"; Manrope tightens it to "20,345"
+     while tabular figures keep the digits aligned. */
+  font-family: var(--font-sans);
   font-size: clamp(28px, 4vw, 40px);
   font-weight: 600;
   letter-spacing: -0.04em;

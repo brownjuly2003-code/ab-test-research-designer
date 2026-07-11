@@ -194,7 +194,10 @@ export default function PowerCurveChart({
           ))}
         </div>
         <div style={{ height: 280 }}>
-          <ResponsiveContainer width="100%" height="100%">
+          {/* initialDimension height (the fixed wrapper height) makes recharts' first render pass its
+              own `width>0 || height>0` check, silencing the benign width(-1)/height(-1) dev warning;
+              width stays -1 so it is still measured (no first-frame resize). */}
+          <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: -1, height: 280 }}>
             <LineChart data={data} margin={{ top: 8, right: 16, bottom: 8, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
               <XAxis
@@ -237,7 +240,9 @@ export default function PowerCurveChart({
 
   return (
     <div style={{ height: 240 }}>
-      <ResponsiveContainer width="100%" height="100%">
+      {/* initialDimension height silences recharts' first-render width(-1)/height(-1) warning;
+          width stays -1 so it is still measured (no first-frame resize). */}
+      <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: -1, height: 240 }}>
         <LineChart data={data} margin={{ top: 8, right: 16, bottom: 8, left: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
           <XAxis

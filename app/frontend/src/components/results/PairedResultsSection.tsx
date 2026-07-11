@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { apiUrl } from "../../lib/experiment";
 import type { PairedResultsResponse } from "../../lib/generated/api-contract";
+import { formatPValue } from "../../lib/formatNumber";
 import Icon from "../Icon";
 import { parseSampleValues } from "./observedResultsShared";
 import { buildApiRequestHeaders } from "./resultsShared";
@@ -120,7 +121,7 @@ export default function PairedResultsSection() {
           </div>
           <div style={{ display: "grid", gap: "var(--space-3)", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))" }}>
             <div className="card"><strong>{analysis.effect_label}</strong><div style={{ marginTop: "8px" }}>{analysis.effect} <span className="muted">[{analysis.ci_lower}, {analysis.ci_upper}]</span></div></div>
-            <div className="card"><strong>{t("results.pairedResults.results.pValue")}</strong><div style={{ marginTop: "8px" }}>{analysis.p_value.toFixed(6)}</div></div>
+            <div className="card"><strong>{t("results.pairedResults.results.pValue")}</strong><div style={{ marginTop: "8px" }}>{formatPValue(analysis.p_value)}</div></div>
             <div className="card"><strong>{t("results.pairedResults.results.testStatistic")}</strong><div style={{ marginTop: "8px" }}>{analysis.test_statistic}</div></div>
             {analysis.effect_size != null ? (
               <div className="card"><strong>{analysis.effect_size_label}</strong><div style={{ marginTop: "8px" }}>{analysis.effect_size}</div></div>

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { apiUrl } from "../../lib/experiment";
 import type { ResultsAnalysisResponse } from "../../lib/experiment";
+import { formatPValue } from "../../lib/formatNumber";
 import Icon from "../Icon";
 import { parseSampleValues } from "./observedResultsShared";
 import { buildApiRequestHeaders } from "./resultsShared";
@@ -132,7 +133,7 @@ export default function RatioResultsSection({ onResultsAnalysisChange }: RatioRe
           <div style={{ display: "grid", gap: "var(--space-3)", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))" }}>
             <div className="card"><strong>{t("results.ratioResults.results.effect")}</strong><div style={{ marginTop: "8px" }}>{analysis.observed_effect} <span className="muted">[{analysis.ci_lower}, {analysis.ci_upper}]</span></div></div>
             <div className="card"><strong>{t("results.ratioResults.results.relativeEffect")}</strong><div style={{ marginTop: "8px" }}>{analysis.observed_effect_relative}%</div></div>
-            <div className="card"><strong>{t("results.ratioResults.results.pValue")}</strong><div style={{ marginTop: "8px" }}>{analysis.p_value.toFixed(6)}</div></div>
+            <div className="card"><strong>{t("results.ratioResults.results.pValue")}</strong><div style={{ marginTop: "8px" }}>{formatPValue(analysis.p_value)}</div></div>
             <div className="card"><strong>{t("results.ratioResults.results.testStatistic")}</strong><div style={{ marginTop: "8px" }}>{analysis.test_statistic}</div></div>
             <div className="card"><strong>{t("results.ratioResults.results.power")}</strong><div style={{ marginTop: "8px" }}>{analysis.power_achieved}</div></div>
           </div>
