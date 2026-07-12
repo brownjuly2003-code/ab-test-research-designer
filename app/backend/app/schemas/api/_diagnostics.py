@@ -110,6 +110,17 @@ class DiagnosticsRuntimeSummary(BaseModel):
     last_error_code: str | None = None
 
 
+class DiagnosticsWebhooksSummary(BaseModel):
+    """Outbox visibility (audit F-09): queue depth per status and how stale the
+    queue head is. A growing oldest_due_age_seconds means the worker is stuck."""
+
+    pending: int
+    retrying: int
+    delivered: int
+    failed: int
+    oldest_due_age_seconds: float | None = None
+
+
 class DiagnosticsResponse(BaseModel):
     status: str
     generated_at: str
@@ -127,6 +138,7 @@ class DiagnosticsResponse(BaseModel):
     guards: DiagnosticsGuardsSummary
     network: DiagnosticsNetworkSummary
     runtime: DiagnosticsRuntimeSummary
+    webhooks: DiagnosticsWebhooksSummary
 
 
 class ReadinessCheck(BaseModel):

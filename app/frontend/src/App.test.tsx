@@ -351,6 +351,13 @@ function buildDiagnostics() {
       last_request_at: "2026-03-08T14:00:00Z",
       last_error_at: null,
       last_error_code: null
+    },
+    webhooks: {
+      pending: 0,
+      retrying: 0,
+      delivered: 0,
+      failed: 0,
+      oldest_due_age_seconds: null
     }
   };
 }

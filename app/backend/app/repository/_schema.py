@@ -162,6 +162,8 @@ def create_webhook_tables(connection: sqlite3.Connection) -> None:
             response_code INTEGER,
             response_body TEXT,
             error_message TEXT,
+            next_attempt_at TEXT,
+            lease_expires_at TEXT,
             FOREIGN KEY(subscription_id) REFERENCES webhook_subscriptions(id) ON DELETE CASCADE,
             FOREIGN KEY(event_id) REFERENCES audit_log(id) ON DELETE CASCADE
         )
@@ -179,6 +181,8 @@ def create_webhook_tables(connection: sqlite3.Connection) -> None:
         ON webhook_deliveries (status, last_attempt_at DESC, id DESC)
         """
     )
+    # idx_webhook_deliveries_due is created in migrate_db: on a legacy database the
+    # next_attempt_at column does not exist until the ALTER there has run.
 
 
 def create_slack_tables(connection: sqlite3.Connection) -> None:
@@ -457,6 +461,30 @@ def migrate_db(connection: sqlite3.Connection) -> None:
             connection.execute(
                 f"UPDATE {event_table} SET occurred_at = created_at WHERE occurred_at IS NULL"
             )
+
+    # Webhook outbox (F-09): deliveries are queued in the database and claimed by a
+    # worker under a lease, so retries survive a restart. Rows that were mid-flight
+    # on an old build become due immediately.
+    delivery_columns = {
+        row["name"]
+        for row in connection.execute("PRAGMA table_info(webhook_deliveries)").fetchall()
+    }
+    for outbox_column in ("next_attempt_at", "lease_expires_at"):
+        if outbox_column not in delivery_columns:
+            connection.execute(f"ALTER TABLE webhook_deliveries ADD COLUMN {outbox_column} TEXT")
+    connection.execute(
+        """
+        UPDATE webhook_deliveries
+        SET next_attempt_at = COALESCE(last_attempt_at, '1970-01-01T00:00:00+00:00')
+        WHERE next_attempt_at IS NULL AND status IN ('pending', 'retrying')
+        """
+    )
+    connection.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_due
+        ON webhook_deliveries (status, next_attempt_at)
+        """
+    )
 
     def normalize_payload_json(payload_json: str) -> str | None:
         try:

@@ -348,6 +348,8 @@ class PostgresBackend(SQLiteBackend):
                     response_code INTEGER,
                     response_body TEXT,
                     error_message TEXT,
+                    next_attempt_at TEXT,
+                    lease_expires_at TEXT,
                     FOREIGN KEY(subscription_id) REFERENCES webhook_subscriptions(id) ON DELETE CASCADE
                 )
                 """
@@ -775,12 +777,31 @@ class PostgresBackend(SQLiteBackend):
                 ),
             ).fetchone()
 
-        if row is None:
-            raise ApiError("Audit event not found", error_code="audit_event_not_found", status_code=500)
-        event = audit_row_to_record(row)
-        if dispatch_webhooks and self.webhook_service is not None:
+            if row is None:
+                raise ApiError("Audit event not found", error_code="audit_event_not_found", status_code=500)
+            event = audit_row_to_record(row)
+
+            # Durable outbox (F-09), mirroring the SQLite path: delivery rows
+            # commit with the audit row, the worker is nudged after commit.
+            enqueued = 0
+            if dispatch_webhooks and self.webhook_service is not None:
+                subscriptions = self.list_matching_webhook_subscriptions(
+                    event_type=action,
+                    key_id=key_id,
+                )
+                for subscription in subscriptions:
+                    self._insert_webhook_delivery(
+                        connection,
+                        subscription_id=str(subscription["id"]),
+                        event_id=int(event["id"]),
+                        status="pending",
+                        next_attempt_at=timestamp,
+                    )
+                    enqueued += 1
+
+        if enqueued and self.webhook_service is not None:
             try:
-                self.webhook_service.dispatch_audit_event(event)
+                self.webhook_service.notify_enqueued()
             except Exception:
                 pass
         return event

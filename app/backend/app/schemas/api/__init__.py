@@ -115,6 +115,9 @@ from app.backend.app.schemas.api._diagnostics import (
     DiagnosticsStorageSummary as DiagnosticsStorageSummary,
 )
 from app.backend.app.schemas.api._diagnostics import (
+    DiagnosticsWebhooksSummary as DiagnosticsWebhooksSummary,
+)
+from app.backend.app.schemas.api._diagnostics import (
     ReadinessCheck as ReadinessCheck,
 )
 from app.backend.app.schemas.api._diagnostics import (

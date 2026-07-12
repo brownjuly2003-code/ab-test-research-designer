@@ -401,6 +401,7 @@ export type DiagnosticsResponse = {
   guards: DiagnosticsGuardsSummary;
   network: DiagnosticsNetworkSummary;
   runtime: DiagnosticsRuntimeSummary;
+  webhooks: DiagnosticsWebhooksSummary;
 };
 
 export type DiagnosticsRuntimeSummary = {
@@ -437,6 +438,14 @@ export type DiagnosticsStorageSummary = {
   workspace_bundle_schema_version: number;
   workspace_signature_enabled: boolean;
   latest_project_updated_at?: string | null;
+};
+
+export type DiagnosticsWebhooksSummary = {
+  pending: number;
+  retrying: number;
+  delivered: number;
+  failed: number;
+  oldest_due_age_seconds?: number | null;
 };
 
 export type ExclusionEvent = {
@@ -1528,6 +1537,8 @@ export type WebhookDeliveryRecord = {
   response_code?: number | null;
   response_body?: string | null;
   error_message?: string | null;
+  next_attempt_at?: string | null;
+  lease_expires_at?: string | null;
 };
 
 export type WebhookListResponse = {

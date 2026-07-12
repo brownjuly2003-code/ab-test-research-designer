@@ -86,22 +86,27 @@ def test_read_applied_schema_version_reads_the_database_not_the_constant() -> No
 
 
 def test_apply_pending_migrations_runs_the_backfill_and_records_the_version() -> None:
-    """A database one version behind gets the statements, the record, and the lock."""
+    """A database behind by several versions gets every statement, record, and the lock."""
     connection = _StubConnection(applied_version=13)
 
     applied = apply_pending_migrations(connection, applied_at="2026-07-12T00:00:00+00:00")
 
-    assert applied == (EXPECTED_POSTGRES_SCHEMA_VERSION,)
+    assert applied == tuple(m.version for m in POSTGRES_MIGRATIONS)
     sql = connection.sql_text()
     assert "CREATE TABLE IF NOT EXISTS schema_migrations" in sql
     assert "ALTER TABLE exposures ADD COLUMN IF NOT EXISTS occurred_at TEXT" in sql
     assert "UPDATE exposures SET occurred_at = created_at WHERE occurred_at IS NULL" in sql
     assert "ALTER TABLE exposures ALTER COLUMN occurred_at SET NOT NULL" in sql
     assert "ALTER TABLE conversions ADD COLUMN IF NOT EXISTS occurred_at TEXT" in sql
+    assert "ALTER TABLE webhook_deliveries ADD COLUMN IF NOT EXISTS next_attempt_at TEXT" in sql
+    assert "ALTER TABLE webhook_deliveries ADD COLUMN IF NOT EXISTS lease_expires_at TEXT" in sql
+    assert "CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_due" in sql
     assert "INSERT INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?)" in sql
 
     recorded = [params for stmt, params in connection.statements if stmt.startswith("INSERT INTO schema_migrations")]
-    assert recorded == [(EXPECTED_POSTGRES_SCHEMA_VERSION, "event_time_occurred_at", "2026-07-12T00:00:00+00:00")]
+    assert recorded == [
+        (migration.version, migration.name, "2026-07-12T00:00:00+00:00") for migration in POSTGRES_MIGRATIONS
+    ]
 
 
 def test_apply_pending_migrations_is_a_no_op_on_a_current_database() -> None:

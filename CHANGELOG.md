@@ -4,6 +4,9 @@
 
 ### Added
 
+- Durable webhook outbox: delivery rows are committed in the same transaction as their audit event and claimed by a background worker under a database lease, so retries survive restarts and replicas never race the same row (`webhook_deliveries.next_attempt_at` / `lease_expires_at`, schema v15 on both backends). Diagnostics now reports webhook queue depth per status and the age of the queue head.
+- Webhook SSRF guard: targets that resolve to a private, loopback or link-local address are refused at delivery time (and literal non-public IPs rejected at subscription create/update); `AB_ENV=local` keeps the localhost carve-out for development. Response bodies are read from the network up to 64 KB with an explicit truncation marker, instead of buffering arbitrarily large responses.
+
 - Added Checkout-redesign case study section to README with reproducible numbers from backend calculation and Bayesian interim check.
 - Regenerated demo screenshots to match v1.1.0 UI (comparison dashboard, webhook manager).
 - Seeded the Hugging Face Space demo workspace on startup with an idempotent backend hook so the public demo loads with pre-populated projects.

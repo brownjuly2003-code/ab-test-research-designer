@@ -28,7 +28,7 @@ from app.backend.app.repository._utils import compute_payload_diff
 class _BackendCore:
     backend_name = "sqlite"
     supports_snapshots = True
-    schema_version = 14
+    schema_version = 15
     payload_schema_version = 1
     workspace_schema_version = 3
     project_select_columns = """

@@ -22,9 +22,11 @@ class SQLiteBackend(
     _HistoryMixin,
     _TemplatesMixin,
     _ApiKeysMixin,
+    # _AuditMixin inherits _WebhooksMixin (transactional outbox enqueue), so the
+    # subclass must precede its base here or the MRO cannot linearize.
+    _AuditMixin,
     _WebhooksMixin,
     _SlackMixin,
-    _AuditMixin,
     _WorkspaceMixin,
     _DiagnosticsMixin,
     _ExecutionMixin,

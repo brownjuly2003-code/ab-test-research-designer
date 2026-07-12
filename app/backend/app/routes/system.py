@@ -21,6 +21,7 @@ from app.backend.app.schemas.api import (
     DiagnosticsResponse,
     DiagnosticsRuntimeSummary,
     DiagnosticsStorageSummary,
+    DiagnosticsWebhooksSummary,
     ReadinessCheck,
     ReadinessResponse,
 )
@@ -265,6 +266,7 @@ def create_system_router(
                 resolved_from=client_identity.source,
             ),
             runtime=DiagnosticsRuntimeSummary(**runtime_counters),
+            webhooks=DiagnosticsWebhooksSummary(**repository.get_webhook_queue_stats()),
         )
 
     return router

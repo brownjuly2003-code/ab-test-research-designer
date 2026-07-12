@@ -19,7 +19,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 from app.backend.app.config import get_settings
 from app.backend.app.main import create_app
 from app.backend.app.repository import ProjectRepository, create_backend
-from app.backend.app.repository._migrations import EXPECTED_POSTGRES_SCHEMA_VERSION
+from app.backend.app.repository._migrations import EXPECTED_POSTGRES_SCHEMA_VERSION, POSTGRES_MIGRATIONS
 
 
 def test_create_backend_uses_sqlite_backend_for_sqlite_urls() -> None:
@@ -850,7 +850,7 @@ def test_postgres_migrations_are_idempotent_across_restarts() -> None:
             rows = connection.execute("SELECT version FROM schema_migrations ORDER BY version").fetchall()
 
         # Restarting must not re-apply or duplicate a migration.
-        assert rows == [(EXPECTED_POSTGRES_SCHEMA_VERSION,)]
+        assert rows == [(migration.version,) for migration in POSTGRES_MIGRATIONS]
 
 
 def test_readyz_reports_503_when_the_database_is_behind_the_expected_schema(monkeypatch) -> None:

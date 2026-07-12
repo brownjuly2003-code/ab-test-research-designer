@@ -104,14 +104,14 @@ def test_postgres_diagnostics_summary_never_serializes_the_dsn() -> None:
                 row = _PostgresRow({"updated_at": "2026-07-11T00:00:00+00:00"})
             elif "MAX(version)" in sql:
                 # The summary reads the applied schema version out of the database (F-02).
-                row = _PostgresRow({"version": 14})
+                row = _PostgresRow({"version": 15})
             else:
                 row = _PostgresRow({"count": 0})
             return SimpleNamespace(fetchone=lambda: row)
 
     backend = SimpleNamespace(
         database_url=DSN,
-        schema_version=14,
+        schema_version=15,
         workspace_schema_version=3,
         workspace_signing_key=None,
         _run_write_probe=lambda: (True, "BEGIN succeeded"),

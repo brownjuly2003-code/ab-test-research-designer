@@ -67,6 +67,27 @@ POSTGRES_MIGRATIONS: Final[tuple[Migration, ...]] = (
             "ALTER TABLE conversions ALTER COLUMN occurred_at SET NOT NULL",
         ),
     ),
+    Migration(
+        version=15,
+        name="webhook_outbox",
+        statements=(
+            # F-09: deliveries become a durable outbox. A worker claims due rows
+            # under a lease, so retries survive restarts and replicas do not race
+            # the same row. Rows mid-flight on an old build become due immediately
+            # (epoch fallback sorts before any real ISO timestamp).
+            "ALTER TABLE webhook_deliveries ADD COLUMN IF NOT EXISTS next_attempt_at TEXT",
+            "ALTER TABLE webhook_deliveries ADD COLUMN IF NOT EXISTS lease_expires_at TEXT",
+            (
+                "UPDATE webhook_deliveries "
+                "SET next_attempt_at = COALESCE(last_attempt_at, '1970-01-01T00:00:00+00:00') "
+                "WHERE next_attempt_at IS NULL AND status IN ('pending', 'retrying')"
+            ),
+            (
+                "CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_due "
+                "ON webhook_deliveries (status, next_attempt_at)"
+            ),
+        ),
+    ),
 )
 
 # What the running code requires the database to be. Readiness compares the version actually

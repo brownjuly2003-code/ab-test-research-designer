@@ -114,6 +114,8 @@ def webhook_delivery_row_to_record(row: sqlite3.Row) -> dict[str, Any]:
         "response_code": row["response_code"],
         "response_body": row["response_body"],
         "error_message": row["error_message"],
+        "next_attempt_at": row["next_attempt_at"],
+        "lease_expires_at": row["lease_expires_at"],
     }
 
 

@@ -233,6 +233,10 @@ def create_app() -> FastAPI:
             except Exception:
                 logger.exception("demo-seed: failed")
 
+        # Outbox worker starts once startup work (restore/seed) has settled; its
+        # first pass also drains deliveries left claimable by a previous process.
+        webhook_service.start_worker()
+
         if snapshot_service is not None and snapshot_interval_seconds > 0:
             async def run_snapshot_loop() -> None:
                 while True:
