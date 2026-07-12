@@ -1,5 +1,6 @@
 ---
 title: "API"
+editUrl: "https://github.com/brownjuly2003-code/ab-test-research-designer/edit/main/docs/API.md"
 ---
 
 # API

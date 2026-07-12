@@ -1,5 +1,6 @@
 ---
 title: "Production deployment (PostgreSQL-first)"
+editUrl: "https://github.com/brownjuly2003-code/ab-test-research-designer/edit/main/docs/PRODUCTION.md"
 ---
 
 # Production deployment (PostgreSQL-first)

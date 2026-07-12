@@ -1,5 +1,6 @@
 ---
 title: "Changelog"
+editUrl: "https://github.com/brownjuly2003-code/ab-test-research-designer/edit/main/CHANGELOG.md"
 ---
 
 # Changelog
@@ -14,18 +15,18 @@ title: "Changelog"
 - Added GitHub Actions workflow `docker-publish.yml` to publish multi-arch Docker images to `ghcr.io/brownjuly2003-code/ab-test-research-designer` on every `v*` tag push.
 - Added dynamic shields.io badges (tests count, backend coverage, Lighthouse performance) in README, refreshed by a new CI job `update-metrics-badges` that commits `badges/*.json` back to `main` after green verify + lighthouse runs.
 - Added `scripts/collect_badge_metrics.py` plus `--with-coverage` and `--artifacts-dir` flags on `scripts/verify_all.{py,cmd}` so the same collector can run locally and in CI.
-- Full de/es UI translation (1157 lines, 887 leaf keys per locale, terminology anchors for A/B-Test / Variante / Referenz and test A/B / variante / línea base).
+- Full de/es UI translation (leaf-key parity with `en` enforced by `scripts/check_locale_content.py`, terminology anchors for A/B-Test / Variante / Referenz and test A/B / variante / línea base).
 - Hugging Face Dataset snapshot service (`SnapshotService`) pushing SQLite to a private HF Dataset with sha256 verification, atomic rename, startup restore, and opt-in through `AB_HF_SNAPSHOT_REPO` / `AB_HF_TOKEN` / `AB_HF_SNAPSHOT_INTERVAL_SECONDS`.
-- mkdocs-material documentation site at [brownjuly2003-code.github.io/ab-test-research-designer](https://brownjuly2003-code.github.io/ab-test-research-designer/), sourced from `docs-site/` and deployed via `.github/workflows/docs.yml` on main push.
+- Documentation site (Astro Starlight) at [brownjuly2003-code.github.io/ab-test-research-designer](https://brownjuly2003-code.github.io/ab-test-research-designer/), sourced from `docs-site/` and deployed via `.github/workflows/docs-site.yml` on main push (started as mkdocs-material, migrated to Starlight before release).
 - Expanded the template library to 10 industry presets (`email_campaign`, `push_notification_reactivation`, `app_onboarding_drop_off`, `search_ranking_ctr`, `trial_to_paid` added on top of the original 5), with a `TemplateGallery` UI entry point from the sidebar.
 - Optional OpenAI / Anthropic LLM adapter with browser-session token routing (`X-AB-LLM-Provider` + `X-AB-LLM-Token` headers, CORS-aware), token masking in logs, and a Settings panel to configure credentials client-side.
 - Monte-Carlo distribution view in the comparison dashboard: `simulate_comparison` service (parametric Beta-Bernoulli for binary, Normal bootstrap for continuous, deterministic with `seed=42`), `POST /api/v1/projects/compare?include_monte_carlo=true&monte_carlo_simulations=<1000..50000>` opt-in query, 50-bucket histogram + interactive probability-above-threshold slider.
-- French / Simplified-Chinese / Arabic locales with RTL layout support for Arabic (`document.documentElement.dir = "rtl"`, ~10 CSS modules switched to `inset-inline-*` / `margin-inline-*` / `border-inline-*` logical properties), 913 frontend leaf keys and 235 backend keys per locale, 7-button language switcher with `aria-pressed`.
+- French / Simplified-Chinese / Arabic locales with RTL layout support for Arabic (`document.documentElement.dir = "rtl"`, ~10 CSS modules switched to `inset-inline-*` / `margin-inline-*` / `border-inline-*` logical properties), frontend and backend leaf-key parity with `en`, 7-button language switcher with `aria-pressed`.
 - Extended Hypothesis property-test coverage for numerical stability (degenerate conversions, zero variance, ultra-strict alpha), Bayesian prior edge cases, SRM imbalance, sequential boundary monotonicity, and Monte-Carlo determinism + cap boundaries.
 - Optional Postgres backend via `AB_DATABASE_URL` with pluggable `DatabaseBackend` protocol (SQLite default, Postgres via `psycopg[binary]` when URL scheme is `postgresql://`), connection pooling through `AB_DB_POOL_SIZE`, `/healthz` and `/readyz` probes backend-aware, dedicated `verify-postgres` CI matrix job spinning `postgres:16-alpine` via testcontainers.
 - Slack App integration bundled alongside Postgres: `slack/app-manifest.yml` for manifest install, OAuth flow with CSRF state, HMAC SHA256 request signature verification with 5-minute replay guard, `/ab-test projects | status <id> | run <id>` slash commands returning Blocks-formatted responses, interactive approve/request-review buttons.
 - `scripts/cleanup_test_artifacts.py` — `--dry-run` aware sweeper for pytest temp roots, `.coverage`, the cxkm sandbox, and the local mkdocs `site/` build. Documented in `docs/RUNBOOK.md` under "Local cleanup".
-- `scripts/sync_doc_screenshots.py` — mirrors `docs/demo/*.png` (the smoke source of truth, referenced by README via `raw.githubusercontent.com`) into `docs-site/assets/screenshots/` (where mkdocs needs them to be inside `docs_dir`). Compares SHA-256 to skip unchanged pixels. Wired into `.github/workflows/docs.yml` before `mkdocs gh-deploy`. Documented in `docs/RUNBOOK.md` under "Screenshots".
+- `scripts/sync_doc_screenshots.py` — mirrors `docs/demo/*.png` (the smoke source of truth, referenced by README via `raw.githubusercontent.com`) into `docs-site/assets/screenshots/`. Compares SHA-256 to skip unchanged pixels; run manually when screenshots change. Documented in `docs/RUNBOOK.md` under "Screenshots".
 - `docs/RUNBOOK.md` Slack section now documents the token-at-rest posture: bot/user tokens are stored plaintext in SQLite/Postgres under the local-first threat model, with explicit guidance for hosted setups (filesystem permissions, sandbox workspaces, rotation via re-running `/slack/install`).
 
 ### Changed
@@ -48,7 +49,6 @@ title: "Changelog"
 - **Cross-backend audit log:** `log_audit_entry` now uses `INSERT … RETURNING id` instead of `cursor.lastrowid`, which `_PostgresCursorResult` always returns as `None`; audit events were silently dropped from API responses when running on Postgres.
 - **Rate limiter prune correctness:** `_prune_locked` now respects the per-call `window_seconds` override stored on each bucket. Previously a bucket with an API-key-specific longer window would be evicted at the global window boundary; the next call with the override saw an empty bucket and silently bypassed its limit.
 - `.env.example`: `AB_DB_PATH` and `AB_FRONTEND_DIST_PATH` are now commented templates (the backend already derives absolute defaults from the package location). The earlier relative-path defaults broke through `Path('./...').as_posix()` → `sqlite:///app/...` resolving to absolute `/app/...`. `AB_ADMIN_TOKEN=` added so secure self-hosted setup works from copy-paste.
-- mkdocs `--strict` no longer warns: `docs-site/features/database.md` is added to the Features nav.
 - Accessibility tests (`PosteriorPlot`, `a11y-results` full-panel, `a11y-comparison-dashboard`) no longer time out: a flat recharts mock in `app/frontend/src/test/recharts-stub.tsx` removes 1000+ SVG nodes per chart from axe's scan, reducing full-panel axe duration from 15-30s to ~3s. The deleted visual `.recharts-area-area` assertion was preserved in a new `PosteriorPlot.integration.test.tsx` using a ResponsiveContainer-only clone-element mock so real recharts renders in jsdom.
 - `ProjectRepository` now handles unix-absolute SQLite URLs (`sqlite:////home/user/db.sqlite3`) without doubling the leading slash, fixing `test_diagnostics_endpoint` path assertion on Linux CI.
 - Postgres integration tests skip on Windows CI where Docker Linux containers are unavailable (`testcontainers-ryuk` 404 on container create).

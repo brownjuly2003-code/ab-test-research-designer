@@ -12,8 +12,28 @@ const OUT_DIR = join(__dirname, '..', 'src', 'content', 'docs', 'guides');
 const PUBLIC_DEMO_DIR = join(__dirname, '..', 'public', 'demo');
 const SITE_BASE = '/ab-test-research-designer';
 const REPO_BLOB_BASE = 'https://github.com/brownjuly2003-code/ab-test-research-designer/blob/main';
+const REPO_EDIT_BASE = 'https://github.com/brownjuly2003-code/ab-test-research-designer/edit/main';
 const MARKDOWN_EXTENSIONS = new Set(['.md', '.mdx']);
 const execFileAsync = promisify(execFile);
+
+// Curated public docs (audit F-08). docs/ carries 100+ internal working plans
+// and reports under docs/plans/; product docs publish only this allowlist.
+// Links to any other docs/ markdown rewrite to the GitHub blob URL, so the
+// history stays reachable without being indexed as product documentation.
+const PUBLIC_DOCS = new Set([
+  'API.md',
+  'ARCHITECTURE.md',
+  'DEPLOY.md',
+  'HISTORY.md',
+  'PRODUCTION.md',
+  'RELEASE_CHECKLIST.md',
+  'RELEASE_NOTES_v1.0.0.md',
+  'RELEASE_NOTES_v1.1.0.md',
+  'RULES.md',
+  'RUNBOOK.md',
+  'case-studies/README.md',
+  'research-grey-market-digital-subscriptions.md',
+]);
 
 let trackedDocsRel = null;
 let trackedDemoAssetRel = null;
@@ -55,12 +75,16 @@ async function gitLsFilesUnder(repoRelPaths) {
 
 async function listSourceMarkdown() {
   const tracked = await gitLsFilesUnder(['docs']);
-  if (!tracked) return walkMarkdown(SRC_DOCS);
+  if (!tracked) {
+    const walked = await walkMarkdown(SRC_DOCS);
+    return walked.filter(({ rel }) => PUBLIC_DOCS.has(toPosixPath(rel)));
+  }
 
   const docsRel = tracked
     .filter((repoRel) => repoRel.startsWith('docs/'))
     .map((repoRel) => repoRel.slice('docs/'.length))
     .filter((rel) => MARKDOWN_EXTENSIONS.has(extname(rel).toLowerCase()))
+    .filter((rel) => PUBLIC_DOCS.has(rel))
     .sort();
   trackedDocsRel = new Set(docsRel);
   return docsRel.map((rel) => ({
@@ -75,16 +99,21 @@ function deriveTitle(content, fallbackName) {
   return fallbackName.replace(/[-_]/g, ' ').replace(/\.md$/i, '').trim();
 }
 
-function ensureFrontMatter(content, title) {
+function ensureFrontMatter(content, title, editUrl) {
   const normalized = content.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n');
   if (normalized.startsWith('---')) {
     const fm = normalized.match(/^---\n([\s\S]*?)\n---/);
-    if (fm && !/^title:/m.test(fm[1])) {
-      return `---\n${fm[1]}\ntitle: ${JSON.stringify(title)}\n---${normalized.slice(fm[0].length)}`;
+    if (fm) {
+      const additions = [];
+      if (!/^title:/m.test(fm[1])) additions.push(`title: ${JSON.stringify(title)}`);
+      if (editUrl && !/^editUrl:/m.test(fm[1])) additions.push(`editUrl: ${JSON.stringify(editUrl)}`);
+      if (!additions.length) return normalized;
+      return `---\n${fm[1]}\n${additions.join('\n')}\n---${normalized.slice(fm[0].length)}`;
     }
     return normalized;
   }
-  return `---\ntitle: ${JSON.stringify(title)}\n---\n\n${normalized}`;
+  const editLine = editUrl ? `\neditUrl: ${JSON.stringify(editUrl)}` : '';
+  return `---\ntitle: ${JSON.stringify(title)}${editLine}\n---\n\n${normalized}`;
 }
 
 function slugifyPath(rel) {
@@ -166,6 +195,9 @@ function findDocsMarkdownRel(targetPath, sourceRelPath) {
   for (const candidate of [...new Set(candidates)]) {
     if (!isDocsCandidate(candidate)) continue;
     if (!MARKDOWN_EXTENSIONS.has(extname(candidate).toLowerCase())) continue;
+    // Only allowlisted docs exist as guide pages; anything else (plans,
+    // internal reports) falls through to the GitHub blob rewrite.
+    if (!PUBLIC_DOCS.has(candidate)) continue;
     if (trackedDocsRel) {
       if (trackedDocsRel.has(candidate)) return candidate;
     } else if (existsSync(join(SRC_DOCS, ...candidate.split('/')))) {
@@ -240,7 +272,10 @@ export function rewriteLinks(markdown, sourceRelPath) {
 
 async function copyOne(srcAbs, destAbs, title, sourceRelPath) {
   const raw = await readFile(srcAbs, 'utf8');
-  const patched = ensureFrontMatter(rewriteLinks(raw, sourceRelPath), title);
+  // Generated copies are overwritten by every prebuild, so "edit this page"
+  // must point at the canonical source file, not the docs-site copy.
+  const editUrl = `${REPO_EDIT_BASE}/${sourceRelPath}`;
+  const patched = ensureFrontMatter(rewriteLinks(raw, sourceRelPath), title, editUrl);
   await mkdir(dirname(destAbs), { recursive: true });
   await writeFile(destAbs, patched, 'utf8');
 }

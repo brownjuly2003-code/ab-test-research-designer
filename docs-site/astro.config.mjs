@@ -17,10 +17,9 @@ export default defineConfig({
           href: 'https://github.com/brownjuly2003-code/ab-test-research-designer',
         },
       ],
-      editLink: {
-        baseUrl:
-          'https://github.com/brownjuly2003-code/ab-test-research-designer/edit/main/docs-site/',
-      },
+      // No global editLink: guide pages are generated copies (sync-docs.mjs
+      // stamps a per-page editUrl pointing at the canonical docs/ source);
+      // fully generated pages (routes/config/experiments) have nothing to edit.
       sidebar: [
         { label: 'Home', slug: 'index' },
         {
@@ -48,7 +47,6 @@ export default defineConfig({
             { label: 'History', slug: 'guides/history' },
             { label: 'CHANGELOG', slug: 'guides/changelog' },
             { label: 'Release notes v1.1.0', slug: 'guides/release_notes_v1-1-0' },
-            { label: 'Latest HF sync report', slug: 'guides/plans/2026-04-23-hf-sync-post-mc-report' },
           ],
         },
         {
@@ -56,7 +54,6 @@ export default defineConfig({
           items: [
             { label: 'Grey-market subscriptions', slug: 'guides/research-grey-market-digital-subscriptions' },
             { label: 'Case-study fixture', slug: 'guides/case-studies/readme' },
-            { label: 'Advanced visualization report', slug: 'guides/plans/2026-04-22-advanced-viz-report' },
           ],
         },
         {
@@ -64,8 +61,6 @@ export default defineConfig({
           items: [
             { label: 'API reference', slug: 'guides/api' },
             { label: 'Release notes v1.0.0', slug: 'guides/release_notes_v1-0-0' },
-            { label: 'Postgres backend report', slug: 'guides/plans/2026-04-23-postgres-backend-report' },
-            { label: 'Public API report', slug: 'guides/plans/2026-04-22-public-api-report' },
           ],
         },
       ],

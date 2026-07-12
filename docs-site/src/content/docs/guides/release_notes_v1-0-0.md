@@ -1,5 +1,6 @@
 ---
 title: "Release Notes v1.0.0"
+editUrl: "https://github.com/brownjuly2003-code/ab-test-research-designer/edit/main/docs/RELEASE_NOTES_v1.0.0.md"
 ---
 
 # Release Notes v1.0.0

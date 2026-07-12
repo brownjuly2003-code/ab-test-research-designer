@@ -36,6 +36,15 @@ test('rewrites root README and changelog links to guide pages', () => {
   );
 });
 
+test('rewrites internal plan links to GitHub blob URLs, not guide pages', () => {
+  // docs/plans/** is not on the public allowlist (audit F-08): the link must
+  // leave the docs site and point at the repository instead.
+  assert.equal(
+    rewriteLinks('[Plan](docs/plans/2026-04-22-public-api-report.md)', 'README.md'),
+    `[Plan](${REPO_BLOB_BASE}/docs/plans/2026-04-22-public-api-report.md)`,
+  );
+});
+
 test('rewrites relative repo files to GitHub blob URLs', () => {
   assert.equal(
     rewriteLinks('[Fly](fly.toml)', 'README.md'),

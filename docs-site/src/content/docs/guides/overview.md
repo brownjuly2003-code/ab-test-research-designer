@@ -7,6 +7,7 @@ sdk: docker
 app_port: 8008
 pinned: false
 license: mit
+editUrl: "https://github.com/brownjuly2003-code/ab-test-research-designer/edit/main/README.md"
 ---
 
 <!-- docs-site:index:start -->

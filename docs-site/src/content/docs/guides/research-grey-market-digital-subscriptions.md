@@ -1,5 +1,6 @@
 ---
 title: "Серый рынок цифровых подписок: риски, экономика и борьба с abuse"
+editUrl: "https://github.com/brownjuly2003-code/ab-test-research-designer/edit/main/docs/research-grey-market-digital-subscriptions.md"
 ---
 
 # Серый рынок цифровых подписок: риски, экономика и борьба с abuse

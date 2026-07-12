@@ -1,5 +1,6 @@
 ---
 title: "Release Checklist"
+editUrl: "https://github.com/brownjuly2003-code/ab-test-research-designer/edit/main/docs/RELEASE_CHECKLIST.md"
 ---
 
 # Release Checklist
