@@ -391,6 +391,7 @@ export type DiagnosticsResponse = {
   uptime_seconds: number;
   environment: string;
   app_version: string;
+  app_git_sha: string;
   request_timing_headers_enabled: boolean;
   storage: DiagnosticsStorageSummary;
   frontend: DiagnosticsFrontendSummary;
@@ -600,6 +601,7 @@ export type HealthResponse = {
   status: string;
   service: string;
   version: string;
+  git_sha: string;
   environment: string;
 };
 

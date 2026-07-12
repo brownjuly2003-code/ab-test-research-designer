@@ -14,6 +14,13 @@ RUN npm run build
 
 FROM python:3.13-slim AS runtime
 
+# Stamped by CI (docker-publish passes the release commit); defaults to "unknown"
+# for builds that pass nothing, e.g. the HF Space build — the deploy script stamps
+# the Space variable AB_BUILD_SHA instead, which overrides this ENV at runtime.
+ARG GIT_SHA=unknown
+ENV AB_BUILD_SHA=${GIT_SHA}
+LABEL org.opencontainers.image.revision=${GIT_SHA}
+
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV AB_HOST=0.0.0.0

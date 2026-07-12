@@ -204,6 +204,9 @@ def create_app() -> FastAPI:
                 repo_id=snapshot_repo,
                 local_db_path=Path(settings.db_path),
                 hf_token=snapshot_token,
+                app_version=settings.app_version,
+                db_schema_version=repository.schema_version,
+                workspace_schema_version=repository.workspace_schema_version,
             )
             restored = await snapshot_service.restore_latest()
             if restored:

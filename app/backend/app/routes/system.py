@@ -34,6 +34,7 @@ class HealthResponse(BaseModel):
     status: str
     service: str
     version: str
+    git_sha: str
     environment: str
 
 
@@ -53,6 +54,7 @@ def create_system_router(
             status="ok",
             service=settings.app_name,
             version=settings.app_version,
+            git_sha=settings.build_sha,
             environment=settings.environment,
         )
 
@@ -208,6 +210,7 @@ def create_system_router(
             uptime_seconds=round((diagnostics_generated_at - start_time).total_seconds(), 3),
             environment=settings.environment,
             app_version=settings.app_version,
+            app_git_sha=settings.build_sha,
             request_timing_headers_enabled=True,
             storage=DiagnosticsStorageSummary.model_validate(storage_summary),
             frontend=DiagnosticsFrontendSummary(

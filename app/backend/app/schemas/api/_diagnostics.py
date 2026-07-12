@@ -117,6 +117,7 @@ class DiagnosticsResponse(BaseModel):
     uptime_seconds: float
     environment: str
     app_version: str
+    app_git_sha: str
     request_timing_headers_enabled: bool
     storage: DiagnosticsStorageSummary
     frontend: DiagnosticsFrontendSummary

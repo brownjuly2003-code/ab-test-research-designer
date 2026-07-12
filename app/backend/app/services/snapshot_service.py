@@ -16,10 +16,26 @@ logger = logging.getLogger(__name__)
 
 
 class SnapshotService:
-    def __init__(self, repo_id: str, local_db_path: Path, hf_token: str | None) -> None:
+    def __init__(
+        self,
+        repo_id: str,
+        local_db_path: Path,
+        hf_token: str | None,
+        *,
+        app_version: str = "unknown",
+        db_schema_version: int | None = None,
+        workspace_schema_version: int | None = None,
+    ) -> None:
         self.repo_id = repo_id.strip()
         self.local_db_path = Path(local_db_path)
         self.hf_token = (hf_token or "").strip() or None
+        # Three independent versions travel with a snapshot (audit F-07): the app
+        # semver, the SQLite schema number and the workspace bundle format. The old
+        # metadata wrote the semver into a field called schema_version, which was
+        # neither the schema nor checked on restore.
+        self.app_version = app_version
+        self.db_schema_version = db_schema_version
+        self.workspace_schema_version = workspace_schema_version
         self.last_restored_commit: str | None = None
         self.last_snapshot_sha256: str | None = None
         self.last_snapshot_size_bytes: int | None = None
@@ -110,6 +126,22 @@ class SnapshotService:
             logger.warning("snapshot: restore metadata missing sha256")
             return False
 
+        # SQLite migrations only go forward: a snapshot written by a newer build
+        # would leave this build running against a schema it does not understand.
+        # Older metadata has no db_schema_version, so the guard skips it.
+        snapshot_db_schema = metadata.get("db_schema_version")
+        if (
+            isinstance(snapshot_db_schema, int)
+            and self.db_schema_version is not None
+            and snapshot_db_schema > self.db_schema_version
+        ):
+            logger.warning(
+                "snapshot: restore refused, snapshot db schema %s is newer than this build's %s",
+                snapshot_db_schema,
+                self.db_schema_version,
+            )
+            return False
+
         actual_sha256 = self._sha256(snapshot_path)
         if actual_sha256 != expected_sha256:
             logger.warning("snapshot: restore sha mismatch")
@@ -183,7 +215,9 @@ class SnapshotService:
             ) as handle:
                 json.dump(
                     {
-                        "schema_version": "1.1.0",
+                        "app_version": self.app_version,
+                        "db_schema_version": self.db_schema_version,
+                        "workspace_schema_version": self.workspace_schema_version,
                         "ts": timestamp,
                         "sha256": sha256,
                         "size_bytes": size_bytes,

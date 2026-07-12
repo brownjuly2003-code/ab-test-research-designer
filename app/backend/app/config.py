@@ -1,5 +1,6 @@
 import ipaddress
 import os
+import subprocess
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -21,6 +22,7 @@ PRODUCTION_MIN_SHARED_TOKEN_LENGTH = 24
 class Settings:
     app_name: str
     app_version: str
+    build_sha: str
     environment: str
     host: str
     port: int
@@ -205,6 +207,30 @@ def _validate_settings(settings: Settings) -> Settings:
     return settings
 
 
+def _resolve_build_sha() -> str:
+    # The semver alone cannot distinguish builds between releases (audit F-07):
+    # images and CI stamp the exact commit via AB_BUILD_SHA; local runs fall back
+    # to asking git so /health is honest in development too.
+    env_value = (os.getenv("AB_BUILD_SHA") or "").strip()
+    if env_value:
+        return env_value
+    try:
+        completed = subprocess.run(  # noqa: S603 - fixed argv, no user input
+            ["git", "rev-parse", "--short=12", "HEAD"],
+            capture_output=True,
+            text=True,
+            timeout=3,
+            cwd=Path(__file__).resolve().parent,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return "unknown"
+    sha = completed.stdout.strip()
+    if completed.returncode != 0 or not sha:
+        return "unknown"
+    return sha
+
+
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
     default_db_path = Path(__file__).resolve().parents[1] / "data" / "projects.sqlite3"
@@ -217,6 +243,7 @@ def get_settings() -> Settings:
     settings = Settings(
         app_name=os.getenv("AB_APP_NAME", "AB Test Research Designer API"),
         app_version=os.getenv("AB_APP_VERSION", "1.1.0"),
+        build_sha=_resolve_build_sha(),
         environment=os.getenv("AB_ENV", "local"),
         host=os.getenv("AB_HOST", "127.0.0.1"),
         port=_read_int_env("AB_PORT", 8008),

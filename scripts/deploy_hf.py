@@ -150,6 +150,50 @@ def stale_space_paths(repo_id: str, token: str, publishable: set[str]) -> list[s
     return sorted(existing - publishable - PRESERVE_ON_SPACE)
 
 
+def current_git_sha() -> str | None:
+    try:
+        completed = subprocess.run(
+            ["git", "rev-parse", "--short=12", "HEAD"],
+            cwd=ROOT_DIR,
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    sha = completed.stdout.strip()
+    return sha or None
+
+
+def stamp_build_sha(repo_id: str, token: str) -> None:
+    """Expose the deployed commit to the Space via the AB_BUILD_SHA variable.
+
+    The Space builds the Dockerfile itself and passes no build args, and the image
+    carries no .git, so without this stamp /health reports git_sha="unknown"
+    (audit F-07). Stamped before the upload: the variable change restarts the old
+    container once, then the upload's rebuild wins. Failure to stamp is a warning,
+    not a failed deploy — the fallback stays an honest "unknown".
+    """
+    sha = current_git_sha()
+    if not sha:
+        print("[deploy] WARNING: could not resolve git sha; AB_BUILD_SHA not stamped", file=sys.stderr)
+        return
+    from huggingface_hub import HfApi
+
+    try:
+        HfApi(token=token).add_space_variable(
+            repo_id,
+            "AB_BUILD_SHA",
+            sha,
+            description="Deployed git commit, stamped by scripts/deploy_hf.py",
+        )
+    except Exception as exc:  # noqa: BLE001 - stamping must never block a deploy
+        print(f"[deploy] WARNING: failed to stamp AB_BUILD_SHA: {exc}", file=sys.stderr)
+        return
+    print(f"[deploy] stamped AB_BUILD_SHA={sha}")
+
+
 def upload_snapshot(repo_id: str, token: str, commit_message: str) -> str:
     """Mirror the git-tracked source tree onto the Space; return the commit URL/oid."""
     from huggingface_hub import upload_folder
@@ -239,6 +283,8 @@ def main() -> int:
             file=sys.stderr,
         )
         return 2
+
+    stamp_build_sha(args.repo_id, token)
 
     print(f"[deploy] uploading {ROOT_DIR} -> space {args.repo_id}")
     commit = upload_snapshot(args.repo_id, token, args.commit_message)

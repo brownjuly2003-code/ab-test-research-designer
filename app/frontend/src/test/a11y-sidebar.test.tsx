@@ -92,6 +92,7 @@ function seedSidebarState() {
       status: "ok",
       service: "AB Test Research Designer API",
       version: "0.1.0",
+      git_sha: "0000000000ab",
       environment: "local"
     },
     backendDiagnostics: null,

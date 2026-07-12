@@ -273,6 +273,7 @@ function buildDiagnostics() {
     uptime_seconds: 1800,
     environment: "local",
     app_version: "0.1.0",
+    app_git_sha: "0000000000ab",
     request_timing_headers_enabled: true,
     storage: {
       db_path: "D:/AB_TEST/app/backend/data/projects.sqlite3",
@@ -642,6 +643,7 @@ describe("App UI flow", () => {
       status: "ok",
       service: "AB Test Research Designer API",
       version: "0.1.0",
+      git_sha: "0000000000ab",
       environment: "local"
     });
     vi.mocked(requestAnalysis).mockReset();

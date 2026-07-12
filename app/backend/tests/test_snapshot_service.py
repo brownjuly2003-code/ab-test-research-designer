@@ -40,6 +40,9 @@ def snapshot_service(tmp_path: Path) -> SnapshotService:
         repo_id="liovina/ab-test-designer-snapshots",
         local_db_path=tmp_path / "projects.sqlite3",
         hf_token="hf_test_token",
+        app_version="1.1.0",
+        db_schema_version=14,
+        workspace_schema_version=3,
     )
 
 
@@ -60,7 +63,9 @@ def test_restore_latest_replaces_local_db_on_valid_snapshot(snapshot_service: Sn
     metadata_path.write_text(
         json.dumps(
             {
-                "schema_version": "1.1.0",
+                "app_version": "1.1.0",
+                "db_schema_version": 14,
+                "workspace_schema_version": 3,
                 "ts": "2026-04-23T12:34:56Z",
                 "sha256": _sha256(remote_db_path),
                 "size_bytes": remote_db_path.stat().st_size,
@@ -83,6 +88,78 @@ def test_restore_latest_replaces_local_db_on_valid_snapshot(snapshot_service: Sn
     assert restored is True
     assert snapshot_service.local_db_path.read_bytes() == b"remote-db"
     assert snapshot_service.last_restored_commit == "restore-commit-123"
+
+
+def test_restore_latest_accepts_legacy_metadata_without_db_schema_version(
+    snapshot_service: SnapshotService, tmp_path: Path
+) -> None:
+    # Snapshots pushed before the metadata split carry only the misnamed
+    # semver field; they must keep restoring (the schema guard skips them).
+    remote_db_path = tmp_path / "remote.sqlite3"
+    remote_db_path.write_bytes(b"remote-db")
+    metadata_path = tmp_path / "metadata.json"
+    metadata_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "1.1.0",
+                "ts": "2026-04-23T12:34:56Z",
+                "sha256": _sha256(remote_db_path),
+                "size_bytes": remote_db_path.stat().st_size,
+            }
+        ),
+        encoding="utf-8",
+    )
+    snapshot_service.local_db_path.write_bytes(b"old-db")
+
+    api = MagicMock()
+    api.repo_info.return_value = SimpleNamespace(sha="restore-commit-legacy")
+    api.hf_hub_download.side_effect = lambda repo_id, filename, **kwargs: {
+        "projects.sqlite3": str(remote_db_path),
+        "metadata.json": str(metadata_path),
+    }[filename]
+
+    with patch("app.backend.app.services.snapshot_service.HfApi", return_value=api):
+        restored = asyncio.run(snapshot_service.restore_latest())
+
+    assert restored is True
+    assert snapshot_service.local_db_path.read_bytes() == b"remote-db"
+
+
+def test_restore_latest_refuses_snapshot_from_newer_schema(
+    snapshot_service: SnapshotService, tmp_path: Path, caplog
+) -> None:
+    remote_db_path = tmp_path / "remote.sqlite3"
+    remote_db_path.write_bytes(b"remote-db")
+    metadata_path = tmp_path / "metadata.json"
+    metadata_path.write_text(
+        json.dumps(
+            {
+                "app_version": "9.9.9",
+                "db_schema_version": 15,
+                "workspace_schema_version": 3,
+                "ts": "2026-04-23T12:34:56Z",
+                "sha256": _sha256(remote_db_path),
+                "size_bytes": remote_db_path.stat().st_size,
+            }
+        ),
+        encoding="utf-8",
+    )
+    snapshot_service.local_db_path.write_bytes(b"old-db")
+
+    api = MagicMock()
+    api.repo_info.return_value = SimpleNamespace(sha="restore-commit-future")
+    api.hf_hub_download.side_effect = lambda repo_id, filename, **kwargs: {
+        "projects.sqlite3": str(remote_db_path),
+        "metadata.json": str(metadata_path),
+    }[filename]
+
+    with patch("app.backend.app.services.snapshot_service.HfApi", return_value=api):
+        with caplog.at_level(logging.WARNING):
+            restored = asyncio.run(snapshot_service.restore_latest())
+
+    assert restored is False
+    assert snapshot_service.local_db_path.read_bytes() == b"old-db"
+    assert "newer than this build's" in caplog.text
 
 
 def test_restore_latest_returns_false_on_sha_mismatch(snapshot_service: SnapshotService, tmp_path: Path) -> None:
@@ -162,7 +239,10 @@ def test_push_snapshot_uploads_db_and_metadata(snapshot_service: SnapshotService
 
     assert commit_hash == "commit-123"
     assert api.upload_file.call_count == 2
-    assert uploaded_metadata["schema_version"] == "1.1.0"
+    assert uploaded_metadata["app_version"] == "1.1.0"
+    assert uploaded_metadata["db_schema_version"] == 14
+    assert uploaded_metadata["workspace_schema_version"] == 3
+    assert "schema_version" not in uploaded_metadata
     assert uploaded_metadata["sha256"] == _sha256(snapshot_service.local_db_path)
 
 
