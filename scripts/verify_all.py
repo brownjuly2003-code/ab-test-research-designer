@@ -185,6 +185,12 @@ def main() -> int:
 
     if not args.skip_build:
         run_step("frontend build", [NPM_EXECUTABLE, "run", "build"], FRONTEND_DIR)
+        run_step(
+            "bundle budget (self-test)",
+            [sys.executable, "scripts/check_bundle_budget.py", "--self-test"],
+            ROOT_DIR,
+        )
+        run_step("bundle budget", [sys.executable, "scripts/check_bundle_budget.py"], ROOT_DIR)
 
     if args.with_e2e:
         run_step(

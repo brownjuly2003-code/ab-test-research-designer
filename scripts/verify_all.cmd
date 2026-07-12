@@ -132,6 +132,12 @@ if "%SKIP_BUILD%"=="0" (
   echo [verify] frontend build
   call npm.cmd run build
   if errorlevel 1 exit /b %errorlevel%
+  echo [verify] bundle budget ^(self-test^)
+  python "%ROOT_DIR%scripts\check_bundle_budget.py" --self-test
+  if errorlevel 1 exit /b %errorlevel%
+  echo [verify] bundle budget
+  python "%ROOT_DIR%scripts\check_bundle_budget.py"
+  if errorlevel 1 exit /b %errorlevel%
 )
 
 if "%WITH_E2E%"=="1" (
