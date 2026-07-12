@@ -169,7 +169,19 @@ def main() -> int:
         ROOT_DIR,
     )
     run_step("frontend typecheck", [NPM_EXECUTABLE, "exec", "tsc", "--", "--noEmit", "-p", "."], FRONTEND_DIR)
-    run_step("frontend unit tests", [NPM_EXECUTABLE, "run", "test:unit"], FRONTEND_DIR)
+    frontend_tests_command = [NPM_EXECUTABLE, "run", "test:unit"]
+    if artifacts_dir is not None:
+        # Emit frontend JUnit next to backend-junit.xml so the badge collector
+        # counts both suites; --reporter=default keeps the console output.
+        frontend_tests_command.extend(
+            [
+                "--",
+                "--reporter=default",
+                "--reporter=junit",
+                f"--outputFile.junit={artifacts_dir / 'frontend-junit.xml'}",
+            ]
+        )
+    run_step("frontend unit tests", frontend_tests_command, FRONTEND_DIR)
 
     if not args.skip_build:
         run_step("frontend build", [NPM_EXECUTABLE, "run", "build"], FRONTEND_DIR)

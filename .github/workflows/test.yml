@@ -57,7 +57,9 @@ jobs:
             .ci-artifacts/backend-junit.xml
             .ci-artifacts/frontend-junit.xml
             .ci-artifacts/coverage-backend.json
-          if-no-files-found: warn
+          # A missing artifact means the badge would silently drop a whole test
+          # suite (audit F-06), so absence is an error, not a warning.
+          if-no-files-found: error
 
       - name: Upload smoke failure dump
         if: failure() && matrix.os == 'ubuntu-latest'
@@ -239,8 +241,15 @@ jobs:
 
   update-metrics-badges:
     runs-on: ubuntu-latest
+    # Badges must reflect the whole gate, not just verify+lighthouse: a red
+    # docker/postgres/audit job must block the bot commit too (audit F-06).
     needs:
       - verify
+      - locale-content
+      - repo-hygiene
+      - dependency-audit
+      - verify-postgres
+      - docker
       - lighthouse
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     permissions:
@@ -273,6 +282,7 @@ jobs:
       - name: Refresh badge payloads
         run: >
           python scripts/collect_badge_metrics.py
+          --strict
           --coverage .badge-inputs/coverage-backend.json
           --lighthouse .badge-inputs/lighthouseci/manifest.json
           --test-results .badge-inputs/backend-junit.xml
