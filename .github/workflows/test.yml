@@ -32,7 +32,7 @@ jobs:
           cache-dependency-path: app/frontend/package-lock.json
 
       - name: Install backend dependencies
-        run: python -m pip install -r app/backend/requirements.txt
+        run: python -m pip install -r app/backend/requirements-dev.txt
 
       - name: Install frontend dependencies
         run: npm --prefix app/frontend ci
@@ -131,8 +131,10 @@ jobs:
       - name: Install pip-audit
         run: python -m pip install pip-audit==2.10.0
 
+      # requirements-dev.txt includes -r requirements.txt, so this covers the
+      # runtime set and the toolchain in one pass.
       - name: Audit backend dependencies for known CVEs
-        run: python -m pip_audit -r app/backend/requirements.txt --progress-spinner off
+        run: python -m pip_audit -r app/backend/requirements-dev.txt --progress-spinner off
 
       # Both npm package roots are gated, not just Python. `npm audit` resolves the tree from
       # the committed lockfile, so no `npm ci` is needed here. --audit-level=high fails the job
@@ -176,7 +178,7 @@ jobs:
           python-version: "3.13"
 
       - name: Install backend dependencies
-        run: python -m pip install -r app/backend/requirements.txt
+        run: python -m pip install -r app/backend/requirements-dev.txt
 
       - name: Run Postgres backend smoke tests
         run: python -m pytest -p no:schemathesis app/backend/tests/test_postgres_backend.py -q
@@ -215,6 +217,7 @@ jobs:
           cache: "npm"
           cache-dependency-path: app/frontend/package-lock.json
 
+      # Lighthouse only needs to serve the app: the runtime set is enough.
       - name: Install backend dependencies
         run: python -m pip install -r app/backend/requirements.txt
 
@@ -260,12 +263,10 @@ jobs:
         with:
           fetch-depth: 0
 
+      # collect_badge_metrics.py is stdlib-only: no backend install needed here.
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-
-      - name: Install backend dependencies
-        run: python -m pip install -r app/backend/requirements.txt
 
       - name: Download verify metrics artifact
         uses: actions/download-artifact@v4

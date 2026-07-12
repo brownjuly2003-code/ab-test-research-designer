@@ -1,4 +1,6 @@
-FROM node:22-alpine AS frontend-build
+# Base images pinned to multi-arch manifest digests (audit F-10); Dependabot
+# keeps them fresh via .github/dependabot.yml.
+FROM node:22-alpine@sha256:16e22a550f3863206a3f701448c45f7912c6896a62de43add43bb9c86130c3e2 AS frontend-build
 
 WORKDIR /workspace/app/frontend
 
@@ -12,7 +14,7 @@ COPY app/frontend ./
 RUN npm run build
 
 
-FROM python:3.13-slim AS runtime
+FROM python:3.13-slim@sha256:eb43ff125d8d58d7449dcba7d336c23bcac412f526d861db493b9994d8010280 AS runtime
 
 # Stamped by CI (docker-publish passes the release commit); defaults to "unknown"
 # for builds that pass nothing, e.g. the HF Space build — the deploy script stamps

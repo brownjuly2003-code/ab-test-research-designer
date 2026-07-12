@@ -78,6 +78,27 @@ jobs:
             org.opencontainers.image.description=Local-first A/B test research designer (FastAPI + React)
             org.opencontainers.image.licenses=MIT
 
+      # Build a local single-arch image first so it can be scanned before
+      # anything is pushed to the registry.
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          build-args: |
+            GIT_SHA=${{ steps.buildsha.outputs.sha }}
+          tags: scan-target:candidate
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Scan image for critical vulnerabilities
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: scan-target:candidate
+          format: table
+          severity: CRITICAL
+          exit-code: '1'
+          ignore-unfixed: true
+
       - uses: docker/build-push-action@v6
         with:
           context: .

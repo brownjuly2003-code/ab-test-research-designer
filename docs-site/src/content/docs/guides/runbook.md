@@ -10,7 +10,8 @@ editUrl: "https://github.com/brownjuly2003-code/ab-test-research-designer/edit/m
 Backend:
 
 ```bash
-python -m pip install -r app/backend/requirements.txt
+python -m pip install -r app/backend/requirements.txt       # runtime only
+# development (tests, lint, typecheck): use requirements-dev.txt instead
 python -m uvicorn app.backend.app.main:app --host 127.0.0.1 --port 8008
 ```
 
