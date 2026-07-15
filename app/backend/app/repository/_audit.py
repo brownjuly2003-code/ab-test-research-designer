@@ -27,7 +27,8 @@ class _AuditMixin(_WebhooksMixin):
         service = getattr(self, "webhook_service", None)
         clock = getattr(service, "clock", None) if service is not None else None
         if callable(clock):
-            return clock().isoformat()
+            stamped = clock()
+            return stamped.isoformat() if isinstance(stamped, datetime) else str(stamped)
         return datetime.now(UTC).isoformat()
 
     def log_audit_entry(
