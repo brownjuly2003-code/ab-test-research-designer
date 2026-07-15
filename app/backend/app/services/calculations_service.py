@@ -2,6 +2,7 @@ import math
 from typing import Any
 
 from app.backend.app.constants import MAX_SUPPORTED_VARIANTS
+from app.backend.app.metric_capabilities import requires_std_dev_for_planning
 from app.backend.app.rules.engine import evaluate_warnings
 from app.backend.app.stats.bayesian import (
     bayesian_sample_size_binary,
@@ -84,7 +85,7 @@ def calculate_experiment_metrics(payload: dict[str, Any]) -> dict[str, Any]:
         else:
             raise ValueError(f"Unsupported planned_test for binary metrics: {planned_test}")
     elif metric_type == "continuous" and planned_test == "mann_whitney":
-        if payload.get("std_dev") is None:
+        if payload.get("std_dev") is None and requires_std_dev_for_planning(metric_type):
             raise ValueError("std_dev must be positive for continuous and ratio metrics")
         calculation_summary = calculate_mann_whitney_sample_size(
             baseline_mean=payload["baseline_value"],
@@ -95,7 +96,7 @@ def calculate_experiment_metrics(payload: dict[str, Any]) -> dict[str, Any]:
             variants_count=variants_count,
         )
     elif metric_type == "continuous" and planned_test == "tost":
-        if payload.get("std_dev") is None:
+        if payload.get("std_dev") is None and requires_std_dev_for_planning(metric_type):
             raise ValueError("std_dev must be positive for continuous and ratio metrics")
         if payload.get("equivalence_margin_pct") is None:
             raise ValueError("equivalence_margin_pct is required for a TOST equivalence plan")
@@ -114,7 +115,7 @@ def calculate_experiment_metrics(payload: dict[str, Any]) -> dict[str, Any]:
     elif metric_type in ("continuous", "ratio"):
         if planned_test != "z_test":
             raise ValueError(f"Unsupported planned_test for {metric_type} metrics: {planned_test}")
-        if payload.get("std_dev") is None:
+        if payload.get("std_dev") is None and requires_std_dev_for_planning(metric_type):
             raise ValueError("std_dev must be positive for continuous and ratio metrics")
         calculation_summary = calculate_continuous_sample_size(
             baseline_mean=payload["baseline_value"],
