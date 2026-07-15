@@ -746,7 +746,7 @@ class PostgresBackend(SQLiteBackend):
         ts: str | None = None,
         dispatch_webhooks: bool = True,
     ) -> dict[str, Any]:
-        timestamp = ts or datetime.now(UTC).isoformat()
+        timestamp = self._resolve_audit_timestamp(ts)
         with self._connect() as connection:
             row = connection.execute(
                 """

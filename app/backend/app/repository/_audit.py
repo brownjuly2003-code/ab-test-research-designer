@@ -16,6 +16,20 @@ from app.backend.app.repository._webhooks import _WebhooksMixin
 
 
 class _AuditMixin(_WebhooksMixin):
+    def _resolve_audit_timestamp(self, ts: str | None) -> str:
+        """Prefer an explicit ts, then the webhook service clock (test injection), else wall clock.
+
+        Outbox claim compares ``next_attempt_at`` to the worker clock. If enqueue stamped wall
+        time while tests drive a FakeClock fixed in the past, every due-claim would miss.
+        """
+        if ts is not None:
+            return ts
+        service = getattr(self, "webhook_service", None)
+        clock = getattr(service, "clock", None) if service is not None else None
+        if callable(clock):
+            return clock().isoformat()
+        return datetime.now(UTC).isoformat()
+
     def log_audit_entry(
         self,
         *,
@@ -30,7 +44,7 @@ class _AuditMixin(_WebhooksMixin):
         ts: str | None = None,
         dispatch_webhooks: bool = True,
     ) -> dict[str, Any]:
-        timestamp = ts or datetime.now(UTC).isoformat()
+        timestamp = self._resolve_audit_timestamp(ts)
         with self._connect() as connection:
             cursor = connection.execute(
                 """
