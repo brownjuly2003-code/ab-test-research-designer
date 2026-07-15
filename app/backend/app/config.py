@@ -66,6 +66,11 @@ class Settings:
     max_workspace_body_bytes: int
     trusted_proxy_hops: int
     trusted_proxies: tuple[str, ...]
+    # Retention windows in days (audit F-12). 0 disables automatic purge for that table.
+    retention_exposures_days: int
+    retention_conversions_days: int
+    retention_audit_days: int
+    retention_webhook_deliveries_days: int
 
     @property
     def is_production(self) -> bool:
@@ -204,6 +209,14 @@ def _validate_settings(settings: Settings) -> Settings:
         # Silently ignoring the allowlist would read as "proxy trust is configured"
         # while X-Forwarded-For stays unread. Fail fast instead.
         raise ValueError("AB_TRUSTED_PROXIES has no effect unless AB_TRUSTED_PROXY_HOPS is at least 1")
+    for retention_name, retention_value in (
+        ("AB_RETENTION_EXPOSURES_DAYS", settings.retention_exposures_days),
+        ("AB_RETENTION_CONVERSIONS_DAYS", settings.retention_conversions_days),
+        ("AB_RETENTION_AUDIT_DAYS", settings.retention_audit_days),
+        ("AB_RETENTION_WEBHOOK_DELIVERIES_DAYS", settings.retention_webhook_deliveries_days),
+    ):
+        if retention_value < 0:
+            raise ValueError(f"{retention_name} must be zero or greater")
     return settings
 
 
@@ -291,5 +304,9 @@ def get_settings() -> Settings:
         # deployment be rate-limit-bypassed by a forged header.
         trusted_proxy_hops=_read_int_env("AB_TRUSTED_PROXY_HOPS", 0),
         trusted_proxies=_read_csv_env("AB_TRUSTED_PROXIES", ()),
+        retention_exposures_days=_read_int_env("AB_RETENTION_EXPOSURES_DAYS", 0),
+        retention_conversions_days=_read_int_env("AB_RETENTION_CONVERSIONS_DAYS", 0),
+        retention_audit_days=_read_int_env("AB_RETENTION_AUDIT_DAYS", 0),
+        retention_webhook_deliveries_days=_read_int_env("AB_RETENTION_WEBHOOK_DELIVERIES_DAYS", 0),
     )
     return _validate_settings(settings)

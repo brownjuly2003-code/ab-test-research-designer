@@ -108,6 +108,12 @@ class DiagnosticsRuntimeSummary(BaseModel):
     last_request_at: str | None = None
     last_error_at: str | None = None
     last_error_code: str | None = None
+    # RED-style latency (process-local, audit F-12). Avg/max are None until the
+    # first completed request has been timed.
+    process_time_ms_count: int = 0
+    process_time_ms_avg: float | None = None
+    process_time_ms_max: float | None = None
+    error_rate: float = 0.0
 
 
 class DiagnosticsWebhooksSummary(BaseModel):
@@ -119,6 +125,40 @@ class DiagnosticsWebhooksSummary(BaseModel):
     delivered: int
     failed: int
     oldest_due_age_seconds: float | None = None
+
+
+class DiagnosticsTopologySummary(BaseModel):
+    """Supported deployment topology (audit F-12).
+
+    The runtime is a **single-instance** process: rate limits, auth-failure
+    throttles, and RED counters live in process memory. Multiple replicas would
+    fragment those controls — use a shared edge gateway/Redis if you need them
+    to be global. The durable data plane (SQLite file or PostgreSQL + webhook
+    outbox leases) can still be externalised independently of this process scope.
+    """
+
+    supported: Literal["single_instance"] = "single_instance"
+    rate_limit_state: Literal["in_process"] = "in_process"
+    runtime_counters_scope: Literal["process"] = "process"
+    notes: str = (
+        "Rate limits, auth-failure throttles, and request counters are per-process. "
+        "Do not run multiple app replicas without an edge/shared rate limiter."
+    )
+
+
+class DiagnosticsRetentionSummary(BaseModel):
+    """Configured retention windows (days). ``0`` means automatic purge is off."""
+
+    exposures_days: int = 0
+    conversions_days: int = 0
+    audit_days: int = 0
+    webhook_deliveries_days: int = 0
+    auto_purge_enabled: bool = False
+    notes: str = (
+        "Automatic purge is opt-in via AB_RETENTION_*_DAYS. Operators can also call "
+        "POST /api/v1/admin/retention/purge. IP addresses and user ids may be personal "
+        "data — size retention windows to your DSR/policy needs."
+    )
 
 
 class DiagnosticsResponse(BaseModel):
@@ -139,6 +179,8 @@ class DiagnosticsResponse(BaseModel):
     network: DiagnosticsNetworkSummary
     runtime: DiagnosticsRuntimeSummary
     webhooks: DiagnosticsWebhooksSummary
+    topology: DiagnosticsTopologySummary
+    retention: DiagnosticsRetentionSummary
 
 
 class ReadinessCheck(BaseModel):

@@ -402,6 +402,17 @@ export type DiagnosticsResponse = {
   network: DiagnosticsNetworkSummary;
   runtime: DiagnosticsRuntimeSummary;
   webhooks: DiagnosticsWebhooksSummary;
+  topology: DiagnosticsTopologySummary;
+  retention: DiagnosticsRetentionSummary;
+};
+
+export type DiagnosticsRetentionSummary = {
+  exposures_days?: number;
+  conversions_days?: number;
+  audit_days?: number;
+  webhook_deliveries_days?: number;
+  auto_purge_enabled?: boolean;
+  notes?: string;
 };
 
 export type DiagnosticsRuntimeSummary = {
@@ -415,6 +426,10 @@ export type DiagnosticsRuntimeSummary = {
   last_request_at?: string | null;
   last_error_at?: string | null;
   last_error_code?: string | null;
+  process_time_ms_count?: number;
+  process_time_ms_avg?: number | null;
+  process_time_ms_max?: number | null;
+  error_rate?: number;
 };
 
 export type DiagnosticsStorageSummary = {
@@ -438,6 +453,13 @@ export type DiagnosticsStorageSummary = {
   workspace_bundle_schema_version: number;
   workspace_signature_enabled: boolean;
   latest_project_updated_at?: string | null;
+};
+
+export type DiagnosticsTopologySummary = {
+  supported?: string;
+  rate_limit_state?: string;
+  runtime_counters_scope?: string;
+  notes?: string;
 };
 
 export type DiagnosticsWebhooksSummary = {
@@ -1322,6 +1344,14 @@ export type ResultsResponse = {
   effect_size_label?: string | null;
   effect_size_ci_lower?: number | null;
   effect_size_ci_upper?: number | null;
+};
+
+export type RetentionPurgeRequest = {
+  exposures_days?: number | null;
+  conversions_days?: number | null;
+  audit_days?: number | null;
+  webhook_deliveries_days?: number | null;
+  dry_run?: boolean;
 };
 
 export type RisksSection = {

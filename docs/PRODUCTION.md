@@ -156,6 +156,31 @@ and `.../conversions`). Each request returns an accounting object:
   (all-or-nothing per request); throughput scales with the PostgreSQL backend and connection pool
   (`AB_DB_POOL_SIZE`).
 
+## Topology (supported scale)
+
+**Supported topology: single application instance.** Rate limits, auth-failure throttles, and RED
+request counters live in process memory. Running multiple app replicas without a shared edge/Redis
+rate limiter will fragment those controls (each replica has its own buckets and telemetry).
+
+The **data plane** can still be external:
+
+| Concern | Single-instance process | Durable / shared |
+| --- | --- | --- |
+| HTTP rate limit / auth throttle | in-process | put a gateway in front for multi-replica |
+| RED counters (`/api/v1/diagnostics.runtime`) | in-process | scrape each instance, or aggregate at the edge |
+| Projects / events / outbox | SQLite file or PostgreSQL | PostgreSQL for production |
+| Webhook delivery claims | DB lease rows | safe across restarts; not multi-writer app pods |
+
+Diagnostics declare this explicitly:
+
+```json
+"topology": {
+  "supported": "single_instance",
+  "rate_limit_state": "in_process",
+  "runtime_counters_scope": "process"
+}
+```
+
 ## Retention and backup
 
 - **Backups.** Use managed PostgreSQL automated backups, or schedule `pg_dump`:
@@ -165,12 +190,48 @@ and `.../conversions`). Each request returns an accounting object:
   ```
 
   Restore with `pg_restore --clean --dbname "$AB_DATABASE_URL" abtest-YYYY-MM-DD.dump`.
-- **Retention.** Exposures and conversions accumulate per experiment. There is no automatic purge;
-  archive or delete experiments you no longer analyse, and size storage for your event volume (see
-  P4.6 for ingestion throughput / capacity notes).
+- **Retention.** Exposures, conversions, audit rows, and terminal webhook deliveries can accumulate.
+  Configure optional windows (days; `0` = off) and purge via admin API:
+
+  | Env | Table |
+  | --- | --- |
+  | `AB_RETENTION_EXPOSURES_DAYS` | `exposures` |
+  | `AB_RETENTION_CONVERSIONS_DAYS` | `conversions` |
+  | `AB_RETENTION_AUDIT_DAYS` | `audit_log` (includes request IP) |
+  | `AB_RETENTION_WEBHOOK_DELIVERIES_DAYS` | terminal `webhook_deliveries` only |
+
+  ```bash
+  # Count what would be deleted under the configured windows (or override days in the body)
+  curl -X POST -H "Authorization: Bearer $AB_ADMIN_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"dry_run": true}' \
+    https://<host>/api/v1/admin/retention/purge
+
+  # Apply purge for a 90-day exposures window only
+  curl -X POST -H "Authorization: Bearer $AB_ADMIN_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"exposures_days": 90, "dry_run": false}' \
+    https://<host>/api/v1/admin/retention/purge
+  ```
+
+  Configured windows are also visible under `diagnostics.retention`. User identifiers and audit IPs
+  may be personal data — align windows with your DSR/policy. Archive or delete whole experiments you
+  no longer analyse when you need design metadata gone as well as events.
 - **Workspace exports.** `AB_WORKSPACE_SIGNING_KEY` lets you export and re-import a signed workspace
   snapshot as a portable, integrity-checked backup of the project/experiment definitions (not the
   raw event stream — that lives in PostgreSQL).
+
+## Observability (RED)
+
+Process-local request counters and latency live on `GET /api/v1/diagnostics` → `runtime`:
+
+- **Rate** — `total_requests` (process lifetime)
+- **Errors** — `client_error_responses`, `server_error_responses`, `error_rate`
+- **Duration** — `process_time_ms_avg`, `process_time_ms_max` (from completed requests)
+
+Webhook queue depth and head age are on `diagnostics.webhooks` (durable outbox). There is no
+Prometheus exporter in-process; scrape diagnostics or put metrics at the reverse proxy for multi-host
+views. `X-Request-Id` / `X-Process-Time-Ms` response headers remain the per-request ground truth.
 
 ## Pre-flight checklist
 

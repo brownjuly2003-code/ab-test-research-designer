@@ -41,7 +41,7 @@ if TYPE_CHECKING:
     from app.backend.app.repository import ProjectRepository
 
 
-def create_runtime_counters() -> dict[str, int | str | None]:
+def create_runtime_counters() -> dict[str, int | float | str | None]:
     return {
         "total_requests": 0,
         "success_responses": 0,
@@ -53,6 +53,37 @@ def create_runtime_counters() -> dict[str, int | str | None]:
         "last_request_at": None,
         "last_error_at": None,
         "last_error_code": None,
+        # RED latency accumulators (process-local; audit F-12).
+        "process_time_ms_sum": 0.0,
+        "process_time_ms_count": 0,
+        "process_time_ms_max": 0.0,
+    }
+
+
+def build_runtime_summary(runtime_counters: dict[str, Any]) -> dict[str, Any]:
+    """Project raw counters into the diagnostics RuntimeSummary shape."""
+    total = int(runtime_counters.get("total_requests") or 0)
+    client_errors = int(runtime_counters.get("client_error_responses") or 0)
+    server_errors = int(runtime_counters.get("server_error_responses") or 0)
+    timed = int(runtime_counters.get("process_time_ms_count") or 0)
+    time_sum = float(runtime_counters.get("process_time_ms_sum") or 0.0)
+    time_max = float(runtime_counters.get("process_time_ms_max") or 0.0)
+    error_rate = round((client_errors + server_errors) / total, 6) if total else 0.0
+    return {
+        "total_requests": total,
+        "success_responses": int(runtime_counters.get("success_responses") or 0),
+        "client_error_responses": client_errors,
+        "server_error_responses": server_errors,
+        "auth_rejections": int(runtime_counters.get("auth_rejections") or 0),
+        "rate_limited_responses": int(runtime_counters.get("rate_limited_responses") or 0),
+        "request_body_rejections": int(runtime_counters.get("request_body_rejections") or 0),
+        "last_request_at": runtime_counters.get("last_request_at"),
+        "last_error_at": runtime_counters.get("last_error_at"),
+        "last_error_code": runtime_counters.get("last_error_code"),
+        "process_time_ms_count": timed,
+        "process_time_ms_avg": round(time_sum / timed, 3) if timed else None,
+        "process_time_ms_max": round(time_max, 3) if timed else None,
+        "error_rate": error_rate,
     }
 
 
@@ -70,7 +101,13 @@ def register_http_runtime(
     Callable[[Request], None],
     Callable[[Request], None],
 ]:
-    def record_runtime_response(status_code: int, error_code: str | None = None, *, auth_rejection: bool = False) -> None:
+    def record_runtime_response(
+        status_code: int,
+        error_code: str | None = None,
+        *,
+        auth_rejection: bool = False,
+        process_time_ms: float | None = None,
+    ) -> None:
         from datetime import datetime
 
         timestamp = datetime.now(UTC).isoformat()
@@ -91,6 +128,15 @@ def register_http_runtime(
         if error_code:
             runtime_counters["last_error_at"] = timestamp
             runtime_counters["last_error_code"] = error_code
+        if process_time_ms is not None:
+            runtime_counters["process_time_ms_sum"] = (
+                float(runtime_counters["process_time_ms_sum"]) + float(process_time_ms)
+            )
+            runtime_counters["process_time_ms_count"] = int(runtime_counters["process_time_ms_count"]) + 1
+            runtime_counters["process_time_ms_max"] = max(
+                float(runtime_counters["process_time_ms_max"]),
+                float(process_time_ms),
+            )
 
     def auth_enabled() -> bool:
         # Any auth material at all closes the protected surface; anonymous callers
@@ -222,7 +268,12 @@ def register_http_runtime(
                 auth_scope=auth_scope,
                 error_code=resolved_error_code,
             )
-            record_runtime_response(response.status_code, resolved_error_code, auth_rejection=True)
+            record_runtime_response(
+                response.status_code,
+                resolved_error_code,
+                auth_rejection=True,
+                process_time_ms=(perf_counter() - started) * 1000,
+            )
             return finalize_response(response)
 
         if request.method != "OPTIONS" and is_protected_path(request.url.path):
@@ -324,7 +375,11 @@ def register_http_runtime(
                     process_time_ms=round(get_process_time_ms(request), 2),
                     retry_after_seconds=rate_limit_decision.retry_after_seconds,
                 )
-                record_runtime_response(response.status_code, "rate_limited")
+                record_runtime_response(
+                    response.status_code,
+                    "rate_limited",
+                    process_time_ms=(perf_counter() - started) * 1000,
+                )
                 return finalize_response(response)
 
         body_limit = get_request_body_limit(request.url.path, request.method, settings)
@@ -350,7 +405,11 @@ def register_http_runtime(
                     process_time_ms=round(get_process_time_ms(request), 2),
                     max_body_bytes=body_limit,
                 )
-                record_runtime_response(response.status_code, "request_body_too_large")
+                record_runtime_response(
+                    response.status_code,
+                    "request_body_too_large",
+                    process_time_ms=(perf_counter() - started) * 1000,
+                )
                 return finalize_response(response)
 
         try:
@@ -371,7 +430,11 @@ def register_http_runtime(
         attach_pending_api_key_audit(response)
         process_time_ms = (perf_counter() - started) * 1000
         apply_standard_response_headers(response, request_id=request_id, process_time_ms=process_time_ms)
-        record_runtime_response(response.status_code, response.headers.get("X-Error-Code"))
+        record_runtime_response(
+            response.status_code,
+            response.headers.get("X-Error-Code"),
+            process_time_ms=process_time_ms,
+        )
         log_event(
             logger,
             logging.INFO,

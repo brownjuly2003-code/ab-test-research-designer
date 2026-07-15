@@ -232,7 +232,32 @@ function buildDiagnostics() {
       request_body_rejections: 0,
       last_request_at: "2026-03-08T14:00:00Z",
       last_error_at: null,
-      last_error_code: null
+      last_error_code: null,
+      process_time_ms_count: 4,
+      process_time_ms_avg: 12.5,
+      process_time_ms_max: 30,
+      error_rate: 0
+    },
+    webhooks: {
+      pending: 0,
+      retrying: 0,
+      delivered: 0,
+      failed: 0,
+      oldest_due_age_seconds: null
+    },
+    topology: {
+      supported: "single_instance",
+      rate_limit_state: "in_process",
+      runtime_counters_scope: "process",
+      notes: "single-instance process scope"
+    },
+    retention: {
+      exposures_days: 0,
+      conversions_days: 0,
+      audit_days: 0,
+      webhook_deliveries_days: 0,
+      auto_purge_enabled: false,
+      notes: "retention windows off"
     }
   };
 }
