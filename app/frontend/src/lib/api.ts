@@ -471,171 +471,179 @@ function getErrorMessage(payload: ApiErrorResponse, response: Response, fallback
   return fallback;
 }
 
-export async function requestHealth(): Promise<ApiHealthResponse> {
-  const response = await fetch(apiUrl("/health"), {
-    headers: buildHeaders()
-  });
-  const data = await readJson<ApiHealthResponse & ApiErrorResponse>(response);
+type ApiAuthMode = "session" | "admin";
+
+type ApiJsonRequestOptions = {
+  method?: string;
+  /** Object/array is JSON.stringified; string body is sent as-is. */
+  body?: unknown;
+  headers?: Record<string, string>;
+  auth?: ApiAuthMode;
+  signal?: AbortSignal;
+  errorFallback: string;
+};
+
+/**
+ * Shared typed JSON request primitive for the frontend API client.
+ * All JSON endpoints go through here so auth headers, error parsing,
+ * and response typing stay in one place (audit F-11).
+ */
+async function apiJsonRequest<T>(path: string, options: ApiJsonRequestOptions): Promise<T> {
+  const {
+    method = "GET",
+    body,
+    headers: extraHeaders = {},
+    auth = "session",
+    signal,
+    errorFallback
+  } = options;
+
+  const withContentType =
+    body !== undefined && !("Content-Type" in extraHeaders)
+      ? { "Content-Type": "application/json", ...extraHeaders }
+      : extraHeaders;
+
+  const headers =
+    auth === "admin" ? buildAdminHeaders(withContentType) : buildHeaders(withContentType);
+
+  const init: RequestInit = { method, headers, signal };
+  if (body !== undefined) {
+    init.body = typeof body === "string" ? body : JSON.stringify(body);
+  }
+
+  const response = await fetch(apiUrl(path), init);
+  const data = await readJson<T & ApiErrorResponse>(response);
 
   if (!response.ok) {
-    throw new Error(getErrorMessage(data, response, "Health check failed"));
+    throw new Error(getErrorMessage(data, response, errorFallback));
   }
 
   return data;
+}
+
+type ApiBlobRequestOptions = {
+  auth?: ApiAuthMode;
+  headers?: Record<string, string>;
+  errorFallback: string;
+  fallbackFilename: string;
+};
+
+/** Download endpoints that return a binary body + optional Content-Disposition filename. */
+async function apiBlobRequest(
+  path: string,
+  options: ApiBlobRequestOptions
+): Promise<{ blob: Blob; filename: string }> {
+  const { auth = "session", headers: extraHeaders = {}, errorFallback, fallbackFilename } = options;
+  const headers =
+    auth === "admin" ? buildAdminHeaders(extraHeaders) : buildHeaders(extraHeaders);
+
+  const response = await fetch(apiUrl(path), { headers });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({} as ApiErrorResponse));
+    throw new Error(getErrorMessage(data, response, errorFallback));
+  }
+
+  const blob = await response.blob();
+  const filename =
+    /filename=\"([^\"]+)\"/i.exec(response.headers.get("content-disposition") ?? "")?.[1] ??
+    fallbackFilename;
+  return { blob, filename };
+}
+
+export async function requestHealth(): Promise<ApiHealthResponse> {
+  return apiJsonRequest<ApiHealthResponse>("/health", {
+    errorFallback: "Health check failed"
+  });
 }
 
 export async function requestDiagnostics(): Promise<ApiDiagnosticsResponse> {
-  const response = await fetch(apiUrl("/api/v1/diagnostics"), {
-    headers: buildHeaders()
+  return apiJsonRequest<ApiDiagnosticsResponse>("/api/v1/diagnostics", {
+    errorFallback: "Diagnostics request failed"
   });
-  const data = await readJson<ApiDiagnosticsResponse & ApiErrorResponse>(response);
-
-  if (!response.ok) {
-    throw new Error(getErrorMessage(data, response, "Diagnostics request failed"));
-  }
-
-  return data;
 }
 
 export async function exportWorkspaceRequest(): Promise<WorkspaceBundle> {
-  const response = await fetch(apiUrl("/api/v1/workspace/export"), {
-    headers: buildHeaders()
+  return apiJsonRequest<WorkspaceBundle>("/api/v1/workspace/export", {
+    errorFallback: "Workspace export failed"
   });
-  const data = await readJson<WorkspaceBundle & ApiErrorResponse>(response);
-
-  if (!response.ok) {
-    throw new Error(getErrorMessage(data, response, "Workspace export failed"));
-  }
-
-  return data;
 }
 
 export async function importWorkspaceRequest(bundle: WorkspaceBundleInput | WorkspaceBundle): Promise<WorkspaceImportResponse> {
-  const response = await fetch(apiUrl("/api/v1/workspace/import"), {
+  return apiJsonRequest<WorkspaceImportResponse>("/api/v1/workspace/import", {
     method: "POST",
-    headers: buildHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify(bundle)
+    body: bundle,
+    errorFallback: "Workspace import failed"
   });
-  const data = await readJson<WorkspaceImportResponse & ApiErrorResponse>(response);
-
-  if (!response.ok) {
-    throw new Error(getErrorMessage(data, response, "Workspace import failed"));
-  }
-
-  return data;
 }
 
 export async function validateWorkspaceRequest(
   bundle: WorkspaceBundleInput | WorkspaceBundle
 ): Promise<WorkspaceValidationResponse> {
-  const response = await fetch(apiUrl("/api/v1/workspace/validate"), {
+  return apiJsonRequest<WorkspaceValidationResponse>("/api/v1/workspace/validate", {
     method: "POST",
-    headers: buildHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify(bundle)
+    body: bundle,
+    errorFallback: "Workspace validation failed"
   });
-  const data = await readJson<WorkspaceValidationResponse & ApiErrorResponse>(response);
-
-  if (!response.ok) {
-    throw new Error(getErrorMessage(data, response, "Workspace validation failed"));
-  }
-
-  return data;
 }
 
 export async function requestAnalysis(form: FullPayload, options: RequestOptions = {}): Promise<AnalysisResponse> {
-  const payload = buildApiPayload(form);
-  const response = await fetch(apiUrl("/api/v1/analyze"), {
+  return apiJsonRequest<AnalysisResponse>("/api/v1/analyze", {
     method: "POST",
-    headers: buildHeaders({ "Content-Type": "application/json", ...buildLlmHeaders("/api/v1/analyze") }),
-    body: JSON.stringify(payload),
-    signal: options.signal
+    body: buildApiPayload(form),
+    headers: buildLlmHeaders("/api/v1/analyze"),
+    signal: options.signal,
+    errorFallback: "Analysis request failed"
   });
-  const data = await readJson<AnalysisResponse & ApiErrorResponse>(response);
-
-  if (!response.ok) {
-    throw new Error(getErrorMessage(data, response, "Analysis request failed"));
-  }
-
-  return data;
 }
 
 export async function requestCalculation(
   payload: CalculationRequestPayload,
   options: RequestOptions = {}
 ): Promise<CalculationResponse> {
-  const response = await fetch(apiUrl("/api/v1/calculate"), {
+  return apiJsonRequest<CalculationResponse>("/api/v1/calculate", {
     method: "POST",
-    headers: buildHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify(payload),
-    signal: options.signal
+    body: payload,
+    signal: options.signal,
+    errorFallback: "Calculation request failed"
   });
-  const data = await readJson<CalculationResponse & ApiErrorResponse>(response);
-
-  if (!response.ok) {
-    throw new Error(getErrorMessage(data, response, "Calculation request failed"));
-  }
-
-  return data;
 }
 
 export async function requestHypotheses(
   payload: HypothesisIdeationRequest,
   options: RequestOptions = {}
 ): Promise<HypothesisIdeationResponse> {
-  const response = await fetch(apiUrl("/api/v1/hypotheses/generate"), {
+  return apiJsonRequest<HypothesisIdeationResponse>("/api/v1/hypotheses/generate", {
     method: "POST",
-    headers: buildHeaders({
-      "Content-Type": "application/json",
-      ...buildLlmHeaders("/api/v1/hypotheses/generate")
-    }),
-    body: JSON.stringify(payload),
-    signal: options.signal
+    body: payload,
+    headers: buildLlmHeaders("/api/v1/hypotheses/generate"),
+    signal: options.signal,
+    errorFallback: "Hypothesis generation failed"
   });
-  const data = await readJson<HypothesisIdeationResponse & ApiErrorResponse>(response);
-
-  if (!response.ok) {
-    throw new Error(getErrorMessage(data, response, "Hypothesis generation failed"));
-  }
-
-  return data;
 }
 
 export async function requestSensitivity(
   payload: SensitivityRequest,
   options: RequestOptions = {}
 ): Promise<SensitivityResponse> {
-  const response = await fetch(apiUrl("/api/v1/sensitivity"), {
+  return apiJsonRequest<SensitivityResponse>("/api/v1/sensitivity", {
     method: "POST",
-    headers: buildHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify(payload),
-    signal: options.signal
+    body: payload,
+    signal: options.signal,
+    errorFallback: "Sensitivity request failed"
   });
-  const data = await readJson<SensitivityResponse & ApiErrorResponse>(response);
-
-  if (!response.ok) {
-    throw new Error(getErrorMessage(data, response, "Sensitivity request failed"));
-  }
-
-  return data;
 }
 
 export async function requestSrmCheck(
   payload: SrmCheckRequest,
   options: RequestOptions = {}
 ): Promise<SrmCheckResponse> {
-  const response = await fetch(apiUrl("/api/v1/srm-check"), {
+  return apiJsonRequest<SrmCheckResponse>("/api/v1/srm-check", {
     method: "POST",
-    headers: buildHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify(payload),
-    signal: options.signal
+    body: payload,
+    signal: options.signal,
+    errorFallback: "SRM check request failed"
   });
-  const data = await readJson<SrmCheckResponse & ApiErrorResponse>(response);
-
-  if (!response.ok) {
-    throw new Error(getErrorMessage(data, response, "SRM check request failed"));
-  }
-
-  return data;
 }
 
 export async function saveProjectRequest(
@@ -643,21 +651,14 @@ export async function saveProjectRequest(
   activeProjectId: string | null
 ): Promise<SaveProjectResponse> {
   const isUpdate = activeProjectId !== null;
-  const response = await fetch(
-    isUpdate ? apiUrl(`/api/v1/projects/${activeProjectId}`) : apiUrl("/api/v1/projects"),
+  return apiJsonRequest<SaveProjectResponse>(
+    isUpdate ? `/api/v1/projects/${activeProjectId}` : "/api/v1/projects",
     {
       method: isUpdate ? "PUT" : "POST",
-      headers: buildHeaders({ "Content-Type": "application/json" }),
-      body: JSON.stringify(buildApiPayload(form))
+      body: buildApiPayload(form),
+      errorFallback: "Project save failed"
     }
   );
-  const data = await readJson<SaveProjectResponse & ApiErrorResponse>(response);
-
-  if (!response.ok) {
-    throw new Error(getErrorMessage(data, response, "Project save failed"));
-  }
-
-  return data;
 }
 
 export async function listProjectsRequest(options: ProjectListRequestOptions = {}): Promise<SavedProject[]> {
@@ -688,57 +689,33 @@ export async function listProjectsRequest(options: ProjectListRequestOptions = {
   }
 
   const path = params.size > 0 ? `/api/v1/projects?${params.toString()}` : "/api/v1/projects";
-  const response = await fetch(apiUrl(path), {
-    headers: buildHeaders()
+  const data = await apiJsonRequest<GeneratedProjectListResponse>(path, {
+    errorFallback: "Project list request failed"
   });
-  const data = await readJson<GeneratedProjectListResponse & ApiErrorResponse>(response);
-
-  if (!response.ok) {
-    throw new Error(getErrorMessage(data, response, "Project list request failed"));
-  }
 
   return Array.isArray(data.projects) ? data.projects : [];
 }
 
 export async function listTemplatesRequest(): Promise<TemplateRecord[]> {
-  const response = await fetch(apiUrl("/api/v1/templates"), {
-    headers: buildHeaders()
+  const data = await apiJsonRequest<TemplateListResponse>("/api/v1/templates", {
+    errorFallback: "Template list request failed"
   });
-  const data = await readJson<TemplateListResponse & ApiErrorResponse>(response);
-
-  if (!response.ok) {
-    throw new Error(getErrorMessage(data, response, "Template list request failed"));
-  }
 
   return Array.isArray(data.templates) ? data.templates : [];
 }
 
 export async function useTemplateRequest(templateId: string): Promise<TemplateRecord> {
-  const response = await fetch(apiUrl(`/api/v1/templates/${templateId}/use`), {
+  return apiJsonRequest<TemplateRecord>(`/api/v1/templates/${templateId}/use`, {
     method: "POST",
-    headers: buildHeaders()
+    errorFallback: "Template apply failed"
   });
-  const data = await readJson<TemplateRecord & ApiErrorResponse>(response);
-
-  if (!response.ok) {
-    throw new Error(getErrorMessage(data, response, "Template apply failed"));
-  }
-
-  return data;
 }
 
 export async function deleteTemplateRequest(templateId: string): Promise<TemplateDeleteResponse> {
-  const response = await fetch(apiUrl(`/api/v1/templates/${templateId}`), {
+  return apiJsonRequest<TemplateDeleteResponse>(`/api/v1/templates/${templateId}`, {
     method: "DELETE",
-    headers: buildHeaders()
+    errorFallback: "Template delete failed"
   });
-  const data = await readJson<TemplateDeleteResponse & ApiErrorResponse>(response);
-
-  if (!response.ok) {
-    throw new Error(getErrorMessage(data, response, "Template delete failed"));
-  }
-
-  return data;
 }
 
 export async function listAuditLogRequest(options: AuditLogRequestOptions = {}): Promise<AuditLogResponse> {
@@ -750,98 +727,54 @@ export async function listAuditLogRequest(options: AuditLogRequestOptions = {}):
     params.set("action", options.action);
   }
   const path = params.size > 0 ? `/api/v1/audit?${params.toString()}` : "/api/v1/audit";
-  const response = await fetch(apiUrl(path), {
-    headers: buildHeaders()
+  return apiJsonRequest<AuditLogResponse>(path, {
+    errorFallback: "Audit log request failed"
   });
-  const data = await readJson<AuditLogResponse & ApiErrorResponse>(response);
-
-  if (!response.ok) {
-    throw new Error(getErrorMessage(data, response, "Audit log request failed"));
-  }
-
-  return data;
 }
 
 export async function listApiKeysRequest(): Promise<ApiKeyListResponse> {
-  const response = await fetch(apiUrl("/api/v1/keys"), {
-    headers: buildAdminHeaders()
+  return apiJsonRequest<ApiKeyListResponse>("/api/v1/keys", {
+    auth: "admin",
+    errorFallback: "API key list request failed"
   });
-  const data = await readJson<ApiKeyListResponse & ApiErrorResponse>(response);
-
-  if (!response.ok) {
-    throw new Error(getErrorMessage(data, response, "API key list request failed"));
-  }
-
-  return data;
 }
 
 export async function createApiKeyRequest(payload: ApiKeyCreateRequest): Promise<ApiKeyCreateResponse> {
-  const response = await fetch(apiUrl("/api/v1/keys"), {
+  return apiJsonRequest<ApiKeyCreateResponse>("/api/v1/keys", {
     method: "POST",
-    headers: buildAdminHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify(payload)
+    body: payload,
+    auth: "admin",
+    errorFallback: "API key creation failed"
   });
-  const data = await readJson<ApiKeyCreateResponse & ApiErrorResponse>(response);
-
-  if (!response.ok) {
-    throw new Error(getErrorMessage(data, response, "API key creation failed"));
-  }
-
-  return data;
 }
 
 export async function revokeApiKeyRequest(apiKeyId: string): Promise<ApiKeyRecord> {
-  const response = await fetch(apiUrl(`/api/v1/keys/${apiKeyId}/revoke`), {
+  return apiJsonRequest<ApiKeyRecord>(`/api/v1/keys/${apiKeyId}/revoke`, {
     method: "POST",
-    headers: buildAdminHeaders()
+    auth: "admin",
+    errorFallback: "API key revoke failed"
   });
-  const data = await readJson<ApiKeyRecord & ApiErrorResponse>(response);
-
-  if (!response.ok) {
-    throw new Error(getErrorMessage(data, response, "API key revoke failed"));
-  }
-
-  return data;
 }
 
 export async function deleteApiKeyRequest(apiKeyId: string): Promise<{ id: string; deleted: boolean }> {
-  const response = await fetch(apiUrl(`/api/v1/keys/${apiKeyId}`), {
+  return apiJsonRequest<{ id: string; deleted: boolean }>(`/api/v1/keys/${apiKeyId}`, {
     method: "DELETE",
-    headers: buildAdminHeaders()
+    auth: "admin",
+    errorFallback: "API key delete failed"
   });
-  const data = await readJson<{ id: string; deleted: boolean } & ApiErrorResponse>(response);
-
-  if (!response.ok) {
-    throw new Error(getErrorMessage(data, response, "API key delete failed"));
-  }
-
-  return data;
 }
 
 export async function listWebhooksRequest(): Promise<WebhookListResponse> {
-  const response = await fetch(apiUrl("/api/v1/webhooks"), {
-    headers: buildAdminHeaders()
+  return apiJsonRequest<WebhookListResponse>("/api/v1/webhooks", {
+    auth: "admin",
+    errorFallback: "Webhook list request failed"
   });
-  const data = await readJson<WebhookListResponse & ApiErrorResponse>(response);
-
-  if (!response.ok) {
-    throw new Error(getErrorMessage(data, response, "Webhook list request failed"));
-  }
-
-  return data;
 }
 
 export async function requestSlackStatus(): Promise<SlackStatusResponse> {
-  const response = await fetch(apiUrl("/api/v1/slack/status"), {
-    headers: buildHeaders()
+  return apiJsonRequest<SlackStatusResponse>("/api/v1/slack/status", {
+    errorFallback: "Slack status request failed"
   });
-  const data = await readJson<SlackStatusResponse & ApiErrorResponse>(response);
-
-  if (!response.ok) {
-    throw new Error(getErrorMessage(data, response, "Slack status request failed"));
-  }
-
-  return data;
 }
 
 export function slackInstallUrl(): string {
@@ -849,46 +782,28 @@ export function slackInstallUrl(): string {
 }
 
 export async function createWebhookRequest(payload: WebhookCreateRequest): Promise<WebhookSubscriptionRecord> {
-  const response = await fetch(apiUrl("/api/v1/webhooks"), {
+  return apiJsonRequest<WebhookSubscriptionRecord>("/api/v1/webhooks", {
     method: "POST",
-    headers: buildAdminHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify(payload)
+    body: payload,
+    auth: "admin",
+    errorFallback: "Webhook creation failed"
   });
-  const data = await readJson<WebhookSubscriptionRecord & ApiErrorResponse>(response);
-
-  if (!response.ok) {
-    throw new Error(getErrorMessage(data, response, "Webhook creation failed"));
-  }
-
-  return data;
 }
 
 export async function deleteWebhookRequest(subscriptionId: string): Promise<{ id: string; deleted: boolean }> {
-  const response = await fetch(apiUrl(`/api/v1/webhooks/${subscriptionId}`), {
+  return apiJsonRequest<{ id: string; deleted: boolean }>(`/api/v1/webhooks/${subscriptionId}`, {
     method: "DELETE",
-    headers: buildAdminHeaders()
+    auth: "admin",
+    errorFallback: "Webhook deletion failed"
   });
-  const data = await readJson<{ id: string; deleted: boolean } & ApiErrorResponse>(response);
-
-  if (!response.ok) {
-    throw new Error(getErrorMessage(data, response, "Webhook deletion failed"));
-  }
-
-  return data;
 }
 
 export async function testWebhookRequest(subscriptionId: string): Promise<WebhookTestResponse> {
-  const response = await fetch(apiUrl(`/api/v1/webhooks/${subscriptionId}/test`), {
+  return apiJsonRequest<WebhookTestResponse>(`/api/v1/webhooks/${subscriptionId}/test`, {
     method: "POST",
-    headers: buildAdminHeaders()
+    auth: "admin",
+    errorFallback: "Webhook test delivery failed"
   });
-  const data = await readJson<WebhookTestResponse & ApiErrorResponse>(response);
-
-  if (!response.ok) {
-    throw new Error(getErrorMessage(data, response, "Webhook test delivery failed"));
-  }
-
-  return data;
 }
 
 export async function listWebhookDeliveriesRequest(
@@ -906,16 +821,10 @@ export async function listWebhookDeliveriesRequest(
   const path = params.size > 0
     ? `/api/v1/webhooks/${subscriptionId}/deliveries?${params.toString()}`
     : `/api/v1/webhooks/${subscriptionId}/deliveries`;
-  const response = await fetch(apiUrl(path), {
-    headers: buildAdminHeaders()
+  return apiJsonRequest<WebhookDeliveryListResponse>(path, {
+    auth: "admin",
+    errorFallback: "Webhook delivery history failed"
   });
-  const data = await readJson<WebhookDeliveryListResponse & ApiErrorResponse>(response);
-
-  if (!response.ok) {
-    throw new Error(getErrorMessage(data, response, "Webhook delivery history failed"));
-  }
-
-  return data;
 }
 
 export async function exportAuditLogRequest(options: AuditLogRequestOptions = {}): Promise<{ blob: Blob; filename: string }> {
@@ -927,73 +836,36 @@ export async function exportAuditLogRequest(options: AuditLogRequestOptions = {}
     params.set("action", options.action);
   }
   const path = params.size > 0 ? `/api/v1/audit/export?${params.toString()}` : "/api/v1/audit/export";
-  const response = await fetch(apiUrl(path), {
-    headers: buildHeaders()
+  return apiBlobRequest(path, {
+    errorFallback: "Audit export failed",
+    fallbackFilename: "audit-log.csv"
   });
-
-  if (!response.ok) {
-    const data = await response.json().catch(() => ({} as ApiErrorResponse));
-    throw new Error(getErrorMessage(data, response, "Audit export failed"));
-  }
-
-  const blob = await response.blob();
-  const filename =
-    /filename=\"([^\"]+)\"/i.exec(response.headers.get("content-disposition") ?? "")?.[1] ??
-    "audit-log.csv";
-  return { blob, filename };
 }
 
 export async function downloadProjectReportPdfRequest(
   projectId: string
 ): Promise<{ blob: Blob; filename: string }> {
-  const response = await fetch(apiUrl(`/api/v1/projects/${projectId}/report/pdf`), {
-    headers: buildHeaders()
+  return apiBlobRequest(`/api/v1/projects/${projectId}/report/pdf`, {
+    errorFallback: "PDF export failed",
+    fallbackFilename: "experiment-report.pdf"
   });
-
-  if (!response.ok) {
-    const data = await response.json().catch(() => ({} as ApiErrorResponse));
-    throw new Error(getErrorMessage(data, response, "PDF export failed"));
-  }
-
-  const blob = await response.blob();
-  const filename =
-    /filename=\"([^\"]+)\"/i.exec(response.headers.get("content-disposition") ?? "")?.[1] ??
-    "experiment-report.pdf";
-  return { blob, filename };
 }
 
 export async function downloadProjectReportDataRequest(
   projectId: string,
   format: "csv" | "xlsx"
 ): Promise<{ blob: Blob; filename: string }> {
-  const response = await fetch(apiUrl(`/api/v1/projects/${projectId}/report/${format}`), {
-    headers: buildHeaders()
-  });
-
-  if (!response.ok) {
-    const data = await response.json().catch(() => ({} as ApiErrorResponse));
-    throw new Error(getErrorMessage(data, response, `${format.toUpperCase()} export failed`));
-  }
-
-  const blob = await response.blob();
   const fallbackFilename = format === "csv" ? "experiment-report.csv" : "experiment-report.xlsx";
-  const filename =
-    /filename=\"([^\"]+)\"/i.exec(response.headers.get("content-disposition") ?? "")?.[1] ??
-    fallbackFilename;
-  return { blob, filename };
+  return apiBlobRequest(`/api/v1/projects/${projectId}/report/${format}`, {
+    errorFallback: `${format.toUpperCase()} export failed`,
+    fallbackFilename
+  });
 }
 
 export async function loadProjectRequest(projectId: string): Promise<ProjectRecordResponse> {
-  const response = await fetch(apiUrl(`/api/v1/projects/${projectId}`), {
-    headers: buildHeaders()
+  return apiJsonRequest<ProjectRecordResponse>(`/api/v1/projects/${projectId}`, {
+    errorFallback: "Project load failed"
   });
-  const data = await readJson<ProjectRecordResponse & ApiErrorResponse>(response);
-
-  if (!response.ok) {
-    throw new Error(getErrorMessage(data, response, "Project load failed"));
-  }
-
-  return data;
 }
 
 export async function loadProjectHistoryRequest(
@@ -1018,16 +890,9 @@ export async function loadProjectHistoryRequest(
   const path = params.size > 0
     ? `/api/v1/projects/${projectId}/history?${params.toString()}`
     : `/api/v1/projects/${projectId}/history`;
-  const response = await fetch(apiUrl(path), {
-    headers: buildHeaders()
+  return apiJsonRequest<ProjectHistory>(path, {
+    errorFallback: "Project history load failed"
   });
-  const data = await readJson<ProjectHistory & ApiErrorResponse>(response);
-
-  if (!response.ok) {
-    throw new Error(getErrorMessage(data, response, "Project history load failed"));
-  }
-
-  return data;
 }
 
 export async function loadProjectRevisionsRequest(
@@ -1046,16 +911,9 @@ export async function loadProjectRevisionsRequest(
   const path = params.size > 0
     ? `/api/v1/projects/${projectId}/revisions?${params.toString()}`
     : `/api/v1/projects/${projectId}/revisions`;
-  const response = await fetch(apiUrl(path), {
-    headers: buildHeaders()
+  return apiJsonRequest<ProjectRevisionHistory>(path, {
+    errorFallback: "Project revision history load failed"
   });
-  const data = await readJson<ProjectRevisionHistory & ApiErrorResponse>(response);
-
-  if (!response.ok) {
-    throw new Error(getErrorMessage(data, response, "Project revision history load failed"));
-  }
-
-  return data;
 }
 
 export async function compareProjectsRequest(
@@ -1074,16 +932,9 @@ export async function compareProjectsRequest(
   if (candidateRunId) {
     params.set("candidate_run_id", candidateRunId);
   }
-  const response = await fetch(apiUrl(`/api/v1/projects/compare?${params.toString()}`), {
-    headers: buildHeaders()
+  return apiJsonRequest<ProjectComparison>(`/api/v1/projects/compare?${params.toString()}`, {
+    errorFallback: "Project comparison failed"
   });
-  const data = await readJson<ProjectComparison & ApiErrorResponse>(response);
-
-  if (!response.ok) {
-    throw new Error(getErrorMessage(data, response, "Project comparison failed"));
-  }
-
-  return data;
 }
 
 export async function compareMultipleProjectsRequest(
@@ -1098,98 +949,56 @@ export async function compareMultipleProjectsRequest(
     }
   }
   const path = params.size > 0 ? `/api/v1/projects/compare?${params.toString()}` : "/api/v1/projects/compare";
-  const response = await fetch(apiUrl(path), {
+  return apiJsonRequest<MultiProjectComparison>(path, {
     method: "POST",
-    headers: buildHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify({ project_ids: projectIds })
+    body: { project_ids: projectIds },
+    errorFallback: "Project comparison failed"
   });
-  const data = await readJson<MultiProjectComparison & ApiErrorResponse>(response);
-
-  if (!response.ok) {
-    throw new Error(getErrorMessage(data, response, "Project comparison failed"));
-  }
-
-  return data;
 }
 
 export async function exportComparisonRequest(
   projectIds: string[],
   format: "markdown" | "pdf"
 ): Promise<string> {
-  const response = await fetch(apiUrl("/api/v1/export/comparison"), {
+  const data = await apiJsonRequest<ExportResponse>("/api/v1/export/comparison", {
     method: "POST",
-    headers: buildHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify({ project_ids: projectIds, format })
+    body: { project_ids: projectIds, format },
+    errorFallback: "Comparison export failed"
   });
-  const data = await readJson<ExportResponse & ApiErrorResponse>(response);
-
-  if (!response.ok) {
-    throw new Error(getErrorMessage(data, response, "Comparison export failed"));
-  }
 
   return String(data.content ?? "");
 }
 
 export async function archiveProjectRequest(projectId: string): Promise<ArchiveProjectResponse> {
-  const response = await fetch(apiUrl(`/api/v1/projects/${projectId}/archive`), {
+  return apiJsonRequest<ArchiveProjectResponse>(`/api/v1/projects/${projectId}/archive`, {
     method: "POST",
-    headers: buildHeaders()
+    errorFallback: "Project archive failed"
   });
-  const data = await readJson<ArchiveProjectResponse & ApiErrorResponse>(response);
-
-  if (!response.ok) {
-    throw new Error(getErrorMessage(data, response, "Project archive failed"));
-  }
-
-  return data;
 }
 
 export async function deleteProjectRequest(projectId: string): Promise<DeleteProjectResponse> {
-  const response = await fetch(apiUrl(`/api/v1/projects/${projectId}`), {
+  return apiJsonRequest<DeleteProjectResponse>(`/api/v1/projects/${projectId}`, {
     method: "DELETE",
-    headers: buildHeaders()
+    errorFallback: "Project delete failed"
   });
-  const data = await readJson<DeleteProjectResponse & ApiErrorResponse>(response);
-
-  if (!response.ok) {
-    throw new Error(getErrorMessage(data, response, "Project delete failed"));
-  }
-
-  return data;
 }
 
 export async function restoreProjectRequest(projectId: string): Promise<ProjectRecordResponse> {
-  const response = await fetch(apiUrl(`/api/v1/projects/${projectId}/restore`), {
+  return apiJsonRequest<ProjectRecordResponse>(`/api/v1/projects/${projectId}/restore`, {
     method: "POST",
-    headers: buildHeaders()
+    errorFallback: "Project restore failed"
   });
-  const data = await readJson<ProjectRecordResponse & ApiErrorResponse>(response);
-
-  if (!response.ok) {
-    throw new Error(getErrorMessage(data, response, "Project restore failed"));
-  }
-
-  return data;
 }
 
 export async function recordProjectAnalysisRequest(
   projectId: string,
   analysis: AnalysisResponse
 ): Promise<ProjectRecordResponse> {
-  const response = await fetch(apiUrl(`/api/v1/projects/${projectId}/analysis`), {
+  return apiJsonRequest<ProjectRecordResponse>(`/api/v1/projects/${projectId}/analysis`, {
     method: "POST",
-    headers: buildHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify(analysis)
+    body: analysis,
+    errorFallback: "Project analysis snapshot update failed"
   });
-  const data = await readJson<ProjectRecordResponse & ApiErrorResponse>(response);
-
-  if (!response.ok) {
-    throw new Error(
-      getErrorMessage(data, response, "Project analysis snapshot update failed"),
-    );
-  }
-
-  return data;
 }
 
 export async function recordProjectExportRequest(
@@ -1197,33 +1006,19 @@ export async function recordProjectExportRequest(
   format: ExportFormat,
   analysisRunId: string | null = null
 ): Promise<ProjectRecordResponse> {
-  const response = await fetch(apiUrl(`/api/v1/projects/${projectId}/exports`), {
+  return apiJsonRequest<ProjectRecordResponse>(`/api/v1/projects/${projectId}/exports`, {
     method: "POST",
-    headers: buildHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify({ format, analysis_run_id: analysisRunId })
+    body: { format, analysis_run_id: analysisRunId },
+    errorFallback: "Project export metadata update failed"
   });
-  const data = await readJson<ProjectRecordResponse & ApiErrorResponse>(response);
-
-  if (!response.ok) {
-    throw new Error(
-      getErrorMessage(data, response, "Project export metadata update failed"),
-    );
-  }
-
-  return data;
 }
 
 export async function exportReportRequest(report: ReportResponse, format: ExportFormat): Promise<string> {
-  const response = await fetch(apiUrl(`/api/v1/export/${format}`), {
+  const data = await apiJsonRequest<ExportResponse>(`/api/v1/export/${format}`, {
     method: "POST",
-    headers: buildHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify(report)
+    body: report,
+    errorFallback: "Export failed"
   });
-  const data = await readJson<ExportResponse & ApiErrorResponse>(response);
-
-  if (!response.ok) {
-    throw new Error(getErrorMessage(data, response, "Export failed"));
-  }
 
   return String(data.content ?? "");
 }
