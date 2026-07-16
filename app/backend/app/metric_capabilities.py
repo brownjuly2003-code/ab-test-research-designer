@@ -120,7 +120,7 @@ def planning_capability(metric_type: str) -> PlanningCapability:
 def requires_std_dev_for_planning(metric_type: str) -> bool:
     if metric_type not in PLANNING_CAPABILITIES:
         return False
-    return PLANNING_CAPABILITIES[metric_type].requires_std_dev  # type: ignore[index]
+    return PLANNING_CAPABILITIES[metric_type].requires_std_dev
 
 
 def results_payload_kind(metric_type: str) -> ResultsPayloadKind:
