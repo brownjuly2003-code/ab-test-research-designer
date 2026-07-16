@@ -41,7 +41,7 @@ def resolve_language(header_value: str | None) -> Language:
     for _quality, locale in ranked_languages:
         primary = locale.split("-", 1)[0]
         if primary in SUPPORTED_LANGUAGES:
-            return primary  # type: ignore[return-value]
+            return primary
 
     return "en"
 
