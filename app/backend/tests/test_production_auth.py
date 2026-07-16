@@ -290,3 +290,33 @@ def test_production_write_token_mutates_and_readonly_token_is_forbidden(monkeypa
     assert readonly_list.status_code == 200
     assert anonymous_create.status_code == 401
     get_settings.cache_clear()
+
+
+def test_production_value_error_detail_is_generic(monkeypatch) -> None:
+    """Unexpected ValueErrors must not reflect internal text to production clients.
+
+    The webhook HTTPS rule raises a plain ValueError; in production the 400 body
+    carries a generic detail (the real message stays in the server log), while
+    local/demo keep the helpful validation text (see test_webhooks route tests).
+    """
+    db_path = _production_env(monkeypatch, AB_ADMIN_TOKEN=ADMIN_TOKEN)
+
+    with patch("app.backend.app.main.ProjectRepository", _production_repository_factory(db_path)):
+        with TestClient(create_app()) as client:
+            response = client.post(
+                "/api/v1/webhooks",
+                json={
+                    "name": "plain-http target",
+                    "target_url": "http://example.com/hook",
+                    "secret": "s3cret-value",
+                    "format": "generic",
+                    "scope": "global",
+                },
+                headers=_bearer(ADMIN_TOKEN),
+            )
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["detail"] == "Invalid value"
+    assert "HTTPS" not in str(body)
+    get_settings.cache_clear()
