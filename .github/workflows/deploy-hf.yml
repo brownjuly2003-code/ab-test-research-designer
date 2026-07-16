@@ -46,9 +46,11 @@ jobs:
           fi
 
       # Configure the Space runtime BEFORE uploading, so the rebuild starts with the public-demo
-      # posture: AB_PUBLIC_DEMO=true (guest read-only sessions, a plain variable — it is not a
-      # secret) and AB_API_TOKEN (the write token, a Space secret sourced from the repository
-      # secret of the same name). Both calls are idempotent — re-running overwrites in place.
+      # posture: AB_ENV=demo (a public host must not run the "local" dev posture — "local" is the
+      # only value that disables the webhook SSRF guard; audit 16.07 G-01), AB_PUBLIC_DEMO=true
+      # (guest read-only sessions, a plain variable — it is not a secret) and AB_API_TOKEN (the
+      # write token, a Space secret sourced from the repository secret of the same name). All
+      # calls are idempotent — re-running overwrites in place.
       # The secrets context is not available in step `if` expressions, so the presence check
       # happens inside the script via env.
       - name: Configure Space demo variables and write token
@@ -66,6 +68,9 @@ jobs:
 
           api = HfApi(token=os.environ["HF_TOKEN"])
           repo_id = "liovina/ab-test-research-designer"
+          # Same posture as fly.toml: demo keeps the SSRF guard and HTTPS-only
+          # webhook rule active without triggering production-only requirements.
+          api.add_space_variable(repo_id, "AB_ENV", "demo")
           api.add_space_variable(repo_id, "AB_PUBLIC_DEMO", "true")
           # Measured on 2026-07-09 via the diagnostics network echo (see docs/RUNBOOK.md,
           # "Running behind a reverse proxy"): HF appends exactly one entry to
@@ -74,7 +79,7 @@ jobs:
           # caller choose its own rate-limit bucket.
           api.add_space_variable(repo_id, "AB_TRUSTED_PROXY_HOPS", "1")
           api.add_space_secret(repo_id, "AB_API_TOKEN", os.environ["AB_API_TOKEN"])
-          print("Space configured: AB_PUBLIC_DEMO=true, AB_TRUSTED_PROXY_HOPS=1 (variables), AB_API_TOKEN (secret).")
+          print("Space configured: AB_ENV=demo, AB_PUBLIC_DEMO=true, AB_TRUSTED_PROXY_HOPS=1 (variables), AB_API_TOKEN (secret).")
           PY
 
       - name: Upload snapshot to HF Space and smoke /health
