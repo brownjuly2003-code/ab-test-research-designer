@@ -5,11 +5,13 @@ from typing import TYPE_CHECKING, Any
 from fastapi import APIRouter, Request, Response, status
 from pydantic import BaseModel
 
+from app.backend.app.http_runtime import build_runtime_summary
 from app.backend.app.http_utils import (
     AUTH_READ_ONLY_METHODS,
     get_auth_mode,
     resolve_client_identity,
 )
+from app.backend.app.redaction import mask_inline_credentials
 from app.backend.app.schemas.api import (
     DiagnosticsAuthSummary,
     DiagnosticsFrontendSummary,
@@ -18,7 +20,11 @@ from app.backend.app.schemas.api import (
     DiagnosticsLoggingSummary,
     DiagnosticsNetworkSummary,
     DiagnosticsResponse,
+    DiagnosticsRetentionSummary,
     DiagnosticsRuntimeSummary,
+    DiagnosticsStorageSummary,
+    DiagnosticsTopologySummary,
+    DiagnosticsWebhooksSummary,
     ReadinessCheck,
     ReadinessResponse,
 )
@@ -32,7 +38,18 @@ class HealthResponse(BaseModel):
     status: str
     service: str
     version: str
+    git_sha: str
     environment: str
+
+
+class RetentionPurgeRequest(BaseModel):
+    """Optional per-call retention overrides (days). ``None`` uses Settings."""
+
+    exposures_days: int | None = None
+    conversions_days: int | None = None
+    audit_days: int | None = None
+    webhook_deliveries_days: int | None = None
+    dry_run: bool = False
 
 
 def create_system_router(
@@ -51,6 +68,7 @@ def create_system_router(
             status="ok",
             service=settings.app_name,
             version=settings.app_version,
+            git_sha=settings.build_sha,
             environment=settings.environment,
         )
 
@@ -65,15 +83,25 @@ def create_system_router(
                     ReadinessCheck(
                         name="postgres_storage",
                         ok=True,
-                        detail=f"Database URL {storage_summary['db_path']}",
+                        detail="PostgreSQL reachable",
                     )
                 )
+                # storage_summary["schema_version"] is now READ from schema_migrations, so this
+                # compares the database's actual version against the one this build requires.
+                # It used to compare the code's constant with itself and could never fail.
+                applied_schema_version = storage_summary["schema_version"]
+                schema_current = applied_schema_version == repository.schema_version
                 checks.append(
                     ReadinessCheck(
                         name="postgres_schema_version",
-                        ok=storage_summary["schema_version"] == repository.schema_version,
+                        ok=schema_current,
                         detail=(
-                            f"schema_version={storage_summary['schema_version']} expected={repository.schema_version}"
+                            f"schema_version={applied_schema_version} expected={repository.schema_version}"
+                            if schema_current
+                            else (
+                                f"schema_version={applied_schema_version} expected={repository.schema_version} — "
+                                "pending migration: the database is not at the schema this build requires"
+                            )
                         ),
                     )
                 )
@@ -89,7 +117,7 @@ def create_system_router(
                     ReadinessCheck(
                         name="sqlite_storage",
                         ok=True,
-                        detail=f"Database path {storage_summary['db_path']}",
+                        detail="SQLite reachable",
                     )
                 )
                 checks.append(
@@ -120,7 +148,8 @@ def create_system_router(
                 ReadinessCheck(
                     name=f"{backend_name}_storage",
                     ok=False,
-                    detail=f"Storage diagnostics failed: {exc}",
+                    # A driver error can quote the connection string it failed on.
+                    detail=mask_inline_credentials(f"Storage diagnostics failed: {exc}"),
                 )
             )
         frontend_ready = (not settings.serve_frontend_dist) or frontend_index_path.exists()
@@ -131,7 +160,7 @@ def create_system_router(
                 detail=(
                     "Frontend dist serving disabled"
                     if not settings.serve_frontend_dist
-                    else f"Looking for {frontend_index_path}"
+                    else ("Frontend dist present" if frontend_ready else "Frontend dist missing")
                 ),
             )
         )
@@ -160,12 +189,34 @@ def create_system_router(
     @router.get("/api/v1/diagnostics", response_model=DiagnosticsResponse)
     def diagnostics(request: Request) -> DiagnosticsResponse:
         diagnostics_generated_at = datetime.now(UTC)
-        storage_summary = repository.get_diagnostics_summary()
+        storage_summary: dict[str, Any] = dict(repository.get_diagnostics_summary())
         api_keys_enabled = repository.has_api_keys()
         write_api_keys_enabled = repository.has_active_api_keys(scope="write")
         read_api_keys_enabled = repository.has_active_api_keys(scope="read")
         session_scope = getattr(request.state, "auth_scope", None)
         client_identity = resolve_client_identity(request, settings)
+
+        auth_configured = (
+            settings.api_token is not None
+            or settings.readonly_api_token is not None
+            or settings.admin_token is not None
+            or api_keys_enabled
+            or settings.public_demo
+        )
+        # Where the app stores its data, where it lives on disk and which networks it
+        # trusts are operator facts, not health facts. A read-scope session — which on
+        # the public demo is every anonymous visitor — gets none of them.
+        #
+        # The gate is the scope, not `admin_authenticated`: the admin token is only
+        # recognised on the admin-only paths (`/api/v1/keys`, `/api/v1/webhooks`, see
+        # http_runtime), so on this route it is never set. Whoever holds write scope
+        # owns the installation; with no auth configured at all the only caller is the
+        # owner on their own machine.
+        operator_detail_visible = session_scope in {"write", "admin"} or not auth_configured
+        if not operator_detail_visible:
+            for operator_only_field in ("db_path", "db_parent_path", "disk_free_bytes"):
+                storage_summary[operator_only_field] = None
+
         return DiagnosticsResponse(
             status="ok",
             generated_at=diagnostics_generated_at.isoformat(),
@@ -173,16 +224,17 @@ def create_system_router(
             uptime_seconds=round((diagnostics_generated_at - start_time).total_seconds(), 3),
             environment=settings.environment,
             app_version=settings.app_version,
+            app_git_sha=settings.build_sha,
             request_timing_headers_enabled=True,
-            storage=storage_summary,
+            storage=DiagnosticsStorageSummary.model_validate(storage_summary),
             frontend=DiagnosticsFrontendSummary(
                 serve_frontend_dist=settings.serve_frontend_dist,
-                dist_path=settings.frontend_dist_path,
+                dist_path=settings.frontend_dist_path if operator_detail_visible else None,
                 dist_exists=frontend_dist_path.exists(),
             ),
             llm=DiagnosticsLlmSummary(
                 provider="local_orchestrator",
-                base_url=settings.llm_base_url,
+                base_url=settings.llm_base_url if operator_detail_visible else None,
                 timeout_seconds=settings.llm_timeout_seconds,
                 max_attempts=settings.llm_max_attempts,
                 initial_backoff_seconds=settings.llm_initial_backoff_seconds,
@@ -193,10 +245,7 @@ def create_system_router(
                 format=settings.log_format,
             ),
             auth=DiagnosticsAuthSummary(
-                enabled=settings.api_token is not None
-                or settings.readonly_api_token is not None
-                or api_keys_enabled
-                or settings.public_demo,
+                enabled=auth_configured,
                 mode=get_auth_mode(settings.api_token, settings.readonly_api_token, api_keys_enabled),
                 write_enabled=settings.api_token is not None or write_api_keys_enabled,
                 readonly_enabled=settings.readonly_api_token is not None or read_api_keys_enabled,
@@ -225,11 +274,78 @@ def create_system_router(
                 direct_peer=client_identity.direct_peer,
                 forwarded_for_chain=list(client_identity.forwarded_chain),
                 trusted_proxy_hops=settings.trusted_proxy_hops,
-                trusted_proxies=list(settings.trusted_proxies),
+                trusted_proxies=list(settings.trusted_proxies) if operator_detail_visible else None,
                 resolved_client=client_identity.identifier,
                 resolved_from=client_identity.source,
             ),
-            runtime=DiagnosticsRuntimeSummary(**runtime_counters),
+            runtime=DiagnosticsRuntimeSummary(**build_runtime_summary(runtime_counters)),
+            webhooks=DiagnosticsWebhooksSummary(**repository.get_webhook_queue_stats()),
+            topology=DiagnosticsTopologySummary(),
+            retention=DiagnosticsRetentionSummary(
+                exposures_days=settings.retention_exposures_days,
+                conversions_days=settings.retention_conversions_days,
+                audit_days=settings.retention_audit_days,
+                webhook_deliveries_days=settings.retention_webhook_deliveries_days,
+                auto_purge_enabled=any(
+                    (
+                        settings.retention_exposures_days,
+                        settings.retention_conversions_days,
+                        settings.retention_audit_days,
+                        settings.retention_webhook_deliveries_days,
+                    )
+                ),
+            ),
         )
 
+    @router.post("/api/v1/admin/retention/purge")
+    def purge_retention(request: Request, body: RetentionPurgeRequest | None = None) -> dict[str, Any]:
+        """Admin-only retention purge (audit F-12).
+
+        When ``body`` is omitted, cutoffs are derived from ``AB_RETENTION_*_DAYS``.
+        A window of 0 days is a no-op for that table. ``dry_run=true`` counts only.
+        """
+        if not bool(getattr(request.state, "admin_authenticated", False)) and getattr(
+            request.state, "auth_scope", None
+        ) not in {"admin", "write"}:
+            # Mirror admin-gated surfaces: require write or admin when auth is on;
+            # open local installs without auth keep operator access.
+            auth_configured = (
+                settings.api_token is not None
+                or settings.readonly_api_token is not None
+                or settings.admin_token is not None
+                or repository.has_api_keys()
+                or settings.public_demo
+            )
+            if auth_configured:
+                from fastapi import HTTPException
+
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+
+        payload = body or RetentionPurgeRequest()
+        now = datetime.now(UTC)
+
+        def cutoff_for(days: int | None, configured: int) -> str | None:
+            window = configured if days is None else days
+            if window is None or window <= 0:
+                return None
+            from datetime import timedelta
+
+            return (now - timedelta(days=window)).isoformat()
+
+        counts = repository.purge_retention_data(
+            exposures_before=cutoff_for(payload.exposures_days, settings.retention_exposures_days),
+            conversions_before=cutoff_for(payload.conversions_days, settings.retention_conversions_days),
+            audit_before=cutoff_for(payload.audit_days, settings.retention_audit_days),
+            webhook_deliveries_before=cutoff_for(
+                payload.webhook_deliveries_days, settings.retention_webhook_deliveries_days
+            ),
+            dry_run=payload.dry_run,
+        )
+        return {
+            "dry_run": payload.dry_run,
+            "purged": counts,
+            "generated_at": now.isoformat(),
+        }
+
     return router
+

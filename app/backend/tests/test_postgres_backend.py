@@ -19,6 +19,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 from app.backend.app.config import get_settings
 from app.backend.app.main import create_app
 from app.backend.app.repository import ProjectRepository, create_backend
+from app.backend.app.repository._migrations import EXPECTED_POSTGRES_SCHEMA_VERSION, POSTGRES_MIGRATIONS
 
 
 def test_create_backend_uses_sqlite_backend_for_sqlite_urls() -> None:
@@ -744,4 +745,142 @@ def test_readyz_uses_postgres_checks_without_sqlite_regression(monkeypatch) -> N
     assert any(check["name"] == "postgres_storage" and check["ok"] is True for check in checks)
     assert any(check["name"] == "postgres_write_probe" and check["ok"] is True for check in checks)
     assert not any(check["name"] == "sqlite_journal_mode" for check in checks)
+    get_settings.cache_clear()
+
+
+# --- F-02: the PostgreSQL upgrade path -------------------------------------------------------
+#
+# `CREATE TABLE IF NOT EXISTS` is a no-op on a table that already exists, so `occurred_at`
+# (added to exposures/conversions on 2026-06-26; both tables created 2026-06-14) never reached
+# a database provisioned in that window. These drills prove the migration runner repairs such a
+# database without losing rows, and that readiness now refuses to serve one that is behind.
+
+
+def _legacy_database(connection_url: str) -> None:
+    """Rewind a current database to its pre-2026-06-26 shape, keeping the rows.
+
+    Building the old schema by hand would drift from the real one; rewinding the real schema
+    cannot. Dropping `schema_migrations` reproduces a database that predates the runner itself.
+    """
+    import psycopg
+
+    with psycopg.connect(connection_url, autocommit=True) as connection:
+        connection.execute("ALTER TABLE exposures DROP COLUMN occurred_at")
+        connection.execute("ALTER TABLE conversions DROP COLUMN occurred_at")
+        connection.execute("DROP TABLE IF EXISTS schema_migrations")
+
+
+def _seed_legacy_rows(connection_url: str, project_id: str) -> str:
+    import psycopg
+
+    created_at = "2026-06-20T10:00:00+00:00"
+    with psycopg.connect(connection_url, autocommit=True) as connection:
+        connection.execute(
+            "INSERT INTO exposures (id, experiment_id, user_id, variation_index, created_at) "
+            "VALUES (%s, %s, %s, %s, %s)",
+            ("exposure-legacy", project_id, "user-1", 1, created_at),
+        )
+        connection.execute(
+            "INSERT INTO conversions (id, experiment_id, user_id, metric, value, created_at) "
+            "VALUES (%s, %s, %s, %s, %s, %s)",
+            ("conversion-legacy", project_id, "user-1", "purchase", 1.0, created_at),
+        )
+    return created_at
+
+
+def test_postgres_migrates_a_legacy_database_without_losing_data() -> None:
+    if PostgresContainer is None:
+        pytest.fail("testcontainers is required for Postgres backend tests")
+    _require_docker()
+
+    import psycopg
+
+    with PostgresContainer("postgres:16-alpine") as postgres:
+        url = _postgres_url(postgres)
+
+        repository = ProjectRepository(url, pool_size=2)
+        project = repository.create_project(_payload("Legacy project", "binary"))
+        repository.close()
+
+        _legacy_database(url)
+        created_at = _seed_legacy_rows(url, project["id"])
+
+        # The upgrade: a current build opening an old database.
+        migrated = ProjectRepository(url, pool_size=2)
+
+        with psycopg.connect(url, autocommit=True) as connection:
+            exposure = connection.execute(
+                "SELECT occurred_at, created_at FROM exposures WHERE id = 'exposure-legacy'"
+            ).fetchone()
+            conversion = connection.execute(
+                "SELECT occurred_at, created_at FROM conversions WHERE id = 'conversion-legacy'"
+            ).fetchone()
+            nullability = connection.execute(
+                "SELECT is_nullable FROM information_schema.columns "
+                "WHERE table_name = 'exposures' AND column_name = 'occurred_at'"
+            ).fetchone()
+            recorded_version = connection.execute("SELECT MAX(version) FROM schema_migrations").fetchone()
+
+        # The column is back, backfilled from created_at — and the rows are still there.
+        assert exposure == (created_at, created_at)
+        assert conversion == (created_at, created_at)
+        assert nullability == ("NO",)
+        assert recorded_version == (EXPECTED_POSTGRES_SCHEMA_VERSION,)
+        assert migrated.get_project(project["id"])["project_name"] == "Legacy project"
+        assert migrated.read_applied_schema_version() == EXPECTED_POSTGRES_SCHEMA_VERSION
+
+        migrated.close()
+
+
+def test_postgres_migrations_are_idempotent_across_restarts() -> None:
+    if PostgresContainer is None:
+        pytest.fail("testcontainers is required for Postgres backend tests")
+    _require_docker()
+
+    import psycopg
+
+    with PostgresContainer("postgres:16-alpine") as postgres:
+        url = _postgres_url(postgres)
+
+        for _ in range(3):
+            repository = ProjectRepository(url, pool_size=2)
+            repository.close()
+
+        with psycopg.connect(url, autocommit=True) as connection:
+            rows = connection.execute("SELECT version FROM schema_migrations ORDER BY version").fetchall()
+
+        # Restarting must not re-apply or duplicate a migration.
+        assert rows == [(migration.version,) for migration in POSTGRES_MIGRATIONS]
+
+
+def test_readyz_reports_503_when_the_database_is_behind_the_expected_schema(monkeypatch) -> None:
+    """The check that used to compare a constant with itself must now catch a real drift."""
+    if PostgresContainer is None:
+        pytest.fail("testcontainers is required for Postgres backend tests")
+    _require_docker()
+
+    import psycopg
+
+    with PostgresContainer("postgres:16-alpine") as postgres:
+        url = _postgres_url(postgres)
+        monkeypatch.setenv("AB_DATABASE_URL", url)
+        monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")
+        get_settings.cache_clear()
+
+        client = TestClient(create_app())
+
+        healthy = client.get("/readyz")
+        assert healthy.status_code == 200
+
+        # Simulate a deploy whose migration never ran: the code expects N, the database is at 0.
+        with psycopg.connect(url, autocommit=True) as connection:
+            connection.execute("DELETE FROM schema_migrations")
+
+        degraded = client.get("/readyz")
+
+        assert degraded.status_code == 503
+        checks = {check["name"]: check for check in degraded.json()["checks"]}
+        assert checks["postgres_schema_version"]["ok"] is False
+        assert "pending migration" in checks["postgres_schema_version"]["detail"]
+
     get_settings.cache_clear()

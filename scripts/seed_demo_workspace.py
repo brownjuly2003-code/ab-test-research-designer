@@ -38,10 +38,18 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    write_token = (os.getenv("AB_API_TOKEN") or "").strip()
+    # Prefer the write API token; fall back to admin (smoke always sets AB_ADMIN_TOKEN so
+    # auth is closed even when AB_API_TOKEN is empty — see F-03 admin counts for auth_enabled).
+    write_token = (
+        (os.getenv("AB_API_TOKEN") or "").strip()
+        or (os.getenv("AB_ADMIN_TOKEN") or "").strip()
+    )
     readonly_token = (os.getenv("AB_READONLY_API_TOKEN") or "").strip()
     if readonly_token and not write_token:
-        print("AB_API_TOKEN is required to seed the workspace when readonly auth is enabled.", file=sys.stderr)
+        print(
+            "AB_API_TOKEN or AB_ADMIN_TOKEN is required to seed the workspace when readonly auth is enabled.",
+            file=sys.stderr,
+        )
         return 2
 
     headers = {"Authorization": f"Bearer {write_token}"} if write_token else {}

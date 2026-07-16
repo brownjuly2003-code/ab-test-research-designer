@@ -1,12 +1,30 @@
+"""Durable webhook delivery (audit F-09).
+
+Deliveries are an outbox: ``log_audit_entry`` commits pending rows together with the
+audit event, and a single worker thread claims due rows under a database lease,
+attempts each once, and reschedules failures via ``next_attempt_at``. Retries
+therefore survive process restarts, and replicas never race the same row.
+
+Targets are refused when they resolve to a non-public address (SSRF guard) and
+response bodies are read from the network up to a fixed cap. The resolve-then-check
+leaves a DNS-rebinding window (a hostile resolver could answer differently on the
+delivery connection); closing it needs a pinned-address transport, deliberately out
+of scope here.
+"""
+
 from __future__ import annotations
 
 import hashlib
 import hmac
+import ipaddress
 import json
-import time
+import logging
+import socket
+import threading
 from collections.abc import Callable
-from concurrent.futures import ThreadPoolExecutor
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
+from urllib.parse import urlparse
 
 import httpx
 
@@ -15,9 +33,21 @@ from app.backend.app.errors import ApiError
 if TYPE_CHECKING:
     from app.backend.app.repository import ProjectRepository
 
+logger = logging.getLogger(__name__)
+
+
+def _default_resolver(host: str) -> list[str]:
+    infos = socket.getaddrinfo(host, None, proto=socket.IPPROTO_TCP)
+    return [str(info[4][0]) for info in infos]
+
 
 class WebhookService:
     retry_schedule_seconds = (1, 5, 30, 300, 1800)
+    max_attempts = 5
+    response_body_cap_bytes = 65536
+    lease_seconds = 60.0
+    poll_interval_seconds = 1.0
+    claim_batch_size = 10
 
     def __init__(
         self,
@@ -25,46 +55,210 @@ class WebhookService:
         *,
         environment: str,
         client: httpx.Client | None = None,
-        sleep: Callable[[float], None] = time.sleep,
-        executor: ThreadPoolExecutor | None = None,
+        clock: Callable[[], datetime] | None = None,
+        resolver: Callable[[str], list[str]] | None = None,
     ) -> None:
         self.repository = repository
         self.environment = environment
-        self.sleep = sleep
+        self.clock = clock or (lambda: datetime.now(UTC))
+        self.resolver = resolver or _default_resolver
         self.client = client or httpx.Client(timeout=10.0, follow_redirects=False)
-        self.executor = executor or ThreadPoolExecutor(max_workers=4, thread_name_prefix="webhooks")
         self._owns_client = client is None
-        self._owns_executor = executor is None
         self._closed = False
+        self._wake = threading.Event()
+        self._stop = threading.Event()
+        self._worker: threading.Thread | None = None
+
+    # -- worker lifecycle ---------------------------------------------------
+
+    def start_worker(self) -> None:
+        """Start the outbox worker; also drains rows left over from a previous run."""
+        if self._worker is not None or self._closed:
+            return
+        self._worker = threading.Thread(target=self._worker_loop, name="webhook-outbox", daemon=True)
+        self._worker.start()
+
+    def notify_enqueued(self) -> None:
+        """Called after an enqueue commits; wakes the worker without polling delay."""
+        self._wake.set()
 
     def shutdown(self, *, wait: bool = True) -> None:
         self._closed = True
+        self._stop.set()
+        self._wake.set()
+        if self._worker is not None and wait:
+            self._worker.join(timeout=30.0)
+        self._worker = None
         if self._owns_client:
             self.client.close()
-        if self._owns_executor:
-            self.executor.shutdown(wait=wait)
 
-    def dispatch_audit_event(self, audit_event: dict[str, Any]) -> None:
-        if self._closed:
-            return
-        self.executor.submit(self.process_audit_event, dict(audit_event))
+    def _worker_loop(self) -> None:
+        while not self._stop.is_set():
+            try:
+                processed = self.run_due_deliveries()
+            except Exception:
+                logger.exception("webhooks: worker pass failed")
+                processed = 0
+            if processed and not self._stop.is_set():
+                continue
+            self._wake.wait(timeout=self.poll_interval_seconds)
+            self._wake.clear()
 
-    def process_audit_event(self, audit_event: dict[str, Any]) -> None:
-        subscriptions = self.repository.list_matching_webhook_subscriptions(
-            event_type=str(audit_event["action"]),
-            key_id=audit_event.get("key_id"),
+    # -- delivery -----------------------------------------------------------
+
+    def run_due_deliveries(self, *, limit: int | None = None) -> int:
+        """Claim due outbox rows and attempt each once. Returns rows processed.
+
+        The worker loop calls this repeatedly; tests call it directly with an
+        injected clock, so retry schedules are asserted without real sleeps.
+        """
+        now = self.clock()
+        claimed = self.repository.claim_due_webhook_deliveries(
+            now=now.isoformat(),
+            lease_expires_at=(now + timedelta(seconds=self.lease_seconds)).isoformat(),
+            limit=limit if limit is not None else self.claim_batch_size,
         )
-        for subscription in subscriptions:
-            delivery = self.repository.create_webhook_delivery(
-                subscription_id=subscription["id"],
-                event_id=int(audit_event["id"]),
+        for delivery in claimed:
+            self._attempt_claimed_delivery(delivery)
+        return len(claimed)
+
+    def _attempt_claimed_delivery(self, delivery: dict[str, Any]) -> None:
+        subscription = self.repository.get_webhook_subscription(
+            str(delivery["subscription_id"]), include_secret=True
+        )
+        if subscription is None or not subscription.get("enabled", True):
+            self._record_outcome(
+                delivery,
+                final=True,
+                error_message="Webhook subscription missing or disabled",
             )
-            self._deliver_with_retry(
-                subscription,
-                audit_event,
-                delivery_id=delivery["id"],
-                max_attempts=len(self.retry_schedule_seconds),
-            )
+            return
+        event = self.repository.get_audit_entry(int(delivery["event_id"]))
+        if event is None:
+            self._record_outcome(delivery, final=True, error_message="Audit event no longer exists")
+            return
+        self._attempt_once(subscription, event, delivery, final=False)
+
+    def _attempt_once(
+        self,
+        subscription: dict[str, Any],
+        audit_event: dict[str, Any],
+        delivery: dict[str, Any],
+        *,
+        final: bool,
+    ) -> None:
+        """One HTTP attempt; records the outcome. ``final`` forbids rescheduling."""
+        target_url = str(subscription["target_url"])
+        blocked_reason = self._target_blocked_reason(target_url)
+        if blocked_reason is not None:
+            # A private target does not become public by waiting: fail, no retry.
+            self._record_outcome(delivery, final=True, error_message=blocked_reason)
+            return
+
+        body = self._build_body(subscription, audit_event)
+        headers = self._build_headers(subscription, body)
+        try:
+            status_code, response_body = self._post_with_cap(target_url, body, headers)
+        except httpx.HTTPError as exc:
+            self._record_outcome(delivery, final=final, error_message=str(exc))
+            return
+
+        if 200 <= status_code < 300:
+            self._record_outcome(delivery, delivered=True, response_code=status_code, response_body=response_body)
+            return
+        self._record_outcome(
+            delivery,
+            # 4xx is a permanent answer from the receiver; only 5xx reschedules.
+            final=final or status_code < 500,
+            response_code=status_code,
+            response_body=response_body,
+            error_message=f"HTTP {status_code}",
+        )
+
+    def _post_with_cap(self, url: str, body: str, headers: dict[str, str]) -> tuple[int, str]:
+        """POST and read at most ``response_body_cap_bytes`` off the wire.
+
+        ``response.text`` would buffer an arbitrarily large hostile response in
+        memory before the storage-side truncation ever ran; streaming caps the read
+        itself.
+        """
+        request = self.client.build_request("POST", url, content=body, headers=headers)
+        response = self.client.send(request, stream=True)
+        raw = b""
+        truncated = False
+        try:
+            for chunk in response.iter_bytes():
+                raw += chunk
+                if len(raw) > self.response_body_cap_bytes:
+                    raw = raw[: self.response_body_cap_bytes]
+                    truncated = True
+                    break
+        finally:
+            response.close()
+        text = raw.decode("utf-8", errors="replace")
+        if truncated:
+            text += f" …[truncated at {self.response_body_cap_bytes} bytes]"
+        return int(response.status_code), text
+
+    def _record_outcome(
+        self,
+        delivery: dict[str, Any],
+        *,
+        delivered: bool = False,
+        final: bool = False,
+        response_code: int | None = None,
+        response_body: str | None = None,
+        error_message: str | None = None,
+    ) -> None:
+        attempt_number = int(delivery["attempt_count"]) + 1
+        if delivered:
+            status = "delivered"
+            next_attempt_at = None
+        elif final or attempt_number >= self.max_attempts:
+            status = "failed"
+            next_attempt_at = None
+        else:
+            status = "retrying"
+            delay = self.retry_schedule_seconds[min(attempt_number - 1, len(self.retry_schedule_seconds) - 1)]
+            next_attempt_at = (self.clock() + timedelta(seconds=delay)).isoformat()
+        self.repository.update_webhook_delivery(
+            str(delivery["id"]),
+            subscription_id=str(delivery["subscription_id"]),
+            status=status,
+            response_code=response_code,
+            response_body=response_body,
+            error_message=error_message,
+            next_attempt_at=next_attempt_at,
+        )
+
+    # -- SSRF guard -----------------------------------------------------------
+
+    def _target_blocked_reason(self, url: str) -> str | None:
+        """Non-None means the target must never be contacted (resolves non-public).
+
+        AB_ENV=local is exempt: developers deliver to local receivers, and the
+        create-time rule already restricts non-HTTPS targets to localhost there.
+        DNS failures return None — the HTTP attempt fails and retries normally.
+        """
+        host = urlparse(url).hostname
+        if not host:
+            return "Webhook target URL has no host"
+        if self.environment == "local":
+            return None
+        addresses: list[ipaddress.IPv4Address | ipaddress.IPv6Address]
+        try:
+            addresses = [ipaddress.ip_address(host)]
+        except ValueError:
+            try:
+                addresses = [ipaddress.ip_address(item) for item in self.resolver(host)]
+            except (OSError, ValueError):
+                return None
+        for address in addresses:
+            if not address.is_global:
+                return f"Webhook target resolves to a non-public address ({address}); delivery refused"
+        return None
+
+    # -- test event -----------------------------------------------------------
 
     def send_test_event(
         self,
@@ -88,12 +282,16 @@ class WebhookService:
             project_name=None,
             dispatch_webhooks=False,
         )
+        # next_attempt_at stays NULL so the worker can never claim this row: the
+        # test attempt is synchronous, single-shot, and owned by this call.
         delivery = self.repository.create_webhook_delivery(
-            subscription_id=subscription["id"],
+            subscription_id=str(subscription["id"]),
             event_id=int(audit_event["id"]),
+            next_attempt_at=None,
+            enqueue=False,
         )
-        self._deliver_with_retry(subscription, audit_event, delivery_id=delivery["id"], max_attempts=1)
-        refreshed = self.repository.get_webhook_delivery(delivery["id"])
+        self._attempt_once(subscription, audit_event, delivery, final=True)
+        refreshed = self.repository.get_webhook_delivery(str(delivery["id"]))
         if refreshed is None:
             raise ApiError("Webhook delivery not found", error_code="webhook_delivery_not_found", status_code=404)
         return {
@@ -102,62 +300,7 @@ class WebhookService:
             "response_code": refreshed["response_code"],
         }
 
-    def _deliver_with_retry(
-        self,
-        subscription: dict[str, Any],
-        audit_event: dict[str, Any],
-        *,
-        delivery_id: str,
-        max_attempts: int,
-    ) -> None:
-        for attempt_index in range(max_attempts):
-            body = self._build_body(subscription, audit_event)
-            headers = self._build_headers(subscription, body)
-
-            try:
-                response = self.client.post(
-                    str(subscription["target_url"]),
-                    content=body,
-                    headers=headers,
-                )
-            except httpx.HTTPError as exc:
-                should_retry = attempt_index < max_attempts - 1
-                self.repository.update_webhook_delivery(
-                    delivery_id,
-                    subscription_id=subscription["id"],
-                    status="retrying" if should_retry else "failed",
-                    error_message=str(exc),
-                )
-                if should_retry:
-                    self.sleep(self.retry_schedule_seconds[attempt_index])
-                    continue
-                return
-
-            status_code = int(response.status_code)
-            response_body = response.text
-            if 200 <= status_code < 300:
-                self.repository.update_webhook_delivery(
-                    delivery_id,
-                    subscription_id=subscription["id"],
-                    status="delivered",
-                    response_code=status_code,
-                    response_body=response_body,
-                )
-                return
-
-            should_retry = status_code >= 500 and attempt_index < max_attempts - 1
-            self.repository.update_webhook_delivery(
-                delivery_id,
-                subscription_id=subscription["id"],
-                status="retrying" if should_retry else "failed",
-                response_code=status_code,
-                response_body=response_body,
-                error_message=f"HTTP {status_code}",
-            )
-            if should_retry:
-                self.sleep(self.retry_schedule_seconds[attempt_index])
-                continue
-            return
+    # -- payload building -----------------------------------------------------
 
     def _build_headers(self, subscription: dict[str, Any], body: str) -> dict[str, str]:
         headers = {

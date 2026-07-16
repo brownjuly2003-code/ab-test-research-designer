@@ -32,7 +32,7 @@ jobs:
           cache-dependency-path: app/frontend/package-lock.json
 
       - name: Install backend dependencies
-        run: python -m pip install -r app/backend/requirements.txt
+        run: python -m pip install -r app/backend/requirements-dev.txt
 
       - name: Install frontend dependencies
         run: npm --prefix app/frontend ci
@@ -57,7 +57,9 @@ jobs:
             .ci-artifacts/backend-junit.xml
             .ci-artifacts/frontend-junit.xml
             .ci-artifacts/coverage-backend.json
-          if-no-files-found: warn
+          # A missing artifact means the badge would silently drop a whole test
+          # suite (audit F-06), so absence is an error, not a warning.
+          if-no-files-found: error
 
       - name: Upload smoke failure dump
         if: failure() && matrix.os == 'ubuntu-latest'
@@ -122,11 +124,31 @@ jobs:
         with:
           python-version: "3.13"
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
       - name: Install pip-audit
         run: python -m pip install pip-audit==2.10.0
 
+      # requirements-dev.txt includes -r requirements.txt, so this covers the
+      # runtime set and the toolchain in one pass.
       - name: Audit backend dependencies for known CVEs
-        run: python -m pip_audit -r app/backend/requirements.txt --progress-spinner off
+        run: python -m pip_audit -r app/backend/requirements-dev.txt --progress-spinner off
+
+      # Both npm package roots are gated, not just Python. `npm audit` resolves the tree from
+      # the committed lockfile, so no `npm ci` is needed here. --audit-level=high fails the job
+      # on any high/critical advisory; lower severities are reported but do not block.
+      # Use working-directory, not `npm --prefix`: with no node_modules present, --prefix drops
+      # npm into a full registry tree resolution that takes minutes, while running inside the
+      # package root reads the lockfile directly and finishes in seconds.
+      - name: Audit frontend npm dependencies for known CVEs
+        working-directory: app/frontend
+        run: npm audit --audit-level=high
+
+      - name: Audit docs-site npm dependencies for known CVEs
+        working-directory: docs-site
+        run: npm audit --audit-level=high
 
   verify-postgres:
     runs-on: ubuntu-latest
@@ -156,7 +178,7 @@ jobs:
           python-version: "3.13"
 
       - name: Install backend dependencies
-        run: python -m pip install -r app/backend/requirements.txt
+        run: python -m pip install -r app/backend/requirements-dev.txt
 
       - name: Run Postgres backend smoke tests
         run: python -m pytest -p no:schemathesis app/backend/tests/test_postgres_backend.py -q
@@ -195,6 +217,7 @@ jobs:
           cache: "npm"
           cache-dependency-path: app/frontend/package-lock.json
 
+      # Lighthouse only needs to serve the app: the runtime set is enough.
       - name: Install backend dependencies
         run: python -m pip install -r app/backend/requirements.txt
 
@@ -221,8 +244,15 @@ jobs:
 
   update-metrics-badges:
     runs-on: ubuntu-latest
+    # Badges must reflect the whole gate, not just verify+lighthouse: a red
+    # docker/postgres/audit job must block the bot commit too (audit F-06).
     needs:
       - verify
+      - locale-content
+      - repo-hygiene
+      - dependency-audit
+      - verify-postgres
+      - docker
       - lighthouse
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     permissions:
@@ -233,12 +263,10 @@ jobs:
         with:
           fetch-depth: 0
 
+      # collect_badge_metrics.py is stdlib-only: no backend install needed here.
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-
-      - name: Install backend dependencies
-        run: python -m pip install -r app/backend/requirements.txt
 
       - name: Download verify metrics artifact
         uses: actions/download-artifact@v4
@@ -255,6 +283,7 @@ jobs:
       - name: Refresh badge payloads
         run: >
           python scripts/collect_badge_metrics.py
+          --strict
           --coverage .badge-inputs/coverage-backend.json
           --lighthouse .badge-inputs/lighthouseci/manifest.json
           --test-results .badge-inputs/backend-junit.xml

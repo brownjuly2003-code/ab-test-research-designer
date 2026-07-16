@@ -346,7 +346,7 @@ export type DiagnosticsAuthSummary = {
 
 export type DiagnosticsFrontendSummary = {
   serve_frontend_dist: boolean;
-  dist_path: string;
+  dist_path?: string | null;
   dist_exists: boolean;
 };
 
@@ -363,7 +363,7 @@ export type DiagnosticsGuardsSummary = {
 
 export type DiagnosticsLlmSummary = {
   provider: string;
-  base_url: string;
+  base_url?: string | null;
   timeout_seconds: number;
   max_attempts: number;
   initial_backoff_seconds: number;
@@ -379,7 +379,7 @@ export type DiagnosticsNetworkSummary = {
   direct_peer: string | null;
   forwarded_for_chain: string[];
   trusted_proxy_hops: number;
-  trusted_proxies: string[];
+  trusted_proxies?: string[] | null;
   resolved_client: string;
   resolved_from: "forwarded_header" | "direct_peer";
 };
@@ -391,6 +391,7 @@ export type DiagnosticsResponse = {
   uptime_seconds: number;
   environment: string;
   app_version: string;
+  app_git_sha: string;
   request_timing_headers_enabled: boolean;
   storage: DiagnosticsStorageSummary;
   frontend: DiagnosticsFrontendSummary;
@@ -400,6 +401,18 @@ export type DiagnosticsResponse = {
   guards: DiagnosticsGuardsSummary;
   network: DiagnosticsNetworkSummary;
   runtime: DiagnosticsRuntimeSummary;
+  webhooks: DiagnosticsWebhooksSummary;
+  topology: DiagnosticsTopologySummary;
+  retention: DiagnosticsRetentionSummary;
+};
+
+export type DiagnosticsRetentionSummary = {
+  exposures_days?: number;
+  conversions_days?: number;
+  audit_days?: number;
+  webhook_deliveries_days?: number;
+  auto_purge_enabled?: boolean;
+  notes?: string;
 };
 
 export type DiagnosticsRuntimeSummary = {
@@ -413,14 +426,18 @@ export type DiagnosticsRuntimeSummary = {
   last_request_at?: string | null;
   last_error_at?: string | null;
   last_error_code?: string | null;
+  process_time_ms_count?: number;
+  process_time_ms_avg?: number | null;
+  process_time_ms_max?: number | null;
+  error_rate?: number;
 };
 
 export type DiagnosticsStorageSummary = {
-  db_path: string;
-  db_parent_path: string;
+  db_path?: string | null;
+  db_parent_path?: string | null;
+  disk_free_bytes?: number | null;
   db_exists: boolean;
   db_size_bytes: number;
-  disk_free_bytes: number;
   schema_version: number;
   sqlite_user_version: number;
   busy_timeout_ms: number;
@@ -436,6 +453,21 @@ export type DiagnosticsStorageSummary = {
   workspace_bundle_schema_version: number;
   workspace_signature_enabled: boolean;
   latest_project_updated_at?: string | null;
+};
+
+export type DiagnosticsTopologySummary = {
+  supported?: string;
+  rate_limit_state?: string;
+  runtime_counters_scope?: string;
+  notes?: string;
+};
+
+export type DiagnosticsWebhooksSummary = {
+  pending: number;
+  retrying: number;
+  delivered: number;
+  failed: number;
+  oldest_due_age_seconds?: number | null;
 };
 
 export type ExclusionEvent = {
@@ -600,6 +632,7 @@ export type HealthResponse = {
   status: string;
   service: string;
   version: string;
+  git_sha: string;
   environment: string;
 };
 
@@ -1193,7 +1226,7 @@ export type ProjectListItem = {
   id: string;
   project_name: string;
   hypothesis?: string | null;
-  metric_type?: ("binary" | "continuous" | "ratio") | null;
+  metric_type?: ("binary" | "continuous" | "ratio" | "count") | null;
   duration_days?: number | null;
   payload_schema_version: number;
   archived_at?: string | null;
@@ -1311,6 +1344,14 @@ export type ResultsResponse = {
   effect_size_label?: string | null;
   effect_size_ci_lower?: number | null;
   effect_size_ci_upper?: number | null;
+};
+
+export type RetentionPurgeRequest = {
+  exposures_days?: number | null;
+  conversions_days?: number | null;
+  audit_days?: number | null;
+  webhook_deliveries_days?: number | null;
+  dry_run?: boolean;
 };
 
 export type RisksSection = {
@@ -1526,6 +1567,8 @@ export type WebhookDeliveryRecord = {
   response_code?: number | null;
   response_body?: string | null;
   error_message?: string | null;
+  next_attempt_at?: string | null;
+  lease_expires_at?: string | null;
 };
 
 export type WebhookListResponse = {

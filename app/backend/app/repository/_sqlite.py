@@ -11,6 +11,7 @@ from app.backend.app.repository._diagnostics import _DiagnosticsMixin
 from app.backend.app.repository._execution import _ExecutionMixin
 from app.backend.app.repository._history import _HistoryMixin
 from app.backend.app.repository._projects import _ProjectsMixin
+from app.backend.app.repository._retention import _RetentionMixin
 from app.backend.app.repository._slack import _SlackMixin
 from app.backend.app.repository._templates import _TemplatesMixin
 from app.backend.app.repository._webhooks import _WebhooksMixin
@@ -22,11 +23,14 @@ class SQLiteBackend(
     _HistoryMixin,
     _TemplatesMixin,
     _ApiKeysMixin,
+    # _AuditMixin inherits _WebhooksMixin (transactional outbox enqueue), so the
+    # subclass must precede its base here or the MRO cannot linearize.
+    _AuditMixin,
     _WebhooksMixin,
     _SlackMixin,
-    _AuditMixin,
     _WorkspaceMixin,
     _DiagnosticsMixin,
+    _RetentionMixin,
     _ExecutionMixin,
     _BackendCore,
 ):

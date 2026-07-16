@@ -4,6 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from app.backend.app.constants import MetricType
 from app.backend.app.schemas.api._calculation import (
     CalculationResponse,
     SensitivityResponse,
@@ -196,7 +197,7 @@ class ProjectListItem(BaseModel):
     id: str
     project_name: str
     hypothesis: str | None = None
-    metric_type: Literal["binary", "continuous", "ratio"] | None = None
+    metric_type: MetricType | None = None
     duration_days: int | None = None
     payload_schema_version: int
     archived_at: str | None = None

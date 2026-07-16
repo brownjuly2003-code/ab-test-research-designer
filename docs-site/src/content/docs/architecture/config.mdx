@@ -7,7 +7,7 @@ import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
 
 <CardGrid>
   <Card title="Environment variables" icon="document">
-    44
+    49
   </Card>
   <Card title="Slack manifest" icon="puzzle">
     present
@@ -24,19 +24,24 @@ import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
 | Variable | Group | Default or source |
 | --- | --- | --- |
 | `AB_ADMIN_TOKEN` | Auth | `None` |
+| `AB_ALLOW_INSECURE_PRODUCTION` | Application | `False` |
 | `AB_API_TOKEN` | Auth | `None` |
 | `AB_APP_NAME` | Application | `AB Test Research Designer API` |
 | `AB_APP_VERSION` | Application | `1.1.0` |
 | `AB_AUTH_FAILURE_LIMIT` | Runtime guard | `20` |
 | `AB_AUTH_FAILURE_WINDOW_SECONDS` | Runtime guard | `60` |
+| `AB_BUILD_SHA` | Application | `None` |
 | `AB_CORS_HEADERS` | HTTP | `DEFAULT_CORS_HEADERS` |
 | `AB_CORS_METHODS` | HTTP | `DEFAULT_CORS_METHODS` |
-| `AB_CORS_ORIGINS` | HTTP | `("http://127.0.0.1:5173", "http://localhost:5173` |
+| `AB_CORS_ORIGINS` | HTTP | `("http://127.0.0.1:5173", "http://localhost:5173")` |
 | `AB_DATABASE_URL` | Data store | `None` |
 | `AB_DB_PATH` | Data store | `str(default_db_path` |
 | `AB_DB_POOL_SIZE` | Data store | `10` |
 | `AB_ENV` | Application | `local` |
 | `AB_FRONTEND_DIST_PATH` | Application | `str(default_frontend_dist_path` |
+| `AB_HF_SNAPSHOT_INTERVAL_SECONDS` | Snapshot and seed | `None` |
+| `AB_HF_SNAPSHOT_REPO` | Snapshot and seed | `None` |
+| `AB_HF_TOKEN` | Auth | `None` |
 | `AB_HOST` | HTTP | `127.0.0.1` |
 | `AB_LLM_BACKOFF_MULTIPLIER` | LLM | `2.0` |
 | `AB_LLM_BASE_URL` | LLM | `http://localhost:8001` |
@@ -64,7 +69,7 @@ import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
 | `AB_SQLITE_BUSY_TIMEOUT_MS` | Data store | `5000` |
 | `AB_SQLITE_JOURNAL_MODE` | Data store | `WAL` |
 | `AB_SQLITE_SYNCHRONOUS` | Data store | `NORMAL` |
-| `AB_TRUSTED_PROXIES` | Application | `(` |
+| `AB_TRUSTED_PROXIES` | Application | `empty` |
 | `AB_TRUSTED_PROXY_HOPS` | Application | `0` |
 | `AB_WORKSPACE_SIGNING_KEY` | Auth | `None` |
 
@@ -88,5 +93,5 @@ import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
 </div>
 
 <Aside type="tip" title="Source">
-  Generated from <code>app/backend/app/config.py</code> and <code>slack/app-manifest.yml</code>. The build reads text files only and does not import the backend.
+  Generated from <code>app/backend/app/config.py</code>, <code>app/backend/app/main.py</code> and <code>slack/app-manifest.yml</code>. The build reads text files only and does not import the backend.
 </Aside>

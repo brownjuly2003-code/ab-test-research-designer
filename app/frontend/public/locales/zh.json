@@ -1286,7 +1286,8 @@
       "all": "全部",
       "binary": "二进制",
       "continuous": "连续的",
-      "ratio": "比率"
+      "ratio": "比率",
+      "count": "计数"
     },
     "sortLabel": "种类",
     "sort": {

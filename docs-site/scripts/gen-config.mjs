@@ -6,23 +6,33 @@ import { parse } from 'yaml';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = join(__dirname, '..', '..');
-const CONFIG_FILE = join(PROJECT_ROOT, 'app', 'backend', 'app', 'config.py');
+// main.py reads the HF snapshot vars directly (AB_HF_SNAPSHOT_REPO etc.),
+// so the matrix must scan it alongside config.py.
+const ENV_SOURCE_FILES = [
+  join(PROJECT_ROOT, 'app', 'backend', 'app', 'config.py'),
+  join(PROJECT_ROOT, 'app', 'backend', 'app', 'main.py'),
+];
 const SLACK_MANIFEST = join(PROJECT_ROOT, 'slack', 'app-manifest.yml');
 const OUT_FILE = join(__dirname, '..', 'src', 'content', 'docs', 'architecture', 'config.mdx');
 
 function cleanDefault(raw) {
   if (!raw) return 'None';
-  return raw
+  const cleaned = raw
     .trim()
     .replace(/,$/, '')
     .replace(/^["']|["']$/g, '')
     .replace(/\s+/g, ' ');
+  if (cleaned === '()' || cleaned === '(') return 'empty';
+  return cleaned;
 }
 
 function parseEnvMatrix(source) {
   const rows = new Map();
   const getenvRe = /os\.getenv\(\s*["'](AB_[A-Z0-9_]+)["']\s*(?:,\s*([^)\n]+))?\)/g;
-  const helperRe = /_read_(?:csv|int|bool|float)_env\(\s*["'](AB_[A-Z0-9_]+)["']\s*,\s*([^)]+)\)/g;
+  // The default may itself be a tuple — `_read_csv_env("AB_TRUSTED_PROXIES", ())`
+  // or a multi-line tuple of origins — so the capture must swallow one level of
+  // balanced parentheses instead of stopping at the first `)`.
+  const helperRe = /_read_(?:csv|int|bool|float)_env\(\s*["'](AB_[A-Z0-9_]+)["']\s*,\s*((?:\([^)]*\)|[^)])+)\)/g;
   let match;
   while ((match = getenvRe.exec(source))) {
     rows.set(match[1], cleanDefault(match[2] || 'None'));
@@ -62,8 +72,10 @@ async function readSlackManifest() {
 }
 
 async function main() {
-  const source = existsSync(CONFIG_FILE) ? await readFile(CONFIG_FILE, 'utf8') : '';
-  const envRows = parseEnvMatrix(source);
+  const sources = await Promise.all(
+    ENV_SOURCE_FILES.map((file) => (existsSync(file) ? readFile(file, 'utf8') : '')),
+  );
+  const envRows = parseEnvMatrix(sources.join('\n'));
   const slack = await readSlackManifest();
 
   const envTable = envRows
@@ -122,7 +134,7 @@ ${slackRows}
 </div>
 
 <Aside type="tip" title="Source">
-  Generated from <code>app/backend/app/config.py</code> and <code>slack/app-manifest.yml</code>. The build reads text files only and does not import the backend.
+  Generated from <code>app/backend/app/config.py</code>, <code>app/backend/app/main.py</code> and <code>slack/app-manifest.yml</code>. The build reads text files only and does not import the backend.
 </Aside>
 `;
 

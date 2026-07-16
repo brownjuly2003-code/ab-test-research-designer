@@ -1,5 +1,6 @@
 ---
 title: "Case studies"
+editUrl: "https://github.com/brownjuly2003-code/ab-test-research-designer/edit/main/docs/case-studies/README.md"
 ---
 
 # Case studies

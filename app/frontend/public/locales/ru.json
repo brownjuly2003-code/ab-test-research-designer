@@ -1306,7 +1306,8 @@
       "all": "Все",
       "binary": "Бинарная",
       "continuous": "Непрерывная",
-      "ratio": "Ratio"
+      "ratio": "Ratio",
+      "count": "Счётные"
     },
     "sortLabel": "Сортировка",
     "sort": {

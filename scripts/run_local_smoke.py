@@ -704,8 +704,12 @@ def main() -> int:
     backend_port = choose_backend_port()
     backend_url = f"http://{BACKEND_HOST}:{backend_port}"
     backend_env = os.environ.copy()
+    # Smoke always enables auth via AB_ADMIN_TOKEN (keys/webhooks bootstrap). Once any
+    # auth material is present, project routes require a write/read session — admin
+    # bearer alone is only accepted on /api/v1/keys and /api/v1/webhooks. Guarantee a
+    # write token so seed + browser smoke can call /api/v1/projects.
     smoke_write_token = (backend_env.get("AB_API_TOKEN") or "").strip()
-    if (backend_env.get("AB_READONLY_API_TOKEN") or "").strip() and not smoke_write_token:
+    if not smoke_write_token:
         smoke_write_token = "smoke-write-token"
         backend_env["AB_API_TOKEN"] = smoke_write_token
     smoke_admin_token = (

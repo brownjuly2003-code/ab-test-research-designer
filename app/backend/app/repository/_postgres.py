@@ -11,13 +11,19 @@ from datetime import UTC, datetime
 from pathlib import Path
 from types import TracebackType
 from typing import Any, cast
-from urllib.parse import urlparse
 
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 from psycopg_pool import ConnectionPool
 
+from app.backend.app.constants import METRIC_TYPE_FILTERS
 from app.backend.app.errors import ApiError
+from app.backend.app.redaction import database_host, redact_database_url
+from app.backend.app.repository._migrations import (
+    EXPECTED_POSTGRES_SCHEMA_VERSION,
+    apply_pending_migrations,
+    read_applied_schema_version,
+)
 from app.backend.app.repository._rows import (
     audit_row_to_record,
     project_list_row_to_record,
@@ -97,6 +103,9 @@ class _PooledPostgresConnection:
 class PostgresBackend(SQLiteBackend):
     backend_name = "postgres"
     supports_snapshots = False
+    # What this code REQUIRES the database to be. The version the database actually is gets read
+    # back out of `schema_migrations`; readiness compares the two (see routes/system.readyz).
+    schema_version = EXPECTED_POSTGRES_SCHEMA_VERSION
 
     def __init__(
         self,
@@ -123,6 +132,22 @@ class PostgresBackend(SQLiteBackend):
         )
         self._pool.open(wait=True)
         self._init_db()
+        self._apply_migrations()
+
+    def _apply_migrations(self) -> None:
+        """Bring an existing database up to the schema this code expects.
+
+        `_init_db` creates whatever is missing, but `CREATE TABLE IF NOT EXISTS` cannot add a
+        column to a table that already exists — so a database older than the column never gets
+        it. The migrations do; see `_migrations` for the history that made this necessary.
+        """
+        with self._connect() as connection:
+            apply_pending_migrations(connection, applied_at=datetime.now(UTC).isoformat())
+
+    def read_applied_schema_version(self) -> int:
+        """The schema version the database actually carries, as opposed to the one we expect."""
+        with self._connect() as connection:
+            return read_applied_schema_version(connection)
 
     def close(self) -> None:
         self._pool.close()
@@ -323,6 +348,8 @@ class PostgresBackend(SQLiteBackend):
                     response_code INTEGER,
                     response_body TEXT,
                     error_message TEXT,
+                    next_attempt_at TEXT,
+                    lease_expires_at TEXT,
                     FOREIGN KEY(subscription_id) REFERENCES webhook_subscriptions(id) ON DELETE CASCADE
                 )
                 """
@@ -589,7 +616,7 @@ class PostgresBackend(SQLiteBackend):
         offset = max(0, int(offset))
         normalized_query = q.strip().lower() if isinstance(q, str) else ""
         normalized_status = status if status in {"active", "archived", "all"} else "active"
-        normalized_metric_type = metric_type if metric_type in {"binary", "continuous", "ratio", "all"} else "all"
+        normalized_metric_type = metric_type if metric_type in METRIC_TYPE_FILTERS else "all"
         normalized_sort_by = sort_by if sort_by in {"created_at", "updated_at", "name", "duration_days"} else "updated_at"
         normalized_sort_dir = "ASC" if str(sort_dir).lower() == "asc" else "DESC"
         metric_expr = self._json_extract_expression("projects.payload_json", "metrics", "metric_type")
@@ -719,7 +746,7 @@ class PostgresBackend(SQLiteBackend):
         ts: str | None = None,
         dispatch_webhooks: bool = True,
     ) -> dict[str, Any]:
-        timestamp = ts or datetime.now(UTC).isoformat()
+        timestamp = self._resolve_audit_timestamp(ts)
         with self._connect() as connection:
             row = connection.execute(
                 """
@@ -750,18 +777,36 @@ class PostgresBackend(SQLiteBackend):
                 ),
             ).fetchone()
 
-        if row is None:
-            raise ApiError("Audit event not found", error_code="audit_event_not_found", status_code=500)
-        event = audit_row_to_record(row)
-        if dispatch_webhooks and self.webhook_service is not None:
+            if row is None:
+                raise ApiError("Audit event not found", error_code="audit_event_not_found", status_code=500)
+            event = audit_row_to_record(row)
+
+            # Durable outbox (F-09), mirroring the SQLite path: delivery rows
+            # commit with the audit row, the worker is nudged after commit.
+            enqueued = 0
+            if dispatch_webhooks and self.webhook_service is not None:
+                subscriptions = self.list_matching_webhook_subscriptions(
+                    event_type=action,
+                    key_id=key_id,
+                )
+                for subscription in subscriptions:
+                    self._insert_webhook_delivery(
+                        connection,
+                        subscription_id=str(subscription["id"]),
+                        event_id=int(event["id"]),
+                        status="pending",
+                        next_attempt_at=timestamp,
+                    )
+                    enqueued += 1
+
+        if enqueued and self.webhook_service is not None:
             try:
-                self.webhook_service.dispatch_audit_event(event)
+                self.webhook_service.notify_enqueued()
             except Exception:
                 pass
         return event
 
     def get_diagnostics_summary(self) -> dict[str, Any]:
-        parsed = urlparse(self.database_url)
         write_probe_ok, write_probe_detail = self._run_write_probe()
 
         with self._connect() as connection:
@@ -786,15 +831,19 @@ class PostgresBackend(SQLiteBackend):
             latest_project_updated_at_row = connection.execute(
                 "SELECT MAX(updated_at) AS updated_at FROM projects"
             ).fetchone()
+            # Read, don't assume: reporting `self.schema_version` here made readiness compare
+            # the code's constant against itself, so a database missing a migration still went
+            # green (audit F-02).
+            applied_schema_version = read_applied_schema_version(connection)
 
         return {
-            "db_path": self.database_url,
-            "db_parent_path": parsed.netloc,
+            "db_path": redact_database_url(self.database_url),
+            "db_parent_path": database_host(self.database_url),
             "db_exists": True,
             "db_size_bytes": int(db_size_bytes),
             "disk_free_bytes": 0,
-            "schema_version": self.schema_version,
-            "sqlite_user_version": self.schema_version,
+            "schema_version": applied_schema_version,
+            "sqlite_user_version": applied_schema_version,
             "busy_timeout_ms": 0,
             "journal_mode": "POSTGRES",
             "synchronous": "READ COMMITTED",

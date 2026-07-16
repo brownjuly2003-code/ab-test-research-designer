@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
@@ -23,6 +24,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--lighthouse", default=".lighthouseci/manifest.json")
     parser.add_argument("--test-results", action="append", default=[])
     parser.add_argument("--output", default=str(DEFAULT_OUTPUT))
+    parser.add_argument(
+        "--strict",
+        action="store_true",
+        help=(
+            "Fail instead of degrading: every --test-results file plus the coverage and "
+            "lighthouse inputs must exist and parse, otherwise exit 1 without writing badges. "
+            "Use with explicit --test-results paths (the default list contains fallback "
+            "locations that are not all expected to exist)."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -253,12 +264,35 @@ def tests_badge(test_paths: list[Path]) -> dict[str, Any]:
     return badge("tests", f"{total_passed} passed", "green")
 
 
+def strict_errors(test_paths: list[Path], coverage_path: Path, lighthouse_path: Path) -> list[str]:
+    errors = []
+    for path in test_paths:
+        if passed_from_results(path) is None:
+            errors.append(f"test results missing or unparsable: {path}")
+    if coverage_percent(coverage_path) is None:
+        errors.append(f"coverage report missing or unparsable: {coverage_path}")
+    if lighthouse_score(lighthouse_path) is None:
+        errors.append(f"lighthouse manifest missing or unparsable: {lighthouse_path}")
+    return errors
+
+
 def main() -> int:
     args = parse_args()
     output_path = resolve_path(args.output)
     coverage_path = resolve_path(args.coverage)
     lighthouse_path = resolve_path(args.lighthouse)
     test_paths = [resolve_path(path) for path in args.test_results] if args.test_results else list(DEFAULT_TEST_RESULTS)
+
+    if args.strict:
+        errors = strict_errors(test_paths, coverage_path, lighthouse_path)
+        if errors:
+            for error in errors:
+                print(f"[collect-badge-metrics] {error}", file=sys.stderr)
+            print(
+                "[collect-badge-metrics] strict mode: refusing to publish partial badge data",
+                file=sys.stderr,
+            )
+            return 1
 
     metrics = {
         "tests": tests_badge(test_paths),

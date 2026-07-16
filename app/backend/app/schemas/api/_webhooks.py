@@ -71,6 +71,8 @@ class WebhookDeliveryRecord(BaseModel):
     response_code: int | None = None
     response_body: str | None = None
     error_message: str | None = None
+    next_attempt_at: str | None = None
+    lease_expires_at: str | None = None
 
 
 class WebhookListResponse(BaseModel):

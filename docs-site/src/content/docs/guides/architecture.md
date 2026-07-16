@@ -1,5 +1,6 @@
 ---
 title: "Architecture"
+editUrl: "https://github.com/brownjuly2003-code/ab-test-research-designer/edit/main/docs/ARCHITECTURE.md"
 ---
 
 # Architecture
@@ -67,13 +68,15 @@ FastAPI API layer
 
 ## Data model
 
-Runtime persistence is centered around:
+The schema (18 tables, versioned through `schema_migrations`) groups into five domains:
 
-- `projects`
-- `analysis_runs`
-- `export_events`
+- **Design & history** — `projects`, `project_revisions`, `project_templates`, `analysis_runs`, `export_events`. `projects.last_analysis_run_id` points to the latest persisted snapshot; historical snapshots stay normalized in `analysis_runs` instead of being duplicated into the main project row.
+- **Execution / live experiment data** — `exposures`, `conversions`, `identity_map`, `excluded_users`, `user_strata`, `pre_period_values`, `pre_period_covariates`.
+- **Access control & audit** — `api_keys`, `audit_log`.
+- **Integrations** — `webhook_subscriptions`, `webhook_deliveries`, `slack_installations`.
+- **Infrastructure** — `schema_migrations` (applied migration ledger; readiness compares it against the version the build expects).
 
-`projects.last_analysis_run_id` points to the latest persisted snapshot. Historical snapshots stay normalized in `analysis_runs` instead of being duplicated into the main project row.
+DDL lives in `repository/_schema.py`, migrations in `repository/_migrations.py`.
 
 ## Runtime modes
 

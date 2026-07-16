@@ -45,6 +45,21 @@ jobs:
         working-directory: docs-site
         run: npm ci
 
+      # This workflow is the only one that publishes the docs, and it can be dispatched
+      # manually against any ref, so the dependency gate is repeated here rather than left
+      # solely to the `dependency-audit` job in test.yml: a known-vulnerable tree must not
+      # reach Pages. Same threshold as test.yml — high/critical fails, lower severities report.
+      - name: Audit npm dependencies for known CVEs
+        working-directory: docs-site
+        run: npm audit --audit-level=high
+
+      # The generator scripts (sync-docs/gen-routes/gen-experiments/gen-config) run as a
+      # prebuild hook and rewrite the docs content; their unit tests gate that rewriting
+      # before it is published.
+      - name: Test
+        working-directory: docs-site
+        run: npm test
+
       - name: Build
         working-directory: docs-site
         run: npm run build

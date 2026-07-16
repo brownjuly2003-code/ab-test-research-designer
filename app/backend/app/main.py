@@ -11,7 +11,7 @@ from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import RequestResponseEndpoint
 
-from app.backend.app.config import get_settings
+from app.backend.app.config import Settings, get_settings
 from app.backend.app.frontend_routes import register_frontend_routes
 from app.backend.app.http_runtime import (
     create_runtime_counters,
@@ -25,6 +25,7 @@ from app.backend.app.i18n import (
     set_current_language,
 )
 from app.backend.app.logging_utils import configure_logging, log_event
+from app.backend.app.redaction import redact_database_url
 from app.backend.app.repository import ProjectRepository
 from app.backend.app.routes import analysis as analysis_routes
 from app.backend.app.routes.audit import create_audit_router
@@ -64,6 +65,64 @@ def _verify_production_storage(repository: ProjectRepository) -> None:
         raise RuntimeError(f"Production storage health check failed: {detail}")
 
 
+def _verify_production_auth(settings: Settings, repository: ProjectRepository) -> None:
+    """Fail fast in production unless some auth material can gate mutating endpoints.
+
+    Without this, ``AB_ENV=production`` starts happily with no tokens at all:
+    ``http_runtime.auth_enabled()`` returns False, ``require_write_auth`` waves every
+    request through, and the whole write surface (projects, templates, ingestion,
+    workspace restore) is open to anonymous callers. "Forgot to set a token" is the
+    one production mistake that must not boot.
+
+    Three bootstraps are accepted, because each one ends with anonymous writes rejected:
+
+    - ``AB_API_TOKEN`` — the write-scoped shared token;
+    - ``AB_ADMIN_TOKEN`` — no write scope of its own, but it can issue the first
+      write-scoped API key through ``/api/v1/keys`` (and it already makes
+      ``auth_enabled()`` true, so mutations answer 401 until that key exists);
+    - an active write-scoped API key already in the database — the steady state after
+      the admin token has been retired.
+
+    A read-only token or ``AB_PUBLIC_DEMO`` alone is deliberately *not* enough: nothing
+    is open, but nothing can be written either, so it is a broken production config
+    rather than a secure one.
+
+    This check lives here rather than in ``config._validate_settings`` because the third
+    bootstrap is a fact about the database, which config cannot see. Startup is the first
+    point where both the settings and a live repository exist. It runs after
+    ``_verify_production_storage`` so an unreachable database reports itself as a storage
+    failure instead of surfacing as a driver error from the API-key lookup below.
+
+    ``AB_ALLOW_INSECURE_PRODUCTION=true`` is the explicit, loudly logged opt-out.
+    """
+    if settings.api_token or settings.admin_token:
+        return
+    if repository.has_active_api_keys(scope="write"):
+        return
+    if settings.allow_insecure_production:
+        log_event(
+            logger,
+            logging.WARNING,
+            "INSECURE PRODUCTION: no auth material is configured, so every mutating endpoint "
+            "is open to anonymous callers. AB_ALLOW_INSECURE_PRODUCTION=true suppressed the "
+            "startup check that would normally refuse to boot.",
+            event="insecure_production",
+            environment=settings.environment,
+            remediation=(
+                "Set AB_API_TOKEN, or set AB_ADMIN_TOKEN and issue a write-scoped API key, "
+                "then unset AB_ALLOW_INSECURE_PRODUCTION. See docs/PRODUCTION.md."
+            ),
+        )
+        return
+    raise RuntimeError(
+        "AB_ENV=production refuses to start without auth material: mutating endpoints would "
+        "be open to anonymous callers. Set AB_API_TOKEN (write-scoped shared token), or "
+        "AB_ADMIN_TOKEN (which issues the first write-scoped API key via /api/v1/keys), or "
+        "provision an active write-scoped API key in the database. AB_ALLOW_INSECURE_PRODUCTION=true "
+        "starts anyway and leaves mutations open. See docs/PRODUCTION.md."
+    )
+
+
 def create_app() -> FastAPI:
     settings = get_settings()
     configure_logging(level=settings.log_level, log_format=settings.log_format)
@@ -78,6 +137,7 @@ def create_app() -> FastAPI:
     )
     if settings.is_production:
         _verify_production_storage(repository)
+        _verify_production_auth(settings, repository)
     webhook_service = WebhookService(repository, environment=settings.environment)
     repository.set_webhook_service(webhook_service)
     runtime_counters = create_runtime_counters()
@@ -122,7 +182,11 @@ def create_app() -> FastAPI:
             event="startup",
             environment=settings.environment,
             version=settings.app_version,
-            db_path=settings.database_url if repository.backend_name == "postgres" else settings.db_path,
+            db_path=(
+                redact_database_url(settings.database_url)
+                if repository.backend_name == "postgres"
+                else settings.db_path
+            ),
             db_backend=repository.backend_name,
             sqlite_journal_mode=settings.sqlite_journal_mode,
             sqlite_synchronous=settings.sqlite_synchronous,
@@ -140,6 +204,9 @@ def create_app() -> FastAPI:
                 repo_id=snapshot_repo,
                 local_db_path=Path(settings.db_path),
                 hf_token=snapshot_token,
+                app_version=settings.app_version,
+                db_schema_version=repository.schema_version,
+                workspace_schema_version=repository.workspace_schema_version,
             )
             restored = await snapshot_service.restore_latest()
             if restored:
@@ -165,6 +232,10 @@ def create_app() -> FastAPI:
                 seed_demo_workspace(settings, repository)
             except Exception:
                 logger.exception("demo-seed: failed")
+
+        # Outbox worker starts once startup work (restore/seed) has settled; its
+        # first pass also drains deliveries left claimable by a previous process.
+        webhook_service.start_worker()
 
         if snapshot_service is not None and snapshot_interval_seconds > 0:
             async def run_snapshot_loop() -> None:

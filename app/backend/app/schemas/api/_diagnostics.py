@@ -6,11 +6,14 @@ from pydantic import BaseModel
 
 
 class DiagnosticsStorageSummary(BaseModel):
-    db_path: str
-    db_parent_path: str
+    # Operator-only fields. A read-scope session (which on the public demo is every
+    # anonymous caller) gets None: the storage location and the host's free disk say
+    # nothing about the app's health and everything about where it runs.
+    db_path: str | None = None
+    db_parent_path: str | None = None
+    disk_free_bytes: int | None = None
     db_exists: bool
     db_size_bytes: int
-    disk_free_bytes: int
     schema_version: int
     sqlite_user_version: int
     busy_timeout_ms: int
@@ -30,13 +33,13 @@ class DiagnosticsStorageSummary(BaseModel):
 
 class DiagnosticsFrontendSummary(BaseModel):
     serve_frontend_dist: bool
-    dist_path: str
+    dist_path: str | None = None  # operator-only: absolute filesystem path
     dist_exists: bool
 
 
 class DiagnosticsLlmSummary(BaseModel):
     provider: str
-    base_url: str
+    base_url: str | None = None  # operator-only: internal network address
     timeout_seconds: float
     max_attempts: int
     initial_backoff_seconds: float
@@ -89,7 +92,7 @@ class DiagnosticsNetworkSummary(BaseModel):
     direct_peer: str | None
     forwarded_for_chain: list[str]
     trusted_proxy_hops: int
-    trusted_proxies: list[str]
+    trusted_proxies: list[str] | None = None  # operator-only: the configured CIDR allowlist
     resolved_client: str
     resolved_from: Literal["forwarded_header", "direct_peer"]
 
@@ -105,6 +108,57 @@ class DiagnosticsRuntimeSummary(BaseModel):
     last_request_at: str | None = None
     last_error_at: str | None = None
     last_error_code: str | None = None
+    # RED-style latency (process-local, audit F-12). Avg/max are None until the
+    # first completed request has been timed.
+    process_time_ms_count: int = 0
+    process_time_ms_avg: float | None = None
+    process_time_ms_max: float | None = None
+    error_rate: float = 0.0
+
+
+class DiagnosticsWebhooksSummary(BaseModel):
+    """Outbox visibility (audit F-09): queue depth per status and how stale the
+    queue head is. A growing oldest_due_age_seconds means the worker is stuck."""
+
+    pending: int
+    retrying: int
+    delivered: int
+    failed: int
+    oldest_due_age_seconds: float | None = None
+
+
+class DiagnosticsTopologySummary(BaseModel):
+    """Supported deployment topology (audit F-12).
+
+    The runtime is a **single-instance** process: rate limits, auth-failure
+    throttles, and RED counters live in process memory. Multiple replicas would
+    fragment those controls — use a shared edge gateway/Redis if you need them
+    to be global. The durable data plane (SQLite file or PostgreSQL + webhook
+    outbox leases) can still be externalised independently of this process scope.
+    """
+
+    supported: Literal["single_instance"] = "single_instance"
+    rate_limit_state: Literal["in_process"] = "in_process"
+    runtime_counters_scope: Literal["process"] = "process"
+    notes: str = (
+        "Rate limits, auth-failure throttles, and request counters are per-process. "
+        "Do not run multiple app replicas without an edge/shared rate limiter."
+    )
+
+
+class DiagnosticsRetentionSummary(BaseModel):
+    """Configured retention windows (days). ``0`` means automatic purge is off."""
+
+    exposures_days: int = 0
+    conversions_days: int = 0
+    audit_days: int = 0
+    webhook_deliveries_days: int = 0
+    auto_purge_enabled: bool = False
+    notes: str = (
+        "Automatic purge is opt-in via AB_RETENTION_*_DAYS. Operators can also call "
+        "POST /api/v1/admin/retention/purge. IP addresses and user ids may be personal "
+        "data — size retention windows to your DSR/policy needs."
+    )
 
 
 class DiagnosticsResponse(BaseModel):
@@ -114,6 +168,7 @@ class DiagnosticsResponse(BaseModel):
     uptime_seconds: float
     environment: str
     app_version: str
+    app_git_sha: str
     request_timing_headers_enabled: bool
     storage: DiagnosticsStorageSummary
     frontend: DiagnosticsFrontendSummary
@@ -123,6 +178,9 @@ class DiagnosticsResponse(BaseModel):
     guards: DiagnosticsGuardsSummary
     network: DiagnosticsNetworkSummary
     runtime: DiagnosticsRuntimeSummary
+    webhooks: DiagnosticsWebhooksSummary
+    topology: DiagnosticsTopologySummary
+    retention: DiagnosticsRetentionSummary
 
 
 class ReadinessCheck(BaseModel):

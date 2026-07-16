@@ -7,6 +7,7 @@ import {
   type CalculationResponse,
   type FullPayload
 } from "../lib/experiment";
+import { requiresStdDevForPlanning } from "../lib/metricCapabilities";
 
 type PreviewState = {
   result: CalculationResponse | null;
@@ -141,7 +142,7 @@ function canCompute(draft: FullPayload): boolean {
 
   if (draft.metrics.metric_type === "continuous") {
     const stdDev = Number(draft.metrics.std_dev);
-    if (!(baselineValue > 0 && stdDev > 0)) {
+    if (!(baselineValue > 0) || (requiresStdDevForPlanning("continuous") && !(stdDev > 0))) {
       return false;
     }
 
@@ -166,7 +167,7 @@ function canCompute(draft: FullPayload): boolean {
     // Ratio sizing reduces to the continuous (delta-method linearized) formula: a positive baseline
     // ratio R and a positive per-user standard deviation are enough to plan.
     const stdDev = Number(draft.metrics.std_dev);
-    return baselineValue > 0 && stdDev > 0;
+    return baselineValue > 0 && (!requiresStdDevForPlanning("ratio") || stdDev > 0);
   }
 
   if (draft.metrics.metric_type === "count") {

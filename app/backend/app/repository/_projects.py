@@ -5,6 +5,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any, cast
 
+from app.backend.app.constants import METRIC_TYPE_FILTERS
 from app.backend.app.errors import ApiError
 from app.backend.app.repository._core import _BackendCore
 from app.backend.app.repository._rows import project_list_row_to_record, row_to_project
@@ -74,7 +75,7 @@ class _ProjectsMixin(_BackendCore):
         offset = max(0, int(offset))
         normalized_query = q.strip().lower() if isinstance(q, str) else ""
         normalized_status = status if status in {"active", "archived", "all"} else "active"
-        normalized_metric_type = metric_type if metric_type in {"binary", "continuous", "ratio", "all"} else "all"
+        normalized_metric_type = metric_type if metric_type in METRIC_TYPE_FILTERS else "all"
         normalized_sort_by = sort_by if sort_by in {"created_at", "updated_at", "name", "duration_days"} else "updated_at"
         normalized_sort_dir = "ASC" if str(sort_dir).lower() == "asc" else "DESC"
         where_clauses: list[str] = []

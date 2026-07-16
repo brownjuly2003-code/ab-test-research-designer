@@ -1,5 +1,6 @@
 ---
 title: "Deploy"
+editUrl: "https://github.com/brownjuly2003-code/ab-test-research-designer/edit/main/docs/DEPLOY.md"
 ---
 
 # Deploy

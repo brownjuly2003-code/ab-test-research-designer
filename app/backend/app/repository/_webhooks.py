@@ -12,6 +12,21 @@ from app.backend.app.repository._rows import (
     webhook_subscription_row_to_record,
 )
 
+_DELIVERY_COLUMNS = """
+    id,
+    subscription_id,
+    event_id,
+    status,
+    attempt_count,
+    last_attempt_at,
+    delivered_at,
+    response_code,
+    response_body,
+    error_message,
+    next_attempt_at,
+    lease_expires_at
+"""
+
 
 class _WebhooksMixin(_BackendCore):
     def create_webhook_subscription(
@@ -235,32 +250,60 @@ class _WebhooksMixin(_BackendCore):
             subscriptions.append(subscription)
         return subscriptions
 
+    def _insert_webhook_delivery(
+        self,
+        connection: Any,
+        *,
+        subscription_id: str,
+        event_id: int,
+        status: str,
+        next_attempt_at: str | None,
+    ) -> str:
+        """Insert an outbox row on an existing connection (transactional enqueue)."""
+        delivery_id = str(uuid.uuid4())
+        connection.execute(
+            """
+            INSERT INTO webhook_deliveries (
+                id,
+                subscription_id,
+                event_id,
+                status,
+                attempt_count,
+                last_attempt_at,
+                delivered_at,
+                response_code,
+                response_body,
+                error_message,
+                next_attempt_at,
+                lease_expires_at
+            )
+            VALUES (?, ?, ?, ?, 0, NULL, NULL, NULL, NULL, NULL, ?, NULL)
+            """,
+            (delivery_id, subscription_id, event_id, status, next_attempt_at),
+        )
+        return delivery_id
+
     def create_webhook_delivery(
         self,
         *,
         subscription_id: str,
         event_id: int,
         status: str = "pending",
+        next_attempt_at: str | None = None,
+        enqueue: bool = True,
     ) -> dict[str, Any]:
-        delivery_id = str(uuid.uuid4())
+        """Create a delivery row; with ``enqueue=False`` the row keeps a NULL
+        next_attempt_at, so the outbox worker can never claim it (synchronous
+        test deliveries own their single attempt)."""
+        if next_attempt_at is None and enqueue:
+            next_attempt_at = datetime.now(UTC).isoformat()
         with self._connect() as connection:
-            connection.execute(
-                """
-                INSERT INTO webhook_deliveries (
-                    id,
-                    subscription_id,
-                    event_id,
-                    status,
-                    attempt_count,
-                    last_attempt_at,
-                    delivered_at,
-                    response_code,
-                    response_body,
-                    error_message
-                )
-                VALUES (?, ?, ?, ?, 0, NULL, NULL, NULL, NULL, NULL)
-                """,
-                (delivery_id, subscription_id, event_id, status),
+            delivery_id = self._insert_webhook_delivery(
+                connection,
+                subscription_id=subscription_id,
+                event_id=event_id,
+                status=status,
+                next_attempt_at=next_attempt_at,
             )
 
         delivery = self.get_webhook_delivery(delivery_id)
@@ -271,18 +314,8 @@ class _WebhooksMixin(_BackendCore):
     def get_webhook_delivery(self, delivery_id: str) -> dict[str, Any] | None:
         with self._connect() as connection:
             row = connection.execute(
-                """
-                SELECT
-                    id,
-                    subscription_id,
-                    event_id,
-                    status,
-                    attempt_count,
-                    last_attempt_at,
-                    delivered_at,
-                    response_code,
-                    response_body,
-                    error_message
+                f"""
+                SELECT {_DELIVERY_COLUMNS}
                 FROM webhook_deliveries
                 WHERE id = ?
                 """,
@@ -293,6 +326,87 @@ class _WebhooksMixin(_BackendCore):
             return None
         return webhook_delivery_row_to_record(row)
 
+    def claim_due_webhook_deliveries(
+        self,
+        *,
+        now: str,
+        lease_expires_at: str,
+        limit: int = 10,
+    ) -> list[dict[str, Any]]:
+        """Atomically claim due outbox rows by taking a lease on each.
+
+        The claim is a per-row conditional UPDATE, so it is safe on both backends
+        without FOR UPDATE SKIP LOCKED: a row whose lease another worker won first
+        updates zero rows here and is skipped. Expired leases (a worker died
+        mid-attempt) become claimable again once lease_expires_at passes.
+        """
+        claimed_ids: list[str] = []
+        with self._connect() as connection:
+            candidates = connection.execute(
+                """
+                SELECT id
+                FROM webhook_deliveries
+                WHERE status IN ('pending', 'retrying')
+                  AND next_attempt_at IS NOT NULL
+                  AND next_attempt_at <= ?
+                  AND (lease_expires_at IS NULL OR lease_expires_at <= ?)
+                ORDER BY next_attempt_at, id
+                LIMIT ?
+                """,
+                (now, now, max(1, int(limit))),
+            ).fetchall()
+            for candidate in candidates:
+                cursor = connection.execute(
+                    """
+                    UPDATE webhook_deliveries
+                    SET lease_expires_at = ?
+                    WHERE id = ?
+                      AND status IN ('pending', 'retrying')
+                      AND (lease_expires_at IS NULL OR lease_expires_at <= ?)
+                    """,
+                    (lease_expires_at, candidate["id"], now),
+                )
+                if cursor.rowcount == 1:
+                    claimed_ids.append(str(candidate["id"]))
+
+        claimed = []
+        for delivery_id in claimed_ids:
+            delivery = self.get_webhook_delivery(delivery_id)
+            if delivery is not None:
+                claimed.append(delivery)
+        return claimed
+
+    def get_webhook_queue_stats(self) -> dict[str, Any]:
+        """Outbox visibility for diagnostics: per-status counts and the oldest due row."""
+        now = datetime.now(UTC)
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT status, COUNT(*) AS n FROM webhook_deliveries GROUP BY status"
+            ).fetchall()
+            oldest_due = connection.execute(
+                """
+                SELECT MIN(next_attempt_at) AS oldest
+                FROM webhook_deliveries
+                WHERE status IN ('pending', 'retrying') AND next_attempt_at IS NOT NULL
+                """
+            ).fetchone()
+
+        counts = {str(row["status"]): int(row["n"]) for row in rows}
+        oldest_due_age_seconds: float | None = None
+        oldest_raw = oldest_due["oldest"] if oldest_due is not None else None
+        if oldest_raw:
+            try:
+                oldest_due_age_seconds = max(0.0, round((now - datetime.fromisoformat(str(oldest_raw))).total_seconds(), 3))
+            except ValueError:
+                oldest_due_age_seconds = None
+        return {
+            "pending": counts.get("pending", 0),
+            "retrying": counts.get("retrying", 0),
+            "delivered": counts.get("delivered", 0),
+            "failed": counts.get("failed", 0),
+            "oldest_due_age_seconds": oldest_due_age_seconds,
+        }
+
     def update_webhook_delivery(
         self,
         delivery_id: str,
@@ -302,11 +416,14 @@ class _WebhooksMixin(_BackendCore):
         response_code: int | None = None,
         response_body: str | None = None,
         error_message: str | None = None,
+        next_attempt_at: str | None = None,
     ) -> dict[str, Any] | None:
         timestamp = datetime.now(UTC).isoformat()
         truncated_body = response_body[:2048] if response_body else None
 
         with self._connect() as connection:
+            # Recording an attempt outcome always releases the lease: the row is
+            # either terminal or waits for next_attempt_at before the next claim.
             cursor = connection.execute(
                 """
                 UPDATE webhook_deliveries
@@ -317,7 +434,9 @@ class _WebhooksMixin(_BackendCore):
                     delivered_at = ?,
                     response_code = ?,
                     response_body = ?,
-                    error_message = ?
+                    error_message = ?,
+                    next_attempt_at = ?,
+                    lease_expires_at = NULL
                 WHERE id = ?
                 """,
                 (
@@ -327,6 +446,7 @@ class _WebhooksMixin(_BackendCore):
                     response_code,
                     truncated_body,
                     error_message,
+                    next_attempt_at,
                     delivery_id,
                 ),
             )
@@ -377,17 +497,7 @@ class _WebhooksMixin(_BackendCore):
             )
             rows = connection.execute(
                 f"""
-                SELECT
-                    id,
-                    subscription_id,
-                    event_id,
-                    status,
-                    attempt_count,
-                    last_attempt_at,
-                    delivered_at,
-                    response_code,
-                    response_body,
-                    error_message
+                SELECT {_DELIVERY_COLUMNS}
                 FROM webhook_deliveries
                 {where_sql}
                 ORDER BY COALESCE(last_attempt_at, delivered_at) DESC, id DESC

@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.backend.app.constants import (
     MAX_SUPPORTED_VARIANTS,
+    MetricType,
 )
 from app.backend.app.i18n import translate
 from app.backend.app.schemas.api._results import ResultsRequest, ResultsResponse
@@ -157,7 +158,7 @@ class MetricsConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     primary_metric_name: str
-    metric_type: Literal["binary", "continuous", "ratio", "count"]
+    metric_type: MetricType
     baseline_value: float
     expected_uplift_pct: float | None = None
     mde_pct: float = Field(gt=0)

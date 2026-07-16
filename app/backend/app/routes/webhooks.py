@@ -1,3 +1,4 @@
+import ipaddress
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 from urllib.parse import urlparse
@@ -26,6 +27,20 @@ def _request_ip(request: Request) -> str | None:
 def _validate_webhook_target_url(settings: "Settings", target_url: str) -> str:
     parsed = urlparse(target_url.strip())
     if parsed.scheme == "https" and parsed.netloc:
+        # Fast feedback for literal-IP targets that can never be delivered: outside
+        # AB_ENV=local, delivery refuses non-public addresses (SSRF guard in
+        # WebhookService, which also checks what hostnames resolve to). Hostnames
+        # are not resolved here — create-time DNS answers prove nothing about
+        # delivery-time ones.
+        if settings.environment != "local" and parsed.hostname:
+            try:
+                literal = ipaddress.ip_address(parsed.hostname)
+            except ValueError:
+                literal = None
+            if literal is not None and not literal.is_global:
+                raise ValueError(
+                    "Webhook target_url must not point at a private, loopback or link-local address"
+                )
         return target_url.strip()
     if (
         settings.environment == "local"

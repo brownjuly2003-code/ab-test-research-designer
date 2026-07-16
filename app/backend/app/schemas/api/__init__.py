@@ -109,10 +109,19 @@ from app.backend.app.schemas.api._diagnostics import (
     DiagnosticsResponse as DiagnosticsResponse,
 )
 from app.backend.app.schemas.api._diagnostics import (
+    DiagnosticsRetentionSummary as DiagnosticsRetentionSummary,
+)
+from app.backend.app.schemas.api._diagnostics import (
     DiagnosticsRuntimeSummary as DiagnosticsRuntimeSummary,
 )
 from app.backend.app.schemas.api._diagnostics import (
     DiagnosticsStorageSummary as DiagnosticsStorageSummary,
+)
+from app.backend.app.schemas.api._diagnostics import (
+    DiagnosticsTopologySummary as DiagnosticsTopologySummary,
+)
+from app.backend.app.schemas.api._diagnostics import (
+    DiagnosticsWebhooksSummary as DiagnosticsWebhooksSummary,
 )
 from app.backend.app.schemas.api._diagnostics import (
     ReadinessCheck as ReadinessCheck,

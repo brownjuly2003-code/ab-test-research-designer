@@ -262,18 +262,30 @@ export default function SystemTab({ auditLog, adminToken, onImportWorkspace }: S
                 <strong>{t("sidebarPanel.diagnostics.labels.latestProjectUpdate")}:</strong>{" "}
                 {formatOptionalProjectTimestamp(backendDiagnostics.storage.latest_project_updated_at)}
               </li>
-              <li>
-                <strong>{t("sidebarPanel.diagnostics.labels.sqlitePath")}:</strong> <code>{backendDiagnostics.storage.db_path}</code>
-              </li>
-              <li>
-                <strong>{t("sidebarPanel.diagnostics.labels.sqliteParent")}:</strong> <code>{backendDiagnostics.storage.db_parent_path}</code>
-              </li>
+              {/* Storage location and free disk are operator-only: the backend sends null
+                  unless the session is admin-authenticated (see routes/system.py). */}
+              {backendDiagnostics.storage.db_path !== null && backendDiagnostics.storage.db_path !== undefined && (
+                <li>
+                  <strong>{t("sidebarPanel.diagnostics.labels.sqlitePath")}:</strong>{" "}
+                  <code>{backendDiagnostics.storage.db_path}</code>
+                </li>
+              )}
+              {backendDiagnostics.storage.db_parent_path !== null && backendDiagnostics.storage.db_parent_path !== undefined && (
+                <li>
+                  <strong>{t("sidebarPanel.diagnostics.labels.sqliteParent")}:</strong>{" "}
+                  <code>{backendDiagnostics.storage.db_parent_path}</code>
+                </li>
+              )}
               <li>
                 <strong>{t("sidebarPanel.diagnostics.labels.storageFootprint")}:</strong>{" "}
                 {t("sidebarPanel.diagnostics.values.db")} {formatBytes(backendDiagnostics.storage.db_size_bytes)}
-                {" | "}
-                {t("sidebarPanel.diagnostics.values.freeDisk")}{" "}
-                {formatBytes(backendDiagnostics.storage.disk_free_bytes)}
+                {backendDiagnostics.storage.disk_free_bytes !== null && backendDiagnostics.storage.disk_free_bytes !== undefined && (
+                  <>
+                    {" | "}
+                    {t("sidebarPanel.diagnostics.values.freeDisk")}{" "}
+                    {formatBytes(backendDiagnostics.storage.disk_free_bytes)}
+                  </>
+                )}
               </li>
               <li>
                 <strong>{t("sidebarPanel.diagnostics.labels.sqliteMode")}:</strong> schema v{String(backendDiagnostics.storage.schema_version)}
