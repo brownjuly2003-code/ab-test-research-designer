@@ -7,7 +7,7 @@ import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
 
 <CardGrid>
   <Card title="Environment variables" icon="document">
-    49
+    53
   </Card>
   <Card title="Slack manifest" icon="puzzle">
     present
@@ -60,6 +60,10 @@ import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
 | `AB_RATE_LIMIT_REQUESTS` | Runtime guard | `240` |
 | `AB_RATE_LIMIT_WINDOW_SECONDS` | Runtime guard | `60` |
 | `AB_READONLY_API_TOKEN` | Auth | `None` |
+| `AB_RETENTION_AUDIT_DAYS` | Application | `0` |
+| `AB_RETENTION_CONVERSIONS_DAYS` | Application | `0` |
+| `AB_RETENTION_EXPOSURES_DAYS` | Application | `0` |
+| `AB_RETENTION_WEBHOOK_DELIVERIES_DAYS` | Application | `0` |
 | `AB_SEED_DEMO_ON_STARTUP` | Snapshot and seed | `False` |
 | `AB_SERVE_FRONTEND_DIST` | Application | `True` |
 | `AB_SLACK_CLIENT_ID` | Slack | `None` |

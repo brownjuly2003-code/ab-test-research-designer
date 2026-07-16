@@ -204,16 +204,21 @@ Verify after HF finishes `APP_STARTING`:
 
 ```bash
 curl https://liovina-ab-test-research-designer.hf.space/health
-# {"status":"ok","service":"AB Test Research Designer API","version":"1.1.0","environment":"local"}
+# {"status":"ok","service":"AB Test Research Designer API","version":"1.1.0","environment":"demo"}
 ```
 
-Rate limiting on the Space: `AB_TRUSTED_PROXY_HOPS` is left at its safe default of `0`, so every
-anonymous visitor shares one rate-limit bucket keyed by HF's router address. That is fail-safe (a
-forged `X-Forwarded-For` cannot mint a fresh bucket) but it means heavy concurrent demo traffic can
-throttle itself. To bucket per visitor, measure how many entries HF's router appends to the header from
-inside the container and set the hop count to match — see the reverse-proxy section of
-[`docs/RUNBOOK.md`](/ab-test-research-designer/guides/runbook/). Do not guess the number upwards: an over-declared hop count lets a
-visitor prepend entries and pick its own bucket.
+Space runtime posture — `.github/workflows/deploy-hf.yml` sets these before every upload
+(idempotent), so a manual deploy must not undo them:
+
+- `AB_ENV=demo` — a public host must never run the default `local` dev posture: `local` is the
+  only value that disables the webhook SSRF guard and the HTTPS-only webhook target rule. `demo`
+  keeps both active without triggering the `production` PostgreSQL/auth fail-fast contract.
+- `AB_PUBLIC_DEMO=true` — anonymous visitors get read-scope sessions (mutations 403).
+- `AB_TRUSTED_PROXY_HOPS=1` — measured on 2026-07-09 via the diagnostics network echo (see the
+  reverse-proxy section of [`docs/RUNBOOK.md`](/ab-test-research-designer/guides/runbook/)): HF's router appends exactly one entry
+  to `X-Forwarded-For`, so each visitor gets their own rate-limit bucket. Do not raise this without
+  re-measuring — an over-declared hop count lets a visitor prepend entries and pick their own bucket.
+- `AB_API_TOKEN` (Space secret) — the operator write token.
 
 Known limits of the HF free tier:
 
