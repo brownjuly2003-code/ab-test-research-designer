@@ -80,7 +80,7 @@ jobs:
 
       # Build a local single-arch image first so it can be scanned before
       # anything is pushed to the registry.
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v7
         with:
           context: .
           load: true
@@ -99,7 +99,7 @@ jobs:
           exit-code: '1'
           ignore-unfixed: true
 
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v7
         with:
           context: .
           platforms: linux/amd64,linux/arm64
