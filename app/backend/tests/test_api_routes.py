@@ -1651,6 +1651,37 @@ def test_api_rate_limiting_rejects_excess_requests(monkeypatch) -> None:
     get_settings.cache_clear()
 
 
+def test_heavy_compute_paths_get_a_tighter_rate_limit_bucket(monkeypatch) -> None:
+    """Simulation endpoints are capped below the global window (audit 16.07 G-11).
+
+    The global limit stays roomy for CRUD traffic; the dedicated heavy bucket
+    rejects the third simulation call while cheap endpoints keep answering.
+    """
+    monkeypatch.setenv("AB_RATE_LIMIT_ENABLED", "true")
+    monkeypatch.setenv("AB_RATE_LIMIT_REQUESTS", "100")
+    monkeypatch.setenv("AB_RATE_LIMIT_WINDOW_SECONDS", "60")
+    monkeypatch.setenv("AB_HEAVY_RATE_LIMIT_REQUESTS", "2")
+    monkeypatch.setenv("AB_HEAVY_RATE_LIMIT_WINDOW_SECONDS", "60")
+    monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")
+    get_settings.cache_clear()
+
+    bandit_payload = {"arm_rates": [0.05, 0.12], "horizon": 100, "num_simulations": 50, "seed": 7}
+    with TestClient(create_app()) as client:
+        first = client.post("/api/v1/simulate/bandit", json=bandit_payload)
+        second = client.post("/api/v1/simulate/bandit", json=bandit_payload)
+        third = client.post("/api/v1/simulate/bandit", json=bandit_payload)
+        cheap_after = client.get("/api/v1/diagnostics")
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert third.status_code == 429
+    assert third.json()["error_code"] == "rate_limited"
+    assert int(third.headers["retry-after"]) >= 1
+    # The heavy bucket is dedicated: exhausting it must not throttle cheap paths.
+    assert cheap_after.status_code == 200
+    get_settings.cache_clear()
+
+
 def test_readonly_api_token_allows_safe_requests_but_blocks_mutations(monkeypatch) -> None:
     monkeypatch.setenv("AB_READONLY_API_TOKEN", "readonly-secret")
     monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")
