@@ -5,10 +5,14 @@ import { vi } from "vitest";
 Reflect.set(globalThis, "IS_REACT_ACT_ENVIRONMENT", true);
 
 export function mockBlobDownloadGlobals(objectUrl = "blob:test"): void {
-  vi.stubGlobal("URL", {
-    createObjectURL: vi.fn(() => objectUrl),
-    revokeObjectURL: vi.fn()
-  });
+  // Keep the real URL constructor intact: vite's module runner calls `new URL()`
+  // while lazily importing chunks mid-test, so only the blob statics are stubbed.
+  const BaseURL = globalThis.URL;
+  class StubbedURL extends BaseURL {
+    static createObjectURL = vi.fn(() => objectUrl);
+    static revokeObjectURL = vi.fn();
+  }
+  vi.stubGlobal("URL", StubbedURL);
   vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
 }
 

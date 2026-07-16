@@ -9,12 +9,16 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          "vendor-react": ["react", "react-dom"],
-          "vendor-i18n": ["i18next", "react-i18next", "i18next-browser-languagedetector"],
-          "vendor-state": ["zustand"],
-          "vendor-icons": ["lucide-react"],
-          "vendor-floating": ["@floating-ui/react-dom"]
+        // vite 8 (rolldown) dropped the object form of manualChunks; the
+        // function keeps the same vendor split as before.
+        manualChunks(id: string) {
+          if (!id.includes("node_modules")) return undefined;
+          if (/[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/.test(id)) return "vendor-react";
+          if (/[\\/]node_modules[\\/](i18next|react-i18next|i18next-browser-languagedetector)[\\/]/.test(id)) return "vendor-i18n";
+          if (/[\\/]node_modules[\\/]zustand[\\/]/.test(id)) return "vendor-state";
+          if (/[\\/]node_modules[\\/]lucide-react[\\/]/.test(id)) return "vendor-icons";
+          if (/[\\/]node_modules[\\/]@floating-ui[\\/]/.test(id)) return "vendor-floating";
+          return undefined;
         }
       }
     },
