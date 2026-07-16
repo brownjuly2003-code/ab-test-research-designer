@@ -54,7 +54,7 @@ def main() -> int:
     parser.add_argument(
         "--with-coverage",
         action="store_true",
-        help=f"Write a backend coverage JSON report and enforce >= {COVERAGE_FAIL_UNDER}% line coverage.",
+        help=f"Write a backend coverage JSON report and enforce >= {COVERAGE_FAIL_UNDER}%% line coverage.",
     )
     parser.add_argument(
         "--with-lighthouse",
