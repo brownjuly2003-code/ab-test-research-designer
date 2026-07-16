@@ -263,6 +263,15 @@ curl -X POST http://127.0.0.1:8008/api/v1/export/markdown ^
 
 ## Other
 
+### `POST /api/v1/admin/retention/purge`
+
+Purge Retention
+
+Admin-only retention purge (audit F-12).
+
+When ``body`` is omitted, cutoffs are derived from ``AB_RETENTION_*_DAYS``.
+A window of 0 days is a no-op for that table. ``dry_run=true`` counts only.
+
 ### `POST /api/v1/assignment/preview`
 
 Assignment Preview

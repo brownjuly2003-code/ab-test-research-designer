@@ -40,7 +40,9 @@ ENV AB_LOG_FORMAT=plain
 WORKDIR /app
 
 COPY app/backend/requirements.txt /tmp/requirements.txt
-RUN pip install --no-cache-dir -r /tmp/requirements.txt
+# requirements.txt is a uv-compiled lock with sha256 hashes; --require-hashes
+# makes the hash check explicit rather than relying on pip's auto-enable.
+RUN pip install --no-cache-dir --require-hashes -r /tmp/requirements.txt
 
 COPY app /app/app
 COPY --from=frontend-build /workspace/app/frontend/dist /app/app/frontend/dist

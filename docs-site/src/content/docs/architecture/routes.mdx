@@ -7,7 +7,7 @@ import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
 
 <CardGrid>
   <Card title="Total endpoints" icon="rocket">
-    79
+    80
   </Card>
   <Card title="Source files" icon="document">
     12
@@ -19,9 +19,9 @@ import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
 | File | Endpoints |
 | --- | ---: |
 | `app/backend/app/frontend_routes.py` | 2 |
+| `app/backend/app/routes/system.py` | 4 |
 | `app/backend/app/routes/analysis.py` | 17 |
 | `app/backend/app/routes/audit.py` | 2 |
-| `app/backend/app/routes/system.py` | 3 |
 | `app/backend/app/routes/execution.py` | 10 |
 | `app/backend/app/routes/export.py` | 4 |
 | `app/backend/app/routes/keys.py` | 4 |
@@ -39,6 +39,7 @@ import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
 | --- | --- | --- |
 | <span class="route-method route-method-get">GET</span> | `/` | `app/backend/app/frontend_routes.py` |
 | <span class="route-method route-method-get">GET</span> | `/{full_path:path}` | `app/backend/app/frontend_routes.py` |
+| <span class="route-method route-method-post">POST</span> | `/api/v1/admin/retention/purge` | `app/backend/app/routes/system.py` |
 | <span class="route-method route-method-post">POST</span> | `/api/v1/analyze` | `app/backend/app/routes/analysis.py` |
 | <span class="route-method route-method-post">POST</span> | `/api/v1/assignment/preview` | `app/backend/app/routes/analysis.py` |
 | <span class="route-method route-method-get">GET</span> | `/api/v1/audit` | `app/backend/app/routes/audit.py` |

@@ -55,6 +55,16 @@ PUBLIC_COMPUTE_PATHS = frozenset(
     }
 )
 RATE_LIMITED_PATH_PREFIXES = ("/api/v1",)
+# Simulation endpoints whose per-request CPU cost is orders of magnitude above a
+# CRUD call (Monte-Carlo comparison up to 50k draws, bandit simulation). They are
+# open to anonymous read-scope sessions on the public demo, so they get a second,
+# tighter rate-limit bucket on top of the global one (audit 16.07 G-11).
+HEAVY_COMPUTE_PATHS = frozenset(
+    {
+        "/api/v1/projects/compare",
+        "/api/v1/simulate/bandit",
+    }
+)
 BODY_LIMITED_METHODS = {"POST", "PUT", "PATCH"}
 WORKSPACE_BUNDLE_PATHS = {"/api/v1/workspace/import", "/api/v1/workspace/validate"}
 SECURITY_RESPONSE_HEADERS = {
@@ -147,6 +157,10 @@ def is_protected_path(path: str) -> bool:
 
 def is_rate_limited_path(path: str) -> bool:
     return any(path.startswith(prefix) for prefix in RATE_LIMITED_PATH_PREFIXES)
+
+
+def is_heavy_compute_path(path: str) -> bool:
+    return path in HEAVY_COMPUTE_PATHS
 
 
 @lru_cache(maxsize=8)

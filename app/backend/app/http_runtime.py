@@ -30,6 +30,7 @@ from app.backend.app.http_utils import (
     get_process_time_ms,
     get_request_body_limit,
     get_request_id,
+    is_heavy_compute_path,
     is_protected_path,
     is_rate_limited_path,
 )
@@ -350,11 +351,23 @@ def register_http_runtime(
                     )
 
         if settings.rate_limit_enabled and request.method != "OPTIONS" and is_rate_limited_path(request.url.path):
+            bucket_base = (
+                getattr(request.state, "rate_limit_bucket_key", None) or f"api:{get_client_identifier(request, settings)}"
+            )
             rate_limit_decision = request_rate_limiter.allow(
-                getattr(request.state, "rate_limit_bucket_key", None) or f"api:{get_client_identifier(request, settings)}",
+                bucket_base,
                 max_requests=getattr(request.state, "rate_limit_requests", None),
                 window_seconds=getattr(request.state, "rate_limit_window_seconds", None),
             )
+            if rate_limit_decision.allowed and request.method == "POST" and is_heavy_compute_path(request.url.path):
+                # Second, tighter bucket for simulation endpoints: the global
+                # window is sized for CRUD traffic, and a caller staying inside
+                # it can still keep a demo CPU pegged with Monte-Carlo requests.
+                rate_limit_decision = request_rate_limiter.allow(
+                    f"heavy:{bucket_base}",
+                    max_requests=settings.heavy_rate_limit_requests,
+                    window_seconds=settings.heavy_rate_limit_window_seconds,
+                )
             if not rate_limit_decision.allowed:
                 response: Response = build_error_response(
                     request,
@@ -451,7 +464,7 @@ def register_http_runtime(
     return require_auth, require_write_auth, require_admin_auth
 
 
-def register_exception_handlers(app: FastAPI, *, logger: logging.Logger) -> None:
+def register_exception_handlers(app: FastAPI, *, logger: logging.Logger, settings: "Settings") -> None:
     @app.exception_handler(ApiError)
     async def handle_api_error(request: Request, exc: ApiError) -> JSONResponse:
         log_event(
@@ -481,8 +494,15 @@ def register_exception_handlers(app: FastAPI, *, logger: logging.Logger) -> None
             status_code=400,
             error_code="bad_request",
             process_time_ms=round(get_process_time_ms(request), 2),
+            detail=str(exc),
         )
-        return build_error_response(request, detail=str(exc), error_code="bad_request", status_code=400)
+        # Local/demo keep the raw message: most ValueErrors here are intentional
+        # input validation (webhook URL rules, stats parameter bounds) and the
+        # text is the user-facing explanation. Production returns a generic
+        # detail so an unexpected ValueError from deeper code cannot reflect
+        # internals to API clients; the full message stays in the log above.
+        detail = "Invalid value" if settings.is_production else str(exc)
+        return build_error_response(request, detail=detail, error_code="bad_request", status_code=400)
 
     @app.exception_handler(RequestValidationError)
     async def handle_validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:

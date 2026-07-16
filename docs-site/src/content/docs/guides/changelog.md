@@ -9,8 +9,17 @@ editUrl: "https://github.com/brownjuly2003-code/ab-test-research-designer/edit/m
 
 ### Added
 
+- Dedicated rate-limit bucket for CPU-heavy simulation endpoints (`/api/v1/projects/compare`, `/api/v1/simulate/bandit`): `AB_HEAVY_RATE_LIMIT_REQUESTS` / `AB_HEAVY_RATE_LIMIT_WINDOW_SECONDS` (default 30/60s) layered on top of the global window, so anonymous demo traffic cannot keep the CPU pegged while staying inside the CRUD-sized limit.
+- `SECURITY.md` (private vulnerability reporting, documented threat-model highlights), `CONTRIBUTING.md`, and GitHub issue/PR templates.
+- CodeQL static analysis workflow (python + javascript-typescript) on PRs, main pushes and a weekly schedule.
+
 - Durable webhook outbox: delivery rows are committed in the same transaction as their audit event and claimed by a background worker under a database lease, so retries survive restarts and replicas never race the same row (`webhook_deliveries.next_attempt_at` / `lease_expires_at`, schema v15 on both backends). Diagnostics now reports webhook queue depth per status and the age of the queue head.
 - Webhook SSRF guard: targets that resolve to a private, loopback or link-local address are refused at delivery time (and literal non-public IPs rejected at subscription create/update); `AB_ENV=local` keeps the localhost carve-out for development. Response bodies are read from the network up to 64 KB with an explicit truncation marker, instead of buffering arbitrarily large responses.
+- Metric capability registry (`metric_capabilities` + frontend `metricCapabilities.ts`) as the single source of truth for planning families and post-hoc analyzer payload kinds, so count/ratio support cannot drift across schema/dispatch/UI unions.
+- Diagnostics topology contract (`single_instance` / in-process rate limits and counters) and opt-in retention windows (`AB_RETENTION_*_DAYS`) with admin dry-run purge at `POST /api/v1/admin/retention/purge`.
+- Process-local RED latency on diagnostics runtime: average/max `process_time_ms` and `error_rate` over the process lifetime.
+- Deterministic frontend bundle budget gate and honest Python 3.13 support claim in CI (audit F-13).
+- Build SHA stamped into health/diagnostics/image metadata (`AB_BUILD_SHA` / git fallback) so releases are distinguishable between semver tags (audit F-07).
 
 - Added Checkout-redesign case study section to README with reproducible numbers from backend calculation and Bayesian interim check.
 - Regenerated demo screenshots to match v1.1.0 UI (comparison dashboard, webhook manager).
@@ -34,6 +43,13 @@ editUrl: "https://github.com/brownjuly2003-code/ab-test-research-designer/edit/m
 
 ### Changed
 
+- The public Hugging Face Space now runs `AB_ENV=demo` (was the default `local`): the webhook SSRF guard and the HTTPS-only webhook target rule stay active on the public host, matching the fly.toml posture.
+- Production responses to unexpected `ValueError`s carry a generic `Invalid value` detail; the real message goes to the server log. Local/demo keep the full validation text.
+- Backend `requirements.txt` / `requirements-dev.txt` are now uv-compiled universal locks with sha256 hashes for all packages including transitives; direct dependencies live in `requirements*.in`. The Docker image installs with `--require-hashes`.
+- All GitHub Actions are pinned to commit SHAs (with version comments so dependabot keeps bumping them).
+- Orchestration decompositions without public API breaks (audit F-11): `live_stats` package, `results` family package, `projectStore` domain slices, typed `apiJsonRequest`/`apiBlobRequest` helper, and `repository/execution` rollup package — facades keep prior import paths.
+- Public docs-site curated to an explicit allowlist so internal plan archives no longer publish (audit F-08).
+- Runtime Docker image split: production image no longer carries test/lint toolchains; bases pinned with a pre-push scan path (audit F-10).
 - Lazy-loaded locale JSONs via `i18next-http-backend` (moved to `app/frontend/public/locales/`); main JS chunk dropped from 247.88 KB to 122.18 KB gzip (-50%). Vendor libs split into `vendor-react` / `vendor-i18n` / `vendor-state` chunks for long-term caching.
 - Centralized the noop `ResizeObserver` jsdom stub in `app/frontend/src/test/setup.ts`; removed the per-file `vi.stubGlobal('ResizeObserver', …)` boilerplate that was duplicated across 10 chart/a11y test files. `mockBlobDownloadGlobals(objectUrl?)` helper added to `app/frontend/src/test/dom.ts` for the `URL.createObjectURL` + `HTMLAnchorElement.click` stub block previously duplicated across `App.test.tsx` and `ChartExport.test.tsx`.
 - `api_key_used` audit log writes are deferred from the auth middleware hot path to a starlette `BackgroundTask` attached to the response. The synchronous SQLite insert no longer blocks request processing for authenticated traffic. The pending audit is recorded on `request.state.pending_api_key_audit` and attached in `finalize_response()` so it still fires on early-return paths (read-scope POST → 403, rate-limit → 429, body-too-large → 413), preserving the previous audit semantics. Client-visible behavior is unchanged for sequential requests; concurrent observers querying `/api/v1/audit?action=api_key_used` immediately after an authenticated call may briefly miss the entry while the background write completes.
@@ -42,6 +58,7 @@ editUrl: "https://github.com/brownjuly2003-code/ab-test-research-designer/edit/m
 
 ### Fixed
 
+- **Audit P0/P1 (2026-07-11):** DSN/credential redaction on diagnostics and logs; production auth fail-fast so anonymous mutations cannot run under production config; count metric vertical contract (save/list/filter/load) across backend+frontend; npm advisory gates on both package roots; truthful CI badge counts waiting on both test suites and all verify jobs.
 - **Continuous post-test math:** `analyze_results` for continuous metrics now uses Welch Student-t for both the p-value and the confidence interval (was returning a normal-approximation p-value with a z-critical CI regardless of `df`). New `app/backend/app/stats/student_t.py` implements `t_cdf`/`t_ppf` via stdlib regularized incomplete beta (zero scipy dep); 24 unit cases assert ≤1e-7 / ≤1e-4 vs scipy. Continuous `power_achieved` is now computed (was hardcoded `0.0`) using a two-sided expression (upper + lower tail) so it equals α at zero observed effect instead of α/2.
 - **Workspace import atomicity:** `import_workspace()` now opens a `BEGIN IMMEDIATE` transaction explicitly. Default Python `sqlite3` deferred-mode transactions could race across concurrent imports.
 - **Snapshot loop resilience:** the periodic HF snapshot push is now wrapped in `try/except` so a transient failure logs and continues instead of killing the background task silently.

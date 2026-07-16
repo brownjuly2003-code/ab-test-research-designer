@@ -265,6 +265,35 @@ def test_local_environment_allows_loopback_targets() -> None:
     assert delivery["status"] == "delivered"
 
 
+def test_demo_environment_keeps_ssrf_guard_active() -> None:
+    # The public HF Space runs AB_ENV=demo: only the literal "local" environment
+    # may skip the SSRF guard, so a loopback target must be refused here.
+    repository = _repository()
+    subscription = _create_subscription(repository, target_url="https://internal.example/hook")
+    calls: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        return httpx.Response(200)
+
+    clock = FakeClock()
+    service = _service(
+        repository,
+        handler,
+        environment="demo",
+        clock=clock,
+        resolver=lambda host: ["127.0.0.1"],
+    )
+    _log_event(repository)
+    clock.advance(0.001)
+
+    assert service.run_due_deliveries() == 1
+    assert calls == [], "a loopback-resolving target must never be contacted outside AB_ENV=local"
+    (delivery,) = _deliveries(repository, subscription["id"])
+    assert delivery["status"] == "failed"
+    assert "non-public address" in (delivery["error_message"] or "")
+
+
 def test_4xx_response_fails_without_retry() -> None:
     repository = _repository()
     subscription = _create_subscription(repository)

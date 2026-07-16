@@ -320,7 +320,7 @@ def create_app() -> FastAPI:
         auth_failure_limiter=auth_failure_limiter,
         runtime_counters=runtime_counters,
     )
-    register_exception_handlers(app, logger=logger)
+    register_exception_handlers(app, logger=logger, settings=settings)
     # Intentional runtime injection seam: bind the report builder onto the routes
     # module dynamically. Kept as setattr so it stays opaque to mypy --strict
     # (no-implicit-reexport) — a direct assignment would couple to the import.

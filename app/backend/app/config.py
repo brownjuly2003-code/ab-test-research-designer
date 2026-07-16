@@ -60,6 +60,8 @@ class Settings:
     rate_limit_enabled: bool
     rate_limit_requests: int
     rate_limit_window_seconds: int
+    heavy_rate_limit_requests: int
+    heavy_rate_limit_window_seconds: int
     auth_failure_limit: int
     auth_failure_window_seconds: int
     max_request_body_bytes: int
@@ -188,6 +190,10 @@ def _validate_settings(settings: Settings) -> Settings:
         raise ValueError("AB_RATE_LIMIT_REQUESTS must be at least 1")
     if settings.rate_limit_window_seconds < 1:
         raise ValueError("AB_RATE_LIMIT_WINDOW_SECONDS must be at least 1")
+    if settings.heavy_rate_limit_requests < 1:
+        raise ValueError("AB_HEAVY_RATE_LIMIT_REQUESTS must be at least 1")
+    if settings.heavy_rate_limit_window_seconds < 1:
+        raise ValueError("AB_HEAVY_RATE_LIMIT_WINDOW_SECONDS must be at least 1")
     if settings.auth_failure_limit < 1:
         raise ValueError("AB_AUTH_FAILURE_LIMIT must be at least 1")
     if settings.auth_failure_window_seconds < 1:
@@ -296,6 +302,11 @@ def get_settings() -> Settings:
         rate_limit_enabled=_read_bool_env("AB_RATE_LIMIT_ENABLED", True),
         rate_limit_requests=_read_int_env("AB_RATE_LIMIT_REQUESTS", 240),
         rate_limit_window_seconds=_read_int_env("AB_RATE_LIMIT_WINDOW_SECONDS", 60),
+        # Simulation endpoints (see http_utils.HEAVY_COMPUTE_PATHS) burn far more
+        # CPU per request than CRUD; the public demo exposes them anonymously, so
+        # they get a tighter dedicated bucket on top of the global limit.
+        heavy_rate_limit_requests=_read_int_env("AB_HEAVY_RATE_LIMIT_REQUESTS", 30),
+        heavy_rate_limit_window_seconds=_read_int_env("AB_HEAVY_RATE_LIMIT_WINDOW_SECONDS", 60),
         auth_failure_limit=_read_int_env("AB_AUTH_FAILURE_LIMIT", 20),
         auth_failure_window_seconds=_read_int_env("AB_AUTH_FAILURE_WINDOW_SECONDS", 60),
         max_request_body_bytes=_read_int_env("AB_MAX_REQUEST_BODY_BYTES", 1_048_576),
