@@ -1,22 +1,35 @@
 version: 2
+
+# Grouping policy (audit 16.07 G-03): minor + patch bumps arrive as one weekly
+# PR per ecosystem — CI decides, one review merges the batch. Majors stay as
+# individual PRs because they routinely need code changes and a human eye.
 updates:
   - package-ecosystem: pip
     directory: /app/backend
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    groups:
+      pip-minor-patch:
+        update-types: ["minor", "patch"]
 
   - package-ecosystem: npm
     directory: /app/frontend
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    groups:
+      frontend-minor-patch:
+        update-types: ["minor", "patch"]
 
   - package-ecosystem: npm
     directory: /docs-site
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    groups:
+      docs-site-minor-patch:
+        update-types: ["minor", "patch"]
 
   # Keeps the digest-pinned base images in Dockerfile fresh (audit F-10).
   - package-ecosystem: docker
@@ -24,9 +37,15 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 3
+    groups:
+      docker-minor-patch:
+        update-types: ["minor", "patch"]
 
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
     open-pull-requests-limit: 3
+    groups:
+      actions-minor-patch:
+        update-types: ["minor", "patch"]

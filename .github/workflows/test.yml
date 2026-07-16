@@ -1,9 +1,19 @@
 name: Tests
 
+# Branch work runs once via pull_request; push is scoped to main so a PR
+# revision is not built twice (audit 16.07 G-10). A branch without a PR can
+# still be exercised via workflow_dispatch. Newer pushes to the same ref
+# cancel a stale in-flight run, except on main where every merge must finish
+# its badge update.
 on:
   push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   verify:

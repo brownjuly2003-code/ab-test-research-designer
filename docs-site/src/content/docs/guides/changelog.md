@@ -9,6 +9,10 @@ editUrl: "https://github.com/brownjuly2003-code/ab-test-research-designer/edit/m
 
 ### Added
 
+- Dedicated rate-limit bucket for CPU-heavy simulation endpoints (`/api/v1/projects/compare`, `/api/v1/simulate/bandit`): `AB_HEAVY_RATE_LIMIT_REQUESTS` / `AB_HEAVY_RATE_LIMIT_WINDOW_SECONDS` (default 30/60s) layered on top of the global window, so anonymous demo traffic cannot keep the CPU pegged while staying inside the CRUD-sized limit.
+- `SECURITY.md` (private vulnerability reporting, documented threat-model highlights), `CONTRIBUTING.md`, and GitHub issue/PR templates.
+- CodeQL static analysis workflow (python + javascript-typescript) on PRs, main pushes and a weekly schedule.
+
 - Durable webhook outbox: delivery rows are committed in the same transaction as their audit event and claimed by a background worker under a database lease, so retries survive restarts and replicas never race the same row (`webhook_deliveries.next_attempt_at` / `lease_expires_at`, schema v15 on both backends). Diagnostics now reports webhook queue depth per status and the age of the queue head.
 - Webhook SSRF guard: targets that resolve to a private, loopback or link-local address are refused at delivery time (and literal non-public IPs rejected at subscription create/update); `AB_ENV=local` keeps the localhost carve-out for development. Response bodies are read from the network up to 64 KB with an explicit truncation marker, instead of buffering arbitrarily large responses.
 - Metric capability registry (`metric_capabilities` + frontend `metricCapabilities.ts`) as the single source of truth for planning families and post-hoc analyzer payload kinds, so count/ratio support cannot drift across schema/dispatch/UI unions.
@@ -39,6 +43,10 @@ editUrl: "https://github.com/brownjuly2003-code/ab-test-research-designer/edit/m
 
 ### Changed
 
+- The public Hugging Face Space now runs `AB_ENV=demo` (was the default `local`): the webhook SSRF guard and the HTTPS-only webhook target rule stay active on the public host, matching the fly.toml posture.
+- Production responses to unexpected `ValueError`s carry a generic `Invalid value` detail; the real message goes to the server log. Local/demo keep the full validation text.
+- Backend `requirements.txt` / `requirements-dev.txt` are now uv-compiled universal locks with sha256 hashes for all packages including transitives; direct dependencies live in `requirements*.in`. The Docker image installs with `--require-hashes`.
+- All GitHub Actions are pinned to commit SHAs (with version comments so dependabot keeps bumping them).
 - Orchestration decompositions without public API breaks (audit F-11): `live_stats` package, `results` family package, `projectStore` domain slices, typed `apiJsonRequest`/`apiBlobRequest` helper, and `repository/execution` rollup package — facades keep prior import paths.
 - Public docs-site curated to an explicit allowlist so internal plan archives no longer publish (audit F-08).
 - Runtime Docker image split: production image no longer carries test/lint toolchains; bases pinned with a pre-push scan path (audit F-10).
