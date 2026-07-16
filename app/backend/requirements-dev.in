@@ -1,12 +1,12 @@
 # Development / CI toolchain on top of the runtime set. The Docker image must
 # never install this file (audit F-10).
 -r requirements.in
-pytest==9.0.3
+pytest==9.1.1
 pytest-cov==5.0.0
-hypothesis==6.152.1
-testcontainers==4.5.0
-pypdf==6.13.3
-playwright==1.58.0
+hypothesis==6.156.6
+testcontainers==4.14.2
+pypdf==6.14.2
+playwright==1.61.0
 mypy==1.18.2
-ruff==0.15.11
+ruff==0.15.22
 types-PyYAML==6.0.12.20260518

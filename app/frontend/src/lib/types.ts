@@ -1,12 +1,12 @@
 import type {
-  AnalysisResponse_Output as ApiAnalysisResponse,
+  AnalysisResponse as ApiAnalysisResponse,
   AnalysisRunRecord as ApiAnalysisRunRecord,
   CalculationRequest as ApiCalculationRequest,
   CalculationResponse as ApiCalculationResponse,
   DiagnosticsResponse as ApiDiagnosticsResponseContract,
-  ExperimentInput_Input as ApiExperimentInputInput,
-  ExperimentInput_Output as ApiExperimentInputOutput,
-  ExperimentReport_Output as ApiExperimentReport,
+  ExperimentInput as ApiExperimentInputInput,
+  ExperimentInput as ApiExperimentInputOutput,
+  ExperimentReport as ApiExperimentReport,
   ExportEventRecord as ApiExportEventRecord,
   HealthResponse as ApiHealthResponseContract,
   LlmAdviceResponse as ApiLlmAdviceResponse,
@@ -17,8 +17,8 @@ import type {
   ProjectRevisionHistoryResponse as ApiProjectRevisionHistoryResponse,
   ProjectRevisionRecord as ApiProjectRevisionRecord,
   SensitivityResponse as ApiSensitivityResponse,
-  WorkspaceBundle_Input as ApiWorkspaceBundleInput,
-  WorkspaceBundle_Output as ApiWorkspaceBundleOutput,
+  WorkspaceBundle as ApiWorkspaceBundleInput,
+  WorkspaceBundle as ApiWorkspaceBundleOutput,
   WorkspaceImportResponse as ApiWorkspaceImportResponse,
   WorkspaceValidationResponse as ApiWorkspaceValidationResponse
 } from "./generated/api-contract";

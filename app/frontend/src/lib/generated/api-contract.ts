@@ -1,14 +1,9 @@
 // This file is auto-generated from FastAPI OpenAPI components.
 // Do not edit manually. Run `python scripts/generate_frontend_api_types.py`.
 
-export type AdditionalContext_Input = {
+export type AdditionalContext = {
   llm_context?: string;
-  observed_results?: SavedObservedResults_Input | null;
-};
-
-export type AdditionalContext_Output = {
-  llm_context?: string;
-  observed_results?: SavedObservedResults_Output | null;
+  observed_results?: SavedObservedResults | null;
 };
 
 export type AdvicePayload = {
@@ -20,15 +15,9 @@ export type AdvicePayload = {
   additional_checks: string[];
 };
 
-export type AnalysisResponse_Input = {
+export type AnalysisResponse = {
   calculations: CalculationResponse;
-  report: ExperimentReport_Input;
-  advice: LlmAdviceResponse;
-};
-
-export type AnalysisResponse_Output = {
-  calculations: CalculationResponse;
-  report: ExperimentReport_Output;
+  report: ExperimentReport;
   advice: LlmAdviceResponse;
 };
 
@@ -37,7 +26,7 @@ export type AnalysisRunRecord = {
   project_id: string;
   created_at: string;
   summary: AnalysisRunSummary;
-  analysis: AnalysisResponse_Output;
+  analysis: AnalysisResponse;
 };
 
 export type AnalysisRunSummary = {
@@ -513,36 +502,16 @@ export type ExperimentDesignSection = {
   stopping_conditions: string[];
 };
 
-export type ExperimentInput_Input = {
+export type ExperimentInput = {
   project: ProjectContext;
   hypothesis: HypothesisContext;
   setup: ExperimentSetup;
   metrics: MetricsConfig;
   constraints: ConstraintsConfig;
-  additional_context?: AdditionalContext_Input;
+  additional_context?: AdditionalContext;
 };
 
-export type ExperimentInput_Output = {
-  project: ProjectContext;
-  hypothesis: HypothesisContext;
-  setup: ExperimentSetup;
-  metrics: MetricsConfig;
-  constraints: ConstraintsConfig;
-  additional_context?: AdditionalContext_Output;
-};
-
-export type ExperimentReport_Input = {
-  executive_summary: string;
-  calculations: CalculationsSection;
-  experiment_design: ExperimentDesignSection;
-  metrics_plan: MetricsPlanSection;
-  guardrail_metrics?: GuardrailMetricReport[];
-  risks: RisksSection;
-  recommendations: RecommendationsSection;
-  open_questions: string[];
-};
-
-export type ExperimentReport_Output = {
+export type ExperimentReport = {
   executive_summary: string;
   calculations: CalculationsSection;
   experiment_design: ExperimentDesignSection;
@@ -1263,7 +1232,7 @@ export type ProjectRecord = {
   has_analysis_snapshot?: boolean;
   created_at: string;
   updated_at: string;
-  payload: ExperimentInput_Output;
+  payload: ExperimentInput;
 };
 
 export type ProjectRevisionHistoryResponse = {
@@ -1279,7 +1248,7 @@ export type ProjectRevisionRecord = {
   project_id: string;
   source: "create" | "update" | "workspace_import";
   created_at: string;
-  payload: ExperimentInput_Output;
+  payload: ExperimentInput;
 };
 
 export type ProjectUniqueInsights = {
@@ -1361,13 +1330,7 @@ export type RisksSection = {
   operational: string[];
 };
 
-export type SavedObservedResults_Input = {
-  request: ResultsRequest;
-  analysis: ResultsResponse;
-  saved_at?: string | null;
-};
-
-export type SavedObservedResults_Output = {
+export type SavedObservedResults = {
   request: ResultsRequest;
   analysis: ResultsResponse;
   saved_at?: string | null;
@@ -1502,7 +1465,7 @@ export type TemplateCreateRequest = {
   category?: string;
   description: string;
   tags?: string[];
-  payload: ExperimentInput_Input;
+  payload: ExperimentInput;
 };
 
 export type TemplateDeleteResponse = {
@@ -1521,7 +1484,7 @@ export type TemplateRecord = {
   category: string;
   description: string;
   built_in: boolean;
-  payload: ExperimentInput_Output;
+  payload: ExperimentInput;
   tags?: string[];
   usage_count?: number;
 };
@@ -1614,37 +1577,20 @@ export type WebhookTestResponse = {
   response_code?: number | null;
 };
 
-export type WorkspaceAnalysisRunRecord_Input = {
+export type WorkspaceAnalysisRunRecord = {
   id: string;
   project_id: string;
   created_at: string;
-  analysis: AnalysisResponse_Input;
+  analysis: AnalysisResponse;
 };
 
-export type WorkspaceAnalysisRunRecord_Output = {
-  id: string;
-  project_id: string;
-  created_at: string;
-  analysis: AnalysisResponse_Output;
-};
-
-export type WorkspaceBundle_Input = {
+export type WorkspaceBundle = {
   schema_version?: number;
   generated_at: string;
-  projects: WorkspaceProjectRecord_Input[];
-  analysis_runs: WorkspaceAnalysisRunRecord_Input[];
+  projects: WorkspaceProjectRecord[];
+  analysis_runs: WorkspaceAnalysisRunRecord[];
   export_events: WorkspaceExportEventRecord[];
-  project_revisions?: WorkspaceProjectRevisionRecord_Input[];
-  integrity?: WorkspaceIntegrity | null;
-};
-
-export type WorkspaceBundle_Output = {
-  schema_version?: number;
-  generated_at: string;
-  projects: WorkspaceProjectRecord_Output[];
-  analysis_runs: WorkspaceAnalysisRunRecord_Output[];
-  export_events: WorkspaceExportEventRecord[];
-  project_revisions?: WorkspaceProjectRevisionRecord_Output[];
+  project_revisions?: WorkspaceProjectRevisionRecord[];
   integrity?: WorkspaceIntegrity | null;
 };
 
@@ -1677,7 +1623,7 @@ export type WorkspaceIntegrityCounts = {
   project_revisions: number;
 };
 
-export type WorkspaceProjectRecord_Input = {
+export type WorkspaceProjectRecord = {
   id: string;
   project_name: string;
   payload_schema_version: number;
@@ -1687,36 +1633,15 @@ export type WorkspaceProjectRecord_Input = {
   last_exported_at?: string | null;
   created_at: string;
   updated_at: string;
-  payload: ExperimentInput_Input;
+  payload: ExperimentInput;
 };
 
-export type WorkspaceProjectRecord_Output = {
-  id: string;
-  project_name: string;
-  payload_schema_version: number;
-  archived_at?: string | null;
-  last_analysis_at?: string | null;
-  last_analysis_run_id?: string | null;
-  last_exported_at?: string | null;
-  created_at: string;
-  updated_at: string;
-  payload: ExperimentInput_Output;
-};
-
-export type WorkspaceProjectRevisionRecord_Input = {
+export type WorkspaceProjectRevisionRecord = {
   id: string;
   project_id: string;
   source: "create" | "update" | "workspace_import";
   created_at: string;
-  payload: ExperimentInput_Input;
-};
-
-export type WorkspaceProjectRevisionRecord_Output = {
-  id: string;
-  project_id: string;
-  source: "create" | "update" | "workspace_import";
-  created_at: string;
-  payload: ExperimentInput_Output;
+  payload: ExperimentInput;
 };
 
 export type WorkspaceValidationResponse = {
