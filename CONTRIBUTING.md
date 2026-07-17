@@ -2,7 +2,7 @@
 
 ## Dev setup
 
-- Python **3.13**, Node **22** (LTS).
+- Python **3.14** (CI/runtime; code keeps a 3.13 compatibility floor for local dev), Node **22** (LTS).
 - Backend: `python -m pip install -r app/backend/requirements-dev.txt`
 - Frontend: `npm --prefix app/frontend ci`
 - Docs site (optional): `npm --prefix docs-site ci`
