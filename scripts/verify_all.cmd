@@ -106,7 +106,7 @@ if "%WITH_COVERAGE%"=="1" (
 )
 if errorlevel 1 (
   set "PYTEST_DISABLE_PLUGIN_AUTOLOAD=%ORIGINAL_PYTEST_DISABLE_PLUGIN_AUTOLOAD%"
-  exit /b %errorlevel%
+  exit /b 1
 )
 set "PYTEST_DISABLE_PLUGIN_AUTOLOAD=%ORIGINAL_PYTEST_DISABLE_PLUGIN_AUTOLOAD%"
 
@@ -131,25 +131,25 @@ if errorlevel 1 exit /b %errorlevel%
 if "%SKIP_BUILD%"=="0" (
   echo [verify] frontend build
   call npm.cmd run build
-  if errorlevel 1 exit /b %errorlevel%
+  if errorlevel 1 exit /b 1
   echo [verify] bundle budget ^(self-test^)
   python "%ROOT_DIR%scripts\check_bundle_budget.py" --self-test
-  if errorlevel 1 exit /b %errorlevel%
+  if errorlevel 1 exit /b 1
   echo [verify] bundle budget
   python "%ROOT_DIR%scripts\check_bundle_budget.py"
-  if errorlevel 1 exit /b %errorlevel%
+  if errorlevel 1 exit /b 1
 )
 
 if "%WITH_E2E%"=="1" (
   echo [verify] playwright e2e
   python "%ROOT_DIR%scripts\run_frontend_e2e.py" --skip-build
-  if errorlevel 1 exit /b %errorlevel%
+  if errorlevel 1 exit /b 1
 )
 
 if "%WITH_LIGHTHOUSE%"=="1" (
   echo [verify] lighthouse ci
   python "%ROOT_DIR%scripts\run_lighthouse_ci.py"
-  if errorlevel 1 exit /b %errorlevel%
+  if errorlevel 1 exit /b 1
 )
 
 cd /d "%ROOT_DIR%"
@@ -157,19 +157,19 @@ cd /d "%ROOT_DIR%"
 if "%SKIP_SMOKE%"=="0" (
   echo [verify] local smoke
   python "%ROOT_DIR%scripts\run_local_smoke.py" --skip-build
-  if errorlevel 1 exit /b %errorlevel%
+  if errorlevel 1 exit /b 1
 )
 
 if "%WITH_DOCKER%"=="1" (
   echo [verify] docker compose secure flow
   python "%ROOT_DIR%scripts\verify_docker_compose.py"
-  if errorlevel 1 exit /b %errorlevel%
+  if errorlevel 1 exit /b 1
 )
 
 if "%WITH_DOCKER_PRESERVE%"=="1" (
   echo [verify] docker compose secure flow ^(preserve^)
   python "%ROOT_DIR%scripts\verify_docker_compose.py" --preserve
-  if errorlevel 1 exit /b %errorlevel%
+  if errorlevel 1 exit /b 1
 )
 
 echo [verify] all checks passed

@@ -22,7 +22,7 @@ def test_health_endpoint_returns_basic_service_metadata() -> None:
     assert payload == {
         "status": "ok",
         "service": "AB Test Research Designer API",
-        "version": "1.1.0",
+        "version": "1.2.0",
         "environment": "local",
     }
 

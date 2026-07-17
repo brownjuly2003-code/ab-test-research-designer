@@ -5,7 +5,7 @@ editUrl: "https://github.com/brownjuly2003-code/ab-test-research-designer/edit/m
 
 # Changelog
 
-## Unreleased
+## [1.2.0] - 2026-07-17
 
 ### Added
 
@@ -73,6 +73,18 @@ editUrl: "https://github.com/brownjuly2003-code/ab-test-research-designer/edit/m
 - `ProjectRepository` now handles unix-absolute SQLite URLs (`sqlite:////home/user/db.sqlite3`) without doubling the leading slash, fixing `test_diagnostics_endpoint` path assertion on Linux CI.
 - Postgres integration tests skip on Windows CI where Docker Linux containers are unavailable (`testcontainers-ryuk` 404 on container create).
 - Hypothesis property tests uncovered and fixed degenerate-input guards in `calculations_service`: zero variance continuous, conversion in {0, 1}, `mde = 0`, ultra-strict alpha.
+- `verify_all.cmd` no longer masks failures of steps inside parenthesized blocks (frontend build, bundle budget, e2e, lighthouse, smoke, docker flows): `%errorlevel%` expands at parse time inside `( … )` — always 0 — so `exit /b %errorlevel%` reported success on failure. Those exits now return a literal 1.
+
+### Dependencies
+
+- Dependabot debt cleared to zero open unaddressed PRs. Minor/patch groups: backend pip (pydantic 2.13.4, psycopg 3.3.4, uvicorn 0.51.0, pypdf 6.14.2, pytest 9.1.1, playwright 1.61, hypothesis 6.156, testcontainers 4.14, ruff 0.15.22), frontend npm (11 packages incl. react patch), docs-site (sharp 0.35, starlight 0.41, yaml 2.9). Majors: TypeScript 7.0.2, Astro 7.1.0, mypy 2.3.0 (two now-unused `type: ignore` comments removed), and the coupled vite 8.1.5 + `@vitejs/plugin-react` 6.0.3 + vitest 4.1.10 cluster. GitHub Actions: upload-artifact 7, docker setup-qemu 4 / metadata 6 / build-push 7. Deliberately deferred pending a runtime decision: Python 3.14-slim and Node 26 Docker bases.
+- pydantic 2.13 stopped splitting identical input/output schema variants, so the generated frontend contract (`api-contract.ts`) uses unified names (`ExperimentInput` instead of `ExperimentInput_Input`/`_Output` etc.).
+- vite 8 (rolldown) migration: `manualChunks` moved from object to function form (same vendor split); the test helper `mockBlobDownloadGlobals` now stubs `URL.createObjectURL`/`revokeObjectURL` on a `URL` subclass instead of replacing the global, because the vite module runner constructs `URL`s while lazy-loading chunks inside tests.
+- Dependabot's lock edits are superseded by uv-recompiled locks (`uv pip compile --universal --generate-hashes`); dependabot regenerates `requirements*.txt` without platform markers, which silently drops win32-only packages (`colorama`) and breaks Windows installs.
+
+### Security
+
+- Repository security features enabled: Dependabot alerts, secret scanning, and push protection.
 
 ## [1.1.0] - 2026-04-21
 

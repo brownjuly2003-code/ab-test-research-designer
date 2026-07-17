@@ -57,7 +57,7 @@ With those variables configured, the backend restores the latest `projects.sqlit
 
 [![GHCR](https://img.shields.io/github/v/tag/brownjuly2003-code/ab-test-research-designer?label=ghcr.io&logo=docker)](https://github.com/brownjuly2003-code/ab-test-research-designer/pkgs/container/ab-test-research-designer)
 
-Deploy your own: see [docs/DEPLOY.md](/ab-test-research-designer/guides/deploy/). Release prep files: [fly.toml](https://github.com/brownjuly2003-code/ab-test-research-designer/blob/main/fly.toml) and [docs/RELEASE_NOTES_v1.1.0.md](/ab-test-research-designer/guides/release_notes_v1-1-0/).
+Deploy your own: see [docs/DEPLOY.md](/ab-test-research-designer/guides/deploy/). Release prep files: [fly.toml](https://github.com/brownjuly2003-code/ab-test-research-designer/blob/main/fly.toml) and [docs/RELEASE_NOTES_v1.2.0.md](/ab-test-research-designer/guides/release_notes_v1-2-0/).
 
 Sample import payload:
 

@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## [1.2.0] - 2026-07-17
 
 ### Added
 
@@ -68,6 +68,7 @@
 - `ProjectRepository` now handles unix-absolute SQLite URLs (`sqlite:////home/user/db.sqlite3`) without doubling the leading slash, fixing `test_diagnostics_endpoint` path assertion on Linux CI.
 - Postgres integration tests skip on Windows CI where Docker Linux containers are unavailable (`testcontainers-ryuk` 404 on container create).
 - Hypothesis property tests uncovered and fixed degenerate-input guards in `calculations_service`: zero variance continuous, conversion in {0, 1}, `mde = 0`, ultra-strict alpha.
+- `verify_all.cmd` no longer masks failures of steps inside parenthesized blocks (frontend build, bundle budget, e2e, lighthouse, smoke, docker flows): `%errorlevel%` expands at parse time inside `( … )` — always 0 — so `exit /b %errorlevel%` reported success on failure. Those exits now return a literal 1.
 
 ### Dependencies
 
