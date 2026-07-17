@@ -252,6 +252,29 @@ jobs:
           include-hidden-files: true
           if-no-files-found: warn
 
+  frontend-coverage:
+    # Coverage instrumentation slows the frontend suite and has flaked under
+    # CPU contention (audit G-09: 625s observed inside verify), so the threshold
+    # gate lives in its own job instead of the verify path. Floors are set in
+    # vite.config.ts at measured coverage minus ~3 p.p.
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: app/frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm --prefix app/frontend ci
+
+      - name: Frontend unit tests with coverage thresholds
+        run: npm --prefix app/frontend run test:coverage
+
   update-metrics-badges:
     runs-on: ubuntu-latest
     # Badges must reflect the whole gate, not just verify+lighthouse: a red
@@ -264,6 +287,7 @@ jobs:
       - verify-postgres
       - docker
       - lighthouse
+      - frontend-coverage
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     permissions:
       contents: write

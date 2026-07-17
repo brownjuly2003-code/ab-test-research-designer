@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Frontend unit-test coverage gate as a dedicated CI job (`frontend-coverage`): vitest v8 coverage with floors at measured coverage minus ~3 p.p. (lines/statements 75, functions 78, branches 67), kept out of the verify path because instrumentation slows the suite.
+
 ### Changed
 
 - Admin retention purge (`POST /api/v1/admin/retention/purge`) now defaults to `dry_run=true`; deletion requires an explicit `dry_run=false` (safety default for a destructive admin operation).

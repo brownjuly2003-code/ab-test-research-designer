@@ -33,6 +33,27 @@ export default defineConfig({
     // worker per core) made full local runs flaky; a higher ceiling plus a worker
     // cap keeps the gate deterministic without slowing low-core CI runners.
     testTimeout: 30000,
-    maxWorkers: 8
+    maxWorkers: 8,
+    // Coverage runs only in the dedicated CI job (`npm run test:coverage`):
+    // instrumentation multiplies suite runtime, so it stays off the verify path.
+    coverage: {
+      provider: "v8",
+      include: ["src/**/*.{ts,tsx}"],
+      exclude: [
+        "src/**/*.test.{ts,tsx}",
+        "src/test/**",
+        "src/lib/generated/**",
+        "src/main.tsx"
+      ],
+      reporter: ["text-summary", "json-summary"],
+      // Floors = measured coverage minus ~3 p.p. (2026-07-17 baseline:
+      // statements 78.35, branches 70.32, functions 81.5, lines 78.38).
+      thresholds: {
+        lines: 75,
+        statements: 75,
+        functions: 78,
+        branches: 67
+      }
+    }
   }
 });
