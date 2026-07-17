@@ -34,6 +34,15 @@ export default defineConfig({
     // cap keeps the gate deterministic without slowing low-core CI runners.
     testTimeout: 30000,
     maxWorkers: 8,
+    // Node 26 ships experimental Web Storage: localStorage/sessionStorage appear on
+    // globalThis (undefined without --localstorage-file), vitest's jsdom environment
+    // preserves existing globals, so jsdom's working Storage never gets installed and
+    // Storage.prototype spies in tests bind to the wrong class. Disabling it in the
+    // workers restores the exact Node 22 semantics.
+    poolOptions: {
+      forks: { execArgv: ["--no-experimental-webstorage"] },
+      threads: { execArgv: ["--no-experimental-webstorage"] }
+    },
     // Coverage runs only in the dedicated CI job (`npm run test:coverage`):
     // instrumentation multiplies suite runtime, so it stays off the verify path.
     coverage: {
