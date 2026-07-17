@@ -1,6 +1,20 @@
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 
+// Node 26 ships experimental Web Storage: localStorage/sessionStorage exist on
+// globalThis but are undefined without --localstorage-file, which stops vitest's
+// jsdom environment from installing jsdom's working Storage (existing globals are
+// preserved) and binds Storage.prototype spies to the wrong class. Vitest 4 ignores
+// poolOptions.*.execArgv, so pass the flag via NODE_OPTIONS — worker processes
+// inherit it and start with clean globals, restoring exact Node 22 semantics.
+// The flag exists on node >=22.4 (the project floor is 22 LTS).
+if (process.env.VITEST) {
+  const webstorageFlag = "--no-experimental-webstorage";
+  if (!process.env.NODE_OPTIONS?.includes(webstorageFlag)) {
+    process.env.NODE_OPTIONS = [process.env.NODE_OPTIONS, webstorageFlag].filter(Boolean).join(" ");
+  }
+}
+
 export default defineConfig({
   plugins: [react()],
   server: {
@@ -34,15 +48,6 @@ export default defineConfig({
     // cap keeps the gate deterministic without slowing low-core CI runners.
     testTimeout: 30000,
     maxWorkers: 8,
-    // Node 26 ships experimental Web Storage: localStorage/sessionStorage appear on
-    // globalThis (undefined without --localstorage-file), vitest's jsdom environment
-    // preserves existing globals, so jsdom's working Storage never gets installed and
-    // Storage.prototype spies in tests bind to the wrong class. Disabling it in the
-    // workers restores the exact Node 22 semantics.
-    poolOptions: {
-      forks: { execArgv: ["--no-experimental-webstorage"] },
-      threads: { execArgv: ["--no-experimental-webstorage"] }
-    },
     // Coverage runs only in the dedicated CI job (`npm run test:coverage`):
     // instrumentation multiplies suite runtime, so it stays off the verify path.
     coverage: {
