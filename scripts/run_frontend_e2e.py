@@ -77,7 +77,9 @@ def parse_args() -> tuple[argparse.Namespace, list[str]]:
     parser.add_argument(
         "--timeout-seconds",
         type=int,
-        default=180,
+        # Four serial specs (smoke + locale/workspace/webhook scenarios) at a
+        # 45s per-test ceiling need more headroom than the old single-spec 180s.
+        default=420,
         help="Hard timeout for the Playwright command.",
     )
     return parser.parse_known_args()
@@ -97,6 +99,7 @@ def main() -> int:
     run_dir.mkdir(parents=True, exist_ok=True)
     db_path = run_dir / "projects.sqlite3"
     backend_log_path = run_dir / "backend.log"
+    admin_backend_log_path = run_dir / "backend-admin.log"
     playwright_log_path = run_dir / "playwright.log"
     backend_port = choose_backend_port()
     base_url = f"http://{BACKEND_HOST}:{backend_port}"
@@ -111,7 +114,27 @@ def main() -> int:
         }
     )
 
-    with backend_log_path.open("w", encoding="utf-8") as backend_log:
+    # Keys/webhooks are admin-only at the middleware level, and configuring
+    # AB_ADMIN_TOKEN flips auth on for the whole instance (auth_enabled()),
+    # which would 401 the anonymous smoke flows. The webhook manager spec
+    # therefore gets its own admin-token-enabled backend on a second port.
+    admin_token = "e2e-admin-token-0123456789abcdef"
+    admin_port = choose_backend_port()
+    admin_base_url = f"http://{BACKEND_HOST}:{admin_port}"
+    admin_backend_env = os.environ.copy()
+    admin_backend_env.update(
+        {
+            "AB_ENV": "playwright",
+            "AB_DB_PATH": str(run_dir / "projects-admin.sqlite3"),
+            "AB_HOST": BACKEND_HOST,
+            "AB_PORT": str(admin_port),
+            "AB_ADMIN_TOKEN": admin_token,
+        }
+    )
+
+    with backend_log_path.open("w", encoding="utf-8") as backend_log, admin_backend_log_path.open(
+        "w", encoding="utf-8"
+    ) as admin_backend_log:
         backend_process = subprocess.Popen(
             [sys.executable, str(ROOT_DIR / "scripts" / "run_backend_for_e2e.py")],
             cwd=ROOT_DIR,
@@ -120,13 +143,24 @@ def main() -> int:
             stderr=subprocess.STDOUT,
             text=True,
         )
+        admin_backend_process = subprocess.Popen(
+            [sys.executable, str(ROOT_DIR / "scripts" / "run_backend_for_e2e.py")],
+            cwd=ROOT_DIR,
+            env=admin_backend_env,
+            stdout=admin_backend_log,
+            stderr=subprocess.STDOUT,
+            text=True,
+        )
 
         try:
             wait_for_http(f"{base_url}/health", timeout_seconds=30)
             wait_for_http(base_url, timeout_seconds=30)
+            wait_for_http(f"{admin_base_url}/health", timeout_seconds=30)
 
             playwright_env = os.environ.copy()
             playwright_env["AB_E2E_BASE_URL"] = base_url
+            playwright_env["AB_E2E_ADMIN_BASE_URL"] = admin_base_url
+            playwright_env["AB_E2E_ADMIN_TOKEN"] = admin_token
 
             command = [
                 NPM_EXECUTABLE,
@@ -158,12 +192,16 @@ def main() -> int:
                     ) from error
         finally:
             terminate_process(backend_process)
+            terminate_process(admin_backend_process)
 
     if return_code != 0:
         backend_tail = read_log_tail(backend_log_path)
+        admin_backend_tail = read_log_tail(admin_backend_log_path)
         playwright_tail = read_log_tail(playwright_log_path)
         if backend_tail:
             print(backend_tail, file=sys.stderr)
+        if admin_backend_tail:
+            print(admin_backend_tail, file=sys.stderr)
         if playwright_tail:
             print(playwright_tail, file=sys.stderr)
         print(f"Backend log: {backend_log_path}", file=sys.stderr)

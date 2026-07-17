@@ -10,6 +10,7 @@ editUrl: "https://github.com/brownjuly2003-code/ab-test-research-designer/edit/m
 ### Added
 
 - Frontend unit-test coverage gate as a dedicated CI job (`frontend-coverage`): vitest v8 coverage with floors at measured coverage minus ~3 p.p. (lines/statements 75, functions 78, branches 67), kept out of the verify path because instrumentation slows the suite.
+- Three Playwright e2e scenarios beyond the smoke flow: locale switching incl. Arabic RTL with persistence across reload, workspace export→import roundtrip, and webhook manager create/delete. The e2e runner now boots a second admin-token-enabled backend for the webhook spec, since keys/webhooks surfaces are admin-only at the middleware level and enabling the token instance-wide would close the anonymous smoke paths.
 
 ### Changed
 

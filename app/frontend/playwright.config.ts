@@ -7,7 +7,7 @@ const currentDir = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   testDir: "./src/test",
-  testMatch: ["e2e-smoke.spec.ts"],
+  testMatch: ["e2e-smoke.spec.ts", "e2e-scenarios.spec.ts", "e2e-webhooks.spec.ts"],
   fullyParallel: false,
   workers: 1,
   retries: process.env.CI ? 1 : 0,
