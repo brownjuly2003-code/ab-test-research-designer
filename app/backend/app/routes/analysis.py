@@ -251,6 +251,7 @@ def create_analysis_router(
         backoff_multiplier=settings.llm_backoff_multiplier,
     )
     openai_adapter = OpenAIAdapter(
+        model=settings.openai_model,
         timeout_seconds=settings.llm_timeout_seconds,
         max_attempts=settings.llm_max_attempts,
         initial_backoff_seconds=settings.llm_initial_backoff_seconds,

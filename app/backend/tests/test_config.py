@@ -241,3 +241,13 @@ def test_settings_local_allows_sqlite_default(monkeypatch) -> None:
     assert settings.uses_postgres is False
 
     get_settings.cache_clear()
+
+def test_settings_openai_model_env_override(monkeypatch) -> None:
+    get_settings.cache_clear()
+    assert get_settings().openai_model == "gpt-5.6-luna"
+
+    monkeypatch.setenv("AB_OPENAI_MODEL", "gpt-5.6-terra")
+    get_settings.cache_clear()
+    assert get_settings().openai_model == "gpt-5.6-terra"
+
+    get_settings.cache_clear()

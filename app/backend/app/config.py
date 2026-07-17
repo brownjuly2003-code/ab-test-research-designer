@@ -41,6 +41,7 @@ class Settings:
     llm_backoff_multiplier: float
     mistral_api_key: str | None
     mistral_model: str
+    openai_model: str
     sqlite_busy_timeout_ms: int
     sqlite_journal_mode: str
     sqlite_synchronous: str
@@ -281,6 +282,7 @@ def get_settings() -> Settings:
         llm_backoff_multiplier=_read_float_env("AB_LLM_BACKOFF_MULTIPLIER", 2.0),
         mistral_api_key=(os.getenv("AB_MISTRAL_API_KEY") or "").strip() or None,
         mistral_model=os.getenv("AB_MISTRAL_MODEL", "mistral-small-latest").strip(),
+        openai_model=os.getenv("AB_OPENAI_MODEL", "gpt-5.6-luna").strip(),
         sqlite_busy_timeout_ms=_read_int_env("AB_SQLITE_BUSY_TIMEOUT_MS", 5000),
         sqlite_journal_mode=os.getenv("AB_SQLITE_JOURNAL_MODE", "WAL").strip().upper(),
         sqlite_synchronous=os.getenv("AB_SQLITE_SYNCHRONOUS", "NORMAL").strip().upper(),

@@ -72,6 +72,7 @@ that would normally refuse to boot.
 | `AB_CORS_ORIGINS` | your frontend origin(s) | Comma-separated; defaults to localhost dev origins. |
 | `AB_MISTRAL_API_KEY` | Mistral API key | Optional **free fallback** for AI advice/hypotheses: when the default local orchestrator is unavailable (e.g. the hosted demo has none), requests fall back to Mistral so suggestions still work without a paid provider. Unset → no fallback (advice degrades gracefully to an empty, `available: false` result). |
 | `AB_MISTRAL_MODEL` | `mistral-small-latest` | Model used for the Mistral fallback. |
+| `AB_OPENAI_MODEL` | `gpt-5.6-luna` | Model used when a caller selects the OpenAI provider with their own token. |
 
 The SQLite-specific knobs (`AB_SQLITE_*`) are ignored on the PostgreSQL backend.
 

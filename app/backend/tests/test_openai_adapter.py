@@ -56,12 +56,12 @@ def test_openai_adapter_happy_path_parses_structured_response() -> None:
 
     assert result["available"] is True
     assert result["provider"] == "openai"
-    assert result["model"] == "gpt-4o-mini"
+    assert result["model"] == "gpt-5.6-luna"
     assert result["advice"]["brief_assessment"] == "OpenAI advice is available."
     assert result["error_code"] is None
     assert captured["headers"]["authorization"] == "Bearer sk-openai-secret"
     assert captured["payload"] == {
-        "model": "gpt-4o-mini",
+        "model": "gpt-5.6-luna",
         "temperature": 0.4,
         "messages": [{"role": "user", "content": "Return JSON only."}],
     }

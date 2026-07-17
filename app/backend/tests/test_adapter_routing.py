@@ -83,7 +83,7 @@ def test_llm_advice_endpoint_uses_selected_remote_adapter(monkeypatch) -> None:
         return {
             "available": True,
             "provider": "openai",
-            "model": "gpt-4o-mini",
+            "model": "gpt-5.6-luna",
             "advice": {
                 "brief_assessment": "Remote advice is available.",
                 "key_risks": ["Tracking quality"],
@@ -111,7 +111,7 @@ def test_llm_advice_endpoint_uses_selected_remote_adapter(monkeypatch) -> None:
 
     assert response.status_code == 200
     assert response.json()["provider"] == "openai"
-    assert response.json()["model"] == "gpt-4o-mini"
+    assert response.json()["model"] == "gpt-5.6-luna"
 
 
 def test_llm_advice_endpoint_returns_503_for_transient_remote_errors(monkeypatch) -> None:
