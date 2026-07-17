@@ -100,3 +100,4 @@ research/*.log
 
 # local scratch verification scripts and captured tool output
 /scratchpad/
+coverage-backend.json
