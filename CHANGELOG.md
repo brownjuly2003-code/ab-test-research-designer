@@ -6,6 +6,7 @@
 
 - Admin retention purge (`POST /api/v1/admin/retention/purge`) now defaults to `dry_run=true`; deletion requires an explicit `dry_run=false` (safety default for a destructive admin operation).
 - Caller-keyed OpenAI adapter: default model updated from the retired `gpt-4o-mini` to `gpt-5.6-luna`, and the model is now configurable via `AB_OPENAI_MODEL`.
+- CI badge payloads moved off `main`: the badge job now force-pushes a single-commit orphan branch `generated/badges` and README/shields endpoints read from it, so bot commits no longer pollute main history.
 
 ## [1.2.0] - 2026-07-17
 

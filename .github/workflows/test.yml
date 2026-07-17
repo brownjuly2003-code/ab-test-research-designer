@@ -300,14 +300,20 @@ jobs:
           --test-results .badge-inputs/frontend-junit.xml
           --output badges/metrics.json
 
-      - name: Commit badge payloads
+      - name: Publish badge payloads to generated/badges
+        # Badge churn stays out of main history (audit G-07 follow-up): the
+        # payloads live on a single-commit orphan branch that README endpoints
+        # point at, force-pushed only when the payloads actually change.
         run: |
-          if [ -z "$(git status --porcelain -- badges)" ]; then
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git fetch --depth 1 origin generated/badges 2>/dev/null &&
+             git diff --quiet FETCH_HEAD -- badges; then
             echo "No badge updates"
             exit 0
           fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add badges/*.json
-          git commit -m "chore: update badge metrics [skip ci]"
-          git push
+          git checkout --orphan badge-publish
+          git rm -rf --cached . > /dev/null
+          git add -f badges/*.json
+          git commit -m "chore: badge payloads for ${GITHUB_SHA} [skip ci]"
+          git push --force origin HEAD:generated/badges
