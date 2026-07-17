@@ -14,7 +14,7 @@ COPY app/frontend ./
 RUN npm run build
 
 
-FROM python:3.13-slim@sha256:eb43ff125d8d58d7449dcba7d336c23bcac412f526d861db493b9994d8010280 AS runtime
+FROM python:3.14-slim@sha256:d3400aa122fa42cf0af0dbe8ec3091b047eac5c8f7e3539f7135e86d855dc015 AS runtime
 
 # Stamped by CI (docker-publish passes the release commit); defaults to "unknown"
 # for builds that pass nothing, e.g. the HF Space build — the deploy script stamps

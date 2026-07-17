@@ -15,7 +15,7 @@ editUrl: "https://github.com/brownjuly2003-code/ab-test-research-designer/edit/m
 
 [![Release](https://img.shields.io/github/v/release/brownjuly2003-code/ab-test-research-designer?include_prereleases&display_name=tag)](https://github.com/brownjuly2003-code/ab-test-research-designer/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/brownjuly2003-code/ab-test-research-designer/blob/main/LICENSE)
-[![Python](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/python-3.14-blue.svg)](https://www.python.org/)
 [![Node](https://img.shields.io/badge/node-LTS-green.svg)](https://nodejs.org/)
 [![Tests](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/brownjuly2003-code/ab-test-research-designer/generated/badges/badges/tests.json)](https://github.com/brownjuly2003-code/ab-test-research-designer/actions/workflows/test.yml)
 [![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/brownjuly2003-code/ab-test-research-designer/generated/badges/badges/coverage.json)](https://github.com/brownjuly2003-code/ab-test-research-designer/actions/workflows/test.yml)
@@ -187,7 +187,7 @@ The paired and omnibus rows are within-subject and multi-group designs respectiv
 
 Prerequisites:
 
-- Python 3.13 (the version CI tests and mypy targets)
+- Python 3.14 (the version CI tests and mypy targets)
 - Node.js LTS
 - Git
 

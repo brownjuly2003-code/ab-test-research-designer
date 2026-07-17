@@ -4,7 +4,7 @@
 # `app.backend.app.*` with the repo root on sys.path (PEP 420 namespace
 # packages, no __init__.py), so mypy needs the repo root as the package base to
 # compute matching module names.
-python_version = "3.13"
+python_version = "3.14"
 strict = true
 namespace_packages = true
 explicit_package_bases = true
@@ -25,7 +25,7 @@ ignore_missing_imports = true
 # length (E501) is intentionally NOT enforced: the codebase favours descriptive
 # long lines in SQL builders, comments and i18n strings, so enforcing a width
 # would be churn without signal. The selected families catch real issues only.
-target-version = "py313"
+target-version = "py313"  # compatibility floor: local dev runs 3.13; CI/runtime are 3.14
 
 [tool.ruff.lint]
 # F  = pyflakes (unused imports/vars, undefined names)
