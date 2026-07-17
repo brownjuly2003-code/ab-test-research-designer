@@ -80,6 +80,67 @@ def test_purge_retention_dry_run_and_delete(tmp_path) -> None:
         assert ids == ["e-new"]
 
 
+def test_purge_endpoint_defaults_to_dry_run(tmp_path, monkeypatch) -> None:
+    """Safety default (G-12 follow-up): omitting dry_run must never delete rows."""
+    db_path = tmp_path / "purge-default.sqlite3"
+    monkeypatch.setenv("AB_DB_PATH", str(db_path))
+    monkeypatch.setenv("AB_DATABASE_URL", f"sqlite:///{db_path.as_posix()}")
+    monkeypatch.setenv("AB_ENV", "local")
+    monkeypatch.setenv("AB_RETENTION_EXPOSURES_DAYS", "30")
+    monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")
+    from app.backend.app import config as config_module
+
+    config_module.get_settings.cache_clear()
+    app = create_app()
+    client = TestClient(app)
+
+    repo = ProjectRepository(f"sqlite:///{db_path.as_posix()}")
+    now = datetime.now(UTC)
+    old = (now - timedelta(days=40)).isoformat()
+    with repo._connect() as connection:  # noqa: SLF001 — test fixture
+        connection.execute(
+            """
+            INSERT INTO projects (
+                id, project_name, payload_json, payload_schema_version, created_at, updated_at
+            )
+            VALUES ('exp-1', 'Retention fixture', '{}', 1, ?, ?)
+            """,
+            (old, old),
+        )
+        connection.execute(
+            """
+            INSERT INTO exposures (id, experiment_id, user_id, variation_index, created_at, occurred_at)
+            VALUES ('e-old', 'exp-1', 'u1', 0, ?, ?)
+            """,
+            (old, old),
+        )
+        connection.commit()
+
+    # No body at all → dry run: counts reported, nothing deleted.
+    response = client.post("/api/v1/admin/retention/purge")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["dry_run"] is True
+    assert payload["purged"]["exposures"] == 1
+
+    # Body without dry_run → still a dry run.
+    response = client.post("/api/v1/admin/retention/purge", json={"exposures_days": 30})
+    assert response.json()["dry_run"] is True
+
+    with repo._connect() as connection:  # noqa: SLF001
+        count = connection.execute("SELECT COUNT(*) AS n FROM exposures").fetchone()
+        assert int(count["n"] if "n" in count.keys() else count[0]) == 1
+
+    # Explicit opt-in is required for real deletion.
+    response = client.post("/api/v1/admin/retention/purge", json={"dry_run": False})
+    assert response.status_code == 200
+    assert response.json()["dry_run"] is False
+    with repo._connect() as connection:  # noqa: SLF001
+        count = connection.execute("SELECT COUNT(*) AS n FROM exposures").fetchone()
+        assert int(count["n"] if "n" in count.keys() else count[0]) == 0
+    config_module.get_settings.cache_clear()
+
+
 def test_build_runtime_summary_red_fields() -> None:
     counters = create_runtime_counters()
     counters["total_requests"] = 4

@@ -20,7 +20,7 @@ class _RetentionMixin(_BackendCore):
         conversions_before: str | None = None,
         audit_before: str | None = None,
         webhook_deliveries_before: str | None = None,
-        dry_run: bool = False,
+        dry_run: bool = True,
     ) -> dict[str, int]:
         """Delete (or count) rows older than the given ISO cutoffs.
 

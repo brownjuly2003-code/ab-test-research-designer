@@ -49,7 +49,7 @@ class RetentionPurgeRequest(BaseModel):
     conversions_days: int | None = None
     audit_days: int | None = None
     webhook_deliveries_days: int | None = None
-    dry_run: bool = False
+    dry_run: bool = True
 
 
 def create_system_router(
@@ -302,7 +302,8 @@ def create_system_router(
         """Admin-only retention purge (audit F-12).
 
         When ``body`` is omitted, cutoffs are derived from ``AB_RETENTION_*_DAYS``.
-        A window of 0 days is a no-op for that table. ``dry_run=true`` counts only.
+        A window of 0 days is a no-op for that table. ``dry_run`` defaults to true
+        (counts only); pass an explicit ``dry_run=false`` to actually delete rows.
         """
         if not bool(getattr(request.state, "admin_authenticated", False)) and getattr(
             request.state, "auth_scope", None
