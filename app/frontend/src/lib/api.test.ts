@@ -331,7 +331,7 @@ describe("frontend api wrapper", () => {
         advice: {
           available: true,
           provider: "openai",
-          model: "gpt-4o-mini",
+          model: "gpt-5.6-luna",
           advice: {
             brief_assessment: "Remote advice is available.",
             key_risks: ["Tracking quality"],

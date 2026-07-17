@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:unit": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "test:smoke": "python ../../scripts/run_local_smoke.py",
     "test:e2e": "python ../../scripts/run_frontend_e2e.py",
     "test:e2e:install": "playwright install chromium"
@@ -30,6 +31,7 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.1.2",
     "@vitejs/plugin-react": "6.0.3",
+    "@vitest/coverage-v8": "^4.1.10",
     "axe-core": "^4.12.1",
     "jsdom": "^28.1.0",
     "typescript": "^7.0.2",

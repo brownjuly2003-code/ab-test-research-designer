@@ -270,7 +270,8 @@ Purge Retention
 Admin-only retention purge (audit F-12).
 
 When ``body`` is omitted, cutoffs are derived from ``AB_RETENTION_*_DAYS``.
-A window of 0 days is a no-op for that table. ``dry_run=true`` counts only.
+A window of 0 days is a no-op for that table. ``dry_run`` defaults to true
+(counts only); pass an explicit ``dry_run=false`` to actually delete rows.
 
 ### `POST /api/v1/assignment/preview`
 

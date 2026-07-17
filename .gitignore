@@ -55,6 +55,7 @@ exports/*
 .tmp-gh-artifacts/
 .coverage
 /--artifacts-dir/
+app/frontend/coverage/
 
 # cxkm review scratch
 /.tmp/

@@ -15,5 +15,5 @@ class OpenAIAdapter(ExternalChatAdapter):
     provider_name = "openai"
     vendor_label = "OpenAI"
 
-    def __init__(self, **kwargs: Any) -> None:
-        super().__init__(base_url="https://api.openai.com", model="gpt-4o-mini", reasoning=False, **kwargs)
+    def __init__(self, model: str = "gpt-5.6-luna", **kwargs: Any) -> None:
+        super().__init__(base_url="https://api.openai.com", model=model, reasoning=False, **kwargs)
