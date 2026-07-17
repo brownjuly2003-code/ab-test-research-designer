@@ -93,9 +93,9 @@ if "%WITH_COVERAGE%"=="1" (
 )
 if "%WITH_COVERAGE%"=="1" (
   if "%ARTIFACTS_DIR%"=="" (
-    python -m pytest "%ROOT_DIR%app\backend\tests" -q --cov=app/backend/app --cov-report=term --cov-report=json:"%BACKEND_COVERAGE_PATH%" --cov-fail-under=88
+    python -m pytest "%ROOT_DIR%app\backend\tests" -q -p pytest_cov --cov=app/backend/app --cov-report=term --cov-report=json:"%BACKEND_COVERAGE_PATH%" --cov-fail-under=88
   ) else (
-    python -m pytest "%ROOT_DIR%app\backend\tests" -q --junitxml "%BACKEND_JUNIT_PATH%" --cov=app/backend/app --cov-report=term --cov-report=json:"%BACKEND_COVERAGE_PATH%" --cov-fail-under=88
+    python -m pytest "%ROOT_DIR%app\backend\tests" -q -p pytest_cov --junitxml "%BACKEND_JUNIT_PATH%" --cov=app/backend/app --cov-report=term --cov-report=json:"%BACKEND_COVERAGE_PATH%" --cov-fail-under=88
   )
 ) else (
   if "%ARTIFACTS_DIR%"=="" (
