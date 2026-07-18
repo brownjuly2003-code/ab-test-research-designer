@@ -21,6 +21,14 @@ Targeted runs while iterating:
 - Backend: `python -m pytest app/backend/tests -q` (with `ruff check app/backend/app scripts` and `mypy`)
 - Frontend: `npm --prefix app/frontend run test:unit`; typecheck from `app/frontend/` with `npm exec tsc -- --noEmit -p .`
 
+### Bundle budget policy
+
+`scripts/check_bundle_budget.py` caps the frontend bundle at its configured limit. Once
+headroom drops below **5%** of the limit (i.e. total size crosses 1 092 500 bytes for the
+current 1 150 000 limit), revisit chunking/dependencies first — the limit itself is only
+raised by an explicit maintainer decision recorded in the PR, never as a side effect of
+landing a feature.
+
 ## Updating backend dependencies
 
 `app/backend/requirements.txt` and `requirements-dev.txt` are **compiled locks with sha256

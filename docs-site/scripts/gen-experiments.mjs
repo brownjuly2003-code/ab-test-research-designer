@@ -53,7 +53,7 @@ async function readStats() {
 }
 
 function tableEscape(value) {
-  return String(value).replace(/\|/g, '\\|');
+  return String(value).replace(/\\/g, '\\\\').replace(/\|/g, '\\|');
 }
 
 async function main() {

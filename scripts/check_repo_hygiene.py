@@ -8,6 +8,8 @@ the public repository again:
   run artifacts. Useful locally, noise (and a presentation hit) in public.
 * root ``audit_*.md`` — internal audit reports (``audit_opus_*.md``,
   ``audit_kimi_*.md``, ``audit_codex_*.md``, etc.).
+* root ``plan_*.md`` — internal remediation plans that accompany the audit
+  reports (added 2026-07-18; nested ``docs/plans/**`` stays public).
 
 Both are ignored via ``.gitignore`` now, but ``git add -f`` or a future
 ``.gitignore`` edit could silently re-introduce them. This gate fails CI the
@@ -36,6 +38,8 @@ def classify(path: str) -> str | None:
         return "internal archive/ doc or run artifact"
     if "/" not in path and path.startswith("audit_") and path.endswith(".md"):
         return "internal root-level audit report"
+    if "/" not in path and path.startswith("plan_") and path.endswith(".md"):
+        return "internal root-level plan file"
     name = path.rsplit("/", 1)[-1]
     if name.endswith((".sqlite3", ".db")):
         return "local database file"
@@ -77,6 +81,7 @@ def self_test() -> int:
         "audit_opus_2026-06-17.md",
         "audit_kimi_2026-04-26.md",
         "audit_кодекс_2026-04-27.md",
+        "plan_fable_18_07_26.md",
         "app/backend/data/projects.sqlite3",
         "app/backend/data/projects.sqlite3-wal",
         "app/backend/data/projects.sqlite3-shm",
@@ -86,6 +91,7 @@ def self_test() -> int:
     must_pass = [
         "README.md",
         "docs/plans/2026-06-17-project-hardening-plan.md",
+        "docs/plans/plan_notes.md",  # nested plan_* doc is allowed (only root is internal)
         "docs/audit_notes.md",  # nested audit_* doc is allowed (only root is internal)
         "app/backend/app/audit_log.py",  # not a markdown audit report
         "scripts/check_repo_hygiene.py",
@@ -139,7 +145,7 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 1
 
-    print(f"[repo-hygiene] OK: {len(paths)} tracked file(s), no archive/ or root audit_*.md leaks.")
+    print(f"[repo-hygiene] OK: {len(paths)} tracked file(s), no archive/ or root audit_*/plan_*.md leaks.")
     return 0
 
 

@@ -77,6 +77,7 @@ research/*.log
 #   3. scripts/deploy_hf.py — the HF Space upload publishes only git-tracked files,
 #      because it reads the working tree and the Space is public.
 /audit_*.md
+/plan_*.md
 /actual_plan.md
 /_*.md
 /.claude/

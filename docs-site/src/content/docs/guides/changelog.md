@@ -20,6 +20,14 @@ editUrl: "https://github.com/brownjuly2003-code/ab-test-research-designer/edit/m
 - Caller-keyed OpenAI adapter: default model updated from the retired `gpt-4o-mini` to `gpt-5.6-luna`, and the model is now configurable via `AB_OPENAI_MODEL`.
 - CI badge payloads moved off `main`: the badge job now force-pushes a single-commit orphan branch `generated/badges` and README/shields endpoints read from it, so bot commits no longer pollute main history.
 
+### Fixed
+
+- `docs-site/scripts/gen-experiments.mjs`: `tableEscape` now escapes backslashes before pipes, so a literal `\|` in source data can no longer break markdown table cells (CodeQL `js/incomplete-sanitization`).
+
+### Security
+
+- CodeQL alert triage: sessionStorage session-token alert dismissed as by-design with rationale recorded in `SECURITY.md` threat model notes; intentional fake-DSN logging in the redaction test dismissed as test-only.
+
 ## [1.2.0] - 2026-07-17
 
 ### Added

@@ -27,6 +27,10 @@ This is a **local-first** tool; the documented threat model and its accepted tra
   except the explicit `AB_ENV=local` development posture.
 - Slack bot/user tokens are stored unencrypted in the local database by design under the
   local-first model; hosted setups get explicit hardening guidance in the RUNBOOK.
+- The operator session token is kept in `sessionStorage` (tab-scoped, cleared on tab close)
+  rather than a cookie — an accepted trade-off: CSP (`script-src 'self'`) mitigates XSS
+  exfiltration, and the token never persists to disk. CodeQL flags this pattern; the alert is
+  dismissed with this rationale.
 - `AB_ENV=production` fail-fast requires PostgreSQL and configured auth tokens.
 
 ## Dependency and code scanning
