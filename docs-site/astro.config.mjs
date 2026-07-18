@@ -48,6 +48,7 @@ export default defineConfig({
             { label: 'CHANGELOG', slug: 'guides/changelog' },
             { label: 'Release notes v1.1.0', slug: 'guides/release_notes_v1-1-0' },
             { label: 'Release notes v1.2.0', slug: 'guides/release_notes_v1-2-0' },
+            { label: 'Release notes v1.3.0', slug: 'guides/release_notes_v1-3-0' },
           ],
         },
         {

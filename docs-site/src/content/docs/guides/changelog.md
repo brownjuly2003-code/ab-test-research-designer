@@ -5,7 +5,7 @@ editUrl: "https://github.com/brownjuly2003-code/ab-test-research-designer/edit/m
 
 # Changelog
 
-## [Unreleased]
+## [1.3.0] - 2026-07-18
 
 ### Added
 

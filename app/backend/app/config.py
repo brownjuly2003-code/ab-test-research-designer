@@ -262,7 +262,7 @@ def get_settings() -> Settings:
     )
     settings = Settings(
         app_name=os.getenv("AB_APP_NAME", "AB Test Research Designer API"),
-        app_version=os.getenv("AB_APP_VERSION", "1.2.0"),
+        app_version=os.getenv("AB_APP_VERSION", "1.3.0"),
         build_sha=_resolve_build_sha(),
         environment=os.getenv("AB_ENV", "local"),
         host=os.getenv("AB_HOST", "127.0.0.1"),

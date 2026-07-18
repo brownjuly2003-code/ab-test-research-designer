@@ -1622,7 +1622,7 @@ def test_docs_and_openapi_remain_public_when_auth_is_enabled(monkeypatch) -> Non
     assert openapi_response.status_code == 200
     payload = openapi_response.json()
     assert payload["info"]["title"] == "AB Test Research Designer API"
-    assert payload["info"]["version"] == "1.2.0"
+    assert payload["info"]["version"] == "1.3.0"
     assert payload["info"]["description"]
     assert payload["info"]["contact"]
     assert payload["info"]["license"]
