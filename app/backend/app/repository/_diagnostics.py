@@ -12,7 +12,7 @@ class _DiagnosticsMixin(_BackendCore):
         db_size_bytes = self.db_path.stat().st_size if self.db_path.exists() else 0
         write_probe_ok, write_probe_detail = self._run_write_probe()
 
-        with self._connect() as connection:
+        with self._transaction() as connection:
             journal_mode = connection.execute("PRAGMA journal_mode").fetchone()[0]
             synchronous_raw = connection.execute("PRAGMA synchronous").fetchone()[0]
             sqlite_user_version = connection.execute("PRAGMA user_version").fetchone()[0]

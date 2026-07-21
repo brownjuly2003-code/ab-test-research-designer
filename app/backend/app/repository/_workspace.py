@@ -22,7 +22,7 @@ from app.backend.app.schemas.api import ExperimentInput
 
 class _WorkspaceMixin(_BackendCore):
     def export_workspace(self) -> dict[str, Any]:
-        with self._connect() as connection:
+        with self._transaction() as connection:
             project_rows = connection.execute(
                 f"""
                 SELECT {self.project_select_columns}
@@ -279,7 +279,7 @@ class _WorkspaceMixin(_BackendCore):
         }
         imported_revision_count = 0
 
-        with self._connect() as connection:
+        with self._transaction() as connection:
             connection.execute("BEGIN IMMEDIATE")
             for project in imported_projects:
                 old_project_id = project["id"]

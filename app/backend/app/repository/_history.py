@@ -25,7 +25,7 @@ class _HistoryMixin(_BackendCore):
         export_limit = self._normalize_history_limit(export_limit)
         export_offset = self._normalize_history_offset(export_offset)
 
-        with self._connect() as connection:
+        with self._transaction() as connection:
             project_row = connection.execute(
                 "SELECT 1 FROM projects WHERE id = ?",
                 (project_id,),
@@ -94,7 +94,7 @@ class _HistoryMixin(_BackendCore):
         limit = self._normalize_history_limit(limit)
         offset = self._normalize_history_offset(offset)
 
-        with self._connect() as connection:
+        with self._transaction() as connection:
             project_row = connection.execute(
                 "SELECT 1 FROM projects WHERE id = ?",
                 (project_id,),
@@ -131,7 +131,7 @@ class _HistoryMixin(_BackendCore):
         }
 
     def get_analysis_run(self, project_id: str, analysis_run_id: str) -> dict[str, Any] | None:
-        with self._connect() as connection:
+        with self._transaction() as connection:
             row = connection.execute(
                 """
                 SELECT id, project_id, analysis_json, created_at
@@ -147,7 +147,7 @@ class _HistoryMixin(_BackendCore):
         return analysis_row_to_record(row)
 
     def get_latest_analysis_run(self, project_id: str) -> dict[str, Any] | None:
-        with self._connect() as connection:
+        with self._transaction() as connection:
             row = connection.execute(
                 """
                 SELECT id, project_id, analysis_json, created_at

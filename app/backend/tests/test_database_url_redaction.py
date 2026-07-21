@@ -115,7 +115,7 @@ def test_postgres_diagnostics_summary_never_serializes_the_dsn() -> None:
         workspace_schema_version=3,
         workspace_signing_key=None,
         _run_write_probe=lambda: (True, "BEGIN succeeded"),
-        _connect=lambda: _StubConnection(),
+        _transaction=lambda: _StubConnection(),
     )
 
     summary = PostgresBackend.get_diagnostics_summary(backend)  # type: ignore[arg-type]

@@ -13,7 +13,7 @@ from app.backend.app.repository._utils import hash_api_key
 
 class _ApiKeysMixin(_BackendCore):
     def has_api_keys(self) -> bool:
-        with self._connect() as connection:
+        with self._transaction() as connection:
             row = connection.execute(
                 """
                 SELECT 1
@@ -30,7 +30,7 @@ class _ApiKeysMixin(_BackendCore):
             "admin": ("admin",),
         }
         scopes = scope_filters.get(scope) if scope is not None else None
-        with self._connect() as connection:
+        with self._transaction() as connection:
             if scopes is None:
                 row = connection.execute(
                     """
@@ -66,7 +66,7 @@ class _ApiKeysMixin(_BackendCore):
         key_hash = hash_api_key(plaintext_key)
         created_at = datetime.now(UTC).isoformat()
 
-        with self._connect() as connection:
+        with self._transaction() as connection:
             connection.execute(
                 """
                 INSERT INTO api_keys (
@@ -106,7 +106,7 @@ class _ApiKeysMixin(_BackendCore):
         }
 
     def list_api_keys(self) -> dict[str, Any]:
-        with self._connect() as connection:
+        with self._transaction() as connection:
             rows = connection.execute(
                 """
                 SELECT
@@ -131,7 +131,7 @@ class _ApiKeysMixin(_BackendCore):
 
     def revoke_api_key(self, api_key_id: str) -> dict[str, Any] | None:
         timestamp = datetime.now(UTC).isoformat()
-        with self._connect() as connection:
+        with self._transaction() as connection:
             cursor = connection.execute(
                 """
                 UPDATE api_keys
@@ -162,7 +162,7 @@ class _ApiKeysMixin(_BackendCore):
         return api_key_row_to_record(row) if row is not None else None
 
     def delete_api_key(self, api_key_id: str) -> dict[str, Any] | None:
-        with self._connect() as connection:
+        with self._transaction() as connection:
             row = connection.execute(
                 "SELECT id, revoked_at FROM api_keys WHERE id = ?",
                 (api_key_id,),
@@ -188,7 +188,7 @@ class _ApiKeysMixin(_BackendCore):
     def authenticate_api_key(self, plaintext_key: str) -> dict[str, Any] | None:
         key_hash = hash_api_key(plaintext_key)
         last_used_at = datetime.now(UTC).isoformat()
-        with self._connect() as connection:
+        with self._transaction() as connection:
             row = connection.execute(
                 """
                 SELECT

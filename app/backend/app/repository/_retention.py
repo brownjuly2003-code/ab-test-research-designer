@@ -33,7 +33,7 @@ class _RetentionMixin(_BackendCore):
             "webhook_deliveries": 0,
         }
 
-        with self._connect() as connection:
+        with self._transaction() as connection:
             if exposures_before:
                 counts["exposures"] = self._purge_table(
                     connection,

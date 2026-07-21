@@ -27,7 +27,7 @@ class _CupedRollupMixin(_BackendCore):
         portable across SQLite and Postgres. ``too_many_covariates`` flags the pathological case of
         more than ``MAX_CUPED_COVARIATES`` distinct names (the heavy rollup is then skipped).
         """
-        with self._connect() as connection:
+        with self._transaction() as connection:
             if not self._project_exists(connection, experiment_id):
                 return None
             name_rows = connection.execute(

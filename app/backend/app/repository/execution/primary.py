@@ -51,7 +51,7 @@ class _PrimaryRollupMixin(_BackendCore):
         on any metric the rollup is unchanged. The exclusion is a read-time filter — the raw events are
         never deleted — and the filtered count is surfaced in the live-stats indicator.
         """
-        with self._connect() as connection:
+        with self._transaction() as connection:
             if not self._project_exists(connection, experiment_id):
                 return None
             rows = connection.execute(

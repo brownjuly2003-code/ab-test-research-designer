@@ -14,7 +14,7 @@ from app.backend.app.repository._rows import project_list_row_to_record, row_to_
 class _ProjectsMixin(_BackendCore):
     def list_projects(self, *, include_archived: bool = False) -> list[dict[str, Any]]:
         archived_filter = "" if include_archived else "WHERE projects.archived_at IS NULL"
-        with self._connect() as connection:
+        with self._transaction() as connection:
             rows = connection.execute(
                 f"""
                 SELECT
@@ -112,7 +112,7 @@ class _ProjectsMixin(_BackendCore):
             order_column = "projects.created_at" if normalized_sort_by == "created_at" else "projects.updated_at"
             order_sql = f"ORDER BY {order_column} {normalized_sort_dir}, projects.id DESC"
 
-        with self._connect() as connection:
+        with self._transaction() as connection:
             total = connection.execute(
                 f"""
                 SELECT COUNT(*)
@@ -181,7 +181,7 @@ class _ProjectsMixin(_BackendCore):
         timestamp = datetime.now(UTC).isoformat()
         project_name = payload["project"]["project_name"]
 
-        with self._connect() as connection:
+        with self._transaction() as connection:
             connection.execute(
                 """
                 INSERT INTO projects (
@@ -209,7 +209,7 @@ class _ProjectsMixin(_BackendCore):
         return cast("dict[str, Any]", self.get_project(project_id, include_archived=True))
 
     def get_project(self, project_id: str, *, include_archived: bool = False) -> dict[str, Any] | None:
-        with self._connect() as connection:
+        with self._transaction() as connection:
             row = self._get_project_row(connection, project_id, include_archived=include_archived)
 
         if row is None:
@@ -221,7 +221,7 @@ class _ProjectsMixin(_BackendCore):
         timestamp = datetime.now(UTC).isoformat()
         project_name = payload["project"]["project_name"]
 
-        with self._connect() as connection:
+        with self._transaction() as connection:
             self._ensure_project_active(connection, project_id)
             cursor = connection.execute(
                 """
@@ -249,7 +249,7 @@ class _ProjectsMixin(_BackendCore):
         timestamp = datetime.now(UTC).isoformat()
         analysis_run_id = str(uuid.uuid4())
 
-        with self._connect() as connection:
+        with self._transaction() as connection:
             self._ensure_project_active(connection, project_id)
 
             connection.execute(
@@ -277,7 +277,7 @@ class _ProjectsMixin(_BackendCore):
         timestamp = datetime.now(UTC).isoformat()
         export_event_id = str(uuid.uuid4())
 
-        with self._connect() as connection:
+        with self._transaction() as connection:
             self._ensure_project_active(connection, project_id)
 
             if analysis_run_id is not None:
@@ -318,7 +318,7 @@ class _ProjectsMixin(_BackendCore):
 
     def archive_project(self, project_id: str) -> dict[str, Any] | None:
         timestamp = datetime.now(UTC).isoformat()
-        with self._connect() as connection:
+        with self._transaction() as connection:
             if not self._project_exists(connection, project_id):
                 return None
             cursor = connection.execute(
@@ -346,7 +346,7 @@ class _ProjectsMixin(_BackendCore):
         }
 
     def delete_project(self, project_id: str) -> dict[str, Any] | None:
-        with self._connect() as connection:
+        with self._transaction() as connection:
             if not self._project_exists(connection, project_id):
                 return None
             cursor = connection.execute(
@@ -365,7 +365,7 @@ class _ProjectsMixin(_BackendCore):
     def restore_project(self, project_id: str) -> dict[str, Any] | None:
         timestamp = datetime.now(UTC).isoformat()
 
-        with self._connect() as connection:
+        with self._transaction() as connection:
             if not self._project_exists(connection, project_id):
                 return None
             cursor = connection.execute(

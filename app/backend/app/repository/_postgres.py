@@ -90,6 +90,11 @@ class _PooledPostgresConnection:
             self._backend._pool.putconn(self._connection)
             self._connection = None
 
+    def close(self) -> None:
+        # Mirrors sqlite3.Connection.close() for _BackendCore._transaction();
+        # the pooled connection was already returned to the pool by __exit__.
+        return None
+
     def execute(self, sql: str, params: Any = None) -> _PostgresCursorResult:
         if self._connection is None:
             raise RuntimeError("Postgres connection is not open")
@@ -141,12 +146,12 @@ class PostgresBackend(SQLiteBackend):
         column to a table that already exists — so a database older than the column never gets
         it. The migrations do; see `_migrations` for the history that made this necessary.
         """
-        with self._connect() as connection:
+        with self._transaction() as connection:
             apply_pending_migrations(connection, applied_at=datetime.now(UTC).isoformat())
 
     def read_applied_schema_version(self) -> int:
         """The schema version the database actually carries, as opposed to the one we expect."""
-        with self._connect() as connection:
+        with self._transaction() as connection:
             return read_applied_schema_version(connection)
 
     def close(self) -> None:
@@ -188,7 +193,7 @@ class PostgresBackend(SQLiteBackend):
         return translated.replace("?", "%s")
 
     def _init_db(self) -> None:
-        with self._connect() as connection:
+        with self._transaction() as connection:
             connection.execute(
                 """
                 CREATE TABLE IF NOT EXISTS projects (
@@ -560,7 +565,7 @@ class PostgresBackend(SQLiteBackend):
             "calculations",
             "estimated_duration_days",
         )
-        with self._connect() as connection:
+        with self._transaction() as connection:
             rows = connection.execute(
                 f"""
                 SELECT
@@ -662,7 +667,7 @@ class PostgresBackend(SQLiteBackend):
             order_column = "projects.created_at" if normalized_sort_by == "created_at" else "projects.updated_at"
             order_sql = f"ORDER BY {order_column} {normalized_sort_dir}, projects.id DESC"
 
-        with self._connect() as connection:
+        with self._transaction() as connection:
             total = connection.execute(
                 f"""
                 SELECT COUNT(*)
@@ -722,7 +727,7 @@ class PostgresBackend(SQLiteBackend):
         }
 
     def list_templates(self) -> list[dict[str, Any]]:
-        with self._connect() as connection:
+        with self._transaction() as connection:
             rows = connection.execute(
                 """
                 SELECT id, name, category, description, built_in, tags_json, payload_json, usage_count
@@ -747,7 +752,7 @@ class PostgresBackend(SQLiteBackend):
         dispatch_webhooks: bool = True,
     ) -> dict[str, Any]:
         timestamp = self._resolve_audit_timestamp(ts)
-        with self._connect() as connection:
+        with self._transaction() as connection:
             row = connection.execute(
                 """
                 INSERT INTO audit_log (
@@ -809,7 +814,7 @@ class PostgresBackend(SQLiteBackend):
     def get_diagnostics_summary(self) -> dict[str, Any]:
         write_probe_ok, write_probe_detail = self._run_write_probe()
 
-        with self._connect() as connection:
+        with self._transaction() as connection:
             db_size_bytes = connection.execute(
                 "SELECT pg_database_size(current_database()) AS db_size_bytes"
             ).fetchone()["db_size_bytes"]
@@ -865,7 +870,7 @@ class PostgresBackend(SQLiteBackend):
 
     def _run_write_probe(self) -> tuple[bool, str]:
         try:
-            with self._connect() as connection:
+            with self._transaction() as connection:
                 connection.execute("BEGIN")
                 connection.execute("ROLLBACK")
             return True, "BEGIN succeeded"

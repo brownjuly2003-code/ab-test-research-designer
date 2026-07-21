@@ -22,7 +22,7 @@ def test_purge_retention_dry_run_and_delete(tmp_path) -> None:
     old = (now - timedelta(days=40)).isoformat()
     recent = (now - timedelta(days=1)).isoformat()
 
-    with repo._connect() as connection:  # noqa: SLF001 — test fixture
+    with repo._transaction() as connection:  # noqa: SLF001 — test fixture
         connection.execute(
             """
             INSERT INTO projects (
@@ -74,7 +74,7 @@ def test_purge_retention_dry_run_and_delete(tmp_path) -> None:
     assert applied["exposures"] == 1
     assert applied["conversions"] == 1
 
-    with repo._connect() as connection:  # noqa: SLF001
+    with repo._transaction() as connection:  # noqa: SLF001
         remaining = connection.execute("SELECT id FROM exposures ORDER BY id").fetchall()
         ids = [row["id"] if "id" in row.keys() else row[0] for row in remaining]
         assert ids == ["e-new"]
@@ -97,7 +97,7 @@ def test_purge_endpoint_defaults_to_dry_run(tmp_path, monkeypatch) -> None:
     repo = ProjectRepository(f"sqlite:///{db_path.as_posix()}")
     now = datetime.now(UTC)
     old = (now - timedelta(days=40)).isoformat()
-    with repo._connect() as connection:  # noqa: SLF001 — test fixture
+    with repo._transaction() as connection:  # noqa: SLF001 — test fixture
         connection.execute(
             """
             INSERT INTO projects (
@@ -127,7 +127,7 @@ def test_purge_endpoint_defaults_to_dry_run(tmp_path, monkeypatch) -> None:
     response = client.post("/api/v1/admin/retention/purge", json={"exposures_days": 30})
     assert response.json()["dry_run"] is True
 
-    with repo._connect() as connection:  # noqa: SLF001
+    with repo._transaction() as connection:  # noqa: SLF001
         count = connection.execute("SELECT COUNT(*) AS n FROM exposures").fetchone()
         assert int(count["n"] if "n" in count.keys() else count[0]) == 1
 
@@ -135,7 +135,7 @@ def test_purge_endpoint_defaults_to_dry_run(tmp_path, monkeypatch) -> None:
     response = client.post("/api/v1/admin/retention/purge", json={"dry_run": False})
     assert response.status_code == 200
     assert response.json()["dry_run"] is False
-    with repo._connect() as connection:  # noqa: SLF001
+    with repo._transaction() as connection:  # noqa: SLF001
         count = connection.execute("SELECT COUNT(*) AS n FROM exposures").fetchone()
         assert int(count["n"] if "n" in count.keys() else count[0]) == 0
     config_module.get_settings.cache_clear()

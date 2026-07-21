@@ -1093,7 +1093,7 @@ def test_cuped_aggregates_migrate_legacy_single_covariate() -> None:
         exp, [{"user_id": "u1", "variation_index": 0}, {"user_id": "u2", "variation_index": 0}]
     )
     repo.record_conversions(exp, [{"user_id": "u1", "metric": "aov", "value": 4.0}])
-    with repo._backend._connect() as conn:  # type: ignore[attr-defined]
+    with repo._backend._transaction() as conn:  # type: ignore[attr-defined]
         conn.execute("DELETE FROM pre_period_covariates")
         conn.execute(
             "INSERT INTO pre_period_values (id, experiment_id, user_id, value, created_at) "
