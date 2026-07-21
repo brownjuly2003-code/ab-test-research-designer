@@ -23,7 +23,7 @@ class _IngestionMixin(_BackendCore):
         """
         timestamp = datetime.now(UTC).isoformat()
         recorded = 0
-        with self._connect() as connection:
+        with self._transaction() as connection:
             self._ensure_project_active(connection, experiment_id)
             for item in items:
                 cursor = connection.execute(
@@ -52,7 +52,7 @@ class _IngestionMixin(_BackendCore):
         (NULLs are distinct in the UNIQUE index on both SQLite and Postgres)."""
         timestamp = datetime.now(UTC).isoformat()
         recorded = 0
-        with self._connect() as connection:
+        with self._transaction() as connection:
             self._ensure_project_active(connection, experiment_id)
             for item in items:
                 cursor = connection.execute(
@@ -88,7 +88,7 @@ class _IngestionMixin(_BackendCore):
         """
         timestamp = datetime.now(UTC).isoformat()
         recorded = 0
-        with self._connect() as connection:
+        with self._transaction() as connection:
             self._ensure_project_active(connection, experiment_id)
             for item in items:
                 cursor = connection.execute(
@@ -121,7 +121,7 @@ class _IngestionMixin(_BackendCore):
         """
         timestamp = datetime.now(UTC).isoformat()
         recorded = 0
-        with self._connect() as connection:
+        with self._transaction() as connection:
             self._ensure_project_active(connection, experiment_id)
             for item in items:
                 cursor = connection.execute(
@@ -156,7 +156,7 @@ class _IngestionMixin(_BackendCore):
         """
         timestamp = datetime.now(UTC).isoformat()
         recorded = 0
-        with self._connect() as connection:
+        with self._transaction() as connection:
             self._ensure_project_active(connection, experiment_id)
             for item in items:
                 cursor = connection.execute(
@@ -193,7 +193,7 @@ class _IngestionMixin(_BackendCore):
         timestamp = datetime.now(UTC).isoformat()
         recorded = 0
         skipped = 0
-        with self._connect() as connection:
+        with self._transaction() as connection:
             self._ensure_project_active(connection, experiment_id)
             for item in items:
                 anonymous_id = item["anonymous_id"]
@@ -232,7 +232,7 @@ class _IngestionMixin(_BackendCore):
         """
         timestamp = datetime.now(UTC).isoformat()
         recorded = 0
-        with self._connect() as connection:
+        with self._transaction() as connection:
             self._ensure_project_active(connection, experiment_id)
             for item in items:
                 cursor = connection.execute(
@@ -263,7 +263,7 @@ class _IngestionMixin(_BackendCore):
         endpoint reuses the stored ``variation_index`` so the user keeps their variation
         even if the experiment's weights or coverage change mid-flight.
         """
-        with self._connect() as connection:
+        with self._transaction() as connection:
             row = connection.execute(
                 """
                 SELECT variation_index, created_at
@@ -280,7 +280,7 @@ class _IngestionMixin(_BackendCore):
         """Per-variation exposure counts and per-metric conversion counts for an
         experiment. Returns ``None`` if the experiment does not exist. This is the raw
         aggregate Phase D's live SRM / sequential / Bayesian reads will build on."""
-        with self._connect() as connection:
+        with self._transaction() as connection:
             if not self._project_exists(connection, experiment_id):
                 return None
             exposure_rows = connection.execute(

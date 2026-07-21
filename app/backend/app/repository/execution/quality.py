@@ -26,7 +26,7 @@ class _QualityRollupMixin(_BackendCore):
         Purely diagnostic — it does not change any rollup or verdict. All three are zero when no
         identity links exist, so the indicator is hidden in the common case.
         """
-        with self._connect() as connection:
+        with self._transaction() as connection:
             if not self._project_exists(connection, experiment_id):
                 return None
             linked = connection.execute(
@@ -98,7 +98,7 @@ class _QualityRollupMixin(_BackendCore):
         block is hidden in the common case. Purely informational — the exclusion already happened in
         the rollup; this reports it.
         """
-        with self._connect() as connection:
+        with self._transaction() as connection:
             if not self._project_exists(connection, experiment_id):
                 return None
             row = connection.execute(
@@ -171,7 +171,7 @@ class _QualityRollupMixin(_BackendCore):
         the sum of their values to the continuous rollup. The pooled treated arms come from the main
         aggregates (``variation_index >= 1``), so no second treated query is needed here.
         """
-        with self._connect() as connection:
+        with self._transaction() as connection:
             if not self._project_exists(connection, experiment_id):
                 return None
             row = connection.execute(
@@ -232,7 +232,7 @@ class _QualityRollupMixin(_BackendCore):
         agnostic) or any verdict. The ISO-8601 strings are parsed and compared in Python so the two
         backends share one portable query (no SQLite ``julianday`` vs Postgres interval divergence).
         """
-        with self._connect() as connection:
+        with self._transaction() as connection:
             if not self._project_exists(connection, experiment_id):
                 return None
             rows = connection.execute(

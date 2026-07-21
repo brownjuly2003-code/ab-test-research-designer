@@ -195,7 +195,7 @@ def test_ingestion_records_event_time_occurred_at() -> None:
         ],
     )
 
-    with repo._backend._connect() as connection:  # type: ignore[attr-defined]
+    with repo._backend._transaction() as connection:  # type: ignore[attr-defined]
         exposures = {
             row["user_id"]: (row["created_at"], row["occurred_at"])
             for row in connection.execute(
@@ -230,7 +230,7 @@ def test_ingestion_normalizes_naive_occurred_at_to_utc() -> None:
         [{"user_id": "u1", "variation_index": 0, "occurred_at": datetime(2026, 5, 1, 9, 30, 0)}],
     )
 
-    with repo._backend._connect() as connection:  # type: ignore[attr-defined]
+    with repo._backend._transaction() as connection:  # type: ignore[attr-defined]
         occurred_at = connection.execute(
             "SELECT occurred_at FROM exposures WHERE experiment_id = ? AND user_id = ?",
             (exp, "u1"),
@@ -246,7 +246,7 @@ def test_holdout_exposure_records_occurred_at_as_received() -> None:
     exp = _project(repo)
     repo.record_holdout(exp, [{"user_id": "h1"}])
 
-    with repo._backend._connect() as connection:  # type: ignore[attr-defined]
+    with repo._backend._transaction() as connection:  # type: ignore[attr-defined]
         row = connection.execute(
             "SELECT created_at, occurred_at FROM exposures WHERE experiment_id = ? AND user_id = ?",
             (exp, "h1"),

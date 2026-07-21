@@ -49,7 +49,7 @@ class _WebhooksMixin(_BackendCore):
         timestamp = datetime.now(UTC).isoformat()
         normalized_event_filter = [value for value in event_filter if value]
 
-        with self._connect() as connection:
+        with self._transaction() as connection:
             if api_key_id is not None:
                 key_row = connection.execute(
                     "SELECT 1 FROM api_keys WHERE id = ?",
@@ -96,7 +96,7 @@ class _WebhooksMixin(_BackendCore):
         return subscription
 
     def list_webhook_subscriptions(self, *, include_secret: bool = False) -> dict[str, Any]:
-        with self._connect() as connection:
+        with self._transaction() as connection:
             rows = connection.execute(
                 """
                 SELECT
@@ -128,7 +128,7 @@ class _WebhooksMixin(_BackendCore):
         }
 
     def get_webhook_subscription(self, subscription_id: str, *, include_secret: bool = False) -> dict[str, Any] | None:
-        with self._connect() as connection:
+        with self._transaction() as connection:
             row = connection.execute(
                 """
                 SELECT
@@ -184,7 +184,7 @@ class _WebhooksMixin(_BackendCore):
         params.append(timestamp)
         params.append(subscription_id)
 
-        with self._connect() as connection:
+        with self._transaction() as connection:
             cursor = connection.execute(
                 f"""
                 UPDATE webhook_subscriptions
@@ -199,7 +199,7 @@ class _WebhooksMixin(_BackendCore):
         return self.get_webhook_subscription(subscription_id)
 
     def delete_webhook_subscription(self, subscription_id: str) -> dict[str, Any] | None:
-        with self._connect() as connection:
+        with self._transaction() as connection:
             cursor = connection.execute(
                 "DELETE FROM webhook_subscriptions WHERE id = ?",
                 (subscription_id,),
@@ -215,7 +215,7 @@ class _WebhooksMixin(_BackendCore):
         event_type: str,
         key_id: str | None = None,
     ) -> list[dict[str, Any]]:
-        with self._connect() as connection:
+        with self._transaction() as connection:
             rows = connection.execute(
                 """
                 SELECT
@@ -297,7 +297,7 @@ class _WebhooksMixin(_BackendCore):
         test deliveries own their single attempt)."""
         if next_attempt_at is None and enqueue:
             next_attempt_at = datetime.now(UTC).isoformat()
-        with self._connect() as connection:
+        with self._transaction() as connection:
             delivery_id = self._insert_webhook_delivery(
                 connection,
                 subscription_id=subscription_id,
@@ -312,7 +312,7 @@ class _WebhooksMixin(_BackendCore):
         return delivery
 
     def get_webhook_delivery(self, delivery_id: str) -> dict[str, Any] | None:
-        with self._connect() as connection:
+        with self._transaction() as connection:
             row = connection.execute(
                 f"""
                 SELECT {_DELIVERY_COLUMNS}
@@ -341,7 +341,7 @@ class _WebhooksMixin(_BackendCore):
         mid-attempt) become claimable again once lease_expires_at passes.
         """
         claimed_ids: list[str] = []
-        with self._connect() as connection:
+        with self._transaction() as connection:
             candidates = connection.execute(
                 """
                 SELECT id
@@ -379,7 +379,7 @@ class _WebhooksMixin(_BackendCore):
     def get_webhook_queue_stats(self) -> dict[str, Any]:
         """Outbox visibility for diagnostics: per-status counts and the oldest due row."""
         now = datetime.now(UTC)
-        with self._connect() as connection:
+        with self._transaction() as connection:
             rows = connection.execute(
                 "SELECT status, COUNT(*) AS n FROM webhook_deliveries GROUP BY status"
             ).fetchall()
@@ -421,7 +421,7 @@ class _WebhooksMixin(_BackendCore):
         timestamp = datetime.now(UTC).isoformat()
         truncated_body = response_body[:2048] if response_body else None
 
-        with self._connect() as connection:
+        with self._transaction() as connection:
             # Recording an attempt outcome always releases the lease: the row is
             # either terminal or waits for next_attempt_at before the next claim.
             cursor = connection.execute(
@@ -488,7 +488,7 @@ class _WebhooksMixin(_BackendCore):
             params.append(status)
         where_sql = f"WHERE {' AND '.join(where_clauses)}"
 
-        with self._connect() as connection:
+        with self._transaction() as connection:
             total = int(
                 connection.execute(
                     f"SELECT COUNT(*) FROM webhook_deliveries {where_sql}",

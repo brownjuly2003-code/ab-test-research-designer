@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 import sqlite3
+from contextlib import closing
 import sys
 import uuid
 
@@ -19,7 +20,7 @@ def test_repository_migrates_legacy_projects_table() -> None:
     temp_dir.mkdir(exist_ok=True)
     db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
 
-    with sqlite3.connect(db_path) as connection:
+    with closing(sqlite3.connect(db_path)) as connection, connection:
         connection.execute(
             """
             CREATE TABLE projects (
@@ -66,7 +67,7 @@ def test_repository_backfills_legacy_analysis_snapshot_into_history() -> None:
     temp_dir.mkdir(exist_ok=True)
     db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
 
-    with sqlite3.connect(db_path) as connection:
+    with closing(sqlite3.connect(db_path)) as connection, connection:
         connection.execute(
             """
             CREATE TABLE projects (
@@ -122,7 +123,7 @@ def test_repository_migrates_api_keys_table_and_audit_key_id_column() -> None:
     temp_dir.mkdir(exist_ok=True)
     db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
 
-    with sqlite3.connect(db_path) as connection:
+    with closing(sqlite3.connect(db_path)) as connection, connection:
         connection.execute(
             """
             CREATE TABLE projects (
@@ -152,7 +153,7 @@ def test_repository_migrates_api_keys_table_and_audit_key_id_column() -> None:
 
     ProjectRepository(str(db_path))
 
-    with sqlite3.connect(db_path) as connection:
+    with closing(sqlite3.connect(db_path)) as connection, connection:
         api_key_columns = {
             row[1]
             for row in connection.execute("PRAGMA table_info(api_keys)").fetchall()
@@ -181,7 +182,7 @@ def test_repository_migrates_webhook_tables() -> None:
     temp_dir.mkdir(exist_ok=True)
     db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
 
-    with sqlite3.connect(db_path) as connection:
+    with closing(sqlite3.connect(db_path)) as connection, connection:
         connection.execute(
             """
             CREATE TABLE projects (
@@ -212,7 +213,7 @@ def test_repository_migrates_webhook_tables() -> None:
 
     repository = ProjectRepository(str(db_path))
 
-    with sqlite3.connect(db_path) as connection:
+    with closing(sqlite3.connect(db_path)) as connection, connection:
         webhook_subscription_columns = {
             row[1]
             for row in connection.execute("PRAGMA table_info(webhook_subscriptions)").fetchall()
@@ -313,7 +314,7 @@ def test_repository_normalizes_legacy_guardrail_metric_strings_for_workspace_exp
         },
     }
 
-    with sqlite3.connect(db_path) as connection:
+    with closing(sqlite3.connect(db_path)) as connection, connection:
         connection.execute(
             """
             CREATE TABLE projects (
@@ -436,7 +437,7 @@ def test_repository_records_analysis_and_export_history() -> None:
     assert recorded_analysis["has_analysis_snapshot"] is True
     assert recorded_analysis["last_analysis_at"] is not None
     assert recorded_analysis["last_analysis_run_id"] is not None
-    with sqlite3.connect(db_path) as connection:
+    with closing(sqlite3.connect(db_path)) as connection, connection:
         row = connection.execute(
             "SELECT last_analysis_json, last_analysis_run_id FROM projects WHERE id = ?",
             (project["id"],),
@@ -1056,7 +1057,7 @@ def test_repository_migrates_event_time_occurred_at() -> None:
     temp_dir.mkdir(exist_ok=True)
     db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
 
-    with sqlite3.connect(db_path) as connection:
+    with closing(sqlite3.connect(db_path)) as connection, connection:
         connection.execute(
             """
             CREATE TABLE projects (
@@ -1107,7 +1108,7 @@ def test_repository_migrates_event_time_occurred_at() -> None:
 
     repository = ProjectRepository(str(db_path))
 
-    with sqlite3.connect(db_path) as connection:
+    with closing(sqlite3.connect(db_path)) as connection, connection:
         connection.row_factory = sqlite3.Row
         exposure_columns = {
             row[1] for row in connection.execute("PRAGMA table_info(exposures)").fetchall()

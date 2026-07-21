@@ -549,7 +549,7 @@ def test_postgres_backend_event_time_occurred_at_round_trip(postgres_repository)
     )
     repo.record_holdout(exp, [{"user_id": "h1"}])
 
-    with repo._backend._connect() as connection:  # type: ignore[attr-defined]
+    with repo._backend._transaction() as connection:  # type: ignore[attr-defined]
         exposures = {
             row["user_id"]: (row["created_at"], row["occurred_at"])
             for row in connection.execute(

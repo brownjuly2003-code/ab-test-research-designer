@@ -23,7 +23,7 @@ class _TemplatesMixin(_BackendCore):
         payload: dict[str, Any],
     ) -> dict[str, Any]:
         timestamp = datetime.now(UTC).isoformat()
-        with self._connect() as connection:
+        with self._transaction() as connection:
             connection.execute(
                 """
                 INSERT INTO project_templates (
@@ -72,7 +72,7 @@ class _TemplatesMixin(_BackendCore):
         return template_row_to_record(row)
 
     def list_templates(self) -> list[dict[str, Any]]:
-        with self._connect() as connection:
+        with self._transaction() as connection:
             rows = connection.execute(
                 """
                 SELECT id, name, category, description, built_in, tags_json, payload_json, usage_count
@@ -83,7 +83,7 @@ class _TemplatesMixin(_BackendCore):
         return [template_row_to_record(row) for row in rows]
 
     def get_template(self, template_id: str) -> dict[str, Any] | None:
-        with self._connect() as connection:
+        with self._transaction() as connection:
             row = connection.execute(
                 """
                 SELECT id, name, category, description, built_in, tags_json, payload_json, usage_count
@@ -115,7 +115,7 @@ class _TemplatesMixin(_BackendCore):
 
     def use_template(self, template_id: str) -> dict[str, Any] | None:
         timestamp = datetime.now(UTC).isoformat()
-        with self._connect() as connection:
+        with self._transaction() as connection:
             cursor = connection.execute(
                 """
                 UPDATE project_templates
@@ -146,7 +146,7 @@ class _TemplatesMixin(_BackendCore):
                 error_code="template_delete_forbidden",
                 status_code=403,
             )
-        with self._connect() as connection:
+        with self._transaction() as connection:
             connection.execute(
                 "DELETE FROM project_templates WHERE id = ?",
                 (template_id,),

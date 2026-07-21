@@ -1,13 +1,15 @@
 """Connection handling, schema bootstrap and the primitives every domain shares.
 
 The domain mixins in this package inherit from `_BackendCore`, so they can rely on
-`_connect()`, the class-level schema constants and the project/revision helpers
+`_transaction()`, the class-level schema constants and the project/revision helpers
 without importing one another.
 """
 
 import json
 import sqlite3
 import uuid
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, cast
 
@@ -81,8 +83,21 @@ class _BackendCore:
         connection.execute(f"PRAGMA synchronous = {self.synchronous}")
         return connection
 
+    @contextmanager
+    def _transaction(self) -> Iterator[sqlite3.Connection]:
+        # sqlite3.Connection's context manager only commits/rolls back — it never
+        # closes, leaving the file handle to the GC (ResourceWarning under pytest).
+        # The postgres pooled wrapper returns its connection to the pool in
+        # __exit__, so its close() is a no-op.
+        connection = self._connect()
+        try:
+            with connection:
+                yield connection
+        finally:
+            connection.close()
+
     def _init_db(self) -> None:
-        with self._connect() as connection:
+        with self._transaction() as connection:
             connection.execute(
                 """
                 CREATE TABLE IF NOT EXISTS projects (
@@ -185,7 +200,7 @@ class _BackendCore:
 
     def _run_write_probe(self) -> tuple[bool, str]:
         try:
-            with self._connect() as connection:
+            with self._transaction() as connection:
                 connection.execute("BEGIN IMMEDIATE")
                 connection.execute("ROLLBACK")
             return True, "BEGIN IMMEDIATE succeeded"

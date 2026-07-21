@@ -21,7 +21,7 @@ class _RatioRollupMixin(_BackendCore):
         variance in the service layer (no new statistics in SQL). Every exposed user is the analysis
         unit (Kohavi et al.); the holdout tail (``variation_index = -1``) is excluded.
         """
-        with self._connect() as connection:
+        with self._transaction() as connection:
             if not self._project_exists(connection, experiment_id):
                 return None
             rows = connection.execute(

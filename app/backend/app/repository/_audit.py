@@ -46,7 +46,7 @@ class _AuditMixin(_WebhooksMixin):
         dispatch_webhooks: bool = True,
     ) -> dict[str, Any]:
         timestamp = self._resolve_audit_timestamp(ts)
-        with self._connect() as connection:
+        with self._transaction() as connection:
             cursor = connection.execute(
                 """
                 INSERT INTO audit_log (
@@ -119,7 +119,7 @@ class _AuditMixin(_WebhooksMixin):
         return event
 
     def get_audit_entry(self, event_id: int) -> dict[str, Any] | None:
-        with self._connect() as connection:
+        with self._transaction() as connection:
             row = connection.execute(
                 """
                 SELECT id, ts, action, project_id, project_name, key_id, actor, request_id, payload_diff, ip_address
@@ -154,7 +154,7 @@ class _AuditMixin(_WebhooksMixin):
             params.append(action)
         where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
 
-        with self._connect() as connection:
+        with self._transaction() as connection:
             total = int(
                 connection.execute(
                     f"SELECT COUNT(*) FROM audit_log {where_sql}",

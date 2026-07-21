@@ -17,7 +17,7 @@ class _SlackMixin(_BackendCore):
         user_token: str | None = None,
     ) -> dict[str, Any]:
         timestamp = datetime.now(UTC).isoformat()
-        with self._connect() as connection:
+        with self._transaction() as connection:
             connection.execute(
                 """
                 INSERT INTO slack_installations (
@@ -43,7 +43,7 @@ class _SlackMixin(_BackendCore):
         return installation
 
     def get_slack_installation(self, team_id: str) -> dict[str, Any] | None:
-        with self._connect() as connection:
+        with self._transaction() as connection:
             row = connection.execute(
                 """
                 SELECT team_id, team_name, bot_token, user_token, installed_at, updated_at
@@ -55,7 +55,7 @@ class _SlackMixin(_BackendCore):
         return dict(row) if row is not None else None
 
     def get_latest_slack_installation(self) -> dict[str, Any] | None:
-        with self._connect() as connection:
+        with self._transaction() as connection:
             row = connection.execute(
                 """
                 SELECT team_id, team_name, bot_token, user_token, installed_at, updated_at

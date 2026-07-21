@@ -30,7 +30,7 @@ class _StrataRollupMixin(_BackendCore):
         continuous moment helpers. ``too_many_strata`` flags the pathological case of more than
         ``MAX_STRATA`` distinct strata (the rollup is then skipped).
         """
-        with self._connect() as connection:
+        with self._transaction() as connection:
             if not self._project_exists(connection, experiment_id):
                 return None
             stratum_rows = connection.execute(

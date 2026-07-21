@@ -439,7 +439,7 @@ def test_legacy_rows_without_next_attempt_at_become_due_after_migration() -> Non
 
     from app.backend.app.repository._schema import migrate_db
 
-    with repository._connect() as connection:
+    with repository._transaction() as connection:
         migrate_db(connection)
 
     assert service.run_due_deliveries() == 1
