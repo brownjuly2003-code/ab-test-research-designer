@@ -275,7 +275,7 @@ export default function WebhookManager() {
                   </li>
                   <li>
                     <strong>{t("webhooks.labels.events")}:</strong>{" "}
-                    {subscription.event_filter.length > 0
+                    {subscription.event_filter && subscription.event_filter.length > 0
                       ? subscription.event_filter.join(", ")
                       : t("webhooks.labels.allEvents")}
                   </li>
