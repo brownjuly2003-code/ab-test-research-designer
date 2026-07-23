@@ -12,7 +12,7 @@
   2. `ApiKeyManager` i18n ×7 + focus trap/Escape/focus restore + InlineConfirm delete; `check_locale_content` docstring fix; Canvas jsdom stubs.
 - **Коммиты (local main, не push):**
   - `bd606222` — `refactor(frontend): split api client into domain modules`
-  - *(следующий)* — i18n/a11y/canvas
+  - `6ee1ea27` — `feat(frontend): i18n ApiKeyManager, modal a11y, canvas test stubs`
 - **Проверки:** tsc clean · api.test 26 · ApiKeyManager 3 · a11y-api-keys 1 · ChartExport 2 · check_locale_content 14 OK.
 - **Остаток шага 8:** ComparisonDetails i18n; catalog key-usage/parity gate; ESLint flat (TS/hooks/a11y); per-chunk/gzip budgets ADR discipline.
 - **Следующая сессия:** добить residual шага 8 (ESLint + ComparisonDetails + locale parity gate) **или** шаг 9.
