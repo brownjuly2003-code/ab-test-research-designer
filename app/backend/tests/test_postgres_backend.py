@@ -1,8 +1,8 @@
+import subprocess
+import sys
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from pathlib import Path
-import subprocess
-import sys
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -19,7 +19,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 from app.backend.app.config import get_settings
 from app.backend.app.main import create_app
 from app.backend.app.repository import ProjectRepository, create_backend
-from app.backend.app.repository._migrations import EXPECTED_POSTGRES_SCHEMA_VERSION, POSTGRES_MIGRATIONS
+from app.backend.app.repository._migrations import (
+    EXPECTED_POSTGRES_SCHEMA_VERSION,
+    POSTGRES_MIGRATIONS,
+)
 
 
 def test_create_backend_uses_sqlite_backend_for_sqlite_urls() -> None:
@@ -182,9 +185,10 @@ def test_postgres_backend_workspace_export_import_round_trip(postgres_repository
 
 def test_postgres_backend_api_key_lifecycle(postgres_repository) -> None:
     repo = postgres_repository
-    created = repo.create_api_key(name="ci-key", scope="readonly")
+    created = repo.create_api_key(name="ci-key", scope="read")
     plaintext = created["plaintext_key"]
     assert plaintext.startswith("abk_")
+    assert created["scope"] == "read"
 
     listed = repo.list_api_keys()
     assert any(k["id"] == created["id"] for k in listed["keys"])
