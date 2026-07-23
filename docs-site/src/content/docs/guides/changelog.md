@@ -5,6 +5,12 @@ editUrl: "https://github.com/brownjuly2003-code/ab-test-research-designer/edit/m
 
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+
+- SQLite connections are now closed deterministically: `_BackendCore._transaction()` wraps every repository query (transaction scope + `close()`), replacing the bare `with self._connect()` pattern whose context manager only commits and leaves the file handle to the GC. Surfaced as ~4.5k `ResourceWarning`s once pytest-cov 7 stopped suppressing them; the postgres pooled wrapper gained a no-op `close()` since its `__exit__` already returns the connection to the pool.
+
 ## [1.3.0] - 2026-07-18
 
 ### Added

@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Security
+
+- docs-site: pin transitive `svgo` to `4.0.2` via npm `overrides` (GHSA-2p49-hgcm-8545 / removeScripts). `npm audit --audit-level=high` is clean after clean install.
+
 ### Fixed
 
 - SQLite connections are now closed deterministically: `_BackendCore._transaction()` wraps every repository query (transaction scope + `close()`), replacing the bare `with self._connect()` pattern whose context manager only commits and leaves the file handle to the GC. Surfaced as ~4.5k `ResourceWarning`s once pytest-cov 7 stopped suppressing them; the postgres pooled wrapper gained a no-op `close()` since its `__exit__` already returns the connection to the pool.
