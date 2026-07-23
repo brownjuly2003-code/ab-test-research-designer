@@ -1,0 +1,19 @@
+{
+  "name": "ab-test-frontend-eslint-toolchain",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Side-by-side TypeScript 5.9 runtime for ESLint while the app builds with TypeScript 7.",
+  "scripts": {
+    "lint": "eslint --config ./eslint.config.js .."
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.65.0",
+    "@typescript-eslint/parser": "^8.65.0",
+    "eslint": "^9.39.5",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "typescript": "~5.9.3"
+  }
+}

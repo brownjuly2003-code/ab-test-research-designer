@@ -23,11 +23,26 @@ Targeted runs while iterating:
 
 ### Bundle budget policy
 
-`scripts/check_bundle_budget.py` caps the frontend bundle at its configured limit. Once
-headroom drops below **5%** of the limit (i.e. total size crosses 1 092 500 bytes for the
-current 1 150 000 limit), revisit chunking/dependencies first — the limit itself is only
-raised by an explicit maintainer decision recorded in the PR, never as a side effect of
+`scripts/check_bundle_budget.py` caps the frontend JS payload (raw bytes of
+`dist/assets/*.js`). Entry and total ceilings are constants in that script. The gate also
+prints **per-chunk raw/gzip** sizes and total gzip for review signal.
+
+Once headroom drops below **5%** of the total limit, revisit chunking/dependencies first.
+**Raising either hard budget requires an ADR** under `docs/adr/` (see
+`0002-frontend-bundle-budget.md`) plus an explicit PR note — never as a side effect of
 landing a feature.
+
+### Frontend lint
+
+`npm --prefix app/frontend run lint` runs ESLint flat config (TypeScript parser, React
+hooks rules-of-hooks, JSX a11y). The parser/plugins install under
+`app/frontend/eslint-toolchain/` (TypeScript 5.9 side-by-side) because `typescript-eslint`
+hard-throws on the app’s TypeScript 7 until ≥7.1 support. After clone:
+
+```bash
+npm --prefix app/frontend/eslint-toolchain ci
+npm --prefix app/frontend run lint
+```
 
 ## Updating backend dependencies
 

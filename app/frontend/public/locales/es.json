@@ -156,7 +156,10 @@
         "alpha": "Alfa",
         "power": "Potencia",
         "planned_test": "Análisis previsto",
-        "equivalence_margin_pct": "Margen de equivalencia %"
+        "equivalence_margin_pct": "Margen de equivalencia %",
+        "exposure_per_user": "Exposición por usuario",
+        "numerator_metric_name": "Métrica del numerador",
+        "denominator_metric_name": "Métrica del denominador"
       },
       "constraints": {
         "seasonality_present": "Estacionalidad presente",
@@ -169,7 +172,10 @@
         "deadline_pressure": "Presión de fecha límite",
         "long_test_possible": "Prueba prolongada posible",
         "holdout_fraction": "Fracción de holdout",
-        "mutually_exclusive_experiments": "Experimentos mutuamente excluyentes"
+        "mutually_exclusive_experiments": "Experimentos mutuamente excluyentes",
+        "analysis_mode": "Marco de análisis",
+        "desired_precision": "Precisión deseada",
+        "credibility": "Nivel de credibilidad"
       },
       "additional_context": {
         "llm_context": "Contexto de IA"
@@ -210,7 +216,9 @@
       "metrics": {
         "metric_type": {
           "binary": "Binario",
-          "continuous": "Continuo"
+          "continuous": "Continuo",
+          "count": "Conteo / tasa",
+          "ratio": "Ratio"
         },
         "planned_test": {
           "z_test": "Test z (predeterminado)",
@@ -431,6 +439,36 @@
         "uniqueRisks": "Riesgos únicos",
         "uniqueAssumptions": "Supuestos únicos",
         "none": "Ninguno"
+      },
+      "details": {
+        "pill": "Comparación guardada",
+        "title": "Comparación de capturas guardadas",
+        "durationDelta": "Delta de duración",
+        "candidateVsBase": "candidato vs base",
+        "warningsDelta": "Delta de avisos",
+        "warningLevel": "nivel de aviso {{severity}}",
+        "sharedCount": "compartidos {{count}}",
+        "snapshot": "Captura: {{value}}",
+        "primaryMetric": "Métrica principal: {{value}}",
+        "executiveSummary": "Resumen ejecutivo: {{value}}",
+        "totalSampleSize": "Tamaño total de muestra: {{value}}",
+        "durationDays": "Duración: {{value}} días",
+        "warningsCount": "Avisos: {{value}}",
+        "deltas": "Deltas",
+        "perVariant": "Por variante: {{value}}",
+        "duration": "Duración: {{value}}",
+        "warnings": "Avisos: {{value}}",
+        "warningOverlap": "Solapamiento de avisos",
+        "shared": "Compartidos: {{value}}",
+        "baseOnly": "Solo base: {{value}}",
+        "candidateOnly": "Solo candidato: {{value}}",
+        "none": "Ninguno",
+        "highlights": "Aspectos destacados de la comparación",
+        "assumptionsOverlap": "Solapamiento de supuestos",
+        "riskOverlap": "Solapamiento de riesgos",
+        "recommendationHighlights": "Aspectos destacados de la recomendación",
+        "baseItem": "Base: {{value}}",
+        "candidateItem": "Candidato: {{value}}"
       }
     },
     "experimentDesign": {

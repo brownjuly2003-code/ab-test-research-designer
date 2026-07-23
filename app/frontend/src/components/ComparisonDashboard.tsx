@@ -137,7 +137,7 @@ export default function ComparisonDashboard({ comparison, onClose }: ComparisonD
         ) : null}
       </div>
 
-      <section role="region" aria-labelledby="comparison-projects-heading" className="card" style={{ display: "grid", gap: 12 }}>
+      <section aria-labelledby="comparison-projects-heading" className="card" style={{ display: "grid", gap: 12 }}>
         <div>
           <h3 id="comparison-projects-heading">{t("results.comparison.dashboard.projectsTitle")}</h3>
           <p className="muted">{t("results.comparison.dashboard.projectsSubtitle")}</p>
@@ -163,7 +163,7 @@ export default function ComparisonDashboard({ comparison, onClose }: ComparisonD
         </div>
       </section>
 
-      <section role="region" aria-labelledby="comparison-power-curves-heading" className="card" style={{ display: "grid", gap: 12 }}>
+      <section aria-labelledby="comparison-power-curves-heading" className="card" style={{ display: "grid", gap: 12 }}>
         <div>
           <h3 id="comparison-power-curves-heading">{t("results.comparison.dashboard.powerCurvesTitle")}</h3>
           <p className="muted">{t("results.comparison.dashboard.powerCurvesSubtitle")}</p>
@@ -171,7 +171,7 @@ export default function ComparisonDashboard({ comparison, onClose }: ComparisonD
         <PowerCurveChart series={powerCurveSeries} />
       </section>
 
-      <section role="region" aria-labelledby="comparison-sensitivity-heading" className="card" style={{ display: "grid", gap: 12 }}>
+      <section aria-labelledby="comparison-sensitivity-heading" className="card" style={{ display: "grid", gap: 12 }}>
         <div>
           <h3 id="comparison-sensitivity-heading">{t("results.comparison.dashboard.sensitivityTitle")}</h3>
           <p className="muted">{t("results.comparison.dashboard.sensitivitySubtitle")}</p>
@@ -195,7 +195,7 @@ export default function ComparisonDashboard({ comparison, onClose }: ComparisonD
         </div>
       </section>
 
-      <section role="region" aria-labelledby="comparison-observed-effects-heading" className="card" style={{ display: "grid", gap: 12 }}>
+      <section aria-labelledby="comparison-observed-effects-heading" className="card" style={{ display: "grid", gap: 12 }}>
         <div>
           <h3 id="comparison-observed-effects-heading">{t("results.comparison.dashboard.observedEffectsTitle")}</h3>
           <p className="muted">{t("results.comparison.dashboard.observedEffectsSubtitle")}</p>
@@ -217,7 +217,7 @@ export default function ComparisonDashboard({ comparison, onClose }: ComparisonD
 
       <DistributionView comparison={comparison} />
 
-      <section role="region" aria-labelledby="comparison-insights-heading" className="card" style={{ display: "grid", gap: 12 }}>
+      <section aria-labelledby="comparison-insights-heading" className="card" style={{ display: "grid", gap: 12 }}>
         <div>
           <h3 id="comparison-insights-heading">{t("results.comparison.dashboard.insightsTitle")}</h3>
           <p className="muted">{t("results.comparison.dashboard.insightsSubtitle")}</p>

@@ -38,7 +38,9 @@ function persistTheme(theme: Theme) {
   try {
     window.localStorage.setItem(themeStorageKey, theme);
     window.localStorage.setItem(legacyThemeStorageKey, theme);
-  } catch {}
+  } catch {
+    // localStorage may be unavailable (private mode / quota); theme still applies in-memory.
+  }
 }
 
 function applyTheme(theme: Theme) {

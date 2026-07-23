@@ -319,7 +319,7 @@ export async function apiBlobRequest(
 
   const blob = await response.blob();
   const filename =
-    /filename=\"([^\"]+)\"/i.exec(response.headers.get("content-disposition") ?? "")?.[1] ??
+    /filename="([^"]+)"/i.exec(response.headers.get("content-disposition") ?? "")?.[1] ??
     fallbackFilename;
   return { blob, filename };
 }

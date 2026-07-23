@@ -156,7 +156,7 @@ function buildHealth() {
   };
 }
 
-function buildDiagnostics() {
+function _buildDiagnostics() {
   return {
     status: "ok",
     generated_at: "2026-03-08T14:00:00Z",

@@ -156,7 +156,10 @@
         "alpha": "Alpha",
         "power": "Pouvoir",
         "planned_test": "Analyse prévue",
-        "equivalence_margin_pct": "Marge d'équivalence %"
+        "equivalence_margin_pct": "Marge d'équivalence %",
+        "exposure_per_user": "Exposition par utilisateur",
+        "numerator_metric_name": "Métrique numérateur",
+        "denominator_metric_name": "Métrique dénominateur"
       },
       "constraints": {
         "seasonality_present": "Saisonnalité présente",
@@ -169,7 +172,10 @@
         "deadline_pressure": "Pression des délais",
         "long_test_possible": "Test long possible",
         "holdout_fraction": "Fraction de holdout",
-        "mutually_exclusive_experiments": "Expériences mutuellement exclusives"
+        "mutually_exclusive_experiments": "Expériences mutuellement exclusives",
+        "analysis_mode": "Cadre d'analyse",
+        "desired_precision": "Précision souhaitée",
+        "credibility": "Niveau de crédibilité"
       },
       "additional_context": {
         "llm_context": "Contexte de l'IA"
@@ -210,7 +216,9 @@
       "metrics": {
         "metric_type": {
           "binary": "Binaire",
-          "continuous": "Continu"
+          "continuous": "Continu",
+          "count": "Comptage / taux",
+          "ratio": "Ratio"
         },
         "planned_test": {
           "z_test": "Test z (par défaut)",
@@ -431,6 +439,36 @@
         "uniqueRisks": "Des risques uniques",
         "uniqueAssumptions": "Hypothèses uniques",
         "none": "Aucun"
+      },
+      "details": {
+        "pill": "Comparaison enregistrée",
+        "title": "Comparaison d'instantanés enregistrés",
+        "durationDelta": "Écart de durée",
+        "candidateVsBase": "candidat vs base",
+        "warningsDelta": "Écart d'avertissements",
+        "warningLevel": "niveau d'avertissement {{severity}}",
+        "sharedCount": "partagés {{count}}",
+        "snapshot": "Instantané : {{value}}",
+        "primaryMetric": "Métrique principale : {{value}}",
+        "executiveSummary": "Synthèse : {{value}}",
+        "totalSampleSize": "Taille d'échantillon totale : {{value}}",
+        "durationDays": "Durée : {{value}} jours",
+        "warningsCount": "Avertissements : {{value}}",
+        "deltas": "Écarts",
+        "perVariant": "Par variante : {{value}}",
+        "duration": "Durée : {{value}}",
+        "warnings": "Avertissements : {{value}}",
+        "warningOverlap": "Chevauchement des avertissements",
+        "shared": "Partagés : {{value}}",
+        "baseOnly": "Base uniquement : {{value}}",
+        "candidateOnly": "Candidat uniquement : {{value}}",
+        "none": "Aucun",
+        "highlights": "Points clés de la comparaison",
+        "assumptionsOverlap": "Chevauchement des hypothèses",
+        "riskOverlap": "Chevauchement des risques",
+        "recommendationHighlights": "Points clés de la recommandation",
+        "baseItem": "Base : {{value}}",
+        "candidateItem": "Candidat : {{value}}"
       }
     },
     "experimentDesign": {

@@ -29,11 +29,10 @@ export default function Tooltip({ content, text }: TooltipProps) {
 
   return (
     <>
-      <span
+      <button
+        type="button"
         ref={refs.setReference}
         className={styles["tooltip-trigger"]}
-        role="note"
-        tabIndex={0}
         aria-describedby={isVisible ? tooltipId : undefined}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
@@ -42,7 +41,7 @@ export default function Tooltip({ content, text }: TooltipProps) {
       >
         <Icon name="info" className={styles["field-info-icon"]} />
         <span className={styles["sr-only"]}>{tooltipText}</span>
-      </span>
+      </button>
       {isVisible
         ? createPortal(
             <span

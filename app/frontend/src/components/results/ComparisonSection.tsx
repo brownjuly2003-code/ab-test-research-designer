@@ -15,7 +15,7 @@ export default function ComparisonSection() {
 
   if (projectMultiComparison) {
     return (
-      <Suspense fallback={<div className="status">{t("comparison.loading")}</div>}>
+      <Suspense fallback={<div className="status">{t("results.comparison.loading")}</div>}>
         <ComparisonDashboard comparison={projectMultiComparison} onClose={clearComparison} />
       </Suspense>
     );

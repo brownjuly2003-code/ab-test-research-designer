@@ -37,7 +37,9 @@ function persistOnboardingState(showOnboarding: boolean) {
     }
 
     window.localStorage[onboardingStorageKey] = "true";
-  } catch {}
+  } catch {
+    // localStorage may be unavailable (private mode / quota); onboarding flag stays in-memory.
+  }
 }
 
 export const useWizardStore = create<WizardState>((set) => ({

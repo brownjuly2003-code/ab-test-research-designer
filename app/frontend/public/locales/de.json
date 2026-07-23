@@ -156,7 +156,10 @@
         "alpha": "Alpha",
         "power": "Power",
         "planned_test": "Geplante Analyse",
-        "equivalence_margin_pct": "Äquivalenzmarge %"
+        "equivalence_margin_pct": "Äquivalenzmarge %",
+        "exposure_per_user": "Exposure pro Nutzer",
+        "numerator_metric_name": "Zähler-Metrik",
+        "denominator_metric_name": "Nenner-Metrik"
       },
       "constraints": {
         "seasonality_present": "Saisonalität vorhanden",
@@ -169,7 +172,10 @@
         "deadline_pressure": "Termindruck",
         "long_test_possible": "Langzeittest möglich",
         "holdout_fraction": "Holdout-Anteil",
-        "mutually_exclusive_experiments": "Sich gegenseitig ausschließende Experimente"
+        "mutually_exclusive_experiments": "Sich gegenseitig ausschließende Experimente",
+        "analysis_mode": "Analyse-Framework",
+        "desired_precision": "Gewünschte Präzision",
+        "credibility": "Credibility-Niveau"
       },
       "additional_context": {
         "llm_context": "KI-Kontext"
@@ -210,7 +216,9 @@
       "metrics": {
         "metric_type": {
           "binary": "Binär",
-          "continuous": "Kontinuierlich"
+          "continuous": "Kontinuierlich",
+          "count": "Count / Rate",
+          "ratio": "Ratio"
         },
         "planned_test": {
           "z_test": "z-Test (Standard)",
@@ -431,6 +439,36 @@
         "uniqueRisks": "Einzigartige Risiken",
         "uniqueAssumptions": "Einzigartige Annahmen",
         "none": "Keine"
+      },
+      "details": {
+        "pill": "Gespeicherter Vergleich",
+        "title": "Vergleich gespeicherter Snapshots",
+        "durationDelta": "Dauer-Delta",
+        "candidateVsBase": "Kandidat vs. Basis",
+        "warningsDelta": "Warnungs-Delta",
+        "warningLevel": "Warnstufe {{severity}}",
+        "sharedCount": "gemeinsam {{count}}",
+        "snapshot": "Snapshot: {{value}}",
+        "primaryMetric": "Primärmetrik: {{value}}",
+        "executiveSummary": "Executive Summary: {{value}}",
+        "totalSampleSize": "Gesamtstichprobe: {{value}}",
+        "durationDays": "Dauer: {{value}} Tage",
+        "warningsCount": "Warnungen: {{value}}",
+        "deltas": "Deltas",
+        "perVariant": "Pro Variante: {{value}}",
+        "duration": "Dauer: {{value}}",
+        "warnings": "Warnungen: {{value}}",
+        "warningOverlap": "Überschneidung der Warnungen",
+        "shared": "Gemeinsam: {{value}}",
+        "baseOnly": "Nur Basis: {{value}}",
+        "candidateOnly": "Nur Kandidat: {{value}}",
+        "none": "Keine",
+        "highlights": "Vergleichshighlights",
+        "assumptionsOverlap": "Überschneidung der Annahmen",
+        "riskOverlap": "Überschneidung der Risiken",
+        "recommendationHighlights": "Empfehlungs-Highlights",
+        "baseItem": "Basis: {{value}}",
+        "candidateItem": "Kandidat: {{value}}"
       }
     },
     "experimentDesign": {

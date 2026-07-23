@@ -357,7 +357,6 @@ export default function WizardDraftStep({
           const showFieldState = Boolean(fieldError || globalFieldError);
           const translatedFieldLabel = t(`wizardDraft.fields.${String(targetSection)}.${field.key}`, { defaultValue: field.label });
           const translatedFieldError = fieldError ? translateValidationIssue(fieldError) : fieldError;
-          const translatedGlobalFieldError = globalFieldError ? translateValidationIssue(globalFieldError) : globalFieldError;
           const translatedHelpText = field.helpText
             ? t(`wizardDraft.helpText.${field.key}`, { defaultValue: field.helpText })
             : null;

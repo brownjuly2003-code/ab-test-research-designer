@@ -39,13 +39,18 @@ jobs:
         with:
           node-version: "26"
           cache: "npm"
-          cache-dependency-path: app/frontend/package-lock.json
+          cache-dependency-path: |
+            app/frontend/package-lock.json
+            app/frontend/eslint-toolchain/package-lock.json
 
       - name: Install backend dependencies
         run: python -m pip install -r app/backend/requirements-dev.txt
 
       - name: Install frontend dependencies
         run: npm --prefix app/frontend ci
+
+      - name: Install frontend ESLint toolchain (TS 5.9 side-by-side)
+        run: npm --prefix app/frontend/eslint-toolchain ci
 
       - name: Install Playwright browser (node)
         if: matrix.os == 'ubuntu-latest'
@@ -95,6 +100,12 @@ jobs:
 
       - name: Check locale catalogs for mojibake / replacement chars
         run: python scripts/check_locale_content.py
+
+      - name: Verify locale key parity gate detector
+        run: python scripts/check_locale_parity.py --self-test
+
+      - name: Check locale key parity and static t() key usage
+        run: python scripts/check_locale_parity.py
 
   repo-hygiene:
     runs-on: ubuntu-latest

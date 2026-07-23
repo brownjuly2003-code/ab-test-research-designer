@@ -13,12 +13,18 @@
 
 - Frontend API client split (plan step 8): monolithic `lib/api.ts` → domain modules under `lib/api/` (`client`, `projects`, `analysis`, `keys`, `webhooks`, `system`, `workspace`) with a stable `lib/api.ts` facade. `ApiKey*` / `Webhook*` DTOs re-export OpenAPI-generated types instead of hand-maintained duplicates.
 - `ApiKeyManager` i18n (×7 locales) plus create-modal keyboard a11y (focus trap, Escape, focus restore) and destructive delete confirmation via `InlineConfirmButton`.
+- `ComparisonDetails` i18n (×7 locales): saved snapshot comparison labels no longer hardcode English.
+- Locale key parity + static `t()` usage gate (`scripts/check_locale_parity.py`) in `verify_all` and CI: plural-family-aware coverage vs `en.json`, stale extras fail, missing catalog keys used in `src` fail.
+- Frontend ESLint flat baseline (TS parser, React hooks `rules-of-hooks`, JSX a11y) via side-by-side `eslint-toolchain` (TypeScript 5.9) while the app stays on TypeScript 7; wired into `npm run lint` / `verify_all` / CI.
+- Bundle budget gate reports per-chunk raw/gzip sizes and total gzip; hard ceilings unchanged. Raising budgets requires ADR (`docs/adr/0002-frontend-bundle-budget.md`).
 - Decision readout practical-significance policy `practical_v1` (audit F-07 / ADR 0001): `ship` now requires a statistical win **and** CI lower bound ≥ design minimum worthwhile effect (absolute MDE from `mde_pct`). Trivial-but-significant effects become `no_ship` / `keep_running` with machine-readable reason codes. Response includes `policy` + `evidence` (policy version, MWE, planned power); observed post-hoc power is explicitly not used for the verdict. Live history snapshots are not rewritten.
 
 ### Fixed
 
 - `check_locale_content.py` docstring no longer claims a non-existent CI key-parity gate; it only scans values for mojibake/U+FFFD.
-- jsdom Canvas noise: stable `HTMLCanvasElement.getContext` / `toDataURL` stubs in vitest setup.
+- Broken `t("comparison.loading")` key in `ComparisonSection` → `results.comparison.loading`.
+- Wizard field labels for count/ratio/Bayesian/exposure keys now exist in all 7 locales (were RU-only extras / EN `defaultValue` fallbacks).
+- jsdom Canvas noise: stable `HTMLCanvasElement.getContext` / `toDataURL` stubs in vitest setup (typed for TS 7).
 - PostgreSQL parameter typing (audit F-03): removed content-based `{`/`[` + `json.loads` → `Jsonb` inference. Intentional JSON/JSONB values bind via explicit `JsonParam`; JSON-looking TEXT (`project_name`, `user_id`, `metric`, `stratum`, exclusion reasons, …) round-trips unchanged on SQLite and PostgreSQL. `?` → `%s` remains a documented temporary portability shim.
 - Analytical population (audit F-02): primary, holdout, strata, and event-timing now share one `analytical_population_v1` contract (identity one-hop fold, first-exposure-wins, manual + rate-spike exclusions). Holdout no longer groups by raw `user_id` without identity/exclusions. Live-stats gains a `population` fingerprint block; identity ingest rejects chain/cycle links.
 - HF SQLite snapshots are now WAL-consistent and atomic: push stages via `sqlite3.Connection.backup()` (includes WAL-visible commits), runs `PRAGMA quick_check`, and uploads DB+metadata in one HF `create_commit`. Restore binds both artifacts to one remote revision, refuses corrupt/SHA-mismatched DBs without replacing a working file, and re-runs schema bootstrap after replace so schema `N-1` snapshots migrate to the build `user_version`.

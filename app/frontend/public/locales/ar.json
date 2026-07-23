@@ -156,7 +156,10 @@
         "alpha": "ألفا",
         "power": "قوة",
         "planned_test": "التحليل المخطط",
-        "equivalence_margin_pct": "هامش التكافؤ %"
+        "equivalence_margin_pct": "هامش التكافؤ %",
+        "exposure_per_user": "التعرّض لكل مستخدم",
+        "numerator_metric_name": "مقياس البسط",
+        "denominator_metric_name": "مقياس المقام"
       },
       "constraints": {
         "seasonality_present": "الموسمية موجودة",
@@ -169,7 +172,10 @@
         "deadline_pressure": "ضغط الموعد النهائي",
         "long_test_possible": "اختبار طويل ممكن",
         "holdout_fraction": "نسبة المجموعة المحجوزة",
-        "mutually_exclusive_experiments": "تجارب متنافية"
+        "mutually_exclusive_experiments": "تجارب متنافية",
+        "analysis_mode": "إطار التحليل",
+        "desired_precision": "الدقة المطلوبة",
+        "credibility": "مستوى المصداقية"
       },
       "additional_context": {
         "llm_context": "سياق الذكاء الاصطناعي"
@@ -210,7 +216,9 @@
       "metrics": {
         "metric_type": {
           "binary": "ثنائي",
-          "continuous": "مستمر"
+          "continuous": "مستمر",
+          "count": "عدد / معدل",
+          "ratio": "نسبة"
         },
         "planned_test": {
           "z_test": "اختبار z (افتراضي)",
@@ -430,6 +438,36 @@
         "uniqueRisks": "مخاطر فريدة من نوعها",
         "uniqueAssumptions": "افتراضات فريدة",
         "none": "لا أحد"
+      },
+      "details": {
+        "pill": "مقارنة محفوظة",
+        "title": "مقارنة اللقطات المحفوظة",
+        "durationDelta": "فرق المدة",
+        "candidateVsBase": "المرشح مقابل الأساس",
+        "warningsDelta": "فرق التحذيرات",
+        "warningLevel": "مستوى التحذير {{severity}}",
+        "sharedCount": "مشترك {{count}}",
+        "snapshot": "اللقطة: {{value}}",
+        "primaryMetric": "المقياس الأساسي: {{value}}",
+        "executiveSummary": "الملخص التنفيذي: {{value}}",
+        "totalSampleSize": "إجمالي حجم العينة: {{value}}",
+        "durationDays": "المدة: {{value}} يومًا",
+        "warningsCount": "التحذيرات: {{value}}",
+        "deltas": "الفروقات",
+        "perVariant": "لكل متغير: {{value}}",
+        "duration": "المدة: {{value}}",
+        "warnings": "التحذيرات: {{value}}",
+        "warningOverlap": "تداخل التحذيرات",
+        "shared": "مشترك: {{value}}",
+        "baseOnly": "الأساس فقط: {{value}}",
+        "candidateOnly": "المرشح فقط: {{value}}",
+        "none": "لا شيء",
+        "highlights": "أبرز نقاط المقارنة",
+        "assumptionsOverlap": "تداخل الافتراضات",
+        "riskOverlap": "تداخل المخاطر",
+        "recommendationHighlights": "أبرز التوصيات",
+        "baseItem": "الأساس: {{value}}",
+        "candidateItem": "المرشح: {{value}}"
       }
     },
     "experimentDesign": {

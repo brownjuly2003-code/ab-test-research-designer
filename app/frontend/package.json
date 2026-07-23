@@ -13,7 +13,9 @@
     "test:coverage": "vitest run --coverage",
     "test:smoke": "python ../../scripts/run_local_smoke.py",
     "test:e2e": "python ../../scripts/run_frontend_e2e.py",
-    "test:e2e:install": "playwright install chromium"
+    "test:e2e:install": "playwright install chromium",
+    "lint": "node eslint-toolchain/run-lint.mjs",
+    "lint:install": "npm --prefix eslint-toolchain ci"
   },
   "dependencies": {
     "@floating-ui/react-dom": "^2.1.9",
@@ -23,6 +25,7 @@
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-i18next": "^17.0.10",
+    "react-is": "^19.2.8",
     "recharts": "^3.10.0",
     "zustand": "^5.0.14"
   },

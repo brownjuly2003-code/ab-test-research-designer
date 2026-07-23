@@ -108,6 +108,8 @@ export default function TemplateGallery({ onClose, onApplyTemplate }: TemplateGa
       // the /use endpoint only bumps usage_count, which would 403 without a token.
       const readOnly = useProjectStore.getState().isReadOnlySession;
       const listedTemplate = readOnly ? templates.find((candidate) => candidate.id === templateId) : undefined;
+      // API helper is named use* (request, not a React Hook); call is intentional.
+      // eslint-disable-next-line react-hooks/rules-of-hooks -- useTemplateRequest is an API client, not a hook
       const template = listedTemplate ?? (await useTemplateRequest(templateId));
       onApplyTemplate(hydrateLoadedPayload(template.payload), template.name);
       onClose();

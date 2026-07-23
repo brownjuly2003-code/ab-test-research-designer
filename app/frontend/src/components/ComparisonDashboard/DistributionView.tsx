@@ -218,7 +218,6 @@ export default function DistributionView({ comparison }: DistributionViewProps) 
 
   return (
     <section
-      role="region"
       aria-labelledby="comparison-distribution-heading"
       className="card"
       style={{ display: "grid", gap: 12 }}

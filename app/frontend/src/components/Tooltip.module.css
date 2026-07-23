@@ -2,9 +2,14 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
   border-radius: 999px;
   color: var(--color-text-secondary);
   cursor: help;
+  font: inherit;
 }
 
 .tooltip-trigger:hover,

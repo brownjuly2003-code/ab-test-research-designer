@@ -175,7 +175,7 @@ export default function ResultsPanel(_props: ResultsPanelProps) {
       }
       const blob = await response.blob();
       const objectUrl = window.URL.createObjectURL(blob);
-      const filename = /filename=\"([^\"]+)\"/i.exec(response.headers.get("content-disposition") ?? "")?.[1] ?? "ab-test-report.html";
+      const filename = /filename="([^"]+)"/i.exec(response.headers.get("content-disposition") ?? "")?.[1] ?? "ab-test-report.html";
       const anchor = document.createElement("a");
       anchor.href = objectUrl;
       anchor.download = filename;

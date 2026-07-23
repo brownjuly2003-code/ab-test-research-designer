@@ -54,14 +54,15 @@ if (typeof HTMLCanvasElement !== "undefined") {
 
   HTMLCanvasElement.prototype.getContext = function getContext(
     this: HTMLCanvasElement,
-    contextId: string
+    contextId: string,
+    _options?: unknown
   ): RenderingContext | null {
     if (contextId === "2d") {
       twoDContextStub.canvas = this;
       return twoDContextStub as unknown as CanvasRenderingContext2D;
     }
     return null;
-  };
+  } as typeof HTMLCanvasElement.prototype.getContext;
 
   HTMLCanvasElement.prototype.toDataURL = function toDataURL(): string {
     return "data:image/png;base64,";

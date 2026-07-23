@@ -121,6 +121,16 @@ def main() -> int:
         [sys.executable, "scripts/check_locale_content.py"],
         ROOT_DIR,
     )
+    run_step(
+        "locale key parity gate (self-test)",
+        [sys.executable, "scripts/check_locale_parity.py", "--self-test"],
+        ROOT_DIR,
+    )
+    run_step(
+        "locale key parity + usage gate",
+        [sys.executable, "scripts/check_locale_parity.py"],
+        ROOT_DIR,
+    )
     unsigned_backup_env = os.environ.copy()
     unsigned_backup_env.pop("AB_WORKSPACE_SIGNING_KEY", None)
     run_step(
@@ -169,6 +179,12 @@ def main() -> int:
         ROOT_DIR,
     )
     run_step("frontend typecheck", [NPM_EXECUTABLE, "exec", "tsc", "--", "--noEmit", "-p", "."], FRONTEND_DIR)
+    run_step(
+        "frontend eslint toolchain install",
+        [NPM_EXECUTABLE, "ci"],
+        FRONTEND_DIR / "eslint-toolchain",
+    )
+    run_step("frontend lint", [NPM_EXECUTABLE, "run", "lint"], FRONTEND_DIR)
     frontend_tests_command = [NPM_EXECUTABLE, "run", "test:unit"]
     if artifacts_dir is not None:
         # Emit frontend JUnit next to backend-junit.xml so the badge collector

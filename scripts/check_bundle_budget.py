@@ -1,18 +1,24 @@
-"""Deterministic frontend bundle budget (audit F-13).
+"""Deterministic frontend bundle budget (audit F-13 / plan step 8).
 
 Lighthouse's performance score varies run to run, so it stays a warning; what must
 never drift silently is the shipped JavaScript weight. This gate fails the build
 when the entry chunk or the total JS payload crosses an explicit budget, forcing a
-conscious decision (code-split, drop a dependency, or raise the budget in review).
+conscious decision (code-split, drop a dependency, or raise the budget via ADR).
 
-Budgets are raw (uncompressed) bytes of dist/assets/*.js:
-- entry chunk (index-*.js): 512 000 bytes — 495 461 as of 2026-07-12;
-- all chunks together:    1 150 000 bytes — 1 067 312 as of 2026-07-12.
+Hard budgets are raw (uncompressed) bytes of dist/assets/*.js:
+- entry chunk (index-*.js): 512 000 bytes
+- all chunks together:    1 150 000 bytes
+
+Reporting (non-failing) includes per-chunk raw sizes and total gzip size so
+reviews can see headroom and transfer weight without raising the hard ceiling.
+Raising ENTRY_CHUNK_BUDGET_BYTES or TOTAL_JS_BUDGET_BYTES requires an ADR under
+docs/adr/ — never as a side effect of landing a feature (see CONTRIBUTING).
 """
 
 from __future__ import annotations
 
 import argparse
+import gzip
 import sys
 import tempfile
 from pathlib import Path
@@ -22,6 +28,12 @@ DEFAULT_DIST_ASSETS = ROOT_DIR / "app" / "frontend" / "dist" / "assets"
 
 ENTRY_CHUNK_BUDGET_BYTES = 512_000
 TOTAL_JS_BUDGET_BYTES = 1_150_000
+# Soft headroom signal: below this fraction of the total budget, print a warning.
+HEADROOM_WARN_FRACTION = 0.05
+
+
+def _gzip_size(path: Path) -> int:
+    return len(gzip.compress(path.read_bytes(), compresslevel=9, mtime=0))
 
 
 def check_budget(assets_dir: Path) -> list[str]:
@@ -48,6 +60,21 @@ def check_budget(assets_dir: Path) -> list[str]:
     return errors
 
 
+def report_chunks(assets_dir: Path) -> tuple[int, int, list[tuple[str, int, int]]]:
+    """Return (total_raw, total_gzip, [(name, raw, gzip), ...]) sorted by raw desc."""
+    rows: list[tuple[str, int, int]] = []
+    total_raw = 0
+    total_gzip = 0
+    for chunk in assets_dir.glob("*.js"):
+        raw = chunk.stat().st_size
+        gz = _gzip_size(chunk)
+        rows.append((chunk.name, raw, gz))
+        total_raw += raw
+        total_gzip += gz
+    rows.sort(key=lambda item: item[1], reverse=True)
+    return total_raw, total_gzip, rows
+
+
 def self_test() -> int:
     with tempfile.TemporaryDirectory() as raw_dir:
         assets = Path(raw_dir)
@@ -71,6 +98,11 @@ def self_test() -> int:
             print("[bundle-budget] self-test FAILED: an oversized total was not flagged", file=sys.stderr)
             return 1
 
+        total_raw, total_gzip, rows = report_chunks(assets)
+        if total_raw <= 0 or total_gzip <= 0 or not rows:
+            print("[bundle-budget] self-test FAILED: per-chunk/gzip report empty", file=sys.stderr)
+            return 1
+
     print("[bundle-budget] self-test passed")
     return 0
 
@@ -91,13 +123,32 @@ def main() -> int:
             print(f"[bundle-budget] {violation}", file=sys.stderr)
         print(
             "[bundle-budget] over budget: split the chunk, drop the dependency, or raise the "
-            "budget in scripts/check_bundle_budget.py as an explicit reviewed decision",
+            "budget in scripts/check_bundle_budget.py only with a new ADR under docs/adr/",
             file=sys.stderr,
         )
         return 1
 
-    total = sum(chunk.stat().st_size for chunk in assets_dir.glob("*.js"))
-    print(f"[bundle-budget] OK: {total:,} bytes of JS within budget ({TOTAL_JS_BUDGET_BYTES:,})")
+    total_raw, total_gzip, rows = report_chunks(assets_dir)
+    headroom = TOTAL_JS_BUDGET_BYTES - total_raw
+    headroom_pct = (headroom / TOTAL_JS_BUDGET_BYTES) * 100 if TOTAL_JS_BUDGET_BYTES else 0.0
+
+    print(
+        f"[bundle-budget] OK: {total_raw:,} raw / {total_gzip:,} gzip bytes of JS "
+        f"within budget ({TOTAL_JS_BUDGET_BYTES:,} raw); "
+        f"headroom {headroom:,} ({headroom_pct:.1f}%)"
+    )
+    print("[bundle-budget] per-chunk (raw / gzip):")
+    for name, raw, gz in rows:
+        marker = " entry" if name.startswith("index-") else ""
+        print(f"  {name}: {raw:,} / {gz:,}{marker}")
+
+    if headroom_pct < HEADROOM_WARN_FRACTION * 100:
+        print(
+            f"[bundle-budget] WARNING: headroom under {HEADROOM_WARN_FRACTION:.0%} — "
+            "prefer code-split/deps cleanup before any budget raise (ADR required).",
+            file=sys.stderr,
+        )
+
     return 0
 
 

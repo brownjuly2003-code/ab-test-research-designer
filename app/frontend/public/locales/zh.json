@@ -156,7 +156,10 @@
         "alpha": "阿尔法",
         "power": "力量",
         "planned_test": "计划分析方法",
-        "equivalence_margin_pct": "等效性边界 %"
+        "equivalence_margin_pct": "等效性边界 %",
+        "exposure_per_user": "每用户曝光量",
+        "numerator_metric_name": "分子指标",
+        "denominator_metric_name": "分母指标"
       },
       "constraints": {
         "seasonality_present": "季节性存在",
@@ -169,7 +172,10 @@
         "deadline_pressure": "截止日期的压力",
         "long_test_possible": "可进行长时间测试",
         "holdout_fraction": "保留组比例",
-        "mutually_exclusive_experiments": "互斥实验数量"
+        "mutually_exclusive_experiments": "互斥实验数量",
+        "analysis_mode": "分析框架",
+        "desired_precision": "目标精度",
+        "credibility": "可信度水平"
       },
       "additional_context": {
         "llm_context": "人工智能背景"
@@ -210,7 +216,9 @@
       "metrics": {
         "metric_type": {
           "binary": "二进制",
-          "continuous": "连续的"
+          "continuous": "连续的",
+          "count": "计数 / 频率",
+          "ratio": "比率"
         },
         "planned_test": {
           "z_test": "z 检验（默认）",
@@ -430,6 +438,36 @@
         "uniqueRisks": "独特的风险",
         "uniqueAssumptions": "独特的假设",
         "none": "没有任何"
+      },
+      "details": {
+        "pill": "已保存的对比",
+        "title": "已保存快照对比",
+        "durationDelta": "时长差值",
+        "candidateVsBase": "候选 vs 基准",
+        "warningsDelta": "警告差值",
+        "warningLevel": "{{severity}} 警告级别",
+        "sharedCount": "共享 {{count}}",
+        "snapshot": "快照：{{value}}",
+        "primaryMetric": "主指标：{{value}}",
+        "executiveSummary": "执行摘要：{{value}}",
+        "totalSampleSize": "总样本量：{{value}}",
+        "durationDays": "时长：{{value}} 天",
+        "warningsCount": "警告：{{value}}",
+        "deltas": "差值",
+        "perVariant": "每变体：{{value}}",
+        "duration": "时长：{{value}}",
+        "warnings": "警告：{{value}}",
+        "warningOverlap": "警告重叠",
+        "shared": "共享：{{value}}",
+        "baseOnly": "仅基准：{{value}}",
+        "candidateOnly": "仅候选：{{value}}",
+        "none": "无",
+        "highlights": "对比要点",
+        "assumptionsOverlap": "假设重叠",
+        "riskOverlap": "风险重叠",
+        "recommendationHighlights": "建议要点",
+        "baseItem": "基准：{{value}}",
+        "candidateItem": "候选：{{value}}"
       }
     },
     "experimentDesign": {

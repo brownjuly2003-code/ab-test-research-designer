@@ -20,12 +20,8 @@ export default function SrmCheckSection() {
   const [srmLoading, setSrmLoading] = useState(false);
   const [srmError, setSrmError] = useState("");
 
-  if (!displayedAnalysis?.report) {
-    return null;
-  }
-
-  const variantNames = displayedAnalysis.report.experiment_design?.variants.map((variant) => variant.name) ?? [];
-  const trafficSplit = displayedAnalysis.report.experiment_design?.traffic_split ?? [];
+  const variantNames = displayedAnalysis?.report?.experiment_design?.variants.map((variant) => variant.name) ?? [];
+  const trafficSplit = displayedAnalysis?.report?.experiment_design?.traffic_split ?? [];
   const trafficSplitTotal = trafficSplit.reduce((total, value) => total + value, 0);
   const srmExpectedFractions = trafficSplitTotal > 0 ? trafficSplit.map((value) => value / trafficSplitTotal) : [];
   const canRunSrm =
@@ -40,6 +36,10 @@ export default function SrmCheckSection() {
     setSrmLoading(false);
     setSrmError("");
   }, [selectedHistoryRunId, trafficSplit.join(","), variantNames.join("|")]);
+
+  if (!displayedAnalysis?.report) {
+    return null;
+  }
 
   async function runSrmCheck(): Promise<void> {
     if (!canRunSrm) {
