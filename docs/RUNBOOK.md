@@ -133,13 +133,18 @@ Notes:
 When `AB_HF_SNAPSHOT_REPO` and `AB_HF_TOKEN` are set on a SQLite backend, the process:
 
 1. **Push** — stages a consistent copy via `sqlite3.Connection.backup()` (includes WAL-visible
-   committed rows), runs `PRAGMA quick_check`, hashes the staged file, and uploads
-   `projects.sqlite3` + `metadata.json` in **one** HF `create_commit` revision. Unchanged
-   content (same staged SHA) is skipped.
+   committed rows under concurrent writers), runs `PRAGMA quick_check`, hashes the staged file,
+   and uploads `projects.sqlite3` + `metadata.json` in **one** HF `create_commit` revision.
+   Unchanged content (same staged SHA) is skipped. Failed `create_commit` does not advance
+   local snapshot identity; remote HEAD stays on the previous full revision.
 2. **Restore** — downloads both artifacts from the **same** remote revision, verifies SHA +
-   `quick_check`, atomically replaces the local DB, then re-runs schema bootstrap/migrations
-   so a schema `N-1` snapshot ends at the build's `user_version`.
+   `quick_check`, keeps a consistent rollback copy of the working local DB, atomically replaces
+   (clearing WAL/SHM sidecars), re-runs schema bootstrap/migrations + smoke read. If migrate/smoke
+   fails, the previous working DB is restored from the rollback copy so readiness never serves a
+   half-applied restore. Schema `N-1` snapshots end at the build's `user_version` on success.
 3. Corrupt / SHA-mismatched / future-schema snapshots never replace a working local DB.
+4. Structured log events: `snapshot_push` / `snapshot_restore` with `outcome`, `duration_ms`,
+   size/sha/user_version fields (see process logs).
 
 **RPO/RTO (practical):** RPO ≈ `AB_HF_SNAPSHOT_INTERVAL_SECONDS` (default 900s) plus the last
 in-flight transactions not yet pushed; RTO ≈ cold start + HF download + migration + readiness.

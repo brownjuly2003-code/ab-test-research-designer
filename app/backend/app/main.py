@@ -208,14 +208,17 @@ def create_app() -> FastAPI:
                 db_schema_version=repository.schema_version,
                 workspace_schema_version=repository.workspace_schema_version,
             )
-            restored = await snapshot_service.restore_latest()
-            if restored:
+            def _post_restore_migrate() -> None:
                 # The DB file was replaced after ProjectRepository already opened the
                 # previous file and ran migrations. Re-bootstrap so schema N-1
                 # snapshots migrate to the build's user_version before readiness.
+                # SnapshotService keeps a rollback copy and reverts on failure here.
                 reinitialize = getattr(repository, "reinitialize_after_restore", None)
                 if callable(reinitialize):
                     reinitialize()
+
+            restored = await snapshot_service.restore_latest(post_replace=_post_restore_migrate)
+            if restored:
                 # Keep the demo seed enabled after a restore: seed_demo_workspace is
                 # idempotent — it skips existing designs and any demo that already
                 # carries exposures, and only tops up missing execution data or a

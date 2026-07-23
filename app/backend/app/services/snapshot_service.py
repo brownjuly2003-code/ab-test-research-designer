@@ -7,12 +7,16 @@ import logging
 import shutil
 import sqlite3
 import tempfile
+import time
+from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from huggingface_hub import CommitOperationAdd, HfApi
 from huggingface_hub.errors import HfHubHTTPError
+
+from app.backend.app.logging_utils import log_event
 
 logger = logging.getLogger(__name__)
 
@@ -32,9 +36,10 @@ def create_consistent_sqlite_backup(source_path: Path, dest_path: Path) -> dict[
         dest.unlink()
     dest.parent.mkdir(parents=True, exist_ok=True)
 
-    source_conn = sqlite3.connect(str(source))
+    source_conn = sqlite3.connect(str(source), timeout=30.0)
     try:
-        dest_conn = sqlite3.connect(str(dest))
+        source_conn.execute("PRAGMA busy_timeout = 30000")
+        dest_conn = sqlite3.connect(str(dest), timeout=30.0)
         try:
             source_conn.backup(dest_conn)
             quick_check = dest_conn.execute("PRAGMA quick_check").fetchone()[0]
@@ -63,6 +68,8 @@ def verify_sqlite_file(path: Path) -> dict[str, Any]:
         if quick_check != "ok":
             raise RuntimeError(f"sqlite quick_check failed: {quick_check}")
         user_version = int(connection.execute("PRAGMA user_version").fetchone()[0])
+        # Minimal smoke read so a post-restore migration failure surfaces as broken state.
+        connection.execute("SELECT 1").fetchone()
     finally:
         connection.close()
     return {
@@ -71,6 +78,17 @@ def verify_sqlite_file(path: Path) -> dict[str, Any]:
         "size_bytes": path.stat().st_size,
         "user_version": user_version,
     }
+
+
+def remove_sqlite_sidecars(db_path: Path) -> None:
+    """Drop WAL/SHM/journal sidecars so a replaced main file is not merged with stale state."""
+    for suffix in ("-wal", "-shm", "-journal"):
+        sidecar = Path(f"{db_path}{suffix}")
+        if sidecar.exists():
+            try:
+                sidecar.unlink()
+            except OSError:
+                logger.warning("snapshot: failed to remove sidecar %s", sidecar, exc_info=True)
 
 
 def _sha256_file(path: Path) -> str:
@@ -105,6 +123,8 @@ class SnapshotService:
         self.last_restored_commit: str | None = None
         self.last_snapshot_sha256: str | None = None
         self.last_snapshot_size_bytes: int | None = None
+        self.last_push_metrics: dict[str, Any] | None = None
+        self.last_restore_metrics: dict[str, Any] | None = None
 
     @staticmethod
     def _sha256(path: Path) -> str:
@@ -117,7 +137,28 @@ class SnapshotService:
             return None
         return getattr(response, "status_code", None)
 
-    async def restore_latest(self) -> bool:
+    def _rollback_local_db(self, rollback_path: Path | None) -> None:
+        """Replace the live DB with a pre-restore rollback copy (or remove if none)."""
+        remove_sqlite_sidecars(self.local_db_path)
+        if rollback_path is not None and rollback_path.exists():
+            shutil.copyfile(rollback_path, self.local_db_path)
+            remove_sqlite_sidecars(self.local_db_path)
+            return
+        if self.local_db_path.exists():
+            self.local_db_path.unlink()
+
+    async def restore_latest(
+        self,
+        *,
+        post_replace: Callable[[], None] | None = None,
+    ) -> bool:
+        """Download the latest HF snapshot and replace the local DB.
+
+        ``post_replace`` runs after the atomic file replace (typically schema
+        re-bootstrap / migrate + any caller smoke checks). On failure the previous
+        working DB is restored from a rollback copy taken before replace.
+        """
+        started = time.perf_counter()
         if not self.repo_id or not self.hf_token:
             return False
 
@@ -172,6 +213,10 @@ class SnapshotService:
             )
         except TimeoutError:
             logger.warning("snapshot: restore timed out")
+            self._record_restore_metrics(
+                outcome="timeout",
+                duration_ms=int((time.perf_counter() - started) * 1000),
+            )
             return False
         except HfHubHTTPError as error:
             status_code = self._status_code(error)
@@ -181,9 +226,18 @@ class SnapshotService:
                 logger.info("snapshot: restore skipped, snapshot files not found")
             else:
                 logger.warning("snapshot: restore failed", exc_info=True)
+            self._record_restore_metrics(
+                outcome="hub_error",
+                duration_ms=int((time.perf_counter() - started) * 1000),
+                status_code=status_code,
+            )
             return False
         except Exception:
             logger.warning("snapshot: restore failed", exc_info=True)
+            self._record_restore_metrics(
+                outcome="error",
+                duration_ms=int((time.perf_counter() - started) * 1000),
+            )
             return False
 
         try:
@@ -211,16 +265,37 @@ class SnapshotService:
                 snapshot_db_schema,
                 self.db_schema_version,
             )
+            self._record_restore_metrics(
+                outcome="refused_future_schema",
+                duration_ms=int((time.perf_counter() - started) * 1000),
+                db_schema_version=snapshot_db_schema,
+            )
             return False
 
         actual_sha256 = self._sha256(snapshot_path)
         if actual_sha256 != expected_sha256:
             logger.warning("snapshot: restore sha mismatch")
+            self._record_restore_metrics(
+                outcome="sha_mismatch",
+                duration_ms=int((time.perf_counter() - started) * 1000),
+            )
             return False
 
         self.local_db_path.parent.mkdir(parents=True, exist_ok=True)
         temp_snapshot_path: Path | None = None
+        rollback_path: Path | None = None
+        replaced = False
         try:
+            if self.local_db_path.exists():
+                with tempfile.NamedTemporaryFile(
+                    dir=self.local_db_path.parent,
+                    prefix=f"{self.local_db_path.stem}.rollback-",
+                    suffix=self.local_db_path.suffix or ".sqlite3",
+                    delete=False,
+                ) as handle:
+                    rollback_path = Path(handle.name)
+                create_consistent_sqlite_backup(self.local_db_path, rollback_path)
+
             with tempfile.NamedTemporaryFile(
                 dir=self.local_db_path.parent,
                 prefix=f"{self.local_db_path.stem}.restore-",
@@ -231,12 +306,41 @@ class SnapshotService:
             shutil.copyfile(snapshot_path, temp_snapshot_path)
             # Integrity gate before replacing a working local DB.
             verify_sqlite_file(temp_snapshot_path)
+            remove_sqlite_sidecars(self.local_db_path)
             temp_snapshot_path.replace(self.local_db_path)
+            remove_sqlite_sidecars(self.local_db_path)
+            replaced = True
+            temp_snapshot_path = None  # ownership transferred to local path
+
+            if post_replace is not None:
+                post_replace()
+            # Smoke after migrate/hook so a broken post-replace state never stays live.
+            verify_sqlite_file(self.local_db_path)
         except Exception:
+            if replaced:
+                logger.warning(
+                    "snapshot: restore rolled back after post-replace/smoke failure",
+                    exc_info=True,
+                )
+                try:
+                    self._rollback_local_db(rollback_path)
+                except Exception:
+                    logger.warning("snapshot: rollback restore failed", exc_info=True)
+            else:
+                if temp_snapshot_path is not None and temp_snapshot_path.exists():
+                    temp_snapshot_path.unlink()
+                logger.warning("snapshot: restore failed during local replace", exc_info=True)
+            self._record_restore_metrics(
+                outcome="rolled_back" if replaced else "replace_failed",
+                duration_ms=int((time.perf_counter() - started) * 1000),
+                revision=str(revision),
+            )
+            return False
+        finally:
             if temp_snapshot_path is not None and temp_snapshot_path.exists():
                 temp_snapshot_path.unlink()
-            logger.warning("snapshot: restore failed during local replace", exc_info=True)
-            return False
+            if rollback_path is not None and rollback_path.exists():
+                rollback_path.unlink()
 
         self.last_restored_commit = revision
         self.last_snapshot_sha256 = expected_sha256
@@ -246,19 +350,58 @@ class SnapshotService:
             if isinstance(size_bytes, int)
             else self.local_db_path.stat().st_size
         )
+        duration_ms = int((time.perf_counter() - started) * 1000)
+        self._record_restore_metrics(
+            outcome="restored",
+            duration_ms=duration_ms,
+            revision=str(revision),
+            sha256=expected_sha256[:12],
+            size_bytes=self.last_snapshot_size_bytes,
+            db_schema_version=snapshot_db_schema,
+        )
         return True
 
+    def _record_restore_metrics(self, **fields: Any) -> None:
+        metrics = {"event": "snapshot_restore", **fields}
+        self.last_restore_metrics = metrics
+        log_event(
+            logger,
+            logging.INFO if fields.get("outcome") == "restored" else logging.WARNING,
+            f"snapshot restore {fields.get('outcome', 'unknown')}",
+            **metrics,
+        )
+
+    def _record_push_metrics(self, **fields: Any) -> None:
+        metrics = {"event": "snapshot_push", **fields}
+        self.last_push_metrics = metrics
+        level = logging.INFO if fields.get("outcome") in {"pushed", "skipped_unchanged"} else logging.WARNING
+        log_event(
+            logger,
+            level,
+            f"snapshot push {fields.get('outcome', 'unknown')}",
+            **metrics,
+        )
+
     async def push_snapshot(self) -> str:
+        started = time.perf_counter()
         if not self.repo_id or not self.hf_token:
             return ""
         if not self.local_db_path.exists():
             logger.warning("snapshot: push skipped, local db missing")
+            self._record_push_metrics(
+                outcome="skipped_missing_db",
+                duration_ms=int((time.perf_counter() - started) * 1000),
+            )
             return ""
 
         timestamp = datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
         staged_path: Path | None = None
         metadata_path: Path | None = None
         api = HfApi(token=self.hf_token)
+        sha256 = ""
+        size_bytes = 0
+        staged_user_version = 0
+        delta_bytes = 0
 
         try:
             with tempfile.NamedTemporaryFile(
@@ -285,10 +428,18 @@ class SnapshotService:
             )
 
             if self.last_snapshot_sha256 is not None and sha256 == self.last_snapshot_sha256:
+                duration_ms = int((time.perf_counter() - started) * 1000)
                 logger.info(
                     "snapshot: skipped unchanged (sha256=%s, size=%sKB)",
                     sha256[:12],
                     size_bytes // 1024,
+                )
+                self._record_push_metrics(
+                    outcome="skipped_unchanged",
+                    duration_ms=duration_ms,
+                    sha256=sha256[:12],
+                    size_bytes=size_bytes,
+                    user_version=staged_user_version,
                 )
                 return self.last_restored_commit or "unchanged"
 
@@ -354,12 +505,30 @@ class SnapshotService:
             )
         except TimeoutError:
             logger.warning("snapshot: push timed out")
+            self._record_push_metrics(
+                outcome="timeout",
+                duration_ms=int((time.perf_counter() - started) * 1000),
+                sha256=sha256[:12] if sha256 else None,
+                size_bytes=size_bytes or None,
+            )
             return ""
         except HfHubHTTPError:
             logger.warning("snapshot: push failed", exc_info=True)
+            self._record_push_metrics(
+                outcome="hub_error",
+                duration_ms=int((time.perf_counter() - started) * 1000),
+                sha256=sha256[:12] if sha256 else None,
+                size_bytes=size_bytes or None,
+            )
             return ""
         except Exception:
             logger.warning("snapshot: push failed", exc_info=True)
+            self._record_push_metrics(
+                outcome="error",
+                duration_ms=int((time.perf_counter() - started) * 1000),
+                sha256=sha256[:12] if sha256 else None,
+                size_bytes=size_bytes or None,
+            )
             return ""
         finally:
             if metadata_path is not None and metadata_path.exists():
@@ -370,10 +539,20 @@ class SnapshotService:
         commit_hash = str(getattr(commit_info, "oid", "") or "")
         self.last_snapshot_sha256 = sha256
         self.last_snapshot_size_bytes = size_bytes
+        duration_ms = int((time.perf_counter() - started) * 1000)
         logger.info(
             "snapshot: pushed %s (size=%sKB, delta=%sKB)",
             commit_hash or "unknown",
             size_bytes // 1024,
             delta_bytes // 1024,
+        )
+        self._record_push_metrics(
+            outcome="pushed",
+            duration_ms=duration_ms,
+            commit=commit_hash or None,
+            sha256=sha256[:12],
+            size_bytes=size_bytes,
+            delta_bytes=delta_bytes,
+            user_version=staged_user_version,
         )
         return commit_hash

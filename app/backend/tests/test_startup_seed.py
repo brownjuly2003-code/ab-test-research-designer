@@ -1,6 +1,6 @@
-from pathlib import Path
 import sys
 import uuid
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -187,7 +187,7 @@ def test_restore_keeps_demo_seed_enabled_for_execution_top_up(monkeypatch, temp_
         def __init__(self, **_kwargs: object) -> None:
             pass
 
-        async def restore_latest(self) -> bool:
+        async def restore_latest(self, **_kwargs: object) -> bool:
             return True
 
         async def push_snapshot(self) -> None:
