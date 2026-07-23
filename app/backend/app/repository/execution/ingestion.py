@@ -201,6 +201,23 @@ class _IngestionMixin(_BackendCore):
                 if anonymous_id == canonical_id:
                     skipped += 1
                     continue
+                # One-hop invariant (analytical_population_v1): refuse links that would form a
+                # chain or cycle. Rollups resolve only a single LEFT JOIN hop; multi-hop graphs
+                # would silently leave people unmerged. Reject when:
+                # - canonical_id is already an anonymous_id (canonical is itself aliased → chain);
+                # - anonymous_id is already used as someone else's canonical_id (would extend a chain).
+                chain_risk = connection.execute(
+                    """
+                    SELECT 1 AS hit FROM identity_map
+                    WHERE experiment_id = ?
+                      AND (anonymous_id = ? OR canonical_id = ?)
+                    LIMIT 1
+                    """,
+                    (experiment_id, canonical_id, anonymous_id),
+                ).fetchone()
+                if chain_risk is not None:
+                    skipped += 1
+                    continue
                 cursor = connection.execute(
                     """
                     INSERT INTO identity_map (id, experiment_id, anonymous_id, canonical_id, created_at)
@@ -217,6 +234,7 @@ class _IngestionMixin(_BackendCore):
                 )
                 if cursor.rowcount == 1:
                     recorded += 1
+                # else: UNIQUE conflict → counted in deduplicated below
         received = len(items)
         return {"received": received, "recorded": recorded, "deduplicated": received - recorded - skipped}
 

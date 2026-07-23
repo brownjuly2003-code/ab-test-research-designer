@@ -21,6 +21,7 @@ from .quality import (
     _build_exclusion_block,
     _build_holdout_block,
     _build_identity_resolution_block,
+    _build_population_block,
 )
 from .strata import _build_stratified_block
 
@@ -37,6 +38,7 @@ def build_live_stats(
     event_timing_summary: dict[str, Any] | None = None,
     identity_resolution_summary: dict[str, Any] | None = None,
     exclusion_summary: dict[str, Any] | None = None,
+    population_diagnostics: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Assemble the live-stats payload from a stored experiment design and the current
     per-variation analysis aggregates (``repository.get_experiment_analysis_aggregates``).
@@ -180,6 +182,7 @@ def build_live_stats(
     event_timing = _build_event_timing_block(event_timing_summary)
     identity_resolution = _build_identity_resolution_block(identity_resolution_summary)
     exclusions = _build_exclusion_block(exclusion_summary)
+    population = _build_population_block(population_diagnostics)
 
     return {
         "experiment_id": experiment_id,
@@ -198,4 +201,5 @@ def build_live_stats(
         "event_timing": event_timing,
         "identity_resolution": identity_resolution,
         "exclusions": exclusions,
+        "population": population,
     }

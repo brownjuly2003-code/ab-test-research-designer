@@ -9,6 +9,17 @@ from app.backend.app.constants import (
 )
 from app.backend.app.repository._core import _BackendCore
 from app.backend.app.repository._utils import _parse_iso
+from app.backend.app.repository.execution.population import (
+    ANALYTICAL_POPULATION_POLICY_VERSION,
+    ARM_PREDICATE_HOLDOUT,
+    ARM_PREDICATE_TREATED,
+    aggregate_query_params,
+    event_timing_pairs_sql,
+    holdout_aggregate_sql,
+    population_count_params,
+    population_count_sql,
+    population_fingerprint,
+)
 
 
 class _QualityRollupMixin(_BackendCore):
@@ -163,40 +174,19 @@ class _QualityRollupMixin(_BackendCore):
     ) -> dict[str, Any] | None:
         """Held-back (``variation_index = -1``) rollup for the cumulative holdout read (F5).
 
-        Returns ``None`` if the experiment does not exist. Mirrors
-        ``get_experiment_analysis_aggregates`` but selects the holdout tail the per-arm rollup
-        *excludes* — ``WHERE variation_index = -1`` — and folds it into a single ``holdout`` group
-        with the same shape (``exposed_users``, ``converted_users``, ``value_sum``, ``value_sq_sum``).
-        A user with several conversion events still counts once for the binary rate and contributes
-        the sum of their values to the continuous rollup. The pooled treated arms come from the main
-        aggregates (``variation_index >= 1``), so no second treated query is needed here.
+        Returns ``None`` if the experiment does not exist. Uses the same
+        ``analytical_population_v1`` contract as ``get_experiment_analysis_aggregates``
+        (identity fold, first-exposure-wins, manual + rate-spike exclusions) but selects the
+        holdout tail the per-arm rollup *excludes* — ``WHERE variation_index = -1`` — and folds
+        it into a single ``holdout`` group with the same shape (``exposed_users``,
+        ``converted_users``, ``value_sum``, ``value_sq_sum``).
         """
         with self._transaction() as connection:
             if not self._project_exists(connection, experiment_id):
                 return None
             row = connection.execute(
-                """
-                WITH user_values AS (
-                    SELECT
-                        e.user_id AS user_id,
-                        COALESCE(SUM(c.value), 0) AS user_value,
-                        MAX(CASE WHEN c.id IS NOT NULL THEN 1 ELSE 0 END) AS converted
-                    FROM exposures e
-                    LEFT JOIN conversions c
-                        ON c.experiment_id = e.experiment_id
-                        AND c.user_id = e.user_id
-                        AND c.metric = ?
-                    WHERE e.experiment_id = ? AND e.variation_index = -1
-                    GROUP BY e.user_id
-                )
-                SELECT
-                    COUNT(*) AS exposed_users,
-                    SUM(converted) AS converted_users,
-                    SUM(user_value) AS value_sum,
-                    SUM(user_value * user_value) AS value_sq_sum
-                FROM user_values
-                """,
-                (metric_name, experiment_id),
+                holdout_aggregate_sql(),
+                aggregate_query_params(experiment_id, metric_name),
             ).fetchone()
         holdout = {
             "exposed_users": int(row["exposed_users"] or 0) if row is not None else 0,
@@ -208,44 +198,34 @@ class _QualityRollupMixin(_BackendCore):
             "experiment_id": experiment_id,
             "metric_name": metric_name,
             "holdout": holdout,
+            "population_policy_version": ANALYTICAL_POPULATION_POLICY_VERSION,
         }
 
     def get_event_timing_summary(
         self, experiment_id: str, metric_name: str, horizon_days: float
     ) -> dict[str, Any] | None:
         """Classify each conversion on ``metric_name`` by its event time relative to the converting
-        user's exposure (P4.2 late / out-of-order detection — the first consumer of P4.1 occurred_at).
+        user's *first* exposure (P4.2 late / out-of-order detection).
 
-        Returns ``None`` if the experiment does not exist. For every (exposed user with
-        ``variation_index >= 0``, conversion on the metric) pair it compares the conversion's
-        ``occurred_at`` (client event time) to that user's exposure ``occurred_at``:
+        Returns ``None`` if the experiment does not exist. Uses the shared analytical population:
+        identity one-hop fold, first-exposure-wins timing anchor, treated arms only
+        (``variation_index >= 0``), and the same manual/rate-spike exclusions as primary.
 
-        - ``out_of_order`` — conversion strictly before the exposure (causally impossible; a clock-skew
-          or ingest-order artifact).
-        - ``late`` — conversion more than ``horizon_days`` after the exposure (outside the attribution
-          window).
+        For every (in-population user, conversion event on the metric) pair:
+
+        - ``out_of_order`` — conversion strictly before the exposure.
+        - ``late`` — conversion more than ``horizon_days`` after the exposure.
         - ``in_window`` — within ``[exposure, exposure + horizon_days]``.
 
-        Counts are over conversion *events* (a user with several conversions contributes each). The
-        holdout tail (``variation_index = -1``) is excluded. This is an informational diagnostic — it
-        does not change the primary rollup (``get_experiment_analysis_aggregates`` stays event-time
-        agnostic) or any verdict. The ISO-8601 strings are parsed and compared in Python so the two
-        backends share one portable query (no SQLite ``julianday`` vs Postgres interval divergence).
+        Counts are over conversion *events*. Informational only — does not change the primary
+        rollup or any verdict. ISO-8601 comparison stays in Python for SQLite/Postgres parity.
         """
         with self._transaction() as connection:
             if not self._project_exists(connection, experiment_id):
                 return None
             rows = connection.execute(
-                """
-                SELECT e.occurred_at AS exposure_at, c.occurred_at AS conversion_at
-                FROM exposures e
-                JOIN conversions c
-                    ON c.experiment_id = e.experiment_id
-                    AND c.user_id = e.user_id
-                    AND c.metric = ?
-                WHERE e.experiment_id = ? AND e.variation_index >= 0
-                """,
-                (metric_name, experiment_id),
+                event_timing_pairs_sql(),
+                aggregate_query_params(experiment_id, metric_name),
             ).fetchall()
         horizon = timedelta(days=horizon_days)
         in_window = 0
@@ -272,4 +252,63 @@ class _QualityRollupMixin(_BackendCore):
             "late": late,
             "out_of_order": out_of_order,
             "total": in_window + late + out_of_order,
+            "population_policy_version": ANALYTICAL_POPULATION_POLICY_VERSION,
+        }
+
+    def get_analytical_population_diagnostics(
+        self, experiment_id: str, metric_name: str
+    ) -> dict[str, Any] | None:
+        """Population fingerprint + counts shared by primary/holdout/timing (audit F-02).
+
+        Surfaces treated vs holdout N under the same contract *before* effect estimation so a
+        policy mismatch is visible. Returns ``None`` if the experiment does not exist.
+        """
+        with self._transaction() as connection:
+            if not self._project_exists(connection, experiment_id):
+                return None
+            treated_n = connection.execute(
+                population_count_sql(ARM_PREDICATE_TREATED),
+                population_count_params(experiment_id),
+            ).fetchone()["n"]
+            holdout_n = connection.execute(
+                population_count_sql(ARM_PREDICATE_HOLDOUT),
+                population_count_params(experiment_id),
+            ).fetchone()["n"]
+            linked = connection.execute(
+                "SELECT COUNT(*) AS n FROM identity_map WHERE experiment_id = ?",
+                (experiment_id,),
+            ).fetchone()["n"]
+
+        exclusion = self.get_exclusion_summary(experiment_id, metric_name) or {
+            "manual_filtered": 0,
+            "rate_spike_filtered": 0,
+            "total_filtered": 0,
+        }
+        manual = int(exclusion["manual_filtered"] or 0)
+        spike = int(exclusion["rate_spike_filtered"] or 0)
+        treated_users = int(treated_n or 0)
+        holdout_users = int(holdout_n or 0)
+        linked_identities = int(linked or 0)
+        fingerprint = population_fingerprint(
+            treated_users=treated_users,
+            holdout_users=holdout_users,
+            manual_excluded=manual,
+            rate_spike_excluded=spike,
+            linked_identities=linked_identities,
+            metric_name=metric_name,
+        )
+        return {
+            "experiment_id": experiment_id,
+            "metric_name": metric_name,
+            "policy_version": ANALYTICAL_POPULATION_POLICY_VERSION,
+            "fingerprint": fingerprint,
+            "treated_users": treated_users,
+            "holdout_users": holdout_users,
+            "excluded_users": manual + spike,
+            "manual_excluded": manual,
+            "rate_spike_excluded": spike,
+            "linked_identities": linked_identities,
+            # Same contract applied to every comparable read — divergence flag stays false by design
+            # after step 3; reserved for future multi-source checks.
+            "policy_aligned": True,
         }

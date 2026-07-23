@@ -412,6 +412,23 @@ class LiveExclusionBlock(BaseModel):
     rate_spike_filtered: int | None = None
 
 
+class LivePopulationBlock(BaseModel):
+    # Canonical analytical population diagnostics (audit F-02). Treated and holdout N share one
+    # policy (identity one-hop, first-exposure-wins, manual + rate-spike exclusions). Fingerprint
+    # makes divergence visible before effect estimation. Informational — does not change verdicts.
+    # status: "ok" | "unavailable" (experiment missing / diagnostics not computed).
+    status: str
+    policy_version: str | None = None
+    fingerprint: str | None = None
+    treated_users: int | None = None
+    holdout_users: int | None = None
+    excluded_users: int | None = None
+    manual_excluded: int | None = None
+    rate_spike_excluded: int | None = None
+    linked_identities: int | None = None
+    policy_aligned: bool | None = None
+
+
 class LiveStatsResponse(BaseModel):
     experiment_id: str
     metric_type: str
@@ -429,6 +446,7 @@ class LiveStatsResponse(BaseModel):
     event_timing: LiveEventTimingBlock
     identity_resolution: LiveIdentityResolutionBlock
     exclusions: LiveExclusionBlock
+    population: LivePopulationBlock
 
 
 class DecisionReason(BaseModel):

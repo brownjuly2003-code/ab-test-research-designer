@@ -203,6 +203,9 @@ def create_execution_router(
         # rate-spike) already happened inside the primary rollup above; this is the informational
         # summary of how many exposed users were filtered, split by reason.
         exclusion_summary = repository.get_exclusion_summary(experiment_id, metric_name)
+        population_diagnostics = repository.get_analytical_population_diagnostics(
+            experiment_id, metric_name
+        )
         return build_live_stats(
             experiment_id,
             project["payload"],
@@ -215,6 +218,7 @@ def create_execution_router(
             event_timing_summary,
             identity_resolution_summary,
             exclusion_summary,
+            population_diagnostics,
         )
 
     @router.get(

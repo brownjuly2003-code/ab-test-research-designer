@@ -229,6 +229,9 @@ from app.backend.app.schemas.api._execution import (
     LiveIdentityResolutionBlock as LiveIdentityResolutionBlock,
 )
 from app.backend.app.schemas.api._execution import (
+    LivePopulationBlock as LivePopulationBlock,
+)
+from app.backend.app.schemas.api._execution import (
     LiveSequentialBlock as LiveSequentialBlock,
 )
 from app.backend.app.schemas.api._execution import (

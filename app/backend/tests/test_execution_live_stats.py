@@ -226,7 +226,12 @@ def test_analysis_aggregates_empty_for_fresh_experiment() -> None:
     repo = _repo()
     exp = _project(repo)
     aggregates = repo.get_experiment_analysis_aggregates(exp, "purchase")
-    assert aggregates == {"experiment_id": exp, "metric_name": "purchase", "variations": []}
+    assert aggregates == {
+        "experiment_id": exp,
+        "metric_name": "purchase",
+        "variations": [],
+        "population_policy_version": "analytical_population_v1",
+    }
 
 
 # --- repository: ratio aggregates (F2) ------------------------------------------------

@@ -66,7 +66,7 @@ FastAPI API layer
 The schema (18 tables, versioned through `schema_migrations`) groups into five domains:
 
 - **Design & history** — `projects`, `project_revisions`, `project_templates`, `analysis_runs`, `export_events`. `projects.last_analysis_run_id` points to the latest persisted snapshot; historical snapshots stay normalized in `analysis_runs` instead of being duplicated into the main project row.
-- **Execution / live experiment data** — `exposures`, `conversions`, `identity_map`, `excluded_users`, `user_strata`, `pre_period_values`, `pre_period_covariates`.
+- **Execution / live experiment data** — `exposures`, `conversions`, `identity_map`, `excluded_users`, `user_strata`, `pre_period_values`, `pre_period_covariates`. Analytical rollups (primary, holdout, strata, event-timing) share one population contract in `repository/execution/population.py` (`analytical_population_v1`: identity one-hop, first-exposure-wins, manual + rate-spike exclusions).
 - **Access control & audit** — `api_keys`, `audit_log`.
 - **Integrations** — `webhook_subscriptions`, `webhook_deliveries`, `slack_installations`.
 - **Infrastructure** — `schema_migrations` (applied migration ledger; readiness compares it against the version the build expects).

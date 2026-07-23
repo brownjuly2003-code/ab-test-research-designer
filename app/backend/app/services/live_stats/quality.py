@@ -255,6 +255,41 @@ def _build_identity_resolution_block(
     }
 
 
+def _build_population_block(
+    population_diagnostics: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Canonical analytical population fingerprint (audit F-02).
+
+    Surfaces treated/holdout N and exclusion counts under one shared policy so a
+    cohort-definition mismatch is visible before effect estimation. Informational only.
+    """
+    if not population_diagnostics:
+        return {
+            "status": "unavailable",
+            "policy_version": None,
+            "fingerprint": None,
+            "treated_users": None,
+            "holdout_users": None,
+            "excluded_users": None,
+            "manual_excluded": None,
+            "rate_spike_excluded": None,
+            "linked_identities": None,
+            "policy_aligned": None,
+        }
+    return {
+        "status": "ok",
+        "policy_version": population_diagnostics.get("policy_version"),
+        "fingerprint": population_diagnostics.get("fingerprint"),
+        "treated_users": int(population_diagnostics.get("treated_users", 0) or 0),
+        "holdout_users": int(population_diagnostics.get("holdout_users", 0) or 0),
+        "excluded_users": int(population_diagnostics.get("excluded_users", 0) or 0),
+        "manual_excluded": int(population_diagnostics.get("manual_excluded", 0) or 0),
+        "rate_spike_excluded": int(population_diagnostics.get("rate_spike_excluded", 0) or 0),
+        "linked_identities": int(population_diagnostics.get("linked_identities", 0) or 0),
+        "policy_aligned": bool(population_diagnostics.get("policy_aligned", True)),
+    }
+
+
 def _build_exclusion_block(
     exclusion_summary: dict[str, Any] | None,
 ) -> dict[str, Any]:

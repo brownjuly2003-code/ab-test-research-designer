@@ -820,6 +820,19 @@ export type LiveIdentityResolutionBlock = {
   merged_users?: number | null;
 };
 
+export type LivePopulationBlock = {
+  status: string;
+  policy_version?: string | null;
+  fingerprint?: string | null;
+  treated_users?: number | null;
+  holdout_users?: number | null;
+  excluded_users?: number | null;
+  manual_excluded?: number | null;
+  rate_spike_excluded?: number | null;
+  linked_identities?: number | null;
+  policy_aligned?: boolean | null;
+};
+
 export type LiveSequentialBlock = {
   status: string;
   n_looks: number;
@@ -857,6 +870,7 @@ export type LiveStatsResponse = {
   event_timing: LiveEventTimingBlock;
   identity_resolution: LiveIdentityResolutionBlock;
   exclusions: LiveExclusionBlock;
+  population: LivePopulationBlock;
 };
 
 export type LiveStratifiedBlock = {
