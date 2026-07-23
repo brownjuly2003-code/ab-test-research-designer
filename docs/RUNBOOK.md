@@ -128,6 +128,24 @@ Notes:
 - `AB_DB_POOL_SIZE` controls the psycopg connection pool; increase it for multi-worker deploys
 - `AB_DB_PATH`, `AB_SQLITE_BUSY_TIMEOUT_MS`, `AB_SQLITE_JOURNAL_MODE`, and `AB_SQLITE_SYNCHRONOUS` still apply only to SQLite
 
+## HF SQLite snapshot (Spaces / single-instance)
+
+When `AB_HF_SNAPSHOT_REPO` and `AB_HF_TOKEN` are set on a SQLite backend, the process:
+
+1. **Push** — stages a consistent copy via `sqlite3.Connection.backup()` (includes WAL-visible
+   committed rows), runs `PRAGMA quick_check`, hashes the staged file, and uploads
+   `projects.sqlite3` + `metadata.json` in **one** HF `create_commit` revision. Unchanged
+   content (same staged SHA) is skipped.
+2. **Restore** — downloads both artifacts from the **same** remote revision, verifies SHA +
+   `quick_check`, atomically replaces the local DB, then re-runs schema bootstrap/migrations
+   so a schema `N-1` snapshot ends at the build's `user_version`.
+3. Corrupt / SHA-mismatched / future-schema snapshots never replace a working local DB.
+
+**RPO/RTO (practical):** RPO ≈ `AB_HF_SNAPSHOT_INTERVAL_SECONDS` (default 900s) plus the last
+in-flight transactions not yet pushed; RTO ≈ cold start + HF download + migration + readiness.
+This is not a multi-region DR plan — treat HF dataset revisions as the recoverability boundary
+for single-instance SQLite demos. Prefer Postgres + managed backups for production multi-writer.
+
 Migration guide from SQLite:
 
 ```bash

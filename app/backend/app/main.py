@@ -210,6 +210,12 @@ def create_app() -> FastAPI:
             )
             restored = await snapshot_service.restore_latest()
             if restored:
+                # The DB file was replaced after ProjectRepository already opened the
+                # previous file and ran migrations. Re-bootstrap so schema N-1
+                # snapshots migrate to the build's user_version before readiness.
+                reinitialize = getattr(repository, "reinitialize_after_restore", None)
+                if callable(reinitialize):
+                    reinitialize()
                 # Keep the demo seed enabled after a restore: seed_demo_workspace is
                 # idempotent — it skips existing designs and any demo that already
                 # carries exposures, and only tops up missing execution data or a

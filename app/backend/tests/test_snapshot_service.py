@@ -2,20 +2,26 @@ import asyncio
 import hashlib
 import json
 import logging
-from pathlib import Path
+import sqlite3
 import sys
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
-from fastapi.testclient import TestClient
 import pytest
+from fastapi.testclient import TestClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
 from app.backend.app.config import get_settings
 from app.backend.app.main import create_app
-from app.backend.app.services.snapshot_service import SnapshotService
+from app.backend.app.repository import ProjectRepository
+from app.backend.app.services.snapshot_service import (
+    SnapshotService,
+    create_consistent_sqlite_backup,
+    verify_sqlite_file,
+)
 
 
 def _sha256(path: Path) -> str:
@@ -32,6 +38,34 @@ def _hub_error(status_code: int) -> Exception:
     from huggingface_hub.errors import HfHubHTTPError
 
     return HfHubHTTPError(f"hub error: {status_code}", response=response)
+
+
+def _write_sqlite_db(path: Path, *, rows: list[tuple[str, ...]] | None = None, user_version: int = 14) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    connection = sqlite3.connect(path)
+    try:
+        connection.execute("CREATE TABLE IF NOT EXISTS items (id INTEGER PRIMARY KEY, v TEXT NOT NULL)")
+        for (value,) in rows or [("seed",)]:
+            connection.execute("INSERT INTO items(v) VALUES (?)", (value,))
+        connection.execute(f"PRAGMA user_version = {int(user_version)}")
+        connection.commit()
+    finally:
+        connection.close()
+
+
+def _open_wal_db_with_pending_commit(path: Path) -> sqlite3.Connection:
+    """Return an open connection where the latest commit is only in the WAL."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    connection = sqlite3.connect(path)
+    connection.execute("PRAGMA journal_mode=WAL")
+    connection.execute("CREATE TABLE items (id INTEGER PRIMARY KEY, v TEXT NOT NULL)")
+    connection.execute("INSERT INTO items(v) VALUES ('baseline')")
+    connection.commit()
+    connection.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+    connection.commit()
+    connection.execute("INSERT INTO items(v) VALUES ('wal-only')")
+    connection.commit()
+    return connection
 
 
 @pytest.fixture
@@ -56,9 +90,46 @@ def app_env(monkeypatch, tmp_path: Path) -> Path:
     get_settings.cache_clear()
 
 
+def test_create_consistent_sqlite_backup_includes_wal_committed_row(tmp_path: Path) -> None:
+    db_path = tmp_path / "live.sqlite3"
+    connection = _open_wal_db_with_pending_commit(db_path)
+    try:
+        wal_path = Path(f"{db_path}-wal")
+        assert wal_path.exists() and wal_path.stat().st_size > 0
+
+        # Main-file-only copy loses the WAL-only commit (audit F-01 reproduction).
+        main_only = tmp_path / "main_only.sqlite3"
+        main_only.write_bytes(db_path.read_bytes())
+        main_conn = sqlite3.connect(main_only)
+        try:
+            assert [row[0] for row in main_conn.execute("SELECT v FROM items ORDER BY id")] == ["baseline"]
+        finally:
+            main_conn.close()
+
+        staged = create_consistent_sqlite_backup(db_path, tmp_path / "staged.sqlite3")
+        assert staged["user_version"] == 0  # unset in this fixture
+        staged_conn = sqlite3.connect(staged["path"])
+        try:
+            values = [row[0] for row in staged_conn.execute("SELECT v FROM items ORDER BY id")]
+        finally:
+            staged_conn.close()
+        assert values == ["baseline", "wal-only"]
+        assert staged["sha256"] == _sha256(staged["path"])
+        assert staged["size_bytes"] == staged["path"].stat().st_size
+    finally:
+        connection.close()
+
+
+def test_verify_sqlite_file_rejects_corrupt_bytes(tmp_path: Path) -> None:
+    path = tmp_path / "corrupt.sqlite3"
+    path.write_bytes(b"not-a-database")
+    with pytest.raises((sqlite3.DatabaseError, sqlite3.OperationalError, RuntimeError)):
+        verify_sqlite_file(path)
+
+
 def test_restore_latest_replaces_local_db_on_valid_snapshot(snapshot_service: SnapshotService, tmp_path: Path) -> None:
     remote_db_path = tmp_path / "remote.sqlite3"
-    remote_db_path.write_bytes(b"remote-db")
+    _write_sqlite_db(remote_db_path, rows=[("remote",)], user_version=14)
     metadata_path = tmp_path / "metadata.json"
     metadata_path.write_text(
         json.dumps(
@@ -73,21 +144,32 @@ def test_restore_latest_replaces_local_db_on_valid_snapshot(snapshot_service: Sn
         ),
         encoding="utf-8",
     )
-    snapshot_service.local_db_path.write_bytes(b"old-db")
+    _write_sqlite_db(snapshot_service.local_db_path, rows=[("old",)], user_version=14)
 
     api = MagicMock()
     api.repo_info.return_value = SimpleNamespace(sha="restore-commit-123")
-    api.hf_hub_download.side_effect = lambda repo_id, filename, **kwargs: {
-        "projects.sqlite3": str(remote_db_path),
-        "metadata.json": str(metadata_path),
-    }[filename]
+    download_kwargs: list[dict[str, object]] = []
+
+    def hf_hub_download(repo_id, filename, **kwargs):
+        download_kwargs.append({"filename": filename, **kwargs})
+        return {
+            "projects.sqlite3": str(remote_db_path),
+            "metadata.json": str(metadata_path),
+        }[filename]
+
+    api.hf_hub_download.side_effect = hf_hub_download
 
     with patch("app.backend.app.services.snapshot_service.HfApi", return_value=api):
         restored = asyncio.run(snapshot_service.restore_latest())
 
     assert restored is True
-    assert snapshot_service.local_db_path.read_bytes() == b"remote-db"
+    restored_conn = sqlite3.connect(snapshot_service.local_db_path)
+    try:
+        assert restored_conn.execute("SELECT v FROM items").fetchone()[0] == "remote"
+    finally:
+        restored_conn.close()
     assert snapshot_service.last_restored_commit == "restore-commit-123"
+    assert all(item.get("revision") == "restore-commit-123" for item in download_kwargs)
 
 
 def test_restore_latest_accepts_legacy_metadata_without_db_schema_version(
@@ -96,7 +178,7 @@ def test_restore_latest_accepts_legacy_metadata_without_db_schema_version(
     # Snapshots pushed before the metadata split carry only the misnamed
     # semver field; they must keep restoring (the schema guard skips them).
     remote_db_path = tmp_path / "remote.sqlite3"
-    remote_db_path.write_bytes(b"remote-db")
+    _write_sqlite_db(remote_db_path, rows=[("remote",)], user_version=14)
     metadata_path = tmp_path / "metadata.json"
     metadata_path.write_text(
         json.dumps(
@@ -109,7 +191,7 @@ def test_restore_latest_accepts_legacy_metadata_without_db_schema_version(
         ),
         encoding="utf-8",
     )
-    snapshot_service.local_db_path.write_bytes(b"old-db")
+    _write_sqlite_db(snapshot_service.local_db_path, rows=[("old",)], user_version=14)
 
     api = MagicMock()
     api.repo_info.return_value = SimpleNamespace(sha="restore-commit-legacy")
@@ -122,14 +204,18 @@ def test_restore_latest_accepts_legacy_metadata_without_db_schema_version(
         restored = asyncio.run(snapshot_service.restore_latest())
 
     assert restored is True
-    assert snapshot_service.local_db_path.read_bytes() == b"remote-db"
+    restored_conn = sqlite3.connect(snapshot_service.local_db_path)
+    try:
+        assert restored_conn.execute("SELECT v FROM items").fetchone()[0] == "remote"
+    finally:
+        restored_conn.close()
 
 
 def test_restore_latest_refuses_snapshot_from_newer_schema(
     snapshot_service: SnapshotService, tmp_path: Path, caplog
 ) -> None:
     remote_db_path = tmp_path / "remote.sqlite3"
-    remote_db_path.write_bytes(b"remote-db")
+    _write_sqlite_db(remote_db_path, rows=[("remote",)], user_version=15)
     metadata_path = tmp_path / "metadata.json"
     metadata_path.write_text(
         json.dumps(
@@ -144,7 +230,7 @@ def test_restore_latest_refuses_snapshot_from_newer_schema(
         ),
         encoding="utf-8",
     )
-    snapshot_service.local_db_path.write_bytes(b"old-db")
+    _write_sqlite_db(snapshot_service.local_db_path, rows=[("old",)], user_version=14)
 
     api = MagicMock()
     api.repo_info.return_value = SimpleNamespace(sha="restore-commit-future")
@@ -158,13 +244,17 @@ def test_restore_latest_refuses_snapshot_from_newer_schema(
             restored = asyncio.run(snapshot_service.restore_latest())
 
     assert restored is False
-    assert snapshot_service.local_db_path.read_bytes() == b"old-db"
+    old_conn = sqlite3.connect(snapshot_service.local_db_path)
+    try:
+        assert old_conn.execute("SELECT v FROM items").fetchone()[0] == "old"
+    finally:
+        old_conn.close()
     assert "newer than this build's" in caplog.text
 
 
 def test_restore_latest_returns_false_on_sha_mismatch(snapshot_service: SnapshotService, tmp_path: Path) -> None:
     remote_db_path = tmp_path / "remote.sqlite3"
-    remote_db_path.write_bytes(b"remote-db")
+    _write_sqlite_db(remote_db_path, rows=[("remote",)], user_version=14)
     metadata_path = tmp_path / "metadata.json"
     metadata_path.write_text(
         json.dumps(
@@ -176,7 +266,7 @@ def test_restore_latest_returns_false_on_sha_mismatch(snapshot_service: Snapshot
         ),
         encoding="utf-8",
     )
-    snapshot_service.local_db_path.write_bytes(b"old-db")
+    _write_sqlite_db(snapshot_service.local_db_path, rows=[("old",)], user_version=14)
 
     api = MagicMock()
     api.repo_info.return_value = SimpleNamespace(sha="restore-commit-123")
@@ -189,7 +279,53 @@ def test_restore_latest_returns_false_on_sha_mismatch(snapshot_service: Snapshot
         restored = asyncio.run(snapshot_service.restore_latest())
 
     assert restored is False
-    assert snapshot_service.local_db_path.read_bytes() == b"old-db"
+    old_conn = sqlite3.connect(snapshot_service.local_db_path)
+    try:
+        assert old_conn.execute("SELECT v FROM items").fetchone()[0] == "old"
+    finally:
+        old_conn.close()
+
+
+def test_restore_latest_refuses_corrupt_db_without_replacing_local(
+    snapshot_service: SnapshotService, tmp_path: Path, caplog
+) -> None:
+    remote_db_path = tmp_path / "remote.sqlite3"
+    # Valid header-less garbage that still has a matching sha in metadata.
+    remote_db_path.write_bytes(b"SQLite format 3\x00" + b"\x00" * 100)
+    metadata_path = tmp_path / "metadata.json"
+    metadata_path.write_text(
+        json.dumps(
+            {
+                "app_version": "1.1.0",
+                "db_schema_version": 14,
+                "workspace_schema_version": 3,
+                "ts": "2026-04-23T12:34:56Z",
+                "sha256": _sha256(remote_db_path),
+                "size_bytes": remote_db_path.stat().st_size,
+            }
+        ),
+        encoding="utf-8",
+    )
+    _write_sqlite_db(snapshot_service.local_db_path, rows=[("keep-me",)], user_version=14)
+
+    api = MagicMock()
+    api.repo_info.return_value = SimpleNamespace(sha="restore-commit-corrupt")
+    api.hf_hub_download.side_effect = lambda repo_id, filename, **kwargs: {
+        "projects.sqlite3": str(remote_db_path),
+        "metadata.json": str(metadata_path),
+    }[filename]
+
+    with patch("app.backend.app.services.snapshot_service.HfApi", return_value=api):
+        with caplog.at_level(logging.WARNING):
+            restored = asyncio.run(snapshot_service.restore_latest())
+
+    assert restored is False
+    keep_conn = sqlite3.connect(snapshot_service.local_db_path)
+    try:
+        assert keep_conn.execute("SELECT v FROM items").fetchone()[0] == "keep-me"
+    finally:
+        keep_conn.close()
+    assert "restore failed during local replace" in caplog.text
 
 
 def test_restore_latest_returns_false_on_missing_snapshot(snapshot_service: SnapshotService) -> None:
@@ -217,42 +353,100 @@ def test_restore_latest_returns_false_on_unauthorized(snapshot_service: Snapshot
     assert "snapshot: restore failed with status 401" in caplog.text
 
 
-def test_push_snapshot_uploads_db_and_metadata(snapshot_service: SnapshotService) -> None:
-    snapshot_service.local_db_path.parent.mkdir(parents=True, exist_ok=True)
-    snapshot_service.local_db_path.write_bytes(b"snapshot-db")
+def test_push_snapshot_uploads_db_and_metadata_via_single_commit(
+    snapshot_service: SnapshotService, tmp_path: Path
+) -> None:
+    _write_sqlite_db(snapshot_service.local_db_path, rows=[("snapshot-row",)], user_version=14)
 
     api = MagicMock()
     api.create_repo.return_value = "https://huggingface.co/datasets/liovina/ab-test-designer-snapshots"
     uploaded_metadata: dict[str, object] = {}
+    staged_sha: list[str] = []
+    staged_size: list[int] = []
 
-    def upload_file_side_effect(**kwargs):
-        if kwargs["path_in_repo"] == "metadata.json":
-            uploaded_metadata.update(
-                json.loads(Path(kwargs["path_or_fileobj"]).read_text(encoding="utf-8"))
-            )
+    def create_commit_side_effect(repo_id, operations, **kwargs):
+        assert len(operations) == 2
+        path_by_repo = {op.path_in_repo: Path(op.path_or_fileobj) for op in operations}
+        assert set(path_by_repo) == {"projects.sqlite3", "metadata.json"}
+        db_path = path_by_repo["projects.sqlite3"]
+        staged_sha.append(_sha256(db_path))
+        staged_size.append(db_path.stat().st_size)
+        uploaded_metadata.update(
+            json.loads(path_by_repo["metadata.json"].read_text(encoding="utf-8"))
+        )
+        # Staged backup must include the committed row (not a raw main-file copy).
+        staged_conn = sqlite3.connect(db_path)
+        try:
+            assert staged_conn.execute("SELECT v FROM items").fetchone()[0] == "snapshot-row"
+            assert staged_conn.execute("PRAGMA user_version").fetchone()[0] == 14
+        finally:
+            staged_conn.close()
         return SimpleNamespace(oid="commit-123")
 
-    api.upload_file.side_effect = upload_file_side_effect
+    api.create_commit.side_effect = create_commit_side_effect
 
     with patch("app.backend.app.services.snapshot_service.HfApi", return_value=api):
         commit_hash = asyncio.run(snapshot_service.push_snapshot())
 
     assert commit_hash == "commit-123"
-    assert api.upload_file.call_count == 2
+    assert api.create_commit.call_count == 1
+    assert api.upload_file.call_count == 0
     assert uploaded_metadata["app_version"] == "1.1.0"
     assert uploaded_metadata["db_schema_version"] == 14
     assert uploaded_metadata["workspace_schema_version"] == 3
     assert "schema_version" not in uploaded_metadata
-    assert uploaded_metadata["sha256"] == _sha256(snapshot_service.local_db_path)
+    assert uploaded_metadata["sha256"] == staged_sha[0]
+    assert uploaded_metadata["size_bytes"] == staged_size[0]
+
+
+def test_push_snapshot_includes_wal_committed_row(snapshot_service: SnapshotService) -> None:
+    connection = _open_wal_db_with_pending_commit(snapshot_service.local_db_path)
+    try:
+        api = MagicMock()
+        api.create_repo.return_value = "ok"
+        captured_rows: list[list[str]] = []
+
+        def create_commit_side_effect(repo_id, operations, **kwargs):
+            db_path = next(Path(op.path_or_fileobj) for op in operations if op.path_in_repo == "projects.sqlite3")
+            staged = sqlite3.connect(db_path)
+            try:
+                captured_rows.append([row[0] for row in staged.execute("SELECT v FROM items ORDER BY id")])
+            finally:
+                staged.close()
+            return SimpleNamespace(oid="wal-commit")
+
+        api.create_commit.side_effect = create_commit_side_effect
+
+        with patch("app.backend.app.services.snapshot_service.HfApi", return_value=api):
+            commit_hash = asyncio.run(snapshot_service.push_snapshot())
+
+        assert commit_hash == "wal-commit"
+        assert captured_rows == [["baseline", "wal-only"]]
+    finally:
+        connection.close()
+
+
+def test_push_snapshot_skips_unchanged_content(snapshot_service: SnapshotService) -> None:
+    _write_sqlite_db(snapshot_service.local_db_path, rows=[("same",)], user_version=14)
+    api = MagicMock()
+    api.create_repo.return_value = "ok"
+    api.create_commit.return_value = SimpleNamespace(oid="first")
+
+    with patch("app.backend.app.services.snapshot_service.HfApi", return_value=api):
+        first = asyncio.run(snapshot_service.push_snapshot())
+        second = asyncio.run(snapshot_service.push_snapshot())
+
+    assert first == "first"
+    assert second in {"unchanged", "first"}
+    assert api.create_commit.call_count == 1
 
 
 def test_push_snapshot_returns_empty_string_on_hf_error(snapshot_service: SnapshotService, caplog) -> None:
-    snapshot_service.local_db_path.parent.mkdir(parents=True, exist_ok=True)
-    snapshot_service.local_db_path.write_bytes(b"snapshot-db")
+    _write_sqlite_db(snapshot_service.local_db_path, rows=[("snapshot-row",)], user_version=14)
 
     api = MagicMock()
     api.create_repo.return_value = "https://huggingface.co/datasets/liovina/ab-test-designer-snapshots"
-    api.upload_file.side_effect = _hub_error(500)
+    api.create_commit.side_effect = _hub_error(500)
 
     with patch("app.backend.app.services.snapshot_service.HfApi", return_value=api):
         with caplog.at_level(logging.WARNING):
@@ -260,6 +454,61 @@ def test_push_snapshot_returns_empty_string_on_hf_error(snapshot_service: Snapsh
 
     assert commit_hash == ""
     assert "snapshot: push failed" in caplog.text
+
+
+def test_reinitialize_after_restore_migrates_schema_n_minus_one(tmp_path: Path) -> None:
+    db_path = tmp_path / "projects.sqlite3"
+    # Minimal pre-bootstrap table plus old user_version; reinitialize must lift schema.
+    connection = sqlite3.connect(db_path)
+    try:
+        connection.execute(
+            """
+            CREATE TABLE projects (
+                id TEXT PRIMARY KEY,
+                project_name TEXT NOT NULL,
+                payload_json TEXT NOT NULL,
+                payload_schema_version INTEGER NOT NULL DEFAULT 1,
+                archived_at TEXT,
+                last_analysis_json TEXT,
+                last_analysis_at TEXT,
+                last_analysis_run_id TEXT,
+                last_exported_at TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            """
+        )
+        connection.execute(
+            """
+            INSERT INTO projects (
+                id, project_name, payload_json, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?)
+            """,
+            ("proj-1", "kept", "{}", "2026-01-01T00:00:00Z", "2026-01-01T00:00:00Z"),
+        )
+        connection.execute("PRAGMA user_version = 1")
+        connection.commit()
+    finally:
+        connection.close()
+
+    repository = ProjectRepository(f"sqlite:///{db_path.as_posix()}")
+    # Constructor already migrates; force an older version again and re-run.
+    connection = sqlite3.connect(db_path)
+    try:
+        connection.execute("PRAGMA user_version = 1")
+        connection.commit()
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 1
+        assert connection.execute("SELECT project_name FROM projects").fetchone()[0] == "kept"
+    finally:
+        connection.close()
+
+    repository.reinitialize_after_restore()
+    connection = sqlite3.connect(db_path)
+    try:
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == repository.schema_version
+        assert connection.execute("SELECT project_name FROM projects").fetchone()[0] == "kept"
+    finally:
+        connection.close()
 
 
 def test_startup_restore_keeps_seed_for_topup_and_shutdown_pushes_snapshot(monkeypatch, app_env: Path, capsys) -> None:

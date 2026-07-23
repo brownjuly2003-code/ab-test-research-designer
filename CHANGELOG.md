@@ -8,6 +8,7 @@
 
 ### Fixed
 
+- HF SQLite snapshots are now WAL-consistent and atomic: push stages via `sqlite3.Connection.backup()` (includes WAL-visible commits), runs `PRAGMA quick_check`, and uploads DB+metadata in one HF `create_commit`. Restore binds both artifacts to one remote revision, refuses corrupt/SHA-mismatched DBs without replacing a working file, and re-runs schema bootstrap after replace so schema `N-1` snapshots migrate to the build `user_version`.
 - SQLite connections are now closed deterministically: `_BackendCore._transaction()` wraps every repository query (transaction scope + `close()`), replacing the bare `with self._connect()` pattern whose context manager only commits and leaves the file handle to the GC. Surfaced as ~4.5k `ResourceWarning`s once pytest-cov 7 stopped suppressing them; the postgres pooled wrapper gained a no-op `close()` since its `__exit__` already returns the connection to the pool.
 
 ## [1.3.0] - 2026-07-18

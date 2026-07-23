@@ -5,14 +5,80 @@ import hashlib
 import json
 import logging
 import shutil
+import sqlite3
 import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
-from huggingface_hub import HfApi
+from huggingface_hub import CommitOperationAdd, HfApi
 from huggingface_hub.errors import HfHubHTTPError
 
 logger = logging.getLogger(__name__)
+
+
+def create_consistent_sqlite_backup(source_path: Path, dest_path: Path) -> dict[str, Any]:
+    """Stage a consistent SQLite copy that includes WAL-visible committed state.
+
+    Uses the SQLite Online Backup API instead of copying the main DB file bytes.
+    Metadata (sha256/size/user_version) is always derived from the staged file after
+    the destination connection is closed.
+    """
+    source = Path(source_path)
+    dest = Path(dest_path)
+    if not source.exists():
+        raise FileNotFoundError(f"source database missing: {source}")
+    if dest.exists():
+        dest.unlink()
+    dest.parent.mkdir(parents=True, exist_ok=True)
+
+    source_conn = sqlite3.connect(str(source))
+    try:
+        dest_conn = sqlite3.connect(str(dest))
+        try:
+            source_conn.backup(dest_conn)
+            quick_check = dest_conn.execute("PRAGMA quick_check").fetchone()[0]
+            if quick_check != "ok":
+                raise RuntimeError(f"staged snapshot failed quick_check: {quick_check}")
+            user_version = int(dest_conn.execute("PRAGMA user_version").fetchone()[0])
+        finally:
+            dest_conn.close()
+    finally:
+        source_conn.close()
+
+    size_bytes = dest.stat().st_size
+    return {
+        "path": dest,
+        "sha256": _sha256_file(dest),
+        "size_bytes": size_bytes,
+        "user_version": user_version,
+    }
+
+
+def verify_sqlite_file(path: Path) -> dict[str, Any]:
+    """Run PRAGMA quick_check and read user_version; raises on corruption."""
+    connection = sqlite3.connect(str(path))
+    try:
+        quick_check = connection.execute("PRAGMA quick_check").fetchone()[0]
+        if quick_check != "ok":
+            raise RuntimeError(f"sqlite quick_check failed: {quick_check}")
+        user_version = int(connection.execute("PRAGMA user_version").fetchone()[0])
+    finally:
+        connection.close()
+    return {
+        "path": path,
+        "sha256": _sha256_file(path),
+        "size_bytes": path.stat().st_size,
+        "user_version": user_version,
+    }
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(65536), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 class SnapshotService:
@@ -42,11 +108,7 @@ class SnapshotService:
 
     @staticmethod
     def _sha256(path: Path) -> str:
-        digest = hashlib.sha256()
-        with path.open("rb") as handle:
-            for chunk in iter(lambda: handle.read(65536), b""):
-                digest.update(chunk)
-        return digest.hexdigest()
+        return _sha256_file(path)
 
     @staticmethod
     def _status_code(error: HfHubHTTPError) -> int | None:
@@ -71,6 +133,13 @@ class SnapshotService:
                 ),
                 timeout=30,
             )
+            revision = getattr(repo_info, "sha", None)
+            if not revision:
+                logger.warning("snapshot: restore refused, remote revision missing")
+                return False
+
+            # Bind both artifacts to one remote revision so metadata/db cannot
+            # come from different commits under concurrent pushes.
             snapshot_path = Path(
                 await asyncio.wait_for(
                     asyncio.to_thread(
@@ -79,6 +148,7 @@ class SnapshotService:
                         "projects.sqlite3",
                         repo_type="dataset",
                         token=self.hf_token,
+                        revision=revision,
                         etag_timeout=30,
                         force_download=True,
                     ),
@@ -93,6 +163,7 @@ class SnapshotService:
                         "metadata.json",
                         repo_type="dataset",
                         token=self.hf_token,
+                        revision=revision,
                         etag_timeout=30,
                         force_download=True,
                     ),
@@ -158,6 +229,8 @@ class SnapshotService:
             ) as handle:
                 temp_snapshot_path = Path(handle.name)
             shutil.copyfile(snapshot_path, temp_snapshot_path)
+            # Integrity gate before replacing a working local DB.
+            verify_sqlite_file(temp_snapshot_path)
             temp_snapshot_path.replace(self.local_db_path)
         except Exception:
             if temp_snapshot_path is not None and temp_snapshot_path.exists():
@@ -165,7 +238,7 @@ class SnapshotService:
             logger.warning("snapshot: restore failed during local replace", exc_info=True)
             return False
 
-        self.last_restored_commit = getattr(repo_info, "sha", None)
+        self.last_restored_commit = revision
         self.last_snapshot_sha256 = expected_sha256
         size_bytes = metadata.get("size_bytes")
         self.last_snapshot_size_bytes = (
@@ -183,17 +256,48 @@ class SnapshotService:
             return ""
 
         timestamp = datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
-        sha256 = self._sha256(self.local_db_path)
-        size_bytes = self.local_db_path.stat().st_size
-        delta_bytes = (
-            size_bytes
-            if self.last_snapshot_size_bytes is None
-            else abs(size_bytes - self.last_snapshot_size_bytes)
-        )
+        staged_path: Path | None = None
         metadata_path: Path | None = None
         api = HfApi(token=self.hf_token)
 
         try:
+            with tempfile.NamedTemporaryFile(
+                dir=self.local_db_path.parent,
+                prefix=f"{self.local_db_path.stem}.stage-",
+                suffix=self.local_db_path.suffix or ".sqlite3",
+                delete=False,
+            ) as handle:
+                staged_path = Path(handle.name)
+
+            staged = await asyncio.wait_for(
+                asyncio.to_thread(create_consistent_sqlite_backup, self.local_db_path, staged_path),
+                timeout=60,
+            )
+            sha256 = str(staged["sha256"])
+            size_bytes = int(staged["size_bytes"])
+            staged_user_version = int(staged["user_version"])
+            # Prefer the live staged PRAGMA; fall back to the configured constant
+            # only when the DB has no user_version yet (brand-new empty file).
+            metadata_db_schema = (
+                staged_user_version
+                if staged_user_version > 0
+                else self.db_schema_version
+            )
+
+            if self.last_snapshot_sha256 is not None and sha256 == self.last_snapshot_sha256:
+                logger.info(
+                    "snapshot: skipped unchanged (sha256=%s, size=%sKB)",
+                    sha256[:12],
+                    size_bytes // 1024,
+                )
+                return self.last_restored_commit or "unchanged"
+
+            delta_bytes = (
+                size_bytes
+                if self.last_snapshot_size_bytes is None
+                else abs(size_bytes - self.last_snapshot_size_bytes)
+            )
+
             await asyncio.wait_for(
                 asyncio.to_thread(
                     api.create_repo,
@@ -216,7 +320,7 @@ class SnapshotService:
                 json.dump(
                     {
                         "app_version": self.app_version,
-                        "db_schema_version": self.db_schema_version,
+                        "db_schema_version": metadata_db_schema,
                         "workspace_schema_version": self.workspace_schema_version,
                         "ts": timestamp,
                         "sha256": sha256,
@@ -225,29 +329,28 @@ class SnapshotService:
                     handle,
                 )
                 metadata_path = Path(handle.name)
-            await asyncio.wait_for(
-                asyncio.to_thread(
-                    api.upload_file,
-                    path_or_fileobj=self.local_db_path,
-                    path_in_repo="projects.sqlite3",
-                    repo_id=self.repo_id,
-                    repo_type="dataset",
-                    token=self.hf_token,
-                    commit_message=f"snapshot: {timestamp}",
-                ),
-                timeout=30,
-            )
+
+            # One remote revision for DB + metadata — avoids partial remote state
+            # when the second upload fails after the first succeeded.
             commit_info = await asyncio.wait_for(
                 asyncio.to_thread(
-                    api.upload_file,
-                    path_or_fileobj=metadata_path,
-                    path_in_repo="metadata.json",
-                    repo_id=self.repo_id,
+                    api.create_commit,
+                    self.repo_id,
+                    operations=[
+                        CommitOperationAdd(
+                            path_in_repo="projects.sqlite3",
+                            path_or_fileobj=str(staged_path),
+                        ),
+                        CommitOperationAdd(
+                            path_in_repo="metadata.json",
+                            path_or_fileobj=str(metadata_path),
+                        ),
+                    ],
+                    commit_message=f"snapshot: {timestamp}",
                     repo_type="dataset",
                     token=self.hf_token,
-                    commit_message=f"snapshot: {timestamp}",
                 ),
-                timeout=30,
+                timeout=60,
             )
         except TimeoutError:
             logger.warning("snapshot: push timed out")
@@ -261,6 +364,8 @@ class SnapshotService:
         finally:
             if metadata_path is not None and metadata_path.exists():
                 metadata_path.unlink()
+            if staged_path is not None and staged_path.exists():
+                staged_path.unlink()
 
         commit_hash = str(getattr(commit_info, "oid", "") or "")
         self.last_snapshot_sha256 = sha256

@@ -128,6 +128,15 @@ class _BackendCore:
     def set_webhook_service(self, webhook_service: Any | None) -> None:
         self.webhook_service = webhook_service
 
+    def reinitialize_after_restore(self) -> None:
+        """Re-run schema bootstrap/migrations after a snapshot replaced the DB file.
+
+        Snapshot restore swaps the on-disk SQLite file under a live process. Callers
+        must invoke this before serving traffic so ``PRAGMA user_version`` reaches
+        the build's ``schema_version`` and readiness stays green.
+        """
+        self._init_db()
+
     @staticmethod
     def _create_revision(
         connection: sqlite3.Connection,

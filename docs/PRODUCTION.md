@@ -184,6 +184,11 @@ Diagnostics declare this explicitly:
 
 ## Retention and backup
 
+- **SQLite HF snapshots (demo / single-instance only).** When `AB_HF_SNAPSHOT_REPO` +
+  `AB_HF_TOKEN` are configured, pushes use the SQLite Online Backup API (WAL-consistent),
+  one remote revision for DB+metadata, and restore re-migrates after replace. Do not treat
+  this as a substitute for managed Postgres backups. See `docs/RUNBOOK.md` →
+  *HF SQLite snapshot*.
 - **Backups.** Use managed PostgreSQL automated backups, or schedule `pg_dump`:
 
   ```bash
