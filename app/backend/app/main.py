@@ -11,6 +11,7 @@ from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import RequestResponseEndpoint
 
+from app.backend.app.compute_admission import ComputeAdmissionController
 from app.backend.app.config import Settings, get_settings
 from app.backend.app.frontend_routes import register_frontend_routes
 from app.backend.app.http_runtime import (
@@ -148,6 +149,18 @@ def create_app() -> FastAPI:
     auth_failure_limiter = SlidingWindowRateLimiter(
         max_requests=settings.auth_failure_limit,
         window_seconds=settings.auth_failure_window_seconds,
+    )
+    slack_invalid_signature_limiter = SlidingWindowRateLimiter(
+        max_requests=settings.slack_invalid_signature_limit,
+        window_seconds=settings.slack_invalid_signature_window_seconds,
+    )
+    compute_admission = ComputeAdmissionController(
+        enabled=settings.compute_admission_enabled,
+        max_heavy_concurrent=settings.compute_max_heavy_concurrent,
+        max_cheap_concurrent=settings.compute_max_cheap_concurrent,
+        max_cost_units_in_flight=settings.compute_max_cost_units_in_flight,
+        acquire_timeout_seconds=settings.compute_acquire_timeout_ms / 1000.0,
+        retry_after_seconds=settings.compute_retry_after_seconds,
     )
     cors_headers = list(settings.cors_headers)
     for header_name in ("X-AB-LLM-Provider", "X-AB-LLM-Token"):
@@ -301,6 +314,8 @@ def create_app() -> FastAPI:
         ],
         lifespan=lifespan,
     )
+    app.state.compute_admission = compute_admission
+    app.state.slack_invalid_signature_limiter = slack_invalid_signature_limiter
     app.add_middleware(
         CORSMiddleware,
         allow_origins=list(settings.cors_origins),

@@ -156,12 +156,24 @@ and `.../conversions`). Each request returns an accounting object:
   very large backfills must be chunked into multiple batches. Each batch is one transaction
   (all-or-nothing per request); throughput scales with the PostgreSQL backend and connection pool
   (`AB_DB_POOL_SIZE`).
+- **Slack ingress.** Signed POST endpoints under `/slack/commands`, `/slack/interactive`, and
+  `/slack/events` use a dedicated body cap (`AB_MAX_SLACK_BODY_BYTES`, default 64 KiB) and their own
+  request-count bucket (`AB_SLACK_RATE_LIMIT_*`). Invalid signatures are throttled separately
+  (`AB_SLACK_INVALID_SIGNATURE_*`) so forged traffic cannot force unbounded body buffering or burn
+  workers before signature verification completes.
+- **Cost-aware compute admission.** After schema validation, expensive `/api/v1/results*` and bandit
+  simulation estimate cost units (analyzer type, N, resamples/table size) and acquire a process-local
+  heavy/cheap concurrency + in-flight cost budget (`AB_COMPUTE_*`) before resampling starts. Overload
+  returns `429` with `error_code=compute_capacity_exceeded` and `Retry-After`. Cheap summary tests use
+  a separate lane so they stay available under heavy load. Request-count rate limits remain the first
+  layer; admission is the second.
 
 ## Topology (supported scale)
 
-**Supported topology: single application instance.** Rate limits, auth-failure throttles, and RED
-request counters live in process memory. Running multiple app replicas without a shared edge/Redis
-rate limiter will fragment those controls (each replica has its own buckets and telemetry).
+**Supported topology: single application instance.** Rate limits, auth-failure throttles, compute
+admission budgets, and RED request counters live in process memory. Running multiple app replicas
+without a shared edge/Redis rate limiter will fragment those controls (each replica has its own
+buckets and telemetry).
 
 The **data plane** can still be external:
 

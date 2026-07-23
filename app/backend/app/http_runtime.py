@@ -33,6 +33,7 @@ from app.backend.app.http_utils import (
     is_heavy_compute_path,
     is_protected_path,
     is_rate_limited_path,
+    is_slack_ingress_path,
 )
 from app.backend.app.logging_utils import log_event
 
@@ -51,6 +52,7 @@ def create_runtime_counters() -> dict[str, int | float | str | None]:
         "auth_rejections": 0,
         "rate_limited_responses": 0,
         "request_body_rejections": 0,
+        "compute_capacity_rejections": 0,
         "last_request_at": None,
         "last_error_at": None,
         "last_error_code": None,
@@ -78,6 +80,7 @@ def build_runtime_summary(runtime_counters: dict[str, Any]) -> dict[str, Any]:
         "auth_rejections": int(runtime_counters.get("auth_rejections") or 0),
         "rate_limited_responses": int(runtime_counters.get("rate_limited_responses") or 0),
         "request_body_rejections": int(runtime_counters.get("request_body_rejections") or 0),
+        "compute_capacity_rejections": int(runtime_counters.get("compute_capacity_rejections") or 0),
         "last_request_at": runtime_counters.get("last_request_at"),
         "last_error_at": runtime_counters.get("last_error_at"),
         "last_error_code": runtime_counters.get("last_error_code"),
@@ -122,10 +125,12 @@ def register_http_runtime(
             runtime_counters["success_responses"] += 1
         if auth_rejection:
             runtime_counters["auth_rejections"] += 1
-        if error_code in {"rate_limited", "auth_rate_limited"}:
+        if error_code in {"rate_limited", "auth_rate_limited", "slack_invalid_signature_rate_limited"}:
             runtime_counters["rate_limited_responses"] += 1
         if error_code == "request_body_too_large":
             runtime_counters["request_body_rejections"] += 1
+        if error_code == "compute_capacity_exceeded":
+            runtime_counters["compute_capacity_rejections"] += 1
         if error_code:
             runtime_counters["last_error_at"] = timestamp
             runtime_counters["last_error_code"] = error_code
@@ -351,23 +356,32 @@ def register_http_runtime(
                     )
 
         if settings.rate_limit_enabled and request.method != "OPTIONS" and is_rate_limited_path(request.url.path):
-            bucket_base = (
-                getattr(request.state, "rate_limit_bucket_key", None) or f"api:{get_client_identifier(request, settings)}"
-            )
-            rate_limit_decision = request_rate_limiter.allow(
-                bucket_base,
-                max_requests=getattr(request.state, "rate_limit_requests", None),
-                window_seconds=getattr(request.state, "rate_limit_window_seconds", None),
-            )
-            if rate_limit_decision.allowed and request.method == "POST" and is_heavy_compute_path(request.url.path):
-                # Second, tighter bucket for simulation endpoints: the global
-                # window is sized for CRUD traffic, and a caller staying inside
-                # it can still keep a demo CPU pegged with Monte-Carlo requests.
+            client_id = get_client_identifier(request, settings)
+            if is_slack_ingress_path(request.url.path):
+                # Dedicated Slack bucket: slash retries and interactive actions
+                # should not share the CRUD-sized /api/v1 window, and invalid
+                # traffic is further throttled after signature failure in routes.
                 rate_limit_decision = request_rate_limiter.allow(
-                    f"heavy:{bucket_base}",
-                    max_requests=settings.heavy_rate_limit_requests,
-                    window_seconds=settings.heavy_rate_limit_window_seconds,
+                    f"slack:{client_id}",
+                    max_requests=settings.slack_rate_limit_requests,
+                    window_seconds=settings.slack_rate_limit_window_seconds,
                 )
+            else:
+                bucket_base = getattr(request.state, "rate_limit_bucket_key", None) or f"api:{client_id}"
+                rate_limit_decision = request_rate_limiter.allow(
+                    bucket_base,
+                    max_requests=getattr(request.state, "rate_limit_requests", None),
+                    window_seconds=getattr(request.state, "rate_limit_window_seconds", None),
+                )
+                if rate_limit_decision.allowed and request.method == "POST" and is_heavy_compute_path(request.url.path):
+                    # Second, tighter bucket for simulation endpoints: the global
+                    # window is sized for CRUD traffic, and a caller staying inside
+                    # it can still keep a demo CPU pegged with Monte-Carlo requests.
+                    rate_limit_decision = request_rate_limiter.allow(
+                        f"heavy:{bucket_base}",
+                        max_requests=settings.heavy_rate_limit_requests,
+                        window_seconds=settings.heavy_rate_limit_window_seconds,
+                    )
             if not rate_limit_decision.allowed:
                 response: Response = build_error_response(
                     request,
@@ -479,7 +493,13 @@ def register_exception_handlers(app: FastAPI, *, logger: logging.Logger, setting
             error_code=exc.error_code,
             process_time_ms=round(get_process_time_ms(request), 2),
         )
-        return build_error_response(request, detail=exc.detail, error_code=exc.error_code, status_code=exc.status_code)
+        return build_error_response(
+            request,
+            detail=exc.detail,
+            error_code=exc.error_code,
+            status_code=exc.status_code,
+            extra_headers=exc.headers or None,
+        )
 
     @app.exception_handler(ValueError)
     async def handle_value_error(request: Request, exc: ValueError) -> JSONResponse:

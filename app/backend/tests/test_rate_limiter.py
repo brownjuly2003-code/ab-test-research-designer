@@ -1,5 +1,5 @@
-from pathlib import Path
 import sys
+from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
@@ -120,3 +120,63 @@ def test_overrides_apply_per_call() -> None:
     # Default cap still applies for other keys.
     for _ in range(5):
         assert limiter.allow("loose").allowed is True
+
+def test_buffer_request_body_rejects_when_streamed_chunks_exceed_limit() -> None:
+    """Chunked body without usable Content-Length is capped by actual bytes read."""
+    import asyncio
+
+    from starlette.requests import Request
+
+    from app.backend.app.http_utils import (
+        RequestBodyTooLargeError,
+        buffer_request_body_with_limit,
+    )
+
+    chunks = [b"a" * 100, b"b" * 100, b"c" * 100]
+    index = {"i": 0}
+
+    async def receive() -> dict:
+        i = index["i"]
+        if i >= len(chunks):
+            return {"type": "http.request", "body": b"", "more_body": False}
+        body = chunks[i]
+        index["i"] = i + 1
+        return {"type": "http.request", "body": body, "more_body": i + 1 < len(chunks)}
+
+    scope = {
+        "type": "http",
+        "asgi": {"version": "3.0"},
+        "http_version": "1.1",
+        "method": "POST",
+        "scheme": "http",
+        "path": "/slack/commands",
+        "raw_path": b"/slack/commands",
+        "query_string": b"",
+        "headers": [],  # no Content-Length
+        "client": ("127.0.0.1", 123),
+        "server": ("test", 80),
+    }
+    request = Request(scope, receive)
+
+    async def run() -> None:
+        try:
+            await buffer_request_body_with_limit(request, max_bytes=150)
+            raise AssertionError("expected RequestBodyTooLargeError")
+        except RequestBodyTooLargeError as exc:
+            assert exc.limit_bytes == 150
+
+    asyncio.run(run())
+
+
+def test_get_request_body_limit_uses_slack_cap() -> None:
+    from app.backend.app.config import get_settings
+    from app.backend.app.http_utils import get_request_body_limit, is_slack_ingress_path
+
+    get_settings.cache_clear()
+    settings = get_settings()
+    assert is_slack_ingress_path("/slack/commands") is True
+    assert is_slack_ingress_path("/slack/install") is False
+    assert get_request_body_limit("/slack/commands", "POST", settings) == settings.max_slack_body_bytes
+    assert get_request_body_limit("/slack/events", "POST", settings) == settings.max_slack_body_bytes
+    assert get_request_body_limit("/api/v1/projects", "POST", settings) == settings.max_request_body_bytes
+    get_settings.cache_clear()

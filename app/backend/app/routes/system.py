@@ -269,6 +269,10 @@ def create_system_router(
                 auth_failure_window_seconds=settings.auth_failure_window_seconds,
                 max_request_body_bytes=settings.max_request_body_bytes,
                 max_workspace_body_bytes=settings.max_workspace_body_bytes,
+                max_slack_body_bytes=settings.max_slack_body_bytes,
+                slack_rate_limit_requests=settings.slack_rate_limit_requests,
+                compute_admission_enabled=settings.compute_admission_enabled,
+                compute_max_heavy_concurrent=settings.compute_max_heavy_concurrent,
             ),
             network=DiagnosticsNetworkSummary(
                 direct_peer=client_identity.direct_peer,

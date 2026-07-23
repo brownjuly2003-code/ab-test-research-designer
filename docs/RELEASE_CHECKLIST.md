@@ -7,7 +7,7 @@
 - confirm whether `AB_API_TOKEN` should be enabled for the target deployment
 - confirm whether `AB_READONLY_API_TOKEN` should be enabled for diagnostics/read-only access
 - confirm whether `AB_WORKSPACE_SIGNING_KEY` should be enabled for signed workspace backup/import flows
-- confirm target values for `AB_RATE_LIMIT_*`, `AB_AUTH_FAILURE_*`, `AB_MAX_REQUEST_BODY_BYTES`, and `AB_MAX_WORKSPACE_BODY_BYTES`
+- confirm target values for `AB_RATE_LIMIT_*`, `AB_AUTH_FAILURE_*`, `AB_MAX_REQUEST_BODY_BYTES`, `AB_MAX_WORKSPACE_BODY_BYTES`, `AB_MAX_SLACK_BODY_BYTES` / `AB_SLACK_RATE_LIMIT_*` / `AB_SLACK_INVALID_SIGNATURE_*`, and `AB_COMPUTE_*` admission knobs
 - regenerate OpenAPI-derived artifacts:
   - `python scripts/generate_frontend_api_types.py`
   - `python scripts/generate_api_docs.py`

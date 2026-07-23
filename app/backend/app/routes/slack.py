@@ -11,6 +11,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 
 from app.backend.app.errors import ApiError
+from app.backend.app.http_utils import get_client_identifier
 from app.backend.app.services.slack_service import SlackService
 from app.backend.app.slack.signature import verify_slack_signature
 
@@ -54,6 +55,7 @@ def _build_state_from_nonce(settings: "Settings", nonce: str) -> str:
 
 
 async def _read_signed_body(request: Request, settings: "Settings") -> bytes:
+    # Body is already bounded by middleware (max_slack_body_bytes) before this runs.
     body = await request.body()
     if not verify_slack_signature(
         signing_secret=settings.slack_signing_secret or "",
@@ -61,6 +63,20 @@ async def _read_signed_body(request: Request, settings: "Settings") -> bytes:
         body=body,
         signature=request.headers.get("X-Slack-Signature"),
     ):
+        # Count invalid signatures before any form/json parse so forged traffic
+        # cannot burn workers indefinitely (audit F-05). Valid Slack retries that
+        # carry a correct signature never enter this bucket.
+        limiter = getattr(request.app.state, "slack_invalid_signature_limiter", None)
+        if limiter is not None and settings.rate_limit_enabled:
+            client_id = get_client_identifier(request, settings)
+            decision = limiter.allow(f"slack_bad_sig:{client_id}")
+            if not decision.allowed:
+                raise ApiError(
+                    "Too many invalid Slack signatures",
+                    error_code="slack_invalid_signature_rate_limited",
+                    status_code=429,
+                    headers={"Retry-After": str(decision.retry_after_seconds)},
+                )
         raise HTTPException(status_code=401, detail="Invalid Slack signature")
     return body
 

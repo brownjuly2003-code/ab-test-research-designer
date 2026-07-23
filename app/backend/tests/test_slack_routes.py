@@ -1,11 +1,11 @@
-from pathlib import Path
 import sys
 import time
-from urllib.parse import parse_qs, urlparse
 import uuid
+from pathlib import Path
+from urllib.parse import parse_qs, urlparse
 
-from fastapi.testclient import TestClient
 import httpx
+from fastapi.testclient import TestClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
@@ -223,4 +223,99 @@ def test_slack_projects_command_returns_ephemeral_list(monkeypatch) -> None:
     payload = response.json()
     assert payload["response_type"] == "ephemeral"
     assert "Checkout redesign" in payload["text"]
+    get_settings.cache_clear()
+
+def test_slack_commands_reject_oversized_body_with_content_length(monkeypatch) -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    _configure_slack(monkeypatch, temp_dir / f"{uuid.uuid4()}.sqlite3")
+    monkeypatch.setenv("AB_MAX_SLACK_BODY_BYTES", "2048")
+    get_settings.cache_clear()
+
+    body = b"team_id=T123&text=" + (b"x" * 3000)
+    headers = _signed_headers(body)
+    # Correct Content-Length above cap must 413 before signature work matters.
+    headers["Content-Length"] = str(len(body))
+
+    with TestClient(create_app()) as client:
+        response = client.post("/slack/commands", content=body, headers=headers)
+
+    assert response.status_code == 413
+    assert response.json()["error_code"] == "request_body_too_large"
+    get_settings.cache_clear()
+
+
+def test_slack_commands_reject_body_exceeding_cap_despite_small_content_length(monkeypatch) -> None:
+    """Chunked / lying Content-Length: middleware counts actual bytes (audit F-05)."""
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    _configure_slack(monkeypatch, temp_dir / f"{uuid.uuid4()}.sqlite3")
+    monkeypatch.setenv("AB_MAX_SLACK_BODY_BYTES", "1024")
+    get_settings.cache_clear()
+
+    body = b"team_id=T123&text=" + (b"y" * 2000)
+    headers = _signed_headers(body)
+    # Under-declared Content-Length must not bypass the streaming byte cap.
+    headers["Content-Length"] = "64"
+
+    with TestClient(create_app()) as client:
+        response = client.post("/slack/commands", content=body, headers=headers)
+
+    # Starlette/TestClient may reject mismatched Content-Length with 400 before our
+    # middleware; either way the oversized body must not reach the Slack handler.
+    assert response.status_code in {400, 413}
+    if response.status_code == 413:
+        assert response.json()["error_code"] == "request_body_too_large"
+    get_settings.cache_clear()
+
+
+def test_slack_invalid_signature_burst_is_rate_limited(monkeypatch) -> None:
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    _configure_slack(monkeypatch, temp_dir / f"{uuid.uuid4()}.sqlite3")
+    monkeypatch.setenv("AB_SLACK_INVALID_SIGNATURE_LIMIT", "2")
+    monkeypatch.setenv("AB_SLACK_INVALID_SIGNATURE_WINDOW_SECONDS", "60")
+    monkeypatch.setenv("AB_SLACK_RATE_LIMIT_REQUESTS", "100")
+    get_settings.cache_clear()
+
+    body = b"team_id=T123&text=projects"
+    headers = _signed_headers(body)
+    headers["X-Slack-Signature"] = "v0=bad"
+
+    with TestClient(create_app()) as client:
+        first = client.post("/slack/commands", content=body, headers=headers)
+        second = client.post("/slack/commands", content=body, headers=headers)
+        third = client.post("/slack/commands", content=body, headers=headers)
+
+    assert first.status_code == 401
+    assert second.status_code == 401
+    assert third.status_code == 429
+    assert third.json()["error_code"] == "slack_invalid_signature_rate_limited"
+    assert int(third.headers["retry-after"]) >= 1
+    get_settings.cache_clear()
+
+
+def test_slack_valid_signed_retry_still_succeeds_after_invalid_burst(monkeypatch) -> None:
+    """Valid Slack retries (correct signature) must not be poisoned by bad-sig throttle."""
+    temp_dir = Path(__file__).resolve().parent / ".tmp"
+    temp_dir.mkdir(exist_ok=True)
+    _configure_slack(monkeypatch, temp_dir / f"{uuid.uuid4()}.sqlite3")
+    monkeypatch.setenv("AB_SLACK_INVALID_SIGNATURE_LIMIT", "1")
+    monkeypatch.setenv("AB_SLACK_RATE_LIMIT_REQUESTS", "100")
+    get_settings.cache_clear()
+
+    body = b"team_id=T123&text=projects"
+    bad_headers = _signed_headers(body)
+    bad_headers["X-Slack-Signature"] = "v0=bad"
+    good_headers = _signed_headers(body)
+
+    with TestClient(create_app()) as client:
+        assert client.post("/slack/commands", content=body, headers=bad_headers).status_code == 401
+        # Second bad signature is rate-limited.
+        assert client.post("/slack/commands", content=body, headers=bad_headers).status_code == 429
+        # A correctly signed retry (Slack retry semantics) still works.
+        ok = client.post("/slack/commands", content=body, headers=good_headers)
+
+    assert ok.status_code == 200
+    assert ok.json()["response_type"] == "ephemeral"
     get_settings.cache_clear()

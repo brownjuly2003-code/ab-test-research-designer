@@ -348,6 +348,10 @@ export type DiagnosticsGuardsSummary = {
   auth_failure_window_seconds: number;
   max_request_body_bytes: number;
   max_workspace_body_bytes: number;
+  max_slack_body_bytes?: number;
+  slack_rate_limit_requests?: number;
+  compute_admission_enabled?: boolean;
+  compute_max_heavy_concurrent?: number;
 };
 
 export type DiagnosticsLlmSummary = {
@@ -412,6 +416,7 @@ export type DiagnosticsRuntimeSummary = {
   auth_rejections: number;
   rate_limited_responses?: number;
   request_body_rejections?: number;
+  compute_capacity_rejections?: number;
   last_request_at?: string | null;
   last_error_at?: string | null;
   last_error_code?: string | null;

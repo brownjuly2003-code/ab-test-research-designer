@@ -67,6 +67,21 @@ class Settings:
     auth_failure_window_seconds: int
     max_request_body_bytes: int
     max_workspace_body_bytes: int
+    # Slack slash/interactive/events bodies are signed before parse; keep a tight
+    # dedicated cap so unauthenticated oversized traffic cannot force large buffers
+    # outside /api/v1 (audit F-05).
+    max_slack_body_bytes: int
+    slack_rate_limit_requests: int
+    slack_rate_limit_window_seconds: int
+    slack_invalid_signature_limit: int
+    slack_invalid_signature_window_seconds: int
+    # Second-layer compute admission for expensive analyzers (audit F-06).
+    compute_admission_enabled: bool
+    compute_max_heavy_concurrent: int
+    compute_max_cheap_concurrent: int
+    compute_max_cost_units_in_flight: int
+    compute_acquire_timeout_ms: int
+    compute_retry_after_seconds: int
     trusted_proxy_hops: int
     trusted_proxies: tuple[str, ...]
     # Retention windows in days (audit F-12). 0 disables automatic purge for that table.
@@ -203,6 +218,26 @@ def _validate_settings(settings: Settings) -> Settings:
         raise ValueError("AB_MAX_REQUEST_BODY_BYTES must be at least 1024")
     if settings.max_workspace_body_bytes < settings.max_request_body_bytes:
         raise ValueError("AB_MAX_WORKSPACE_BODY_BYTES must be greater than or equal to AB_MAX_REQUEST_BODY_BYTES")
+    if settings.max_slack_body_bytes < 1024:
+        raise ValueError("AB_MAX_SLACK_BODY_BYTES must be at least 1024")
+    if settings.slack_rate_limit_requests < 1:
+        raise ValueError("AB_SLACK_RATE_LIMIT_REQUESTS must be at least 1")
+    if settings.slack_rate_limit_window_seconds < 1:
+        raise ValueError("AB_SLACK_RATE_LIMIT_WINDOW_SECONDS must be at least 1")
+    if settings.slack_invalid_signature_limit < 1:
+        raise ValueError("AB_SLACK_INVALID_SIGNATURE_LIMIT must be at least 1")
+    if settings.slack_invalid_signature_window_seconds < 1:
+        raise ValueError("AB_SLACK_INVALID_SIGNATURE_WINDOW_SECONDS must be at least 1")
+    if settings.compute_max_heavy_concurrent < 1:
+        raise ValueError("AB_COMPUTE_MAX_HEAVY_CONCURRENT must be at least 1")
+    if settings.compute_max_cheap_concurrent < 1:
+        raise ValueError("AB_COMPUTE_MAX_CHEAP_CONCURRENT must be at least 1")
+    if settings.compute_max_cost_units_in_flight < 1:
+        raise ValueError("AB_COMPUTE_MAX_COST_UNITS_IN_FLIGHT must be at least 1")
+    if settings.compute_acquire_timeout_ms < 0:
+        raise ValueError("AB_COMPUTE_ACQUIRE_TIMEOUT_MS must be zero or greater")
+    if settings.compute_retry_after_seconds < 1:
+        raise ValueError("AB_COMPUTE_RETRY_AFTER_SECONDS must be at least 1")
     if settings.trusted_proxy_hops < 0:
         raise ValueError("AB_TRUSTED_PROXY_HOPS must be zero or greater")
     for proxy_entry in settings.trusted_proxies:
@@ -313,6 +348,25 @@ def get_settings() -> Settings:
         auth_failure_window_seconds=_read_int_env("AB_AUTH_FAILURE_WINDOW_SECONDS", 60),
         max_request_body_bytes=_read_int_env("AB_MAX_REQUEST_BODY_BYTES", 1_048_576),
         max_workspace_body_bytes=_read_int_env("AB_MAX_WORKSPACE_BODY_BYTES", 8_388_608),
+        # Slack payloads are signed form/json bodies; 64 KiB covers normal slash
+        # commands and interactive actions without accepting multi-megabyte floods.
+        max_slack_body_bytes=_read_int_env("AB_MAX_SLACK_BODY_BYTES", 65_536),
+        slack_rate_limit_requests=_read_int_env("AB_SLACK_RATE_LIMIT_REQUESTS", 60),
+        slack_rate_limit_window_seconds=_read_int_env("AB_SLACK_RATE_LIMIT_WINDOW_SECONDS", 60),
+        slack_invalid_signature_limit=_read_int_env("AB_SLACK_INVALID_SIGNATURE_LIMIT", 20),
+        slack_invalid_signature_window_seconds=_read_int_env(
+            "AB_SLACK_INVALID_SIGNATURE_WINDOW_SECONDS", 60
+        ),
+        compute_admission_enabled=_read_bool_env("AB_COMPUTE_ADMISSION_ENABLED", True),
+        # Small public instances: two concurrent heavy analyzers (bootstrap/quantile/
+        # unconditional exact) is enough; cheap summary tests keep a wider lane.
+        compute_max_heavy_concurrent=_read_int_env("AB_COMPUTE_MAX_HEAVY_CONCURRENT", 2),
+        compute_max_cheap_concurrent=_read_int_env("AB_COMPUTE_MAX_CHEAP_CONCURRENT", 32),
+        # Generous enough for one full-size unconditional exact table (~100+100) plus
+        # a concurrent bootstrap; still sheds multi-heavy bursts.
+        compute_max_cost_units_in_flight=_read_int_env("AB_COMPUTE_MAX_COST_UNITS_IN_FLIGHT", 250),
+        compute_acquire_timeout_ms=_read_int_env("AB_COMPUTE_ACQUIRE_TIMEOUT_MS", 50),
+        compute_retry_after_seconds=_read_int_env("AB_COMPUTE_RETRY_AFTER_SECONDS", 2),
         # 0 = never read X-Forwarded-For. Any other default would let an unproxied
         # deployment be rate-limit-bypassed by a forged header.
         trusted_proxy_hops=_read_int_env("AB_TRUSTED_PROXY_HOPS", 0),

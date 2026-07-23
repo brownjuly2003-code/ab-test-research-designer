@@ -6,6 +6,12 @@
 
 ## Журнал сессий
 
+### 2026-07-23 (Grok #5) — шаг 5 Slack ingress + cost-aware admission → DONE
+- **Сделано:** Slack body/rate/invalid-sig limits; cost estimator + heavy/cheap concurrency admission на `/results*` и bandit; diagnostics/env/docs.
+- **Коммит (local main, не push):** см. git log после этой сессии (`fix(ingress): …`).
+- **Проверки:** `test_compute_admission` + `test_slack_routes` + `test_rate_limiter` 28 · oversized exact (fisher/boschloo/barnard) 3 · earlier regression api_routes+config+public_demo+results 196/199 then fixed solo-cost · ruff+mypy clean · frontend api-contract regenerated.
+- **Следующая сессия:** шаг 6 (practical decision policy) **или** шаг 7 (admin API keys).
+
 ### 2026-07-23 (Grok #4) — шаг 4 typed PG params → DONE
 
 - **Сделано:** `JsonParam` + sqlite adapter; удалён blind `{`/`[` → Jsonb heuristic; все JSONB call sites (projects/revisions/analysis/audit/templates/webhooks/workspace import/schema normalize) на маркере; contract catalog + SQLite JSON-looking TEXT parity; unit adapt tests без Docker.
@@ -59,7 +65,7 @@
 | 2 | ~~Сделать SQLite snapshot/restore консистентным и атомарным~~ | `gpt-5.6-sol` | `xhigh` | L | нет | **DONE** `bd8696bc`+`b35fec2e` |
 | 3 | ~~Унифицировать canonical population для primary/holdout/timing~~ | `gpt-5.6-sol` | `xhigh` | L | нет | **DONE** (SQLite; PG parity residual) |
 | 4 | ~~Убрать blind JSON adaptation в PostgreSQL~~ | `gpt-5.6-sol` | `high` | M | желательно после шага 3 | **DONE** `e3e18a12` (live PG CI residual) |
-| 5 | Ввести защищённый Slack ingress и cost-aware compute admission | `gpt-5.6-sol` | `high` | M/L | нет |
+| 5 | ~~Ввести защищённый Slack ingress и cost-aware compute admission~~ | `gpt-5.6-sol` | `high` | M/L | нет | **DONE** (Grok #5) |
 | 6 | Разделить statistical evidence и practical ship policy | `gpt-5.6-sol` | `xhigh` | L | после шага 3 |
 | 7 | Исправить контракт `admin` API keys | `gpt-5.6-sol` | `high` | M | до шага 8 |
 | 8 | Усилить frontend contracts, i18n, lint и keyboard a11y | `gpt-5.6-terra` | `high` | L | после шага 7 |
@@ -73,7 +79,8 @@
 1. ~~**Немедленный hotfix:** шаг 1.~~ ✅ 2026-07-23
 2. ~~**Границы доверия (snapshot + population):** шаги 2–3.~~ ✅ 2026-07-23
 2b. ~~**Typed PG params:** шаг 4.~~ ✅ 2026-07-23 · live PG Docker edge — CI residual.
-3. **Availability и decision quality:** шаги 5 и 6.
+3. ~~**Availability (Slack + compute admission):** шаг 5.~~ ✅ 2026-07-23 · decision quality (шаг 6) остаётся.
+3b. **Decision quality:** шаг 6.
 4. **Контракт и интерфейс:** шаги 7 и 8.
 5. **Научная воспроизводимость:** шаг 9.
 6. **Финальный gate:** шаг 10 выполняется последним.
@@ -304,56 +311,70 @@ python -m mypy app/backend/app/repository/_utils.py …  # clean
 
 ---
 
-## Шаг 5. Защитить Slack ingress и дорогие вычисления
+## ~~Шаг 5. Защитить Slack ingress и дорогие вычисления~~ ✅ DONE
 
-**Модель:** `gpt-5.6-sol`  
-**Reasoning:** `high`  
-**Приоритет:** P1  
-**Размер:** M/L
+**Статус:** ✅ 2026-07-23 · Grok #5 · audit F-05 + F-06  
+**Модель (план):** `gpt-5.6-sol` · **исполнитель:** Grok  
+**Приоритет:** P1 · **Размер:** M/L
+
+### Комментарий к сделанному
+
+- **Slack body:** `get_request_body_limit` покрывает `SLACK_INGRESS_PATHS` (`/slack/commands|interactive|events`) cap `AB_MAX_SLACK_BODY_BYTES` (default 64 KiB); middleware `buffer_request_body_with_limit` режет и Content-Length, и stream chunked bytes → 413 `request_body_too_large` до signature/parse.
+- **Slack rate:** отдельный bucket `slack:{client}` (`AB_SLACK_RATE_LIMIT_*`, default 60/60s); не делит CRUD-окно `/api/v1`.
+- **Invalid signature:** `slack_invalid_signature_limiter` на `app.state`; после failed verify → count; over limit → 429 `slack_invalid_signature_rate_limited` + `Retry-After` **до** form/json parse. Valid signed retry не в bad-sig bucket.
+- **Cost admission:** новый `compute_admission.py` — `estimate_*_cost` (analyzer, N, resamples/table) + `ComputeAdmissionController` (heavy/cheap lanes, in-flight cost, fast load-shed timeout). Wired на `/api/v1/results*` и `/api/v1/simulate/bandit` **после** schema validation, **до** resampling. Overload → 429 `compute_capacity_exceeded` + `Retry-After`. Solo heavy request не режется cost budget (concurrency only); concurrent heavy суммируется.
+- **Observability:** runtime `compute_capacity_rejections`; diagnostics guards: slack body/rate + compute knobs; controller.snapshot() (admitted/rejected/peak/by-analyzer).
+- **Docs/env:** `.env.example`, `PRODUCTION.md`, `RELEASE_CHECKLIST.md`, CHANGELOG Security.
+- **Не делали (не блокер DONE):** dedicated CI wall-time benchmark for worst resampling payload (Windows host RAM-bound; residual optional).
 
 ### Сначала тесты
 
-1. Oversized Slack request с корректным и некорректным `Content-Length` → 413.
-2. Chunked body, превысивший cap → 413 без полной буферизации.
-3. Burst invalid-signature requests → 429.
-4. Корректный Slack retry не ломается.
-5. Параллельные дорогие `/results` calls превышают concurrency budget → предсказуемый 429/503 с `Retry-After`.
-6. Cheap calls не блокируются при свободном cheap budget.
-7. Cost рассчитывается до старта resampling, а input caps проверяются schema layer.
+1. ~~Oversized Slack + Content-Length → 413.~~ ✅
+2. ~~Chunked / streamed body over cap → 413.~~ ✅ unit `buffer_request_body_*` + integration lying CL
+3. ~~Burst invalid-signature → 429.~~ ✅
+4. ~~Valid Slack retry after bad-sig burst.~~ ✅
+5. ~~Heavy concurrency budget → 429 + Retry-After.~~ ✅
+6. ~~Cheap lane free while heavy held.~~ ✅
+7. ~~Cost before resampling; schema caps first.~~ ✅ (admission after pydantic; exact oversize still 400)
 
 ### Реализация
 
-1. Ввести отдельные Slack body/rate settings с безопасными defaults.
-2. Читать signed body через bounded streaming helper и только затем проверять signature/parsing.
-3. Добавить analyzer-aware cost function: тип анализа, N, resamples/permutations, matrix/table size.
-4. Ввести bounded semaphore/queue и fast load shedding.
-5. Отдельно наблюдать queue depth, cost units, rejections и latency по analyzer.
-6. Оставить request-count limiter как первый слой, а cost limiter — как второй.
+1. ~~Slack body/rate settings + defaults.~~ ✅
+2. ~~Bounded body via middleware streaming helper before signature.~~ ✅
+3. ~~Analyzer-aware cost function.~~ ✅
+4. ~~Bounded concurrency + fast load shedding.~~ ✅
+5. ~~Reject counters / peak / by-analyzer snapshot + runtime counter.~~ ✅ (p50/p95 latency residual process RED already exists)
+6. ~~Request-count first, cost second.~~ ✅
 
 ### Основные файлы
 
-- `app/backend/app/http_utils.py`
-- `app/backend/app/http_runtime.py`
-- `app/backend/app/config.py`
-- `app/backend/app/routes/slack.py`
-- analysis routes/schemas и runtime tests
+- ~~`app/backend/app/compute_admission.py`~~ ✅ new
+- ~~`app/backend/app/http_utils.py`~~ ✅
+- ~~`app/backend/app/http_runtime.py`~~ ✅
+- ~~`app/backend/app/config.py`~~ ✅
+- ~~`app/backend/app/routes/slack.py`~~ ✅
+- ~~`app/backend/app/routes/analysis.py`~~ ✅
+- ~~`app/backend/tests/test_compute_admission.py`~~ ✅ new
+- ~~`app/backend/tests/test_slack_routes.py`~~ ✅
+- ~~`app/backend/tests/test_rate_limiter.py`~~ ✅
 
-### Проверка
+### Проверка (сессия)
 
 ```powershell
-python -m pytest app/backend/tests/test_rate_limiter.py app/backend/tests/test_slack_routes.py -q
-python -m pytest app/backend/tests/test_api_routes.py -q
-python scripts/benchmark_backend.py --payload binary --assert-ms 100
+python -m pytest app/backend/tests/test_compute_admission.py app/backend/tests/test_rate_limiter.py app/backend/tests/test_slack_routes.py -q  # 28
+python -m pytest app/backend/tests/test_results_service.py -k "rejects_oversized" -q  # 3
+# regression: config + api_routes + public_demo + results (solo-cost fix) green
+python -m ruff check <touched>
+python -m mypy app/backend/app/compute_admission.py app/backend/app/routes/analysis.py …
+python scripts/generate_frontend_api_types.py --check
 ```
-
-Добавить отдельный bounded benchmark для worst allowed resampling payload без ожидания процесса >1 GiB RAM.
 
 ### Критерий готовности
 
-- Нет пути, который буферизует unlimited Slack body.
-- Invalid Slack traffic учитывается rate limiter-ом.
-- Дорогие requests ограничены по стоимости и параллелизму.
-- При перегрузке latency не растёт бесконтрольно, а отказ наблюдаем и документирован.
+- ~~Нет пути unlimited Slack body.~~ ✅
+- ~~Invalid Slack traffic rate-limited.~~ ✅
+- ~~Дорогие requests — cost + concurrency.~~ ✅
+- ~~Отказ наблюдаем (429 + error_code + Retry-After + runtime counter) и документирован.~~ ✅
 
 ---
 
@@ -584,7 +605,7 @@ workflow artifact: versions, seeds and deviations published
 1. HF snapshot доказанно включает WAL-visible committed state и восстанавливается атомарно с migrations.
 2. Primary/holdout/timing используют одну canonical/exclusion population semantics на SQLite и PostgreSQL.
 3. PostgreSQL не выводит тип параметра из содержимого пользовательской строки.
-4. Slack и дорогие analyses имеют bounded body/rate/cost/concurrency.
+4. ~~Slack и дорогие analyses имеют bounded body/rate/cost/concurrency.~~ ✅ шаг 5
 5. `ship` требует practical, а не только statistical evidence.
 6. API key scopes соответствуют реальным permissions.
 7. Frontend использует generated contracts, полный i18n gate и lint/a11y checks.

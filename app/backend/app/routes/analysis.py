@@ -3,6 +3,17 @@ from typing import TYPE_CHECKING, Any, cast
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
+from app.backend.app.compute_admission import (
+    ComputeAdmissionController,
+    CostEstimate,
+    estimate_bandit_cost,
+    estimate_categorical_cost,
+    estimate_omnibus_cost,
+    estimate_paired_cost,
+    estimate_ratio_cost,
+    estimate_results_cost,
+    estimate_survival_cost,
+)
 from app.backend.app.errors import ApiError
 from app.backend.app.execution.bucketer import preview_assignment_distribution
 from app.backend.app.execution.experiment_assignment import build_experiment_assignment
@@ -72,6 +83,30 @@ if TYPE_CHECKING:
     from app.backend.app.config import Settings
     from app.backend.app.http_utils import SlidingWindowRateLimiter
     from app.backend.app.repository import ProjectRepository
+
+
+def _admission_controller(request: Request) -> ComputeAdmissionController:
+    controller = getattr(request.app.state, "compute_admission", None)
+    if not isinstance(controller, ComputeAdmissionController):
+        # Tests / alternate app factories without admission wired still work.
+        return ComputeAdmissionController(enabled=False)
+    return controller
+
+
+def _run_with_admission[T](
+    request: Request, estimate: CostEstimate, work: Callable[[], T]
+) -> T:
+    """Admit by cost/concurrency *after* schema validation and before heavy work."""
+    controller = _admission_controller(request)
+    with controller.admit(estimate) as decision:
+        if not decision.allowed:
+            raise ApiError(
+                "Server is at compute capacity; retry shortly",
+                error_code="compute_capacity_exceeded",
+                status_code=429,
+                headers={"Retry-After": str(decision.retry_after_seconds)},
+            )
+        return work()
 
 
 def _build_calculation_payload(payload: ExperimentInput) -> CalculationRequest:
@@ -403,62 +438,79 @@ def create_analysis_router(
         response_model=ResultsResponse,
         dependencies=[Depends(require_auth)],
     )
-    def results(payload: ResultsRequest) -> ResultsResponse:
-        return analyze_results(payload)
+    def results(payload: ResultsRequest, request: Request) -> ResultsResponse:
+        estimate = estimate_results_cost(payload)
+        return _run_with_admission(request, estimate, lambda: analyze_results(payload))
 
     @router.post(
         "/api/v1/results/categorical",
         response_model=CategoricalResultsResponse,
         dependencies=[Depends(require_auth)],
     )
-    def categorical_results(payload: CategoricalResultsRequest) -> CategoricalResultsResponse:
-        return analyze_categorical_results(payload)
+    def categorical_results(
+        payload: CategoricalResultsRequest, request: Request
+    ) -> CategoricalResultsResponse:
+        estimate = estimate_categorical_cost(payload)
+        return _run_with_admission(request, estimate, lambda: analyze_categorical_results(payload))
 
     @router.post(
         "/api/v1/results/paired",
         response_model=PairedResultsResponse,
         dependencies=[Depends(require_auth)],
     )
-    def paired_results(payload: PairedResultsRequest) -> PairedResultsResponse:
-        return analyze_paired_results(payload)
+    def paired_results(payload: PairedResultsRequest, request: Request) -> PairedResultsResponse:
+        estimate = estimate_paired_cost(payload)
+        return _run_with_admission(request, estimate, lambda: analyze_paired_results(payload))
 
     @router.post(
         "/api/v1/results/omnibus",
         response_model=OmnibusResultsResponse,
         dependencies=[Depends(require_auth)],
     )
-    def omnibus_results(payload: OmnibusResultsRequest) -> OmnibusResultsResponse:
-        return analyze_omnibus_results(payload)
+    def omnibus_results(payload: OmnibusResultsRequest, request: Request) -> OmnibusResultsResponse:
+        estimate = estimate_omnibus_cost(payload)
+        return _run_with_admission(request, estimate, lambda: analyze_omnibus_results(payload))
 
     @router.post(
         "/api/v1/results/survival",
         response_model=SurvivalResultsResponse,
         dependencies=[Depends(require_auth)],
     )
-    def survival_results(payload: SurvivalResultsRequest) -> SurvivalResultsResponse:
-        return analyze_survival_results(payload)
+    def survival_results(
+        payload: SurvivalResultsRequest, request: Request
+    ) -> SurvivalResultsResponse:
+        estimate = estimate_survival_cost(payload)
+        return _run_with_admission(request, estimate, lambda: analyze_survival_results(payload))
 
     @router.post(
         "/api/v1/results/ratio",
         response_model=ResultsResponse,
         dependencies=[Depends(require_auth)],
     )
-    def ratio_results(payload: RatioResultsRequest) -> ResultsResponse:
-        return analyze_ratio_results(payload)
+    def ratio_results(payload: RatioResultsRequest, request: Request) -> ResultsResponse:
+        estimate = estimate_ratio_cost(payload)
+        return _run_with_admission(request, estimate, lambda: analyze_ratio_results(payload))
 
     @router.post(
         "/api/v1/simulate/bandit",
         response_model=BanditSimulationResponse,
         dependencies=[Depends(require_auth)],
     )
-    def simulate_bandit(payload: BanditSimulationRequest) -> BanditSimulationResponse:
-        result = simulate_thompson_sampling(
-            arm_rates=payload.arm_rates,
-            horizon=payload.horizon,
-            num_simulations=payload.num_simulations,
-            seed=payload.seed,
-        )
-        return BanditSimulationResponse.model_validate(result)
+    def simulate_bandit(
+        payload: BanditSimulationRequest, request: Request
+    ) -> BanditSimulationResponse:
+        estimate = estimate_bandit_cost(payload)
+
+        def _run() -> BanditSimulationResponse:
+            result = simulate_thompson_sampling(
+                arm_rates=payload.arm_rates,
+                horizon=payload.horizon,
+                num_simulations=payload.num_simulations,
+                seed=payload.seed,
+            )
+            return BanditSimulationResponse.model_validate(result)
+
+        return _run_with_admission(request, estimate, _run)
 
     @router.post(
         "/api/v1/assignment/preview",

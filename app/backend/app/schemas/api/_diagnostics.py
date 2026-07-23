@@ -77,6 +77,10 @@ class DiagnosticsGuardsSummary(BaseModel):
     auth_failure_window_seconds: int
     max_request_body_bytes: int
     max_workspace_body_bytes: int
+    max_slack_body_bytes: int = 65_536
+    slack_rate_limit_requests: int = 60
+    compute_admission_enabled: bool = True
+    compute_max_heavy_concurrent: int = 2
 
 
 class DiagnosticsNetworkSummary(BaseModel):
@@ -105,6 +109,7 @@ class DiagnosticsRuntimeSummary(BaseModel):
     auth_rejections: int
     rate_limited_responses: int = 0
     request_body_rejections: int = 0
+    compute_capacity_rejections: int = 0
     last_request_at: str | None = None
     last_error_at: str | None = None
     last_error_code: str | None = None

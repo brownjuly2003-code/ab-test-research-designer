@@ -55,10 +55,23 @@ PUBLIC_COMPUTE_PATHS = frozenset(
     }
 )
 RATE_LIMITED_PATH_PREFIXES = ("/api/v1",)
+# Public Slack ingress lives outside /api/v1 and historically bypassed body/rate
+# limits (audit F-05). Only the signed POST endpoints are included — OAuth GETs
+# are not body-bearing attack surface.
+SLACK_INGRESS_PATHS = frozenset(
+    {
+        "/slack/commands",
+        "/slack/interactive",
+        "/slack/events",
+    }
+)
 # Simulation endpoints whose per-request CPU cost is orders of magnitude above a
 # CRUD call (Monte-Carlo comparison up to 50k draws, bandit simulation). They are
 # open to anonymous read-scope sessions on the public demo, so they get a second,
 # tighter rate-limit bucket on top of the global one (audit 16.07 G-11).
+# Expensive /results variants are gated by cost-aware admission (compute_admission)
+# rather than a flat request-count bucket so a single large bootstrap is limited
+# without throttling cheap binary summary calls on the same path.
 HEAVY_COMPUTE_PATHS = frozenset(
     {
         "/api/v1/projects/compare",
@@ -156,7 +169,13 @@ def is_protected_path(path: str) -> bool:
 
 
 def is_rate_limited_path(path: str) -> bool:
+    if path in SLACK_INGRESS_PATHS:
+        return True
     return any(path.startswith(prefix) for prefix in RATE_LIMITED_PATH_PREFIXES)
+
+
+def is_slack_ingress_path(path: str) -> bool:
+    return path in SLACK_INGRESS_PATHS
 
 
 def is_heavy_compute_path(path: str) -> bool:
@@ -247,6 +266,8 @@ def get_client_identifier(request: Request, settings: "Settings") -> str:
 def get_request_body_limit(path: str, method: str, settings: "Settings") -> int | None:
     if method not in BODY_LIMITED_METHODS:
         return None
+    if path in SLACK_INGRESS_PATHS:
+        return settings.max_slack_body_bytes
     if path in WORKSPACE_BUNDLE_PATHS:
         return settings.max_workspace_body_bytes
     if path.startswith("/api/v1"):
