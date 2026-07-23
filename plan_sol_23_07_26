@@ -9,7 +9,7 @@
 ### 2026-07-23 (Grok #7) — шаг 7 admin API keys contract → DONE
 - **Сделано:** issued scopes только `read`/`write`; legacy `admin` → `write` + audit `api_key_scope_normalized`; operator surfaces только static `AB_ADMIN_TOKEN` (`admin_token_not_configured` / `admin_token_required`); schema v16 + PG migration; FE selector без Admin; docs PRODUCTION/SECURITY/API; CHANGELOG.
 - **Коммит (local main, не push):**
-  - *(hash после commit)* — `fix(auth): remove misleading admin issued API key scope`
+  - `0f832f9e` — `fix(auth): remove misleading admin issued API key scope`
 - **Проверки:** `test_api_keys` 8 · `test_production_auth` green · api_routes keys/webhooks/diagnostics 9 · snapshot newer_schema + reinitialize · ruff+mypy clean · generate frontend types + api docs --check · ApiKeyManager vitest 3.
 - **Следующая сессия:** шаг 8 (frontend contracts/i18n/lint/a11y) **или** residual шага 6.
 
@@ -83,7 +83,7 @@
 | 4 | ~~Убрать blind JSON adaptation в PostgreSQL~~ | `gpt-5.6-sol` | `high` | M | желательно после шага 3 | **DONE** `e3e18a12` (live PG CI residual) |
 | 5 | ~~Ввести защищённый Slack ingress и cost-aware compute admission~~ | `gpt-5.6-sol` | `high` | M/L | нет | **DONE** `a833cd3c` |
 | 6 | ~~Разделить statistical evidence и practical ship policy~~ | `gpt-5.6-sol` | `xhigh` | L | после шага 3 | **DONE** core `2b565422` |
-| 7 | ~~Исправить контракт `admin` API keys~~ | `gpt-5.6-sol` | `high` | M | до шага 8 | **DONE** *(hash)* |
+| 7 | ~~Исправить контракт `admin` API keys~~ | `gpt-5.6-sol` | `high` | M | до шага 8 | **DONE** `0f832f9e` |
 | 8 | Усилить frontend contracts, i18n, lint и keyboard a11y | `gpt-5.6-terra` | `high` | L | после шага 7 |
 | 9 | Добавить воспроизводимый scientific oracle/risk-based suite | `gpt-5.6-sol` | `xhigh` | L | после шагов 3 и 6 |
 | 10 | Провести полный acceptance/recovery gate | `gpt-5.6-sol` | `high` | M | после шагов 1–9 |
