@@ -12,7 +12,9 @@
   2. `scripts/check_locale_parity.py` — plural-family parity + static `t()` usage; wired into `verify_all` + CI `locale-content`.
   3. ESLint flat baseline (TS parser, hooks `rules-of-hooks`, jsx-a11y) via `eslint-toolchain` (TS 5.9 side-by-side; app stays on TS 7); zero-error baseline; `npm run lint` + verify_all/CI.
   4. Bundle budget: per-chunk raw/gzip report + ADR 0002 (raise ceiling only via ADR); hard budgets unchanged.
-- **Коммиты (local main, не push):** см. git log после сессии (`feat(frontend): …` / `chore(frontend): …` / `docs(plan): …`).
+- **Коммиты (local main, не push):**
+  - `20c92458` — `feat(frontend): close step 8 residual i18n, parity, eslint, bundle report`
+  - `186f0295` — `docs(plan): record step 8 DONE after Grok #9 residual close`
 - **Проверки:** tsc clean · `npm run lint` 0 errors / 13 exhaustive-deps warns · locale parity OK (7 locales, 1181 t-keys) · locale content 14 OK · bundle self-test + live OK (headroom ~5.4%) · ComparisonSection + a11y-comparison + results suite 176 · i18n 8.
 - **Следующая сессия:** шаг 9 (scientific oracle) **или** optional: React Compiler hooks rules cleanup / exhaustive-deps zero-warn.
 
@@ -105,7 +107,7 @@
 | 5 | ~~Ввести защищённый Slack ingress и cost-aware compute admission~~ | `gpt-5.6-sol` | `high` | M/L | нет | **DONE** `a833cd3c` |
 | 6 | ~~Разделить statistical evidence и practical ship policy~~ | `gpt-5.6-sol` | `xhigh` | L | после шага 3 | **DONE** core `2b565422` |
 | 7 | ~~Исправить контракт `admin` API keys~~ | `gpt-5.6-sol` | `high` | M | до шага 8 | **DONE** `0f832f9e` |
-| 8 | ~~Усилить frontend contracts, i18n, lint и keyboard a11y~~ | `gpt-5.6-terra` | `high` | L | после шага 7 | **DONE** Grok #8+#9 |
+| 8 | ~~Усилить frontend contracts, i18n, lint и keyboard a11y~~ | `gpt-5.6-terra` | `high` | L | после шага 7 | **DONE** `20c92458` (+#8 `bd606222`/`6ee1ea27`) |
 | 9 | Добавить воспроизводимый scientific oracle/risk-based suite | `gpt-5.6-sol` | `xhigh` | L | после шагов 3 и 6 |
 | 10 | Провести полный acceptance/recovery gate | `gpt-5.6-sol` | `high` | M | после шагов 1–9 |
 
