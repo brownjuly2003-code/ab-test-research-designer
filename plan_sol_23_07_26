@@ -6,6 +6,19 @@
 
 ## Журнал сессий
 
+### 2026-07-23 (Codex #11) — шаг 10 local acceptance/recovery gate → DONE local
+- **Сделано (scoped commits):**
+  1. Stabilized local acceptance after fresh failures: unique pytest basetemp, realistic `practical_v1` demo/route fixtures, idempotent migration marker allowance.
+  2. Updated frontend tooltip guidance test to match the lint-clean button trigger introduced in step 8.
+  3. Ran the full local acceptance gate with backend/frontend coverage, E2E, smoke, Lighthouse and JS audits; documented Docker/CI/HF residual gates.
+- **Коммиты (local main, не push):**
+  - `2f7a576f` — `style(schema): satisfy ruff import ordering`
+  - `aebebeb5` — `test(backend): stabilize decision and temp fixtures`
+  - `1ce519fd` — `test(frontend): align tooltip guidance selector`
+- **Проверки:** targeted backend regression 44 passed · frontend tooltip target 1 passed · `npm run lint` 0 errors / existing 13 hook warnings · full `python scripts\verify_all.py --with-e2e --with-coverage --artifacts-dir .ci-artifacts` green (`1352 passed`, coverage 91.70%, frontend 437 tests, bundle 1,092,019 raw / 308,360 gzip, E2E + smoke OK) · Lighthouse 96/96/100/82 · frontend/docs/eslint-toolchain `npm audit --audit-level=high` → 0.
+- **Residual:** `docker` command not found locally, so live PostgreSQL, Docker secure compose, container scan and testcontainers gates remain CI/Mac-only; CodeQL is CI-only; HF remote snapshot drill needs a disposable repo/write token and explicit external mutation authorization; `pip-audit` timed out twice and left child processes, which were identified and killed.
+- **Следующая сессия:** push/PR only after explicit authorization; remaining release evidence comes from CI/external gates above.
+
 ### 2026-07-23 (Codex #10) — шаг 9 scientific oracle → DONE
 - **Сделано (scoped commits):**
   1. Optional oracle env `app/backend/requirements-oracle.txt` (SciPy 1.17.1, statsmodels 0.14.6, lifelines 0.30.3, numpy/pandas pins), production requirements untouched.
@@ -120,7 +133,7 @@
 | 7 | ~~Исправить контракт `admin` API keys~~ | `gpt-5.6-sol` | `high` | M | до шага 8 | **DONE** `0f832f9e` |
 | 8 | ~~Усилить frontend contracts, i18n, lint и keyboard a11y~~ | `gpt-5.6-terra` | `high` | L | после шага 7 | **DONE** `20c92458` (+#8 `bd606222`/`6ee1ea27`) |
 | 9 | ~~Добавить воспроизводимый scientific oracle/risk-based suite~~ | `gpt-5.6-sol` | `xhigh` | L | после шагов 3 и 6 | **DONE** `1c63171e`+`fd27df8c` |
-| 10 | Провести полный acceptance/recovery gate | `gpt-5.6-sol` | `high` | M | после шагов 1–9 |
+| 10 | ~~Провести полный acceptance/recovery gate~~ | `gpt-5.6-sol` | `high` | M | после шагов 1–9 | **DONE local** `2f7a576f`+`aebebeb5`+`1ce519fd` (CI/external residuals documented) |
 
 `gpt-5.6-sol` выбран для изменений, где ошибка reasoning может повлиять на данные, статистическое решение, auth или меж-СУБД семантику. `gpt-5.6-terra` выбран для ограниченных dependency/frontend изменений с ясными автоматическими критериями.
 
@@ -134,7 +147,7 @@
 4. ~~**Контракт admin API keys:** шаг 7.~~ ✅ 2026-07-23
 4b. ~~**Интерфейс:** шаг 8.~~ ✅ 2026-07-23 Grok #8+#9 · optional residual: React Compiler hooks rules, exhaustive-deps zero-warn.
 5. ~~**Научная воспроизводимость:** шаг 9.~~ ✅ 2026-07-23 · oracle 97/97 + CI job/artifact.
-6. **Финальный gate:** шаг 10 выполняется последним.
+6. ~~**Финальный gate:** шаг 10.~~ ✅ 2026-07-23 local · Docker/PG/CodeQL/container/HF remote residuals require CI or external authorization.
 
 ---
 
@@ -656,7 +669,7 @@ workflow artifact: versions, seeds and deviations published ✅ CI artifact conf
 
 ---
 
-## Шаг 10. Полный acceptance и recovery gate
+## ~~Шаг 10. Полный acceptance и recovery gate~~ ✅ DONE local / external residuals
 
 **Модель:** `gpt-5.6-sol`  
 **Reasoning:** `high`  
@@ -667,16 +680,16 @@ workflow artifact: versions, seeds and deviations published ✅ CI artifact conf
 
 ### Обязательные проверки
 
-1. Полный `scripts/verify_all.py` с backend/frontend coverage.
-2. Реальный PostgreSQL contract suite.
-3. Docker build и secure compose verification на среде, где это укладывается в resource limits.
-4. Playwright E2E: smoke, locales/RTL, workspace, keys/webhooks, Slack ingress errors.
-5. Lighthouse budgets.
-6. `pip-audit` для runtime+dev lock; frontend и docs `npm audit`.
-7. CodeQL и container scan.
-8. WAL snapshot → remote revision → clean checkout restore → migration → readiness → checksum/data verification.
-9. Fault drill: corrupt latest snapshot должен безопасно оставить/восстановить последнюю good state.
-10. `git diff --check`, generated API/docs/help pages, repo hygiene, clean expected status.
+1. ~~Полный `scripts/verify_all.py` с backend/frontend coverage.~~ ✅ `--with-e2e --with-coverage`, green.
+2. Реальный PostgreSQL contract suite. ⏳ local blocked: `docker` command not found; CI/Mac gate.
+3. Docker build и secure compose verification на среде, где это укладывается в resource limits. ⏳ local blocked: `docker` command not found.
+4. ~~Playwright E2E: smoke, locales/RTL, workspace, keys/webhooks, Slack ingress errors.~~ ✅ included in full local gate.
+5. ~~Lighthouse budgets.~~ ✅ `scripts/run_lighthouse_ci.py --port 0`, scores 96/96/100/82, assertions OK.
+6. `pip-audit` для runtime+dev lock; frontend и docs `npm audit`. ⚠️ npm audits green (0); `pip-audit` timed out in both default and `--no-deps --disable-pip` modes.
+7. CodeQL и container scan. ⏳ CI-only/local Docker unavailable.
+8. WAL snapshot → remote revision → clean checkout restore → migration → readiness → checksum/data verification. ⏳ local workspace backup roundtrip green; remote HF drill needs disposable repo/write token.
+9. Fault drill: corrupt latest snapshot должен безопасно оставить/восстановить последнюю good state. ⚠️ local snapshot rollback/fault tests green in backend suite; live remote corrupt-latest drill requires HF external mutation authorization.
+10. ~~`git diff --check`, generated API/docs/help pages, repo hygiene, clean expected status.~~ ✅ full gate checked generated artifacts; final diff/status checked before commit.
 
 ### Release acceptance matrix
 
@@ -689,6 +702,18 @@ workflow artifact: versions, seeds and deviations published ✅ CI artifact conf
 | Scientific | Oracle/property grid green в declared tolerances |
 | Frontend | Typecheck, lint, unit, E2E, a11y, locale parity и bundle budgets green |
 | Documentation | Production/runbook/API/decision policy соответствуют коду |
+
+### Статус release gate 2026-07-23
+
+| Gate | Локальный результат |
+|---|---|
+| P0 regressions | SQLite/local gate green; live PostgreSQL remains CI/Mac-only because Docker is absent. |
+| Data recovery | Workspace backup roundtrip and snapshot failure tests green; HF remote restore/corrupt-latest drill not run without write token. |
+| Security | JS `npm audit --audit-level=high` green for frontend/docs/eslint-toolchain; `pip-audit` timed out; CodeQL/container scan deferred to CI. |
+| Performance | Backend benchmark, bundle budget and Lighthouse green. |
+| Scientific | Oracle 97/97 and full backend suite green. |
+| Frontend | Typecheck, lint, unit, build, E2E, smoke, locale/content gates and bundle budget green. |
+| Documentation | Plan updated with local evidence and residual owners. |
 
 ### Критерий готовности
 
@@ -707,6 +732,6 @@ workflow artifact: versions, seeds and deviations published ✅ CI artifact conf
 4. ~~Slack и дорогие analyses имеют bounded body/rate/cost/concurrency.~~ ✅ шаг 5
 5. ~~`ship` требует practical, а не только statistical evidence.~~ ✅ шаг 6 core
 6. ~~API key scopes соответствуют реальным permissions.~~ ✅ шаг 7
-7. Frontend использует generated contracts, полный i18n gate и lint/a11y checks.
+7. ~~Frontend использует generated contracts, полный i18n gate и lint/a11y checks.~~ ✅ шаги 8/10 local gate
 8. Dependency scans green, scientific oracle воспроизводим, recovery drill пройден.
 9. Все доказательства относятся к одному финальному commit и доступны в CI artifacts.
