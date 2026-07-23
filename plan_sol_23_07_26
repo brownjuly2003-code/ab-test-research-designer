@@ -19,6 +19,13 @@
 - **Residual:** `docker` command not found locally, so live PostgreSQL, Docker secure compose, container scan and testcontainers gates remain CI/Mac-only; CodeQL is CI-only; HF remote snapshot drill needs a disposable repo/write token and explicit external mutation authorization; `pip-audit` timed out twice and left child processes, which were identified and killed.
 - **Следующая сессия:** push/PR only after explicit authorization; remaining release evidence comes from CI/external gates above.
 
+### Как начинать следующую сессию
+- Стартовать коротко: `git status --short --branch`, затем верх `_NEXT_SESSION.md`, затем этот верхний journal-блок; старый архив ниже не перечитывать без причины.
+- Не повторять полный `verify_all` и `pip-audit` без нового входного сигнала: acceptance уже свежий и зелёный, `pip-audit` был диагностирован как timeout.
+- Если цель — публикация: сначала получить явное разрешение на push/PR, затем `git diff --check`, чистый tracked status и push только разрешённой ветки.
+- Если цель — закрыть residual gates: выбрать одну внешнюю среду/проверку за раз: CI CodeQL/container, Docker/PostgreSQL на Mac/Linux, или HF remote drill с disposable repo/write token.
+- Legacy untracked WIP не трогать: `AB_designer.html`, `docs/data-flow.html`, старые `docs/plans/2026-06-*.md`, `pres.html`, `presentation.html`.
+
 ### 2026-07-23 (Codex #10) — шаг 9 scientific oracle → DONE
 - **Сделано (scoped commits):**
   1. Optional oracle env `app/backend/requirements-oracle.txt` (SciPy 1.17.1, statsmodels 0.14.6, lifelines 0.30.3, numpy/pandas pins), production requirements untouched.
