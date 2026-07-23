@@ -2195,6 +2195,7 @@ describe("App UI flow", () => {
   });
 
   it("renders focusable tooltip guidance for setup and metric inputs", async () => {
+    const tooltipTriggerSelector = 'button[type="button"]';
     const setupSection = sections.find((section) => section.section === "setup");
     const metricsSection = sections.find((section) => section.section === "metrics");
     const constraintsSection = sections.find((section) => section.section === "constraints");
@@ -2242,7 +2243,7 @@ describe("App UI flow", () => {
           throw new Error(`Label was not rendered for ${fieldId}`);
         }
 
-        expect(label.querySelector('[role="note"][tabindex="0"]')).not.toBeNull();
+        expect(label.querySelector(tooltipTriggerSelector)).not.toBeNull();
       }
 
       await view.rerender(
@@ -2282,7 +2283,7 @@ describe("App UI flow", () => {
           throw new Error(`Label was not rendered for ${fieldId}`);
         }
 
-        expect(label.querySelector('[role="note"][tabindex="0"]')).not.toBeNull();
+        expect(label.querySelector(tooltipTriggerSelector)).not.toBeNull();
       }
 
       await view.rerender(
@@ -2318,7 +2319,7 @@ describe("App UI flow", () => {
           throw new Error(`Label was not rendered for ${fieldId}`);
         }
 
-        expect(label.querySelector('[role="note"][tabindex="0"]')).not.toBeNull();
+        expect(label.querySelector(tooltipTriggerSelector)).not.toBeNull();
       }
 
       await view.rerender(
@@ -2364,12 +2365,12 @@ describe("App UI flow", () => {
         throw new Error("Baseline value label was not rendered");
       }
 
-      const baselineTrigger = baselineLabel.querySelector('[role="note"][tabindex="0"]');
+      const baselineTrigger = baselineLabel.querySelector(tooltipTriggerSelector);
       if (!(baselineTrigger instanceof HTMLElement)) {
         throw new Error("Baseline tooltip trigger was not rendered");
       }
 
-      expect(stdDevLabel.querySelector('[role="note"][tabindex="0"]')).not.toBeNull();
+      expect(stdDevLabel.querySelector(tooltipTriggerSelector)).not.toBeNull();
 
       await act(async () => {
         baselineTrigger.focus();
