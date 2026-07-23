@@ -64,10 +64,13 @@ def test_migration_versions_are_unique_and_ascending() -> None:
 def test_every_migration_statement_is_idempotent() -> None:
     """A migration must be safe on a fresh database, where _init_db already built the objects."""
     idempotent_markers = ("IF NOT EXISTS", "IS NULL", "SET NOT NULL", "IF EXISTS")
+    no_op_on_current_schema_predicates = ("WHERE scope = 'admin'",)
 
     for migration in POSTGRES_MIGRATIONS:
         for statement in migration.statements:
-            assert any(marker in statement for marker in idempotent_markers), (
+            assert any(marker in statement for marker in idempotent_markers) or any(
+                predicate in statement for predicate in no_op_on_current_schema_predicates
+            ), (
                 f"migration {migration.version} ({migration.name}) has a statement that would "
                 f"fail or double-apply on an up-to-date database: {statement}"
             )

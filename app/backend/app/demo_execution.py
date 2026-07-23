@@ -111,7 +111,7 @@ def _guardrail_names(payload: dict[str, Any]) -> tuple[str | None, str | None]:
 def build_checkout_execution(payload: dict[str, Any], rng: Random) -> ExecutionBatches:
     """Flagship binary demo (``purchase_conversion``) — the full execution surface.
 
-    A balanced 2×2000 split (SRM healthy) with a clear, significant uplift so always-valid crosses
+    A balanced 2x2000 split (SRM healthy) with a clear, significant uplift so always-valid crosses
     and the decision reads *ship*; two guardrails that hold (ok); a held-back group for the
     cumulative read; a device stratum; a handful of anonymous→canonical identity links (which would
     have inflated the treated arm without resolution); a manual deny-list plus one rate-spike bot;
@@ -125,8 +125,9 @@ def build_checkout_execution(payload: dict[str, Any], rng: Random) -> ExecutionB
     n_per_arm = 2000
     exposure_at = _iso(_ANCHOR)
 
-    # Base conversion rates: control near the design baseline (0.042), treatment a clear lift.
-    base_rate = {0: 0.043, 1: 0.062}
+    # Base conversion rates: control near the design baseline (0.042), treatment clears the
+    # practical_v1 MWE with CI lower above the design's 50% relative MDE.
+    base_rate = {0: 0.043, 1: 0.085}
     # Device heterogeneity so post-stratification has signal (ios converts a touch higher).
     device_lift = {"ios": 0.007, "android": -0.004}
 
@@ -226,7 +227,7 @@ def build_pricing_execution(payload: dict[str, Any], rng: Random) -> ExecutionBa
     n_per_arm = 400
     exposure_at = _iso(_ANCHOR)
 
-    arm_effect = {0: 0.0, 1: 3.0}  # treatment lifts AOV by ~3.0
+    arm_effect = {0: 0.0, 1: 5.0}  # treatment lifts AOV enough to clear the 5.5% MWE CI gate
     segment_effect = {"new": 0.0, "returning": 5.0}  # returning users spend more
     # Guardrail (purchase conversion) holds: treatment is no worse than control under the design's
     # default increase-is-bad direction, so the guardrail reads "ok" rather than a noisy "warning".

@@ -799,6 +799,7 @@ def test_decision_route_returns_404_for_unknown_experiment() -> None:
 def test_decision_route_ships_on_a_clear_win() -> None:
     client = TestClient(create_app())
     # mde 100% plans ~199/arm, so the 200/arm ingest below is the planned fixed-horizon read.
+    # The treatment lift is intentionally well above MWE so practical_v1 can clear CI lower >= MWE.
     project_id = _create_binary_project(client, mde_pct=100)
 
     exposures = [{"user_id": f"c{i}", "variation_index": 0} for i in range(200)]
@@ -808,7 +809,7 @@ def test_decision_route_ships_on_a_clear_win() -> None:
         == 200
     )
     conversions = [{"user_id": f"c{i}", "metric": "purchase"} for i in range(20)]  # control 10%
-    conversions += [{"user_id": f"t{i}", "metric": "purchase"} for i in range(40)]  # treatment 20%
+    conversions += [{"user_id": f"t{i}", "metric": "purchase"} for i in range(60)]  # treatment 30%
     assert (
         client.post(
             f"/api/v1/experiments/{project_id}/conversions", json={"conversions": conversions}

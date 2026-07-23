@@ -5,8 +5,8 @@ Run from repo root: `python scripts/cleanup_test_artifacts.py`.
 Targets (only deleted if they exist, dry-run with --dry-run):
 - app/backend/tests/.tmp     legacy pytest temp from runs before
                              pytest.ini --basetemp landed
-- .pytest_basetemp           current pytest basetemp (recreated next run)
-- .tmp                        cxkm review sandbox
+- .pytest_basetemp           stale fixed pytest basetemp from older local runs
+- .tmp                        cxkm review sandbox and per-process pytest basetemp
 - .tmp_codex_ab_audit_pytest* leftover from external audit runs
 - .coverage                   pytest-cov artifact at repo root
 - site                        mkdocs build output
