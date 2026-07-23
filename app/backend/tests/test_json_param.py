@@ -312,6 +312,8 @@ def test_json_param_source_sites_use_marker_not_dumps_for_db_columns() -> None:
 
 
 def _require_docker_postgres():
+    if sys.platform == "win32":
+        pytest.skip("Linux containers unavailable on Windows GitHub runner")
     try:
         from testcontainers.postgres import PostgresContainer
     except ImportError:  # pragma: no cover
