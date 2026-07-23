@@ -9,6 +9,10 @@ on:
   push:
     branches: [main]
   pull_request:
+  schedule:
+    # Weekly differential oracle run catches drift in optional scientific references even
+    # when application code has not changed.
+    - cron: "17 5 * * 1"
   workflow_dispatch:
 
 concurrency:
@@ -171,6 +175,40 @@ jobs:
         working-directory: docs-site
         run: npm audit --audit-level=high
 
+  statistical-oracle:
+    # Runs on every PR/main push, so changes to stats/services/results/decision code cannot merge
+    # without fresh differential evidence. The workflow schedule/manual triggers keep the oracle
+    # reproducible against pinned optional references.
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.14"
+
+      - name: Install backend runtime dependencies
+        run: python -m pip install -r app/backend/requirements.txt
+
+      - name: Install optional statistical oracle dependencies
+        run: python -m pip install -r app/backend/requirements-oracle.txt
+
+      - name: Verify statistical oracle CLI smoke
+        run: python scripts/run_statistical_oracle.py --self-test
+
+      - name: Run differential statistical oracle
+        run: python scripts/run_statistical_oracle.py --artifact .ci-artifacts/statistical-oracle.json
+
+      - name: Upload statistical oracle artifact
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: statistical-oracle
+          path: .ci-artifacts/statistical-oracle.json
+          if-no-files-found: warn
+
   verify-postgres:
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -295,6 +333,7 @@ jobs:
       - locale-content
       - repo-hygiene
       - dependency-audit
+      - statistical-oracle
       - verify-postgres
       - docker
       - lighthouse
