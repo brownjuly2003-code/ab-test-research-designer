@@ -8,7 +8,8 @@
 
 ### 2026-07-23 (Grok #6) — шаг 6 practical decision policy → DONE (core)
 - **Сделано:** ADR 0001; `decision_policy.py` practical_v1; decision_service practical gate; golden matrix tests; DecisionReadoutResponse policy/evidence; FE DecisionReadout + i18n; CHANGELOG.
-- **Коммит (local main, не push):** см. git log (`feat(decision): practical-significance policy practical_v1`).
+- **Коммит (local main, не push):**
+  - `2b565422` — `feat(decision): practical-significance policy practical_v1`
 - **Проверки:** `test_decision_service` 22 · ruff+mypy clean · frontend api-contract regenerated.
 - **Residual (не блокер core DONE):** explicit experiment-payload DecisionPolicy schema field in OpenAPI wizard; Bayesian `P(δ>MWE)` rule; PDF export copy; backend i18n catalogs (reasons live on FE).
 - **Следующая сессия:** residual шага 6 **или** шаг 7 (admin API keys).
@@ -74,7 +75,7 @@
 | 3 | ~~Унифицировать canonical population для primary/holdout/timing~~ | `gpt-5.6-sol` | `xhigh` | L | нет | **DONE** (SQLite; PG parity residual) |
 | 4 | ~~Убрать blind JSON adaptation в PostgreSQL~~ | `gpt-5.6-sol` | `high` | M | желательно после шага 3 | **DONE** `e3e18a12` (live PG CI residual) |
 | 5 | ~~Ввести защищённый Slack ingress и cost-aware compute admission~~ | `gpt-5.6-sol` | `high` | M/L | нет | **DONE** `a833cd3c` |
-| 6 | ~~Разделить statistical evidence и practical ship policy~~ | `gpt-5.6-sol` | `xhigh` | L | после шага 3 | **DONE** core (Grok #6; residual listed) |
+| 6 | ~~Разделить statistical evidence и practical ship policy~~ | `gpt-5.6-sol` | `xhigh` | L | после шага 3 | **DONE** core `2b565422` |
 | 7 | Исправить контракт `admin` API keys | `gpt-5.6-sol` | `high` | M | до шага 8 |
 | 8 | Усилить frontend contracts, i18n, lint и keyboard a11y | `gpt-5.6-terra` | `high` | L | после шага 7 |
 | 9 | Добавить воспроизводимый scientific oracle/risk-based suite | `gpt-5.6-sol` | `xhigh` | L | после шагов 3 и 6 |
