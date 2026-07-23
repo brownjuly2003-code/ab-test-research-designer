@@ -102,7 +102,11 @@ export default function DecisionReadoutSection() {
       effect: formatSignedPercent(params.effect_relative as number | undefined),
       p: formatNumber(params.p_value as number | undefined, 4),
       probability: formatCappedProbabilityPercent(params.probability as number | undefined),
-      fraction: formatFraction(params.information_fraction as number | undefined)
+      fraction: formatFraction(params.information_fraction as number | undefined),
+      mwe: formatNumber(params.mwe as number | undefined, 4),
+      ci_lower: formatNumber(params.ci_lower as number | undefined, 4),
+      ci_upper: formatNumber(params.ci_upper as number | undefined, 4),
+      metric: params.metric != null ? String(params.metric) : ""
     });
   }
 
@@ -179,6 +183,33 @@ export default function DecisionReadoutSection() {
 
       {decision && verdictColors ? (
         <div style={{ marginTop: "var(--space-4)", display: "grid", gap: "var(--space-3)" }}>
+          {decision.policy ? (
+            <div className="callout" style={{ display: "grid", gap: "4px" }}>
+              <strong>{t("results.decision.policyTitle")}</strong>
+              <span className="muted">
+                {t("results.decision.policyVersion", { version: decision.policy.version })}
+              </span>
+              {decision.policy.require_practical_evidence &&
+              decision.policy.minimum_worthwhile_effect != null ? (
+                <span>
+                  {t("results.decision.policyMwe", {
+                    mwe: formatNumber(decision.policy.minimum_worthwhile_effect, 4),
+                    source: decision.policy.mwe_source
+                  })}
+                </span>
+              ) : (
+                <span className="muted">{t("results.decision.policyNoMwe")}</span>
+              )}
+              {decision.policy.planned_power != null ? (
+                <span className="muted">
+                  {t("results.decision.policyPlannedPower", {
+                    power: formatNumber(decision.policy.planned_power, 2)
+                  })}
+                </span>
+              ) : null}
+              <span className="muted">{t("results.decision.policyPowerNote")}</span>
+            </div>
+          ) : null}
           <div
             style={{
               display: "flex",

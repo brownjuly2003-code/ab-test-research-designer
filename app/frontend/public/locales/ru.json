@@ -585,7 +585,7 @@
         "pValue": "p-value",
         "testStatistic": "Статистика теста",
         "relativeChange": "Относительное изменение",
-        "powerAchieved": "Достигнутая мощность",
+        "powerAchieved": "Power achieved (descriptive; not used for ship decisions)",
         "forestPlot": "График эффекта и ДИ",
         "observedSummary": "Сводка наблюдений",
         "controlRate": "Частота контроля",
@@ -983,7 +983,7 @@
     },
     "decision": {
       "title": "Итоговое решение",
-      "description": "Один синтезированный вердикт — катить, не катить или продолжать — собранный из live-сигналов SRM, частотного и байесовского анализа и последовательного мониторинга. Новой статистики нет.",
+      "description": "One synthesized verdict — ship, don't ship, or keep running — assembled from the live SRM, frequentist, Bayesian, and sequential signals, then gated by the design minimum worthwhile effect (practical significance). No new statistics. Observed post-hoc power is not used for this verdict.",
       "refresh": "Сформировать решение",
       "refreshing": "Формирование...",
       "saveFirst": "Сначала сохраните эксперимент, чтобы сформировать решение.",
@@ -1027,12 +1027,23 @@
         "inconclusive_ci": "{{arm}}: доверительный интервал всё ещё включает ноль — явного эффекта пока нет.",
         "info_fraction_incomplete": "Собрано лишь {{fraction}} запланированной выборки.",
         "info_fraction_complete_no_effect": "Эксперимент достиг запланированного размера без обнаружимого эффекта.",
-        "guardrail_vetoed": "Защитная метрика нарушена, поэтому результат нельзя выкатывать, даже если основная метрика выигрывает."
+        "guardrail_vetoed": "Защитная метрика нарушена, поэтому результат нельзя выкатывать, даже если основная метрика выигрывает.",
+        "practical_threshold_met": "{{arm}}: the effect CI lower bound ({{ci_lower}}) clears the minimum worthwhile effect ({{mwe}}).",
+        "practical_threshold_uncertain": "{{arm}}: significant, but the CI [{{ci_lower}}, {{ci_upper}}] still crosses the minimum worthwhile effect ({{mwe}}).",
+        "below_practical_threshold_proven": "{{arm}}: the entire effect CI is below the minimum worthwhile effect ({{mwe}}) — statistically positive but not practically meaningful.",
+        "statistically_positive_but_below_practical_threshold": "A statistically significant win did not clear the practical threshold at the planned sample size — do not ship on statistical significance alone.",
+        "practical_threshold_unavailable": "No design MDE / minimum worthwhile effect is available; practical gating is disabled for this readout."
       },
       "blocker": {
         "srm_mismatch": "Несоответствие соотношения выборок (p={{p}}) — назначение, похоже, сломано; исправьте рандомизацию или трекинг, прежде чем доверять результатам.",
         "guardrail_breach": "Защитная метрика «{{metric}}» значимо ухудшилась сверх допустимого — выкатка заблокирована, пока регрессия не разобрана."
-      }
+      },
+      "policyTitle": "Decision policy",
+      "policyVersion": "Policy {{version}}",
+      "policyMwe": "Minimum worthwhile effect: {{mwe}} (from {{source}})",
+      "policyPlannedPower": "Planned power: {{power}}",
+      "policyNoMwe": "No practical threshold configured — statistical evidence only (compatibility).",
+      "policyPowerNote": "Observed post-hoc power is not used for ship / no-ship."
     },
     "categoricalResults": {
       "testTypeLabel": "Тест",

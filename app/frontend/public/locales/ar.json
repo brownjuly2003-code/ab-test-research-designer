@@ -577,7 +577,7 @@
         "pValue": "القيمة p",
         "testStatistic": "إحصائية الاختبار",
         "relativeChange": "التغيير النسبي",
-        "powerAchieved": "تم تحقيق القوة",
+        "powerAchieved": "Power achieved (descriptive; not used for ship decisions)",
         "forestPlot": "مخطط الغابة",
         "observedSummary": "ملخص ملاحظ",
         "controlRate": "معدل المجموعة الضابطة",
@@ -963,7 +963,7 @@
     },
     "decision": {
       "title": "ملخص القرار",
-      "description": "حكم مُركَّب واحد — الإطلاق أو عدم الإطلاق أو الاستمرار — مُجمَّع من الإشارات الحية SRM والتكرارية والبايزية والتسلسلية. بدون إحصاء جديد.",
+      "description": "One synthesized verdict — ship, don't ship, or keep running — assembled from the live SRM, frequentist, Bayesian, and sequential signals, then gated by the design minimum worthwhile effect (practical significance). No new statistics. Observed post-hoc power is not used for this verdict.",
       "refresh": "توليد القرار",
       "refreshing": "جارٍ التوليد...",
       "saveFirst": "احفظ هذه التجربة أولاً لتوليد قرار.",
@@ -1007,12 +1007,23 @@
         "inconclusive_ci": "{{arm}}: لا يزال فاصل الثقة يشمل الصفر — لا يوجد تأثير واضح بعد.",
         "info_fraction_incomplete": "تم جمع {{fraction}} فقط من العينة المخطط لها.",
         "info_fraction_complete_no_effect": "بلغت التجربة حجمها المخطط له دون تأثير قابل للاكتشاف.",
-        "guardrail_vetoed": "أحد مقاييس الحماية مُنتهَك، لذا لا يمكن إطلاق النتيجة حتى لو فاز المقياس الأساسي."
+        "guardrail_vetoed": "أحد مقاييس الحماية مُنتهَك، لذا لا يمكن إطلاق النتيجة حتى لو فاز المقياس الأساسي.",
+        "practical_threshold_met": "{{arm}}: the effect CI lower bound ({{ci_lower}}) clears the minimum worthwhile effect ({{mwe}}).",
+        "practical_threshold_uncertain": "{{arm}}: significant, but the CI [{{ci_lower}}, {{ci_upper}}] still crosses the minimum worthwhile effect ({{mwe}}).",
+        "below_practical_threshold_proven": "{{arm}}: the entire effect CI is below the minimum worthwhile effect ({{mwe}}) — statistically positive but not practically meaningful.",
+        "statistically_positive_but_below_practical_threshold": "A statistically significant win did not clear the practical threshold at the planned sample size — do not ship on statistical significance alone.",
+        "practical_threshold_unavailable": "No design MDE / minimum worthwhile effect is available; practical gating is disabled for this readout."
       },
       "blocker": {
         "srm_mismatch": "عدم تطابق نسبة العينات (p={{p}}) — يبدو أن التوزيع معطّل؛ أصلح العشوائية أو التتبع قبل الوثوق بأي نتيجة.",
         "guardrail_breach": "مقياس الحماية «{{metric}}» تدهور بدرجة كبيرة تتجاوز حد التسامح — الإطلاق محظور حتى يُفهم هذا التراجع."
-      }
+      },
+      "policyTitle": "Decision policy",
+      "policyVersion": "Policy {{version}}",
+      "policyMwe": "Minimum worthwhile effect: {{mwe}} (from {{source}})",
+      "policyPlannedPower": "Planned power: {{power}}",
+      "policyNoMwe": "No practical threshold configured — statistical evidence only (compatibility).",
+      "policyPowerNote": "Observed post-hoc power is not used for ship / no-ship."
     },
     "categoricalResults": {
       "testTypeLabel": "الاختبار",

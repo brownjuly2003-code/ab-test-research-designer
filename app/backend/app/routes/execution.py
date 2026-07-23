@@ -154,13 +154,17 @@ def create_execution_router(
             raise HTTPException(status_code=404, detail="Experiment not found")
         return IngestionSummaryResponse.model_validate(summary)
 
-    def _compute_live_stats(experiment_id: str) -> dict[str, Any]:
-        """Shared live-stats build path for the live-stats and decision reads. Raises 404 when the
-        experiment (or its aggregates) is missing."""
+    def _compute_live_stats(experiment_id: str) -> tuple[dict[str, Any], dict[str, Any]]:
+        """Shared live-stats build path for the live-stats and decision reads.
+
+        Returns ``(project_payload, live_stats)``. Raises 404 when the experiment (or its
+        aggregates) is missing.
+        """
         project = repository.get_project(experiment_id, include_archived=True)
         if project is None:
             raise HTTPException(status_code=404, detail="Experiment not found")
-        metrics = project["payload"].get("metrics", {})
+        payload = project["payload"]
+        metrics = payload.get("metrics", {})
         metric_name = metrics.get("primary_metric_name", "")
         aggregates = repository.get_experiment_analysis_aggregates(experiment_id, metric_name)
         if aggregates is None:
@@ -206,9 +210,9 @@ def create_execution_router(
         population_diagnostics = repository.get_analytical_population_diagnostics(
             experiment_id, metric_name
         )
-        return build_live_stats(
+        live_stats = build_live_stats(
             experiment_id,
-            project["payload"],
+            payload,
             aggregates,
             cuped_aggregates,
             ratio_aggregates,
@@ -220,6 +224,7 @@ def create_execution_router(
             exclusion_summary,
             population_diagnostics,
         )
+        return payload, live_stats
 
     @router.get(
         "/api/v1/experiments/{experiment_id}/live-stats",
@@ -230,7 +235,8 @@ def create_execution_router(
         """Phase D — live SRM / frequentist / Bayesian / sequential read over the current
         deduplicated exposures and conversions. Recomputed on demand (the dashboard polls);
         there is no separate scheduler process in the local-first MVP."""
-        return LiveStatsResponse.model_validate(_compute_live_stats(experiment_id))
+        _payload, live_stats = _compute_live_stats(experiment_id)
+        return LiveStatsResponse.model_validate(live_stats)
 
     @router.get(
         "/api/v1/experiments/{experiment_id}/decision",
@@ -239,9 +245,11 @@ def create_execution_router(
     )
     def get_decision(experiment_id: str) -> DecisionReadoutResponse:
         """Decision Readout — one synthesized ship / no-ship / keep-running verdict over the same
-        live-stats signals (SRM, frequentist effect/CI, Bayesian P(B>A), sequential crossing). No
-        new statistics; see services/decision_service.py."""
-        decision = synthesize_decision(_compute_live_stats(experiment_id))
+        live-stats signals (SRM, frequentist effect/CI, Bayesian P(B>A), sequential crossing),
+        gated by the practical-significance policy (ADR 0001). No new statistics; see
+        services/decision_service.py."""
+        payload, live_stats = _compute_live_stats(experiment_id)
+        decision = synthesize_decision(live_stats, project_payload=payload)
         return DecisionReadoutResponse.model_validate(decision)
 
     return router

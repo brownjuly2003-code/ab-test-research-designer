@@ -142,6 +142,8 @@ from app.backend.app.schemas.api._execution import (
     ConversionIngestRequest as ConversionIngestRequest,
 )
 from app.backend.app.schemas.api._execution import (
+    DecisionEvidenceSummary as DecisionEvidenceSummary,
+    DecisionPolicySummary as DecisionPolicySummary,
     DecisionReadoutResponse as DecisionReadoutResponse,
 )
 from app.backend.app.schemas.api._execution import (

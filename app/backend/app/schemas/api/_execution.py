@@ -456,11 +456,43 @@ class DecisionReason(BaseModel):
     params: dict[str, Any] = Field(default_factory=dict)
 
 
+class DecisionPolicySummary(BaseModel):
+    """Versioned practical-significance policy applied to this readout (ADR 0001)."""
+
+    version: str
+    require_practical_evidence: bool
+    practical_rule: str
+    mwe_scale: str
+    minimum_worthwhile_effect: float | None = None
+    minimum_worthwhile_effect_relative_pct: float | None = None
+    mwe_source: str
+    metric_type: str | None = None
+    baseline_value: float | None = None
+    planned_power: float | None = None
+    evidence_fields: list[str] = Field(default_factory=list)
+
+
+class DecisionEvidenceSummary(BaseModel):
+    """Machine-readable evidence ids/thresholds used for the verdict (not a new statistic)."""
+
+    policy_version: str | None = None
+    minimum_worthwhile_effect: float | None = None
+    mwe_source: str | None = None
+    planned_power: float | None = None
+    require_practical_evidence: bool | None = None
+    winning_arms: list[dict[str, Any]] = Field(default_factory=list)
+    # Observed post-hoc power is never used for ship (audit F-07).
+    power_achieved_not_used: bool = True
+
+
 class DecisionReadoutResponse(BaseModel):
     # Synthesized ship/no-ship verdict over the live-stats signals. No new statistics — see
     # services/decision_service.py. ``blockers`` are hard problems (e.g. SRM) that force no_ship.
+    # ``policy`` / ``evidence`` document the practical-significance rule (ADR 0001).
     experiment_id: str
     verdict: Literal["ship", "no_ship", "keep_running"]
     confidence: Literal["high", "medium", "low"]
     reasons: list[DecisionReason] = Field(default_factory=list)
     blockers: list[DecisionReason] = Field(default_factory=list)
+    policy: DecisionPolicySummary | None = None
+    evidence: DecisionEvidenceSummary | None = None

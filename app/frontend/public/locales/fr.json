@@ -578,7 +578,7 @@
         "pValue": "valeur p",
         "testStatistic": "Statistique de test",
         "relativeChange": "Changement relatif",
-        "powerAchieved": "Puissance atteinte",
+        "powerAchieved": "Power achieved (descriptive; not used for ship decisions)",
         "forestPlot": "Forest plot",
         "observedSummary": "Résumé observé",
         "controlRate": "Taux du contrôle",
@@ -964,7 +964,7 @@
     },
     "decision": {
       "title": "Synthèse de décision",
-      "description": "Un verdict synthétisé — déployer, ne pas déployer ou continuer — assemblé à partir des signaux en direct SRM, fréquentiste, bayésien et séquentiel. Aucune nouvelle statistique.",
+      "description": "One synthesized verdict — ship, don't ship, or keep running — assembled from the live SRM, frequentist, Bayesian, and sequential signals, then gated by the design minimum worthwhile effect (practical significance). No new statistics. Observed post-hoc power is not used for this verdict.",
       "refresh": "Générer la décision",
       "refreshing": "Génération...",
       "saveFirst": "Enregistrez d'abord cette expérience pour générer une décision.",
@@ -1008,12 +1008,23 @@
         "inconclusive_ci": "{{arm}} : l'intervalle de confiance inclut encore zéro — pas d'effet clair pour l'instant.",
         "info_fraction_incomplete": "Seulement {{fraction}} de l'échantillon prévu a été collecté.",
         "info_fraction_complete_no_effect": "L'expérience a atteint sa taille prévue sans effet détectable.",
-        "guardrail_vetoed": "Une métrique de garde-fou est enfreinte, le résultat n'est donc pas livrable même si la métrique principale gagne."
+        "guardrail_vetoed": "Une métrique de garde-fou est enfreinte, le résultat n'est donc pas livrable même si la métrique principale gagne.",
+        "practical_threshold_met": "{{arm}}: the effect CI lower bound ({{ci_lower}}) clears the minimum worthwhile effect ({{mwe}}).",
+        "practical_threshold_uncertain": "{{arm}}: significant, but the CI [{{ci_lower}}, {{ci_upper}}] still crosses the minimum worthwhile effect ({{mwe}}).",
+        "below_practical_threshold_proven": "{{arm}}: the entire effect CI is below the minimum worthwhile effect ({{mwe}}) — statistically positive but not practically meaningful.",
+        "statistically_positive_but_below_practical_threshold": "A statistically significant win did not clear the practical threshold at the planned sample size — do not ship on statistical significance alone.",
+        "practical_threshold_unavailable": "No design MDE / minimum worthwhile effect is available; practical gating is disabled for this readout."
       },
       "blocker": {
         "srm_mismatch": "Discordance du ratio d'échantillons (p={{p}}) — l'affectation semble cassée ; corrigez la randomisation ou le suivi avant de faire confiance aux résultats.",
         "guardrail_breach": "Le garde-fou « {{metric}} » est dégradé de façon significative au-delà de sa tolérance — la livraison est bloquée jusqu'à comprendre la régression."
-      }
+      },
+      "policyTitle": "Decision policy",
+      "policyVersion": "Policy {{version}}",
+      "policyMwe": "Minimum worthwhile effect: {{mwe}} (from {{source}})",
+      "policyPlannedPower": "Planned power: {{power}}",
+      "policyNoMwe": "No practical threshold configured — statistical evidence only (compatibility).",
+      "policyPowerNote": "Observed post-hoc power is not used for ship / no-ship."
     },
     "categoricalResults": {
       "testTypeLabel": "Test",

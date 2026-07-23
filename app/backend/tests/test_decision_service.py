@@ -6,14 +6,13 @@ frequentist/Bayesian/SRM output; the sequential-crossing and information-fractio
 hand-built live-stats dict where engineering a crossing through the real planner is awkward.
 """
 
-from pathlib import Path
 import sys
+from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
 from app.backend.app.services.decision_service import synthesize_decision
 from app.backend.app.services.live_stats_service import build_live_stats
-
 
 # --- builders -------------------------------------------------------------------------
 
@@ -66,7 +65,8 @@ def _aggregates(*arms: dict) -> dict:
 
 
 def _decide(design: dict, *arms: dict) -> dict:
-    return synthesize_decision(build_live_stats("e", design, _aggregates(*arms)))
+    live = build_live_stats("e", design, _aggregates(*arms))
+    return synthesize_decision(live, project_payload=design)
 
 
 def _codes(items: list[dict]) -> list[str]:
@@ -106,15 +106,19 @@ def test_srm_mismatch_is_a_blocker_forcing_no_ship() -> None:
 
 
 def test_clear_positive_result_ships_with_high_confidence() -> None:
-    # 10% control vs 12% treatment at n=5000/arm: significant, P(B>A) ~ 1.0, balanced split.
+    # 10% control vs 14% treatment at n=5000/arm: significant, P(B>A) ~ 1.0, balanced split.
     # mde 20% plans ~3.8k/arm, so 5k/arm is the planned fixed-horizon read (no peeking guard).
-    decision = _decide(_binary_design(mde_pct=20), _arm(0, 5000, 500), _arm(1, 5000, 600))
+    # Absolute MWE is 2.0 pp; observed CI lower clears it (practical_v1).
+    decision = _decide(_binary_design(mde_pct=20), _arm(0, 5000, 500), _arm(1, 5000, 700))
     assert decision["verdict"] == "ship"
     assert decision["confidence"] == "high"
     codes = _codes(decision["reasons"])
     assert "significant_win" in codes
+    assert "practical_threshold_met" in codes
     assert "bayesian_win" in codes
     assert decision["blockers"] == []
+    assert decision["policy"]["version"] == "practical_v1"
+    assert decision["evidence"]["power_achieved_not_used"] is True
     win = next(r for r in decision["reasons"] if r["code"] == "significant_win")
     assert win["params"]["arm"] == 1
     assert win["params"]["effect_relative"] is not None
@@ -122,18 +126,19 @@ def test_clear_positive_result_ships_with_high_confidence() -> None:
 
 def test_ship_reports_a_losing_arm_alongside_the_winner() -> None:
     # mde 20% keeps this a planned read (~4.7k/arm planned at the Bonferroni-adjusted alpha).
+    # Arm 1 at 14% clears the 2.0 pp practical MWE; arm 2 is a clear loss.
     design = _binary_design(variants_count=3, traffic_split=[34, 33, 33], mde_pct=20)
     decision = _decide(
         design,
         _arm(0, 5000, 500),  # control 10%
-        _arm(1, 5000, 650),  # treatment 13% -> win
+        _arm(1, 5000, 700),  # treatment 14% -> practical win
         _arm(2, 5000, 350),  # treatment 7% -> loss
     )
     assert decision["verdict"] == "ship"
     reasons = decision["reasons"]
     win_arms = [r["params"]["arm"] for r in reasons if r["code"] == "significant_win"]
     loss_arms = [r["params"]["arm"] for r in reasons if r["code"] == "significant_loss"]
-    assert win_arms == [1]
+    assert 1 in win_arms
     assert loss_arms == [2]
 
 
@@ -188,15 +193,17 @@ def test_fixed_horizon_early_read_does_not_ship_on_z_alone() -> None:
 
 
 def test_fixed_horizon_early_read_ships_when_anytime_valid_confirms() -> None:
-    # 10% -> 13% at 5k/arm: still an early read of the mde-5% plan, but the mSPRT confidence
+    # 10% -> 14% at 5k/arm: still an early read of the mde-5% plan, but the mSPRT confidence
     # sequence already excludes zero, so acting now is exactly what anytime-valid inference is for.
     # Confidence is capped at medium: the sign is confirmed, the early effect size is inflated.
-    decision = _decide(_binary_design(), _arm(0, 5000, 500), _arm(1, 5000, 650))
+    # Practical MWE is 0.5 pp (mde 5% of baseline 10%); CI lower clears it.
+    decision = _decide(_binary_design(), _arm(0, 5000, 500), _arm(1, 5000, 700))
     assert decision["verdict"] == "ship"
     assert decision["confidence"] == "medium"
     codes = _codes(decision["reasons"])
     assert "significant_win" in codes
     assert "anytime_valid_confirmed" in codes
+    assert "practical_threshold_met" in codes
 
 
 def test_fixed_horizon_early_confirmed_loss_is_no_ship() -> None:
@@ -255,7 +262,25 @@ def _live_stats(*, comparisons: list[dict], sequential: dict, exposures_total: i
     }
 
 
-def _ok_comparison(*, arm: int, effect: float, significant: bool, prob, seq_sig, effect_relative=0.2, p_value=0.01) -> dict:
+def _ok_comparison(
+    *,
+    arm: int,
+    effect: float,
+    significant: bool,
+    prob,
+    seq_sig,
+    effect_relative=0.2,
+    p_value=0.01,
+    ci_lower: float | None = None,
+    ci_upper: float | None = None,
+) -> dict:
+    # Default CI is well clear of a typical binary MWE when effect is a clear win, so hand-built
+    # sequential cases without a design still exercise statistical rules under practical_v1 only
+    # when policy inputs are present (otherwise practical gate is off).
+    if ci_lower is None:
+        ci_lower = effect - 0.001 if effect is not None else None
+    if ci_upper is None:
+        ci_upper = effect + 0.001 if effect is not None else None
     return {
         "treatment_index": arm,
         "status": "ok",
@@ -266,6 +291,8 @@ def _ok_comparison(*, arm: int, effect: float, significant: bool, prob, seq_sig,
             "observed_effect_relative": effect_relative,
             "p_value": p_value,
             "is_significant": significant,
+            "ci_lower": ci_lower,
+            "ci_upper": ci_upper,
         },
         "probability_treatment_beats_control": prob,
         "sequential_significant": seq_sig,
@@ -346,18 +373,18 @@ def _decide_with_guardrail(
         _aggregates(*primary),
         guardrail_aggregates={guardrail_name: _aggregates(*guardrail_arms)},
     )
-    return synthesize_decision(live)
+    return synthesize_decision(live, project_payload=design)
 
 
 def test_guardrail_breach_vetoes_a_primary_win() -> None:
-    # The primary is a clear win (10% -> 12%), but the error-rate guardrail breaches (2% -> 8%): the
-    # data is trustworthy, yet the treatment harms a protected metric, so the win is vetoed.
-    # mde 20% keeps the primary read at the planned size so the win is not peeking-gated.
+    # The primary is a clear practical win (10% -> 14%), but the error-rate guardrail breaches
+    # (2% -> 8%): the data is trustworthy, yet the treatment harms a protected metric, so the win
+    # is vetoed. mde 20% keeps the primary read at the planned size so the win is not peeking-gated.
     design = _binary_design(mde_pct=20)
     design["metrics"]["guardrail_metrics"] = [_guardrail("error_rate", baseline_rate=5.0)]
     decision = _decide_with_guardrail(
         design,
-        [_arm(0, 5000, 500), _arm(1, 5000, 600)],
+        [_arm(0, 5000, 500), _arm(1, 5000, 700)],
         "error_rate",
         [_arm(0, 5000, 100), _arm(1, 5000, 400)],
     )
@@ -378,10 +405,63 @@ def test_guardrail_warning_does_not_veto_a_win() -> None:
     design["metrics"]["guardrail_metrics"] = [_guardrail("error_rate", baseline_rate=5.0)]
     decision = _decide_with_guardrail(
         design,
-        [_arm(0, 5000, 500), _arm(1, 5000, 600)],
+        [_arm(0, 5000, 500), _arm(1, 5000, 700)],
         "error_rate",
         [_arm(0, 1000, 50), _arm(1, 1000, 62)],
     )
     assert decision["verdict"] == "ship"
     assert "guardrail_breach" not in _codes(decision["blockers"])
     assert "guardrail_vetoed" not in _codes(decision["reasons"])
+
+
+# --- practical significance policy (ADR 0001 / audit F-07) ------------------------------------
+
+
+def test_trivial_but_significant_effect_does_not_ship() -> None:
+    """Golden: significant +2% relative at huge N, mde 5% → proven below MWE → no_ship."""
+    # Absolute MWE = 0.5 pp; observed effect is +0.2 pp with CI entirely below 0.5.
+    decision = _decide(
+        _binary_design(mde_pct=5),
+        _arm(0, 200_000, 20_000),
+        _arm(1, 200_000, 20_400),
+    )
+    assert decision["verdict"] == "no_ship"
+    codes = _codes(decision["reasons"])
+    assert "significant_win" in codes
+    assert "below_practical_threshold_proven" in codes
+    assert decision["policy"]["require_practical_evidence"] is True
+    assert decision["policy"]["minimum_worthwhile_effect"] == 0.5
+
+
+def test_significant_win_with_ci_crossing_mwe_at_planned_read_is_no_ship() -> None:
+    """Golden: CI crosses MWE at complete sample → statistically positive but not practical."""
+    # 10% vs 12% at planned read (mde 20% → MWE 2.0 pp); CI lower ~0.77 < 2.0 < CI upper.
+    decision = _decide(_binary_design(mde_pct=20), _arm(0, 5000, 500), _arm(1, 5000, 600))
+    assert decision["verdict"] == "no_ship"
+    codes = _codes(decision["reasons"])
+    assert "practical_threshold_uncertain" in codes
+    assert "statistically_positive_but_below_practical_threshold" in codes
+
+
+def test_missing_mde_keeps_statistical_only_ship_compat() -> None:
+    """Golden: without policy inputs / usable MDE the statistical ship path remains (compat)."""
+    decision = synthesize_decision(
+        _live_stats(
+            comparisons=[
+                _ok_comparison(
+                    arm=1,
+                    effect=0.2,
+                    significant=True,
+                    prob=0.99,
+                    seq_sig=None,
+                    ci_lower=0.05,
+                    ci_upper=0.35,
+                )
+            ],
+            sequential={"status": "fixed_horizon", "n_looks": 1, "information_fraction": None},
+        )
+    )
+    assert decision["policy"]["require_practical_evidence"] is False
+    assert decision["policy"]["mwe_source"] == "unavailable"
+    assert decision["verdict"] == "ship"
+    assert "practical_threshold_met" not in _codes(decision["reasons"])

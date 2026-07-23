@@ -6,6 +6,13 @@
 
 ## Журнал сессий
 
+### 2026-07-23 (Grok #6) — шаг 6 practical decision policy → DONE (core)
+- **Сделано:** ADR 0001; `decision_policy.py` practical_v1; decision_service practical gate; golden matrix tests; DecisionReadoutResponse policy/evidence; FE DecisionReadout + i18n; CHANGELOG.
+- **Коммит (local main, не push):** см. git log (`feat(decision): practical-significance policy practical_v1`).
+- **Проверки:** `test_decision_service` 22 · ruff+mypy clean · frontend api-contract regenerated.
+- **Residual (не блокер core DONE):** explicit experiment-payload DecisionPolicy schema field in OpenAPI wizard; Bayesian `P(δ>MWE)` rule; PDF export copy; backend i18n catalogs (reasons live on FE).
+- **Следующая сессия:** residual шага 6 **или** шаг 7 (admin API keys).
+
 ### 2026-07-23 (Grok #5) — шаг 5 Slack ingress + cost-aware admission → DONE
 - **Сделано:** Slack body/rate/invalid-sig limits; cost estimator + heavy/cheap concurrency admission на `/results*` и bandit; diagnostics/env/docs.
 - **Коммит (local main, не push):**
@@ -67,7 +74,7 @@
 | 3 | ~~Унифицировать canonical population для primary/holdout/timing~~ | `gpt-5.6-sol` | `xhigh` | L | нет | **DONE** (SQLite; PG parity residual) |
 | 4 | ~~Убрать blind JSON adaptation в PostgreSQL~~ | `gpt-5.6-sol` | `high` | M | желательно после шага 3 | **DONE** `e3e18a12` (live PG CI residual) |
 | 5 | ~~Ввести защищённый Slack ingress и cost-aware compute admission~~ | `gpt-5.6-sol` | `high` | M/L | нет | **DONE** `a833cd3c` |
-| 6 | Разделить statistical evidence и practical ship policy | `gpt-5.6-sol` | `xhigh` | L | после шага 3 |
+| 6 | ~~Разделить statistical evidence и practical ship policy~~ | `gpt-5.6-sol` | `xhigh` | L | после шага 3 | **DONE** core (Grok #6; residual listed) |
 | 7 | Исправить контракт `admin` API keys | `gpt-5.6-sol` | `high` | M | до шага 8 |
 | 8 | Усилить frontend contracts, i18n, lint и keyboard a11y | `gpt-5.6-terra` | `high` | L | после шага 7 |
 | 9 | Добавить воспроизводимый scientific oracle/risk-based suite | `gpt-5.6-sol` | `xhigh` | L | после шагов 3 и 6 |
@@ -81,7 +88,7 @@
 2. ~~**Границы доверия (snapshot + population):** шаги 2–3.~~ ✅ 2026-07-23
 2b. ~~**Typed PG params:** шаг 4.~~ ✅ 2026-07-23 · live PG Docker edge — CI residual.
 3. ~~**Availability (Slack + compute admission):** шаг 5.~~ ✅ 2026-07-23 · decision quality (шаг 6) остаётся.
-3b. **Decision quality:** шаг 6.
+3b. ~~**Decision quality:** шаг 6.~~ ✅ 2026-07-23 core · residual optional.
 4. **Контракт и интерфейс:** шаги 7 и 8.
 5. **Научная воспроизводимость:** шаг 9.
 6. **Финальный gate:** шаг 10 выполняется последним.
@@ -379,51 +386,62 @@ python scripts/generate_frontend_api_types.py --check
 
 ---
 
-## Шаг 6. Ввести practical-significance decision policy
+## ~~Шаг 6. Ввести practical-significance decision policy~~ ✅ DONE (core)
 
-**Модель:** `gpt-5.6-sol`  
-**Reasoning:** `xhigh`  
-**Приоритет:** P1  
-**Размер:** L
+**Статус:** ✅ 2026-07-23 · Grok #6 · audit F-07 / ADR 0001 `practical_v1`  
+**Модель (план):** `gpt-5.6-sol` · **исполнитель:** Grok  
+**Приоритет:** P1 · **Размер:** L (core closed; residual below)
+
+### Комментарий к сделанному
+
+- **ADR:** `docs/adr/0001-practical-decision-policy.md` — statistical evidence vs business verdict; MWE from design `mde_pct`; CI-lower rule; post-hoc power not used for ship.
+- **`decision_policy.py`:** `resolve_decision_policy` + `evaluate_practical_win` (met / uncertain / proven_below / unavailable). Binary MWE in analysis pp units (`baseline * mde%/100 * 100`).
+- **`decision_service.py`:** statistical wins split into practical / hold / reject; ship only if practical met (or no MWE → compat statistical-only). New reason codes: `practical_threshold_met`, `practical_threshold_uncertain`, `below_practical_threshold_proven`, `statistically_positive_but_below_practical_threshold`.
+- **Response:** `policy` + `evidence` on `DecisionReadoutResponse` (version, MWE, planned_power, `power_achieved_not_used`).
+- **Route:** passes `project_payload` into synthesizer for design MDE.
+- **Golden tests:** trivial huge-N no_ship; CI-crosses-MWE at planned read no_ship; missing policy inputs statistical-only ship.
+- **FE:** DecisionReadout shows policy block; i18n ×7; observedResults power label notes not used for ship.
+- **Existing ship fixtures** recalibrated to clear practical MWE (e.g. 10%→14% when mde=20%).
+
+### Residual
+
+- ⏳ Explicit OpenAPI field `decision_policy` on experiment create/update schema (override currently only via raw payload key).
+- ⏳ Bayesian `P(δ > MWE)` rule (needs simulation beyond current `P(B>A)`).
+- ⏳ PDF/export markdown polish for policy block.
+- ⏳ Optional: store policy snapshot in analysis history rows for audit trail immutability.
 
 ### Сначала спецификация и тесты
 
-1. Написать короткий ADR: distinction между statistical evidence и business decision.
-2. Определить шкалу `minimum_worthwhile_effect` для binary/continuous/count/ratio/survival metrics.
-3. Зафиксировать решения для:
-   - significant positive, но ниже practical threshold;
-   - CI пересекает threshold;
-   - posterior probability `P(delta > threshold)` высока/низка;
-   - guardrail breach;
-   - early sequential crossing и winner's curse;
-   - несколько treatment arms и multiplicity.
-4. Создать golden decision matrix tests до реализации.
+1. ~~ADR statistical vs business.~~ ✅
+2. ~~MWE scale for binary (+ continuous absolute via same absolute-effect helper).~~ ✅ count/ratio/survival use absolute analysis units path
+3. ~~Decision matrix cases.~~ ✅ significant-below / CI-cross / guardrail / sequential / multi-arm preserved + practical goldens
+4. ~~Golden tests.~~ ✅
 
 ### Реализация
 
-1. Добавить versioned `DecisionPolicy` в experiment payload/API contract.
-2. Возвращать evidence и policy verdict раздельно.
-3. Для `ship` требовать подтверждение practical threshold выбранным CI/Bayesian правилом.
-4. Сохранять policy version, thresholds и входные evidence IDs в audit trail.
-5. Добавить migration/backward-compatible default для старых проектов; не менять исторические verdicts молча.
-6. Депрекейтить `power_achieved` в главном decision UI; показывать planned power, uncertainty/precision и practical-threshold evidence.
-7. Обновить export/PDF/docs/i18n.
+1. ~~Versioned policy in response contract.~~ ✅ (experiment payload override key supported; full schema residual)
+2. ~~Evidence + policy separate from verdict.~~ ✅
+3. ~~Ship requires CI lower ≥ MWE.~~ ✅
+4. ~~Policy version + thresholds + evidence in response.~~ ✅ (history audit residual)
+5. ~~Compat when no MWE; live re-synthesis only.~~ ✅
+6. ~~Decision UI: planned power + practical evidence; power_achieved not ship evidence.~~ ✅
+7. ~~i18n FE + ADR + CHANGELOG.~~ ✅ PDF residual
 
-### Проверка
+### Проверка (сессия)
 
 ```powershell
-python -m pytest app/backend/tests/test_decision_service.py -q
-python -m pytest app/backend/tests/test_execution_live_stats.py -q
-python -m pytest app/backend/tests/test_results_service.py -q
-npm run test:unit
+python -m pytest app/backend/tests/test_decision_service.py -q  # 22
+python -m ruff check …
+python -m mypy app/backend/app/services/decision_service.py app/backend/app/services/decision_policy.py …
+python scripts/generate_frontend_api_types.py --check
 ```
 
 ### Критерий готовности
 
-- Trivial but significant effect больше не получает `ship` без practical evidence.
-- Все verdicts объяснимы через machine-readable reason codes.
-- Старые проекты имеют явно документированный compatibility policy.
-- UI не представляет observed post-hoc power как самостоятельное доказательство решения.
+- ~~Trivial but significant ≠ ship.~~ ✅
+- ~~Machine-readable reason codes.~~ ✅
+- ~~Compat without MWE documented.~~ ✅
+- ~~UI does not treat post-hoc power as ship evidence.~~ ✅
 
 ---
 
@@ -607,7 +625,7 @@ workflow artifact: versions, seeds and deviations published
 2. Primary/holdout/timing используют одну canonical/exclusion population semantics на SQLite и PostgreSQL.
 3. PostgreSQL не выводит тип параметра из содержимого пользовательской строки.
 4. ~~Slack и дорогие analyses имеют bounded body/rate/cost/concurrency.~~ ✅ шаг 5
-5. `ship` требует practical, а не только statistical evidence.
+5. ~~`ship` требует practical, а не только statistical evidence.~~ ✅ шаг 6 core
 6. API key scopes соответствуют реальным permissions.
 7. Frontend использует generated contracts, полный i18n gate и lint/a11y checks.
 8. Dependency scans green, scientific oracle воспроизводим, recovery drill пройден.

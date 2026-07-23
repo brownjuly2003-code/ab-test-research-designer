@@ -578,7 +578,7 @@
         "pValue": "p-value",
         "testStatistic": "Test statistic",
         "relativeChange": "Relative change",
-        "powerAchieved": "Power achieved",
+        "powerAchieved": "Power achieved (descriptive; not used for ship decisions)",
         "forestPlot": "Forest plot",
         "observedSummary": "Observed summary",
         "controlRate": "Control rate",
@@ -964,7 +964,13 @@
     },
     "decision": {
       "title": "Decision readout",
-      "description": "One synthesized verdict — ship, don't ship, or keep running — assembled from the live SRM, frequentist, Bayesian, and sequential signals. No new statistics.",
+      "description": "One synthesized verdict — ship, don't ship, or keep running — assembled from the live SRM, frequentist, Bayesian, and sequential signals, then gated by the design minimum worthwhile effect (practical significance). No new statistics. Observed post-hoc power is not used for this verdict.",
+      "policyTitle": "Decision policy",
+      "policyVersion": "Policy {{version}}",
+      "policyMwe": "Minimum worthwhile effect: {{mwe}} (from {{source}})",
+      "policyPlannedPower": "Planned power: {{power}}",
+      "policyNoMwe": "No practical threshold configured — statistical evidence only (compatibility).",
+      "policyPowerNote": "Observed post-hoc power is not used for ship / no-ship.",
       "refresh": "Synthesize decision",
       "refreshing": "Synthesizing...",
       "saveFirst": "Save this experiment first to synthesize a decision.",
@@ -1008,7 +1014,12 @@
         "inconclusive_ci": "{{arm}}: the confidence interval still includes zero — no clear effect yet.",
         "info_fraction_incomplete": "Only {{fraction}} of the planned sample has been collected.",
         "info_fraction_complete_no_effect": "The experiment reached its planned size without a detectable effect.",
-        "guardrail_vetoed": "A guardrail metric is breached, so the result is not shippable even if the primary metric wins."
+        "guardrail_vetoed": "A guardrail metric is breached, so the result is not shippable even if the primary metric wins.",
+        "practical_threshold_met": "{{arm}}: the effect CI lower bound ({{ci_lower}}) clears the minimum worthwhile effect ({{mwe}}).",
+        "practical_threshold_uncertain": "{{arm}}: significant, but the CI [{{ci_lower}}, {{ci_upper}}] still crosses the minimum worthwhile effect ({{mwe}}).",
+        "below_practical_threshold_proven": "{{arm}}: the entire effect CI is below the minimum worthwhile effect ({{mwe}}) — statistically positive but not practically meaningful.",
+        "statistically_positive_but_below_practical_threshold": "A statistically significant win did not clear the practical threshold at the planned sample size — do not ship on statistical significance alone.",
+        "practical_threshold_unavailable": "No design MDE / minimum worthwhile effect is available; practical gating is disabled for this readout."
       },
       "blocker": {
         "srm_mismatch": "Sample-ratio mismatch (p={{p}}) — assignment looks broken; fix randomization or tracking before trusting any result.",

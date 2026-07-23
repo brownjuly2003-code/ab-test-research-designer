@@ -8,6 +8,10 @@
 - Slack ingress (audit F-05): `/slack/commands|interactive|events` now share a dedicated body cap (`AB_MAX_SLACK_BODY_BYTES`, default 64 KiB) and request-count rate limit; invalid signatures are throttled (`AB_SLACK_INVALID_SIGNATURE_*`) before form/json parsing. Oversized bodies return 413 without unbounded buffering.
 - Cost-aware compute admission (audit F-06): expensive `/api/v1/results*` and bandit simulation estimate cost units after schema validation (analyzer type, N, resamples/table size) and acquire a bounded heavy/cheap concurrency + in-flight cost budget before resampling starts. Overload returns 429 `compute_capacity_exceeded` with `Retry-After`; cheap summary tests keep a separate lane.
 
+### Changed
+
+- Decision readout practical-significance policy `practical_v1` (audit F-07 / ADR 0001): `ship` now requires a statistical win **and** CI lower bound ≥ design minimum worthwhile effect (absolute MDE from `mde_pct`). Trivial-but-significant effects become `no_ship` / `keep_running` with machine-readable reason codes. Response includes `policy` + `evidence` (policy version, MWE, planned power); observed post-hoc power is explicitly not used for the verdict. Live history snapshots are not rewritten.
+
 ### Fixed
 
 - PostgreSQL parameter typing (audit F-03): removed content-based `{`/`[` + `json.loads` → `Jsonb` inference. Intentional JSON/JSONB values bind via explicit `JsonParam`; JSON-looking TEXT (`project_name`, `user_id`, `metric`, `stratum`, exclusion reasons, …) round-trips unchanged on SQLite and PostgreSQL. `?` → `%s` remains a documented temporary portability shim.

@@ -303,12 +303,38 @@ export type ConversionIngestRequest = {
   conversions: ConversionEvent[];
 };
 
+export type DecisionEvidenceSummary = {
+  policy_version?: string | null;
+  minimum_worthwhile_effect?: number | null;
+  mwe_source?: string | null;
+  planned_power?: number | null;
+  require_practical_evidence?: boolean | null;
+  winning_arms?: { [key: string]: unknown; }[];
+  power_achieved_not_used?: boolean;
+};
+
+export type DecisionPolicySummary = {
+  version: string;
+  require_practical_evidence: boolean;
+  practical_rule: string;
+  mwe_scale: string;
+  minimum_worthwhile_effect?: number | null;
+  minimum_worthwhile_effect_relative_pct?: number | null;
+  mwe_source: string;
+  metric_type?: string | null;
+  baseline_value?: number | null;
+  planned_power?: number | null;
+  evidence_fields?: string[];
+};
+
 export type DecisionReadoutResponse = {
   experiment_id: string;
   verdict: "ship" | "no_ship" | "keep_running";
   confidence: "high" | "medium" | "low";
   reasons?: DecisionReason[];
   blockers?: DecisionReason[];
+  policy?: DecisionPolicySummary | null;
+  evidence?: DecisionEvidenceSummary | null;
 };
 
 export type DecisionReason = {

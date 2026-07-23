@@ -577,7 +577,7 @@
         "pValue": "p 值",
         "testStatistic": "检验统计量",
         "relativeChange": "相对变化",
-        "powerAchieved": "达到的功率",
+        "powerAchieved": "Power achieved (descriptive; not used for ship decisions)",
         "forestPlot": "森林图",
         "observedSummary": "观察总结",
         "controlRate": "对照组转化率",
@@ -963,7 +963,7 @@
     },
     "decision": {
       "title": "决策摘要",
-      "description": "一个综合判定——发布、不发布或继续运行——由实时 SRM、频率派、贝叶斯和序贯信号汇总而成。没有新的统计方法。",
+      "description": "One synthesized verdict — ship, don't ship, or keep running — assembled from the live SRM, frequentist, Bayesian, and sequential signals, then gated by the design minimum worthwhile effect (practical significance). No new statistics. Observed post-hoc power is not used for this verdict.",
       "refresh": "生成决策",
       "refreshing": "生成中...",
       "saveFirst": "请先保存此实验以生成决策。",
@@ -1007,12 +1007,23 @@
         "inconclusive_ci": "{{arm}}：置信区间仍包含零——目前没有明确效应。",
         "info_fraction_incomplete": "仅收集了计划样本的 {{fraction}}。",
         "info_fraction_complete_no_effect": "实验已达到计划规模，但未检测到效应。",
-        "guardrail_vetoed": "护栏指标已被触发，因此即使主指标获胜，该结果也不可发布。"
+        "guardrail_vetoed": "护栏指标已被触发，因此即使主指标获胜，该结果也不可发布。",
+        "practical_threshold_met": "{{arm}}: the effect CI lower bound ({{ci_lower}}) clears the minimum worthwhile effect ({{mwe}}).",
+        "practical_threshold_uncertain": "{{arm}}: significant, but the CI [{{ci_lower}}, {{ci_upper}}] still crosses the minimum worthwhile effect ({{mwe}}).",
+        "below_practical_threshold_proven": "{{arm}}: the entire effect CI is below the minimum worthwhile effect ({{mwe}}) — statistically positive but not practically meaningful.",
+        "statistically_positive_but_below_practical_threshold": "A statistically significant win did not clear the practical threshold at the planned sample size — do not ship on statistical significance alone.",
+        "practical_threshold_unavailable": "No design MDE / minimum worthwhile effect is available; practical gating is disabled for this readout."
       },
       "blocker": {
         "srm_mismatch": "样本比例不匹配（p={{p}}）——分流似乎已损坏；在信任任何结果之前请修复随机化或追踪。",
         "guardrail_breach": "护栏指标“{{metric}}”显著劣化并超出容忍范围——在弄清该回退之前，发布将被阻止。"
-      }
+      },
+      "policyTitle": "Decision policy",
+      "policyVersion": "Policy {{version}}",
+      "policyMwe": "Minimum worthwhile effect: {{mwe}} (from {{source}})",
+      "policyPlannedPower": "Planned power: {{power}}",
+      "policyNoMwe": "No practical threshold configured — statistical evidence only (compatibility).",
+      "policyPowerNote": "Observed post-hoc power is not used for ship / no-ship."
     },
     "categoricalResults": {
       "testTypeLabel": "检验",
