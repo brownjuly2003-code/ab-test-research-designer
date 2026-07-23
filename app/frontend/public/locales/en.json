@@ -1794,5 +1794,65 @@
       "increase": "increase",
       "decrease": "decrease"
     }
+  },
+  "apiKeys": {
+    "title": "API keys",
+    "description": "Create scoped keys for external consumers, revoke them when needed, and keep per-key rate limits isolated.",
+    "loading": "Loading API keys...",
+    "empty": "No API keys have been created yet.",
+    "actions": {
+      "createNew": "Create new",
+      "createKey": "Create key",
+      "creating": "Creating...",
+      "close": "Close",
+      "revoke": "Revoke",
+      "revoking": "Revoking...",
+      "delete": "Delete",
+      "deleting": "Deleting...",
+      "copyKey": "Copy key"
+    },
+    "status": {
+      "loadFailed": "API key list unavailable.",
+      "createFailed": "API key creation failed.",
+      "revokeFailed": "API key revoke failed.",
+      "deleteFailed": "API key delete failed.",
+      "clipboardUnavailable": "Clipboard access unavailable.",
+      "copied": "Copied to clipboard.",
+      "copyFailed": "Copy failed."
+    },
+    "fields": {
+      "name": "Name",
+      "scope": "Scope",
+      "rateLimitRequests": "Rate limit requests",
+      "rateLimitWindow": "Rate limit window seconds"
+    },
+    "placeholders": {
+      "name": "Partner analytics",
+      "rateLimitDefault": "Leave blank for global default"
+    },
+    "scopes": {
+      "read": "Read",
+      "write": "Write"
+    },
+    "labels": {
+      "scopeCreated": "Scope {{scope}} | Created {{created}}",
+      "active": "Active",
+      "revoked": "Revoked",
+      "id": "ID",
+      "lastUsed": "Last used",
+      "rateLimitOverride": "Rate limit override",
+      "globalDefault": "Global default",
+      "rateLimitValue": "{{requests}} req / {{seconds}}s",
+      "revokedAt": "Revoked at",
+      "notUsedYet": "Not used yet"
+    },
+    "plaintext": {
+      "title": "Plaintext key",
+      "warning": "This secret is shown only once. Store it securely before leaving the page."
+    },
+    "createDialog": {
+      "title": "Create API key",
+      "description": "Set a label, scope, and optional rate limit override."
+    }
   }
 }

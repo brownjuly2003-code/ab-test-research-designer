@@ -1794,5 +1794,65 @@
       "increase": "augmenter",
       "decrease": "diminuer"
     }
+  },
+  "apiKeys": {
+    "title": "Clés API",
+    "description": "Créez des clés scopées pour les consommateurs externes, révoquez-les si besoin et isolez les rate limits par clé.",
+    "loading": "Chargement des clés API...",
+    "empty": "Aucune clé API n’a encore été créée.",
+    "actions": {
+      "createNew": "Créer",
+      "createKey": "Créer la clé",
+      "creating": "Création...",
+      "close": "Fermer",
+      "revoke": "Révoquer",
+      "revoking": "Révocation...",
+      "delete": "Supprimer",
+      "deleting": "Suppression...",
+      "copyKey": "Copier la clé"
+    },
+    "status": {
+      "loadFailed": "Liste des clés API indisponible.",
+      "createFailed": "Échec de la création de la clé API.",
+      "revokeFailed": "Échec de la révocation de la clé API.",
+      "deleteFailed": "Échec de la suppression de la clé API.",
+      "clipboardUnavailable": "Presse-papiers indisponible.",
+      "copied": "Copié dans le presse-papiers.",
+      "copyFailed": "Échec de la copie."
+    },
+    "fields": {
+      "name": "Nom",
+      "scope": "Portée",
+      "rateLimitRequests": "Requêtes de rate limit",
+      "rateLimitWindow": "Fenêtre de rate limit (secondes)"
+    },
+    "placeholders": {
+      "name": "Partner analytics",
+      "rateLimitDefault": "Laisser vide pour la valeur globale"
+    },
+    "scopes": {
+      "read": "Lecture",
+      "write": "Écriture"
+    },
+    "labels": {
+      "scopeCreated": "Scope {{scope}} | Created {{created}}",
+      "active": "Active",
+      "revoked": "Révoquée",
+      "id": "ID",
+      "lastUsed": "Dernière utilisation",
+      "rateLimitOverride": "Surcharge de rate limit",
+      "globalDefault": "Valeur globale",
+      "rateLimitValue": "{{requests}} req / {{seconds}}s",
+      "revokedAt": "Révoquée le",
+      "notUsedYet": "Pas encore utilisée"
+    },
+    "plaintext": {
+      "title": "Clé en clair",
+      "warning": "Ce secret n’est affiché qu’une seule fois. Enregistrez-le en sécurité avant de quitter la page."
+    },
+    "createDialog": {
+      "title": "Créer une clé API",
+      "description": "Définissez un libellé, une portée et un rate limit optionnel."
+    }
   }
 }

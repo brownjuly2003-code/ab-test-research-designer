@@ -1,5 +1,7 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useTranslation } from "react-i18next";
 
+import "../i18n";
 import {
   createApiKeyRequest,
   deleteApiKeyRequest,
@@ -9,16 +11,18 @@ import {
   type ApiKeyRecord
 } from "../lib/api";
 import { formatLocalizedTimestamp } from "../lib/formatDate";
+import InlineConfirmButton from "./InlineConfirmButton";
 
-function formatTimestamp(value: string | null | undefined): string {
+function formatTimestamp(value: string | null | undefined, emptyLabel: string): string {
   if (!value) {
-    return "Not used yet";
+    return emptyLabel;
   }
 
   return formatLocalizedTimestamp(value);
 }
 
 export default function ApiKeyManager() {
+  const { t } = useTranslation();
   const [keys, setKeys] = useState<ApiKeyRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -31,6 +35,9 @@ export default function ApiKeyManager() {
   const [rateLimitWindowSeconds, setRateLimitWindowSeconds] = useState("");
   const [latestCreated, setLatestCreated] = useState<ApiKeyCreateResponse | null>(null);
   const [copyStatus, setCopyStatus] = useState("");
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const openButtonRef = useRef<HTMLButtonElement | null>(null);
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
 
   async function loadKeys() {
     try {
@@ -39,7 +46,7 @@ export default function ApiKeyManager() {
       const response = await listApiKeysRequest();
       setKeys(Array.isArray(response.keys) ? response.keys : []);
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "API key list unavailable.");
+      setError(loadError instanceof Error ? loadError.message : t("apiKeys.status.loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -48,6 +55,58 @@ export default function ApiKeyManager() {
   useEffect(() => {
     void loadKeys();
   }, []);
+
+  useEffect(() => {
+    if (!createOpen) {
+      return;
+    }
+
+    restoreFocusRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : openButtonRef.current;
+
+    const dialog = dialogRef.current;
+    const queryFocusable = () =>
+      Array.from(
+        dialog?.querySelectorAll<HTMLElement>(
+          "button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])"
+        ) ?? []
+      ).filter((element) => !element.hasAttribute("disabled"));
+
+    const initialFocusable = queryFocusable()[0];
+    initialFocusable?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setCreateOpen(false);
+        return;
+      }
+      if (event.key !== "Tab") {
+        return;
+      }
+
+      const focusable = queryFocusable();
+      if (focusable.length === 0) {
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      restoreFocusRef.current?.focus();
+    };
+  }, [createOpen]);
 
   async function onCreateSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -60,7 +119,9 @@ export default function ApiKeyManager() {
         name: name.trim(),
         scope,
         rate_limit_requests: rateLimitRequests.trim() ? Number(rateLimitRequests) : undefined,
-        rate_limit_window_seconds: rateLimitWindowSeconds.trim() ? Number(rateLimitWindowSeconds) : undefined
+        rate_limit_window_seconds: rateLimitWindowSeconds.trim()
+          ? Number(rateLimitWindowSeconds)
+          : undefined
       });
       setLatestCreated(created);
       setCreateOpen(false);
@@ -70,7 +131,7 @@ export default function ApiKeyManager() {
       setRateLimitWindowSeconds("");
       await loadKeys();
     } catch (createError) {
-      setError(createError instanceof Error ? createError.message : "API key creation failed.");
+      setError(createError instanceof Error ? createError.message : t("apiKeys.status.createFailed"));
     } finally {
       setCreating(false);
     }
@@ -83,7 +144,7 @@ export default function ApiKeyManager() {
       await revokeApiKeyRequest(apiKeyId);
       await loadKeys();
     } catch (revokeError) {
-      setError(revokeError instanceof Error ? revokeError.message : "API key revoke failed.");
+      setError(revokeError instanceof Error ? revokeError.message : t("apiKeys.status.revokeFailed"));
     } finally {
       setActionKeyId(null);
     }
@@ -96,7 +157,7 @@ export default function ApiKeyManager() {
       await deleteApiKeyRequest(apiKeyId);
       await loadKeys();
     } catch (deleteError) {
-      setError(deleteError instanceof Error ? deleteError.message : "API key delete failed.");
+      setError(deleteError instanceof Error ? deleteError.message : t("apiKeys.status.deleteFailed"));
     } finally {
       setActionKeyId(null);
     }
@@ -104,35 +165,40 @@ export default function ApiKeyManager() {
 
   async function copyPlaintextKey() {
     if (!latestCreated?.plaintext_key || !navigator.clipboard?.writeText) {
-      setCopyStatus("Clipboard access unavailable.");
+      setCopyStatus(t("apiKeys.status.clipboardUnavailable"));
       return;
     }
 
     try {
       await navigator.clipboard.writeText(latestCreated.plaintext_key);
-      setCopyStatus("Copied to clipboard.");
+      setCopyStatus(t("apiKeys.status.copied"));
     } catch {
-      setCopyStatus("Copy failed.");
+      setCopyStatus(t("apiKeys.status.copyFailed"));
     }
   }
+
+  const notUsedYet = t("apiKeys.labels.notUsedYet");
 
   return (
     <>
       <div className="card">
         <div className="section-heading">
           <div>
-            <h3>API keys</h3>
-            <p className="muted">
-              Create scoped keys for external consumers, revoke them when needed, and keep per-key rate limits isolated.
-            </p>
+            <h3>{t("apiKeys.title")}</h3>
+            <p className="muted">{t("apiKeys.description")}</p>
           </div>
-          <button className="btn secondary" type="button" onClick={() => setCreateOpen(true)}>
-            Create new
+          <button
+            ref={openButtonRef}
+            className="btn secondary"
+            type="button"
+            onClick={() => setCreateOpen(true)}
+          >
+            {t("apiKeys.actions.createNew")}
           </button>
         </div>
         {error ? <div className="status">{error}</div> : null}
         {loading ? (
-          <p className="muted">Loading API keys...</p>
+          <p className="muted">{t("apiKeys.loading")}</p>
         ) : keys.length > 0 ? (
           <div style={{ display: "grid", gap: 12 }}>
             {keys.map((key) => (
@@ -149,30 +215,42 @@ export default function ApiKeyManager() {
                   <div>
                     <h4 style={{ margin: 0 }}>{key.name}</h4>
                     <p className="muted" style={{ margin: "6px 0 0" }}>
-                      Scope {key.scope} | Created {formatTimestamp(key.created_at)}
+                      {t("apiKeys.labels.scopeCreated", {
+                        scope: t(`apiKeys.scopes.${key.scope}`),
+                        created: formatTimestamp(key.created_at, notUsedYet)
+                      })}
                     </p>
                   </div>
                   <div className="actions">
-                    <span className="pill">{key.scope}</span>
-                    {key.revoked_at ? <span className="pill">Revoked</span> : <span className="pill">Active</span>}
+                    <span className="pill">{t(`apiKeys.scopes.${key.scope}`)}</span>
+                    {key.revoked_at ? (
+                      <span className="pill">{t("apiKeys.labels.revoked")}</span>
+                    ) : (
+                      <span className="pill">{t("apiKeys.labels.active")}</span>
+                    )}
                   </div>
                 </div>
                 <ul className="list">
                   <li>
-                    <strong>ID:</strong> <code>{key.id}</code>
+                    <strong>{t("apiKeys.labels.id")}:</strong> <code>{key.id}</code>
                   </li>
                   <li>
-                    <strong>Last used:</strong> {formatTimestamp(key.last_used_at)}
+                    <strong>{t("apiKeys.labels.lastUsed")}:</strong>{" "}
+                    {formatTimestamp(key.last_used_at, notUsedYet)}
                   </li>
                   <li>
-                    <strong>Rate limit override:</strong>{" "}
+                    <strong>{t("apiKeys.labels.rateLimitOverride")}:</strong>{" "}
                     {key.rate_limit_requests && key.rate_limit_window_seconds
-                      ? `${String(key.rate_limit_requests)} req / ${String(key.rate_limit_window_seconds)}s`
-                      : "Global default"}
+                      ? t("apiKeys.labels.rateLimitValue", {
+                          requests: String(key.rate_limit_requests),
+                          seconds: String(key.rate_limit_window_seconds)
+                        })
+                      : t("apiKeys.labels.globalDefault")}
                   </li>
                   {key.revoked_at ? (
                     <li>
-                      <strong>Revoked at:</strong> {formatTimestamp(key.revoked_at)}
+                      <strong>{t("apiKeys.labels.revokedAt")}:</strong>{" "}
+                      {formatTimestamp(key.revoked_at, notUsedYet)}
                     </li>
                   ) : null}
                 </ul>
@@ -184,31 +262,34 @@ export default function ApiKeyManager() {
                       disabled={actionKeyId === key.id}
                       onClick={() => void onRevoke(key.id)}
                     >
-                      {actionKeyId === key.id ? "Revoking..." : "Revoke"}
+                      {actionKeyId === key.id
+                        ? t("apiKeys.actions.revoking")
+                        : t("apiKeys.actions.revoke")}
                     </button>
                   ) : (
-                    <button
-                      className="btn ghost"
-                      type="button"
+                    <InlineConfirmButton
+                      label={
+                        actionKeyId === key.id
+                          ? t("apiKeys.actions.deleting")
+                          : t("apiKeys.actions.delete")
+                      }
                       disabled={actionKeyId === key.id}
-                      onClick={() => void onDelete(key.id)}
-                    >
-                      {actionKeyId === key.id ? "Deleting..." : "Delete"}
-                    </button>
+                      onConfirm={() => void onDelete(key.id)}
+                    />
                   )}
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <p className="muted">No API keys have been created yet.</p>
+          <p className="muted">{t("apiKeys.empty")}</p>
         )}
       </div>
 
       {latestCreated ? (
         <div className="card">
-          <h3>Plaintext key</h3>
-          <p className="muted">This secret is shown only once. Store it securely before leaving the page.</p>
+          <h3>{t("apiKeys.plaintext.title")}</h3>
+          <p className="muted">{t("apiKeys.plaintext.warning")}</p>
           <div
             style={{
               border: "1px solid rgba(217, 119, 6, 0.25)",
@@ -222,7 +303,7 @@ export default function ApiKeyManager() {
             <code style={{ wordBreak: "break-all" }}>{latestCreated.plaintext_key}</code>
             <div className="actions">
               <button className="btn secondary" type="button" onClick={() => void copyPlaintextKey()}>
-                Copy key
+                {t("apiKeys.actions.copyKey")}
               </button>
             </div>
             {copyStatus ? <div className="status">{copyStatus}</div> : null}
@@ -246,6 +327,7 @@ export default function ApiKeyManager() {
           }}
         >
           <div
+            ref={dialogRef}
             className="card"
             style={{
               width: "min(100%, 520px)",
@@ -255,60 +337,64 @@ export default function ApiKeyManager() {
           >
             <div className="section-heading">
               <div>
-                <h3 id="api-key-create-title">Create API key</h3>
-                <p className="muted">Set a label, scope, and optional rate limit override.</p>
+                <h3 id="api-key-create-title">{t("apiKeys.createDialog.title")}</h3>
+                <p className="muted">{t("apiKeys.createDialog.description")}</p>
               </div>
               <button className="btn ghost" type="button" onClick={() => setCreateOpen(false)}>
-                Close
+                {t("apiKeys.actions.close")}
               </button>
             </div>
             <form onSubmit={(event) => void onCreateSubmit(event)} style={{ display: "grid", gap: 16 }}>
               <div className="field">
-                <label htmlFor="api-key-name">Name</label>
+                <label htmlFor="api-key-name">{t("apiKeys.fields.name")}</label>
                 <input
                   id="api-key-name"
                   value={name}
                   onChange={(event) => setName(event.target.value)}
-                  placeholder="Partner analytics"
+                  placeholder={t("apiKeys.placeholders.name")}
                   required
                 />
               </div>
               <div className="field">
-                <label htmlFor="api-key-scope">Scope</label>
+                <label htmlFor="api-key-scope">{t("apiKeys.fields.scope")}</label>
                 <select
                   id="api-key-scope"
                   value={scope}
                   onChange={(event) => setScope(event.target.value as "read" | "write")}
                 >
-                  <option value="read">Read</option>
-                  <option value="write">Write</option>
+                  <option value="read">{t("apiKeys.scopes.read")}</option>
+                  <option value="write">{t("apiKeys.scopes.write")}</option>
                 </select>
               </div>
               <div className="field">
-                <label htmlFor="api-key-rate-limit-requests">Rate limit requests</label>
+                <label htmlFor="api-key-rate-limit-requests">
+                  {t("apiKeys.fields.rateLimitRequests")}
+                </label>
                 <input
                   id="api-key-rate-limit-requests"
                   type="number"
                   min="1"
                   value={rateLimitRequests}
                   onChange={(event) => setRateLimitRequests(event.target.value)}
-                  placeholder="Leave blank for global default"
+                  placeholder={t("apiKeys.placeholders.rateLimitDefault")}
                 />
               </div>
               <div className="field">
-                <label htmlFor="api-key-rate-limit-window">Rate limit window seconds</label>
+                <label htmlFor="api-key-rate-limit-window">
+                  {t("apiKeys.fields.rateLimitWindow")}
+                </label>
                 <input
                   id="api-key-rate-limit-window"
                   type="number"
                   min="1"
                   value={rateLimitWindowSeconds}
                   onChange={(event) => setRateLimitWindowSeconds(event.target.value)}
-                  placeholder="Leave blank for global default"
+                  placeholder={t("apiKeys.placeholders.rateLimitDefault")}
                 />
               </div>
               <div className="actions">
                 <button className="btn secondary" type="submit" disabled={creating || name.trim().length === 0}>
-                  {creating ? "Creating..." : "Create key"}
+                  {creating ? t("apiKeys.actions.creating") : t("apiKeys.actions.createKey")}
                 </button>
               </div>
             </form>

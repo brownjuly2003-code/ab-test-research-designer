@@ -1793,5 +1793,65 @@
       "increase": "上升",
       "decrease": "下降"
     }
+  },
+  "apiKeys": {
+    "title": "API 密钥",
+    "description": "为外部调用方创建作用域密钥，按需撤销，并为每个密钥设置独立速率限制。",
+    "loading": "正在加载 API 密钥...",
+    "empty": "尚未创建任何 API 密钥。",
+    "actions": {
+      "createNew": "新建",
+      "createKey": "创建密钥",
+      "creating": "创建中...",
+      "close": "关闭",
+      "revoke": "撤销",
+      "revoking": "撤销中...",
+      "delete": "删除",
+      "deleting": "删除中...",
+      "copyKey": "复制密钥"
+    },
+    "status": {
+      "loadFailed": "无法加载 API 密钥列表。",
+      "createFailed": "创建 API 密钥失败。",
+      "revokeFailed": "撤销 API 密钥失败。",
+      "deleteFailed": "删除 API 密钥失败。",
+      "clipboardUnavailable": "无法访问剪贴板。",
+      "copied": "已复制到剪贴板。",
+      "copyFailed": "复制失败。"
+    },
+    "fields": {
+      "name": "名称",
+      "scope": "作用域",
+      "rateLimitRequests": "速率限制请求数",
+      "rateLimitWindow": "速率限制窗口（秒）"
+    },
+    "placeholders": {
+      "name": "Partner analytics",
+      "rateLimitDefault": "留空则使用全局默认值"
+    },
+    "scopes": {
+      "read": "读取",
+      "write": "写入"
+    },
+    "labels": {
+      "scopeCreated": "作用域 {{scope}} | 创建于 {{created}}",
+      "active": "有效",
+      "revoked": "已撤销",
+      "id": "ID",
+      "lastUsed": "上次使用",
+      "rateLimitOverride": "速率限制覆盖",
+      "globalDefault": "全局默认",
+      "rateLimitValue": "{{requests}} req / {{seconds}}s",
+      "revokedAt": "撤销时间",
+      "notUsedYet": "尚未使用"
+    },
+    "plaintext": {
+      "title": "明文密钥",
+      "warning": "此密钥仅显示一次。离开页面前请妥善保存。"
+    },
+    "createDialog": {
+      "title": "创建 API 密钥",
+      "description": "设置名称、作用域和可选的速率限制。"
+    }
   }
 }

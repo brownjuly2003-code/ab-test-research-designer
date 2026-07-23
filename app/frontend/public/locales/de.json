@@ -1794,5 +1794,65 @@
       "increase": "Anstieg",
       "decrease": "Rückgang"
     }
+  },
+  "apiKeys": {
+    "title": "API-Schlüssel",
+    "description": "Erstellen Sie scoped Keys für externe Verbraucher, widerrufen Sie sie bei Bedarf und isolieren Sie Rate-Limits pro Key.",
+    "loading": "API-Schlüssel werden geladen...",
+    "empty": "Es wurden noch keine API-Schlüssel erstellt.",
+    "actions": {
+      "createNew": "Neu erstellen",
+      "createKey": "Schlüssel erstellen",
+      "creating": "Wird erstellt...",
+      "close": "Schließen",
+      "revoke": "Widerrufen",
+      "revoking": "Wird widerrufen...",
+      "delete": "Löschen",
+      "deleting": "Wird gelöscht...",
+      "copyKey": "Schlüssel kopieren"
+    },
+    "status": {
+      "loadFailed": "API-Schlüssel-Liste nicht verfügbar.",
+      "createFailed": "API-Schlüssel konnte nicht erstellt werden.",
+      "revokeFailed": "API-Schlüssel konnte nicht widerrufen werden.",
+      "deleteFailed": "API-Schlüssel konnte nicht gelöscht werden.",
+      "clipboardUnavailable": "Zwischenablage nicht verfügbar.",
+      "copied": "In die Zwischenablage kopiert.",
+      "copyFailed": "Kopieren fehlgeschlagen."
+    },
+    "fields": {
+      "name": "Name",
+      "scope": "Scope",
+      "rateLimitRequests": "Rate-Limit-Anfragen",
+      "rateLimitWindow": "Rate-Limit-Fenster in Sekunden"
+    },
+    "placeholders": {
+      "name": "Partner analytics",
+      "rateLimitDefault": "Leer lassen für globales Default"
+    },
+    "scopes": {
+      "read": "Lesen",
+      "write": "Schreiben"
+    },
+    "labels": {
+      "scopeCreated": "Scope {{scope}} | Created {{created}}",
+      "active": "Aktiv",
+      "revoked": "Widerrufen",
+      "id": "ID",
+      "lastUsed": "Zuletzt verwendet",
+      "rateLimitOverride": "Rate-Limit-Override",
+      "globalDefault": "Globales Default",
+      "rateLimitValue": "{{requests}} req / {{seconds}}s",
+      "revokedAt": "Widerrufen am",
+      "notUsedYet": "Noch nicht verwendet"
+    },
+    "plaintext": {
+      "title": "Klartext-Schlüssel",
+      "warning": "Dieses Geheimnis wird nur einmal angezeigt. Speichern Sie es sicher, bevor Sie die Seite verlassen."
+    },
+    "createDialog": {
+      "title": "API-Schlüssel erstellen",
+      "description": "Legen Sie Label, Scope und optionalen Rate-Limit-Override fest."
+    }
   }
 }

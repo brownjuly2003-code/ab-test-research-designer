@@ -1839,5 +1839,65 @@
       "increase": "рост",
       "decrease": "снижение"
     }
+  },
+  "apiKeys": {
+    "title": "API-ключи",
+    "description": "Создавайте scoped-ключи для внешних потребителей, отзывайте их при необходимости и задавайте отдельные rate limit.",
+    "loading": "Загрузка API-ключей...",
+    "empty": "API-ключи ещё не созданы.",
+    "actions": {
+      "createNew": "Создать",
+      "createKey": "Создать ключ",
+      "creating": "Создание...",
+      "close": "Закрыть",
+      "revoke": "Отозвать",
+      "revoking": "Отзыв...",
+      "delete": "Удалить",
+      "deleting": "Удаление...",
+      "copyKey": "Копировать ключ"
+    },
+    "status": {
+      "loadFailed": "Список API-ключей недоступен.",
+      "createFailed": "Не удалось создать API-ключ.",
+      "revokeFailed": "Не удалось отозвать API-ключ.",
+      "deleteFailed": "Не удалось удалить API-ключ.",
+      "clipboardUnavailable": "Буфер обмена недоступен.",
+      "copied": "Скопировано в буфер обмена.",
+      "copyFailed": "Не удалось скопировать."
+    },
+    "fields": {
+      "name": "Имя",
+      "scope": "Область",
+      "rateLimitRequests": "Лимит запросов",
+      "rateLimitWindow": "Окно лимита, секунды"
+    },
+    "placeholders": {
+      "name": "Partner analytics",
+      "rateLimitDefault": "Пусто — глобальный default"
+    },
+    "scopes": {
+      "read": "Чтение",
+      "write": "Запись"
+    },
+    "labels": {
+      "scopeCreated": "Scope {{scope}} | Создан {{created}}",
+      "active": "Активен",
+      "revoked": "Отозван",
+      "id": "ID",
+      "lastUsed": "Последнее использование",
+      "rateLimitOverride": "Переопределение rate limit",
+      "globalDefault": "Глобальный default",
+      "rateLimitValue": "{{requests}} req / {{seconds}}s",
+      "revokedAt": "Отозван",
+      "notUsedYet": "Ещё не использовался"
+    },
+    "plaintext": {
+      "title": "Секрет ключа",
+      "warning": "Секрет показывается только один раз. Сохраните его до ухода со страницы."
+    },
+    "createDialog": {
+      "title": "Создать API-ключ",
+      "description": "Укажите имя, scope и при необходимости rate limit."
+    }
   }
 }

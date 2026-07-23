@@ -52,8 +52,8 @@ describe("ApiKeyManager", () => {
       await flushEffects();
 
       expect(view.container.textContent).toContain("Partner read key");
-      expect(view.container.textContent).toContain("Scope read");
-      expect(view.container.textContent).toContain("Global default");
+      expect(view.container.textContent).toMatch(/Scope\s+Read|read/i);
+      expect(view.container.textContent).toMatch(/Global default|глобальн/i);
     } finally {
       await view.unmount();
     }

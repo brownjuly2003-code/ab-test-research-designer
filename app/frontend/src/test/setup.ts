@@ -19,6 +19,55 @@ if (!("ResizeObserver" in globalThis)) {
     ResizeObserverStub as unknown as typeof ResizeObserver;
 }
 
+// Stable Canvas stub for jsdom: silences repeated "Not implemented: getContext"
+// noise from chart/a11y suites. Tests may still spyOn these prototype methods.
+if (typeof HTMLCanvasElement !== "undefined") {
+  const twoDContextStub = {
+    canvas: null as HTMLCanvasElement | null,
+    fillRect: () => undefined,
+    clearRect: () => undefined,
+    getImageData: () => ({ data: new Uint8ClampedArray(0), width: 0, height: 0 }),
+    putImageData: () => undefined,
+    createImageData: () => ({ data: new Uint8ClampedArray(0), width: 0, height: 0 }),
+    setTransform: () => undefined,
+    resetTransform: () => undefined,
+    drawImage: () => undefined,
+    save: () => undefined,
+    restore: () => undefined,
+    beginPath: () => undefined,
+    moveTo: () => undefined,
+    lineTo: () => undefined,
+    closePath: () => undefined,
+    stroke: () => undefined,
+    translate: () => undefined,
+    scale: () => undefined,
+    rotate: () => undefined,
+    arc: () => undefined,
+    fill: () => undefined,
+    fillText: () => undefined,
+    strokeText: () => undefined,
+    measureText: () => ({ width: 0 }),
+    transform: () => undefined,
+    rect: () => undefined,
+    clip: () => undefined
+  };
+
+  HTMLCanvasElement.prototype.getContext = function getContext(
+    this: HTMLCanvasElement,
+    contextId: string
+  ): RenderingContext | null {
+    if (contextId === "2d") {
+      twoDContextStub.canvas = this;
+      return twoDContextStub as unknown as CanvasRenderingContext2D;
+    }
+    return null;
+  };
+
+  HTMLCanvasElement.prototype.toDataURL = function toDataURL(): string {
+    return "data:image/png;base64,";
+  };
+}
+
 const localePayloads: Record<string, unknown> = {
   ar,
   de,

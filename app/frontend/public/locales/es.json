@@ -1794,5 +1794,65 @@
       "increase": "aumente",
       "decrease": "disminuya"
     }
+  },
+  "apiKeys": {
+    "title": "Claves API",
+    "description": "Cree claves con alcance para consumidores externos, revoquelas cuando haga falta y aísle los rate limits por clave.",
+    "loading": "Cargando claves API...",
+    "empty": "Aún no se han creado claves API.",
+    "actions": {
+      "createNew": "Crear nueva",
+      "createKey": "Crear clave",
+      "creating": "Creando...",
+      "close": "Cerrar",
+      "revoke": "Revocar",
+      "revoking": "Revocando...",
+      "delete": "Eliminar",
+      "deleting": "Eliminando...",
+      "copyKey": "Copiar clave"
+    },
+    "status": {
+      "loadFailed": "Lista de claves API no disponible.",
+      "createFailed": "No se pudo crear la clave API.",
+      "revokeFailed": "No se pudo revocar la clave API.",
+      "deleteFailed": "No se pudo eliminar la clave API.",
+      "clipboardUnavailable": "Portapapeles no disponible.",
+      "copied": "Copiado al portapapeles.",
+      "copyFailed": "Error al copiar."
+    },
+    "fields": {
+      "name": "Nombre",
+      "scope": "Alcance",
+      "rateLimitRequests": "Solicitudes de rate limit",
+      "rateLimitWindow": "Ventana de rate limit en segundos"
+    },
+    "placeholders": {
+      "name": "Partner analytics",
+      "rateLimitDefault": "Dejar vacío para el valor global"
+    },
+    "scopes": {
+      "read": "Lectura",
+      "write": "Escritura"
+    },
+    "labels": {
+      "scopeCreated": "Scope {{scope}} | Created {{created}}",
+      "active": "Activa",
+      "revoked": "Revocada",
+      "id": "ID",
+      "lastUsed": "Último uso",
+      "rateLimitOverride": "Anulación de rate limit",
+      "globalDefault": "Valor global",
+      "rateLimitValue": "{{requests}} req / {{seconds}}s",
+      "revokedAt": "Revocada el",
+      "notUsedYet": "Aún no se usó"
+    },
+    "plaintext": {
+      "title": "Clave en texto plano",
+      "warning": "Este secreto se muestra solo una vez. Guárdelo de forma segura antes de salir de la página."
+    },
+    "createDialog": {
+      "title": "Crear clave API",
+      "description": "Defina una etiqueta, el alcance y un rate limit opcional."
+    }
   }
 }

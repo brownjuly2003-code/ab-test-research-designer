@@ -6,12 +6,23 @@
 
 ## Журнал сессий
 
+### 2026-07-23 (Grok #8) — шаг 8 partial (contracts + ApiKey i18n/a11y + canvas) → IN PROGRESS
+- **Сделано (scoped commits):**
+  1. Domain split `lib/api/*` + generated ApiKey/Webhook DTOs; stable facade.
+  2. `ApiKeyManager` i18n ×7 + focus trap/Escape/focus restore + InlineConfirm delete; `check_locale_content` docstring fix; Canvas jsdom stubs.
+- **Коммиты (local main, не push):**
+  - `bd606222` — `refactor(frontend): split api client into domain modules`
+  - *(следующий)* — i18n/a11y/canvas
+- **Проверки:** tsc clean · api.test 26 · ApiKeyManager 3 · a11y-api-keys 1 · ChartExport 2 · check_locale_content 14 OK.
+- **Остаток шага 8:** ComparisonDetails i18n; catalog key-usage/parity gate; ESLint flat (TS/hooks/a11y); per-chunk/gzip budgets ADR discipline.
+- **Следующая сессия:** добить residual шага 8 (ESLint + ComparisonDetails + locale parity gate) **или** шаг 9.
+
 ### 2026-07-23 (Grok #7) — шаг 7 admin API keys contract → DONE
 - **Сделано:** issued scopes только `read`/`write`; legacy `admin` → `write` + audit `api_key_scope_normalized`; operator surfaces только static `AB_ADMIN_TOKEN` (`admin_token_not_configured` / `admin_token_required`); schema v16 + PG migration; FE selector без Admin; docs PRODUCTION/SECURITY/API; CHANGELOG.
 - **Коммит (local main, не push):**
   - `0f832f9e` — `fix(auth): remove misleading admin issued API key scope`
 - **Проверки:** `test_api_keys` 8 · `test_production_auth` green · api_routes keys/webhooks/diagnostics 9 · snapshot newer_schema + reinitialize · ruff+mypy clean · generate frontend types + api docs --check · ApiKeyManager vitest 3.
-- **Следующая сессия:** шаг 8 (frontend contracts/i18n/lint/a11y) **или** residual шага 6.
+- **Следующая сессия:** ~~шаг 8~~ → начат в Grok #8 (partial).
 
 ### 2026-07-23 (Grok #6) — шаг 6 practical decision policy → DONE (core)
 - **Сделано:** ADR 0001; `decision_policy.py` practical_v1; decision_service practical gate; golden matrix tests; DecisionReadoutResponse policy/evidence; FE DecisionReadout + i18n; CHANGELOG.
@@ -84,7 +95,7 @@
 | 5 | ~~Ввести защищённый Slack ingress и cost-aware compute admission~~ | `gpt-5.6-sol` | `high` | M/L | нет | **DONE** `a833cd3c` |
 | 6 | ~~Разделить statistical evidence и practical ship policy~~ | `gpt-5.6-sol` | `xhigh` | L | после шага 3 | **DONE** core `2b565422` |
 | 7 | ~~Исправить контракт `admin` API keys~~ | `gpt-5.6-sol` | `high` | M | до шага 8 | **DONE** `0f832f9e` |
-| 8 | Усилить frontend contracts, i18n, lint и keyboard a11y | `gpt-5.6-terra` | `high` | L | после шага 7 |
+| 8 | Усилить frontend contracts, i18n, lint и keyboard a11y | `gpt-5.6-terra` | `high` | L | после шага 7 | **PARTIAL** Grok #8 |
 | 9 | Добавить воспроизводимый scientific oracle/risk-based suite | `gpt-5.6-sol` | `xhigh` | L | после шагов 3 и 6 |
 | 10 | Провести полный acceptance/recovery gate | `gpt-5.6-sol` | `high` | M | после шагов 1–9 |
 
@@ -97,8 +108,8 @@
 2b. ~~**Typed PG params:** шаг 4.~~ ✅ 2026-07-23 · live PG Docker edge — CI residual.
 3. ~~**Availability (Slack + compute admission):** шаг 5.~~ ✅ 2026-07-23 · decision quality (шаг 6) остаётся.
 3b. ~~**Decision quality:** шаг 6.~~ ✅ 2026-07-23 core · residual optional.
-4. ~~**Контракт admin API keys:** шаг 7.~~ ✅ 2026-07-23 · шаг 8 (frontend contracts/i18n) остаётся.
-4b. **Интерфейс:** шаг 8.
+4. ~~**Контракт admin API keys:** шаг 7.~~ ✅ 2026-07-23
+4b. **Интерфейс:** шаг 8 — **PARTIAL** (contracts + ApiKey i18n/a11y + canvas); residual: ComparisonDetails i18n, locale parity gate, ESLint, bundle budgets.
 5. **Научная воспроизводимость:** шаг 9.
 6. **Финальный gate:** шаг 10 выполняется последним.
 
@@ -506,26 +517,35 @@ python -m mypy app/backend/app/repository/_api_keys.py app/backend/app/http_runt
 
 ---
 
-## Шаг 8. Усилить frontend contracts, i18n и static analysis
+## Шаг 8. Усилить frontend contracts, i18n и static analysis · PARTIAL
 
-**Модель:** `gpt-5.6-terra`  
-**Reasoning:** `high`  
+**Статус:** 🟡 PARTIAL 2026-07-23 · Grok #8 (не закрыт)  
+**Модель (план):** `gpt-5.6-terra` · **исполнитель:** Grok  
 **Приоритет:** P2  
 **Размер:** L
 
 Выполнять отдельными scoped commits: сначала contract split, затем i18n, затем lint/a11y signal.
 
+### Комментарий к сделанному (Grok #8)
+
+- **Contract split:** `lib/api.ts` → `lib/api/{client,projects,analysis,keys,webhooks,system,workspace,index}.ts`; facade re-export. ~1024 → thin facade + modules.
+- **Generated DTOs:** `ApiKey*` / `Webhook*` из `generated/api-contract.ts` (`WebhookCreateRequest` = alias `WebhookSubscriptionCreateRequest`); `WebhookManager` tolerant к optional `event_filter`.
+- **ApiKeyManager i18n:** блок `apiKeys.*` во всех 7 locales (42 leaf keys, parity); useTranslation; no hardcoded EN на shipped surface.
+- **Keyboard a11y modal:** focus trap + Escape + focus restore (как webhooks); delete через `InlineConfirmButton`.
+- **check_locale_content docstring:** больше не ссылается на несуществующий key-parity CI gate.
+- **Canvas:** stub `getContext`/`toDataURL` в `src/test/setup.ts` (ChartExport spies всё ещё работают).
+
 ### Изменения
 
-1. Разделить 1,024-строчный `lib/api.ts` на domain clients (`projects`, `analysis`, `keys`, `webhooks`, `system`, `workspace`) с сохранением стабильного facade при необходимости.
-2. Импортировать generated request/response types вместо ручных `ApiKey*`/`Webhook*` duplicates.
-3. Перевести `ApiKeyManager` и `ComparisonDetails` на i18n.
-4. Добавить catalog key-usage/parity gate с корректной обработкой plural categories и fallback.
-5. Исправить ошибочный комментарий `check_locale_content.py` о несуществующем parity gate.
-6. Добавить ESLint flat config: TypeScript, React hooks и JSX a11y; внедрять правила с нулевым baseline, не массовыми disable comments.
-7. Привести API key modal к keyboard pattern webhook modal: focus trap, Escape, focus restore, destructive confirmation.
-8. Добавить стабильный Canvas mock и убрать повторяющиеся jsdom warnings.
-9. Зафиксировать per-chunk/gzip budgets и не увеличивать общий ceiling без ADR.
+1. ~~Разделить `lib/api.ts` на domain clients + facade.~~ ✅ `bd606222`
+2. ~~Generated types для ApiKey*/Webhook* вместо ручных duplicates.~~ ✅
+3. ~~`ApiKeyManager` i18n.~~ ✅ · ⏳ `ComparisonDetails` i18n — residual
+4. ⏳ Catalog key-usage/parity gate (plural categories + fallback).
+5. ~~Исправить docstring `check_locale_content.py`.~~ ✅
+6. ⏳ ESLint flat: TS, React hooks, JSX a11y (zero baseline, no mass disable).
+7. ~~API key modal: focus trap, Escape, focus restore, destructive confirm.~~ ✅
+8. ~~Стабильный Canvas mock.~~ ✅
+9. ⏳ Per-chunk/gzip budgets discipline (no ceiling bump without ADR).
 
 ### Проверка
 

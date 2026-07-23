@@ -1793,5 +1793,65 @@
       "increase": "يرتفع",
       "decrease": "ينخفض"
     }
+  },
+  "apiKeys": {
+    "title": "مفاتيح API",
+    "description": "أنشئ مفاتيح ذات نطاق للمستهلكين الخارجيين، وألغها عند الحاجة، واعزل حدود المعدل لكل مفتاح.",
+    "loading": "جارٍ تحميل مفاتيح API...",
+    "empty": "لم يتم إنشاء أي مفاتيح API بعد.",
+    "actions": {
+      "createNew": "إنشاء جديد",
+      "createKey": "إنشاء مفتاح",
+      "creating": "جارٍ الإنشاء...",
+      "close": "إغلاق",
+      "revoke": "إلغاء",
+      "revoking": "جارٍ الإلغاء...",
+      "delete": "حذف",
+      "deleting": "جارٍ الحذف...",
+      "copyKey": "نسخ المفتاح"
+    },
+    "status": {
+      "loadFailed": "قائمة مفاتيح API غير متاحة.",
+      "createFailed": "فشل إنشاء مفتاح API.",
+      "revokeFailed": "فشل إلغاء مفتاح API.",
+      "deleteFailed": "فشل حذف مفتاح API.",
+      "clipboardUnavailable": "الحافظة غير متاحة.",
+      "copied": "تم النسخ إلى الحافظة.",
+      "copyFailed": "فشل النسخ."
+    },
+    "fields": {
+      "name": "الاسم",
+      "scope": "النطاق",
+      "rateLimitRequests": "طلبات حد المعدل",
+      "rateLimitWindow": "نافذة حد المعدل بالثواني"
+    },
+    "placeholders": {
+      "name": "Partner analytics",
+      "rateLimitDefault": "اتركه فارغًا للقيمة العامة"
+    },
+    "scopes": {
+      "read": "قراءة",
+      "write": "كتابة"
+    },
+    "labels": {
+      "scopeCreated": "Scope {{scope}} | Created {{created}}",
+      "active": "نشط",
+      "revoked": "ملغى",
+      "id": "ID",
+      "lastUsed": "آخر استخدام",
+      "rateLimitOverride": "تجاوز حد المعدل",
+      "globalDefault": "القيمة العامة",
+      "rateLimitValue": "{{requests}} req / {{seconds}}s",
+      "revokedAt": "أُلغي في",
+      "notUsedYet": "لم يُستخدم بعد"
+    },
+    "plaintext": {
+      "title": "المفتاح النصي",
+      "warning": "يُعرض هذا السر مرة واحدة فقط. احفظه بأمان قبل مغادرة الصفحة."
+    },
+    "createDialog": {
+      "title": "إنشاء مفتاح API",
+      "description": "عيّن تسمية ونطاقًا وحد معدل اختياريًا."
+    }
   }
 }

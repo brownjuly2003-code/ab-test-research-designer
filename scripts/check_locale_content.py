@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 """Locale *content* gate — catch mojibake and replacement characters in catalogs.
 
-The CI key-parity checks only confirm that every locale file carries the same
-set of keys. They do not look *inside* the values, which is how the es/de
-mojibake (accents/Greek letters stored as ``?``) sat unnoticed for months until
-the 2026-06-17 audit. This validator closes that gap by scanning every string
-value in both translation catalogs:
+This script is a **value** scanner only: it does not enforce leaf-key parity
+across locales (that is a separate concern — frontend unit coverage /
+manual parity when adding keys). It looks *inside* translation strings so
+es/de mojibake (accents/Greek letters stored as ``?``) cannot sit unnoticed
+the way it did until the 2026-06-17 audit. Scanned catalogs:
 
 * ``app/frontend/public/locales/*.json`` (frontend bundles)
 * ``app/backend/app/i18n/*.json``         (backend export/report catalogs)
