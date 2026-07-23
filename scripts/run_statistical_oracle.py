@@ -822,6 +822,302 @@ def _check_omnibus_survival_and_cox(checks: list[Check]) -> None:
     )
 
 
+def _check_supporting_statistical_utilities(checks: list[Check]) -> None:
+    import numpy as np
+    from scipy import stats as scipy_stats
+    from statsmodels.stats.multitest import multipletests
+
+    from app.backend.app.stats.always_valid import (
+        always_valid_p_value,
+        confidence_sequence,
+        default_mixture_variance,
+    )
+    from app.backend.app.stats.bayesian import (
+        bayesian_sample_size_binary,
+        bayesian_sample_size_continuous,
+    )
+    from app.backend.app.stats.cluster import (
+        cluster_design_effect,
+        inflate_for_cluster_design,
+    )
+    from app.backend.app.stats.cuped import adjusted_variance, cuped_theta
+    from app.backend.app.stats.guardrail import (
+        DECREASE_IS_BAD,
+        INCREASE_IS_BAD,
+        STATUS_BREACHED,
+        STATUS_OK,
+        evaluate_guardrail,
+        harm_in_direction,
+    )
+    from app.backend.app.stats.multiple_testing import (
+        benjamini_hochberg,
+        holm_bonferroni,
+    )
+    from app.backend.app.stats.sequential import (
+        obrien_fleming_boundaries,
+        sequential_sample_size_inflation,
+    )
+    from app.backend.app.stats.srm import chi_square_srm
+
+    srm = chi_square_srm([530, 470], [0.5, 0.5])
+    srm_ref = scipy_stats.chisquare([530, 470], f_exp=[500, 500])
+    _add_check(
+        checks,
+        case="srm_chi_square",
+        metric="statistic",
+        observed=srm[0],
+        expected=srm_ref.statistic,
+        abs_tolerance=1e-12,
+        source="scipy.stats.chisquare",
+    )
+    _add_check(
+        checks,
+        case="srm_chi_square",
+        metric="p_value",
+        observed=srm[1],
+        expected=srm_ref.pvalue,
+        abs_tolerance=5e-7,
+        source="scipy.stats.chisquare",
+    )
+
+    pvalues = [0.001, 0.02, 0.04, 0.2, 0.8]
+    bh = benjamini_hochberg(pvalues, q=0.05)
+    bh_reject, bh_adjusted, _, _ = multipletests(pvalues, alpha=0.05, method="fdr_bh")
+    holm = holm_bonferroni(pvalues, alpha=0.05)
+    holm_reject, holm_adjusted, _, _ = multipletests(pvalues, alpha=0.05, method="holm")
+    for index, (observed, expected) in enumerate(
+        zip(bh["adjusted_pvalues"], bh_adjusted, strict=True)
+    ):
+        _add_check(
+            checks,
+            case="benjamini_hochberg",
+            metric=f"adjusted_pvalue[{index}]",
+            observed=observed,
+            expected=expected,
+            abs_tolerance=1e-12,
+            source="statsmodels.stats.multitest.multipletests(method='fdr_bh')",
+        )
+    for index, (observed, expected) in enumerate(zip(bh["rejected"], bh_reject, strict=True)):
+        _add_check(
+            checks,
+            case="benjamini_hochberg",
+            metric=f"rejected[{index}]",
+            observed=float(observed),
+            expected=float(expected),
+            abs_tolerance=0.0,
+            source="statsmodels.stats.multitest.multipletests(method='fdr_bh')",
+        )
+    for index, (observed, expected) in enumerate(
+        zip(holm["adjusted_pvalues"], holm_adjusted, strict=True)
+    ):
+        _add_check(
+            checks,
+            case="holm_bonferroni",
+            metric=f"adjusted_pvalue[{index}]",
+            observed=observed,
+            expected=expected,
+            abs_tolerance=1e-12,
+            source="statsmodels.stats.multitest.multipletests(method='holm')",
+        )
+    for index, (observed, expected) in enumerate(zip(holm["rejected"], holm_reject, strict=True)):
+        _add_check(
+            checks,
+            case="holm_bonferroni",
+            metric=f"rejected[{index}]",
+            observed=float(observed),
+            expected=float(expected),
+            abs_tolerance=0.0,
+            source="statsmodels.stats.multitest.multipletests(method='holm')",
+        )
+
+    sigma_xx = [[4.0, 1.0], [1.0, 9.0]]
+    sigma_xy = [2.0, 3.0]
+    theta = cuped_theta(sigma_xx, sigma_xy)
+    if theta is None:
+        raise AssertionError("CUPED oracle case unexpectedly degenerated")
+    theta_ref = np.linalg.solve(np.array(sigma_xx), np.array(sigma_xy))
+    for index, (observed, expected) in enumerate(zip(theta, theta_ref, strict=True)):
+        _add_check(
+            checks,
+            case="cuped_theta",
+            metric=f"theta[{index}]",
+            observed=observed,
+            expected=expected,
+            abs_tolerance=1e-12,
+            source="numpy.linalg.solve",
+        )
+    variance = adjusted_variance(25.0, theta, sigma_xy, sigma_xx)
+    variance_ref = 25.0 - 2.0 * float(np.dot(theta_ref, sigma_xy)) + float(
+        theta_ref.T @ np.array(sigma_xx) @ theta_ref
+    )
+    _add_check(
+        checks,
+        case="cuped_adjusted_variance",
+        metric="variance",
+        observed=variance,
+        expected=variance_ref,
+        abs_tolerance=1e-12,
+        source="numpy quadratic form",
+    )
+
+    _add_check(
+        checks,
+        case="cluster_design_effect",
+        metric="deff",
+        observed=cluster_design_effect(100.0, 0.02),
+        expected=2.98,
+        abs_tolerance=1e-12,
+        source="Kish closed-form reference",
+    )
+    inflated = inflate_for_cluster_design(1000, 100.0, 0.02, variants_count=3)
+    _add_check(
+        checks,
+        case="cluster_design_effect",
+        metric="sample_size_per_variant",
+        observed=inflated["sample_size_per_variant"],
+        expected=2980.0,
+        abs_tolerance=0.0,
+        source="Kish closed-form reference",
+    )
+    _add_check(
+        checks,
+        case="cluster_design_effect",
+        metric="icc_zero_degeneracy",
+        observed=cluster_design_effect(100.0, 0.0),
+        expected=1.0,
+        abs_tolerance=0.0,
+        source="Kish closed-form reference",
+    )
+
+    boundaries = obrien_fleming_boundaries(4, alpha=0.05)
+    _add_check(
+        checks,
+        case="obrien_fleming_boundaries",
+        metric="final_z_anchor",
+        observed=boundaries[-1]["z_boundary"],
+        expected=2.024,
+        abs_tolerance=5e-4,
+        source="module anchor table",
+    )
+    _add_check(
+        checks,
+        case="obrien_fleming_boundaries",
+        metric="first_gt_final",
+        observed=float(boundaries[0]["z_boundary"] > boundaries[-1]["z_boundary"]),
+        expected=1.0,
+        abs_tolerance=0.0,
+        source="O'Brien-Fleming monotonic boundary shape",
+    )
+    _add_check(
+        checks,
+        case="obrien_fleming_boundaries",
+        metric="final_cumulative_alpha",
+        observed=boundaries[-1]["cumulative_alpha_spent"],
+        expected=0.05,
+        abs_tolerance=5e-7,
+        source="Lan-DeMets alpha spending endpoint",
+    )
+    _add_check(
+        checks,
+        case="sequential_sample_size_inflation",
+        metric="n_looks_4",
+        observed=sequential_sample_size_inflation(4),
+        expected=1.025,
+        abs_tolerance=0.0,
+        source="module reference table",
+    )
+
+    binary_n = bayesian_sample_size_binary(0.2, 0.02, credibility=0.95)
+    binary_ref = math.ceil(2.0 * 0.2 * 0.8 * (scipy_stats.norm.ppf(0.975) / 0.02) ** 2)
+    _add_check(
+        checks,
+        case="bayesian_precision_sizing",
+        metric="binary_n",
+        observed=binary_n,
+        expected=binary_ref,
+        abs_tolerance=0.0,
+        source="scipy.stats.norm.ppf closed-form",
+    )
+    continuous_n = bayesian_sample_size_continuous(12.0, 1.5, credibility=0.9)
+    continuous_ref = math.ceil(2.0 * 12.0**2 * (scipy_stats.norm.ppf(0.95) / 1.5) ** 2)
+    _add_check(
+        checks,
+        case="bayesian_precision_sizing",
+        metric="continuous_n",
+        observed=continuous_n,
+        expected=continuous_ref,
+        abs_tolerance=0.0,
+        source="scipy.stats.norm.ppf closed-form",
+    )
+
+    tau2 = default_mixture_variance(0.2)
+    low_effect_p = always_valid_p_value(0.1, 0.01, tau2)
+    high_effect_p = always_valid_p_value(0.3, 0.01, tau2)
+    _add_check(
+        checks,
+        case="always_valid_msprt",
+        metric="larger_effect_lowers_p",
+        observed=float(high_effect_p < low_effect_p),
+        expected=1.0,
+        abs_tolerance=0.0,
+        source="mSPRT monotonicity metamorphic oracle",
+    )
+    lower, upper = confidence_sequence(0.3, 0.01, tau2, alpha=0.05)
+    _add_check(
+        checks,
+        case="always_valid_msprt",
+        metric="confidence_sequence_duality",
+        observed=float((high_effect_p < 0.05) == (lower > 0.0 or upper < 0.0)),
+        expected=1.0,
+        abs_tolerance=0.0,
+        source="mSPRT p-value/confidence-sequence duality",
+    )
+
+    guardrail = evaluate_guardrail(0.12, 0.0004, direction=INCREASE_IS_BAD, margin=0.05)
+    if guardrail is None:
+        raise AssertionError("guardrail oracle case unexpectedly degenerated")
+    guardrail_z = (0.12 - 0.05) / math.sqrt(0.0004)
+    _add_check(
+        checks,
+        case="guardrail_noninferiority",
+        metric="p_value",
+        observed=guardrail["p_value"],
+        expected=1.0 - scipy_stats.norm.cdf(guardrail_z),
+        abs_tolerance=1e-12,
+        source="scipy.stats.norm.cdf one-sided reference",
+    )
+    _add_check(
+        checks,
+        case="guardrail_noninferiority",
+        metric="breached_status",
+        observed=float(guardrail["status"] == STATUS_BREACHED),
+        expected=1.0,
+        abs_tolerance=0.0,
+        source="one-sided lower-bound duality",
+    )
+    _add_check(
+        checks,
+        case="guardrail_noninferiority",
+        metric="decrease_is_bad_harm_sign",
+        observed=harm_in_direction(0.12, DECREASE_IS_BAD),
+        expected=-0.12,
+        abs_tolerance=0.0,
+        source="directed harm sign contract",
+    )
+    ok_guardrail = evaluate_guardrail(0.12, 0.0004, direction=DECREASE_IS_BAD, margin=0.0)
+    if ok_guardrail is None:
+        raise AssertionError("guardrail OK oracle case unexpectedly degenerated")
+    _add_check(
+        checks,
+        case="guardrail_noninferiority",
+        metric="improvement_status_ok",
+        observed=float(ok_guardrail["status"] == STATUS_OK),
+        expected=1.0,
+        abs_tolerance=0.0,
+        source="directed harm sign contract",
+    )
+
+
 def _survival_fixture() -> tuple[list[float], list[bool], list[float], list[bool], list[float], list[bool]]:
     placebo_durations = [1, 1, 2, 2, 3, 4, 4, 5, 5, 8, 8, 8, 8, 11, 11, 12, 12, 15, 17, 22, 23]
     placebo_events = [True] * len(placebo_durations)
@@ -888,6 +1184,7 @@ def _run_oracle() -> dict[str, Any]:
     _check_paired_family(checks)
     _check_ratio_and_categorical_family(checks)
     _check_omnibus_survival_and_cox(checks)
+    _check_supporting_statistical_utilities(checks)
     failures = [check for check in checks if not check.passed]
     return {
         "generated_at": datetime.now(UTC).isoformat(),
