@@ -1,0 +1,562 @@
+# План существенного улучшения AB_TEST
+
+Основание: `audit_gpt_23_07_26.md`  
+Срез: commit `1445fc96d54b31a0e1d7a18b4cf9d6f8d3b72506`  
+Цель: устранить найденные P0/P1 риски, усилить научную и эксплуатационную воспроизводимость и довести проект до обоснованного уровня 9+/10.
+
+## Журнал сессий
+
+### 2026-07-23 (Grok #2) — хвост шага 2 → DONE
+
+- **Сделано:** concurrent-writer integrity; rollback-before-migrate/smoke + failure path; fault-injected `create_commit` (previous revision restorable); structured metrics; sidecar cleanup; `test_api_routes` smoke.
+- **Коммит (local main, не push):**
+  - `b35fec2e` — `fix(snapshot): rollback on migrate failure, concurrent backup, metrics`
+- **Проверки:** `test_snapshot_service` 23/23 · `test_startup_seed`+snapshot 28/28 · `test_api_routes` 113/113 · ruff clean on touched · mypy snapshot+main OK.
+- **Опционально оставлено (не блокирует DONE):** restore *до* `ProjectRepository` cold-start; live disposable HF repository drill.
+- **Следующая сессия:** шаг 3 (canonical population P0).
+
+### 2026-07-23 (Grok #1) — шаги 1 + core шага 2
+
+- **Сделано:** шаг 1 полностью; шаг 2 — core WAL/atomic/restore integrity (не full close).
+- **Коммиты (local main, не push):**
+  - `99fcd86c` — `fix(docs-site): pin svgo 4.0.2 to close high advisory`
+  - `bd8696bc` — `fix(snapshot): WAL-consistent SQLite backup and atomic HF push`
+- **Проверки:** docs-site `npm ci` + `npm audit --audit-level=high` (0) + `npm test` (8) + `npm run build`; snapshot `pytest` 19/19 + startup_seed; ruff clean on touched files.
+- **Следующая сессия:** ~~добить хвост шага 2~~ → сделано в Grok #2.
+
+## Правила выполнения
+
+- Для каждого behavioral change сначала создать тест, подтвердить его падение на старом поведении, затем реализовать минимальное исправление.
+- Не смешивать шаги в один большой diff. Один шаг может состоять из нескольких небольших scoped commits, но каждый commit должен быть зелёным.
+- Не трогать unrelated dirty/untracked files.
+- Перед commit: релевантные тесты, `git diff --check`, проверка `git status --short`, staging только явными pathspec.
+- Не повышать coverage/bundle thresholds только ради зелёного CI.
+- Не добавлять SciPy/statsmodels/lifelines в production runtime.
+- Push/deploy/release выполнять только при отдельной актуальной авторизации.
+
+## Сводка моделей и уровней reasoning
+
+| Шаг | Результат | Модель | Reasoning | Размер | Зависимости | Статус |
+|---:|---|---|---|---|---|---|
+| 1 | ~~Закрыть `svgo` advisory и вернуть dependency gate в green~~ | `gpt-5.6-terra` | `medium` | S | нет | **DONE** `99fcd86c` |
+| 2 | ~~Сделать SQLite snapshot/restore консистентным и атомарным~~ | `gpt-5.6-sol` | `xhigh` | L | нет | **DONE** `bd8696bc`+`b35fec2e` |
+| 3 | Унифицировать canonical population для primary/holdout/timing | `gpt-5.6-sol` | `xhigh` | L | нет |
+| 4 | Убрать blind JSON adaptation в PostgreSQL | `gpt-5.6-sol` | `high` | M | желательно после шага 3 |
+| 5 | Ввести защищённый Slack ingress и cost-aware compute admission | `gpt-5.6-sol` | `high` | M/L | нет |
+| 6 | Разделить statistical evidence и practical ship policy | `gpt-5.6-sol` | `xhigh` | L | после шага 3 |
+| 7 | Исправить контракт `admin` API keys | `gpt-5.6-sol` | `high` | M | до шага 8 |
+| 8 | Усилить frontend contracts, i18n, lint и keyboard a11y | `gpt-5.6-terra` | `high` | L | после шага 7 |
+| 9 | Добавить воспроизводимый scientific oracle/risk-based suite | `gpt-5.6-sol` | `xhigh` | L | после шагов 3 и 6 |
+| 10 | Провести полный acceptance/recovery gate | `gpt-5.6-sol` | `high` | M | после шагов 1–9 |
+
+`gpt-5.6-sol` выбран для изменений, где ошибка reasoning может повлиять на данные, статистическое решение, auth или меж-СУБД семантику. `gpt-5.6-terra` выбран для ограниченных dependency/frontend изменений с ясными автоматическими критериями.
+
+## Волны выполнения
+
+1. ~~**Немедленный hotfix:** шаг 1.~~ ✅ 2026-07-23
+2. ~~**Границы доверия (snapshot):** шаг 2.~~ ✅ 2026-07-23 · далее шаг 3 (population); шаг 4 — после стабилизации shared repository changes.
+3. **Availability и decision quality:** шаги 5 и 6.
+4. **Контракт и интерфейс:** шаги 7 и 8.
+5. **Научная воспроизводимость:** шаг 9.
+6. **Финальный gate:** шаг 10 выполняется последним.
+
+---
+
+## ~~Шаг 1. Закрыть high-severity `svgo` advisory~~ ✅ DONE
+
+**Статус:** ✅ закрыт 2026-07-23 · commit `99fcd86c`  
+**Модель (план):** `gpt-5.6-terra` · **исполнитель сессии:** Grok  
+**Приоритет:** P1, немедленно · **Размер:** S
+
+### Комментарий к сделанному
+
+- `docs-site/package.json`: узкий `"overrides": { "svgo": "4.0.2" }` (GHSA-2p49-hgcm-8545).
+- `package-lock.json`: `node_modules/svgo` 4.0.1 → 4.0.2; других major в diff нет.
+- Без blanket `npm audit fix`; direct dep на `svgo` не добавляли (override предпочтительнее).
+- Evidence: `npm ci` OK · `npm audit --audit-level=high` → 0 · `npm test` 8/8 · `npm run build` 22 pages · `npm ls svgo` → `svgo@4.0.2 overridden` under `astro@7.1.0`.
+- CHANGELOG Unreleased/Security + synced docs-site guide changelog.
+
+### Изменения
+
+1. ~~В `docs-site` обновить lock resolution с `svgo@4.0.1` до `>=4.0.2` через минимальное обновление Astro dependency subtree.~~ ✅ via overrides + lock pin
+2. ~~Не применять blanket `npm audit fix`; просмотреть изменения всех transitive packages.~~ ✅ diff только svgo version/integrity
+3. ~~Менять `package.json` только если обычный lock refresh не удерживает patched resolution; при необходимости использовать узкий `overrides` с пояснением.~~ ✅ overrides (plain lock refresh не удерживал 4.0.2)
+
+### Проверка
+
+```powershell
+npm ci
+npm audit --audit-level=high
+npm test
+npm run build
+```
+
+### Критерий готовности
+
+- ~~`npm audit --audit-level=high` возвращает 0.~~ ✅
+- ~~Clean install, docs tests и production build проходят.~~ ✅
+- ~~В lock diff нет несвязанных major upgrades.~~ ✅
+
+---
+
+## ~~Шаг 2. Исправить SQLite snapshot/restore~~ ✅ DONE
+
+**Статус:** ✅ закрыт 2026-07-23 · commits `bd8696bc` + `b35fec2e`  
+**Модель (план):** `gpt-5.6-sol` · **исполнитель:** Grok (#1 core, #2 tail)  
+**Приоритет:** P0 · **Размер:** L
+
+### Комментарий к сделанному (core · `bd8696bc`)
+
+- `create_consistent_sqlite_backup()` / `verify_sqlite_file()` — публичные helpers; push больше не копирует main-file bytes.
+- WAL probe: main-only copy теряет `wal-only` row; backup API возвращает `baseline`+`wal-only` (audit F-01).
+- Push: staged backup → quick_check → metadata из staged SHA/size/user_version → один `create_commit` с 2× `CommitOperationAdd`; skip unchanged by staged SHA.
+- Restore: оба артефакта с `revision=repo_info.sha`; quick_check до replace; corrupt/SHA/future-schema не трогают live DB.
+- После restore: `repository.reinitialize_after_restore()` → `_init_db()` (schema N-1 → build `user_version`).
+- Docs: `RUNBOOK.md` (HF SQLite snapshot + RPO/RTO), `PRODUCTION.md`.
+
+### Комментарий к сделанному (хвост · `b35fec2e`)
+
+- **Concurrent writer:** `test_create_consistent_sqlite_backup_under_concurrent_writer` — writer thread + backup; `quick_check=ok`, rows = prefix `seed` + `w-1..k` (одна транзакционная точка). Busy timeout 30s на backup source.
+- **Rollback:** перед replace — consistent backup rollback-копии; `post_replace` hook (main: `reinitialize_after_restore`); smoke `verify_sqlite_file` после hook; при failure — `_rollback_local_db` (+ clear sidecars). Тесты: `test_restore_latest_rolls_back_when_post_replace_fails`, `test_restore_latest_runs_post_replace_before_success`.
+- **Sidecars:** `remove_sqlite_sidecars` на replace/rollback (WAL/SHM/journal), чтобы старый WAL не мержился с новым main.
+- **Fault-inject create_commit:** `test_push_snapshot_create_commit_failure_preserves_previous_revision_for_restore` — 503 на commit → `last_snapshot_sha256` не двигается; restore с HEAD previous revision.
+- **Metrics:** `last_push_metrics` / `last_restore_metrics` + `log_event` (`snapshot_push` / `snapshot_restore`: outcome, duration_ms, sha/size/user_version/commit).
+- **Не сделано (опционально, не блокер):** restore *до* создания `ProjectRepository` (cold-start reorder); live disposable HF repo drill.
+
+### Сначала тесты
+
+1. ~~Live DB в WAL mode с committed row в WAL.~~ ✅
+2. ~~Concurrent writer во время backup.~~ ✅ `test_create_consistent_sqlite_backup_under_concurrent_writer`
+3. ~~Fault-injected create_commit; previous remote revision restorable.~~ ✅ `test_push_snapshot_create_commit_failure_preserves_previous_revision_for_restore`
+4. ~~Restore schema `N-1` → migrate.~~ ✅ `test_reinitialize_after_restore_migrates_schema_n_minus_one`
+5. ~~Corrupt / SHA / future / legacy.~~ ✅
+6. ~~Failure после replace до migrate/smoke → rollback.~~ ✅ `test_restore_latest_rolls_back_when_post_replace_fails`
+
+### Реализация
+
+1. ~~Staged DB via `sqlite3.Connection.backup()`.~~ ✅
+2. ~~`PRAGMA quick_check` + `user_version` + SHA/size.~~ ✅
+3. ~~Metadata from staged DB.~~ ✅
+4. ~~Один HF `create_commit` (DB+metadata).~~ ✅
+5. ~~Restore bound to one remote revision.~~ ✅
+6. ~~Explicit post-replace migrate via `post_replace` + rollback on failure.~~ ✅ (pre-repo cold-start reorder — optional, skipped)
+7. ~~Rollback-копия до migrate/smoke.~~ ✅
+8. ~~Unchanged skip~~ ✅ · ~~structured metrics (min)~~ ✅ · ~~RPO/RTO docs~~ ✅
+
+### Основные файлы
+
+- ~~`app/backend/app/services/snapshot_service.py`~~ ✅
+- ~~`app/backend/app/main.py`~~ ✅ `restore_latest(post_replace=_post_restore_migrate)`
+- ~~`app/backend/app/repository/*`~~ ✅ `_core.reinitialize_after_restore`
+- ~~`app/backend/tests/test_snapshot_service.py`~~ ✅ 23 tests
+- ~~`app/backend/tests/test_startup_seed.py`~~ ✅ fake accepts `**kwargs`
+- ~~`docs/PRODUCTION.md` и `docs/RUNBOOK.md`~~ ✅
+
+### Проверка (финальная сессия хвоста)
+
+```powershell
+python -m pytest app/backend/tests/test_snapshot_service.py -q   # 23 passed
+python -m pytest app/backend/tests/test_startup_seed.py app/backend/tests/test_snapshot_service.py -q  # 28
+python -m pytest app/backend/tests/test_api_routes.py -q  # 113 passed
+python -m ruff check <touched>
+python -m mypy app/backend/app/services/snapshot_service.py app/backend/app/main.py  # OK
+```
+
+### Критерий готовности
+
+- ~~WAL reproduction green.~~ ✅
+- ~~DB+metadata одна revision.~~ ✅
+- ~~Restore N-1 мигрирует; failure path откатывает working DB.~~ ✅
+- ~~Corruption never replaces working DB.~~ ✅
+- ~~Docs RPO/RTO + rollback/metrics.~~ ✅
+- ~~Concurrent writer + fault-inject covered.~~ ✅
+
+---
+
+## Шаг 3. Унифицировать analytical population
+
+**Модель:** `gpt-5.6-sol`  
+**Reasoning:** `xhigh`  
+**Приоритет:** P0  
+**Размер:** L
+
+### Сначала тесты
+
+Создать fixtures для SQLite и PostgreSQL:
+
+1. Anonymous exposure + canonical conversion + identity link в holdout.
+2. Manual excluded holdout user.
+3. Rate-spike holdout user.
+4. Re-exposure после login и first-exposure-wins.
+5. Canonical conversion в event timing summary.
+6. Комбинация identity + exclusion + strata + holdout.
+7. Invariants: aliasing не меняет total people; exclusion удаляет одного человека из всех сопоставимых reads; arm totals не зависят от metric, кроме documented attribution rules.
+
+Подтвердить падение двух воспроизведений из аудита на старом коде.
+
+### Реализация
+
+1. Зафиксировать один `AnalyticalPopulation` contract: canonical id, arm, first exposure, exclusion reason, spike flag, holdout flag, timing anchor.
+2. Вынести минимально необходимый reusable portable cohort CTE/builder; не дублировать длинный SQL в новом методе.
+3. Перевести `get_experiment_analysis_aggregates`, `get_holdout_aggregates`, `get_event_timing_summary` и затронутые strata reads на этот contract.
+4. Добавить population fingerprint/count diagnostics, чтобы divergence было видно до расчёта эффекта.
+5. Явно выбрать и проверить политику identity chain/cycle. Минимальный безопасный вариант — запретить неоднозначные chains при ingest и документировать one-hop invariant.
+
+### Основные файлы
+
+- `app/backend/app/repository/execution/primary.py`
+- `app/backend/app/repository/execution/quality.py`
+- `app/backend/app/repository/execution/strata.py`
+- при необходимости один небольшой shared population module
+- ingestion/live-stats/PostgreSQL tests
+
+### Проверка
+
+```powershell
+python -m pytest app/backend/tests/test_execution_ingestion_repository.py -q
+python -m pytest app/backend/tests/test_execution_live_stats.py -q
+python -m pytest app/backend/tests/test_property_edge_cases.py -q
+python -m ruff check app/backend/app scripts
+python -m mypy
+```
+
+PostgreSQL contract suite обязателен на реальном PostgreSQL service.
+
+### Критерий готовности
+
+- Оба P0 reproduction cases выдают ожидаемые counts.
+- Primary, holdout и timing используют одинаковое canonical/exclusion правило.
+- SQLite/PostgreSQL parity подтверждена на combined fixture.
+- Decision readout получает population diagnostics и не скрывает mismatch.
+
+---
+
+## Шаг 4. Сделать PostgreSQL parameters типизированными
+
+**Модель:** `gpt-5.6-sol`  
+**Reasoning:** `high`  
+**Приоритет:** P1  
+**Размер:** M
+
+### Сначала тесты
+
+В real PostgreSQL job записать и прочитать без изменения:
+
+- `project_name='{"name":"A"}'`;
+- `user_id='[mobile]'`;
+- JSON-looking `metric`, `stratum`, exclusion reason и webhook/user-visible text;
+- реальные JSONB payloads, которые должны остаться JSONB.
+
+Те же fixtures должны проходить на SQLite.
+
+### Реализация
+
+1. Удалить эвристику «первый символ `{`/`[` + `json.loads`».
+2. Добавить явный `JsonParam`/typed marker только в JSON/JSONB call sites.
+3. Проверить все downstream queries, которые сейчас полагаются на auto-adaptation.
+4. Оставить `?` → `%s` translation только как временный ограниченный слой; документировать границы и запретить новый untyped JSON reuse.
+5. Добавить contract test, который перечисляет типы каждой переносимой persistence operation.
+
+### Проверка
+
+```powershell
+python -m pytest app/backend/tests/test_postgres_backend.py -q
+python scripts/verify_workspace_backup.py --fixture
+python -m ruff check app/backend/app scripts
+python -m mypy
+```
+
+### Критерий готовности
+
+- Любая строка round-trips как TEXT независимо от содержания.
+- Только явно отмеченные значения адаптируются в JSONB.
+- SQLite и PostgreSQL дают одинаковое пользовательское поведение.
+
+---
+
+## Шаг 5. Защитить Slack ingress и дорогие вычисления
+
+**Модель:** `gpt-5.6-sol`  
+**Reasoning:** `high`  
+**Приоритет:** P1  
+**Размер:** M/L
+
+### Сначала тесты
+
+1. Oversized Slack request с корректным и некорректным `Content-Length` → 413.
+2. Chunked body, превысивший cap → 413 без полной буферизации.
+3. Burst invalid-signature requests → 429.
+4. Корректный Slack retry не ломается.
+5. Параллельные дорогие `/results` calls превышают concurrency budget → предсказуемый 429/503 с `Retry-After`.
+6. Cheap calls не блокируются при свободном cheap budget.
+7. Cost рассчитывается до старта resampling, а input caps проверяются schema layer.
+
+### Реализация
+
+1. Ввести отдельные Slack body/rate settings с безопасными defaults.
+2. Читать signed body через bounded streaming helper и только затем проверять signature/parsing.
+3. Добавить analyzer-aware cost function: тип анализа, N, resamples/permutations, matrix/table size.
+4. Ввести bounded semaphore/queue и fast load shedding.
+5. Отдельно наблюдать queue depth, cost units, rejections и latency по analyzer.
+6. Оставить request-count limiter как первый слой, а cost limiter — как второй.
+
+### Основные файлы
+
+- `app/backend/app/http_utils.py`
+- `app/backend/app/http_runtime.py`
+- `app/backend/app/config.py`
+- `app/backend/app/routes/slack.py`
+- analysis routes/schemas и runtime tests
+
+### Проверка
+
+```powershell
+python -m pytest app/backend/tests/test_rate_limiter.py app/backend/tests/test_slack_routes.py -q
+python -m pytest app/backend/tests/test_api_routes.py -q
+python scripts/benchmark_backend.py --payload binary --assert-ms 100
+```
+
+Добавить отдельный bounded benchmark для worst allowed resampling payload без ожидания процесса >1 GiB RAM.
+
+### Критерий готовности
+
+- Нет пути, который буферизует unlimited Slack body.
+- Invalid Slack traffic учитывается rate limiter-ом.
+- Дорогие requests ограничены по стоимости и параллелизму.
+- При перегрузке latency не растёт бесконтрольно, а отказ наблюдаем и документирован.
+
+---
+
+## Шаг 6. Ввести practical-significance decision policy
+
+**Модель:** `gpt-5.6-sol`  
+**Reasoning:** `xhigh`  
+**Приоритет:** P1  
+**Размер:** L
+
+### Сначала спецификация и тесты
+
+1. Написать короткий ADR: distinction между statistical evidence и business decision.
+2. Определить шкалу `minimum_worthwhile_effect` для binary/continuous/count/ratio/survival metrics.
+3. Зафиксировать решения для:
+   - significant positive, но ниже practical threshold;
+   - CI пересекает threshold;
+   - posterior probability `P(delta > threshold)` высока/низка;
+   - guardrail breach;
+   - early sequential crossing и winner's curse;
+   - несколько treatment arms и multiplicity.
+4. Создать golden decision matrix tests до реализации.
+
+### Реализация
+
+1. Добавить versioned `DecisionPolicy` в experiment payload/API contract.
+2. Возвращать evidence и policy verdict раздельно.
+3. Для `ship` требовать подтверждение practical threshold выбранным CI/Bayesian правилом.
+4. Сохранять policy version, thresholds и входные evidence IDs в audit trail.
+5. Добавить migration/backward-compatible default для старых проектов; не менять исторические verdicts молча.
+6. Депрекейтить `power_achieved` в главном decision UI; показывать planned power, uncertainty/precision и practical-threshold evidence.
+7. Обновить export/PDF/docs/i18n.
+
+### Проверка
+
+```powershell
+python -m pytest app/backend/tests/test_decision_service.py -q
+python -m pytest app/backend/tests/test_execution_live_stats.py -q
+python -m pytest app/backend/tests/test_results_service.py -q
+npm run test:unit
+```
+
+### Критерий готовности
+
+- Trivial but significant effect больше не получает `ship` без practical evidence.
+- Все verdicts объяснимы через machine-readable reason codes.
+- Старые проекты имеют явно документированный compatibility policy.
+- UI не представляет observed post-hoc power как самостоятельное доказательство решения.
+
+---
+
+## Шаг 7. Исправить контракт `admin` API keys
+
+**Модель:** `gpt-5.6-sol`  
+**Reasoning:** `high`  
+**Приоритет:** P2, security/contract  
+**Размер:** M
+
+### Принятое направление
+
+Использовать минимальный threat model, уже отражённый в комментариях backend: issued keys имеют только `read`/`write`, а static `AB_ADMIN_TOKEN` остаётся отдельным operator/bootstrap credential. Не расширять privilege surface без отдельного требования.
+
+### Сначала тесты
+
+1. Schema/UI не предлагают `admin` issued key.
+2. Existing `admin` key после migration ведёт себя как `write`, но не получает operator access.
+3. `write` key не управляет keys/webhooks.
+4. Static admin token создаёт/revokes keys и управляет webhooks.
+5. При отсутствии static token operator endpoints возвращают документированную ошибку.
+
+### Реализация
+
+1. Удалить `admin` из create request, generated TS contract и UI selector.
+2. Мигрировать/нормализовать существующие stored `admin` keys в `write` с audit record или явно отказать startup с инструкцией — выбрать безопасный обратимый вариант.
+3. Упростить middleware scope branches, чтобы не оставалось «admin, но не admin» state.
+4. Обновить `PRODUCTION`, `SECURITY`, API docs и operator UI copy.
+
+Если продукту всё же нужен revocable admin key, остановить этот шаг и оформить отдельный ADR с auth-source checks, rotation, audit и break-glass policy; не включать такую возможность неявно.
+
+### Проверка
+
+```powershell
+python -m pytest app/backend/tests/test_api_keys.py app/backend/tests/test_production_auth.py -q
+python scripts/generate_frontend_api_types.py --check
+python scripts/generate_api_docs.py --check
+npm run test:unit
+```
+
+### Критерий готовности
+
+- Название scope точно соответствует реальным разрешениям.
+- Нет issued credential с неоднозначным privilege behavior.
+- Bootstrap/operator recovery procedure документирована и проверена.
+
+---
+
+## Шаг 8. Усилить frontend contracts, i18n и static analysis
+
+**Модель:** `gpt-5.6-terra`  
+**Reasoning:** `high`  
+**Приоритет:** P2  
+**Размер:** L
+
+Выполнять отдельными scoped commits: сначала contract split, затем i18n, затем lint/a11y signal.
+
+### Изменения
+
+1. Разделить 1,024-строчный `lib/api.ts` на domain clients (`projects`, `analysis`, `keys`, `webhooks`, `system`, `workspace`) с сохранением стабильного facade при необходимости.
+2. Импортировать generated request/response types вместо ручных `ApiKey*`/`Webhook*` duplicates.
+3. Перевести `ApiKeyManager` и `ComparisonDetails` на i18n.
+4. Добавить catalog key-usage/parity gate с корректной обработкой plural categories и fallback.
+5. Исправить ошибочный комментарий `check_locale_content.py` о несуществующем parity gate.
+6. Добавить ESLint flat config: TypeScript, React hooks и JSX a11y; внедрять правила с нулевым baseline, не массовыми disable comments.
+7. Привести API key modal к keyboard pattern webhook modal: focus trap, Escape, focus restore, destructive confirmation.
+8. Добавить стабильный Canvas mock и убрать повторяющиеся jsdom warnings.
+9. Зафиксировать per-chunk/gzip budgets и не увеличивать общий ceiling без ADR.
+
+### Проверка
+
+```powershell
+npm exec tsc -- --noEmit -p .
+npm run lint
+npm run test:unit
+npm run build
+python ../../scripts/check_bundle_budget.py --self-test
+python ../../scripts/check_bundle_budget.py
+```
+
+Запустить locale/RTL/accessibility Playwright scenarios для всех затронутых surfaces.
+
+### Критерий готовности
+
+- Generated types — единственный источник API DTO contracts.
+- Нет hardcoded English в затронутых shipped UI surfaces.
+- Missing/stale locale key ломает CI.
+- Hooks/a11y regressions ловятся static gate.
+- Unit suite проходит без Canvas noise.
+- Bundle остаётся ниже текущего ceiling с осмысленным запасом.
+
+---
+
+## Шаг 9. Добавить воспроизводимый scientific oracle и risk-based tests
+
+**Модель:** `gpt-5.6-sol`  
+**Reasoning:** `xhigh`  
+**Приоритет:** P2, scientific assurance  
+**Размер:** L
+
+### Изменения
+
+1. Создать отдельный optional oracle lock/environment с pinned SciPy, statsmodels и lifelines; production requirements не менять.
+2. Сформировать deterministic parameter grid по каждому поддержанному estimator/test:
+   - nominal и boundary cases;
+   - unequal N/variance;
+   - sparse/zero cells;
+   - extreme probabilities/tails;
+   - ties/censoring;
+   - fixed seeded bootstrap/permutation cases.
+3. Сравнивать estimates, p-values, CI и decision-relevant flags с method-specific tolerances.
+4. Добавить metamorphic properties: arm swap, scale/translation invariance где допустимо, monotonicity, CI/test duality, seed reproducibility.
+5. Сохранять machine-readable diff artifact, versions и seeds.
+6. Запускать job weekly/manual и обязательно при изменениях `stats/**`, `services/results/**`, sequential/decision code.
+7. Поднять coverage только в risk gaps: PostgreSQL adapter, snapshot failure paths, cohort combinations, auth scopes, limiter branches; не ставить общий процент самоцелью.
+
+### Проверка
+
+```text
+oracle grid: all comparisons inside declared tolerances
+property suite: all invariants pass on fixed seeds
+runtime image diff: no oracle dependency added
+workflow artifact: versions, seeds and deviations published
+```
+
+### Критерий готовности
+
+- Любое изменение статистического ядра получает свежую независимую differential evidence.
+- Все tolerances обоснованы и method-specific.
+- Job воспроизводим локально и в CI.
+- Oracle dependencies отсутствуют в production image/SBOM runtime layer.
+
+---
+
+## Шаг 10. Полный acceptance и recovery gate
+
+**Модель:** `gpt-5.6-sol`  
+**Reasoning:** `high`  
+**Приоритет:** финальный gate  
+**Размер:** M
+
+Этот шаг выполняется только после завершения 1–9 и не заменяется исторически зелёным CI.
+
+### Обязательные проверки
+
+1. Полный `scripts/verify_all.py` с backend/frontend coverage.
+2. Реальный PostgreSQL contract suite.
+3. Docker build и secure compose verification на среде, где это укладывается в resource limits.
+4. Playwright E2E: smoke, locales/RTL, workspace, keys/webhooks, Slack ingress errors.
+5. Lighthouse budgets.
+6. `pip-audit` для runtime+dev lock; frontend и docs `npm audit`.
+7. CodeQL и container scan.
+8. WAL snapshot → remote revision → clean checkout restore → migration → readiness → checksum/data verification.
+9. Fault drill: corrupt latest snapshot должен безопасно оставить/восстановить последнюю good state.
+10. `git diff --check`, generated API/docs/help pages, repo hygiene, clean expected status.
+
+### Release acceptance matrix
+
+| Gate | Требование |
+|---|---|
+| P0 regressions | Все новые WAL/cohort tests green на SQLite и PostgreSQL |
+| Data recovery | Проверенный restore, schema current, data checksum/semantic counts совпадают |
+| Security | 0 high/critical dependency advisories; CodeQL/container gates green |
+| Performance | Cheap path не деградировал; expensive path bounded и наблюдаем |
+| Scientific | Oracle/property grid green в declared tolerances |
+| Frontend | Typecheck, lint, unit, E2E, a11y, locale parity и bundle budgets green |
+| Documentation | Production/runbook/API/decision policy соответствуют коду |
+
+### Критерий готовности
+
+- Все gates выше имеют свежие артефакты на одном commit SHA.
+- Нет skipped P0/P1 проверки без documented owner, причины и срока.
+- Рабочее дерево содержит только ожидаемые изменения.
+- Release note отдельно перечисляет исправленную backup semantics, cohort contract и decision policy migration.
+
+## Итоговый Definition of Done программы
+
+Программа завершена, когда одновременно выполнены условия:
+
+1. HF snapshot доказанно включает WAL-visible committed state и восстанавливается атомарно с migrations.
+2. Primary/holdout/timing используют одну canonical/exclusion population semantics на SQLite и PostgreSQL.
+3. PostgreSQL не выводит тип параметра из содержимого пользовательской строки.
+4. Slack и дорогие analyses имеют bounded body/rate/cost/concurrency.
+5. `ship` требует practical, а не только statistical evidence.
+6. API key scopes соответствуют реальным permissions.
+7. Frontend использует generated contracts, полный i18n gate и lint/a11y checks.
+8. Dependency scans green, scientific oracle воспроизводим, recovery drill пройден.
+9. Все доказательства относятся к одному финальному commit и доступны в CI artifacts.
