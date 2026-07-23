@@ -8,8 +8,9 @@
 
 ### 2026-07-23 (Grok #5) — шаг 5 Slack ingress + cost-aware admission → DONE
 - **Сделано:** Slack body/rate/invalid-sig limits; cost estimator + heavy/cheap concurrency admission на `/results*` и bandit; diagnostics/env/docs.
-- **Коммит (local main, не push):** см. git log после этой сессии (`fix(ingress): …`).
-- **Проверки:** `test_compute_admission` + `test_slack_routes` + `test_rate_limiter` 28 · oversized exact (fisher/boschloo/barnard) 3 · earlier regression api_routes+config+public_demo+results 196/199 then fixed solo-cost · ruff+mypy clean · frontend api-contract regenerated.
+- **Коммит (local main, не push):**
+  - `a833cd3c` — `fix(ingress): Slack body/rate limits and cost-aware compute admission`
+- **Проверки:** `test_compute_admission` + `test_slack_routes` + `test_rate_limiter` 28 · oversized exact (fisher/boschloo/barnard) 3 · regression config+api_routes+public_demo+results after solo-cost fix · ruff+mypy clean · frontend api-contract regenerated.
 - **Следующая сессия:** шаг 6 (practical decision policy) **или** шаг 7 (admin API keys).
 
 ### 2026-07-23 (Grok #4) — шаг 4 typed PG params → DONE
@@ -65,7 +66,7 @@
 | 2 | ~~Сделать SQLite snapshot/restore консистентным и атомарным~~ | `gpt-5.6-sol` | `xhigh` | L | нет | **DONE** `bd8696bc`+`b35fec2e` |
 | 3 | ~~Унифицировать canonical population для primary/holdout/timing~~ | `gpt-5.6-sol` | `xhigh` | L | нет | **DONE** (SQLite; PG parity residual) |
 | 4 | ~~Убрать blind JSON adaptation в PostgreSQL~~ | `gpt-5.6-sol` | `high` | M | желательно после шага 3 | **DONE** `e3e18a12` (live PG CI residual) |
-| 5 | ~~Ввести защищённый Slack ingress и cost-aware compute admission~~ | `gpt-5.6-sol` | `high` | M/L | нет | **DONE** (Grok #5) |
+| 5 | ~~Ввести защищённый Slack ingress и cost-aware compute admission~~ | `gpt-5.6-sol` | `high` | M/L | нет | **DONE** `a833cd3c` |
 | 6 | Разделить statistical evidence и practical ship policy | `gpt-5.6-sol` | `xhigh` | L | после шага 3 |
 | 7 | Исправить контракт `admin` API keys | `gpt-5.6-sol` | `high` | M | до шага 8 |
 | 8 | Усилить frontend contracts, i18n, lint и keyboard a11y | `gpt-5.6-terra` | `high` | L | после шага 7 |
