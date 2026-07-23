@@ -9,7 +9,8 @@
 ### 2026-07-23 (Grok #4) — шаг 4 typed PG params → DONE
 
 - **Сделано:** `JsonParam` + sqlite adapter; удалён blind `{`/`[` → Jsonb heuristic; все JSONB call sites (projects/revisions/analysis/audit/templates/webhooks/workspace import/schema normalize) на маркере; contract catalog + SQLite JSON-looking TEXT parity; unit adapt tests без Docker.
-- **Коммит (local main, не push):** см. git log (`fix(postgres): typed JsonParam…`).
+- **Коммит (local main, не push):**
+  - `e3e18a12` — `fix(postgres): typed JsonParam binding, drop blind JSON heuristic`
 - **Проверки:** `test_json_param` 9 passed / 1 skipped (live PG Docker) · regression json_param+repository+ingestion+api+postgres offline 172 passed / 21 skipped · ruff+mypy clean · `verify_workspace_backup --fixture` OK.
 - **Остаток:** live PG edge suite гоняется в CI Linux/Docker job (локально Docker нет); PG population parity из шага 3 по-прежнему residual.
 - **Следующая сессия:** шаг 5 (Slack ingress + cost-aware admission) **или** шаг 6 (practical decision policy).
@@ -57,7 +58,7 @@
 | 1 | ~~Закрыть `svgo` advisory и вернуть dependency gate в green~~ | `gpt-5.6-terra` | `medium` | S | нет | **DONE** `99fcd86c` |
 | 2 | ~~Сделать SQLite snapshot/restore консистентным и атомарным~~ | `gpt-5.6-sol` | `xhigh` | L | нет | **DONE** `bd8696bc`+`b35fec2e` |
 | 3 | ~~Унифицировать canonical population для primary/holdout/timing~~ | `gpt-5.6-sol` | `xhigh` | L | нет | **DONE** (SQLite; PG parity residual) |
-| 4 | ~~Убрать blind JSON adaptation в PostgreSQL~~ | `gpt-5.6-sol` | `high` | M | желательно после шага 3 | **DONE** (unit+SQLite; live PG CI residual) |
+| 4 | ~~Убрать blind JSON adaptation в PostgreSQL~~ | `gpt-5.6-sol` | `high` | M | желательно после шага 3 | **DONE** `e3e18a12` (live PG CI residual) |
 | 5 | Ввести защищённый Slack ingress и cost-aware compute admission | `gpt-5.6-sol` | `high` | M/L | нет |
 | 6 | Разделить statistical evidence и practical ship policy | `gpt-5.6-sol` | `xhigh` | L | после шага 3 |
 | 7 | Исправить контракт `admin` API keys | `gpt-5.6-sol` | `high` | M | до шага 8 |
