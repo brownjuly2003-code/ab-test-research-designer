@@ -7,6 +7,7 @@
 - docs-site: pin transitive `svgo` to `4.0.2` via npm `overrides` (GHSA-2p49-hgcm-8545 / removeScripts). `npm audit --audit-level=high` is clean after clean install.
 - Slack ingress (audit F-05): `/slack/commands|interactive|events` now share a dedicated body cap (`AB_MAX_SLACK_BODY_BYTES`, default 64 KiB) and request-count rate limit; invalid signatures are throttled (`AB_SLACK_INVALID_SIGNATURE_*`) before form/json parsing. Oversized bodies return 413 without unbounded buffering.
 - Cost-aware compute admission (audit F-06): expensive `/api/v1/results*` and bandit simulation estimate cost units after schema validation (analyzer type, N, resamples/table size) and acquire a bounded heavy/cheap concurrency + in-flight cost budget before resampling starts. Overload returns 429 `compute_capacity_exceeded` with `Retry-After`; cheap summary tests keep a separate lane.
+- API key scopes (audit F-09): issued keys are only `read`/`write`. Schema and UI no longer offer `admin`. Legacy stored `scope=admin` keys normalize to `write` on startup with an audit entry (`api_key_scope_normalized`). Operator surfaces (`/api/v1/keys`, `/api/v1/webhooks`) require static `AB_ADMIN_TOKEN` only; missing token returns `401`/`admin_token_not_configured`, and a write key attempting operator routes returns `403`/`admin_token_required`.
 
 ### Changed
 

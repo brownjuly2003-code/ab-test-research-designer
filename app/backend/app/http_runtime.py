@@ -184,13 +184,29 @@ def register_http_runtime(
         raise HTTPException(status_code=401, detail="Unauthorized")
 
     def require_admin_auth(request: Request) -> None:
+        # Operator surfaces (keys/webhooks) accept only the static AB_ADMIN_TOKEN.
+        # Issued DB API keys are never operator credentials (audit F-09).
         if not settings.admin_token:
-            raise HTTPException(status_code=401, detail="Unauthorized")
+            raise ApiError(
+                "Operator endpoints require AB_ADMIN_TOKEN; issued API keys cannot manage keys or webhooks",
+                error_code="admin_token_not_configured",
+                status_code=401,
+            )
         if getattr(request.state, "admin_authenticated", False):
             return
-        if getattr(request.state, "auth_scope", None) in {"read", "write"}:
-            raise HTTPException(status_code=403, detail="Forbidden")
-        raise HTTPException(status_code=401, detail="Unauthorized")
+        if getattr(request.state, "auth_source", None) == "api_key" or getattr(
+            request.state, "auth_scope", None
+        ) in {"read", "write"}:
+            raise ApiError(
+                "Operator endpoints require AB_ADMIN_TOKEN; issued API keys have only read or write scope",
+                error_code="admin_token_required",
+                status_code=403,
+            )
+        raise ApiError(
+            "Unauthorized",
+            error_code="unauthorized",
+            status_code=401,
+        )
 
     @app.middleware("http")
     async def add_request_metadata(request: Request, call_next: RequestResponseEndpoint) -> Response:
@@ -313,7 +329,12 @@ def register_http_runtime(
                             response_status=status.HTTP_401_UNAUTHORIZED,
                             error_code="unauthorized",
                         )
-                    request.state.auth_scope = api_key["scope"]
+                    # Issued keys are read|write only. Never treat a DB key as operator
+                    # admin even if a legacy row still says "admin".
+                    issued_scope = api_key["scope"]
+                    if issued_scope not in {"read", "write"}:
+                        issued_scope = "write"
+                    request.state.auth_scope = issued_scope
                     request.state.auth_source = "api_key"
                     request.state.auth_key_id = api_key["id"]
                     request.state.audit_actor = f"api_key:{api_key['id']}"
@@ -334,6 +355,15 @@ def register_http_runtime(
                     request.state.auth_scope = "read"
                     request.state.auth_source = "anonymous"
                     request.state.audit_actor = "anonymous"
+                elif admin_only_path and not settings.admin_token:
+                    return reject_auth_request(
+                        detail=(
+                            "Operator endpoints require AB_ADMIN_TOKEN; "
+                            "issued API keys cannot manage keys or webhooks"
+                        ),
+                        response_status=status.HTTP_401_UNAUTHORIZED,
+                        error_code="admin_token_not_configured",
+                    )
                 else:
                     return reject_auth_request(
                         detail="Unauthorized",

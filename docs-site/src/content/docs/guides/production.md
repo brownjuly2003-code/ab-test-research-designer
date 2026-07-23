@@ -41,8 +41,8 @@ Any **one** of these satisfies the startup auth gate — each ends with anonymou
 | Bootstrap | What it gives you |
 | --- | --- |
 | `AB_API_TOKEN` | The write-scoped shared token. Simplest single-secret deployment. |
-| `AB_ADMIN_TOKEN` | No write scope of its own, but it issues the first write-scoped API key through `POST /api/v1/keys`. Until that key exists, mutating endpoints answer `401` — they are closed, not open. |
-| An active **write**-scoped API key already in the database | The steady state after the admin token has been retired. |
+| `AB_ADMIN_TOKEN` | Operator/bootstrap credential only. It unlocks `/api/v1/keys` and `/api/v1/webhooks` and issues the first write-scoped API key. Issued DB keys are never operator credentials — they are only `read` or `write`. Until a write key exists, mutating endpoints answer `401` — they are closed, not open. |
+| An active **write**-scoped API key already in the database | The steady state after the admin token has been retired. Write keys cannot manage keys/webhooks; keep or re-introduce `AB_ADMIN_TOKEN` for operator recovery. |
 
 A read-only token (`AB_READONLY_API_TOKEN`) or `AB_PUBLIC_DEMO` **alone** does not satisfy the gate.
 Nothing would be open, but nothing could be written either — that is a broken production config, not a
@@ -71,7 +71,7 @@ that would normally refuse to boot.
 | `AB_HOST` / `AB_PORT` | `0.0.0.0` / `8008` | Bind address and port the container exposes. |
 | `AB_API_TOKEN` | long random secret (≥ 24 chars in production) | Write-scoped token. Required unless you bootstrap through `AB_ADMIN_TOKEN` or an existing write API key — see the auth gate above. |
 | `AB_READONLY_API_TOKEN` | long random secret (≥ 24 chars in production) | Optional read-only token for diagnostics. Does not satisfy the auth gate on its own. |
-| `AB_ADMIN_TOKEN` | long random secret (≥ 24 chars in production) | Admin-only surfaces (`/api/v1/keys`, `/api/v1/webhooks`); issues the first write-scoped API key. Satisfies the auth gate. |
+| `AB_ADMIN_TOKEN` | long random secret (≥ 24 chars in production) | Static operator/bootstrap secret for `/api/v1/keys` and `/api/v1/webhooks`. Issued API keys support only `read`/`write` scopes and never replace this token. Satisfies the auth gate. Without it, operator endpoints return `401` / `admin_token_not_configured`. |
 | `AB_ALLOW_INSECURE_PRODUCTION` | `false` | Escape hatch. `true` starts production with no auth material — mutating endpoints open to anyone — and logs a `WARNING` every boot. |
 | `AB_WORKSPACE_SIGNING_KEY` | long random secret (≥ 16 chars) | Signs workspace backups so they cannot be tampered with. |
 | `AB_CORS_ORIGINS` | your frontend origin(s) | Comma-separated; defaults to localhost dev origins. |

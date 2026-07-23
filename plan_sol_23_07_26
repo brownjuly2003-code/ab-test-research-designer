@@ -6,13 +6,20 @@
 
 ## Журнал сессий
 
+### 2026-07-23 (Grok #7) — шаг 7 admin API keys contract → DONE
+- **Сделано:** issued scopes только `read`/`write`; legacy `admin` → `write` + audit `api_key_scope_normalized`; operator surfaces только static `AB_ADMIN_TOKEN` (`admin_token_not_configured` / `admin_token_required`); schema v16 + PG migration; FE selector без Admin; docs PRODUCTION/SECURITY/API; CHANGELOG.
+- **Коммит (local main, не push):**
+  - *(hash после commit)* — `fix(auth): remove misleading admin issued API key scope`
+- **Проверки:** `test_api_keys` 8 · `test_production_auth` green · api_routes keys/webhooks/diagnostics 9 · snapshot newer_schema + reinitialize · ruff+mypy clean · generate frontend types + api docs --check · ApiKeyManager vitest 3.
+- **Следующая сессия:** шаг 8 (frontend contracts/i18n/lint/a11y) **или** residual шага 6.
+
 ### 2026-07-23 (Grok #6) — шаг 6 practical decision policy → DONE (core)
 - **Сделано:** ADR 0001; `decision_policy.py` practical_v1; decision_service practical gate; golden matrix tests; DecisionReadoutResponse policy/evidence; FE DecisionReadout + i18n; CHANGELOG.
 - **Коммит (local main, не push):**
   - `2b565422` — `feat(decision): practical-significance policy practical_v1`
 - **Проверки:** `test_decision_service` 22 · ruff+mypy clean · frontend api-contract regenerated.
 - **Residual (не блокер core DONE):** explicit experiment-payload DecisionPolicy schema field in OpenAPI wizard; Bayesian `P(δ>MWE)` rule; PDF export copy; backend i18n catalogs (reasons live on FE).
-- **Следующая сессия:** residual шага 6 **или** шаг 7 (admin API keys).
+- **Следующая сессия:** ~~residual шага 6 или шаг 7~~ → шаг 7 DONE в Grok #7.
 
 ### 2026-07-23 (Grok #5) — шаг 5 Slack ingress + cost-aware admission → DONE
 - **Сделано:** Slack body/rate/invalid-sig limits; cost estimator + heavy/cheap concurrency admission на `/results*` и bandit; diagnostics/env/docs.
@@ -76,7 +83,7 @@
 | 4 | ~~Убрать blind JSON adaptation в PostgreSQL~~ | `gpt-5.6-sol` | `high` | M | желательно после шага 3 | **DONE** `e3e18a12` (live PG CI residual) |
 | 5 | ~~Ввести защищённый Slack ingress и cost-aware compute admission~~ | `gpt-5.6-sol` | `high` | M/L | нет | **DONE** `a833cd3c` |
 | 6 | ~~Разделить statistical evidence и practical ship policy~~ | `gpt-5.6-sol` | `xhigh` | L | после шага 3 | **DONE** core `2b565422` |
-| 7 | Исправить контракт `admin` API keys | `gpt-5.6-sol` | `high` | M | до шага 8 |
+| 7 | ~~Исправить контракт `admin` API keys~~ | `gpt-5.6-sol` | `high` | M | до шага 8 | **DONE** *(hash)* |
 | 8 | Усилить frontend contracts, i18n, lint и keyboard a11y | `gpt-5.6-terra` | `high` | L | после шага 7 |
 | 9 | Добавить воспроизводимый scientific oracle/risk-based suite | `gpt-5.6-sol` | `xhigh` | L | после шагов 3 и 6 |
 | 10 | Провести полный acceptance/recovery gate | `gpt-5.6-sol` | `high` | M | после шагов 1–9 |
@@ -90,7 +97,8 @@
 2b. ~~**Typed PG params:** шаг 4.~~ ✅ 2026-07-23 · live PG Docker edge — CI residual.
 3. ~~**Availability (Slack + compute admission):** шаг 5.~~ ✅ 2026-07-23 · decision quality (шаг 6) остаётся.
 3b. ~~**Decision quality:** шаг 6.~~ ✅ 2026-07-23 core · residual optional.
-4. **Контракт и интерфейс:** шаги 7 и 8.
+4. ~~**Контракт admin API keys:** шаг 7.~~ ✅ 2026-07-23 · шаг 8 (frontend contracts/i18n) остаётся.
+4b. **Интерфейс:** шаг 8.
 5. **Научная воспроизводимость:** шаг 9.
 6. **Финальный gate:** шаг 10 выполняется последним.
 
@@ -446,48 +454,55 @@ python scripts/generate_frontend_api_types.py --check
 
 ---
 
-## Шаг 7. Исправить контракт `admin` API keys
+## ~~Шаг 7. Исправить контракт `admin` API keys~~ ✅ DONE
 
-**Модель:** `gpt-5.6-sol`  
-**Reasoning:** `high`  
+**Статус:** ✅ 2026-07-23 · Grok #7 · audit F-09  
+**Модель (план):** `gpt-5.6-sol` · **исполнитель:** Grok  
 **Приоритет:** P2, security/contract  
 **Размер:** M
 
-### Принятое направление
+### Комментарий к сделанному
 
-Использовать минимальный threat model, уже отражённый в комментариях backend: issued keys имеют только `read`/`write`, а static `AB_ADMIN_TOKEN` остаётся отдельным operator/bootstrap credential. Не расширять privilege surface без отдельного требования.
+- **Threat model (минимальный, как в плане):** issued keys = `read`/`write` only; static `AB_ADMIN_TOKEN` = единственный operator/bootstrap credential. Revocable admin key **не** вводили (потребовал бы отдельный ADR).
+- **Schema:** `ApiKeyCreateRequest` / `ApiKeyRecord` — `Literal["read", "write"]`; create с `admin` → 422.
+- **Migration:** `normalize_legacy_admin_api_key_scopes()` на boot (SQLite `_init_db`, Postgres до versioned migrations) → `UPDATE scope='write'` + audit `api_key_scope_normalized` (`dispatch_webhooks=False`). Schema **v16** + PG migration `api_key_scope_admin_to_write` (идемпотентный UPDATE).
+- **Auth:** `require_admin_auth` → `ApiError` `admin_token_not_configured` (401) / `admin_token_required` (403). Middleware: issued key никогда не ставит `admin_authenticated`; legacy non-read/write coerce → write; anonymous operator path без token → `admin_token_not_configured`.
+- **Repo:** `has_active_api_keys` больше не учитывает `admin`; `create_api_key` reject invalid scope `api_key_scope_invalid`.
+- **FE:** `ApiKeyManager` selector без Admin; `ApiKeyScope` / generated contract без admin на issued keys (`session_scope` admin остаётся для static token).
+- **Docs:** PRODUCTION, SECURITY, docs-site production mirror, API validation notes (generator), CHANGELOG Security, main.py startup docstring.
 
 ### Сначала тесты
 
-1. Schema/UI не предлагают `admin` issued key.
-2. Existing `admin` key после migration ведёт себя как `write`, но не получает operator access.
-3. `write` key не управляет keys/webhooks.
-4. Static admin token создаёт/revokes keys и управляет webhooks.
-5. При отсутствии static token operator endpoints возвращают документированную ошибку.
+1. ~~Schema/UI не предлагают `admin` issued key.~~ ✅ `test_create_api_key_rejects_admin_scope` + FE selector
+2. ~~Existing `admin` key после migration → write, без operator access.~~ ✅ `test_legacy_admin_api_key_normalizes_to_write_without_operator_access`
+3. ~~`write` key не управляет keys/webhooks.~~ ✅ `test_write_api_key_cannot_manage_keys_or_webhooks`
+4. ~~Static admin token создаёт/revokes keys и webhooks.~~ ✅ `test_static_admin_token_manages_keys_and_webhooks`
+5. ~~Без static token — документированная ошибка.~~ ✅ `test_operator_endpoints_without_admin_token_return_documented_error`
 
 ### Реализация
 
-1. Удалить `admin` из create request, generated TS contract и UI selector.
-2. Мигрировать/нормализовать существующие stored `admin` keys в `write` с audit record или явно отказать startup с инструкцией — выбрать безопасный обратимый вариант.
-3. Упростить middleware scope branches, чтобы не оставалось «admin, но не admin» state.
-4. Обновить `PRODUCTION`, `SECURITY`, API docs и operator UI copy.
+1. ~~Удалить `admin` из create request, generated TS contract и UI selector.~~ ✅
+2. ~~Нормализовать stored `admin` → `write` с audit (безопасный обратимый вариант).~~ ✅
+3. ~~Упростить middleware: issued key ≠ operator; нет «admin, но не admin».~~ ✅
+4. ~~PRODUCTION, SECURITY, API docs, operator copy.~~ ✅
 
-Если продукту всё же нужен revocable admin key, остановить этот шаг и оформить отдельный ADR с auth-source checks, rotation, audit и break-glass policy; не включать такую возможность неявно.
-
-### Проверка
+### Проверка (сессия)
 
 ```powershell
-python -m pytest app/backend/tests/test_api_keys.py app/backend/tests/test_production_auth.py -q
+python -m pytest app/backend/tests/test_api_keys.py app/backend/tests/test_production_auth.py -q  # 15
+python -m pytest app/backend/tests/test_api_routes.py -k "api_key or webhook or diagnostics or schema" -q  # 9
 python scripts/generate_frontend_api_types.py --check
 python scripts/generate_api_docs.py --check
-npm run test:unit
+python -m ruff check <touched>
+python -m mypy app/backend/app/repository/_api_keys.py app/backend/app/http_runtime.py …
+# FE: vitest ApiKeyManager 3/3
 ```
 
 ### Критерий готовности
 
-- Название scope точно соответствует реальным разрешениям.
-- Нет issued credential с неоднозначным privilege behavior.
-- Bootstrap/operator recovery procedure документирована и проверена.
+- ~~Название scope = реальные permissions.~~ ✅
+- ~~Нет issued credential с неоднозначным privilege.~~ ✅
+- ~~Bootstrap/operator recovery документирован.~~ ✅ PRODUCTION + SECURITY + API notes
 
 ---
 
@@ -627,7 +642,7 @@ workflow artifact: versions, seeds and deviations published
 3. PostgreSQL не выводит тип параметра из содержимого пользовательской строки.
 4. ~~Slack и дорогие analyses имеют bounded body/rate/cost/concurrency.~~ ✅ шаг 5
 5. ~~`ship` требует practical, а не только statistical evidence.~~ ✅ шаг 6 core
-6. API key scopes соответствуют реальным permissions.
+6. ~~API key scopes соответствуют реальным permissions.~~ ✅ шаг 7
 7. Frontend использует generated contracts, полный i18n gate и lint/a11y checks.
 8. Dependency scans green, scientific oracle воспроизводим, recovery drill пройден.
 9. Все доказательства относятся к одному финальному commit и доступны в CI artifacts.

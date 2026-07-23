@@ -3,12 +3,15 @@
 import secrets
 import uuid
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Final
 
 from app.backend.app.errors import ApiError
 from app.backend.app.repository._core import _BackendCore
 from app.backend.app.repository._rows import api_key_row_to_record
 from app.backend.app.repository._utils import hash_api_key
+
+# Issued (database-backed) API keys. Operator access is AB_ADMIN_TOKEN only.
+ISSUED_API_KEY_SCOPES: Final[frozenset[str]] = frozenset({"read", "write"})
 
 
 class _ApiKeysMixin(_BackendCore):
@@ -24,10 +27,10 @@ class _ApiKeysMixin(_BackendCore):
         return row is not None
 
     def has_active_api_keys(self, *, scope: str | None = None) -> bool:
+        # Issued keys are only read/write. Legacy "admin" rows are normalized at boot.
         scope_filters = {
-            "write": ("write", "admin"),
-            "read": ("read", "write", "admin"),
-            "admin": ("admin",),
+            "write": ("write",),
+            "read": ("read", "write"),
         }
         scopes = scope_filters.get(scope) if scope is not None else None
         with self._transaction() as connection:
@@ -53,6 +56,44 @@ class _ApiKeysMixin(_BackendCore):
                 ).fetchone()
         return row is not None
 
+    def normalize_legacy_admin_api_key_scopes(self) -> int:
+        """Rewrite stored scope=admin keys to write and audit each change.
+
+        Pre-F-09 keys labeled ``admin`` never received operator privileges; they
+        behaved as write keys with a misleading label. Normalization is idempotent.
+        """
+        with self._transaction() as connection:
+            rows = connection.execute(
+                """
+                SELECT id
+                FROM api_keys
+                WHERE scope = 'admin'
+                """
+            ).fetchall()
+            if not rows:
+                return 0
+            connection.execute(
+                """
+                UPDATE api_keys
+                SET scope = 'write'
+                WHERE scope = 'admin'
+                """
+            )
+        key_ids = [str(row["id"]) for row in rows]
+        log_audit = getattr(self, "log_audit_entry", None)
+        if callable(log_audit):
+            for key_id in key_ids:
+                log_audit(
+                    action="api_key_scope_normalized",
+                    key_id=key_id,
+                    actor="system:schema_migration",
+                    request_id=None,
+                    ip_address=None,
+                    payload_diff={"scope": ["admin", "write"]},
+                    dispatch_webhooks=False,
+                )
+        return len(key_ids)
+
     def create_api_key(
         self,
         *,
@@ -61,6 +102,13 @@ class _ApiKeysMixin(_BackendCore):
         rate_limit_requests: int | None = None,
         rate_limit_window_seconds: int | None = None,
     ) -> dict[str, Any]:
+        if scope not in ISSUED_API_KEY_SCOPES:
+            raise ApiError(
+                "Issued API keys support only read or write scope; "
+                "operator access uses AB_ADMIN_TOKEN",
+                error_code="api_key_scope_invalid",
+                status_code=400,
+            )
         api_key_id = str(uuid.uuid4())
         plaintext_key = f"abk_{secrets.token_urlsafe(32)}"
         key_hash = hash_api_key(plaintext_key)
@@ -228,4 +276,10 @@ class _ApiKeysMixin(_BackendCore):
                 (row["id"],),
             ).fetchone()
 
-        return api_key_row_to_record(row) if row is not None else None
+        if row is None:
+            return None
+        record = api_key_row_to_record(row)
+        # Defensive: never surface legacy admin as an issued operator privilege.
+        if record.get("scope") == "admin":
+            record["scope"] = "write"
+        return record

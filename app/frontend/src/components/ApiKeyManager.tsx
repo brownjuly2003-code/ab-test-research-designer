@@ -26,7 +26,7 @@ export default function ApiKeyManager() {
   const [creating, setCreating] = useState(false);
   const [actionKeyId, setActionKeyId] = useState<string | null>(null);
   const [name, setName] = useState("");
-  const [scope, setScope] = useState<"read" | "write" | "admin">("read");
+  const [scope, setScope] = useState<"read" | "write">("read");
   const [rateLimitRequests, setRateLimitRequests] = useState("");
   const [rateLimitWindowSeconds, setRateLimitWindowSeconds] = useState("");
   const [latestCreated, setLatestCreated] = useState<ApiKeyCreateResponse | null>(null);
@@ -275,10 +275,13 @@ export default function ApiKeyManager() {
               </div>
               <div className="field">
                 <label htmlFor="api-key-scope">Scope</label>
-                <select id="api-key-scope" value={scope} onChange={(event) => setScope(event.target.value as "read" | "write" | "admin")}>
+                <select
+                  id="api-key-scope"
+                  value={scope}
+                  onChange={(event) => setScope(event.target.value as "read" | "write")}
+                >
                   <option value="read">Read</option>
                   <option value="write">Write</option>
-                  <option value="admin">Admin</option>
                 </select>
               </div>
               <div className="field">

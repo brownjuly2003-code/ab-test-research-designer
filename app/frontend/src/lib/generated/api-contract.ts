@@ -40,7 +40,7 @@ export type AnalysisRunSummary = {
 
 export type ApiKeyCreateRequest = {
   name: string;
-  scope: "read" | "write" | "admin";
+  scope: "read" | "write";
   rate_limit_requests?: number | null;
   rate_limit_window_seconds?: number | null;
 };
@@ -48,7 +48,7 @@ export type ApiKeyCreateRequest = {
 export type ApiKeyCreateResponse = {
   id: string;
   name: string;
-  scope: "read" | "write" | "admin";
+  scope: "read" | "write";
   created_at: string;
   last_used_at?: string | null;
   revoked_at?: string | null;
@@ -70,7 +70,7 @@ export type ApiKeyListResponse = {
 export type ApiKeyRecord = {
   id: string;
   name: string;
-  scope: "read" | "write" | "admin";
+  scope: "read" | "write";
   created_at: string;
   last_used_at?: string | null;
   revoked_at?: string | null;

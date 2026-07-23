@@ -1500,8 +1500,8 @@ def test_diagnostics_endpoint_returns_runtime_summary(monkeypatch) -> None:
     assert payload["storage"]["db_parent_path"] == str(db_path.parent)
     assert payload["storage"]["db_size_bytes"] >= 0
     assert payload["storage"]["disk_free_bytes"] > 0
-    assert payload["storage"]["schema_version"] == 15
-    assert payload["storage"]["sqlite_user_version"] == 15
+    assert payload["storage"]["schema_version"] == 16
+    assert payload["storage"]["sqlite_user_version"] == 16
     assert payload["storage"]["journal_mode"] == "WAL"
     assert payload["storage"]["synchronous"] == "NORMAL"
     assert payload["storage"]["write_probe_ok"] is True
@@ -1964,7 +1964,7 @@ def test_api_key_used_audit_logged_on_read_scope_post_rejection(monkeypatch) -> 
     db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
     repository = ProjectRepository(str(db_path))
     read_key = repository.create_api_key(name="Read key", scope="read")
-    admin_key = repository.create_api_key(name="Admin", scope="admin")
+    write_key = repository.create_api_key(name="Write auditor", scope="write")
 
     monkeypatch.setenv("AB_DB_PATH", str(db_path))
     monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")
@@ -1979,7 +1979,7 @@ def test_api_key_used_audit_logged_on_read_scope_post_rejection(monkeypatch) -> 
         audit = client.get(
             "/api/v1/audit",
             params={"action": "api_key_used", "key_id": read_key["id"]},
-            headers={"Authorization": f"Bearer {admin_key['plaintext_key']}"},
+            headers={"Authorization": f"Bearer {write_key['plaintext_key']}"},
         )
 
     assert forbidden.status_code == 403
@@ -1994,7 +1994,7 @@ def test_api_key_used_audit_logged_on_rate_limit_rejection(monkeypatch) -> None:
     db_path = temp_dir / f"{uuid.uuid4()}.sqlite3"
     repository = ProjectRepository(str(db_path))
     write_key = repository.create_api_key(name="Throttled", scope="write")
-    admin_key = repository.create_api_key(name="Admin", scope="admin")
+    auditor_key = repository.create_api_key(name="Auditor", scope="write")
 
     monkeypatch.setenv("AB_DB_PATH", str(db_path))
     monkeypatch.setenv("AB_RATE_LIMIT_ENABLED", "true")
@@ -2015,7 +2015,7 @@ def test_api_key_used_audit_logged_on_rate_limit_rejection(monkeypatch) -> None:
         audit = client.get(
             "/api/v1/audit",
             params={"action": "api_key_used", "key_id": write_key["id"]},
-            headers={"Authorization": f"Bearer {admin_key['plaintext_key']}"},
+            headers={"Authorization": f"Bearer {auditor_key['plaintext_key']}"},
         )
 
     assert first.status_code == 200

@@ -111,7 +111,7 @@ def test_postgres_diagnostics_summary_never_serializes_the_dsn() -> None:
 
     backend = SimpleNamespace(
         database_url=DSN,
-        schema_version=15,
+        schema_version=16,
         workspace_schema_version=3,
         workspace_signing_key=None,
         _run_write_probe=lambda: (True, "BEGIN succeeded"),

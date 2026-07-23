@@ -279,13 +279,13 @@ def test_restore_latest_refuses_snapshot_from_newer_schema(
     snapshot_service: SnapshotService, tmp_path: Path, caplog
 ) -> None:
     remote_db_path = tmp_path / "remote.sqlite3"
-    _write_sqlite_db(remote_db_path, rows=[("remote",)], user_version=15)
+    _write_sqlite_db(remote_db_path, rows=[("remote",)], user_version=17)
     metadata_path = tmp_path / "metadata.json"
     metadata_path.write_text(
         json.dumps(
             {
                 "app_version": "9.9.9",
-                "db_schema_version": 15,
+                "db_schema_version": 17,
                 "workspace_schema_version": 3,
                 "ts": "2026-04-23T12:34:56Z",
                 "sha256": _sha256(remote_db_path),

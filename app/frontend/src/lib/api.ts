@@ -116,7 +116,7 @@ export type DiagnosticsResponse = ApiDiagnosticsResponse;
 export type WorkspaceExportResponse = WorkspaceBundle;
 export type WorkspaceValidationSummary = WorkspaceValidationResponse;
 export type WorkspaceImportSummary = WorkspaceImportResponse;
-export type ApiKeyScope = "read" | "write" | "admin";
+export type ApiKeyScope = "read" | "write";
 export type ApiKeyRecord = {
   id: string;
   name: string;

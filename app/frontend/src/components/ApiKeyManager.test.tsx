@@ -142,8 +142,8 @@ describe("ApiKeyManager", () => {
         keys: [
           {
             id: "key-3",
-            name: "Partner admin key",
-            scope: "admin",
+            name: "Partner write key",
+            scope: "write",
             created_at: "2026-04-21T08:00:00Z",
             last_used_at: "2026-04-21T08:10:00Z",
             revoked_at: null,
@@ -157,8 +157,8 @@ describe("ApiKeyManager", () => {
         keys: [
           {
             id: "key-3",
-            name: "Partner admin key",
-            scope: "admin",
+            name: "Partner write key",
+            scope: "write",
             created_at: "2026-04-21T08:00:00Z",
             last_used_at: "2026-04-21T08:10:00Z",
             revoked_at: "2026-04-21T08:20:00Z",
@@ -170,8 +170,8 @@ describe("ApiKeyManager", () => {
       });
     vi.mocked(revokeApiKeyRequest).mockResolvedValue({
       id: "key-3",
-      name: "Partner admin key",
-      scope: "admin",
+      name: "Partner write key",
+      scope: "write",
       created_at: "2026-04-21T08:00:00Z",
       last_used_at: "2026-04-21T08:10:00Z",
       revoked_at: "2026-04-21T08:20:00Z",

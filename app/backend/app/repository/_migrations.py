@@ -88,6 +88,16 @@ POSTGRES_MIGRATIONS: Final[tuple[Migration, ...]] = (
             ),
         ),
     ),
+    Migration(
+        version=16,
+        name="api_key_scope_admin_to_write",
+        statements=(
+            # Issued API keys never granted operator privileges; scope=admin was a
+            # misleading write label (audit F-09). Bootstrap/operator access is
+            # AB_ADMIN_TOKEN only. Idempotent: no-op when no legacy rows remain.
+            "UPDATE api_keys SET scope = 'write' WHERE scope = 'admin'",
+        ),
+    ),
 )
 
 # What the running code requires the database to be. Readiness compares the version actually

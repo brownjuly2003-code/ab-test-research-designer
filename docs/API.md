@@ -285,8 +285,9 @@ Ingest Conversions
 Get Decision
 
 Decision Readout — one synthesized ship / no-ship / keep-running verdict over the same
-live-stats signals (SRM, frequentist effect/CI, Bayesian P(B>A), sequential crossing). No
-new statistics; see services/decision_service.py.
+live-stats signals (SRM, frequentist effect/CI, Bayesian P(B>A), sequential crossing),
+gated by the practical-significance policy (ADR 0001). No new statistics; see
+services/decision_service.py.
 
 ### `POST /api/v1/experiments/{experiment_id}/exclusions`
 
@@ -497,8 +498,8 @@ Slack Oauth Callback
 - when `AB_API_TOKEN`, `AB_READONLY_API_TOKEN`, or database-backed API keys are configured, protected runtime routes still accept `Authorization: Bearer` or `X-API-Key`
 - `/docs`, `/redoc`, and `/openapi.json` remain public even when auth is enabled; only protected API routes and `/readyz` require a token
 - `AB_READONLY_API_TOKEN` is valid only for `GET`, `HEAD`, and `OPTIONS`; mutating routes still require `AB_API_TOKEN`
-- `/api/v1/keys*` requires `AB_ADMIN_TOKEN`; without it the key-management endpoints return `401`
-- database-backed API keys are stored as SHA-256 hashes, the plaintext secret is returned only once at creation time, and revoked keys are rejected
+- `/api/v1/keys*` and `/api/v1/webhooks*` require static `AB_ADMIN_TOKEN` (operator/bootstrap only). Without it they return `401` / `admin_token_not_configured`; a read/write issued key attempting them returns `403` / `admin_token_required`
+- issued database API keys support only `read` or `write` scope (never `admin`); they are stored as SHA-256 hashes, the plaintext secret is returned only once at creation time, and revoked keys are rejected
 - per-key rate-limit overrides apply only to requests authenticated with a database API key; legacy shared tokens continue to use the global limiter
 - all API responses include `X-Request-ID` and `X-Process-Time-Ms` headers
 - error responses also include `error_code`, `status_code`, `request_id`, and `X-Error-Code`

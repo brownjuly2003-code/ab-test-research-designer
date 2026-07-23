@@ -143,6 +143,10 @@ class PostgresBackend(SQLiteBackend):
         )
         self._pool.open(wait=True)
         self._init_db()
+        # Normalize before versioned migrations so audit records still see scope=admin.
+        normalize = getattr(self, "normalize_legacy_admin_api_key_scopes", None)
+        if callable(normalize):
+            normalize()
         self._apply_migrations()
 
     def _apply_migrations(self) -> None:

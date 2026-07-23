@@ -1129,4 +1129,4 @@ def test_repository_migrates_event_time_occurred_at() -> None:
     # Legacy rows are backfilled to their server-receive time.
     assert exposure["occurred_at"] == exposure["created_at"] == "2026-01-01T00:00:00+00:00"
     assert conversion["occurred_at"] == conversion["created_at"] == "2026-01-02T00:00:00+00:00"
-    assert schema_version == repository.schema_version == 15
+    assert schema_version == repository.schema_version == 16

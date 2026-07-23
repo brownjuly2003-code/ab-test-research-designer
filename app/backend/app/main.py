@@ -78,11 +78,12 @@ def _verify_production_auth(settings: Settings, repository: ProjectRepository) -
     Three bootstraps are accepted, because each one ends with anonymous writes rejected:
 
     - ``AB_API_TOKEN`` — the write-scoped shared token;
-    - ``AB_ADMIN_TOKEN`` — no write scope of its own, but it can issue the first
-      write-scoped API key through ``/api/v1/keys`` (and it already makes
-      ``auth_enabled()`` true, so mutations answer 401 until that key exists);
+    - ``AB_ADMIN_TOKEN`` — static operator/bootstrap secret for ``/api/v1/keys`` and
+      ``/api/v1/webhooks``; it issues the first write-scoped API key (and already makes
+      ``auth_enabled()`` true, so mutations answer 401 until that key exists). Issued
+      DB keys are only ``read``/``write`` and never replace this token;
     - an active write-scoped API key already in the database — the steady state after
-      the admin token has been retired.
+      the admin token has been retired (write keys still cannot manage keys/webhooks).
 
     A read-only token or ``AB_PUBLIC_DEMO`` alone is deliberately *not* enough: nothing
     is open, but nothing can be written either, so it is a broken production config

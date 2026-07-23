@@ -32,6 +32,9 @@ This is a **local-first** tool; the documented threat model and its accepted tra
   exfiltration, and the token never persists to disk. CodeQL flags this pattern; the alert is
   dismissed with this rationale.
 - `AB_ENV=production` fail-fast requires PostgreSQL and configured auth tokens.
+- Issued API keys are **read** or **write** only. Operator surfaces (`/api/v1/keys`,
+  `/api/v1/webhooks`) require the static `AB_ADMIN_TOKEN`; a database key never grants
+  operator access (legacy `scope=admin` keys are normalized to `write` on startup).
 
 ## Dependency and code scanning
 
