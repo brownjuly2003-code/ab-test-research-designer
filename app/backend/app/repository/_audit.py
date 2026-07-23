@@ -12,6 +12,7 @@ from typing import Any
 
 from app.backend.app.errors import ApiError
 from app.backend.app.repository._rows import audit_row_to_record
+from app.backend.app.repository._utils import JsonParam
 from app.backend.app.repository._webhooks import _WebhooksMixin
 
 
@@ -71,7 +72,7 @@ class _AuditMixin(_WebhooksMixin):
                     key_id,
                     actor,
                     request_id,
-                    json.dumps(payload_diff) if payload_diff else None,
+                    JsonParam(payload_diff) if payload_diff else None,
                     ip_address,
                 ),
             )

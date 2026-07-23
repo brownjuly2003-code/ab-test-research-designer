@@ -4,16 +4,21 @@ Reuses the SQLite backend's query methods through a pooled connection that mirro
 the `sqlite3.Connection` context-manager + `execute()` surface those methods rely on.
 Only the SQL dialect, the schema bootstrap and the queries that cannot be
 dialect-translated are overridden.
+
+Parameter typing (plan_sol step 4 / audit F-03)
+-----------------------------------------------
+JSON/JSONB values must be bound as :class:`~app.backend.app.repository._utils.JsonParam`.
+Plain strings are never inferred from content (no ``{``/``[`` + ``json.loads`` heuristic).
+``?`` → ``%s`` translation is a temporary portability shim for shared mixin SQL; new
+dialect-specific statements should not rely on untyped JSON reuse.
 """
 
-import json
 from datetime import UTC, datetime
 from pathlib import Path
 from types import TracebackType
 from typing import Any, cast
 
 from psycopg.rows import dict_row
-from psycopg.types.json import Jsonb
 from psycopg_pool import ConnectionPool
 
 from app.backend.app.constants import METRIC_TYPE_FILTERS
@@ -30,6 +35,7 @@ from app.backend.app.repository._rows import (
     template_row_to_record,
 )
 from app.backend.app.repository._sqlite import SQLiteBackend
+from app.backend.app.repository._utils import JsonParam
 
 
 class _PostgresRow(dict[str, Any]):
@@ -169,13 +175,13 @@ class PostgresBackend(SQLiteBackend):
 
     @staticmethod
     def _adapt_param(value: Any) -> Any:
-        if isinstance(value, str):
-            stripped = value.strip()
-            if stripped[:1] in "{[":
-                try:
-                    return Jsonb(json.loads(value))
-                except json.JSONDecodeError:
-                    return value
+        """Adapt a single bound parameter for psycopg.
+
+        Only :class:`JsonParam` becomes JSONB. Strings that look like JSON stay
+        strings (TEXT columns: project_name, user_id, stratum, exclusion_reason, …).
+        """
+        if isinstance(value, JsonParam):
+            return value.as_postgres_jsonb()
         return value
 
     def _adapt_params(self, params: Any) -> Any:
@@ -189,6 +195,9 @@ class PostgresBackend(SQLiteBackend):
 
     @staticmethod
     def _translate_sql(sql: str) -> str:
+        # Temporary portability shim for shared mixin SQL written with SQLite ``?``
+        # placeholders. Do not add new untyped JSON reuse on top of this layer;
+        # bind intentional JSON with JsonParam instead.
         translated = sql.replace("BEGIN IMMEDIATE", "BEGIN")
         return translated.replace("?", "%s")
 
@@ -777,7 +786,7 @@ class PostgresBackend(SQLiteBackend):
                     key_id,
                     actor,
                     request_id,
-                    json.dumps(payload_diff) if payload_diff else None,
+                    JsonParam(payload_diff) if payload_diff else None,
                     ip_address,
                 ),
             ).fetchone()

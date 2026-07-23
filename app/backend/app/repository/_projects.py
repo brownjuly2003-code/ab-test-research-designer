@@ -1,6 +1,5 @@
 """Project CRUD, listing/filtering, analysis + export bookkeeping, archive lifecycle."""
 
-import json
 import uuid
 from datetime import UTC, datetime
 from typing import Any, cast
@@ -9,6 +8,7 @@ from app.backend.app.constants import METRIC_TYPE_FILTERS
 from app.backend.app.errors import ApiError
 from app.backend.app.repository._core import _BackendCore
 from app.backend.app.repository._rows import project_list_row_to_record, row_to_project
+from app.backend.app.repository._utils import JsonParam
 
 
 class _ProjectsMixin(_BackendCore):
@@ -197,7 +197,7 @@ class _ProjectsMixin(_BackendCore):
                 (
                     project_id,
                     project_name,
-                    json.dumps(payload),
+                    JsonParam(payload),
                     self.payload_schema_version,
                     timestamp,
                     timestamp,
@@ -231,7 +231,7 @@ class _ProjectsMixin(_BackendCore):
                 """,
                 (
                     project_name,
-                    json.dumps(payload),
+                    JsonParam(payload),
                     self.payload_schema_version,
                     timestamp,
                     project_id,
@@ -257,7 +257,7 @@ class _ProjectsMixin(_BackendCore):
                 INSERT INTO analysis_runs (id, project_id, analysis_json, created_at)
                 VALUES (?, ?, ?, ?)
                 """,
-                (analysis_run_id, project_id, json.dumps(analysis_payload), timestamp),
+                (analysis_run_id, project_id, JsonParam(analysis_payload), timestamp),
             )
             cursor = connection.execute(
                 """

@@ -5,7 +5,6 @@ The domain mixins in this package inherit from `_BackendCore`, so they can rely 
 without importing one another.
 """
 
-import json
 import sqlite3
 import uuid
 from collections.abc import Iterator
@@ -24,7 +23,7 @@ from app.backend.app.repository._schema import (
     create_webhook_tables,
     migrate_db,
 )
-from app.backend.app.repository._utils import compute_payload_diff
+from app.backend.app.repository._utils import JsonParam, compute_payload_diff
 
 
 class _BackendCore:
@@ -155,7 +154,7 @@ class _BackendCore:
             (
                 resolved_revision_id,
                 project_id,
-                json.dumps(payload),
+                JsonParam(payload),
                 source,
                 created_at,
             ),

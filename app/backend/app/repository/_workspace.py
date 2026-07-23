@@ -17,6 +17,7 @@ from app.backend.app.repository._rows import (
     project_row_to_workspace_record,
     revision_row_to_record,
 )
+from app.backend.app.repository._utils import JsonParam
 from app.backend.app.schemas.api import ExperimentInput
 
 
@@ -302,7 +303,7 @@ class _WorkspaceMixin(_BackendCore):
                     (
                         project_id_map[old_project_id],
                         project["project_name"],
-                        json.dumps(project["payload"]),
+                        JsonParam(project["payload"]),
                         int(project.get("payload_schema_version", self.payload_schema_version)),
                         project.get("archived_at"),
                         project.get("last_analysis_at"),
@@ -332,7 +333,7 @@ class _WorkspaceMixin(_BackendCore):
                     (
                         analysis_run_id_map[analysis_run["id"]],
                         new_project_id,
-                        json.dumps(analysis_run["analysis"]),
+                        JsonParam(analysis_run["analysis"]),
                         analysis_run["created_at"],
                     ),
                 )

@@ -2,8 +2,55 @@
 
 import hashlib
 import json
+import sqlite3
 from datetime import UTC, datetime
 from typing import Any
+
+
+class JsonParam:
+    """Explicit marker for values bound to JSON / JSONB columns.
+
+    Plain strings that merely *look* like JSON (project names, user ids, strata,
+    exclusion reasons, webhook text) must **not** be wrapped. Only intentional
+    structured payloads that belong in ``payload_json``, ``analysis_json``,
+    ``tags_json``, ``event_filter``, ``payload_diff``, etc. use this marker.
+
+    - SQLite: adapted to a JSON text string via ``sqlite3.register_adapter``.
+    - PostgreSQL: adapted to ``psycopg.types.json.Jsonb`` in
+      :meth:`PostgresBackend._adapt_param` (no content-based guessing).
+    """
+
+    __slots__ = ("value",)
+
+    def __init__(self, value: Any) -> None:
+        self.value = value
+
+    def __repr__(self) -> str:
+        return f"JsonParam({self.value!r})"
+
+    def as_text(self) -> str:
+        """Serialize for TEXT/JSON columns (SQLite storage form)."""
+        if isinstance(self.value, str):
+            # Allow pre-serialized JSON (e.g. schema normalization helpers).
+            return self.value
+        return json.dumps(self.value)
+
+    def as_postgres_jsonb(self) -> Any:
+        """Wrap for PostgreSQL JSONB parameters (lazy import keeps SQLite-only paths light)."""
+        from psycopg.types.json import Jsonb
+
+        if isinstance(self.value, str):
+            return Jsonb(json.loads(self.value))
+        return Jsonb(self.value)
+
+
+def _adapt_json_param_for_sqlite(param: JsonParam) -> str:
+    return param.as_text()
+
+
+# Portable binding: callers pass JsonParam(...); SQLite stores JSON text without
+# every execute site knowing the dialect. Register once at import.
+sqlite3.register_adapter(JsonParam, _adapt_json_param_for_sqlite)
 
 
 def _normalize_occurred_at(value: Any, fallback: str) -> str:

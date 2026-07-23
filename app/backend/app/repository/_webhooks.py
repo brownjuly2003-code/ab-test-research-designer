@@ -1,6 +1,5 @@
 """Webhook subscriptions and their delivery attempts."""
 
-import json
 import uuid
 from datetime import UTC, datetime
 from typing import Any
@@ -11,6 +10,7 @@ from app.backend.app.repository._rows import (
     webhook_delivery_row_to_record,
     webhook_subscription_row_to_record,
 )
+from app.backend.app.repository._utils import JsonParam
 
 _DELIVERY_COLUMNS = """
     id,
@@ -82,7 +82,7 @@ class _WebhooksMixin(_BackendCore):
                     target_url,
                     secret,
                     format,
-                    json.dumps(normalized_event_filter),
+                    JsonParam(normalized_event_filter),
                     scope,
                     api_key_id,
                     timestamp,
@@ -171,7 +171,7 @@ class _WebhooksMixin(_BackendCore):
             params.append(target_url)
         if event_filter is not None:
             updates.append("event_filter = ?")
-            params.append(json.dumps([value for value in event_filter if value]))
+            params.append(JsonParam([value for value in event_filter if value]))
         if enabled is not None:
             updates.append("enabled = ?")
             params.append(1 if enabled else 0)

@@ -1,6 +1,5 @@
 """Experiment templates: the seeded catalogue plus user-created entries."""
 
-import json
 import uuid
 from datetime import UTC, datetime
 from typing import Any
@@ -8,6 +7,7 @@ from typing import Any
 from app.backend.app.errors import ApiError
 from app.backend.app.repository._core import _BackendCore
 from app.backend.app.repository._rows import template_row_to_record
+from app.backend.app.repository._utils import JsonParam
 
 
 class _TemplatesMixin(_BackendCore):
@@ -54,8 +54,8 @@ class _TemplatesMixin(_BackendCore):
                     category,
                     description,
                     1 if built_in else 0,
-                    json.dumps(tags),
-                    json.dumps(payload),
+                    JsonParam(tags),
+                    JsonParam(payload),
                     timestamp,
                     timestamp,
                 ),

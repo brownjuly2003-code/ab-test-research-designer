@@ -9,6 +9,8 @@ import sqlite3
 import uuid
 from datetime import UTC, datetime
 
+from app.backend.app.repository._utils import JsonParam
+
 
 def create_history_tables(connection: sqlite3.Connection) -> None:
     connection.execute(
@@ -486,10 +488,15 @@ def migrate_db(connection: sqlite3.Connection) -> None:
         """
     )
 
-    def normalize_payload_json(payload_json: str) -> str | None:
-        try:
-            payload = json.loads(payload_json)
-        except json.JSONDecodeError:
+    def normalize_payload_json(payload_json: object) -> JsonParam | None:
+        if isinstance(payload_json, dict):
+            payload = payload_json
+        elif isinstance(payload_json, str):
+            try:
+                payload = json.loads(payload_json)
+            except json.JSONDecodeError:
+                return None
+        else:
             return None
 
         metrics = payload.get("metrics")
@@ -522,7 +529,8 @@ def migrate_db(connection: sqlite3.Connection) -> None:
         normalized_metrics["guardrail_metrics"] = normalized_guardrails
         normalized_payload = dict(payload)
         normalized_payload["metrics"] = normalized_metrics
-        return json.dumps(normalized_payload)
+        # JsonParam so PostgreSQL JSONB columns get typed Jsonb, not a guessed string.
+        return JsonParam(normalized_payload)
 
     create_history_tables(connection)
     create_audit_tables(connection)

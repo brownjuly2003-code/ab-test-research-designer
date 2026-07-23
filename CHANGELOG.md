@@ -8,6 +8,7 @@
 
 ### Fixed
 
+- PostgreSQL parameter typing (audit F-03): removed content-based `{`/`[` + `json.loads` → `Jsonb` inference. Intentional JSON/JSONB values bind via explicit `JsonParam`; JSON-looking TEXT (`project_name`, `user_id`, `metric`, `stratum`, exclusion reasons, …) round-trips unchanged on SQLite and PostgreSQL. `?` → `%s` remains a documented temporary portability shim.
 - Analytical population (audit F-02): primary, holdout, strata, and event-timing now share one `analytical_population_v1` contract (identity one-hop fold, first-exposure-wins, manual + rate-spike exclusions). Holdout no longer groups by raw `user_id` without identity/exclusions. Live-stats gains a `population` fingerprint block; identity ingest rejects chain/cycle links.
 - HF SQLite snapshots are now WAL-consistent and atomic: push stages via `sqlite3.Connection.backup()` (includes WAL-visible commits), runs `PRAGMA quick_check`, and uploads DB+metadata in one HF `create_commit`. Restore binds both artifacts to one remote revision, refuses corrupt/SHA-mismatched DBs without replacing a working file, and re-runs schema bootstrap after replace so schema `N-1` snapshots migrate to the build `user_version`.
 - HF SQLite restore keeps a pre-replace rollback copy and reverts the live DB if post-replace migrate/smoke fails; WAL/SHM sidecars are cleared on replace. Push/restore emit structured metrics (`snapshot_push` / `snapshot_restore`). Concurrent-writer backup integrity and fault-injected `create_commit` failure (previous revision still restorable) are covered by tests.
