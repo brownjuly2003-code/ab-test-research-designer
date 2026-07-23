@@ -32,6 +32,35 @@
   - verify burst requests to `/api/v1/diagnostics` return `429` only after the configured threshold, with `Retry-After`
   - use `python scripts/verify_docker_compose.py --preserve` when you need the same verification without automatic `down -v`
 
+## External acceptance gates
+
+Use this block when a local acceptance pass is already green and the remaining evidence depends on CI, Docker, or external services.
+
+- before push or PR:
+  - confirm the tracked tree is clean apart from intended checklist/release files
+  - run `git diff --check`
+  - do not include root `audit_*.md`, `_*.md`, `.claude/`, `.cx_polls/`, local DB files, caches, or other internal notes in a public deploy payload
+- on GitHub Actions after push/PR, require these jobs to pass before treating the branch as externally accepted:
+  - `Tests / verify (ubuntu-latest)`
+  - `Tests / verify (windows-latest)`
+  - `Tests / locale-content`
+  - `Tests / repo-hygiene`
+  - `Tests / dependency-audit`
+  - `Tests / statistical-oracle`
+  - `Tests / verify-postgres`
+  - `Tests / docker`
+  - `Tests / lighthouse`
+  - `Tests / frontend-coverage`
+  - `CodeQL / analyze (python)`
+  - `CodeQL / analyze (javascript-typescript)`
+- after CodeQL completes, confirm the repository has no new open alerts for Python or TypeScript. Known accepted alerts must stay documented in `SECURITY.md` or a release note.
+- if Docker is unavailable on the local workstation, treat the CI `verify-postgres` and `docker` jobs as the required Linux/Docker evidence. On a Docker-capable Mac/Linux host, the equivalent local commands are:
+  - `python -m pytest -p no:schemathesis app/backend/tests/test_postgres_backend.py -q` with `AB_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/abtest`
+  - `python scripts/verify_docker_compose.py`
+- container publishing is a release gate, not a PR gate. For a release tag or manual publish, require `.github/workflows/docker-publish.yml` to finish after the local single-arch build, Trivy critical-vulnerability scan, and multi-arch GHCR push.
+- Hugging Face deploys are manual/tag-driven only. Before dispatching `.github/workflows/deploy-hf.yml`, confirm `HF_TOKEN` is present as a repository secret, `AB_API_TOKEN` is intentionally configured or intentionally absent, and `/health` reports the expected version/build after the Space rebuild.
+- destructive HF snapshot drills must use a disposable dataset or Space repository and a write-scoped token created for that drill. Do not run corrupt-latest or rollback tests against the production demo snapshot repository.
+
 ## UI evidence
 
 - rerun `python scripts/run_local_smoke.py --skip-build` when the workflow or layout changed
