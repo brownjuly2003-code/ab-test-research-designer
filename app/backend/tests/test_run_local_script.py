@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 
 import pytest
+import yaml
 
 from scripts import run_local
 
@@ -106,3 +107,47 @@ def test_python_313_is_the_local_compatibility_floor() -> None:
         run_local.require_supported_python((3, 12, 9))
 
     run_local.require_supported_python((3, 13, 0))
+
+
+def test_ci_smokes_fresh_checkout_single_port_runner() -> None:
+    workflow_path = run_local.ROOT_DIR / ".github" / "workflows" / "test.yml"
+    workflow = yaml.load(workflow_path.read_text(encoding="utf-8"), Loader=yaml.BaseLoader)
+    job = workflow["jobs"]["local-runner-smoke"]
+
+    assert job["runs-on"] == "ubuntu-latest"
+    assert "services" not in job
+    assert job["env"] == {
+        "AB_DATABASE_URL": "postgresql://ci-must-ignore.invalid/abtest",
+        "AB_HF_TOKEN": "ci-must-ignore",
+        "AB_HF_SNAPSHOT_REPO": "owner/ci-must-ignore",
+        "HF_TOKEN": "ci-must-ignore",
+        "AB_API_TOKEN": "ci-must-ignore",
+        "AB_SLACK_BOT_TOKEN": "ci-must-ignore",
+    }
+
+    steps = job["steps"]
+    assert any(step.get("uses", "").startswith("actions/checkout@") for step in steps)
+    assert any(
+        step.get("uses", "").startswith("actions/setup-python@")
+        and step.get("with", {}).get("python-version") == "3.14"
+        for step in steps
+    )
+    assert any(
+        step.get("uses", "").startswith("actions/setup-node@")
+        and step.get("with", {}).get("node-version") == "26"
+        for step in steps
+    )
+
+    commands = "\n".join(step.get("run", "") for step in steps)
+    assert "python scripts/run_local.py --bootstrap --prepare-only" in commands
+    assert "test ! -e .env" in commands
+    assert "setsid python scripts/run_local.py" in commands
+    assert '--db-path "${RUNNER_TEMP}/local-runner.sqlite3"' in commands
+    assert 'trap cleanup EXIT' in commands
+    assert 'kill -TERM -- "-${runner_pid}"' in commands
+    assert 'kill -0 -- "-${runner_pid}"' in commands
+    assert 'kill -KILL -- "-${runner_pid}"' in commands
+    assert "/health" in commands
+    assert "/readyz" in commands
+    assert '"${base_url}/"' in commands
+    assert "docker" not in commands.lower()
