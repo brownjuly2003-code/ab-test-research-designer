@@ -184,6 +184,20 @@ The paired and omnibus rows are within-subject and multi-group designs respectiv
 
 ## Local setup
 
+This is the downloadable local product (clone or image on your machine), not the hosted Hugging Face demo above.
+
+Zero-config local runs use SQLite and need no secrets. Optional LLM provider tokens are pasted into the UI and remain browser-session-only rather than backend env.
+
+One-command local product:
+
+```bash
+docker compose up --build
+```
+
+Then open `http://127.0.0.1:8008`.
+
+To seed local demo data, set `AB_SEED_DEMO_ON_STARTUP=true` (same flag as the HF demo).
+
 Prerequisites:
 
 - Python 3.14 (the version CI tests and mypy targets)
