@@ -188,21 +188,59 @@ This is the downloadable local product (clone or image on your machine), not the
 
 Zero-config local runs use SQLite and need no secrets. Optional LLM provider tokens are pasted into the UI and remain browser-session-only rather than backend env.
 
-One-command local product:
+### No Docker, single-port product (recommended)
+
+Prerequisites:
+
+- Python 3.13+ (CI and mypy use Python 3.14)
+- Node.js LTS with npm
+- Git
+
+On the first run, opt in to the dependency downloads and locked frontend build:
+
+```bash
+python scripts/run_local.py --bootstrap
+```
+
+The runner prints every external command before executing it, creates `.venv`,
+installs `app/backend/requirements.txt`, runs `npm ci` plus the Vite production
+build, and then serves the UI and API together on `http://127.0.0.1:8008`.
+It does not copy `.env` or reuse inherited Postgres, Hugging Face snapshot, or
+shared-auth secrets.
+
+Subsequent runs do not install or download anything:
+
+```bash
+python scripts/run_local.py
+```
+
+To populate the local SQLite workspace with the four demo projects:
+
+```bash
+python scripts/run_local.py --seed-demo
+```
+
+The transparent manual equivalent is:
+
+```bash
+python -m venv .venv
+# Activate .venv, then:
+python -m pip install -r app/backend/requirements.txt
+npm --prefix app/frontend ci
+npm --prefix app/frontend run build
+python -m uvicorn app.backend.app.main:app --host 127.0.0.1 --port 8008
+```
+
+### Docker (optional)
+
+If Docker is available, the existing container path remains:
 
 ```bash
 docker compose up --build
 ```
 
-Then open `http://127.0.0.1:8008`.
-
-To seed local demo data, set `AB_SEED_DEMO_ON_STARTUP=true` (same flag as the HF demo).
-
-Prerequisites:
-
-- Python 3.14 (the version CI tests and mypy targets)
-- Node.js LTS
-- Git
+To seed container or hosted demo data, set `AB_SEED_DEMO_ON_STARTUP=true`
+(the same flag is used by the HF demo).
 
 Environment template:
 
@@ -249,7 +287,7 @@ http://127.0.0.1:8008/readyz
 
 ```bash
 cd app/frontend
-npm install
+npm ci
 npm run dev
 ```
 
