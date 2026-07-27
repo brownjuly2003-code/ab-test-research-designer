@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Added
+
+- `docs/PROJECT_CLOSURE.md` freezes the shipped product scope, classifies
+  historical/research plans as non-active work, records preserved local
+  artifacts, and keeps the final publish/release/demo evidence gates explicit.
+
 ### Security
 
 - docs-site: pin transitive `svgo` to `4.0.2` via npm `overrides` (GHSA-2p49-hgcm-8545 / removeScripts). `npm audit --audit-level=high` is clean after clean install.

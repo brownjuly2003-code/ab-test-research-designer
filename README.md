@@ -40,6 +40,14 @@ It combines:
 - preflight workspace validation before import, plus runtime SQLite write-probe diagnostics
 <!-- docs-site:index:end -->
 
+## Project status
+
+The current product scope is feature-frozen for final closure. Historical and
+research-plan disposition, preserved local artifacts, and the remaining
+external publish/release/demo gates are recorded in
+[docs/PROJECT_CLOSURE.md](docs/PROJECT_CLOSURE.md). Until those external gates
+pass, the status is **closure candidate**, not closed.
+
 ## Demo
 
 **Live demo:** https://liovina-ab-test-research-designer.hf.space (hosted on Hugging Face Spaces, free CPU tier — first cold request may take a few seconds)
