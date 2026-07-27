@@ -220,7 +220,10 @@ To populate the local SQLite workspace with the four demo projects:
 python scripts/run_local.py --seed-demo
 ```
 
-The transparent manual equivalent is:
+The following commands show the install, build, and manual backend-start steps
+only. They do not reproduce the runner's isolated SQLite, single-port, and
+inherited-secret-scrubbing environment. For the supported zero-secret local
+path, run `python scripts/run_local.py`; add `--bootstrap` on first setup.
 
 ```bash
 python -m venv .venv
@@ -229,6 +232,12 @@ python -m pip install -r app/backend/requirements.txt
 npm --prefix app/frontend ci
 npm --prefix app/frontend run build
 python -m uvicorn app.backend.app.main:app --host 127.0.0.1 --port 8008
+```
+
+To verify the local runner contract:
+
+```bash
+python -m pytest -p no:cacheprovider app/backend/tests/test_run_local_script.py -q
 ```
 
 ### Docker (optional)
