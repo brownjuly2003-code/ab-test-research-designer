@@ -223,8 +223,7 @@ class LiveSequentialBlock(BaseModel):
 
 
 class LiveCupedCovariate(BaseModel):
-    # One pre-period covariate and its fitted CUPED coefficient (the regression weight from the
-    # pooled normal equations theta = Sigma_xx^-1 Sigma_xy).
+    # Common-slope coefficient from within-arm centered SSCP.
     name: str
     theta: float
 
@@ -233,18 +232,29 @@ class LiveCupedArmStat(BaseModel):
     variation_index: int
     # Exposed users that also have the complete pre-period covariate vector (CUPED-eligible subset).
     covariate_users: int
+    # Primary-arm exposed denominator (full analysis population for this variation).
+    exposed_users: int
+    # Complete-case coverage on the primary arm: covariate_users / exposed_users (None if zero).
+    coverage: float | None = None
     unadjusted_mean: float | None = None  # mean(Y) over the covered subset
-    adjusted_mean: float | None = None  # mean(Y_adj) = mean(Y) - theta·(mean(X) - global mean(X))
+    # Adjusted mean uses grand-mean X; pairwise contrast is DeltaY - theta^T DeltaX.
+    adjusted_mean: float | None = None
     adjusted_std: float | None = None
 
 
 class LiveCupedComparison(BaseModel):
-    # status: "ok" | "insufficient_data" (an arm has <2 covariate users or degenerate variance)
+    # status: "ok" | "insufficient_data" (<2 users or unusable ANCOVA df/SE)
     treatment_index: int
     status: str
     control: LiveCupedArmStat
     treatment: LiveCupedArmStat
-    analysis: ResultsResponse | None = None  # CUPED-adjusted continuous t-test (reuses /results)
+    # Common-slope ANCOVA t-interval with pooled SSE, effective-rank df, and imbalance term.
+    analysis: ResultsResponse | None = None
+    # Per-comparison estimator-variance reduction for the active analysis se2:
+    # 100 * (1 - se2 / (var_y_c/n_c + var_y_t/n_t)), where se2 is ANCOVA contrast variance
+    # (pooled sigma2 + imbalance) or Welch se^2 on fallback. May be negative; None on
+    # insufficient_data or when raw estimator variance is unavailable.
+    variance_reduction_pct: float | None = None
     note: str | None = None
 
 
@@ -260,9 +270,15 @@ class LiveCupedBlock(BaseModel):
     theta: float | None = None
     num_covariates: int | None = None
     covariates: list["LiveCupedCovariate"] = Field(default_factory=list)
-    variance_reduction_pct: float | None = None  # pooled (1 - var_adjusted / var_unadjusted) * 100
+    # Legacy pooled (1 - var_adj/var_y)*100 on grand-pooled moments with current within-arm
+    # theta (not a mirror of comparison[0]).
+    variance_reduction_pct: float | None = None
     covariate_users_total: int | None = None
     exposed_users_total: int | None = None
+    # Complete-case coverage: covariate_users_total / exposed_users_total (subset estimand).
+    coverage_total: float | None = None
+    # Machine-readable complete-case caveat when CUPED is available.
+    selection_caveat: str | None = None
     comparisons: list["LiveCupedComparison"] = Field(default_factory=list)
 
 

@@ -148,11 +148,15 @@ def build_live_stats(
         total_exposed=exposures_total,
         comparisons=comparisons,
     )
+    exposed_by_index = {
+        int(arm["variation_index"]): int(arm["exposed_users"]) for arm in arms
+    }
     cuped = _build_cuped_block(
         metric_type=metric_type,
         alpha=adjusted_alpha,
         variants_count=variants_count,
         exposed_total=exposures_total,
+        exposed_by_index=exposed_by_index,
         cuped_aggregates=cuped_aggregates,
     )
     if comparison_count > 1:

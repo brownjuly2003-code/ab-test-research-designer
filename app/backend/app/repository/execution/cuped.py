@@ -16,14 +16,17 @@ class _CupedRollupMixin(_BackendCore):
         Returns ``None`` if the experiment does not exist. The covariate names are discovered from
         the ingested ``pre_period_covariates`` rows (sorted; single-covariate CUPED is the special
         case of the lone ``__default__`` name). Restricted to exposed users that carry the
-        **complete** covariate vector — CUPED can only adjust users whose every X is known — with
-        the holdout tail (``variation_index = -1``) excluded. Per user the outcome ``Y`` is the sum
+        **complete** covariate vector; users missing any X are excluded and the live response
+        exposes coverage plus a selection caveat. The holdout tail (``variation_index = -1``) is
+        excluded. Per user the outcome ``Y`` is the sum
         of their conversion values on ``metric_name`` (non-converters contribute 0). Per variation it
         rolls up the regression sufficient statistics — ``n``, ``sum_y``, ``sum_y2`` and, over the
         covariate vector, ``sum_x[]``, ``sum_xy[]`` and the symmetric raw cross-moment matrix
-        ``sum_xx[][]`` — from which the service forms the pooled coefficient vector
-        ``theta = Sigma_xx^{-1} Sigma_xy`` and the per-arm adjusted moments (no new statistics in
-        SQL). The k×k matrix is assembled in Python so the SQL stays covariate-count-agnostic and
+        ``sum_xx[][]`` — from which the service forms common-slope ``theta`` using pooled
+        within-arm centered SSCP and the per-arm adjusted moments. One-ULP-negative
+        variance/diagonal/Syy after centering are clamped to 0; positive centered signal and
+        signed covariances are preserved (no relative-zero of small residuals).
+        The k×k matrix is assembled in Python so the SQL stays covariate-count-agnostic and
         portable across SQLite and Postgres. ``too_many_covariates`` flags the pathological case of
         more than ``MAX_CUPED_COVARIATES`` distinct names (the heavy rollup is then skipped).
         """

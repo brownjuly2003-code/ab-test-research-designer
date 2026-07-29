@@ -381,22 +381,25 @@ def _build_sequential_block(
 #
 # CUPED (Deng et al. 2013) reduces variance using pre-experiment covariates X that are correlated
 # with the outcome Y but, being measured *before* assignment, are independent of the treatment.
-# With a covariate vector X = (X_1, ..., X_k) the adjusted outcome is the regression (ANCOVA) form
+# With a covariate vector X = (X_1, ..., X_k) the adjusted outcome is
 #
-#     Y_adj = Y - theta^T (X - mean(X)),   theta = Sigma_xx^{-1} Sigma_xy   (normal equations)
+#     Y_adj = Y - theta^T (X - mean(X))
 #
-# estimated on the pooled data (pooling is unbiased because X is pre-treatment). Subtracting the
-# global mean(X) keeps E[Y_adj] = E[Y], so the treatment-effect estimate is unchanged in
-# expectation while its variance drops by a factor of (1 - R^2), R^2 the regression fit. For k = 1
-# this is exactly the E5 single-covariate CUPED (theta = cov(X, Y) / var(X)).
+# where theta is the common slope from pooled within-arm centered SSCP (arm fixed effects), not
+# global raw pooled covariance: chance X imbalance must not leak into the slope via between-arm
+# mean gaps. Adjusted arm means still center on the grand mean X; the contrast is
+# DeltaY - theta^T DeltaX. For k = 1 this is the E5 single-covariate case.
 #
-# No per-user loop is needed: from the per-arm sufficient statistics (n, sum_y, sum_y2 and, over
-# the covariate vector, sum_x[], sum_xy[], sum_xx[][]) the adjusted arm mean and variance follow
-# in closed form
+# From per-arm sufficient statistics the adjusted mean/variance follow in closed form
 #
 #     mean(Y_adj)_a = mean(Y)_a - theta^T (mean(X)_a - global mean(X))
 #     var(Y_adj)_a  = var(Y)_a - 2*theta^T Sigma_xy_a + theta^T Sigma_xx_a theta
 #
-# (the centering constant does not affect variance; the pooled theta meets each arm's own
-# moments). Those per-arm adjusted moments feed the existing continuous t-test (``analyze_results``)
-# — no new test statistic here. The linear algebra lives in ``stats.cuped`` (stdlib).
+# Inference is common-slope ANCOVA under homoskedastic normal residuals: pooled SSE,
+# df = N - A - effective_rank, and imbalance term d^T Sxx^+ d. Rank-deficient or ill-scaled Sxx
+# uses correlation scaling plus a rank-aware PSD solve; only no usable direction collapses theta
+# to zero. se2==0 is insufficient_data (not degenerate p=1). Per-comparison VR uses actual
+# analysis se2 vs raw estimator variance; the block field keeps legacy pooled R^2 form.
+# coverage plus selection_caveat expose the complete-case subset estimand. One-ULP-negative
+# variance terms clamp to 0; positive centered signal is preserved. Linear algebra lives in
+# ``stats.cuped``.

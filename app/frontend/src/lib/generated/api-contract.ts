@@ -739,6 +739,8 @@ export type LiveComparison = {
 export type LiveCupedArmStat = {
   variation_index: number;
   covariate_users: number;
+  exposed_users: number;
+  coverage?: number | null;
   unadjusted_mean?: number | null;
   adjusted_mean?: number | null;
   adjusted_std?: number | null;
@@ -753,6 +755,8 @@ export type LiveCupedBlock = {
   variance_reduction_pct?: number | null;
   covariate_users_total?: number | null;
   exposed_users_total?: number | null;
+  coverage_total?: number | null;
+  selection_caveat?: string | null;
   comparisons?: LiveCupedComparison[];
 };
 
@@ -762,6 +766,7 @@ export type LiveCupedComparison = {
   control: LiveCupedArmStat;
   treatment: LiveCupedArmStat;
   analysis?: ResultsResponse | null;
+  variance_reduction_pct?: number | null;
   note?: string | null;
 };
 

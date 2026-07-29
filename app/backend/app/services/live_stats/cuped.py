@@ -1,13 +1,27 @@
-"""CUPED variance-reduction block over ingested pre-period covariates."""
+"""CUPED variance-reduction block over ingested pre-period covariates.
+
+Common theta comes from pooled within-arm centered SSCP rather than global raw covariance.
+Adjusted means use grand-mean X, while inference uses common-slope ANCOVA with pooled SSE,
+effective-rank degrees of freedom, and the covariate-imbalance term.
+"""
 from __future__ import annotations
 
 import math
 from typing import Any
 
 from app.backend.app.i18n import translate
-from app.backend.app.schemas.api import ObservedResultsContinuous, ResultsRequest
-from app.backend.app.services.results_service import analyze_results
+from app.backend.app.services.results.continuous import _continuous_t_response
 from app.backend.app.stats import cuped
+
+
+def _stable_centered_difference(raw: float, correction: float) -> float:
+    """Centered product residual ``raw - correction``.
+
+    Does not relative-zero small positive residuals: legitimate within-arm signal at large
+    means must survive. Callers clamp one-ULP-negative variance/diagonal/Syy to 0; signed
+    covariances are returned as-is (including small negatives).
+    """
+    return float(raw) - float(correction)
 
 
 def _multi_moments(
@@ -26,12 +40,37 @@ def _multi_moments(
     k = len(sum_x)
     mean_y = sum_y / n
     mean_x = [value / n for value in sum_x]
-    var_y = (sum_y2 - n * mean_y * mean_y) / (n - 1)
-    sigma_xy = [(sum_xy[j] - n * mean_x[j] * mean_y) / (n - 1) for j in range(k)]
-    sigma_xx = [
-        [(sum_xx[i][j] - n * mean_x[i] * mean_x[j]) / (n - 1) for j in range(k)]
-        for i in range(k)
-    ]
+    denom = n - 1
+    var_y = _stable_centered_difference(sum_y2, n * mean_y * mean_y) / denom
+    if not math.isfinite(var_y) or var_y < 0.0:
+        var_y = 0.0
+    sigma_xy: list[float] = []
+    for j in range(k):
+        cov = _stable_centered_difference(sum_xy[j], n * mean_x[j] * mean_y) / denom
+        sigma_xy.append(0.0 if not math.isfinite(cov) else cov)
+    sigma_xx = [[0.0] * k for _ in range(k)]
+    for i in range(k):
+        diag = _stable_centered_difference(sum_xx[i][i], n * mean_x[i] * mean_x[i]) / denom
+        if not math.isfinite(diag) or diag < 0.0:
+            diag = 0.0
+        sigma_xx[i][i] = diag
+        for j in range(i + 1, k):
+            # Prefer the (i,j) sufficient-stat entry; fall back to (j,i) if needed.
+            raw_ij = sum_xx[i][j] if math.isfinite(float(sum_xx[i][j])) else sum_xx[j][i]
+            cov = _stable_centered_difference(raw_ij, n * mean_x[i] * mean_x[j]) / denom
+            if not math.isfinite(cov):
+                alt = _stable_centered_difference(
+                    sum_xx[j][i], n * mean_x[j] * mean_x[i]
+                ) / denom
+                cov = alt if math.isfinite(alt) else 0.0
+            # Symmetrize from both triangular entries when both finite.
+            cov_ji = _stable_centered_difference(
+                sum_xx[j][i], n * mean_x[j] * mean_x[i]
+            ) / denom
+            if math.isfinite(cov_ji):
+                cov = 0.5 * (cov + cov_ji)
+            sigma_xx[i][j] = cov
+            sigma_xx[j][i] = cov
     return {
         "n": n,
         "mean_y": mean_y,
@@ -43,8 +82,10 @@ def _multi_moments(
 
 
 def _pool_sufficient(arms: list[dict[str, Any]], k: int) -> dict[str, Any]:
-    """Sum per-arm sufficient statistics into pooled totals (X is pre-treatment, so pooling
-    across arms is unbiased)."""
+    """Sum raw totals for grand-mean X and diagnostics.
+
+    Slope ``theta`` is not fitted from these raw pooled moments; see ``_within_arm_sscp``.
+    """
     total_n = 0
     sum_y = 0.0
     sum_y2 = 0.0
@@ -70,75 +111,328 @@ def _pool_sufficient(arms: list[dict[str, Any]], k: int) -> dict[str, Any]:
     }
 
 
+def _within_arm_sscp(
+    arms: list[dict[str, Any]], k: int
+) -> tuple[list[list[float]], list[float], float] | None:
+    """Common-slope SSCP from within-arm centered moments (arm fixed effects).
+
+    Excludes between-arm mean gaps so chance X imbalance cannot leak into ``theta``.
+    For each arm with ``n >= 2``:
+        Sxx += sum_xx_a - n_a * mean_x_a * mean_x_a^T
+        Sxy += sum_xy_a - n_a * mean_x_a * mean_y_a
+        Syy += sum_y2_a - n_a * mean_y_a^2
+    Returns ``None`` when no arm contributes usable within-arm degrees of freedom.
+    The common df divisor cancels in ``Sxx * theta = Sxy``, so raw SSCP is enough.
+    ``Syy`` supports residual SSE = Syy - theta^T Sxy for common-slope ANCOVA inference.
+    """
+    sxx = [[0.0] * k for _ in range(k)]
+    sxy = [0.0] * k
+    syy = 0.0
+    usable = False
+    for arm in arms:
+        n = int(arm["n"])
+        if n < 2:
+            continue
+        usable = True
+        mean_x = [float(arm["sum_x"][j]) / n for j in range(k)]
+        mean_y = float(arm["sum_y"]) / n
+        arm_syy = _stable_centered_difference(float(arm["sum_y2"]), n * mean_y * mean_y)
+        # Per-arm: one-ULP-negative residual is zero, not a debt against other arms.
+        if math.isfinite(arm_syy) and arm_syy > 0.0:
+            syy += arm_syy
+        for i in range(k):
+            arm_sxy = _stable_centered_difference(
+                float(arm["sum_xy"][i]), n * mean_x[i] * mean_y
+            )
+            if math.isfinite(arm_sxy):
+                sxy[i] += arm_sxy  # signed (including small negatives)
+            for j in range(k):
+                arm_sxx = _stable_centered_difference(
+                    float(arm["sum_xx"][i][j]), n * mean_x[i] * mean_x[j]
+                )
+                if not math.isfinite(arm_sxx):
+                    continue
+                if i == j:
+                    if arm_sxx > 0.0:
+                        sxx[i][j] += arm_sxx
+                else:
+                    sxx[i][j] += arm_sxx  # signed off-diagonal
+    if not usable:
+        return None
+    if not math.isfinite(syy) or syy < 0.0:
+        syy = 0.0
+    for i in range(k):
+        if not math.isfinite(sxy[i]):
+            sxy[i] = 0.0
+        diag = sxx[i][i]
+        if not math.isfinite(diag) or diag < 0.0:
+            sxx[i][i] = 0.0
+        for j in range(i + 1, k):
+            a, b = sxx[i][j], sxx[j][i]
+            if math.isfinite(a) and math.isfinite(b):
+                mid = 0.5 * (a + b)
+            else:
+                mid = a if math.isfinite(a) else (b if math.isfinite(b) else 0.0)
+            sxx[i][j] = mid
+            sxx[j][i] = mid
+    return sxx, sxy, syy
+
+
 def _cuped_arm_stat(
     arm: dict[str, Any] | None,
     index: int,
     theta: list[float],
     global_mean_x: list[float],
+    exposed_users: int,
 ) -> dict[str, Any]:
     n = int(arm["n"]) if arm else 0
+    coverage = round(n / exposed_users, 4) if exposed_users > 0 else None
     if n == 0 or arm is None:
         return {
             "variation_index": index,
             "covariate_users": 0,
+            "exposed_users": exposed_users,
+            "coverage": coverage,
             "unadjusted_mean": None,
             "adjusted_mean": None,
             "adjusted_std": None,
+            "_mean_x": None,
+            "_adjusted_mean": None,
+            "_adjusted_std": None,
+            "_var_y": None,
+            "_adjusted_var": None,
         }
     k = len(theta)
     mean_x = [arm["sum_x"][j] / n for j in range(k)]
     mean_y = arm["sum_y"] / n
     adjusted_mean = mean_y - cuped.dot(theta, [mean_x[j] - global_mean_x[j] for j in range(k)])
     adjusted_std: float | None = None
+    var_y: float | None = None
+    adjusted_var: float | None = None
     arm_moments = _multi_moments(
         n, arm["sum_y"], arm["sum_y2"], arm["sum_x"], arm["sum_xy"], arm["sum_xx"]
     )
     if arm_moments is not None:
-        adjusted_var = cuped.adjusted_variance(
-            arm_moments["var_y"], theta, arm_moments["sigma_xy"], arm_moments["sigma_xx"]
+        var_y = float(arm_moments["var_y"])
+        adjusted_var = float(
+            cuped.adjusted_variance(
+                arm_moments["var_y"],
+                theta,
+                arm_moments["sigma_xy"],
+                arm_moments["sigma_xx"],
+            )
         )
         adjusted_std = math.sqrt(adjusted_var) if adjusted_var > 0 else 0.0
     return {
         "variation_index": index,
         "covariate_users": n,
+        "exposed_users": exposed_users,
+        "coverage": coverage,
         "unadjusted_mean": round(mean_y, 6),
         "adjusted_mean": round(adjusted_mean, 6),
         "adjusted_std": round(adjusted_std, 6) if adjusted_std is not None else None,
+        # Full-precision internals for ANCOVA inference; stripped before public response.
+        "_mean_x": mean_x,
+        "_adjusted_mean": adjusted_mean,
+        "_adjusted_std": adjusted_std,
+        "_var_y": var_y,
+        "_adjusted_var": adjusted_var,
     }
+
+
+def _public_cuped_arm(arm: dict[str, Any]) -> dict[str, Any]:
+    """Public per-arm CUPED fields (display-rounded means/std; no internal vars)."""
+    return {
+        "variation_index": arm["variation_index"],
+        "covariate_users": arm["covariate_users"],
+        "exposed_users": arm["exposed_users"],
+        "coverage": arm["coverage"],
+        "unadjusted_mean": arm["unadjusted_mean"],
+        "adjusted_mean": arm["adjusted_mean"],
+        "adjusted_std": arm["adjusted_std"],
+    }
+
+
+def _cuped_estimator_variance_reduction_pct(
+    control: dict[str, Any], treatment: dict[str, Any], se2: float
+) -> float | None:
+    """Per-comparison VR: ``100 * (1 - se2 / raw_est)`` for the active analysis se2."""
+    var_y_c = control.get("_var_y")
+    var_y_t = treatment.get("_var_y")
+    if var_y_c is None or var_y_t is None:
+        return None
+    n_c = int(control["covariate_users"])
+    n_t = int(treatment["covariate_users"])
+    if n_c <= 0 or n_t <= 0:
+        return None
+    raw_est = float(var_y_c) / n_c + float(var_y_t) / n_t
+    if not (raw_est > 0.0 and math.isfinite(raw_est) and math.isfinite(se2)):
+        return None
+    pct = 100.0 * (1.0 - float(se2) / raw_est)
+    if not math.isfinite(pct):
+        return None
+    # Negatives are legitimate when CUPED does not help; clamp only tiny FP overshoot >100.
+    if pct > 100.0 and pct <= 100.0 + 1e-6:
+        pct = 100.0
+    return round(pct, 4)
+
+
+def _welch_df_from_std(std_c: float, n_c: int, std_t: float, n_t: int) -> float:
+    control_term = (std_c * std_c) / n_c
+    treatment_term = (std_t * std_t) / n_t
+    denominator = 0.0
+    if n_c > 1:
+        denominator += (control_term * control_term) / (n_c - 1)
+    if n_t > 1:
+        denominator += (treatment_term * treatment_term) / (n_t - 1)
+    if denominator == 0.0:
+        return math.inf
+    return ((control_term + treatment_term) ** 2) / denominator
+
+
+def _clamp_nonnegative_sse(sse: float, syy: float) -> float | None:
+    """Tolerance-aware SSE: tiny negative roundoff -> 0; nonfinite/material negative -> None."""
+    if not math.isfinite(sse):
+        return None
+    if sse >= 0.0:
+        return sse
+    scale = max(abs(syy), 1.0)
+    if sse >= -1e-12 * scale:
+        return 0.0
+    return None
+
+
+def _cuped_welch_fallback(
+    control: dict[str, Any], treatment: dict[str, Any], alpha: float
+) -> tuple[dict[str, Any], float]:
+    """Safe unadjusted Welch path when ANCOVA contrast variance is unusable."""
+    std_c = float(control["_adjusted_std"] or 0.0)
+    std_t = float(treatment["_adjusted_std"] or 0.0)
+    n_c = int(control["covariate_users"])
+    n_t = int(treatment["covariate_users"])
+    se2 = max((std_c * std_c) / n_c + (std_t * std_t) / n_t, 0.0)
+    analysis = _continuous_t_response(
+        control_mean=float(control["_adjusted_mean"]),
+        treatment_mean=float(treatment["_adjusted_mean"]),
+        standard_error=math.sqrt(se2),
+        degrees_of_freedom=_welch_df_from_std(std_c, n_c, std_t, n_t),
+        alpha=alpha,
+    ).model_dump()
+    return analysis, se2
 
 
 def _cuped_comparison(
-    control: dict[str, Any], treatment: dict[str, Any], alpha: float
+    control: dict[str, Any],
+    treatment: dict[str, Any],
+    alpha: float,
+    *,
+    sxx: list[list[float]] | None,
+    sxy: list[float] | None,
+    syy: float | None,
+    theta: list[float],
+    n_total: int,
+    n_arms: int,
+    k: int,  # covariate vector dimension only (not residual df)
+    effective_rank: int,
 ) -> dict[str, Any]:
+    # Common-slope ANCOVA inference under homoskedastic normal residuals.
     base: dict[str, Any] = {
         "treatment_index": treatment["variation_index"],
-        "control": control,
-        "treatment": treatment,
+        "control": _public_cuped_arm(control),
+        "treatment": _public_cuped_arm(treatment),
         "analysis": None,
+        "variance_reduction_pct": None,  # set from actual analysis se2 when status=ok
         "note": None,
     }
-    if control["covariate_users"] < 2 or treatment["covariate_users"] < 2:
+    n_c = int(control["covariate_users"])
+    n_t = int(treatment["covariate_users"])
+    if n_c < 2 or n_t < 2:
         base["status"] = "insufficient_data"
         base["note"] = translate("live_stats.cuped.insufficient_data")
         return base
-    if not control["adjusted_std"] or not treatment["adjusted_std"]:
+
+    # Common-slope ANCOVA residual df: N - A - rank(Sxx), not raw covariate count.
+    df = float(n_total - n_arms - effective_rank)
+    if df <= 0:
         base["status"] = "insufficient_data"
-        base["note"] = translate("live_stats.cuped.zero_variance")
+        base["note"] = translate("live_stats.cuped.insufficient_data")
         return base
-    request = ResultsRequest(
-        metric_type="continuous",
-        continuous=ObservedResultsContinuous(
-            control_mean=control["adjusted_mean"],
-            control_std=control["adjusted_std"],
-            control_n=control["covariate_users"],
-            treatment_mean=treatment["adjusted_mean"],
-            treatment_std=treatment["adjusted_std"],
-            treatment_n=treatment["covariate_users"],
-            alpha=alpha,
-        ),
-    )
+
+    # When within-arm SSCP / contrast variance is unusable, keep a safe unadjusted
+    # Welch fallback (theta is already the zero vector in that case).
+    if sxx is None or sxy is None or syy is None:
+        analysis, se2 = _cuped_welch_fallback(control, treatment, alpha)
+        if se2 == 0.0:
+            base["status"] = "insufficient_data"
+            base["note"] = translate("live_stats.cuped.insufficient_data")
+            return base
+        base["status"] = "ok"
+        base["analysis"] = analysis
+        base["variance_reduction_pct"] = _cuped_estimator_variance_reduction_pct(
+            control, treatment, se2
+        )
+        return base
+
+    d = [
+        float(treatment["_mean_x"][j]) - float(control["_mean_x"][j])
+        for j in range(k)
+    ]
+    solved_z = cuped.solve_psd_system(sxx, d)
+    if solved_z is None:
+        analysis, se2 = _cuped_welch_fallback(control, treatment, alpha)
+        if se2 == 0.0:
+            base["status"] = "insufficient_data"
+            base["note"] = translate("live_stats.cuped.insufficient_data")
+            return base
+        base["status"] = "ok"
+        base["analysis"] = analysis
+        base["variance_reduction_pct"] = _cuped_estimator_variance_reduction_pct(
+            control, treatment, se2
+        )
+        return base
+    z, _z_rank = solved_z
+
+    # SSE = Syy - theta^T Sxy (= sum_a (n_a-1)*adjusted_var_a at the fitted theta).
+    sse = _clamp_nonnegative_sse(float(syy) - cuped.dot(theta, sxy), float(syy))
+    if sse is None:
+        base["status"] = "insufficient_data"
+        base["note"] = translate("live_stats.cuped.insufficient_data")
+        return base
+    sigma2 = sse / df
+    imbalance = cuped.dot(d, z)
+    se2 = sigma2 * (1.0 / n_c + 1.0 / n_t + imbalance)
+    if not math.isfinite(se2):
+        base["status"] = "insufficient_data"
+        base["note"] = translate("live_stats.cuped.insufficient_data")
+        return base
+    if se2 < 0.0:
+        scale = max(
+            abs(sigma2) * max(1.0 / n_c + 1.0 / n_t + abs(imbalance), 0.0),
+            1.0,
+        )
+        if se2 >= -1e-12 * scale:
+            se2 = 0.0
+        else:
+            base["status"] = "insufficient_data"
+            base["note"] = translate("live_stats.cuped.insufficient_data")
+            return base
+    # Degenerate ANCOVA contrast variance: do not claim ok/p=1 via continuous helper.
+    if se2 == 0.0:
+        base["status"] = "insufficient_data"
+        base["note"] = translate("live_stats.cuped.insufficient_data")
+        return base
+    se = math.sqrt(se2)
     base["status"] = "ok"
-    base["analysis"] = analyze_results(request).model_dump()
+    base["analysis"] = _continuous_t_response(
+        control_mean=float(control["_adjusted_mean"]),
+        treatment_mean=float(treatment["_adjusted_mean"]),
+        standard_error=se,
+        degrees_of_freedom=df,
+        alpha=alpha,
+    ).model_dump()
+    base["variance_reduction_pct"] = _cuped_estimator_variance_reduction_pct(
+        control, treatment, se2
+    )
     return base
 
 
@@ -148,6 +442,7 @@ def _build_cuped_block(
     alpha: float,
     variants_count: int,
     exposed_total: int,
+    exposed_by_index: dict[int, int],
     cuped_aggregates: dict[str, Any] | None,
 ) -> dict[str, Any]:
     empty: dict[str, Any] = {
@@ -157,6 +452,8 @@ def _build_cuped_block(
         "variance_reduction_pct": None,
         "covariate_users_total": None,
         "exposed_users_total": None,
+        "coverage_total": None,
+        "selection_caveat": None,
         "comparisons": [],
     }
     if metric_type != "continuous":
@@ -184,37 +481,82 @@ def _build_cuped_block(
             "num_covariates": k or None,
             "covariate_users_total": 0,
             "exposed_users_total": exposed_total,
+            "coverage_total": round(0 / exposed_total, 4) if exposed_total > 0 else None,
+            "selection_caveat": None,
         }
 
-    sums = _pool_sufficient(list(by_index.values()), k)
+    arm_list = list(by_index.values())
+    sums = _pool_sufficient(arm_list, k)
     pooled = _multi_moments(
         sums["n"], sums["sum_y"], sums["sum_y2"], sums["sum_x"], sums["sum_xy"], sums["sum_xx"]
     )
-    # theta needs an invertible Sigma_xx; collinear / constant covariates carry no usable signal
-    # -> theta = 0 vector (CUPED collapses to the unadjusted estimate).
+    # Common-slope theta from within-arm SSCP. Grand pooled mean_x still centers adjusted means.
+    # Rank-deficient systems keep the identifiable subspace; only no usable direction collapses
+    # theta to zero.
+    sxx: list[list[float]] | None = None
+    sxy: list[float] | None = None
+    syy: float | None = None
+    effective_rank = 0
     if pooled is None:
         theta = [0.0] * k
         global_mean_x = [0.0] * k
     else:
         global_mean_x = pooled["mean_x"]
-        solved = cuped.cuped_theta(pooled["sigma_xx"], pooled["sigma_xy"])
-        theta = solved if solved is not None else [0.0] * k
+        within = _within_arm_sscp(arm_list, k)
+        if within is None:
+            theta = [0.0] * k
+            effective_rank = 0
+        else:
+            sxx, sxy, syy = within
+            solved = cuped.solve_psd_system(sxx, sxy)
+            if solved is None:
+                theta = [0.0] * k
+                effective_rank = 0
+            else:
+                theta, effective_rank = solved
+
+    nonempty_arms = [arm for arm in arm_list if int(arm["n"]) > 0]
+    n_total = sum(int(arm["n"]) for arm in nonempty_arms)
+    n_arms = len(nonempty_arms)
 
     arm_stats = [
-        _cuped_arm_stat(by_index.get(index), index, theta, global_mean_x)
+        _cuped_arm_stat(
+            by_index.get(index),
+            index,
+            theta,
+            global_mean_x,
+            int(exposed_by_index.get(index, 0)),
+        )
         for index in range(variants_count)
     ]
     comparisons = [
-        _cuped_comparison(arm_stats[0], arm_stats[treatment_index], alpha)
+        _cuped_comparison(
+            arm_stats[0],
+            arm_stats[treatment_index],
+            alpha,
+            sxx=sxx,
+            sxy=sxy,
+            syy=syy,
+            theta=theta,
+            n_total=n_total,
+            n_arms=n_arms,
+            k=k,
+            effective_rank=effective_rank,
+        )
         for treatment_index in range(1, variants_count)
     ]
 
+    # Legacy block field: pooled (1 - var_adj/var_y)*100 on grand-pooled moments with
+    # current within-arm theta — not a mirror of comparison[0].
     variance_reduction_pct = None
     if pooled is not None and pooled["var_y"] > 0:
         adjusted_var = cuped.adjusted_variance(
             pooled["var_y"], theta, pooled["sigma_xy"], pooled["sigma_xx"]
         )
         variance_reduction_pct = round((1 - adjusted_var / pooled["var_y"]) * 100, 4)
+    coverage_total = (
+        round(covariate_users_total / exposed_total, 4) if exposed_total > 0 else None
+    )
 
     covariates = [{"name": covariate_names[j], "theta": round(theta[j], 6)} for j in range(k)]
     return {
@@ -227,6 +569,9 @@ def _build_cuped_block(
         "variance_reduction_pct": variance_reduction_pct,
         "covariate_users_total": covariate_users_total,
         "exposed_users_total": exposed_total,
+        "coverage_total": coverage_total,
+        # Users missing any covariate are excluded from this complete-case subset estimand.
+        "selection_caveat": "complete_case_subset",
         "comparisons": comparisons,
     }
 

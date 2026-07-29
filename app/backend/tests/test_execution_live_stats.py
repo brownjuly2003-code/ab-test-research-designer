@@ -6,9 +6,10 @@ sequential boundary, CUPED variance reduction over an ingested pre-period covari
 the read endpoints (live-stats + pre-period ingestion).
 """
 
-from pathlib import Path
+import math
 import sys
 import uuid
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -19,7 +20,7 @@ from app.backend.app.constants import MAX_CUPED_COVARIATES
 from app.backend.app.main import create_app
 from app.backend.app.repository import ProjectRepository
 from app.backend.app.services.live_stats_service import build_live_stats
-
+from app.backend.app.stats.student_t import t_cdf, t_ppf
 
 # --- fixtures / builders --------------------------------------------------------------
 
@@ -888,6 +889,33 @@ def test_cuped_correlated_covariate_reduces_variance_and_preserves_effect() -> N
     assert comparison["treatment"]["adjusted_std"] is not None
 
 
+def test_cuped_theta_uses_within_arm_centering_ignores_between_arm_mean_gap() -> None:
+    # Between-arm mean gaps in X and Y must not leak into common theta: both arms have
+    # within-arm slope 1.0 (Y = X + 10 control, Y = X + 20 treatment), so theta stays 1.0
+    # and the adjusted treatment-control effect is the true intercept gap 10.0.
+    result = build_live_stats(
+        "e",
+        _continuous_design(),
+        _aggregates(
+            _arm(0, 4, 4, value_sum=50.0, value_sq_sum=630.0),
+            _arm(1, 4, 4, value_sum=106.0, value_sq_sum=2814.0),
+        ),
+        _multi_cuped_aggregates(
+            ["__default__"],
+            _multi_cuped_arm(0, [[1, 2, 3, 4]], [11, 12, 13, 14]),
+            _multi_cuped_arm(1, [[5, 6, 7, 8]], [25, 26, 27, 28]),
+        ),
+    )
+    cuped = result["cuped"]
+    assert cuped["status"] == "available"
+    assert cuped["theta"] == 1.0
+    comparison = cuped["comparisons"][0]
+    assert (
+        comparison["treatment"]["adjusted_mean"] - comparison["control"]["adjusted_mean"]
+        == 10.0
+    )
+
+
 def test_cuped_insufficient_when_arm_has_under_two_covariate_users() -> None:
     result = build_live_stats(
         "e",
@@ -1088,6 +1116,523 @@ def test_cuped_too_many_covariates_flagged() -> None:
     )["cuped"]
     assert block["status"] == "too_many_covariates"
     assert block["num_covariates"] == over_cap
+
+
+def _cuped_ancova_k1_expected(
+    xs_c: list[float],
+    ys_c: list[float],
+    xs_t: list[float],
+    ys_t: list[float],
+    *,
+    alpha: float = 0.05,
+) -> tuple[dict, dict]:
+    """Common-slope ANCOVA (A=2, k=1) from the fixture; analysis rounded like ResultsResponse."""
+    sxx = sxy = syy = 0.0
+    for xs, ys in ((xs_c, ys_c), (xs_t, ys_t)):
+        n = len(ys)
+        mx = sum(xs) / n
+        my = sum(ys) / n
+        sxx += sum((x - mx) ** 2 for x in xs)
+        sxy += sum((x - mx) * (y - my) for x, y in zip(xs, ys, strict=True))
+        syy += sum((y - my) ** 2 for y in ys)
+    nc, nt = len(ys_c), len(ys_t)
+    n_total = nc + nt
+    theta = sxy / sxx
+    df = float(n_total - 2 - 1)  # N - A - k
+    sse = syy - theta * sxy
+    sigma2 = sse / df
+    xbar_c = sum(xs_c) / nc
+    xbar_t = sum(xs_t) / nt
+    ybar_c = sum(ys_c) / nc
+    ybar_t = sum(ys_t) / nt
+    d = xbar_t - xbar_c
+    tau = (ybar_t - ybar_c) - theta * d
+    se2 = sigma2 * (1.0 / nc + 1.0 / nt + d * d / sxx)
+    se = math.sqrt(se2)
+    t_stat = tau / se
+    p_raw = min(1.0, max(0.0, 2.0 * (1.0 - t_cdf(abs(t_stat), df))))
+    t_crit = t_ppf(1.0 - alpha / 2.0, df)
+    ci_lower = tau - t_crit * se
+    ci_upper = tau + t_crit * se
+    xbar_g = (nc * xbar_c + nt * xbar_t) / n_total
+    adj_c = ybar_c - theta * (xbar_c - xbar_g)
+    adj_t = ybar_t - theta * (xbar_t - xbar_g)
+    relative = (tau / adj_c * 100.0) if adj_c != 0.0 else 0.0
+    power = min(
+        1.0,
+        max(
+            0.0,
+            (1.0 - t_cdf(t_crit - abs(t_stat), df))
+            + t_cdf(-t_crit - abs(t_stat), df),
+        ),
+    )
+
+    def _adj_std(xs: list[float], ys: list[float]) -> float:
+        n = len(ys)
+        mx = sum(xs) / n
+        my = sum(ys) / n
+        var_y = sum((y - my) ** 2 for y in ys) / (n - 1)
+        var_x = sum((x - mx) ** 2 for x in xs) / (n - 1)
+        cov_xy = (
+            sum((x - mx) * (y - my) for x, y in zip(xs, ys, strict=True)) / (n - 1)
+        )
+        adj_var = var_y - 2.0 * theta * cov_xy + theta * theta * var_x
+        return math.sqrt(adj_var) if adj_var > 0.0 else 0.0
+
+    analysis = {
+        "metric_type": "continuous",
+        "observed_effect": round(tau, 4),
+        "observed_effect_relative": round(relative, 2),
+        "ci_lower": round(ci_lower, 4),
+        "ci_upper": round(ci_upper, 4),
+        "ci_level": round(1.0 - alpha, 4),
+        "p_value": round(p_raw, 6),
+        "test_statistic": round(t_stat, 4),
+        "is_significant": p_raw < alpha,
+        "power_achieved": round(power, 3),
+    }
+    meta = {
+        "theta": theta,
+        "sxx": sxx,
+        "sse": sse,
+        "d": d,
+        "tau": tau,
+        "df": df,
+        "adj_c": adj_c,
+        "adj_t": adj_t,
+        "std_c": _adj_std(xs_c, ys_c),
+        "std_t": _adj_std(xs_t, ys_t),
+        "nc": nc,
+        "nt": nt,
+    }
+    return analysis, meta
+
+
+def _welch_rounded_analysis(
+    adj_c: float,
+    std_c: float,
+    nc: int,
+    adj_t: float,
+    std_t: float,
+    nt: int,
+    *,
+    alpha: float = 0.05,
+) -> dict:
+    """Naive Welch on display-rounded (6 d.p.) adjusted moments — the pre-fix regression path."""
+    mc, sc = round(adj_c, 6), round(std_c, 6)
+    mt, st = round(adj_t, 6), round(std_t, 6)
+    se = math.sqrt(max(sc * sc / nc + st * st / nt, 0.0))
+    effect = mt - mc
+    if se == 0.0:
+        return {"test_statistic": 0.0, "p_value": 1.0, "observed_effect": 0.0}
+    t_stat = effect / se
+    c_term = (sc * sc / nc) ** 2 / (nc - 1) if nc > 1 else 0.0
+    t_term = (st * st / nt) ** 2 / (nt - 1) if nt > 1 else 0.0
+    denom = c_term + t_term
+    df = math.inf if denom == 0.0 else ((sc * sc / nc + st * st / nt) ** 2) / denom
+    p_raw = min(1.0, max(0.0, 2.0 * (1.0 - t_cdf(abs(t_stat), df))))
+    return {
+        "observed_effect": round(effect, 4),
+        "test_statistic": round(t_stat, 4),
+        "p_value": round(p_raw, 6),
+    }
+
+
+def _cuped_live_from_xy(
+    xs_c: list[float], ys_c: list[float], xs_t: list[float], ys_t: list[float]
+) -> dict:
+    nc, nt = len(ys_c), len(ys_t)
+    return build_live_stats(
+        "e",
+        _continuous_design(),
+        _aggregates(
+            _arm(
+                0,
+                nc,
+                nc,
+                value_sum=float(sum(ys_c)),
+                value_sq_sum=float(sum(y * y for y in ys_c)),
+            ),
+            _arm(
+                1,
+                nt,
+                nt,
+                value_sum=float(sum(ys_t)),
+                value_sq_sum=float(sum(y * y for y in ys_t)),
+            ),
+        ),
+        _multi_cuped_aggregates(
+            ["__default__"],
+            _multi_cuped_arm(0, [xs_c], ys_c),
+            _multi_cuped_arm(1, [xs_t], ys_t),
+        ),
+    )
+
+
+def test_cuped_ancova_inference_accounts_for_fitted_theta_and_imbalance() -> None:
+    # Two arms, k=1, n=5/arm; unequal X means and nonzero residual SSE so the common-slope
+    # ANCOVA SE carries both fitted-theta uncertainty (df=N-A-k) and the imbalance term d²/Sxx.
+    xs_c = [1.0, 2.0, 3.0, 4.0, 5.0]
+    ys_c = [10.0, 12.0, 13.0, 15.0, 16.0]
+    xs_t = [4.0, 5.0, 6.0, 7.0, 8.0]
+    ys_t = [18.0, 20.0, 21.0, 23.0, 24.0]
+    expected, meta = _cuped_ancova_k1_expected(xs_c, ys_c, xs_t, ys_t)
+    assert meta["sse"] > 0.0 and meta["d"] != 0.0 and meta["sxx"] > 0.0
+
+    # Fixture must differ from naive Welch on (full-precision) adjusted arm moments.
+    welch_se = math.sqrt(meta["std_c"] ** 2 / meta["nc"] + meta["std_t"] ** 2 / meta["nt"])
+    welch_t = meta["tau"] / welch_se
+    assert round(welch_t, 4) != expected["test_statistic"]
+
+    result = _cuped_live_from_xy(xs_c, ys_c, xs_t, ys_t)
+    comparison = result["cuped"]["comparisons"][0]
+    assert comparison["status"] == "ok"
+    analysis = comparison["analysis"]
+    assert analysis is not None
+    for key, value in expected.items():
+        assert analysis[key] == value
+
+    # Per-comparison VR uses actual ANCOVA se2 (incl. imbalance), not adj_var_c/n_c + adj_var_t/n_t.
+    nc, nt = meta["nc"], meta["nt"]
+    mean_yc = sum(ys_c) / nc
+    mean_yt = sum(ys_t) / nt
+    var_y_c = sum((y - mean_yc) ** 2 for y in ys_c) / (nc - 1)
+    var_y_t = sum((y - mean_yt) ** 2 for y in ys_t) / (nt - 1)
+    raw_est = var_y_c / nc + var_y_t / nt
+    se2 = (meta["sse"] / meta["df"]) * (
+        1.0 / nc + 1.0 / nt + meta["d"] * meta["d"] / meta["sxx"]
+    )
+    expected_vr = round(100.0 * (1.0 - se2 / raw_est), 4)
+    naive_adj_est = meta["std_c"] ** 2 / nc + meta["std_t"] ** 2 / nt
+    naive_vr = round(100.0 * (1.0 - naive_adj_est / raw_est), 4)
+    assert meta["d"] != 0.0
+    assert expected_vr != naive_vr  # imbalance makes the two formulas disagree
+    assert comparison["variance_reduction_pct"] == expected_vr
+
+
+def test_cuped_ancova_rank_deficient_covariates_use_effective_rank() -> None:
+    # Same two-arm fixture as the k=1 ANCOVA lock (n=5/arm, X mean imbalance, residual SSE>0).
+    # Collinear second covariate (two_x = 2*X) must keep identifiable rank 1 for theta, df, and
+    # imbalance — not Welch fallback and not charging k=2.
+    xs_c = [1.0, 2.0, 3.0, 4.0, 5.0]
+    ys_c = [10.0, 12.0, 13.0, 15.0, 16.0]
+    xs_t = [4.0, 5.0, 6.0, 7.0, 8.0]
+    ys_t = [18.0, 20.0, 21.0, 23.0, 24.0]
+
+    one = _cuped_live_from_xy(xs_c, ys_c, xs_t, ys_t)
+    one_cmp = one["cuped"]["comparisons"][0]
+    assert one_cmp["status"] == "ok" and one_cmp["analysis"] is not None
+
+    two_x_c = [2.0 * x for x in xs_c]
+    two_x_t = [2.0 * x for x in xs_t]
+    nc, nt = len(ys_c), len(ys_t)
+    two = build_live_stats(
+        "e",
+        _continuous_design(),
+        _aggregates(
+            _arm(
+                0,
+                nc,
+                nc,
+                value_sum=float(sum(ys_c)),
+                value_sq_sum=float(sum(y * y for y in ys_c)),
+            ),
+            _arm(
+                1,
+                nt,
+                nt,
+                value_sum=float(sum(ys_t)),
+                value_sq_sum=float(sum(y * y for y in ys_t)),
+            ),
+        ),
+        _multi_cuped_aggregates(
+            ["x", "two_x"],
+            _multi_cuped_arm(0, [xs_c, two_x_c], ys_c),
+            _multi_cuped_arm(1, [xs_t, two_x_t], ys_t),
+        ),
+    )
+    cuped = two["cuped"]
+    assert cuped["status"] == "available"
+    assert any(math.isfinite(c["theta"]) and c["theta"] != 0.0 for c in cuped["covariates"])
+
+    two_cmp = cuped["comparisons"][0]
+    assert two_cmp["status"] == "ok"
+    assert two_cmp["control"]["adjusted_mean"] == one_cmp["control"]["adjusted_mean"]
+    assert two_cmp["treatment"]["adjusted_mean"] == one_cmp["treatment"]["adjusted_mean"]
+    assert two_cmp["analysis"] == one_cmp["analysis"]
+
+
+def test_cuped_inference_uses_full_precision_before_display_rounding() -> None:
+    # Adjusted means/std carry meaningful digits past 6 d.p.; inference must use full raw
+    # precision (ANCOVA from unrounded moments). Public arm display fields may stay rounded.
+    xs_c = [1.0, 2.0, 3.0, 4.0, 5.0]
+    ys_c = [
+        13.234567891234,
+        13.012345678902,
+        16.555555555555,
+        16.888888888889,
+        20.308641985420,
+    ]
+    xs_t = [6.0, 7.0, 8.0, 9.0, 10.0]
+    ys_t = [
+        25.190702476346,
+        25.079591375236,
+        28.758603709803,
+        29.758603709804,
+        32.783295055606,
+    ]
+    expected, meta = _cuped_ancova_k1_expected(xs_c, ys_c, xs_t, ys_t)
+    assert meta["sse"] > 0.0
+    assert meta["adj_c"] != round(meta["adj_c"], 6) or meta["adj_t"] != round(meta["adj_t"], 6)
+    assert meta["std_c"] != round(meta["std_c"], 6) or meta["std_t"] != round(meta["std_t"], 6)
+
+    # Guard: Welch-on-rounded-to-6 must disagree statistically (not via zero variance).
+    rounded_welch = _welch_rounded_analysis(
+        meta["adj_c"],
+        meta["std_c"],
+        meta["nc"],
+        meta["adj_t"],
+        meta["std_t"],
+        meta["nt"],
+    )
+    assert rounded_welch["p_value"] != 1.0 or rounded_welch["test_statistic"] != 0.0
+    assert (
+        rounded_welch["p_value"] != expected["p_value"]
+        or rounded_welch["test_statistic"] != expected["test_statistic"]
+        or rounded_welch["observed_effect"] != expected["observed_effect"]
+    )
+
+    result = _cuped_live_from_xy(xs_c, ys_c, xs_t, ys_t)
+    comparison = result["cuped"]["comparisons"][0]
+    assert comparison["status"] == "ok"
+    analysis = comparison["analysis"]
+    assert analysis is not None
+    for key, value in expected.items():
+        assert analysis[key] == value
+    # Display fields may remain rounded to 6 d.p.
+    assert comparison["control"]["adjusted_mean"] == round(meta["adj_c"], 6)
+    assert comparison["treatment"]["adjusted_mean"] == round(meta["adj_t"], 6)
+    assert comparison["control"]["adjusted_std"] == round(meta["std_c"], 6)
+    assert comparison["treatment"]["adjusted_std"] == round(meta["std_t"], 6)
+
+
+def test_cuped_ancova_allows_one_zero_arm_residual_variance() -> None:
+    # Control lies exactly on the common slope; treatment carries residual variance so pooled
+    # SSE > 0. One zero arm residual must not block ANCOVA when the pool is nondegenerate.
+    xs_c = [1.0, 2.0, 3.0, 4.0, 5.0]
+    ys_c = [12.0, 14.0, 16.0, 18.0, 20.0]  # Y = 10 + 2X exactly
+    xs_t = [1.0, 2.0, 3.0, 4.0, 5.0]
+    ys_t = [22.0, 25.0, 26.0, 29.0, 30.0]  # around 20 + 2X with noise
+    expected, meta = _cuped_ancova_k1_expected(xs_c, ys_c, xs_t, ys_t)
+    assert meta["std_c"] == 0.0 and meta["std_t"] > 0.0 and meta["sse"] > 0.0
+
+    result = _cuped_live_from_xy(xs_c, ys_c, xs_t, ys_t)
+    comparison = result["cuped"]["comparisons"][0]
+    assert comparison["status"] == "ok"
+    analysis = comparison["analysis"]
+    assert analysis is not None
+    assert math.isfinite(analysis["p_value"])
+    assert math.isfinite(analysis["test_statistic"])
+    assert math.isfinite(analysis["ci_lower"]) and math.isfinite(analysis["ci_upper"])
+    for key, value in expected.items():
+        assert analysis[key] == value
+
+    # Perfect common-slope fit with nonzero adjusted effect: SE=0 must not claim ok/p=1/t=0.
+    ys_t_perfect = [22.0, 24.0, 26.0, 28.0, 30.0]
+    both = _cuped_live_from_xy(xs_c, ys_c, xs_t, ys_t_perfect)["cuped"]["comparisons"][0]
+    assert both["treatment"]["adjusted_mean"] != both["control"]["adjusted_mean"]
+    assert both["status"] == "insufficient_data"
+    assert both["analysis"] is None
+    assert both["note"] is not None
+
+
+def test_cuped_welch_fallback_zero_se2_with_effect_is_insufficient() -> None:
+    # Constant X => Sxx has no positive direction => Welch fallback (theta=0).
+    # Constant Y within arms with different means => se2=0 but nonzero effect.
+    # Must not claim ok / degenerate p=1 via _continuous_t_response.
+    xs_c = [1.0, 1.0, 1.0, 1.0]
+    ys_c = [10.0, 10.0, 10.0, 10.0]
+    xs_t = [1.0, 1.0, 1.0, 1.0]
+    ys_t = [20.0, 20.0, 20.0, 20.0]
+    result = _cuped_live_from_xy(xs_c, ys_c, xs_t, ys_t)
+    comparison = result["cuped"]["comparisons"][0]
+    assert comparison["control"]["unadjusted_mean"] != comparison["treatment"]["unadjusted_mean"]
+    assert comparison["status"] == "insufficient_data"
+    assert comparison["analysis"] is None
+    assert comparison["variance_reduction_pct"] is None
+    assert comparison["note"] is not None
+
+
+def test_cuped_variance_reduction_is_per_comparison_estimator_variance() -> None:
+    # Variance reduction must be the per-comparison estimator-variance ratio under the common
+    # within-arm theta — not a single pooled R² and not a reconstruction from display-rounded std.
+    # Three arms, n=5: T1 shares the control residual structure; T2 is deliberately mismatched so
+    # control-vs-T1 and control-vs-T2 reductions differ while every raw/adjusted arm variance is >0.
+    xs0 = [1.0, 2.0, 3.0, 4.0, 5.0]
+    ys0 = [10.0, 22.0, 28.0, 42.0, 48.0]
+    xs1 = [1.0, 2.0, 3.0, 4.0, 5.0]
+    ys1 = [20.0, 32.0, 38.0, 52.0, 58.0]
+    # Shifted X mean so control-vs-T2 carries a nonzero ANCOVA imbalance term.
+    xs2 = [6.0, 7.0, 8.0, 9.0, 10.0]
+    ys2 = [40.0, 15.0, 45.0, 10.0, 50.0]
+
+    design = _continuous_design()
+    design["setup"]["variants_count"] = 3
+    design["setup"]["traffic_split"] = [34, 33, 33]
+
+    result = build_live_stats(
+        "e",
+        design,
+        _aggregates(
+            _arm(
+                0,
+                5,
+                5,
+                value_sum=float(sum(ys0)),
+                value_sq_sum=float(sum(y * y for y in ys0)),
+            ),
+            _arm(
+                1,
+                5,
+                5,
+                value_sum=float(sum(ys1)),
+                value_sq_sum=float(sum(y * y for y in ys1)),
+            ),
+            _arm(
+                2,
+                5,
+                5,
+                value_sum=float(sum(ys2)),
+                value_sq_sum=float(sum(y * y for y in ys2)),
+            ),
+        ),
+        _multi_cuped_aggregates(
+            ["__default__"],
+            _multi_cuped_arm(0, [xs0], ys0),
+            _multi_cuped_arm(1, [xs1], ys1),
+            _multi_cuped_arm(2, [xs2], ys2),
+        ),
+    )
+    block = result["cuped"]
+    assert block["status"] == "available"
+    assert len(block["comparisons"]) == 2
+
+    # Common within-arm SSCP / theta for k=1 (matches production pooling across all arms).
+    sxx = sxy = syy = 0.0
+    for xs, ys in ((xs0, ys0), (xs1, ys1), (xs2, ys2)):
+        n = len(ys)
+        mx = sum(xs) / n
+        my = sum(ys) / n
+        sxx += sum((x - mx) ** 2 for x in xs)
+        sxy += sum((x - mx) * (y - my) for x, y in zip(xs, ys, strict=True))
+        syy += sum((y - my) ** 2 for y in ys)
+    theta = sxy / sxx
+    n_total = len(ys0) + len(ys1) + len(ys2)
+    n_arms = 3
+    effective_rank = 1
+    df = float(n_total - n_arms - effective_rank)
+    sse = syy - theta * sxy
+    sigma2 = sse / df
+
+    def _arm_raw(xs: list[float], ys: list[float]) -> tuple[int, float, float]:
+        n = len(ys)
+        my = sum(ys) / n
+        mx = sum(xs) / n
+        var_y = sum((y - my) ** 2 for y in ys) / (n - 1)
+        return n, mx, var_y
+
+    arms_xy = ((xs0, ys0), (xs1, ys1), (xs2, ys2))
+    arm_stats = [_arm_raw(xs, ys) for xs, ys in arms_xy]
+    for n_i, _mx, var_y_i in arm_stats:
+        assert n_i >= 5
+        assert var_y_i > 0.0
+
+    nc, mx_c, var_y_c = arm_stats[0]
+    expected_reductions: list[float] = []
+    for treatment_index in (1, 2):
+        nt, mx_t, var_y_t = arm_stats[treatment_index]
+        d = mx_t - mx_c
+        raw_est = var_y_c / nc + var_y_t / nt
+        # Actual ANCOVA estimator variance (pooled sigma2 + imbalance), not adj_var/n Welch form.
+        se2 = sigma2 * (1.0 / nc + 1.0 / nt + (d * d / sxx if sxx > 0.0 else 0.0))
+        expected = round(100.0 * (1.0 - se2 / raw_est), 4)
+        expected_reductions.append(expected)
+
+    assert arm_stats[2][1] != mx_c  # T2 imbalance present
+    assert expected_reductions[0] != expected_reductions[1]
+    for comparison, expected in zip(
+        block["comparisons"], expected_reductions, strict=True
+    ):
+        assert comparison["status"] == "ok"
+        assert comparison["variance_reduction_pct"] == expected
+
+    # Legacy block field keeps pooled (1 - var_adj/var_y)*100 on grand-pooled moments
+    # (with current within-arm theta) — not a mirror of the first pair.
+    all_xs = xs0 + xs1 + xs2
+    all_ys = ys0 + ys1 + ys2
+    n_pool = len(all_ys)
+    g_my = sum(all_ys) / n_pool
+    g_mx = sum(all_xs) / n_pool
+    pooled_var_y = sum((y - g_my) ** 2 for y in all_ys) / (n_pool - 1)
+    pooled_var_x = sum((x - g_mx) ** 2 for x in all_xs) / (n_pool - 1)
+    pooled_cov = (
+        sum(
+            (x - g_mx) * (y - g_my)
+            for x, y in zip(all_xs, all_ys, strict=True)
+        )
+        / (n_pool - 1)
+    )
+    pooled_adj = (
+        pooled_var_y - 2.0 * theta * pooled_cov + theta * theta * pooled_var_x
+    )
+    if pooled_adj < 0.0:
+        pooled_adj = 0.0
+    legacy = round((1.0 - pooled_adj / pooled_var_y) * 100.0, 4)
+    assert block["variance_reduction_pct"] == legacy
+    assert block["variance_reduction_pct"] != expected_reductions[0]
+
+
+def test_cuped_complete_case_exposes_per_arm_coverage_and_caveat() -> None:
+    # Primary rollup counts every exposed user; CUPED is complete-case (only users with the full
+    # covariate vector). Coverage and a machine-readable selection caveat must surface that gap
+    # without dropping the existing human-readable available note.
+    xs_c = [1.0, 2.0, 3.0, 4.0]
+    # Slight residual noise so pooled SSE > 0 (exact common-slope fit is insufficient_data).
+    ys_c = [10.0, 20.0, 30.0, 41.0]
+    xs_t = [1.0, 2.0, 3.0]
+    ys_t = [15.0, 25.0, 35.0]
+
+    result = build_live_stats(
+        "e",
+        _continuous_design(),
+        _aggregates(
+            _arm(0, 6, 6, value_sum=150.0, value_sq_sum=4500.0),
+            _arm(1, 5, 5, value_sum=140.0, value_sq_sum=4200.0),
+        ),
+        _multi_cuped_aggregates(
+            ["__default__"],
+            _multi_cuped_arm(0, [xs_c], ys_c),
+            _multi_cuped_arm(1, [xs_t], ys_t),
+        ),
+    )
+    block = result["cuped"]
+    assert block["status"] == "available"
+    # Existing human note (complete-vector subpopulation) stays intact.
+    assert block["note"] is not None
+    assert "full covariate vector" in block["note"]
+    assert block["covariate_users_total"] == 7
+    assert block["exposed_users_total"] == 11
+    assert block["coverage_total"] == round(7 / 11, 4)
+    assert block["selection_caveat"] == "complete_case_subset"
+
+    comparison = block["comparisons"][0]
+    assert comparison["status"] == "ok"
+    assert comparison["control"]["exposed_users"] == 6
+    assert comparison["control"]["covariate_users"] == 4
+    assert comparison["control"]["coverage"] == round(4 / 6, 4)
+    assert comparison["treatment"]["exposed_users"] == 5
+    assert comparison["treatment"]["covariate_users"] == 3
+    assert comparison["treatment"]["coverage"] == round(3 / 5, 4)
 
 
 def test_cuped_aggregates_migrate_legacy_single_covariate() -> None:

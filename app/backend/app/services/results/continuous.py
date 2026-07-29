@@ -20,29 +20,35 @@ from app.backend.app.stats.trimmed_t import trimmed_means_t_test
 from .common import _bounded_probability, _degenerate_response, _verdict, _welch_df
 
 
-def _analyze_continuous(obs: ObservedResultsContinuous | None) -> ResultsResponse:
-    if obs is None:
-        raise ValueError("continuous observations are required")
+def _continuous_t_response(
+    *,
+    control_mean: float,
+    treatment_mean: float,
+    standard_error: float,
+    degrees_of_freedom: float,
+    alpha: float,
+) -> ResultsResponse:
+    """Build the continuous ``ResultsResponse`` from means + explicit SE and df.
 
-    control_variance = (obs.control_std**2) / obs.control_n
-    treatment_variance = (obs.treatment_std**2) / obs.treatment_n
-    standard_error = math.sqrt(max(control_variance + treatment_variance, 0.0))
-    effect = obs.treatment_mean - obs.control_mean
+    Shared by the ordinary Welch path and callers that supply a custom standard
+    error / degrees of freedom (e.g. live CUPED common-slope ANCOVA) while
+    preserving response keys, display rounding, verdict and power semantics.
+    """
+    effect = treatment_mean - control_mean
 
     if standard_error == 0:
         return _degenerate_response(
             metric_type="continuous",
-            ci_level=1 - obs.alpha,
+            ci_level=1 - alpha,
         )
 
     test_statistic = effect / standard_error
-    degrees_of_freedom = _welch_df(obs)
     p_value = 2 * (1 - t_cdf(abs(test_statistic), degrees_of_freedom))
-    t_critical = t_ppf(1 - obs.alpha / 2, degrees_of_freedom)
+    t_critical = t_ppf(1 - alpha / 2, degrees_of_freedom)
     ci_lower = effect - t_critical * standard_error
     ci_upper = effect + t_critical * standard_error
-    relative_effect = (effect / obs.control_mean * 100) if obs.control_mean != 0 else 0.0
-    is_significant = p_value < obs.alpha
+    relative_effect = (effect / control_mean * 100) if control_mean != 0 else 0.0
+    is_significant = p_value < alpha
     upper_tail = 1.0 - t_cdf(t_critical - abs(test_statistic), degrees_of_freedom)
     lower_tail = t_cdf(-t_critical - abs(test_statistic), degrees_of_freedom)
     power_achieved = upper_tail + lower_tail
@@ -53,24 +59,40 @@ def _analyze_continuous(obs: ObservedResultsContinuous | None) -> ResultsRespons
         observed_effect_relative=round(relative_effect, 2),
         ci_lower=round(ci_lower, 4),
         ci_upper=round(ci_upper, 4),
-        ci_level=round(1 - obs.alpha, 4),
+        ci_level=round(1 - alpha, 4),
         p_value=round(_bounded_probability(p_value), 6),
         test_statistic=round(test_statistic, 4),
         is_significant=is_significant,
         power_achieved=round(_bounded_probability(power_achieved), 3),
-        verdict=_verdict(is_significant, effect, obs.alpha),
+        verdict=_verdict(is_significant, effect, alpha),
         interpretation=translate(
             "results.interpretation.continuous",
             {
-                "treatmentMean": f"{obs.treatment_mean:.4f}",
-                "controlMean": f"{obs.control_mean:.4f}",
+                "treatmentMean": f"{treatment_mean:.4f}",
+                "controlMean": f"{control_mean:.4f}",
                 "effect": f"{effect:+.4f}",
-                "ciLevel": f"{(1 - obs.alpha) * 100:.1f}",
+                "ciLevel": f"{(1 - alpha) * 100:.1f}",
                 "ciLower": f"{ci_lower:.4f}",
                 "ciUpper": f"{ci_upper:.4f}",
                 "pValue": f"{p_value:.6f}",
             },
         ),
+    )
+
+
+def _analyze_continuous(obs: ObservedResultsContinuous | None) -> ResultsResponse:
+    if obs is None:
+        raise ValueError("continuous observations are required")
+
+    control_variance = (obs.control_std**2) / obs.control_n
+    treatment_variance = (obs.treatment_std**2) / obs.treatment_n
+    standard_error = math.sqrt(max(control_variance + treatment_variance, 0.0))
+    return _continuous_t_response(
+        control_mean=obs.control_mean,
+        treatment_mean=obs.treatment_mean,
+        standard_error=standard_error,
+        degrees_of_freedom=_welch_df(obs),
+        alpha=obs.alpha,
     )
 
 
@@ -377,4 +399,3 @@ def _interpretation_trimmed_t(result: dict[str, Any]) -> str:
             "significance": significance_text,
         },
     )
-
