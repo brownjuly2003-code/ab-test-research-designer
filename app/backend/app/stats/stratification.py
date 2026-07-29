@@ -55,17 +55,26 @@ def binary_point_variance(conversions: int, n: int) -> tuple[float, float] | Non
 
 
 def continuous_point_variance(
-    value_sum: float, value_sq_sum: float, n: int
+    value_sum: float,
+    value_sq_sum: float,
+    n: int,
+    *,
+    value_centered_ss: float | None = None,
 ) -> tuple[float, float] | None:
     """Per-user mean and the variance of that mean estimate ``s²/n`` (``s²`` = sample variance).
 
     Returns ``None`` when ``n < 2`` (a sample variance is undefined). Round-off below zero in the
-    sample variance is clamped to 0.
+    sample variance is clamped to 0. When ``value_centered_ss`` is supplied, it is the
+    unnormalized two-pass centered sum of squares; otherwise the raw second moment is retained as
+    a backward-compatible fallback.
     """
     if n < 2:
         return None
     mean = value_sum / n
-    sample_variance = (value_sq_sum - n * mean * mean) / (n - 1)
+    if value_centered_ss is not None:
+        sample_variance = float(value_centered_ss) / (n - 1)
+    else:
+        sample_variance = (value_sq_sum - n * mean * mean) / (n - 1)
     if sample_variance < 0.0:
         sample_variance = 0.0
     return mean, sample_variance / n

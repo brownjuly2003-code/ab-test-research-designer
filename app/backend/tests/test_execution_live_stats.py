@@ -2391,6 +2391,64 @@ def test_guardrail_decrease_is_bad_continuous_breach() -> None:
     assert comparison["is_breached"] is True
 
 
+def test_guardrail_continuous_large_mean_stable_centered() -> None:
+    """Continuous guardrails must use stable centered SS at large means."""
+    mean = 1e9
+    offsets = [-2.0, -1.0, 0.0, 1.0, 2.0]
+    control_values = [mean + delta for delta in offsets]
+    treatment_values = [mean + 3.0 + delta for delta in offsets]
+    control_sum = sum(control_values)
+    treatment_sum = sum(treatment_values)
+    control_sq = sum(value * value for value in control_values)
+    treatment_sq = sum(value * value for value in treatment_values)
+    n = len(offsets)
+    assert abs(control_sq - n * (control_sum / n) ** 2) < 1.0
+    assert abs(treatment_sq - n * (treatment_sum / n) ** 2) < 1.0
+
+    control_arm = {
+        "variation_index": 0,
+        "exposed_users": n,
+        "converted_users": 0,
+        "value_sum": control_sum,
+        "value_sq_sum": control_sq,
+        "value_centered_ss": 10.0,
+    }
+    treatment_arm = {
+        "variation_index": 1,
+        "exposed_users": n,
+        "converted_users": 0,
+        "value_sum": treatment_sum,
+        "value_sq_sum": treatment_sq,
+        "value_centered_ss": 10.0,
+    }
+    design = _with_guardrails(
+        _continuous_design(),
+        _guardrail_metric(
+            "revenue_per_user",
+            metric_type="continuous",
+            baseline_mean=mean,
+            std_dev=12.0,
+            direction="decrease_is_bad",
+        ),
+    )
+    result = build_live_stats(
+        "e",
+        design,
+        _aggregates(_arm(0, 4, 4, 100.0, 3000.0), _arm(1, 4, 4, 180.0, 8600.0)),
+        guardrail_aggregates={
+            "revenue_per_user": _aggregates(control_arm, treatment_arm),
+        },
+    )
+    comparison = result["guardrail"]["metrics"][0]["comparisons"][0]
+    assert comparison["status"] != "insufficient_data"
+    assert comparison["effect"] is not None
+    assert comparison["harm"] is not None
+    assert math.isfinite(comparison["effect"])
+    assert math.isfinite(comparison["harm"])
+    assert comparison["effect"] == pytest.approx(3.0, abs=1e-6)
+    assert comparison["harm"] == pytest.approx(-3.0, abs=1e-6)
+
+
 def test_guardrail_margin_absorbs_degradation_within_tolerance() -> None:
     # The same +6pp degradation that breaches at margin 0 is tolerated by a 10pp margin (5% baseline
     # × 200%): harm sits below the margin -> ok. This isolates the non-inferiority margin's effect.

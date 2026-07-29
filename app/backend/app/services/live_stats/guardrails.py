@@ -48,7 +48,10 @@ def _guardrail_point(metric_type: str, arm: dict[str, Any]) -> tuple[float, floa
     if metric_type == "binary":
         return stratification.binary_point_variance(int(arm["converted_users"]), n)
     return stratification.continuous_point_variance(
-        float(arm["value_sum"]), float(arm["value_sq_sum"]), n
+        float(arm["value_sum"]),
+        float(arm["value_sq_sum"]),
+        n,
+        value_centered_ss=arm.get("value_centered_ss"),
     )
 
 
