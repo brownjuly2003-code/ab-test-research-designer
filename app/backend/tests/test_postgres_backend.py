@@ -337,9 +337,15 @@ def test_postgres_backend_cuped_aggregates_round_trip(postgres_repository) -> No
     assert by_index[0]["sum_x"] == [30.0]
     assert by_index[0]["sum_y"] == 5.0
     assert by_index[0]["sum_xy"] == [80.0]  # 10*2 + 20*3
+    assert by_index[0]["centered_syy"] == pytest.approx(0.5)
+    assert by_index[0]["centered_sxy"] == pytest.approx([5.0])
+    assert by_index[0]["centered_sxx"][0] == pytest.approx([50.0])
     assert by_index[1]["n"] == 2  # u4, u5
     assert by_index[1]["sum_y"] == 5.0  # u4: 5.0 + u5: 0
     assert by_index[1]["sum_xy"] == [200.0]  # 40*5 + 50*0
+    assert by_index[1]["centered_syy"] == pytest.approx(12.5)
+    assert by_index[1]["centered_sxy"] == pytest.approx([-25.0])
+    assert by_index[1]["centered_sxx"][0] == pytest.approx([50.0])
     assert -1 not in by_index  # holdout never appears
 
 
@@ -386,6 +392,10 @@ def test_postgres_backend_multi_cuped_aggregates_round_trip(postgres_repository)
     assert arm0["sum_y"] == 30.0 and arm0["sum_y2"] == 500.0
     assert arm0["sum_xx"] == [[20.0, 14.0], [14.0, 10.0]]  # symmetric raw cross-moments
     assert arm0["sum_xy"] == [100.0, 70.0]  # spend*y 20+80, visits*y 10+60
+    assert arm0["centered_syy"] == pytest.approx(50.0)
+    assert arm0["centered_sxy"] == pytest.approx([10.0, 10.0])
+    assert arm0["centered_sxx"][0] == pytest.approx([2.0, 2.0])
+    assert arm0["centered_sxx"][1] == pytest.approx([2.0, 2.0])
 
 
 def test_postgres_backend_ratio_aggregates_round_trip(postgres_repository) -> None:

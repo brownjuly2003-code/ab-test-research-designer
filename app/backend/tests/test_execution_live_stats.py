@@ -990,6 +990,69 @@ def test_cuped_aggregates_restrict_to_covariate_users_and_exclude_holdout() -> N
     assert -1 not in by_index  # holdout never appears
 
 
+def test_cuped_large_mean_preserves_within_arm_sscp_via_stable_centered() -> None:
+    """E2E regression for catastrophic cancellation at ~1e9.
+
+    Five values mean+[-2,-1,0,1,2] have true centered Sxx=10; Y offsets [-2,0,1,-1,2]
+    give Syy=10 and Sxy=7. Raw ``sum(v^2)-n*mean^2`` collapses to ~0 in float64 at 1e9,
+    so the pre-fix live CUPED path yielded theta=0 / insufficient_data. Repository two-pass
+    ``centered_*`` plus service prefer-stable path must recover theta=0.7 and ok.
+    """
+    mean = 1e9
+    x_offsets = [-2.0, -1.0, 0.0, 1.0, 2.0]
+    y_offsets = [-2.0, 0.0, 1.0, -1.0, 2.0]
+    repo = _repo()
+    exp = _project(repo)
+    exposures: list[dict] = []
+    pre_period: list[dict] = []
+    conversions: list[dict] = []
+    for arm in (0, 1):
+        for i, (dx, dy) in enumerate(zip(x_offsets, y_offsets, strict=True)):
+            uid = f"a{arm}_u{i}"
+            exposures.append({"user_id": uid, "variation_index": arm})
+            pre_period.append({"user_id": uid, "value": mean + dx})
+            conversions.append({"user_id": uid, "metric": "aov", "value": mean + dy})
+    repo.record_exposures(exp, exposures)
+    repo.record_pre_period_values(exp, pre_period)
+    repo.record_conversions(exp, conversions)
+
+    cuped_aggs = repo.get_cuped_aggregates(exp, "aov")
+    assert cuped_aggs is not None
+    assert cuped_aggs["covariate_names"] == ["__default__"]
+    assert len(cuped_aggs["variations"]) == 2
+    for arm in cuped_aggs["variations"]:
+        assert arm["n"] == 5
+        # Raw keys still present (public aggregate shape preserved).
+        assert "sum_y2" in arm and "sum_xx" in arm and "sum_xy" in arm
+        # Stable within-arm SSCP (true values: Sxx=10, Syy=10, Sxy=7).
+        assert arm["centered_syy"] == pytest.approx(10.0, abs=1e-6)
+        assert arm["centered_sxy"][0] == pytest.approx(7.0, abs=1e-6)
+        assert arm["centered_sxx"][0][0] == pytest.approx(10.0, abs=1e-6)
+        # Document the failure mode the patch fixes: raw reconstruction loses the signal.
+        n = arm["n"]
+        mean_x = arm["sum_x"][0] / n
+        mean_y = arm["sum_y"] / n
+        raw_sxx = arm["sum_xx"][0][0] - n * mean_x * mean_x
+        raw_syy = arm["sum_y2"] - n * mean_y * mean_y
+        raw_sxy = arm["sum_xy"][0] - n * mean_x * mean_y
+        assert abs(raw_sxx) < 1.0
+        assert abs(raw_syy) < 1.0
+        assert abs(raw_sxy) < 1.0
+
+    analysis = repo.get_experiment_analysis_aggregates(exp, "aov")
+    assert analysis is not None
+    result = build_live_stats(exp, _continuous_design(), analysis, cuped_aggs)
+    cuped = result["cuped"]
+    assert cuped["status"] == "available"
+    # theta = Sxy/Sxx = 7/10 (identical within-arm pattern on both arms).
+    assert cuped["theta"] == pytest.approx(0.7, abs=1e-4)
+    assert cuped["variance_reduction_pct"] is not None
+    assert cuped["variance_reduction_pct"] > 0.0
+    comparison = cuped["comparisons"][0]
+    assert comparison["status"] == "ok"
+    assert comparison["analysis"] is not None
+
+
 def test_cuped_aggregates_none_for_unknown_experiment() -> None:
     repo = _repo()
     assert repo.get_cuped_aggregates("missing", "aov") is None

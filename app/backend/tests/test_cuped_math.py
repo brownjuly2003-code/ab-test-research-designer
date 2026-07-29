@@ -10,7 +10,11 @@ import math
 
 import pytest
 
-from app.backend.app.services.live_stats.cuped import _multi_moments, _within_arm_sscp
+from app.backend.app.services.live_stats.cuped import (
+    _multi_moments,
+    _pool_sufficient,
+    _within_arm_sscp,
+)
 from app.backend.app.stats.cuped import (
     adjusted_variance,
     cuped_theta,
@@ -290,6 +294,45 @@ def test_within_arm_sscp_preserves_signed_sxy_and_off_diagonal() -> None:
     assert sxy[1] == pytest.approx(2.0)
     assert sxx[0][1] == pytest.approx(-1.0)
     assert sxx[1][0] == pytest.approx(-1.0)
+
+
+def test_pool_sufficient_parallel_axis_centered_sscp() -> None:
+    # k=1 arms with n=2 each: within-arm centered SSCP is identical (2),
+    # but arm means differ so parallel-axis pooling adds between-arm mass.
+    arm0 = {
+        "n": 2,
+        "sum_x": [6.0],
+        "sum_y": 4.0,
+        "sum_xx": [[20.0]],
+        "sum_y2": 10.0,
+        "sum_xy": [14.0],
+        "centered_sxx": [[2.0]],
+        "centered_syy": 2.0,
+        "centered_sxy": [2.0],
+    }
+    arm1 = {
+        "n": 2,
+        "sum_x": [46.0],
+        "sum_y": 24.0,
+        "sum_xx": [[1060.0]],
+        "sum_y2": 290.0,
+        "sum_xy": [554.0],
+        "centered_sxx": [[2.0]],
+        "centered_syy": 2.0,
+        "centered_sxy": [2.0],
+    }
+    pooled = _pool_sufficient([arm0, arm1], 1)
+    # Raw totals remain additive.
+    assert pooled["n"] == 4
+    assert pooled["sum_y"] == pytest.approx(28.0)
+    assert pooled["sum_y2"] == pytest.approx(300.0)
+    assert pooled["sum_x"][0] == pytest.approx(52.0)
+    assert pooled["sum_xy"][0] == pytest.approx(568.0)
+    assert pooled["sum_xx"][0][0] == pytest.approx(1080.0)
+    # Grand-pooled centered SSCP via parallel-axis theorem.
+    assert pooled["centered_syy"] == pytest.approx(104.0)
+    assert pooled["centered_sxy"][0] == pytest.approx(204.0)
+    assert pooled["centered_sxx"][0][0] == pytest.approx(404.0)
 
 
 def test_adjusted_variance_clamps_roundoff_below_zero() -> None:

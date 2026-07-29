@@ -24,6 +24,19 @@ def _stable_centered_difference(raw: float, correction: float) -> float:
     return float(raw) - float(correction)
 
 
+def _arm_stable_centered(
+    arm: dict[str, Any],
+) -> tuple[float, list[float], list[list[float]]] | None:
+    """Return repository two-pass centered SSCP when present; else ``None`` (raw fallback)."""
+    if (
+        "centered_syy" not in arm
+        or "centered_sxy" not in arm
+        or "centered_sxx" not in arm
+    ):
+        return None
+    return arm["centered_syy"], arm["centered_sxy"], arm["centered_sxx"]
+
+
 def _multi_moments(
     n: int,
     sum_y: float,
@@ -31,6 +44,10 @@ def _multi_moments(
     sum_x: list[float],
     sum_xy: list[float],
     sum_xx: list[list[float]],
+    *,
+    centered_syy: float | None = None,
+    centered_sxy: list[float] | None = None,
+    centered_sxx: list[list[float]] | None = None,
 ) -> dict[str, Any] | None:
     """Means, outcome variance, the covariate covariance matrix ``Sigma_xx`` and the
     covariate/outcome covariance vector ``Sigma_xy`` from pooled sufficient statistics, or
@@ -41,34 +58,58 @@ def _multi_moments(
     mean_y = sum_y / n
     mean_x = [value / n for value in sum_x]
     denom = n - 1
-    var_y = _stable_centered_difference(sum_y2, n * mean_y * mean_y) / denom
+    stable: tuple[float, list[float], list[list[float]]] | None = None
+    if centered_syy is not None and centered_sxy is not None and centered_sxx is not None:
+        stable = centered_syy, centered_sxy, centered_sxx
+    if stable is not None:
+        var_y = float(stable[0]) / denom
+    else:
+        var_y = _stable_centered_difference(sum_y2, n * mean_y * mean_y) / denom
     if not math.isfinite(var_y) or var_y < 0.0:
         var_y = 0.0
     sigma_xy: list[float] = []
     for j in range(k):
-        cov = _stable_centered_difference(sum_xy[j], n * mean_x[j] * mean_y) / denom
+        if stable is not None:
+            cov = float(stable[1][j]) / denom
+        else:
+            cov = _stable_centered_difference(sum_xy[j], n * mean_x[j] * mean_y) / denom
         sigma_xy.append(0.0 if not math.isfinite(cov) else cov)
     sigma_xx = [[0.0] * k for _ in range(k)]
     for i in range(k):
-        diag = _stable_centered_difference(sum_xx[i][i], n * mean_x[i] * mean_x[i]) / denom
+        if stable is not None:
+            diag = float(stable[2][i][i]) / denom
+        else:
+            diag = _stable_centered_difference(sum_xx[i][i], n * mean_x[i] * mean_x[i]) / denom
         if not math.isfinite(diag) or diag < 0.0:
             diag = 0.0
         sigma_xx[i][i] = diag
         for j in range(i + 1, k):
-            # Prefer the (i,j) sufficient-stat entry; fall back to (j,i) if needed.
-            raw_ij = sum_xx[i][j] if math.isfinite(float(sum_xx[i][j])) else sum_xx[j][i]
-            cov = _stable_centered_difference(raw_ij, n * mean_x[i] * mean_x[j]) / denom
-            if not math.isfinite(cov):
-                alt = _stable_centered_difference(
+            if stable is not None:
+                cov_ij = float(stable[2][i][j])
+                cov_ji = float(stable[2][j][i])
+                if math.isfinite(cov_ij) and math.isfinite(cov_ji):
+                    cov = 0.5 * (cov_ij + cov_ji) / denom
+                elif math.isfinite(cov_ij):
+                    cov = cov_ij / denom
+                elif math.isfinite(cov_ji):
+                    cov = cov_ji / denom
+                else:
+                    cov = 0.0
+            else:
+                # Prefer the (i,j) sufficient-stat entry; fall back to (j,i) if needed.
+                raw_ij = sum_xx[i][j] if math.isfinite(float(sum_xx[i][j])) else sum_xx[j][i]
+                cov = _stable_centered_difference(raw_ij, n * mean_x[i] * mean_x[j]) / denom
+                if not math.isfinite(cov):
+                    alt = _stable_centered_difference(
+                        sum_xx[j][i], n * mean_x[j] * mean_x[i]
+                    ) / denom
+                    cov = alt if math.isfinite(alt) else 0.0
+                # Symmetrize from both triangular entries when both finite.
+                cov_ji = _stable_centered_difference(
                     sum_xx[j][i], n * mean_x[j] * mean_x[i]
                 ) / denom
-                cov = alt if math.isfinite(alt) else 0.0
-            # Symmetrize from both triangular entries when both finite.
-            cov_ji = _stable_centered_difference(
-                sum_xx[j][i], n * mean_x[j] * mean_x[i]
-            ) / denom
-            if math.isfinite(cov_ji):
-                cov = 0.5 * (cov + cov_ji)
+                if math.isfinite(cov_ji):
+                    cov = 0.5 * (cov + cov_ji)
             sigma_xx[i][j] = cov
             sigma_xx[j][i] = cov
     return {
@@ -85,6 +126,8 @@ def _pool_sufficient(arms: list[dict[str, Any]], k: int) -> dict[str, Any]:
     """Sum raw totals for grand-mean X and diagnostics.
 
     Slope ``theta`` is not fitted from these raw pooled moments; see ``_within_arm_sscp``.
+    When every arm carries repository ``centered_*`` fields, also form grand-pooled centered
+    SSCP via the parallel-axis theorem (stable at large means; preserves between-arm gaps).
     """
     total_n = 0
     sum_y = 0.0
@@ -101,7 +144,7 @@ def _pool_sufficient(arms: list[dict[str, Any]], k: int) -> dict[str, Any]:
             sum_xy[i] += float(arm["sum_xy"][i])
             for j in range(k):
                 sum_xx[i][j] += float(arm["sum_xx"][i][j])
-    return {
+    result: dict[str, Any] = {
         "n": total_n,
         "sum_y": sum_y,
         "sum_y2": sum_y2,
@@ -109,6 +152,36 @@ def _pool_sufficient(arms: list[dict[str, Any]], k: int) -> dict[str, Any]:
         "sum_xy": sum_xy,
         "sum_xx": sum_xx,
     }
+    if arms and all(_arm_stable_centered(arm) is not None for arm in arms):
+        if total_n <= 0:
+            result["centered_syy"] = 0.0
+            result["centered_sxy"] = [0.0] * k
+            result["centered_sxx"] = [[0.0] * k for _ in range(k)]
+        else:
+            grand_mean_y = sum_y / total_n
+            grand_mean_x = [sum_x[j] / total_n for j in range(k)]
+            c_syy = 0.0
+            c_sxy = [0.0] * k
+            c_sxx = [[0.0] * k for _ in range(k)]
+            for arm in arms:
+                n_a = int(arm["n"])
+                if n_a <= 0:
+                    continue
+                mean_y_a = float(arm["sum_y"]) / n_a
+                mean_x_a = [float(arm["sum_x"][j]) / n_a for j in range(k)]
+                dy = mean_y_a - grand_mean_y
+                dx = [mean_x_a[j] - grand_mean_x[j] for j in range(k)]
+                c_syy += float(arm["centered_syy"]) + n_a * dy * dy
+                for i in range(k):
+                    c_sxy[i] += float(arm["centered_sxy"][i]) + n_a * dx[i] * dy
+                    for j in range(k):
+                        c_sxx[i][j] += (
+                            float(arm["centered_sxx"][i][j]) + n_a * dx[i] * dx[j]
+                        )
+            result["centered_syy"] = c_syy
+            result["centered_sxy"] = c_sxy
+            result["centered_sxx"] = c_sxx
+    return result
 
 
 def _within_arm_sscp(
@@ -118,9 +191,8 @@ def _within_arm_sscp(
 
     Excludes between-arm mean gaps so chance X imbalance cannot leak into ``theta``.
     For each arm with ``n >= 2``:
-        Sxx += sum_xx_a - n_a * mean_x_a * mean_x_a^T
-        Sxy += sum_xy_a - n_a * mean_x_a * mean_y_a
-        Syy += sum_y2_a - n_a * mean_y_a^2
+        prefer repository ``centered_sxx/sxy/syy`` when present; else
+        Sxx += sum_xx_a - n_a * mean_x_a * mean_x_a^T (raw fallback)
     Returns ``None`` when no arm contributes usable within-arm degrees of freedom.
     The common df divisor cancels in ``Sxx * theta = Sxy``, so raw SSCP is enough.
     ``Syy`` supports residual SSE = Syy - theta^T Sxy for common-slope ANCOVA inference.
@@ -134,22 +206,41 @@ def _within_arm_sscp(
         if n < 2:
             continue
         usable = True
-        mean_x = [float(arm["sum_x"][j]) / n for j in range(k)]
-        mean_y = float(arm["sum_y"]) / n
-        arm_syy = _stable_centered_difference(float(arm["sum_y2"]), n * mean_y * mean_y)
+        stable = _arm_stable_centered(arm)
+        if stable is not None:
+            arm_syy = float(stable[0])
+            arm_sxy_vec = [float(stable[1][j]) for j in range(k)]
+            arm_sxx_mat = [
+                [float(stable[2][i][j]) for j in range(k)] for i in range(k)
+            ]
+        else:
+            mean_x = [float(arm["sum_x"][j]) / n for j in range(k)]
+            mean_y = float(arm["sum_y"]) / n
+            arm_syy = _stable_centered_difference(float(arm["sum_y2"]), n * mean_y * mean_y)
+            arm_sxy_vec = [
+                _stable_centered_difference(
+                    float(arm["sum_xy"][i]), n * mean_x[i] * mean_y
+                )
+                for i in range(k)
+            ]
+            arm_sxx_mat = [
+                [
+                    _stable_centered_difference(
+                        float(arm["sum_xx"][i][j]), n * mean_x[i] * mean_x[j]
+                    )
+                    for j in range(k)
+                ]
+                for i in range(k)
+            ]
         # Per-arm: one-ULP-negative residual is zero, not a debt against other arms.
         if math.isfinite(arm_syy) and arm_syy > 0.0:
             syy += arm_syy
         for i in range(k):
-            arm_sxy = _stable_centered_difference(
-                float(arm["sum_xy"][i]), n * mean_x[i] * mean_y
-            )
+            arm_sxy = arm_sxy_vec[i]
             if math.isfinite(arm_sxy):
                 sxy[i] += arm_sxy  # signed (including small negatives)
             for j in range(k):
-                arm_sxx = _stable_centered_difference(
-                    float(arm["sum_xx"][i][j]), n * mean_x[i] * mean_x[j]
-                )
+                arm_sxx = arm_sxx_mat[i][j]
                 if not math.isfinite(arm_sxx):
                     continue
                 if i == j:
@@ -209,8 +300,17 @@ def _cuped_arm_stat(
     adjusted_std: float | None = None
     var_y: float | None = None
     adjusted_var: float | None = None
+    stable = _arm_stable_centered(arm)
     arm_moments = _multi_moments(
-        n, arm["sum_y"], arm["sum_y2"], arm["sum_x"], arm["sum_xy"], arm["sum_xx"]
+        n,
+        arm["sum_y"],
+        arm["sum_y2"],
+        arm["sum_x"],
+        arm["sum_xy"],
+        arm["sum_xx"],
+        centered_syy=float(stable[0]) if stable is not None else None,
+        centered_sxy=list(stable[1]) if stable is not None else None,
+        centered_sxx=[list(row) for row in stable[2]] if stable is not None else None,
     )
     if arm_moments is not None:
         var_y = float(arm_moments["var_y"])
@@ -488,7 +588,15 @@ def _build_cuped_block(
     arm_list = list(by_index.values())
     sums = _pool_sufficient(arm_list, k)
     pooled = _multi_moments(
-        sums["n"], sums["sum_y"], sums["sum_y2"], sums["sum_x"], sums["sum_xy"], sums["sum_xx"]
+        sums["n"],
+        sums["sum_y"],
+        sums["sum_y2"],
+        sums["sum_x"],
+        sums["sum_xy"],
+        sums["sum_xx"],
+        centered_syy=sums.get("centered_syy"),
+        centered_sxy=sums.get("centered_sxy"),
+        centered_sxx=sums.get("centered_sxx"),
     )
     # Common-slope theta from within-arm SSCP. Grand pooled mean_x still centers adjusted means.
     # Rank-deficient systems keep the identifiable subspace; only no usable direction collapses
