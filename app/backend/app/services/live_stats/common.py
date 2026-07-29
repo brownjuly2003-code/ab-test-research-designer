@@ -33,7 +33,13 @@ def _continuous_moments(arm: dict[str, Any]) -> tuple[float | None, float | None
     mean = arm["value_sum"] / n
     if n < 2:
         return mean, None
-    variance = (arm["value_sq_sum"] - n * mean * mean) / (n - 1)
+    # Prefer repository two-pass centered SS when present (avoids catastrophic
+    # cancellation of value_sq_sum - n*mean^2 at large means, e.g. ~1e9).
+    # Existing unit mocks omit the field and keep the raw second-moment path.
+    if "value_centered_ss" in arm:
+        variance = float(arm["value_centered_ss"]) / (n - 1)
+    else:
+        variance = (arm["value_sq_sum"] - n * mean * mean) / (n - 1)
     return mean, math.sqrt(variance) if variance > 0 else 0.0
 
 

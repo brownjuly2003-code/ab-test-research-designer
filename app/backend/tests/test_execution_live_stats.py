@@ -235,6 +235,59 @@ def test_analysis_aggregates_empty_for_fresh_experiment() -> None:
     }
 
 
+def test_primary_continuous_large_mean_preserves_std_via_stable_centered() -> None:
+    """E2E regression for catastrophic cancellation at ~1e9 on primary continuous.
+
+    Five values mean+[-2,-1,0,1,2] have true centered SS=10 and sample variance 2.5.
+    Raw ``SUM(v*v)-n*mean^2`` collapses to ~0 in SQLite float64, so the pre-fix primary
+    live continuous std and Welch inference collapsed. Repository two-pass
+    ``value_centered_ss`` plus service prefer-stable path must recover std=sqrt(2.5)
+    and an evaluable comparison.
+    """
+    mean = 1e9
+    offsets = [-2.0, -1.0, 0.0, 1.0, 2.0]
+    repo = _repo()
+    exp = _project(repo)
+    exposures: list[dict] = []
+    conversions: list[dict] = []
+    for arm in (0, 1):
+        # Identical within-arm scatter on both arms; treatment mean shifted by +3 so
+        # the effect is non-zero while both arms share the same cancellation risk.
+        arm_mean = mean + (3.0 if arm == 1 else 0.0)
+        for i, delta in enumerate(offsets):
+            uid = f"a{arm}_u{i}"
+            exposures.append({"user_id": uid, "variation_index": arm})
+            conversions.append({"user_id": uid, "metric": "aov", "value": arm_mean + delta})
+    repo.record_exposures(exp, exposures)
+    repo.record_conversions(exp, conversions)
+
+    analysis = repo.get_experiment_analysis_aggregates(exp, "aov")
+    assert analysis is not None
+    assert len(analysis["variations"]) == 2
+    for arm in analysis["variations"]:
+        assert arm["exposed_users"] == 5
+        assert "value_sq_sum" in arm  # Raw aggregate shape preserved.
+        assert "value_centered_ss" in arm
+        assert arm["value_centered_ss"] == pytest.approx(10.0, abs=1e-6)
+        # Document the failure mode the patch fixes.
+        n = arm["exposed_users"]
+        arm_mean = arm["value_sum"] / n
+        raw_ss = arm["value_sq_sum"] - n * arm_mean * arm_mean
+        assert abs(raw_ss) < 1.0
+
+    result = build_live_stats(exp, _continuous_design(), analysis)
+    assert result["metric_type"] == "continuous"
+    comparison = result["comparisons"][0]
+    expected_std = math.sqrt(2.5)
+    assert comparison["control"]["std"] == pytest.approx(expected_std, abs=1e-4)
+    assert comparison["treatment"]["std"] == pytest.approx(expected_std, abs=1e-4)
+    assert comparison["control"]["mean"] == pytest.approx(mean, rel=0, abs=1e-3)
+    assert comparison["treatment"]["mean"] == pytest.approx(mean + 3.0, rel=0, abs=1e-3)
+    assert comparison["status"] == "ok"
+    assert comparison["analysis"] is not None
+    assert comparison["analysis"]["observed_effect"] == pytest.approx(3.0, abs=1e-3)
+
+
 # --- repository: ratio aggregates (F2) ------------------------------------------------
 
 

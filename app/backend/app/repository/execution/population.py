@@ -153,16 +153,27 @@ def primary_aggregate_sql() -> str:
                     LEFT JOIN excluded ex ON ex.cuser = arm.cuser
                     LEFT JOIN spike sp ON sp.cuser = arm.cuser
                     WHERE ex.cuser IS NULL AND sp.cuser IS NULL
+                ),
+                arm_means AS (
+                    SELECT
+                        variation_index,
+                        SUM(user_value) * 1.0 / COUNT(*) AS mean_value
+                    FROM user_values
+                    GROUP BY variation_index
                 )
                 SELECT
-                    variation_index,
+                    uv.variation_index AS variation_index,
                     COUNT(*) AS exposed_users,
-                    SUM(converted) AS converted_users,
-                    SUM(user_value) AS value_sum,
-                    SUM(user_value * user_value) AS value_sq_sum
-                FROM user_values
-                GROUP BY variation_index
-                ORDER BY variation_index
+                    SUM(uv.converted) AS converted_users,
+                    SUM(uv.user_value) AS value_sum,
+                    SUM(uv.user_value * uv.user_value) AS value_sq_sum,
+                    SUM(
+                        (uv.user_value - am.mean_value) * (uv.user_value - am.mean_value)
+                    ) AS value_centered_ss
+                FROM user_values uv
+                JOIN arm_means am ON am.variation_index = uv.variation_index
+                GROUP BY uv.variation_index
+                ORDER BY uv.variation_index
     """
 
 

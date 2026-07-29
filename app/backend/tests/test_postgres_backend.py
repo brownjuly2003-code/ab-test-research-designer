@@ -535,6 +535,7 @@ def test_postgres_backend_holdout_aggregates_round_trip(postgres_repository) -> 
     assert -1 not in by_index
     assert by_index[1]["exposed_users"] == 2  # t1, t2
     assert by_index[1]["converted_users"] == 1  # t1
+    assert by_index[1]["value_centered_ss"] == pytest.approx(0.5)
 
 
 def test_postgres_backend_event_time_occurred_at_round_trip(postgres_repository) -> None:

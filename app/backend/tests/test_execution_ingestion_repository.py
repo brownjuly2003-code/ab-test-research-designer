@@ -341,9 +341,11 @@ def test_identity_resolution_empty_map_is_a_noop() -> None:
         "converted_users": 1,
         "value_sum": 2.0,
         "value_sq_sum": 4.0,
+        "value_centered_ss": 0.0,
     }
     assert by_index[1]["exposed_users"] == 2
     assert by_index[1]["converted_users"] == 1
+    assert by_index[1]["value_centered_ss"] == pytest.approx(2.0)
     # No links recorded → the indicator summary reports an inactive, all-zero state.
     summary = repo.get_identity_resolution_summary(exp)
     assert summary == {
