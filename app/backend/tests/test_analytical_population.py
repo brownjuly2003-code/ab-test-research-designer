@@ -1,7 +1,7 @@
 """Canonical analytical population contract (audit F-02 / plan step 3).
 
 Reproduces the two holdout/primary mismatch cases from audit_gpt_23_07_26 and
-locks shared identity + exclusion semantics across primary, holdout, timing, and strata.
+locks shared identity + exclusion semantics across primary, ratio, holdout, timing, and strata.
 """
 
 from __future__ import annotations
@@ -198,6 +198,89 @@ def test_first_exposure_wins_after_login_reexposure() -> None:
     assert by_arm[0]["exposed_users"] == 1
     assert by_arm[0]["converted_users"] == 1
     assert 1 not in by_arm
+
+
+def test_ratio_aggregates_identity_fold_and_first_exposure_wins() -> None:
+    repo = _repo()
+    exp = _project(repo)
+    repo.record_exposures(
+        exp,
+        [
+            {"user_id": "anon", "variation_index": 0, "occurred_at": _at(0)},
+            {"user_id": "user", "variation_index": 1, "occurred_at": _at(5)},
+            {"user_id": "other", "variation_index": 1, "occurred_at": _at(0)},
+        ],
+    )
+    repo.record_identities(exp, [{"anonymous_id": "anon", "canonical_id": "user"}])
+    repo.record_conversions(
+        exp,
+        [
+            {"user_id": "user", "metric": "clicks", "value": 2.0},
+            {"user_id": "user", "metric": "impressions", "value": 10.0},
+            {"user_id": "other", "metric": "clicks", "value": 1.0},
+            {"user_id": "other", "metric": "impressions", "value": 5.0},
+        ],
+    )
+
+    ratio = repo.get_ratio_aggregates(exp, "clicks", "impressions")
+    primary = repo.get_experiment_analysis_aggregates(exp, "ctr")
+    assert ratio is not None and primary is not None
+    ratio_by_arm = {arm["variation_index"]: arm for arm in ratio["variations"]}
+    primary_by_arm = {arm["variation_index"]: arm for arm in primary["variations"]}
+    assert ratio_by_arm[0]["n"] == 1
+    assert ratio_by_arm[0]["sum_y"] == 2.0
+    assert ratio_by_arm[0]["sum_x"] == 10.0
+    assert ratio_by_arm[1]["n"] == 1
+    assert ratio_by_arm[1]["sum_y"] == 1.0
+    assert ratio_by_arm[1]["sum_x"] == 5.0
+    assert ratio_by_arm[0]["n"] == primary_by_arm[0]["exposed_users"]
+    assert ratio_by_arm[1]["n"] == primary_by_arm[1]["exposed_users"]
+    assert ratio["population_policy_version"] == ANALYTICAL_POPULATION_POLICY_VERSION
+
+
+def test_ratio_aggregates_apply_manual_and_rate_spike_exclusions() -> None:
+    repo = _repo()
+    exp = _project(repo)
+    repo.record_exposures(
+        exp,
+        [
+            {"user_id": "keep", "variation_index": 0},
+            {"user_id": "manual", "variation_index": 0},
+            {"user_id": "bot", "variation_index": 1},
+            {"user_id": "ok1", "variation_index": 1},
+        ],
+    )
+    repo.record_conversions(
+        exp,
+        [
+            {"user_id": "keep", "metric": "clicks", "value": 3.0},
+            {"user_id": "keep", "metric": "impressions", "value": 12.0},
+            {"user_id": "manual", "metric": "clicks", "value": 9.0},
+            {"user_id": "manual", "metric": "impressions", "value": 90.0},
+            {"user_id": "ok1", "metric": "clicks", "value": 1.0},
+            {"user_id": "ok1", "metric": "impressions", "value": 4.0},
+            *[
+                {"user_id": "bot", "metric": "clicks", "value": 1.0}
+                for _ in range(BOT_CONVERSION_EVENT_THRESHOLD + 1)
+            ],
+        ],
+    )
+    repo.record_exclusions(exp, [{"user_id": "manual", "exclusion_reason": "qa"}])
+
+    ratio = repo.get_ratio_aggregates(exp, "clicks", "impressions")
+    primary = repo.get_experiment_analysis_aggregates(exp, "ctr")
+    assert ratio is not None and primary is not None
+    ratio_by_arm = {arm["variation_index"]: arm for arm in ratio["variations"]}
+    primary_by_arm = {arm["variation_index"]: arm for arm in primary["variations"]}
+    assert ratio_by_arm[0]["n"] == 1
+    assert ratio_by_arm[0]["sum_y"] == 3.0
+    assert ratio_by_arm[0]["sum_x"] == 12.0
+    assert ratio_by_arm[1]["n"] == 1
+    assert ratio_by_arm[1]["sum_y"] == 1.0
+    assert ratio_by_arm[1]["sum_x"] == 4.0
+    assert ratio_by_arm[0]["n"] == primary_by_arm[0]["exposed_users"]
+    assert ratio_by_arm[1]["n"] == primary_by_arm[1]["exposed_users"]
+    assert ratio["population_policy_version"] == ANALYTICAL_POPULATION_POLICY_VERSION
 
 
 def test_identity_alias_does_not_change_total_people() -> None:

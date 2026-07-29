@@ -1,7 +1,7 @@
 """Canonical analytical population contract (audit F-02 / plan step 3).
 
-One shared definition of *who is in the analysis* for treated arms, holdout,
-strata, and event-timing diagnostics:
+One shared definition of *who is in the analysis* for treated arms, ratio
+metrics, holdout, strata, and event-timing diagnostics:
 
 - **Identity (one-hop):** ``COALESCE(identity_map.canonical_id, user_id)`` via a
   left join on ``anonymous_id = user_id``. Chains/cycles are rejected at ingest;
@@ -16,7 +16,7 @@ strata, and event-timing diagnostics:
   ``variation_index = -1``. Same identity + exclusion rules either way.
 
 Do not fork this logic into ad-hoc SQL. Compose queries from the CTE helpers
-below so primary, holdout, strata, and timing cannot drift.
+below so primary, ratio, holdout, strata, and timing cannot drift.
 """
 
 from __future__ import annotations
@@ -85,6 +85,35 @@ def metric_conversion_ctes() -> str:
                 ),
                 conv_per_user AS (
                     SELECT cuser, SUM(value) AS user_value
+                    FROM conv_resolved
+                    GROUP BY cuser
+                )
+    """
+
+
+def ratio_metric_conversion_ctes() -> str:
+    """Identity-resolved numerator/denominator sums per canonical user.
+
+    Placeholders: ``experiment_id``, numerator metric, denominator metric, then numerator and
+    denominator metric again for the ``y`` / ``x`` conditional sums.
+    """
+    return """
+                conv_resolved AS (
+                    SELECT
+                        COALESCE(im.canonical_id, c.user_id) AS cuser,
+                        c.metric AS metric,
+                        c.value AS value
+                    FROM conversions c
+                    LEFT JOIN identity_map im
+                        ON im.experiment_id = c.experiment_id
+                        AND im.anonymous_id = c.user_id
+                    WHERE c.experiment_id = ? AND c.metric IN (?, ?)
+                ),
+                conv_per_user AS (
+                    SELECT
+                        cuser,
+                        COALESCE(SUM(CASE WHEN metric = ? THEN value ELSE 0 END), 0) AS y,
+                        COALESCE(SUM(CASE WHEN metric = ? THEN value ELSE 0 END), 0) AS x
                     FROM conv_resolved
                     GROUP BY cuser
                 )
@@ -174,6 +203,51 @@ def primary_aggregate_sql() -> str:
                 JOIN arm_means am ON am.variation_index = uv.variation_index
                 GROUP BY uv.variation_index
                 ORDER BY uv.variation_index
+    """
+
+
+def ratio_aggregate_sql() -> str:
+    """Per-variation ratio sufficient statistics over the treated analytical population."""
+    return f"""
+                WITH
+                {arm_resolution_ctes(ARM_PREDICATE_TREATED)},
+                {ratio_metric_conversion_ctes()},
+                {exclusion_ctes()},
+                user_pairs AS (
+                    SELECT
+                        arm.variation_index AS variation_index,
+                        arm.cuser AS cuser,
+                        COALESCE(cpu.y, 0) AS y,
+                        COALESCE(cpu.x, 0) AS x
+                    FROM arm
+                    LEFT JOIN conv_per_user cpu ON cpu.cuser = arm.cuser
+                    LEFT JOIN excluded ex ON ex.cuser = arm.cuser
+                    LEFT JOIN spike sp ON sp.cuser = arm.cuser
+                    WHERE ex.cuser IS NULL AND sp.cuser IS NULL
+                ),
+                arm_means AS (
+                    SELECT
+                        variation_index,
+                        SUM(x) * 1.0 / COUNT(*) AS mean_x,
+                        SUM(y) * 1.0 / COUNT(*) AS mean_y
+                    FROM user_pairs
+                    GROUP BY variation_index
+                )
+                SELECT
+                    up.variation_index AS variation_index,
+                    COUNT(*) AS n,
+                    SUM(up.x) AS sum_x,
+                    SUM(up.x * up.x) AS sum_x2,
+                    SUM(up.y) AS sum_y,
+                    SUM(up.y * up.y) AS sum_y2,
+                    SUM(up.x * up.y) AS sum_xy,
+                    SUM((up.x - am.mean_x) * (up.x - am.mean_x)) AS centered_sxx,
+                    SUM((up.y - am.mean_y) * (up.y - am.mean_y)) AS centered_syy,
+                    SUM((up.x - am.mean_x) * (up.y - am.mean_y)) AS centered_sxy
+                FROM user_pairs up
+                JOIN arm_means am ON am.variation_index = up.variation_index
+                GROUP BY up.variation_index
+                ORDER BY up.variation_index
     """
 
 
@@ -302,6 +376,25 @@ def aggregate_query_params(experiment_id: str, metric_name: str) -> tuple[object
         experiment_id,
         experiment_id,
         metric_name,
+        experiment_id,
+        BOT_CONVERSION_EVENT_THRESHOLD,
+        experiment_id,
+    )
+
+
+def ratio_query_params(
+    experiment_id: str,
+    numerator_metric: str,
+    denominator_metric: str,
+) -> tuple[object, ...]:
+    """Placeholder order for ratio SQL (arm + dual metric + exclusions)."""
+    return (
+        experiment_id,
+        experiment_id,
+        numerator_metric,
+        denominator_metric,
+        numerator_metric,
+        denominator_metric,
         experiment_id,
         BOT_CONVERSION_EVENT_THRESHOLD,
         experiment_id,

@@ -449,6 +449,7 @@ def test_postgres_backend_ratio_aggregates_round_trip(postgres_repository) -> No
 
     aggregates = repo.get_ratio_aggregates(exp, "clicks", "impressions")
     assert aggregates is not None
+    assert aggregates["population_policy_version"] == "analytical_population_v1"
     by_index = {arm["variation_index"]: arm for arm in aggregates["variations"]}
     assert by_index[0]["n"] == 2  # u1, u2
     assert by_index[0]["sum_x"] == 30.0  # impressions 10 + 20

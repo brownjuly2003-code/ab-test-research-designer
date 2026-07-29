@@ -4,6 +4,11 @@ from __future__ import annotations
 from typing import Any
 
 from app.backend.app.repository._core import _BackendCore
+from app.backend.app.repository.execution.population import (
+    ANALYTICAL_POPULATION_POLICY_VERSION,
+    ratio_aggregate_sql,
+    ratio_query_params,
+)
 
 
 class _RatioRollupMixin(_BackendCore):
@@ -18,59 +23,17 @@ class _RatioRollupMixin(_BackendCore):
         and ``x`` = sum of denominator values (non-events contribute 0), then per variation the
         delta-method sufficient statistics. Historical raw moment keys remain available, while a
         portable two-pass rollup adds stable ``centered_sxx``, ``centered_syy`` and ``centered_sxy``
-        so modest scatter at large means is not lost to cancellation. Every exposed user is the
-        analysis unit (Kohavi et al.); the holdout tail (``variation_index = -1``) is excluded.
+        so modest scatter at large means is not lost to cancellation. Population semantics use the
+        shared ``analytical_population_v1`` identity fold, first-exposure-wins arm and manual /
+        rate-spike exclusions. Every in-population exposed user is the analysis unit (Kohavi et
+        al.); the holdout tail is excluded by the treated-arm predicate.
         """
         with self._transaction() as connection:
             if not self._project_exists(connection, experiment_id):
                 return None
             rows = connection.execute(
-                """
-                WITH user_pairs AS (
-                    SELECT
-                        e.variation_index AS variation_index,
-                        e.user_id AS user_id,
-                        COALESCE(SUM(CASE WHEN c.metric = ? THEN c.value ELSE 0 END), 0) AS y,
-                        COALESCE(SUM(CASE WHEN c.metric = ? THEN c.value ELSE 0 END), 0) AS x
-                    FROM exposures e
-                    LEFT JOIN conversions c
-                        ON c.experiment_id = e.experiment_id
-                        AND c.user_id = e.user_id
-                        AND c.metric IN (?, ?)
-                    WHERE e.experiment_id = ? AND e.variation_index >= 0
-                    GROUP BY e.variation_index, e.user_id
-                ),
-                arm_means AS (
-                    SELECT
-                        variation_index,
-                        SUM(x) * 1.0 / COUNT(*) AS mean_x,
-                        SUM(y) * 1.0 / COUNT(*) AS mean_y
-                    FROM user_pairs
-                    GROUP BY variation_index
-                )
-                SELECT
-                    up.variation_index AS variation_index,
-                    COUNT(*) AS n,
-                    SUM(up.x) AS sum_x,
-                    SUM(up.x * up.x) AS sum_x2,
-                    SUM(up.y) AS sum_y,
-                    SUM(up.y * up.y) AS sum_y2,
-                    SUM(up.x * up.y) AS sum_xy,
-                    SUM((up.x - am.mean_x) * (up.x - am.mean_x)) AS centered_sxx,
-                    SUM((up.y - am.mean_y) * (up.y - am.mean_y)) AS centered_syy,
-                    SUM((up.x - am.mean_x) * (up.y - am.mean_y)) AS centered_sxy
-                FROM user_pairs up
-                JOIN arm_means am ON am.variation_index = up.variation_index
-                GROUP BY up.variation_index
-                ORDER BY up.variation_index
-                """,
-                (
-                    numerator_metric,
-                    denominator_metric,
-                    numerator_metric,
-                    denominator_metric,
-                    experiment_id,
-                ),
+                ratio_aggregate_sql(),
+                ratio_query_params(experiment_id, numerator_metric, denominator_metric),
             ).fetchall()
         variations = [
             {
@@ -92,4 +55,5 @@ class _RatioRollupMixin(_BackendCore):
             "numerator_metric": numerator_metric,
             "denominator_metric": denominator_metric,
             "variations": variations,
+            "population_policy_version": ANALYTICAL_POPULATION_POLICY_VERSION,
         }
