@@ -194,13 +194,22 @@ def holdout_aggregate_sql() -> str:
                     LEFT JOIN excluded ex ON ex.cuser = arm.cuser
                     LEFT JOIN spike sp ON sp.cuser = arm.cuser
                     WHERE ex.cuser IS NULL AND sp.cuser IS NULL
+                ),
+                holdout_mean AS (
+                    SELECT
+                        SUM(user_value) * 1.0 / COUNT(*) AS mean_value
+                    FROM user_values
                 )
                 SELECT
                     COUNT(*) AS exposed_users,
-                    SUM(converted) AS converted_users,
-                    SUM(user_value) AS value_sum,
-                    SUM(user_value * user_value) AS value_sq_sum
-                FROM user_values
+                    SUM(uv.converted) AS converted_users,
+                    SUM(uv.user_value) AS value_sum,
+                    SUM(uv.user_value * uv.user_value) AS value_sq_sum,
+                    SUM(
+                        (uv.user_value - hm.mean_value) * (uv.user_value - hm.mean_value)
+                    ) AS value_centered_ss
+                FROM user_values uv
+                CROSS JOIN holdout_mean hm
     """
 
 

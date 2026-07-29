@@ -527,6 +527,8 @@ def test_postgres_backend_holdout_aggregates_round_trip(postgres_repository) -> 
     assert holdout["holdout"]["exposed_users"] == 3  # h1, h2, h3 (t1 stayed in its arm)
     assert holdout["holdout"]["converted_users"] == 2  # h1, h2
     assert holdout["holdout"]["value_sum"] == 2.0
+    assert holdout["holdout"]["value_centered_ss"] == pytest.approx(2.0 / 3.0)
+    assert "value_sq_sum" in holdout["holdout"]
 
     # The held-back tail never leaks into the per-arm primary rollup (variation_index >= 0).
     arms = repo.get_experiment_analysis_aggregates(exp, "purchase")

@@ -25,14 +25,30 @@ from .constants import (
 
 def _pool_treated_arms(arms: list[dict[str, Any]]) -> dict[str, Any]:
     """Fold the treatment arms (variation_index >= 1) into one pooled treated arm by summing their
-    sufficient statistics. The control arm (index 0) is excluded — it is the in-window baseline, not
-    part of the rolled-out treatment."""
+    sufficient statistics. Stable centered sums of squares are combined with the parallel-axis
+    identity when every non-empty treatment arm provides them. The control arm (index 0) is excluded
+    — it is the in-window baseline, not part of the rolled-out treatment."""
     pooled = {"exposed_users": 0, "converted_users": 0, "value_sum": 0.0, "value_sq_sum": 0.0}
     for arm in arms[1:]:
         pooled["exposed_users"] += int(arm["exposed_users"])
         pooled["converted_users"] += int(arm["converted_users"])
         pooled["value_sum"] += float(arm["value_sum"])
         pooled["value_sq_sum"] += float(arm["value_sq_sum"])
+
+    treated = [arm for arm in arms[1:] if int(arm["exposed_users"]) > 0]
+    if treated and all("value_centered_ss" in arm for arm in treated):
+        total_n = int(pooled["exposed_users"])
+        if total_n <= 0:
+            pooled["value_centered_ss"] = 0.0
+        else:
+            grand_mean = float(pooled["value_sum"]) / total_n
+            centered = 0.0
+            for arm in treated:
+                arm_n = int(arm["exposed_users"])
+                arm_mean = float(arm["value_sum"]) / arm_n
+                delta = arm_mean - grand_mean
+                centered += float(arm["value_centered_ss"]) + arm_n * delta * delta
+            pooled["value_centered_ss"] = centered
     return pooled
 
 

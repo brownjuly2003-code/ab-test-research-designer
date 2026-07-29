@@ -2713,6 +2713,69 @@ def test_holdout_ok_continuous_cumulative_effect() -> None:
     assert block["always_valid"]["status"] == "ok"
 
 
+def test_holdout_continuous_large_mean_stable_centered_e2e() -> None:
+    """Holdout continuous needs stable holdout SS and parallel-axis treated pooling."""
+    mean = 1e9
+    offsets = [-2.0, -1.0, 0.0, 1.0, 2.0]
+    repo = _repo()
+    exp = _project(repo)
+    design = _continuous_design()
+    design["setup"]["variants_count"] = 3
+    design["setup"]["traffic_split"] = [34, 33, 33]
+
+    exposures: list[dict] = []
+    conversions: list[dict] = []
+    # Control is present but excluded from the cumulative treated pool.
+    for i, delta in enumerate(offsets):
+        uid = f"c_u{i}"
+        exposures.append({"user_id": uid, "variation_index": 0})
+        conversions.append({"user_id": uid, "metric": "aov", "value": mean + delta})
+    for arm, arm_mean in ((1, mean + 3.0), (2, mean + 7.0)):
+        for i, delta in enumerate(offsets):
+            uid = f"a{arm}_u{i}"
+            exposures.append({"user_id": uid, "variation_index": arm})
+            conversions.append({"user_id": uid, "metric": "aov", "value": arm_mean + delta})
+
+    holdout_users = [f"h_u{i}" for i in range(len(offsets))]
+    repo.record_exposures(exp, exposures)
+    assert repo.record_holdout(exp, [{"user_id": user} for user in holdout_users])[
+        "recorded"
+    ] == len(holdout_users)
+    for i, delta in enumerate(offsets):
+        conversions.append(
+            {"user_id": holdout_users[i], "metric": "aov", "value": mean + delta}
+        )
+    repo.record_conversions(exp, conversions)
+
+    holdout_agg = repo.get_holdout_aggregates(exp, "aov")
+    assert holdout_agg is not None
+    holdout = holdout_agg["holdout"]
+    assert holdout["exposed_users"] == 5
+    assert "value_sq_sum" in holdout  # Raw aggregate key preserved.
+    assert "value_centered_ss" in holdout
+    assert holdout["value_centered_ss"] == pytest.approx(10.0, abs=1e-6)
+    raw_holdout_ss = holdout["value_sq_sum"] - 5 * (holdout["value_sum"] / 5) ** 2
+    assert abs(raw_holdout_ss) < 1.0
+
+    analysis = repo.get_experiment_analysis_aggregates(exp, "aov")
+    assert analysis is not None
+    by_index = {arm["variation_index"]: arm for arm in analysis["variations"]}
+    assert by_index[1]["value_centered_ss"] == pytest.approx(10.0, abs=1e-6)
+    assert by_index[2]["value_centered_ss"] == pytest.approx(10.0, abs=1e-6)
+
+    result = build_live_stats(exp, design, analysis, holdout_aggregates=holdout_agg)
+    block = result["holdout"]
+    assert block["status"] == "ok"
+    assert block["treated_users_total"] == 10
+    assert block["holdout_users_total"] == 5
+    assert block["treated"]["mean"] == pytest.approx(mean + 5.0, rel=0, abs=1e-3)
+    assert block["holdout"]["mean"] == pytest.approx(mean, rel=0, abs=1e-3)
+    assert block["treated"]["std"] == pytest.approx(math.sqrt(60.0 / 9.0), abs=1e-4)
+    assert block["holdout"]["std"] == pytest.approx(math.sqrt(2.5), abs=1e-4)
+    assert block["analysis"] is not None
+    assert block["analysis"]["observed_effect"] == pytest.approx(5.0, abs=1e-3)
+
+
 def test_live_stats_route_collects_holdout_aggregates() -> None:
     # End-to-end: held-back users are ingested via POST /holdout (variation_index = -1 exposures), the
     # treated arm via /exposures, and outcomes for both ride the ordinary /conversions stream under the

@@ -179,7 +179,8 @@ class _QualityRollupMixin(_BackendCore):
         (identity fold, first-exposure-wins, manual + rate-spike exclusions) but selects the
         holdout tail the per-arm rollup *excludes* — ``WHERE variation_index = -1`` — and folds
         it into a single ``holdout`` group with the same shape (``exposed_users``,
-        ``converted_users``, ``value_sum``, ``value_sq_sum``).
+        ``converted_users``, ``value_sum``, ``value_sq_sum``, ``value_centered_ss``).
+        Raw second moment stays for compatibility; ``value_centered_ss`` is the stable two-pass SS.
         """
         with self._transaction() as connection:
             if not self._project_exists(connection, experiment_id):
@@ -193,6 +194,9 @@ class _QualityRollupMixin(_BackendCore):
             "converted_users": int(row["converted_users"] or 0) if row is not None else 0,
             "value_sum": float(row["value_sum"] or 0.0) if row is not None else 0.0,
             "value_sq_sum": float(row["value_sq_sum"] or 0.0) if row is not None else 0.0,
+            "value_centered_ss": (
+                float(row["value_centered_ss"] or 0.0) if row is not None else 0.0
+            ),
         }
         return {
             "experiment_id": experiment_id,
