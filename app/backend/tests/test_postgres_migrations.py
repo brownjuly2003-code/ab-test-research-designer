@@ -154,3 +154,20 @@ def test_advisory_lock_is_released_even_when_a_migration_fails() -> None:
         raise AssertionError("the failing migration should have propagated")
 
     assert ("SELECT pg_advisory_unlock(?)", (MIGRATION_ADVISORY_LOCK_KEY,)) in connection.statements
+
+
+def test_next_migration_widens_conversions_value_to_double_precision() -> None:
+    """conversions.value is REAL today; version 17 must promote it to DOUBLE PRECISION, idempotently."""
+    by_version = {migration.version: migration for migration in POSTGRES_MIGRATIONS}
+
+    assert 17 in by_version
+    migration = by_version[17]
+    assert migration.name == "conversions_value_double_precision"
+
+    # Whitespace-robust: multi-line / concatenated statements still match as one text blob.
+    sql = " ".join(" ".join(statement.split()) for statement in migration.statements)
+    assert "ALTER TABLE conversions" in sql
+    assert "ALTER COLUMN value TYPE DOUBLE PRECISION" in sql
+    # Guard for the existing REAL column only — re-run / already-DOUBLE is a no-op.
+    assert "IF EXISTS" in sql
+    assert "real" in sql.lower()

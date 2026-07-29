@@ -98,6 +98,32 @@ POSTGRES_MIGRATIONS: Final[tuple[Migration, ...]] = (
             "UPDATE api_keys SET scope = 'write' WHERE scope = 'admin'",
         ),
     ),
+    Migration(
+        version=17,
+        name="conversions_value_double_precision",
+        statements=(
+            # PostgreSQL REAL is float4; SQLite REAL is float64. Metric values near 1e9
+            # with modest scatter were truncated on ingest, so stable centered moments
+            # (centered_sxx/syy/sxy) collapsed to 0. Promote conversions.value only.
+            # Idempotent: no-op when _init_db already created DOUBLE PRECISION.
+            """
+            DO $$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1
+                    FROM information_schema.columns
+                    WHERE table_schema = current_schema()
+                      AND table_name = 'conversions'
+                      AND column_name = 'value'
+                      AND data_type = 'real'
+                ) THEN
+                    ALTER TABLE conversions
+                        ALTER COLUMN value TYPE DOUBLE PRECISION;
+                END IF;
+            END $$
+            """,
+        ),
+    ),
 )
 
 # What the running code requires the database to be. Readiness compares the version actually

@@ -453,7 +453,7 @@ class PostgresBackend(SQLiteBackend):
                     experiment_id TEXT NOT NULL,
                     user_id TEXT NOT NULL,
                     metric TEXT NOT NULL,
-                    value REAL NOT NULL DEFAULT 1,
+                    value DOUBLE PRECISION NOT NULL DEFAULT 1,
                     idempotency_key TEXT,
                     created_at TEXT NOT NULL,
                     occurred_at TEXT NOT NULL,
