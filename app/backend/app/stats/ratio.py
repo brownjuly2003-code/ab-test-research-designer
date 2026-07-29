@@ -46,34 +46,55 @@ def ratio_sufficient_moments(
     sum_y: float,
     sum_y2: float,
     sum_xy: float,
+    *,
+    centered_sxx: float | None = None,
+    centered_syy: float | None = None,
+    centered_sxy: float | None = None,
 ) -> dict[str, float] | None:
     """Per-user means and *sample* (co)variances from sufficient statistics.
 
     ``x`` is the ratio denominator, ``y`` the numerator. Returns ``None`` when ``n < 2`` (a sample
-    variance is undefined), which the caller treats as insufficient data.
+    variance is undefined), which the caller treats as insufficient data. Stable centered products
+    are preferred when all three are supplied; callers with only the historical raw moments keep
+    the original fallback.
     """
     if n < 2:
         return None
     mean_x = sum_x / n
     mean_y = sum_y / n
+    denominator = n - 1
+    if centered_sxx is not None and centered_syy is not None and centered_sxy is not None:
+        var_x = centered_sxx / denominator
+        var_y = centered_syy / denominator
+        cov_xy = centered_sxy / denominator
+    else:
+        var_x = (sum_x2 - n * mean_x * mean_x) / denominator
+        var_y = (sum_y2 - n * mean_y * mean_y) / denominator
+        cov_xy = (sum_xy - n * mean_x * mean_y) / denominator
     return {
         "n": float(n),
         "mean_x": mean_x,
         "mean_y": mean_y,
-        "var_x": (sum_x2 - n * mean_x * mean_x) / (n - 1),
-        "var_y": (sum_y2 - n * mean_y * mean_y) / (n - 1),
-        "cov_xy": (sum_xy - n * mean_x * mean_y) / (n - 1),
+        "var_x": var_x,
+        "var_y": var_y,
+        "cov_xy": cov_xy,
     }
 
 
 def ratio_estimate(stats: dict[str, Any]) -> dict[str, float] | None:
     """Ratio estimate ``R̂ = μ_Y/μ_X`` and its delta-method variance ``Var(R̂)``.
 
-    ``stats`` carries the per-arm sufficient statistics ``n, sum_x, sum_x2, sum_y, sum_y2, sum_xy``
-    (``x`` = denominator, ``y`` = numerator); any extra keys are ignored. Returns ``None`` when the
-    estimate is undefined: fewer than 2 users (no sample variance) or a zero denominator mean ``μ_X``
-    (the ratio and its linearization blow up).
+    ``stats`` carries the historical raw per-arm sufficient statistics ``n, sum_x, sum_x2, sum_y,
+    sum_y2, sum_xy`` and may add stable ``centered_sxx, centered_syy, centered_sxy`` products
+    (``x`` = denominator, ``y`` = numerator). Returns ``None`` when the estimate is undefined: fewer
+    than 2 users (no sample variance) or a zero denominator mean ``μ_X`` (the ratio and its
+    linearization blow up).
     """
+
+    def _optional_centered(key: str) -> float | None:
+        value = stats.get(key)
+        return float(value) if value is not None else None
+
     moments = ratio_sufficient_moments(
         int(stats["n"]),
         float(stats["sum_x"]),
@@ -81,6 +102,9 @@ def ratio_estimate(stats: dict[str, Any]) -> dict[str, float] | None:
         float(stats["sum_y"]),
         float(stats["sum_y2"]),
         float(stats["sum_xy"]),
+        centered_sxx=_optional_centered("centered_sxx"),
+        centered_syy=_optional_centered("centered_syy"),
+        centered_sxy=_optional_centered("centered_sxy"),
     )
     if moments is None:
         return None

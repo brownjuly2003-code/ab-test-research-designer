@@ -64,6 +64,23 @@ def test_service_weak_effect_not_significant() -> None:
     assert response.is_significant is False
 
 
+def test_posthoc_ratio_large_mean_preserves_delta_variance() -> None:
+    mean = 1e9
+    denominators = [mean + delta for delta in (-2.0, -1.0, 0.0, 1.0, 2.0)]
+    numerator_offsets = (-2.0, 0.0, 1.0, -1.0, 2.0)
+    control = [mean + delta for delta in numerator_offsets]
+    treatment = [mean + 3.0 + delta for delta in numerator_offsets]
+    response = analyze_ratio_results(
+        RatioResultsRequest(
+            control_arm=RatioArm(numerators=control, denominators=denominators),
+            treatment_arm=RatioArm(numerators=treatment, denominators=denominators),
+        )
+    )
+    assert response.test_statistic > 3.0
+    assert response.p_value < 0.001
+    assert response.is_significant is True
+
+
 def test_service_agrees_with_live_ratio_path_by_construction() -> None:
     """Post-hoc and live ratio readouts share compare_ratios + build_ratio_results_response, so the
     same pairs fed through the post-hoc entry reproduce the live comparison's numbers exactly."""

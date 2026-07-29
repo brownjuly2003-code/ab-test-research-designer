@@ -32,13 +32,24 @@ def analyze_ratio_results(request: RatioResultsRequest) -> ResultsResponse:
 
 def _ratio_arm_sufficient_stats(arm: RatioArm) -> dict[str, float]:
     # x = denominator, y = numerator — the orientation ``stats.ratio`` documents.
+    n = len(arm.numerators)
+    sum_x = sum(arm.denominators)
+    sum_y = sum(arm.numerators)
+    mean_x = sum_x / n
+    mean_y = sum_y / n
     return {
-        "n": len(arm.numerators),
-        "sum_x": sum(arm.denominators),
+        "n": n,
+        "sum_x": sum_x,
         "sum_x2": sum(value * value for value in arm.denominators),
-        "sum_y": sum(arm.numerators),
+        "sum_y": sum_y,
         "sum_y2": sum(value * value for value in arm.numerators),
         "sum_xy": sum(x * y for x, y in zip(arm.denominators, arm.numerators, strict=True)),
+        "centered_sxx": sum((x - mean_x) * (x - mean_x) for x in arm.denominators),
+        "centered_syy": sum((y - mean_y) * (y - mean_y) for y in arm.numerators),
+        "centered_sxy": sum(
+            (x - mean_x) * (y - mean_y)
+            for x, y in zip(arm.denominators, arm.numerators, strict=True)
+        ),
     }
 
 
@@ -91,4 +102,3 @@ def _interpretation_ratio(result: dict[str, Any], is_significant: bool) -> str:
             "significance": significance_text,
         },
     )
-

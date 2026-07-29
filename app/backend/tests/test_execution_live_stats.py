@@ -331,10 +331,75 @@ def test_ratio_aggregates_rolls_up_numerator_and_denominator_per_user() -> None:
     assert by_index[0]["sum_x2"] == 500.0  # 100 + 400
     assert by_index[0]["sum_y2"] == 5.0  # 4 + 1
     assert by_index[0]["sum_xy"] == 40.0  # 10*2 + 20*1
+    assert by_index[0]["centered_sxx"] == pytest.approx(50.0)
+    assert by_index[0]["centered_syy"] == pytest.approx(0.5)
+    assert by_index[0]["centered_sxy"] == pytest.approx(-5.0)
     # arm 1: u3 (x=50, y=5)
     assert by_index[1]["n"] == 1
     assert by_index[1]["sum_xy"] == 250.0  # 50*5
     assert -1 not in by_index  # holdout never appears
+
+
+def test_ratio_large_mean_preserves_delta_via_stable_centered_e2e() -> None:
+    """Repository and live delta-method inference remain stable for pairs near 1e9."""
+    mean = 1e9
+    x_offsets = (-2.0, -1.0, 0.0, 1.0, 2.0)
+    y_offsets = (-2.0, 0.0, 1.0, -1.0, 2.0)
+    repo = _repo()
+    exp = _project(repo)
+    exposures: list[dict] = []
+    conversions: list[dict] = []
+    for variation_index in (0, 1):
+        y_shift = 3.0 if variation_index == 1 else 0.0
+        for index, (x_offset, y_offset) in enumerate(
+            zip(x_offsets, y_offsets, strict=True)
+        ):
+            user_id = f"a{variation_index}_u{index}"
+            exposures.append({"user_id": user_id, "variation_index": variation_index})
+            conversions.extend(
+                [
+                    {
+                        "user_id": user_id,
+                        "metric": "impressions",
+                        "value": mean + x_offset,
+                    },
+                    {
+                        "user_id": user_id,
+                        "metric": "clicks",
+                        "value": mean + y_shift + y_offset,
+                    },
+                ]
+            )
+    repo.record_exposures(exp, exposures)
+    repo.record_conversions(exp, conversions)
+
+    aggregates = repo.get_ratio_aggregates(exp, "clicks", "impressions")
+    assert aggregates is not None
+    for arm in aggregates["variations"]:
+        assert arm["centered_sxx"] == pytest.approx(10.0, abs=1e-6)
+        assert arm["centered_syy"] == pytest.approx(10.0, abs=1e-6)
+        assert arm["centered_sxy"] == pytest.approx(7.0, abs=1e-6)
+        n = arm["n"]
+        mean_x = arm["sum_x"] / n
+        mean_y = arm["sum_y"] / n
+        assert abs(arm["sum_x2"] - n * mean_x * mean_x) < 1.0
+        assert abs(arm["sum_y2"] - n * mean_y * mean_y) < 1.0
+        assert abs(arm["sum_xy"] - n * mean_x * mean_y) < 1.0
+
+    analysis = repo.get_experiment_analysis_aggregates(exp, "ctr")
+    assert analysis is not None
+    result = build_live_stats(
+        exp,
+        _ratio_design(),
+        analysis,
+        ratio_aggregates=aggregates,
+    )
+    comparison = result["comparisons"][0]
+    assert comparison["status"] == "ok"
+    assert comparison["analysis"] is not None
+    assert comparison["analysis"]["test_statistic"] > 3.0
+    assert comparison["analysis"]["p_value"] < 0.001
+    assert comparison["analysis"]["is_significant"] is True
 
 
 def test_ratio_aggregates_counts_exposed_users_without_events() -> None:

@@ -48,6 +48,48 @@ def test_ratio_estimate_matches_hand_computation() -> None:
     assert estimate["mean_y"] == pytest.approx(7.5)
 
 
+def test_ratio_large_mean_prefers_centered_moments() -> None:
+    """Centered covariance preserves delta variance when raw second moments cancel near 1e9."""
+    mean = 1e9
+    xs = [mean + delta for delta in (-2.0, -1.0, 0.0, 1.0, 2.0)]
+    ys = [mean + delta for delta in (-2.0, 0.0, 1.0, -1.0, 2.0)]
+    stats = _sufficient(xs, ys)
+    n = int(stats["n"])
+    mean_x = stats["sum_x"] / n
+    mean_y = stats["sum_y"] / n
+    assert abs(stats["sum_x2"] - n * mean_x * mean_x) < 1.0
+    assert abs(stats["sum_y2"] - n * mean_y * mean_y) < 1.0
+    assert abs(stats["sum_xy"] - n * mean_x * mean_y) < 1.0
+
+    centered_sxx = sum((x - mean_x) * (x - mean_x) for x in xs)
+    centered_syy = sum((y - mean_y) * (y - mean_y) for y in ys)
+    centered_sxy = sum((x - mean_x) * (y - mean_y) for x, y in zip(xs, ys, strict=True))
+    assert centered_sxx == pytest.approx(10.0)
+    assert centered_syy == pytest.approx(10.0)
+    assert centered_sxy == pytest.approx(7.0)
+    stats.update(
+        {
+            "centered_sxx": centered_sxx,
+            "centered_syy": centered_syy,
+            "centered_sxy": centered_sxy,
+        }
+    )
+    estimate = ratio_estimate(stats)
+    assert estimate is not None
+    assert estimate["ratio"] == pytest.approx(1.0)
+    assert estimate["variance"] == pytest.approx(3e-19, rel=1e-12, abs=0.0)
+    assert estimate["variance"] > 0.0
+
+
+def test_ratio_partial_centered_moments_keep_raw_fallback() -> None:
+    stats = _sufficient([10.0, 20.0, 30.0, 40.0], [1.0, 4.0, 9.0, 16.0])
+    baseline = ratio_estimate(stats)
+    stats.update({"centered_sxx": 0.0, "centered_syy": 0.0, "centered_sxy": None})
+    partial = ratio_estimate(stats)
+    assert baseline is not None and partial is not None
+    assert partial["variance"] == pytest.approx(baseline["variance"])
+
+
 def test_sufficient_moments_below_two_users_is_none() -> None:
     assert ratio_sufficient_moments(1, 5.0, 25.0, 2.0, 4.0, 10.0) is None
 

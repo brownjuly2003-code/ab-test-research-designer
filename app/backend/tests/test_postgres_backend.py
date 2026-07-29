@@ -427,6 +427,25 @@ def test_postgres_backend_ratio_aggregates_round_trip(postgres_repository) -> No
             {"user_id": "uH", "metric": "clicks", "value": 100.0},  # holdout -> excluded
         ],
     )
+    mean = 1e9
+    x_offsets = (-2.0, -1.0, 0.0, 1.0, 2.0)
+    y_offsets = (-2.0, 0.0, 1.0, -1.0, 2.0)
+    large_users = [f"large_{index}" for index in range(len(x_offsets))]
+    repo.record_exposures(
+        exp,
+        [{"user_id": user_id, "variation_index": 2} for user_id in large_users],
+    )
+    large_conversions: list[dict[str, object]] = []
+    for user_id, x_offset, y_offset in zip(
+        large_users, x_offsets, y_offsets, strict=True
+    ):
+        large_conversions.extend(
+            [
+                {"user_id": user_id, "metric": "impressions", "value": mean + x_offset},
+                {"user_id": user_id, "metric": "clicks", "value": mean + y_offset},
+            ]
+        )
+    repo.record_conversions(exp, large_conversions)
 
     aggregates = repo.get_ratio_aggregates(exp, "clicks", "impressions")
     assert aggregates is not None
@@ -435,9 +454,16 @@ def test_postgres_backend_ratio_aggregates_round_trip(postgres_repository) -> No
     assert by_index[0]["sum_x"] == 30.0  # impressions 10 + 20
     assert by_index[0]["sum_y"] == 3.0  # clicks 2 + 1
     assert by_index[0]["sum_xy"] == 40.0  # 10*2 + 20*1
+    assert by_index[0]["centered_sxx"] == pytest.approx(50.0)
+    assert by_index[0]["centered_syy"] == pytest.approx(0.5)
+    assert by_index[0]["centered_sxy"] == pytest.approx(-5.0)
+    assert "sum_x2" in by_index[0] and "sum_y2" in by_index[0]
     assert by_index[1]["n"] == 2  # u3, u4 (u4 has no events but is still counted)
     assert by_index[1]["sum_x"] == 50.0
     assert by_index[1]["sum_xy"] == 250.0  # 50*5 + 0
+    assert by_index[2]["centered_sxx"] == pytest.approx(10.0, abs=1e-6)
+    assert by_index[2]["centered_syy"] == pytest.approx(10.0, abs=1e-6)
+    assert by_index[2]["centered_sxy"] == pytest.approx(7.0, abs=1e-6)
     assert -1 not in by_index  # holdout never appears
 
 
