@@ -234,17 +234,31 @@ def stratified_aggregate_sql() -> str:
                     LEFT JOIN excluded ex ON ex.cuser = arm.cuser
                     LEFT JOIN spike sp ON sp.cuser = arm.cuser
                     WHERE ex.cuser IS NULL AND sp.cuser IS NULL
+                ),
+                cell_means AS (
+                    SELECT
+                        stratum,
+                        variation_index,
+                        SUM(user_value) * 1.0 / COUNT(*) AS mean_value
+                    FROM user_values
+                    GROUP BY stratum, variation_index
                 )
                 SELECT
-                    stratum,
-                    variation_index,
+                    uv.stratum AS stratum,
+                    uv.variation_index AS variation_index,
                     COUNT(*) AS exposed_users,
-                    SUM(converted) AS converted_users,
-                    SUM(user_value) AS value_sum,
-                    SUM(user_value * user_value) AS value_sq_sum
-                FROM user_values
-                GROUP BY stratum, variation_index
-                ORDER BY stratum, variation_index
+                    SUM(uv.converted) AS converted_users,
+                    SUM(uv.user_value) AS value_sum,
+                    SUM(uv.user_value * uv.user_value) AS value_sq_sum,
+                    SUM(
+                        (uv.user_value - cm.mean_value) * (uv.user_value - cm.mean_value)
+                    ) AS value_centered_ss
+                FROM user_values uv
+                JOIN cell_means cm
+                    ON cm.stratum = uv.stratum
+                    AND cm.variation_index = uv.variation_index
+                GROUP BY uv.stratum, uv.variation_index
+                ORDER BY uv.stratum, uv.variation_index
     """
 
 

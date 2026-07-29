@@ -2006,6 +2006,61 @@ def test_stratified_reduces_variance_when_strata_explain_outcome_continuous() ->
     assert comparison["num_strata"] == 2
 
 
+def test_stratified_continuous_large_mean_stable_centered_e2e() -> None:
+    """Continuous post-stratification keeps within-cell and pooled variance stable near 1e9."""
+    mean = 1e9
+    offsets = [-2.0, -1.0, 0.0, 1.0, 2.0]
+    repo = _repo()
+    exp = _project(repo)
+    exposures: list[dict] = []
+    conversions: list[dict] = []
+    strata_events: list[dict] = []
+    cells = (
+        ("low", 0, mean),
+        ("low", 1, mean + 2.0),
+        ("high", 0, mean + 100.0),
+        ("high", 1, mean + 102.0),
+    )
+    for stratum, variation_index, cell_mean in cells:
+        for index, delta in enumerate(offsets):
+            user_id = f"{stratum}_a{variation_index}_u{index}"
+            exposures.append({"user_id": user_id, "variation_index": variation_index})
+            strata_events.append({"user_id": user_id, "stratum": stratum})
+            conversions.append(
+                {"user_id": user_id, "metric": "aov", "value": cell_mean + delta}
+            )
+
+    repo.record_exposures(exp, exposures)
+    repo.record_strata(exp, strata_events)
+    repo.record_conversions(exp, conversions)
+
+    aggregates = repo.get_stratified_aggregates(exp, "aov")
+    assert aggregates is not None
+    for stratum in aggregates["strata"]:
+        for arm in stratum["variations"]:
+            assert arm["exposed_users"] == 5
+            assert "value_sq_sum" in arm
+            assert arm["value_centered_ss"] == pytest.approx(10.0, abs=1e-6)
+            arm_mean = arm["value_sum"] / arm["exposed_users"]
+            raw_ss = arm["value_sq_sum"] - arm["exposed_users"] * arm_mean * arm_mean
+            assert abs(raw_ss) < 1.0
+
+    primary = repo.get_experiment_analysis_aggregates(exp, "aov")
+    assert primary is not None
+    result = build_live_stats(
+        exp,
+        _continuous_design(),
+        primary,
+        stratified_aggregates=aggregates,
+    )
+    comparison = result["stratified"]["comparisons"][0]
+    assert comparison["status"] == "ok"
+    assert comparison["effect"] == pytest.approx(2.0, abs=1e-3)
+    assert comparison["standard_error"] == pytest.approx(math.sqrt(0.5), abs=1e-6)
+    assert comparison["variance_reduction_pct"] is not None
+    assert comparison["variance_reduction_pct"] > 99.0
+
+
 def test_stratified_binary_two_strata_happy() -> None:
     strata = _stratified_aggregates(
         _stratum("A", _arm(0, 100, 10), _arm(1, 100, 20)),  # 0.10 vs 0.20

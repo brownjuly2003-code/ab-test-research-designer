@@ -16,7 +16,10 @@ def _stratum_arm_estimate(metric_type: str, arm: dict[str, Any]) -> tuple[float,
     if metric_type == "binary":
         return stratification.binary_point_variance(int(arm["converted_users"]), n)
     return stratification.continuous_point_variance(
-        float(arm["value_sum"]), float(arm["value_sq_sum"]), n
+        float(arm["value_sum"]),
+        float(arm["value_sq_sum"]),
+        n,
+        value_centered_ss=arm.get("value_centered_ss"),
     )
 
 
@@ -31,6 +34,25 @@ def _accumulate_stratum_arm(target: dict[str, Any], arm: dict[str, Any]) -> None
     target["value_sq_sum"] += float(arm["value_sq_sum"])
 
 
+def _pool_stratum_arms(parts: list[dict[str, Any]]) -> dict[str, Any]:
+    """Pool raw moments and stable centered SS when every non-empty part provides it."""
+    pooled = _empty_stratum_arm()
+    contributors = [arm for arm in parts if int(arm["exposed_users"]) > 0]
+    for arm in contributors:
+        _accumulate_stratum_arm(pooled, arm)
+    if contributors and all("value_centered_ss" in arm for arm in contributors):
+        total_n = int(pooled["exposed_users"])
+        grand_mean = float(pooled["value_sum"]) / total_n
+        centered = 0.0
+        for arm in contributors:
+            arm_n = int(arm["exposed_users"])
+            arm_mean = float(arm["value_sum"]) / arm_n
+            delta = arm_mean - grand_mean
+            centered += float(arm["value_centered_ss"]) + arm_n * delta * delta
+        pooled["value_centered_ss"] = centered
+    return pooled
+
+
 def _stratified_comparison(
     metric_type: str,
     strata: list[dict[str, Any]],
@@ -39,8 +61,8 @@ def _stratified_comparison(
 ) -> dict[str, Any]:
     strata_effects: list[dict[str, Any]] = []
     combine_input: list[dict[str, Any]] = []
-    pooled_control = _empty_stratum_arm()
-    pooled_treatment = _empty_stratum_arm()
+    control_parts: list[dict[str, Any]] = []
+    treatment_parts: list[dict[str, Any]] = []
     for stratum in strata:
         by_index = {int(arm["variation_index"]): arm for arm in stratum.get("variations", [])}
         control = by_index.get(0)
@@ -48,9 +70,9 @@ def _stratified_comparison(
         control_n = int(control["exposed_users"]) if control else 0
         treatment_n = int(treatment["exposed_users"]) if treatment else 0
         if control is not None:
-            _accumulate_stratum_arm(pooled_control, control)
+            control_parts.append(control)
         if treatment is not None:
-            _accumulate_stratum_arm(pooled_treatment, treatment)
+            treatment_parts.append(treatment)
         delta: float | None = None
         if control is not None and treatment is not None:
             control_estimate = _stratum_arm_estimate(metric_type, control)
@@ -95,6 +117,8 @@ def _stratified_comparison(
     if combined is None:
         return base
 
+    pooled_control = _pool_stratum_arms(control_parts)
+    pooled_treatment = _pool_stratum_arms(treatment_parts)
     # Variance reduction vs the naive estimate that ignores strata, over the *same* covered users
     # (pool every stratum into one control/treatment arm) — an apples-to-apples comparison.
     variance_reduction: float | None = None

@@ -62,6 +62,7 @@ class _StrataRollupMixin(_BackendCore):
                     "converted_users": int(row["converted_users"] or 0),
                     "value_sum": float(row["value_sum"] or 0.0),
                     "value_sq_sum": float(row["value_sq_sum"] or 0.0),
+                    "value_centered_ss": float(row["value_centered_ss"] or 0.0),
                 }
             )
         strata_payload = [

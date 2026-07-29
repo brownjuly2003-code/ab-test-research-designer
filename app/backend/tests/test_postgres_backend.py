@@ -456,6 +456,7 @@ def test_postgres_backend_stratified_aggregates_round_trip(postgres_repository) 
             {"user_id": "u3", "variation_index": 1},
             {"user_id": "u4", "variation_index": 1},
             {"user_id": "u5", "variation_index": 0},  # no stratum -> excluded
+            {"user_id": "u6", "variation_index": 0},
             {"user_id": "uH", "variation_index": -1},  # holdout -> excluded
         ],
     )
@@ -466,8 +467,9 @@ def test_postgres_backend_stratified_aggregates_round_trip(postgres_repository) 
             {"user_id": "u2", "stratum": "android"},
             {"user_id": "u3", "stratum": "ios"},
             {"user_id": "u4", "stratum": "android"},
+            {"user_id": "u6", "stratum": "ios"},
         ],
-    ) == {"received": 4, "recorded": 4, "deduplicated": 0}
+    ) == {"received": 5, "recorded": 5, "deduplicated": 0}
     # First-write-wins dedup holds on Postgres too.
     assert repo.record_strata(exp, [{"user_id": "u1", "stratum": "android"}])["deduplicated"] == 1
     repo.record_conversions(
@@ -484,13 +486,15 @@ def test_postgres_backend_stratified_aggregates_round_trip(postgres_repository) 
     by_name = {stratum["stratum"]: stratum for stratum in aggregates["strata"]}
     assert sorted(by_name) == ["android", "ios"]
     ios = {arm["variation_index"]: arm for arm in by_name["ios"]["variations"]}
-    assert ios[0]["exposed_users"] == 1 and ios[0]["converted_users"] == 1  # u1 (kept ios)
+    assert ios[0]["exposed_users"] == 2 and ios[0]["converted_users"] == 1  # u1 + u6
+    assert ios[0]["value_centered_ss"] == pytest.approx(0.5)
+    assert "value_sq_sum" in ios[0]
     assert ios[1]["exposed_users"] == 1 and ios[1]["converted_users"] == 1  # u3
     android = {arm["variation_index"]: arm for arm in by_name["android"]["variations"]}
     assert android[0]["exposed_users"] == 1 and android[0]["converted_users"] == 0  # u2
     assert android[1]["exposed_users"] == 1 and android[1]["converted_users"] == 0  # u4
     total_users = sum(arm["exposed_users"] for s in aggregates["strata"] for arm in s["variations"])
-    assert total_users == 4  # u5 (no stratum) and uH (holdout) never appear
+    assert total_users == 5  # u5 (no stratum) and uH (holdout) never appear
 
 
 def test_postgres_backend_holdout_aggregates_round_trip(postgres_repository) -> None:

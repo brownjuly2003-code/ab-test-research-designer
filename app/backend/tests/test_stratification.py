@@ -59,6 +59,28 @@ def test_continuous_point_variance_clamps_negative_roundoff() -> None:
     assert variance == 0.0
 
 
+def test_continuous_point_variance_prefers_centered_ss_at_large_mean() -> None:
+    mean = 1e9
+    values = [mean + delta for delta in (-2.0, -1.0, 0.0, 1.0, 2.0)]
+    n = len(values)
+    value_sum = sum(values)
+    value_sq_sum = sum(value * value for value in values)
+
+    raw = stratification.continuous_point_variance(value_sum, value_sq_sum, n)
+    assert raw is not None
+    assert raw[1] == pytest.approx(0.0, abs=1e-12)
+
+    stable = stratification.continuous_point_variance(
+        value_sum,
+        value_sq_sum,
+        n,
+        value_centered_ss=10.0,
+    )
+    assert stable is not None
+    assert stable[0] == pytest.approx(mean)
+    assert stable[1] == pytest.approx(2.5 / n)
+
+
 def test_stratum_difference_is_treatment_minus_control_unpooled() -> None:
     difference = stratification.stratum_difference((0.20, 0.0016), (0.30, 0.0021))
     assert difference["delta"] == pytest.approx(0.10)
