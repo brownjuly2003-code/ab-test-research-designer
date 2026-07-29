@@ -1,7 +1,8 @@
 """Canonical analytical population contract (audit F-02 / plan step 3).
 
 Reproduces the two holdout/primary mismatch cases from audit_gpt_23_07_26 and
-locks shared identity + exclusion semantics across primary, ratio, holdout, timing, and strata.
+locks shared identity + exclusion semantics across primary, ratio, CUPED, holdout, timing,
+and strata.
 """
 
 from __future__ import annotations
@@ -494,3 +495,166 @@ def test_combined_identity_exclusion_strata_holdout_invariant() -> None:
         v["exposed_users"] for block in strata["strata"] for v in block["variations"]
     )
     assert strata_n == 2  # a desktop + c mobile; b excluded
+
+
+def test_cuped_aggregates_identity_fold_and_first_exposure_wins() -> None:
+    """CUPED uses analytical_population_v1: one-hop fold + first-exposure-wins arm."""
+    repo = _repo()
+    exp = _project(repo)
+    # Anonymous first on control, later login re-exposure on treatment collapses to control.
+    repo.record_exposures(
+        exp,
+        [
+            {"user_id": "anon", "variation_index": 0, "occurred_at": _at(0)},
+            {"user_id": "user", "variation_index": 1, "occurred_at": _at(5)},
+            {"user_id": "other", "variation_index": 1, "occurred_at": _at(0)},
+        ],
+    )
+    repo.record_identities(exp, [{"anonymous_id": "anon", "canonical_id": "user"}])
+    # Covariate under anonymous id + outcome under canonical id both fold to the same person.
+    repo.record_pre_period_values(
+        exp,
+        [
+            {"user_id": "anon", "value": 10.0},
+            {"user_id": "other", "value": 20.0},
+        ],
+    )
+    repo.record_conversions(
+        exp,
+        [
+            {"user_id": "user", "metric": "aov", "value": 5.0},
+            {"user_id": "other", "metric": "aov", "value": 8.0},
+        ],
+    )
+
+    cuped = repo.get_cuped_aggregates(exp, "aov")
+    primary = repo.get_experiment_analysis_aggregates(exp, "aov")
+    assert cuped is not None and primary is not None
+    by_arm = {arm["variation_index"]: arm for arm in cuped["variations"]}
+    primary_by_arm = {row["variation_index"]: row for row in primary["variations"]}
+
+    assert by_arm[0]["n"] == 1
+    assert by_arm[0]["sum_x"] == [10.0]
+    assert by_arm[0]["sum_y"] == 5.0
+    assert by_arm[0]["sum_xx"] == [[100.0]]
+    assert by_arm[0]["sum_xy"] == [50.0]
+    assert by_arm[1]["n"] == 1
+    assert by_arm[1]["sum_x"] == [20.0]
+    assert by_arm[1]["sum_y"] == 8.0
+    assert by_arm[1]["sum_xx"] == [[400.0]]
+    assert by_arm[1]["sum_xy"] == [160.0]
+    # Both people carry X, so CUPED complete-case n matches primary arm sizes.
+    assert by_arm[0]["n"] == primary_by_arm[0]["exposed_users"]
+    assert by_arm[1]["n"] == primary_by_arm[1]["exposed_users"]
+    assert cuped["population_policy_version"] == ANALYTICAL_POPULATION_POLICY_VERSION
+
+
+def test_cuped_aggregates_apply_manual_and_rate_spike_exclusions() -> None:
+    """CUPED drops manual deny-list and rate-spike users like primary/ratio."""
+    repo = _repo()
+    exp = _project(repo)
+    repo.record_exposures(
+        exp,
+        [
+            {"user_id": "keep", "variation_index": 0},
+            {"user_id": "manual", "variation_index": 0},
+            {"user_id": "bot", "variation_index": 1},
+            {"user_id": "ok1", "variation_index": 1},
+        ],
+    )
+    repo.record_pre_period_values(
+        exp,
+        [
+            {"user_id": "keep", "value": 10.0},
+            {"user_id": "manual", "value": 99.0},
+            {"user_id": "bot", "value": 50.0},
+            {"user_id": "ok1", "value": 4.0},
+        ],
+    )
+    repo.record_conversions(
+        exp,
+        [
+            {"user_id": "keep", "metric": "aov", "value": 3.0},
+            {"user_id": "manual", "metric": "aov", "value": 9.0},
+            {"user_id": "ok1", "metric": "aov", "value": 1.0},
+            *[
+                {"user_id": "bot", "metric": "aov", "value": 1.0}
+                for _ in range(BOT_CONVERSION_EVENT_THRESHOLD + 1)
+            ],
+        ],
+    )
+    repo.record_exclusions(exp, [{"user_id": "manual", "exclusion_reason": "qa"}])
+
+    cuped = repo.get_cuped_aggregates(exp, "aov")
+    primary = repo.get_experiment_analysis_aggregates(exp, "aov")
+    assert cuped is not None and primary is not None
+    by_arm = {arm["variation_index"]: arm for arm in cuped["variations"]}
+    primary_by_arm = {row["variation_index"]: row for row in primary["variations"]}
+
+    assert by_arm[0]["n"] == 1
+    assert by_arm[0]["sum_x"] == [10.0]
+    assert by_arm[0]["sum_y"] == 3.0
+    assert by_arm[0]["sum_xx"] == [[100.0]]
+    assert by_arm[0]["sum_xy"] == [30.0]
+    assert by_arm[1]["n"] == 1
+    assert by_arm[1]["sum_x"] == [4.0]
+    assert by_arm[1]["sum_y"] == 1.0
+    assert by_arm[1]["sum_xx"] == [[16.0]]
+    assert by_arm[1]["sum_xy"] == [4.0]
+    assert by_arm[0]["n"] == primary_by_arm[0]["exposed_users"]
+    assert by_arm[1]["n"] == primary_by_arm[1]["exposed_users"]
+    assert cuped["population_policy_version"] == ANALYTICAL_POPULATION_POLICY_VERSION
+
+
+def test_cuped_aggregates_folded_covariate_conflict_drops_equal_retains_once() -> None:
+    """After identity fold: conflicting X drops complete-case user; equal X kept once."""
+    repo = _repo()
+    exp = _project(repo)
+    repo.record_exposures(
+        exp,
+        [
+            {"user_id": "anon-conflict", "variation_index": 0},
+            {"user_id": "anon-equal", "variation_index": 0},
+            {"user_id": "keep", "variation_index": 0},
+        ],
+    )
+    repo.record_identities(
+        exp,
+        [
+            {"anonymous_id": "anon-conflict", "canonical_id": "c-conflict"},
+            {"anonymous_id": "anon-equal", "canonical_id": "c-equal"},
+        ],
+    )
+    repo.record_pre_period_values(
+        exp,
+        [
+            {"user_id": "anon-conflict", "value": 10.0},
+            {"user_id": "c-conflict", "value": 99.0},  # conflict after fold
+            {"user_id": "anon-equal", "value": 15.0},
+            {"user_id": "c-equal", "value": 15.0},  # equal duplicate retained once
+            {"user_id": "keep", "value": 20.0},
+        ],
+    )
+    repo.record_conversions(
+        exp,
+        [
+            {"user_id": "c-conflict", "metric": "aov", "value": 1.0},
+            {"user_id": "c-equal", "metric": "aov", "value": 5.0},
+            {"user_id": "keep", "metric": "aov", "value": 8.0},
+        ],
+    )
+
+    cuped = repo.get_cuped_aggregates(exp, "aov")
+    primary = repo.get_experiment_analysis_aggregates(exp, "aov")
+    assert cuped is not None and primary is not None
+    by_arm = {arm["variation_index"]: arm for arm in cuped["variations"]}
+    primary_n = sum(row["exposed_users"] for row in primary["variations"])
+
+    assert primary_n == 3  # conflict user remains in primary population
+    # Complete-case CUPED: c-equal (X=15 once) + keep (X=20); c-conflict dropped.
+    assert by_arm[0]["n"] == 2
+    assert by_arm[0]["sum_x"] == [35.0]
+    assert by_arm[0]["sum_y"] == 13.0
+    assert by_arm[0]["sum_xx"] == [[625.0]]  # 15^2 + 20^2
+    assert by_arm[0]["sum_xy"] == [235.0]  # 15*5 + 20*8
+    assert cuped["population_policy_version"] == ANALYTICAL_POPULATION_POLICY_VERSION

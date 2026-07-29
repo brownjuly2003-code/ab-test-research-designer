@@ -1,7 +1,7 @@
 """Canonical analytical population contract (audit F-02 / plan step 3).
 
 One shared definition of *who is in the analysis* for treated arms, ratio
-metrics, holdout, strata, and event-timing diagnostics:
+metrics, CUPED, holdout, strata, and event-timing diagnostics:
 
 - **Identity (one-hop):** ``COALESCE(identity_map.canonical_id, user_id)`` via a
   left join on ``anonymous_id = user_id``. Chains/cycles are rejected at ingest;
@@ -16,7 +16,7 @@ metrics, holdout, strata, and event-timing diagnostics:
   ``variation_index = -1``. Same identity + exclusion rules either way.
 
 Do not fork this logic into ad-hoc SQL. Compose queries from the CTE helpers
-below so primary, ratio, holdout, strata, and timing cannot drift.
+below so primary, ratio, CUPED, holdout, strata, and timing cannot drift.
 """
 
 from __future__ import annotations
@@ -160,6 +160,40 @@ def strata_resolution_cte() -> str:
                         ON im.experiment_id = s.experiment_id
                         AND im.anonymous_id = s.user_id
                     WHERE s.experiment_id = ?
+                )
+    """
+
+
+def covariate_resolution_ctes() -> str:
+    """Identity-resolved covariates; a conflict omits that (user, name).
+
+    Placeholder: one ``experiment_id``.
+
+    One-hop fold via ``identity_map``. Per ``(cuser, covariate_name)``, keep exactly one value
+    when all folded raw rows share the same SQL REAL value. If distinct values conflict, omit
+    that covariate for the user. Equal duplicates contribute once; complete-case CUPED then
+    drops any user missing a discovered covariate after this fold.
+    """
+    return """
+                cov_resolved AS (
+                    SELECT
+                        COALESCE(im.canonical_id, p.user_id) AS cuser,
+                        p.covariate_name AS covariate_name,
+                        p.value AS value
+                    FROM pre_period_covariates p
+                    LEFT JOIN identity_map im
+                        ON im.experiment_id = p.experiment_id
+                        AND im.anonymous_id = p.user_id
+                    WHERE p.experiment_id = ?
+                ),
+                user_cov AS (
+                    SELECT
+                        cuser,
+                        covariate_name,
+                        MIN(value) AS value
+                    FROM cov_resolved
+                    GROUP BY cuser, covariate_name
+                    HAVING COUNT(DISTINCT value) = 1
                 )
     """
 
@@ -421,6 +455,22 @@ def population_count_params(experiment_id: str) -> tuple[object, ...]:
         experiment_id,
         BOT_CONVERSION_EVENT_THRESHOLD,
         experiment_id,
+    )
+
+
+def cuped_query_params(
+    experiment_id: str, metric_name: str, covariate_count: int
+) -> tuple[object, ...]:
+    """Placeholder order for CUPED covered CTE (arm + metric + exclusions + cov + k)."""
+    return (
+        experiment_id,
+        experiment_id,
+        metric_name,
+        experiment_id,
+        BOT_CONVERSION_EVENT_THRESHOLD,
+        experiment_id,
+        experiment_id,
+        covariate_count,
     )
 
 

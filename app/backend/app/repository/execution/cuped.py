@@ -7,6 +7,15 @@ from app.backend.app.constants import (
     MAX_CUPED_COVARIATES,
 )
 from app.backend.app.repository._core import _BackendCore
+from app.backend.app.repository.execution.population import (
+    ANALYTICAL_POPULATION_POLICY_VERSION,
+    ARM_PREDICATE_TREATED,
+    arm_resolution_ctes,
+    covariate_resolution_ctes,
+    cuped_query_params,
+    exclusion_ctes,
+    metric_conversion_ctes,
+)
 
 
 class _CupedRollupMixin(_BackendCore):
@@ -18,12 +27,17 @@ class _CupedRollupMixin(_BackendCore):
         case of the lone ``__default__`` name). Restricted to exposed users that carry the
         **complete** covariate vector; users missing any X are excluded and the live response
         exposes coverage plus a selection caveat. The holdout tail (``variation_index = -1``) is
-        excluded. Per user the outcome ``Y`` is the sum
-        of their conversion values on ``metric_name`` (non-converters contribute 0). Per variation it
-        rolls up the regression sufficient statistics — ``n``, ``sum_y``, ``sum_y2`` and, over the
-        covariate vector, ``sum_x[]``, ``sum_xy[]`` and the symmetric raw cross-moment matrix
-        ``sum_xx[][]`` — plus numerically stable within-arm centered SSCP computed by a portable
-        two-pass mean/centered rollup: ``centered_syy``, ``centered_sxy[]``, ``centered_sxx[][]``.
+        excluded by the treated-arm predicate. Population semantics use the shared
+        ``analytical_population_v1`` contract (identity one-hop fold, first-exposure-wins arm,
+        manual + rate-spike exclusions). Pre-period covariates are folded one hop; per
+        ``(cuser, covariate_name)``, a value is kept only when all folded raw rows agree.
+        Otherwise that covariate is omitted and complete-case drops the user. Per user the
+        outcome ``Y`` is the sum of conversion values on ``metric_name`` (non-converters
+        contribute 0). Per variation it rolls up the regression sufficient statistics — ``n``,
+        ``sum_y``, ``sum_y2`` and, over the covariate vector, ``sum_x[]``, ``sum_xy[]`` and the
+        symmetric raw cross-moment matrix ``sum_xx[][]`` — plus numerically stable within-arm
+        centered SSCP computed by a portable two-pass mean/centered rollup: ``centered_syy``,
+        ``centered_sxy[]``, ``centered_sxx[][]``.
         Raw keys are preserved for callers/tests; the service prefers the centered fields so modest
         within-arm signal at large means (e.g. ~1e9) is not lost to ``sum(v^2)-n*mean^2``
         catastrophic cancellation. One-ULP-negative variance/diagonal/Syy after centering are
@@ -57,33 +71,34 @@ class _CupedRollupMixin(_BackendCore):
             count = len(covariate_names)
             index_of = {name: position for position, name in enumerate(covariate_names)}
 
-            # Shared CTEs: exposed-user outcomes Y, covariate rows, complete-vector "covered"
-            # users, then per-arm / per-covariate means for a second-pass centered SSCP (avoids
+            # Shared analytical population + folded covariates, then complete-vector "covered"
+            # users and per-arm / per-covariate means for a second-pass centered SSCP (avoids
             # catastrophic cancellation of raw second moments at large means).
-            covered_cte = """
-                WITH user_outcomes AS (
+            covered_cte = f"""
+                WITH
+                {arm_resolution_ctes(ARM_PREDICATE_TREATED)},
+                {metric_conversion_ctes()},
+                {exclusion_ctes()},
+                {covariate_resolution_ctes()},
+                population AS (
                     SELECT
-                        e.variation_index AS variation_index,
-                        e.user_id AS user_id,
-                        COALESCE(SUM(c.value), 0) AS y
-                    FROM exposures e
-                    LEFT JOIN conversions c
-                        ON c.experiment_id = e.experiment_id
-                        AND c.user_id = e.user_id
-                        AND c.metric = ?
-                    WHERE e.experiment_id = ? AND e.variation_index >= 0
-                    GROUP BY e.variation_index, e.user_id
-                ),
-                user_cov AS (
-                    SELECT user_id, covariate_name, value
-                    FROM pre_period_covariates
-                    WHERE experiment_id = ?
+                        arm.variation_index AS variation_index,
+                        arm.cuser AS cuser,
+                        COALESCE(cpu.user_value, 0) AS y
+                    FROM arm
+                    LEFT JOIN conv_per_user cpu ON cpu.cuser = arm.cuser
+                    LEFT JOIN excluded ex ON ex.cuser = arm.cuser
+                    LEFT JOIN spike sp ON sp.cuser = arm.cuser
+                    WHERE ex.cuser IS NULL AND sp.cuser IS NULL
                 ),
                 covered AS (
-                    SELECT o.variation_index AS variation_index, o.user_id AS user_id, o.y AS y
-                    FROM user_outcomes o
-                    JOIN user_cov uc ON uc.user_id = o.user_id
-                    GROUP BY o.variation_index, o.user_id, o.y
+                    SELECT
+                        p.variation_index AS variation_index,
+                        p.cuser AS cuser,
+                        p.y AS y
+                    FROM population p
+                    JOIN user_cov uc ON uc.cuser = p.cuser
+                    GROUP BY p.variation_index, p.cuser, p.y
                     HAVING COUNT(DISTINCT uc.covariate_name) = ?
                 ),
                 arm_means AS (
@@ -99,11 +114,11 @@ class _CupedRollupMixin(_BackendCore):
                         uc.covariate_name AS covariate_name,
                         SUM(uc.value) * 1.0 / COUNT(*) AS mean_x
                     FROM covered cv
-                    JOIN user_cov uc ON uc.user_id = cv.user_id
+                    JOIN user_cov uc ON uc.cuser = cv.cuser
                     GROUP BY cv.variation_index, uc.covariate_name
                 )
             """
-            covered_params = (metric_name, experiment_id, experiment_id, count)
+            covered_params = cuped_query_params(experiment_id, metric_name, count)
 
             variation_rows = connection.execute(
                 covered_cte
@@ -132,7 +147,7 @@ class _CupedRollupMixin(_BackendCore):
                     SUM(uc.value * cv.y) AS sum_xy,
                     SUM((uc.value - cm.mean_x) * (cv.y - am.mean_y)) AS centered_sxy
                 FROM covered cv
-                JOIN user_cov uc ON uc.user_id = cv.user_id
+                JOIN user_cov uc ON uc.cuser = cv.cuser
                 JOIN arm_means am ON am.variation_index = cv.variation_index
                 JOIN cov_means cm
                     ON cm.variation_index = cv.variation_index
@@ -152,8 +167,8 @@ class _CupedRollupMixin(_BackendCore):
                     SUM(a.value * b.value) AS sum_ij,
                     SUM((a.value - cma.mean_x) * (b.value - cmb.mean_x)) AS centered_sxx
                 FROM covered cv
-                JOIN user_cov a ON a.user_id = cv.user_id
-                JOIN user_cov b ON b.user_id = cv.user_id AND a.covariate_name <= b.covariate_name
+                JOIN user_cov a ON a.cuser = cv.cuser
+                JOIN user_cov b ON b.cuser = cv.cuser AND a.covariate_name <= b.covariate_name
                 JOIN cov_means cma
                     ON cma.variation_index = cv.variation_index
                     AND cma.covariate_name = a.covariate_name
@@ -220,6 +235,7 @@ class _CupedRollupMixin(_BackendCore):
             "covariate_names": covariate_names,
             "too_many_covariates": False,
             "variations": ordered,
+            "population_policy_version": ANALYTICAL_POPULATION_POLICY_VERSION,
         }
 
     @staticmethod
@@ -230,4 +246,5 @@ class _CupedRollupMixin(_BackendCore):
             "covariate_names": [],
             "too_many_covariates": False,
             "variations": [],
+            "population_policy_version": ANALYTICAL_POPULATION_POLICY_VERSION,
         }

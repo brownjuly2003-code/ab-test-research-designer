@@ -347,6 +347,7 @@ def test_postgres_backend_cuped_aggregates_round_trip(postgres_repository) -> No
     assert by_index[1]["centered_sxy"] == pytest.approx([-25.0])
     assert by_index[1]["centered_sxx"][0] == pytest.approx([50.0])
     assert -1 not in by_index  # holdout never appears
+    assert aggregates["population_policy_version"] == "analytical_population_v1"
 
 
 def test_postgres_backend_multi_cuped_aggregates_round_trip(postgres_repository) -> None:
@@ -396,6 +397,7 @@ def test_postgres_backend_multi_cuped_aggregates_round_trip(postgres_repository)
     assert arm0["centered_sxy"] == pytest.approx([10.0, 10.0])
     assert arm0["centered_sxx"][0] == pytest.approx([2.0, 2.0])
     assert arm0["centered_sxx"][1] == pytest.approx([2.0, 2.0])
+    assert aggregates["population_policy_version"] == "analytical_population_v1"
 
 
 def test_postgres_backend_ratio_aggregates_round_trip(postgres_repository) -> None:
