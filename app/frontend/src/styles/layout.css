@@ -220,6 +220,13 @@ body {
 
   .topbar-inner {
     padding-inline: var(--space-4);
+    flex-wrap: wrap;
+  }
+
+  .topbar-controls {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    justify-content: flex-end;
   }
 }
 

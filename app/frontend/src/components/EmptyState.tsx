@@ -96,7 +96,7 @@ export default function EmptyState({
       </div>
 
       {hasDemos ? (
-        <div className={styles.demos} aria-label={t("empty_state.demos.heading")}>
+        <section className={styles.demos} aria-label={t("empty_state.demos.heading")}>
           <div className={styles.demosHeading}>
             <h2 className={styles.demosTitle}>{t("empty_state.demos.heading")}</h2>
             <p className={styles.demosSubtitle}>{t("empty_state.demos.subtitle")}</p>
@@ -134,7 +134,7 @@ export default function EmptyState({
             ))}
           </div>
           <p className={styles.facts}>{t("empty_state.facts")}</p>
-        </div>
+        </section>
       ) : (
         /* Illustrative sample of the plan the tool produces; decorative, hidden from a11y tree. */
         <aside className={styles.preview} aria-hidden="true">

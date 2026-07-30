@@ -26,7 +26,7 @@
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--color-primary);
+  color: var(--color-primary-fg);
 }
 
 .eyebrow::before {
@@ -34,7 +34,7 @@
   width: 20px;
   height: 1.5px;
   border-radius: 2px;
-  background: var(--color-primary);
+  background: var(--color-primary-fg);
 }
 
 .title {
@@ -104,7 +104,7 @@
 }
 
 .importLink:focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--color-primary-fg);
   outline-offset: 2px;
 }
 
@@ -156,13 +156,13 @@
 }
 
 .demoCard:hover:not(:disabled) {
-  border-color: var(--color-primary);
+  border-color: var(--color-primary-fg);
   box-shadow: var(--shadow-lg);
   transform: translateY(-2px);
 }
 
 .demoCard:focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--color-primary-fg);
   outline-offset: 2px;
 }
 
@@ -189,8 +189,8 @@
 }
 
 .demoTag {
-  color: var(--color-primary);
-  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+  color: var(--color-primary-fg);
+  background: color-mix(in srgb, var(--color-primary-fg) 12%, transparent);
 }
 
 .demoTagQuiet {
@@ -228,7 +228,7 @@
 }
 
 .demoOpen {
-  color: var(--color-primary);
+  color: var(--color-primary-fg);
   font-weight: 600;
 }
 
