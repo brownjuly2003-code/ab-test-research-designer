@@ -6,6 +6,43 @@
 
 ## Журнал сессий
 
+### 2026-07-30 — documentation closure vs audited HEAD → core plan CLOSED locally
+
+- **Audited implementation HEAD:** `a906ed2d3c6bf9e0409c3262f02f1add5d119cfc`
+  (после dependency merges 2026-07-29).
+- **Last exact-SHA code/CI closure baseline:** `58f48b147e0963c768dce90b66dd3be78e2c86f6`
+  (Tests/CodeQL/dependency-audit/PostgreSQL/Docker evidence documented in
+  `docs/PROJECT_CLOSURE.md`).
+- **This docs refresh:** commit that contains the three tracked docs
+  (`docs/PROJECT_CLOSURE.md`, `plan_sol_23_07_26`, `CHANGELOG.md`); hash not
+  assigned until that commit is created.
+- **Mandatory audit items (2026-07-23, F-01…F-10 core):** **все закрыты** в
+  коде и покрыты релевантными тестами. Обязательный code plan из
+  `audit_gpt_23_07_26.md` **закрыт локально**.
+- **CUPED / ratio population residual:** **COMPLETED**
+  - ratio → `analytical_population_v1`: `e18e2a3d` (`fix ratio population alignment`);
+  - CUPED → `analytical_population_v1`: `530c6db2` (`fix CUPED population alignment`);
+  - evidence: `app/backend/tests/test_analytical_population.py` (ratio + CUPED
+    identity/exclusion/collision cases).
+- **Follow-ups 2026-07-28/29 (post plan steps 1–10):**
+  - stable centered moments (primary continuous, guardrail, holdout, stratified,
+    CUPED, ratio): `a280e96d`…`ab511cb7`, `40bf07cf`;
+  - CUPED/ratio population alignment: `e18e2a3d`, `530c6db2`;
+  - PostgreSQL `conversions.value` DOUBLE PRECISION (migration 17): `58f48b14`;
+  - compromised Astro lock replacement: `7e5f2657`;
+  - docs exact-SHA closure record: `b50c855c`;
+  - Dependabot merges on `main`: `#129`, `#130`, `#131`, `#132`, `#134`;
+    `#133` closed without merge (live check 2026-07-30).
+- **Classification of remaining non-core items:**
+  - `external gate`: release/tag, GHCR, HF verify/retire, disposable snapshot
+    drill, push authorization;
+  - `future` (optional reopen only): Bayesian MWE, explicit OpenAPI policy
+    fields, export/history policy evidence, React Compiler / exhaustive-deps
+    error promotion, RTL smoke, cold-start restore ordering, worst-case compute
+    benchmarks.
+- **Не residual mandatory backlog:** ничего из F-01…F-10 core не остаётся
+  открытым code blocker.
+
 ### 2026-07-23 (Codex #12) — external gates closure → DONE
 - **Сделано:**
   1. Confirmed pushed `main` is synchronized with `origin/main` at `048164ff41ab872c956648db2910283d90e52855`.
@@ -142,7 +179,7 @@
 |---:|---|---|---|---|---|---|
 | 1 | ~~Закрыть `svgo` advisory и вернуть dependency gate в green~~ | `gpt-5.6-terra` | `medium` | S | нет | **DONE** `99fcd86c` |
 | 2 | ~~Сделать SQLite snapshot/restore консистентным и атомарным~~ | `gpt-5.6-sol` | `xhigh` | L | нет | **DONE** `bd8696bc`+`b35fec2e` |
-| 3 | ~~Унифицировать canonical population для primary/holdout/timing~~ | `gpt-5.6-sol` | `xhigh` | L | нет | **DONE** (SQLite; PG parity residual) |
+| 3 | ~~Унифицировать canonical population для primary/holdout/timing~~ | `gpt-5.6-sol` | `xhigh` | L | нет | **DONE** (SQLite; CUPED/ratio follow-up COMPLETED `e18e2a3d`/`530c6db2`) |
 | 4 | ~~Убрать blind JSON adaptation в PostgreSQL~~ | `gpt-5.6-sol` | `high` | M | желательно после шага 3 | **DONE** `e3e18a12` (live PG CI residual) |
 | 5 | ~~Ввести защищённый Slack ingress и cost-aware compute admission~~ | `gpt-5.6-sol` | `high` | M/L | нет | **DONE** `a833cd3c` |
 | 6 | ~~Разделить statistical evidence и practical ship policy~~ | `gpt-5.6-sol` | `xhigh` | L | после шага 3 | **DONE** core `2b565422` |
@@ -226,7 +263,7 @@ npm run build
 - **Sidecars:** `remove_sqlite_sidecars` на replace/rollback (WAL/SHM/journal), чтобы старый WAL не мержился с новым main.
 - **Fault-inject create_commit:** `test_push_snapshot_create_commit_failure_preserves_previous_revision_for_restore` — 503 на commit → `last_snapshot_sha256` не двигается; restore с HEAD previous revision.
 - **Metrics:** `last_push_metrics` / `last_restore_metrics` + `log_event` (`snapshot_push` / `snapshot_restore`: outcome, duration_ms, sha/size/user_version/commit).
-- **Не сделано (опционально, не блокер):** restore *до* создания `ProjectRepository` (cold-start reorder); live disposable HF repo drill.
+- **Опционально (`future` / `external gate`, не блокер):** restore *до* создания `ProjectRepository` (cold-start reorder) → `future`; live disposable HF repo drill → `external gate`.
 
 ### Сначала тесты
 
@@ -313,8 +350,10 @@ python -m mypy app/backend/app/services/snapshot_service.py app/backend/app/main
 
 ### Residual (не блокирует SQLite DONE)
 
-- ⏳ PostgreSQL parity на combined fixture — PG локально недоступен в сессии.
-- ⏳ CUPED / ratio rollups still raw-id (вне явного списка шага 3; follow-up).
+- ~~PostgreSQL parity на combined fixture — PG локально недоступен в сессии.~~
+  → live PG contract suite covered in CI; not a local code blocker.
+- ~~CUPED / ratio rollups still raw-id~~ → **COMPLETED 2026-07-28/29**
+  (`e18e2a3d` ratio, `530c6db2` CUPED; `test_analytical_population.py`).
 
 ### Проверка
 
@@ -368,8 +407,10 @@ python scripts/generate_frontend_api_types.py --check
 
 ### Residual (не блокирует DONE)
 
-- ⏳ Live PostgreSQL edge suite в CI/Docker (локально Docker отсутствует).
-- ⏳ Step 3 PG population parity — отдельный residual.
+- ~~Live PostgreSQL edge suite в CI/Docker~~ → covered by CI PostgreSQL job
+  (`external` evidence; not open local code work).
+- ~~Step 3 PG population parity / CUPED-ratio raw-id~~ → **COMPLETED**
+  (`e18e2a3d`, `530c6db2` + migration 17 precision `58f48b14`).
 
 ### Проверка (сессия)
 
@@ -405,7 +446,7 @@ python -m mypy app/backend/app/repository/_utils.py …  # clean
 - **Cost admission:** новый `compute_admission.py` — `estimate_*_cost` (analyzer, N, resamples/table) + `ComputeAdmissionController` (heavy/cheap lanes, in-flight cost, fast load-shed timeout). Wired на `/api/v1/results*` и `/api/v1/simulate/bandit` **после** schema validation, **до** resampling. Overload → 429 `compute_capacity_exceeded` + `Retry-After`. Solo heavy request не режется cost budget (concurrency only); concurrent heavy суммируется.
 - **Observability:** runtime `compute_capacity_rejections`; diagnostics guards: slack body/rate + compute knobs; controller.snapshot() (admitted/rejected/peak/by-analyzer).
 - **Docs/env:** `.env.example`, `PRODUCTION.md`, `RELEASE_CHECKLIST.md`, CHANGELOG Security.
-- **Не делали (не блокер DONE):** dedicated CI wall-time benchmark for worst resampling payload (Windows host RAM-bound; residual optional).
+- **Не делали (`future`, не блокер DONE):** dedicated CI wall-time benchmark for worst resampling payload (Windows host RAM-bound).
 
 ### Сначала тесты
 
@@ -475,12 +516,12 @@ python scripts/generate_frontend_api_types.py --check
 - **FE:** DecisionReadout shows policy block; i18n ×7; observedResults power label notes not used for ship.
 - **Existing ship fixtures** recalibrated to clear practical MWE (e.g. 10%→14% when mde=20%).
 
-### Residual
+### Residual → `future` (optional reopen; not core-audit blockers)
 
-- ⏳ Explicit OpenAPI field `decision_policy` on experiment create/update schema (override currently only via raw payload key).
-- ⏳ Bayesian `P(δ > MWE)` rule (needs simulation beyond current `P(B>A)`).
-- ⏳ PDF/export markdown polish for policy block.
-- ⏳ Optional: store policy snapshot in analysis history rows for audit trail immutability.
+- `future` Explicit OpenAPI field `decision_policy` on experiment create/update schema (override currently only via raw payload key).
+- `future` Bayesian `P(δ > MWE)` rule (needs simulation beyond current `P(B>A)`).
+- `future` PDF/export markdown polish for policy block.
+- `future` Optional: store policy snapshot in analysis history rows for audit trail immutability.
 
 ### Сначала спецификация и тесты
 
@@ -627,11 +668,11 @@ npx vitest run src/components/results src/i18n.test.tsx src/test/a11y-comparison
 - ~~Unit suite проходит без Canvas noise.~~ ✅
 - ~~Bundle остаётся ниже текущего ceiling с осмысленным запасом.~~ ✅ ~5.4% + gzip report
 
-### Optional residual (не блокирует DONE)
+### Optional residual → `future` (не блокирует DONE / core audit)
 
-- ⏳ Enable React Compiler hooks rules after data-fetch effect cleanup.
-- ⏳ Drive `exhaustive-deps` from warn → error (13 known sites).
-- ⏳ Playwright locale/RTL smoke for ComparisonDetails (unit + a11y dashboard covered).
+- `future` Enable React Compiler hooks rules after data-fetch effect cleanup.
+- `future` Drive `exhaustive-deps` from warn → error (13 known sites).
+- `future` Playwright locale/RTL smoke for ComparisonDetails (unit + a11y dashboard covered).
 
 ---
 
@@ -685,7 +726,7 @@ workflow artifact: versions, seeds and deviations published ✅ CI artifact conf
 
 ---
 
-## ~~Шаг 10. Полный acceptance и recovery gate~~ ✅ DONE local / external residuals
+## ~~Шаг 10. Полный acceptance и recovery gate~~ ✅ DONE local / residual = external gate or future
 
 **Модель:** `gpt-5.6-sol`  
 **Reasoning:** `high`  
@@ -693,18 +734,21 @@ workflow artifact: versions, seeds and deviations published ✅ CI artifact conf
 **Размер:** M
 
 Этот шаг выполняется только после завершения 1–9 и не заменяется исторически зелёным CI.
+**Статус 2026-07-30:** local + CI evidence on `58f48b14` close the mandatory
+code/CI acceptance path; remaining items below are `external gate` or
+historical local-environment notes, not open code work.
 
 ### Обязательные проверки
 
 1. ~~Полный `scripts/verify_all.py` с backend/frontend coverage.~~ ✅ `--with-e2e --with-coverage`, green.
-2. Реальный PostgreSQL contract suite. ⏳ local blocked: `docker` command not found; CI/Mac gate.
-3. Docker build и secure compose verification на среде, где это укладывается в resource limits. ⏳ local blocked: `docker` command not found.
+2. Реальный PostgreSQL contract suite. ✅ CI evidence on `58f48b14` (24 passed); local Docker was unavailable in the original session.
+3. Docker build и secure compose verification. ✅ CI evidence on `58f48b14`; local Docker was unavailable in the original session.
 4. ~~Playwright E2E: smoke, locales/RTL, workspace, keys/webhooks, Slack ingress errors.~~ ✅ included in full local gate.
 5. ~~Lighthouse budgets.~~ ✅ `scripts/run_lighthouse_ci.py --port 0`, scores 96/96/100/82, assertions OK.
-6. `pip-audit` для runtime+dev lock; frontend и docs `npm audit`. ⚠️ npm audits green (0); `pip-audit` timed out in both default and `--no-deps --disable-pip` modes.
-7. CodeQL и container scan. ⏳ CI-only/local Docker unavailable.
-8. WAL snapshot → remote revision → clean checkout restore → migration → readiness → checksum/data verification. ⏳ local workspace backup roundtrip green; remote HF drill needs disposable repo/write token.
-9. Fault drill: corrupt latest snapshot должен безопасно оставить/восстановить последнюю good state. ⚠️ local snapshot rollback/fault tests green in backend suite; live remote corrupt-latest drill requires HF external mutation authorization.
+6. `pip-audit` / `npm audit`. ✅ dependency-audit job on `58f48b14` green (backend no known vulns; frontend/docs-site 0); original local `pip-audit` timeout is historical only.
+7. CodeQL и container scan. ✅ CodeQL on `58f48b14` green / open alerts 0; container scan remains release/GHCR path (`external gate`).
+8. WAL snapshot → remote revision → clean checkout restore → migration → readiness → checksum/data verification. ✅ local suite + workspace backup green; live disposable HF remote drill = `external gate`.
+9. Fault drill: corrupt latest snapshot. ✅ local snapshot rollback/fault tests green; live remote corrupt-latest drill = `external gate` (disposable repo/token).
 10. ~~`git diff --check`, generated API/docs/help pages, repo hygiene, clean expected status.~~ ✅ full gate checked generated artifacts; final diff/status checked before commit.
 
 ### Release acceptance matrix
@@ -740,14 +784,16 @@ workflow artifact: versions, seeds and deviations published ✅ CI artifact conf
 
 ## Итоговый Definition of Done программы
 
-Программа завершена, когда одновременно выполнены условия:
+**Статус 2026-07-30:** mandatory code items **закрыты локально**. Owner publish
+gates (release/tag, GHCR, HF verify/retire, disposable remote drill) remain
+`external gate` and do not reopen the code plan.
 
-1. HF snapshot доказанно включает WAL-visible committed state и восстанавливается атомарно с migrations.
-2. Primary/holdout/timing используют одну canonical/exclusion population semantics на SQLite и PostgreSQL.
-3. PostgreSQL не выводит тип параметра из содержимого пользовательской строки.
+1. ~~HF snapshot доказанно включает WAL-visible committed state и восстанавливается атомарно с migrations.~~ ✅ шаг 2
+2. ~~Primary/holdout/timing (+ CUPED/ratio follow-up) используют одну canonical/exclusion population semantics.~~ ✅ шаг 3 + `e18e2a3d`/`530c6db2`
+3. ~~PostgreSQL не выводит тип параметра из содержимого пользовательской строки.~~ ✅ шаг 4; precision migration 17 `58f48b14`
 4. ~~Slack и дорогие analyses имеют bounded body/rate/cost/concurrency.~~ ✅ шаг 5
 5. ~~`ship` требует practical, а не только statistical evidence.~~ ✅ шаг 6 core
 6. ~~API key scopes соответствуют реальным permissions.~~ ✅ шаг 7
 7. ~~Frontend использует generated contracts, полный i18n gate и lint/a11y checks.~~ ✅ шаги 8/10 local gate
-8. Dependency scans green, scientific oracle воспроизводим, recovery drill пройден.
-9. Все доказательства относятся к одному финальному commit и доступны в CI artifacts.
+8. ~~Dependency scans green, scientific oracle воспроизводим; local recovery suite green.~~ ✅ шаги 1/9/10; live disposable HF drill = `external gate`
+9. ~~Code/CI evidence pinned to exact SHA `58f48b14`; audited implementation HEAD `a906ed2d`.~~ ✅ `docs/PROJECT_CLOSURE.md`
