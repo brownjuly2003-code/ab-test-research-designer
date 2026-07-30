@@ -1,15 +1,16 @@
 # Production deployment (PostgreSQL-first)
 
 This guide covers running the backend as a durable production service on PostgreSQL. For the
-container build, registry, and hosted-demo mechanics (Docker / GHCR / Hugging Face / Fly), see
-[`docs/DEPLOY.md`](DEPLOY.md) — those steps are not repeated here.
+container build, registry, and packaging mechanics (Docker / GHCR / optional Fly), see
+[`docs/DEPLOY.md`](DEPLOY.md) — those steps are not repeated here. Publication acceptance is
+GitHub (source, Actions, Pages, Releases, GHCR) plus the supported local runtime.
 
 ## Local / demo vs production
 
-The default backend is SQLite, which is correct for local development and the hosted demo. It is
-**not** durable for production: on the Hugging Face free tier (and any ephemeral container
-filesystem) the SQLite file is wiped on every redeploy or restart. A real production deployment must
-run on PostgreSQL so experiment data, exposures, and conversions survive restarts.
+The default backend is SQLite, which is correct for local development and the local seeded demo
+(`python scripts/run_local.py --seed-demo`). It is **not** durable for production: on any ephemeral
+container filesystem the SQLite file is wiped on every redeploy or restart. A real production
+deployment must run on PostgreSQL so experiment data, exposures, and conversions survive restarts.
 
 ## Fail-fast contract
 
@@ -70,7 +71,7 @@ that would normally refuse to boot.
 | `AB_ALLOW_INSECURE_PRODUCTION` | `false` | Escape hatch. `true` starts production with no auth material — mutating endpoints open to anyone — and logs a `WARNING` every boot. |
 | `AB_WORKSPACE_SIGNING_KEY` | long random secret (≥ 16 chars) | Signs workspace backups so they cannot be tampered with. |
 | `AB_CORS_ORIGINS` | your frontend origin(s) | Comma-separated; defaults to localhost dev origins. |
-| `AB_MISTRAL_API_KEY` | Mistral API key | Optional **free fallback** for AI advice/hypotheses: when the default local orchestrator is unavailable (e.g. the hosted demo has none), requests fall back to Mistral so suggestions still work without a paid provider. Unset → no fallback (advice degrades gracefully to an empty, `available: false` result). |
+| `AB_MISTRAL_API_KEY` | Mistral API key | Optional **free fallback** for AI advice/hypotheses: when the default local orchestrator is unavailable, requests fall back to Mistral so suggestions still work without a paid provider. Unset → no fallback (advice degrades gracefully to an empty, `available: false` result). |
 | `AB_MISTRAL_MODEL` | `mistral-small-latest` | Model used for the Mistral fallback. |
 | `AB_OPENAI_MODEL` | `gpt-5.6-luna` | Model used when a caller selects the OpenAI provider with their own token. |
 
@@ -196,12 +197,10 @@ Diagnostics declare this explicitly:
 
 ## Retention and backup
 
-- **SQLite HF snapshots (demo / single-instance only).** When `AB_HF_SNAPSHOT_REPO` +
-  `AB_HF_TOKEN` are configured, pushes use the SQLite Online Backup API (WAL-consistent),
-  one remote revision for DB+metadata, and restore re-migrates after replace with rollback
-  on migrate/smoke failure. Do not treat
-  this as a substitute for managed Postgres backups. See `docs/RUNBOOK.md` →
-  *HF SQLite snapshot*.
+- **Legacy optional SQLite remote snapshot code.** The repository still contains optional
+  HF Dataset snapshot helpers (`AB_HF_*` env vars, unit-tested). They are **not** a supported
+  production backup path, not a publication target, and outside project closure. Prefer
+  managed PostgreSQL backups (below) or signed workspace exports for durable recovery.
 - **Backups.** Use managed PostgreSQL automated backups, or schedule `pg_dump`:
 
   ```bash

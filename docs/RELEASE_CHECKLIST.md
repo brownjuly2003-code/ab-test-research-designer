@@ -58,8 +58,7 @@ Use this block when a local acceptance pass is already green and the remaining e
   - `python -m pytest -p no:schemathesis app/backend/tests/test_postgres_backend.py -q` with `AB_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/abtest`
   - `python scripts/verify_docker_compose.py`
 - container publishing is a release gate, not a PR gate. For a release tag or manual publish, require `.github/workflows/docker-publish.yml` to finish after the local single-arch build, Trivy critical-vulnerability scan, and multi-arch GHCR push.
-- Hugging Face deploys are manual/tag-driven only. Before dispatching `.github/workflows/deploy-hf.yml`, confirm `HF_TOKEN` is present as a repository secret, `AB_API_TOKEN` is intentionally configured or intentionally absent, and `/health` reports the expected version/build after the Space rebuild.
-- destructive HF snapshot drills must use a disposable dataset or Space repository and a write-scoped token created for that drill. Do not run corrupt-latest or rollback tests against the production demo snapshot repository.
+- Hugging Face is **not** a release or acceptance target. Do not dispatch retired HF workflows, set HF Space secrets for publication, or treat a live Space as evidence. Optional legacy snapshot code in the tree is outside the release gate; use the in-repo unit suite only if touching that code.
 
 ## UI evidence
 

@@ -6,15 +6,16 @@ editUrl: "https://github.com/brownjuly2003-code/ab-test-research-designer/edit/m
 # Production deployment (PostgreSQL-first)
 
 This guide covers running the backend as a durable production service on PostgreSQL. For the
-container build, registry, and hosted-demo mechanics (Docker / GHCR / Hugging Face / Fly), see
-[`docs/DEPLOY.md`](/ab-test-research-designer/guides/deploy/) — those steps are not repeated here.
+container build, registry, and packaging mechanics (Docker / GHCR / optional Fly), see
+[`docs/DEPLOY.md`](/ab-test-research-designer/guides/deploy/) — those steps are not repeated here. Publication acceptance is
+GitHub (source, Actions, Pages, Releases, GHCR) plus the supported local runtime.
 
 ## Local / demo vs production
 
-The default backend is SQLite, which is correct for local development and the hosted demo. It is
-**not** durable for production: on the Hugging Face free tier (and any ephemeral container
-filesystem) the SQLite file is wiped on every redeploy or restart. A real production deployment must
-run on PostgreSQL so experiment data, exposures, and conversions survive restarts.
+The default backend is SQLite, which is correct for local development and the local seeded demo
+(`python scripts/run_local.py --seed-demo`). It is **not** durable for production: on any ephemeral
+container filesystem the SQLite file is wiped on every redeploy or restart. A real production
+deployment must run on PostgreSQL so experiment data, exposures, and conversions survive restarts.
 
 ## Fail-fast contract
 
@@ -75,7 +76,7 @@ that would normally refuse to boot.
 | `AB_ALLOW_INSECURE_PRODUCTION` | `false` | Escape hatch. `true` starts production with no auth material — mutating endpoints open to anyone — and logs a `WARNING` every boot. |
 | `AB_WORKSPACE_SIGNING_KEY` | long random secret (≥ 16 chars) | Signs workspace backups so they cannot be tampered with. |
 | `AB_CORS_ORIGINS` | your frontend origin(s) | Comma-separated; defaults to localhost dev origins. |
-| `AB_MISTRAL_API_KEY` | Mistral API key | Optional **free fallback** for AI advice/hypotheses: when the default local orchestrator is unavailable (e.g. the hosted demo has none), requests fall back to Mistral so suggestions still work without a paid provider. Unset → no fallback (advice degrades gracefully to an empty, `available: false` result). |
+| `AB_MISTRAL_API_KEY` | Mistral API key | Optional **free fallback** for AI advice/hypotheses: when the default local orchestrator is unavailable, requests fall back to Mistral so suggestions still work without a paid provider. Unset → no fallback (advice degrades gracefully to an empty, `available: false` result). |
 | `AB_MISTRAL_MODEL` | `mistral-small-latest` | Model used for the Mistral fallback. |
 | `AB_OPENAI_MODEL` | `gpt-5.6-luna` | Model used when a caller selects the OpenAI provider with their own token. |
 
@@ -161,12 +162,24 @@ and `.../conversions`). Each request returns an accounting object:
   very large backfills must be chunked into multiple batches. Each batch is one transaction
   (all-or-nothing per request); throughput scales with the PostgreSQL backend and connection pool
   (`AB_DB_POOL_SIZE`).
+- **Slack ingress.** Signed POST endpoints under `/slack/commands`, `/slack/interactive`, and
+  `/slack/events` use a dedicated body cap (`AB_MAX_SLACK_BODY_BYTES`, default 64 KiB) and their own
+  request-count bucket (`AB_SLACK_RATE_LIMIT_*`). Invalid signatures are throttled separately
+  (`AB_SLACK_INVALID_SIGNATURE_*`) so forged traffic cannot force unbounded body buffering or burn
+  workers before signature verification completes.
+- **Cost-aware compute admission.** After schema validation, expensive `/api/v1/results*` and bandit
+  simulation estimate cost units (analyzer type, N, resamples/table size) and acquire a process-local
+  heavy/cheap concurrency + in-flight cost budget (`AB_COMPUTE_*`) before resampling starts. Overload
+  returns `429` with `error_code=compute_capacity_exceeded` and `Retry-After`. Cheap summary tests use
+  a separate lane so they stay available under heavy load. Request-count rate limits remain the first
+  layer; admission is the second.
 
 ## Topology (supported scale)
 
-**Supported topology: single application instance.** Rate limits, auth-failure throttles, and RED
-request counters live in process memory. Running multiple app replicas without a shared edge/Redis
-rate limiter will fragment those controls (each replica has its own buckets and telemetry).
+**Supported topology: single application instance.** Rate limits, auth-failure throttles, compute
+admission budgets, and RED request counters live in process memory. Running multiple app replicas
+without a shared edge/Redis rate limiter will fragment those controls (each replica has its own
+buckets and telemetry).
 
 The **data plane** can still be external:
 
@@ -189,6 +202,10 @@ Diagnostics declare this explicitly:
 
 ## Retention and backup
 
+- **Legacy optional SQLite remote snapshot code.** The repository still contains optional
+  HF Dataset snapshot helpers (`AB_HF_*` env vars, unit-tested). They are **not** a supported
+  production backup path, not a publication target, and outside project closure. Prefer
+  managed PostgreSQL backups (below) or signed workspace exports for durable recovery.
 - **Backups.** Use managed PostgreSQL automated backups, or schedule `pg_dump`:
 
   ```bash

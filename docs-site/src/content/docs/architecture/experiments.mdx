@@ -64,7 +64,7 @@ flowchart TD
 | `cluster` | `cluster_design_effect`, `inflate_for_cluster_design` | `app/backend/app/stats/cluster.py` |
 | `continuous` | `calculate_cuped_variance_reduction`, `calculate_cuped_theta`, `calculate_detectable_mde_continuous`, `calculate_continuous_sample_size` | `app/backend/app/stats/continuous.py` |
 | `cox_ph` | `cox_ph_treatment_effect` | `app/backend/app/stats/cox_ph.py` |
-| `cuped` | `dot`, `quadratic_form`, `solve_linear_system`, `cuped_theta`, `adjusted_variance` | `app/backend/app/stats/cuped.py` |
+| `cuped` | `dot`, `quadratic_form`, `solve_linear_system`, `_pivoted_cholesky_indices`, `solve_psd_system`, `cuped_theta`, `adjusted_variance` | `app/backend/app/stats/cuped.py` |
 | `duration` | `estimate_experiment_duration_days` | `app/backend/app/stats/duration.py` |
 | `equivalence` | `_welch_degrees_of_freedom`, `tost_equivalence_test`, `tost_power`, `calculate_tost_sample_size` | `app/backend/app/stats/equivalence.py` |
 | `fisher_exact` | `_log_binomial`, `_hypergeometric_pmf`, `fisher_exact_test`, `fisher_exact_odds_ratio_midp_ci`, `_binomial_logpmf`, `fisher_exact_power`, `_binary_z_sample_size`, `calculate_fisher_exact_sample_size` | `app/backend/app/stats/fisher_exact.py` |

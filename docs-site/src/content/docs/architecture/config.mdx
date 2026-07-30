@@ -7,7 +7,7 @@ import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
 
 <CardGrid>
   <Card title="Environment variables" icon="document">
-    56
+    67
   </Card>
   <Card title="Slack manifest" icon="puzzle">
     present
@@ -27,10 +27,16 @@ import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
 | `AB_ALLOW_INSECURE_PRODUCTION` | Application | `False` |
 | `AB_API_TOKEN` | Auth | `None` |
 | `AB_APP_NAME` | Application | `AB Test Research Designer API` |
-| `AB_APP_VERSION` | Application | `1.3.0` |
+| `AB_APP_VERSION` | Application | `1.3.1` |
 | `AB_AUTH_FAILURE_LIMIT` | Runtime guard | `20` |
 | `AB_AUTH_FAILURE_WINDOW_SECONDS` | Runtime guard | `60` |
 | `AB_BUILD_SHA` | Application | `None` |
+| `AB_COMPUTE_ACQUIRE_TIMEOUT_MS` | Application | `50` |
+| `AB_COMPUTE_ADMISSION_ENABLED` | Application | `True` |
+| `AB_COMPUTE_MAX_CHEAP_CONCURRENT` | Application | `32` |
+| `AB_COMPUTE_MAX_COST_UNITS_IN_FLIGHT` | Application | `250` |
+| `AB_COMPUTE_MAX_HEAVY_CONCURRENT` | Application | `2` |
+| `AB_COMPUTE_RETRY_AFTER_SECONDS` | Application | `2` |
 | `AB_CORS_HEADERS` | HTTP | `DEFAULT_CORS_HEADERS` |
 | `AB_CORS_METHODS` | HTTP | `DEFAULT_CORS_METHODS` |
 | `AB_CORS_ORIGINS` | HTTP | `("http://127.0.0.1:5173", "http://localhost:5173")` |
@@ -53,6 +59,7 @@ import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
 | `AB_LOG_FORMAT` | Application | `plain` |
 | `AB_LOG_LEVEL` | Application | `INFO` |
 | `AB_MAX_REQUEST_BODY_BYTES` | Runtime guard | `1_048_576` |
+| `AB_MAX_SLACK_BODY_BYTES` | Slack | `65_536` |
 | `AB_MAX_WORKSPACE_BODY_BYTES` | Runtime guard | `8_388_608` |
 | `AB_MISTRAL_API_KEY` | Auth | `None` |
 | `AB_MISTRAL_MODEL` | Application | `mistral-small-latest` |
@@ -71,6 +78,10 @@ import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
 | `AB_SERVE_FRONTEND_DIST` | Application | `True` |
 | `AB_SLACK_CLIENT_ID` | Slack | `None` |
 | `AB_SLACK_CLIENT_SECRET` | Slack | `None` |
+| `AB_SLACK_INVALID_SIGNATURE_LIMIT` | Slack | `20` |
+| `AB_SLACK_INVALID_SIGNATURE_WINDOW_SECONDS` | Slack | `60` |
+| `AB_SLACK_RATE_LIMIT_REQUESTS` | Slack | `60` |
+| `AB_SLACK_RATE_LIMIT_WINDOW_SECONDS` | Slack | `60` |
 | `AB_SLACK_REVIEW_CHANNEL` | Slack | `None` |
 | `AB_SLACK_SIGNING_SECRET` | Slack | `None` |
 | `AB_SQLITE_BUSY_TIMEOUT_MS` | Data store | `5000` |

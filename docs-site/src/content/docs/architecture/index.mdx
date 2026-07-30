@@ -51,5 +51,5 @@ flowchart TD
 | --- | --- | --- | --- |
 | Workspace database | SQLite at `app/backend/data/projects.sqlite3` | Postgres through `AB_DATABASE_URL` | Projects, analysis runs, exports, audit events, templates, API keys, webhooks, Slack installs |
 | Frontend build | `app/frontend/dist` | Docker image or external static host | Vite bundle served by FastAPI when `AB_SERVE_FRONTEND_DIST=true` |
-| Snapshot dataset | Disabled | Hugging Face Dataset via `AB_HF_SNAPSHOT_REPO` and `AB_HF_TOKEN` | Periodic SQLite backup restore/push loop |
+| Snapshot dataset | Disabled | Legacy optional `AB_HF_*` code remains in-repo but is unsupported | Not a publication or production backup path |
 | Generated docs | `docs-site/src/content/docs` | GitHub Pages artifact | Synced markdown, route catalog, experiment catalog, configuration matrix |

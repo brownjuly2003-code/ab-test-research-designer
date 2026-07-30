@@ -106,9 +106,8 @@ egress address (`curl -s https://ipinfo.io/ip`). After raising the hop count, re
 response must show `resolved_from: "forwarded_header"` and `resolved_client` equal to your egress
 address, not something you supplied in the marker.
 
-For the hosted Hugging Face demo this procedure was run on 2026-07-09 and measured exactly one
-appended entry, so the deploy workflow (`.github/workflows/deploy-hf.yml`) pins
-`AB_TRUSTED_PROXY_HOPS=1` on the Space. Re-measure before changing it.
+Re-measure before changing hop counts on any reverse-proxied deployment: an over-declared hop
+count lets a visitor prepend entries and pick their own rate-limit bucket.
 
 Setting `AB_TRUSTED_PROXIES` without a non-zero hop count is a startup error.
 
@@ -133,6 +132,14 @@ Notes:
 - `AB_DB_POOL_SIZE` controls the psycopg connection pool; increase it for multi-worker deploys
 - `AB_DB_PATH`, `AB_SQLITE_BUSY_TIMEOUT_MS`, `AB_SQLITE_JOURNAL_MODE`, and `AB_SQLITE_SYNCHRONOUS` still apply only to SQLite
 
+## Legacy SQLite remote snapshot (unsupported publication path)
+
+Optional HF Dataset snapshot code remains in the repository (`AB_HF_*` env vars and
+`SnapshotService`) and is covered by the in-repo unit suite. It is **not** a supported
+publication, demo, or production backup target (owner decision 2026-07-30) and is outside
+project closure. Do not use it as an operational recovery recipe; prefer signed workspace
+exports for portable SQLite demos and managed PostgreSQL backups for production.
+
 Migration guide from SQLite:
 
 ```bash
@@ -140,11 +147,17 @@ sqlite3 D:\AB_TEST\app\backend\data\projects.sqlite3 .dump > workspace.sql
 psql postgresql://postgres:postgres@localhost:5432/abtest -f workspace.sql
 ```
 
-## Demo seeding on Hugging Face
+## Demo seeding (local / container)
 
-When `AB_SEED_DEMO_ON_STARTUP=true`, the backend runs a one-time startup hook after SQLite initialization and seeds the workspace with three demo projects: checkout conversion, pricing sensitivity, and onboarding completion. Each seeded project gets a saved analysis snapshot, and the checkout project also gets a markdown export event so the hosted UI shows populated sidebar and history views on first load.
+The supported demo path is the local runner:
 
-For Hugging Face Spaces Docker deployments, keep the image default as `AB_SEED_DEMO_ON_STARTUP=false` and set `AB_SEED_DEMO_ON_STARTUP=true` in the Space Settings UI. Hugging Face Spaces currently injects runtime variables from Settings, not README frontmatter.
+```bash
+python scripts/run_local.py --seed-demo
+```
+
+That populates the local SQLite workspace with four demo projects (checkout conversion, pricing sensitivity, onboarding completion, and feed ad click-through ratio), each with analysis/history data as applicable. Open `http://127.0.0.1:8008`.
+
+When `AB_SEED_DEMO_ON_STARTUP=true`, the backend also runs the same idempotent startup seed after SQLite initialization (useful for Docker Compose or other self-hosted containers). The image default remains `AB_SEED_DEMO_ON_STARTUP=false`.
 
 Disable seeding by setting:
 
@@ -152,13 +165,13 @@ Disable seeding by setting:
 set AB_SEED_DEMO_ON_STARTUP=false
 ```
 
-Re-seed by starting from a fresh SQLite file and restarting the container. On Hugging Face Spaces basic storage this already happens on cold restarts because `/app/data/projects.sqlite3` is ephemeral. On a persistent runtime, either delete the SQLite file before restart or delete the demo projects through `DELETE /api/v1/projects/{id}` with a write-capable token and restart the app.
+Re-seed by starting from a fresh SQLite file and restarting the process, or by deleting demo projects through `DELETE /api/v1/projects/{id}` with a write-capable token and restarting with the seed flag.
 
-Quick verification after deploy:
+Quick verification on the local runtime:
 
 ```bash
-curl https://YOUR-SPACE.hf.space/api/v1/projects
-curl https://YOUR-SPACE.hf.space/api/v1/projects/PROJECT_ID/history
+curl http://127.0.0.1:8008/api/v1/projects
+curl http://127.0.0.1:8008/api/v1/projects/PROJECT_ID/history
 ```
 
 ## Quick checks
@@ -172,7 +185,7 @@ If `AB_API_TOKEN` or `AB_READONLY_API_TOKEN` is enabled, send either:
 - `Authorization: Bearer <token>`
 - `X-API-Key: <token>`
 
-Read-only tokens allow `GET`/`HEAD`/`OPTIONS` plus the stateless calculation endpoints (`/calculate`, `/analyze`, `/results/*`, exports, and similar compute-only POSTs). Anything that changes stored state still requires the write token. Setting `AB_PUBLIC_DEMO=true` gives anonymous visitors the same read-only scope instead of `401` (hosted-demo mode).
+Read-only tokens allow `GET`/`HEAD`/`OPTIONS` plus the stateless calculation endpoints (`/calculate`, `/analyze`, `/results/*`, exports, and similar compute-only POSTs). Anything that changes stored state still requires the write token. Setting `AB_PUBLIC_DEMO=true` gives anonymous visitors the same read-only scope instead of `401` (self-hosted public-demo mode).
 When the frontend is served, enter the token through the "API session token" field; it is stored only in the current browser session.
 When throttling is enabled, bursty `/api/v1/*` traffic and repeated bad tokens return `429` with `Retry-After`.
 
@@ -454,7 +467,7 @@ Rotate secrets from the Slack App configuration, update runtime secrets, restart
 `slack_installations.bot_token` and `slack_installations.user_token` are stored **plaintext** in SQLite (or Postgres if `AB_DATABASE_URL` is set). The threat model is local-first single-user use, where access to the SQLite file already implies host compromise. Specifically:
 
 - `data/projects.sqlite3` and any custom `AB_DB_PATH` should sit on a filesystem that only the application user can read.
-- Hugging Face Spaces and similar hosted demos: do **not** install Slack in production-grade workspaces from the demo. Use a sandbox Slack workspace or skip the integration.
+- Public or disposable demos: do **not** install Slack in production-grade workspaces from the demo. Use a sandbox Slack workspace or skip the integration.
 - For a self-hosted production deployment, restrict access to the database file at the filesystem layer (e.g. `chmod 600`, encrypted volume, AWS KMS-backed EFS), and rotate Slack tokens promptly if compromise is suspected.
 - Token rotation: re-run `/slack/install` to overwrite the row; the previous token becomes inactive in Slack as well.
 

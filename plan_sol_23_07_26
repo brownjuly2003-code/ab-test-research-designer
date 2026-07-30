@@ -6,6 +6,28 @@
 
 ## Журнал сессий
 
+### 2026-07-30 — HF publication path retired (owner decision) + docs/workflows
+
+- **Owner decision (2026-07-30):** Hugging Face is **not** used for this project
+  going forward. Public-HF-demo closure branch is **explicitly retired**, not
+  verified. Publication/acceptance path = GitHub (source, Actions, Pages,
+  Releases, GHCR) + supported local runtime (`scripts/run_local.py`).
+- **Docs/workflows (this session, no commit/push by default):** reader-facing
+  README / DEPLOY / RUNBOOK / PRODUCTION / RELEASE_CHECKLIST / PROJECT_CLOSURE
+  and docs-site status made local-first / GitHub-only; active workflows
+  `deploy-hf.yml` and `space-maintenance.yml` deleted (Git-recoverable).
+  Runtime snapshot code / `scripts/deploy_hf.py` retained but unsupported.
+- **Owner authorization (2026-07-30):** GitHub push, tag/`v1.3.1` Release, and
+  GHCR publication are **authorized**. Execution and evidence remain **pending**
+  (no release SHA / Actions run IDs / GHCR digests recorded yet).
+- **Remaining external gate (GitHub-only, authorized, not yet executed):** push +
+  green CI on the closing SHA, patch release/tag `v1.3.1`, GHCR evidence. No HF
+  verify, no disposable HF drill, no HF owner gate.
+- **Local evidence (verified path, not a substitute for GitHub publication):**
+  `python scripts/run_local.py --bootstrap` (first run), subsequent
+  `python scripts/run_local.py`, seeded demo `python scripts/run_local.py --seed-demo`,
+  UI/API `http://127.0.0.1:8008`.
+
 ### 2026-07-30 — documentation closure vs audited HEAD → core plan CLOSED locally
 
 - **Audited implementation HEAD:** `a906ed2d3c6bf9e0409c3262f02f1add5d119cfc`
@@ -34,8 +56,10 @@
   - Dependabot merges on `main`: `#129`, `#130`, `#131`, `#132`, `#134`;
     `#133` closed without merge (live check 2026-07-30).
 - **Classification of remaining non-core items:**
-  - `external gate`: release/tag, GHCR, HF verify/retire, disposable snapshot
-    drill, push authorization;
+  - `external gate` (GitHub-only): owner authorization **granted**; push,
+    release/tag `v1.3.1`, and GHCR evidence still **pending execution**; HF
+    verify/retire and disposable HF drill are **retired completed**, not open
+    gates;
   - `future` (optional reopen only): Bayesian MWE, explicit OpenAPI policy
     fields, export/history policy evidence, React Compiler / exhaustive-deps
     error promotion, RTL smoke, cold-start restore ordering, worst-case compute
@@ -784,9 +808,9 @@ historical local-environment notes, not open code work.
 
 ## Итоговый Definition of Done программы
 
-**Статус 2026-07-30:** mandatory code items **закрыты локально**. Owner publish
-gates (release/tag, GHCR, HF verify/retire, disposable remote drill) remain
-`external gate` and do not reopen the code plan.
+**Статус 2026-07-30:** mandatory code items **закрыты локально**. Owner decision
+retired the HF publication path. Remaining owner publish gates are GitHub-only
+(push/CI, release/tag, GHCR) and do not reopen the code plan.
 
 1. ~~HF snapshot доказанно включает WAL-visible committed state и восстанавливается атомарно с migrations.~~ ✅ шаг 2
 2. ~~Primary/holdout/timing (+ CUPED/ratio follow-up) используют одну canonical/exclusion population semantics.~~ ✅ шаг 3 + `e18e2a3d`/`530c6db2`
@@ -795,5 +819,6 @@ gates (release/tag, GHCR, HF verify/retire, disposable remote drill) remain
 5. ~~`ship` требует practical, а не только statistical evidence.~~ ✅ шаг 6 core
 6. ~~API key scopes соответствуют реальным permissions.~~ ✅ шаг 7
 7. ~~Frontend использует generated contracts, полный i18n gate и lint/a11y checks.~~ ✅ шаги 8/10 local gate
-8. ~~Dependency scans green, scientific oracle воспроизводим; local recovery suite green.~~ ✅ шаги 1/9/10; live disposable HF drill = `external gate`
+8. ~~Dependency scans green, scientific oracle воспроизводим; local recovery suite green.~~ ✅ шаги 1/9/10; live disposable HF drill **retired** (owner 2026-07-30), not an open gate
 9. ~~Code/CI evidence pinned to exact SHA `58f48b14`; audited implementation HEAD `a906ed2d`.~~ ✅ `docs/PROJECT_CLOSURE.md`
+10. ~~HF publication path retired from active docs/workflows.~~ ✅ owner decision 2026-07-30

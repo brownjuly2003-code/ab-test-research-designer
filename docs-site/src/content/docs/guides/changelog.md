@@ -7,9 +7,76 @@ editUrl: "https://github.com/brownjuly2003-code/ab-test-research-designer/edit/m
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-07-30
+
+### Added
+
+- `docs/PROJECT_CLOSURE.md` freezes the shipped product scope, classifies
+  historical/research plans as non-active work, records preserved local
+  artifacts, and keeps the final publish/release/demo evidence gates explicit.
+- No-Docker single-port local runner (`scripts/run_local.py`): bootstrap venv,
+  install backend lock, build frontend dist, and serve the product on one port
+  without Compose. Documented in README; covered by `test_run_local_script.py`.
+
+### Changed
+
+- Hugging Face publication path retired (owner decision 2026-07-30): current
+  operational docs and the public docs-site are local-first / GitHub-only;
+  GitHub-to-HF workflows `deploy-hf.yml` and `space-maintenance.yml` removed
+  from the active tree. Legacy optional snapshot code remains in-repo but is
+  not a supported publication target and is outside closure.
+
+### Security
+
+- frontend `eslint-toolchain`: pin transitive `brace-expansion` to audit-clean `5.0.8` via npm `overrides` (GHSA-mh99-v99m-4gvg / CVE-2026-14257), plus a dual-API compat preload so minimatch@3 (eslint-plugin-react / jsx-a11y) still accepts brace globs while modern `.expand` consumers keep working. Lint runs a deterministic preflight; `npm audit --audit-level=high` is clean after clean install.
+- docs-site: pin transitive `svgo` to `4.0.2` via npm `overrides` (GHSA-2p49-hgcm-8545 / removeScripts). `npm audit --audit-level=high` is clean after clean install.
+- docs-site: replace compromised Astro lock/package resolution state
+  (`7e5f2657`) so clean install, audit, tests, and production build stay green.
+- Slack ingress (audit F-05): `/slack/commands|interactive|events` now share a dedicated body cap (`AB_MAX_SLACK_BODY_BYTES`, default 64 KiB) and request-count rate limit; invalid signatures are throttled (`AB_SLACK_INVALID_SIGNATURE_*`) before form/json parsing. Oversized bodies return 413 without unbounded buffering.
+- Cost-aware compute admission (audit F-06): expensive `/api/v1/results*` and bandit simulation estimate cost units after schema validation (analyzer type, N, resamples/table size) and acquire a bounded heavy/cheap concurrency + in-flight cost budget before resampling starts. Overload returns 429 `compute_capacity_exceeded` with `Retry-After`; cheap summary tests keep a separate lane.
+- API key scopes (audit F-09): issued keys are only `read`/`write`. Schema and UI no longer offer `admin`. Legacy stored `scope=admin` keys normalize to `write` on startup with an audit entry (`api_key_scope_normalized`). Operator surfaces (`/api/v1/keys`, `/api/v1/webhooks`) require static `AB_ADMIN_TOKEN` only; missing token returns `401`/`admin_token_not_configured`, and a write key attempting operator routes returns `403`/`admin_token_required`.
+
+### Changed
+
+- Frontend API client split (plan step 8): monolithic `lib/api.ts` → domain modules under `lib/api/` (`client`, `projects`, `analysis`, `keys`, `webhooks`, `system`, `workspace`) with a stable `lib/api.ts` facade. `ApiKey*` / `Webhook*` DTOs re-export OpenAPI-generated types instead of hand-maintained duplicates.
+- `ApiKeyManager` i18n (×7 locales) plus create-modal keyboard a11y (focus trap, Escape, focus restore) and destructive delete confirmation via `InlineConfirmButton`.
+- `ComparisonDetails` i18n (×7 locales): saved snapshot comparison labels no longer hardcode English.
+- Locale key parity + static `t()` usage gate (`scripts/check_locale_parity.py`) in `verify_all` and CI: plural-family-aware coverage vs `en.json`, stale extras fail, missing catalog keys used in `src` fail.
+- Frontend ESLint flat baseline (TS parser, React hooks `rules-of-hooks`, JSX a11y) via side-by-side `eslint-toolchain` (TypeScript 5.9) while the app stays on TypeScript 7; wired into `npm run lint` / `verify_all` / CI.
+- Bundle budget gate reports per-chunk raw/gzip sizes and total gzip; hard ceilings unchanged. Raising budgets requires ADR (`docs/adr/0002-frontend-bundle-budget.md`).
+- Scientific oracle gate (plan step 9): optional pinned SciPy/statsmodels/lifelines environment (`app/backend/requirements-oracle.txt`) plus `scripts/run_statistical_oracle.py`, producing `.ci-artifacts/statistical-oracle.json` with dependency versions, method-specific tolerances, and 97 differential/metamorphic checks across Student/F tails, binary intervals, exact/count/categorical tests, robust/paired/omnibus/survival/Cox, ratio delta method, SRM, multiple-testing, CUPED, cluster design effects, sequential boundaries, Bayesian precision sizing, always-valid inference, and guardrails. CI now uploads the oracle artifact and runs the job on PR/main, manual, and weekly scheduled workflows; production requirements stay unchanged.
+- Decision readout practical-significance policy `practical_v1` (audit F-07 / ADR 0001): `ship` now requires a statistical win **and** CI lower bound ≥ design minimum worthwhile effect (absolute MDE from `mde_pct`). Trivial-but-significant effects become `no_ship` / `keep_running` with machine-readable reason codes. Response includes `policy` + `evidence` (policy version, MWE, planned power); observed post-hoc power is explicitly not used for the verdict. Live history snapshots are not rewritten.
+
 ### Fixed
 
+- `check_locale_content.py` docstring no longer claims a non-existent CI key-parity gate; it only scans values for mojibake/U+FFFD.
+- Broken `t("comparison.loading")` key in `ComparisonSection` → `results.comparison.loading`.
+- Wizard field labels for count/ratio/Bayesian/exposure keys now exist in all 7 locales (were RU-only extras / EN `defaultValue` fallbacks).
+- jsdom Canvas noise: stable `HTMLCanvasElement.getContext` / `toDataURL` stubs in vitest setup (typed for TS 7).
+- PostgreSQL parameter typing (audit F-03): removed content-based `{`/`[` + `json.loads` → `Jsonb` inference. Intentional JSON/JSONB values bind via explicit `JsonParam`; JSON-looking TEXT (`project_name`, `user_id`, `metric`, `stratum`, exclusion reasons, …) round-trips unchanged on SQLite and PostgreSQL. `?` → `%s` remains a documented temporary portability shim.
+- Analytical population (audit F-02): primary, holdout, strata, and event-timing now share one `analytical_population_v1` contract (identity one-hop fold, first-exposure-wins, manual + rate-spike exclusions). Holdout no longer groups by raw `user_id` without identity/exclusions. Live-stats gains a `population` fingerprint block; identity ingest rejects chain/cycle links.
+- CUPED and ratio rollups now use the same `analytical_population_v1` contract
+  as primary/holdout/timing/strata (identity fold, first-exposure-wins, manual
+  + rate-spike exclusions); residual raw-`user_id` path closed
+  (`e18e2a3d`, `530c6db2`; `test_analytical_population.py`).
+- Stable centered moments for continuous primary/holdout/guardrail/stratified,
+  CUPED, and ratio aggregates so large-magnitude metric values no longer
+  collapse `centered_sxx`/`syy`/`sxy` to zero under float accumulation.
+- PostgreSQL `conversions.value` promoted from REAL to DOUBLE PRECISION
+  (migration 17, `58f48b14`) so ratio/CUPED metric precision matches SQLite
+  float64 semantics near large means.
+- HF SQLite snapshots are now WAL-consistent and atomic: push stages via `sqlite3.Connection.backup()` (includes WAL-visible commits), runs `PRAGMA quick_check`, and uploads DB+metadata in one HF `create_commit`. Restore binds both artifacts to one remote revision, refuses corrupt/SHA-mismatched DBs without replacing a working file, and re-runs schema bootstrap after replace so schema `N-1` snapshots migrate to the build `user_version`.
+- HF SQLite restore keeps a pre-replace rollback copy and reverts the live DB if post-replace migrate/smoke fails; WAL/SHM sidecars are cleared on replace. Push/restore emit structured metrics (`snapshot_push` / `snapshot_restore`). Concurrent-writer backup integrity and fault-injected `create_commit` failure (previous revision still restorable) are covered by tests.
 - SQLite connections are now closed deterministically: `_BackendCore._transaction()` wraps every repository query (transaction scope + `close()`), replacing the bare `with self._connect()` pattern whose context manager only commits and leaves the file handle to the GC. Surfaced as ~4.5k `ResourceWarning`s once pytest-cov 7 stopped suppressing them; the postgres pooled wrapper gained a no-op `close()` since its `__exit__` already returns the connection to the pool.
+- Mobile topbar overflow: narrow viewports wrap `.topbar-inner` / `.topbar-controls` so language/theme controls no longer clip off-screen.
+- Landing WCAG AA / semantic-region gate: EmptyState demo list is a labeled `section`, accent tokens split fill vs on-surface (`--color-primary-fg`) with muted text raised for AA contrast, and the Playwright e2e smoke asserts axe WCAG 2.0/2.1 A/AA plus theme-settled contrast on the landing surface.
+
+### Dependencies
+
+- 2026-07-29 Dependabot wave on `main` (merged): frontend minor/patch group
+  (`#129`), actions minor/patch group (`#130`), `actions/setup-python` major
+  (`#131`), `actions/setup-node` major (`#132`), `@astrojs/starlight` (`#134`).
+  PR `#133` (hypothesis pip-minor-patch) closed without merge.
 
 ## [1.3.0] - 2026-07-18
 

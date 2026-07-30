@@ -1,12 +1,5 @@
 ---
-title: AB Test Research Designer
-emoji: 🧪
-colorFrom: blue
-colorTo: green
-sdk: docker
-app_port: 8008
-pinned: false
-license: mit
+title: "Project overview"
 editUrl: "https://github.com/brownjuly2003-code/ab-test-research-designer/edit/main/README.md"
 ---
 
@@ -41,23 +34,41 @@ It combines:
 - preflight workspace validation before import, plus runtime SQLite write-probe diagnostics
 <!-- docs-site:index:end -->
 
+## Project status
+
+The current product scope is feature-frozen for final closure. Historical and
+research-plan disposition, preserved local artifacts, and the remaining
+external publish/release/demo gates are recorded in
+[docs/PROJECT_CLOSURE.md](https://github.com/brownjuly2003-code/ab-test-research-designer/blob/main/docs/PROJECT_CLOSURE.md). Until those external gates
+pass, the status is **closure candidate**, not closed.
+
 ## Demo
 
-**Live demo:** https://liovina-ab-test-research-designer.hf.space (hosted on Hugging Face Spaces, free CPU tier — first cold request may take a few seconds)
+The supported demo is the **local seeded product** on a single UI/API port.
 
-The hosted demo is seeded with four sample projects (checkout conversion, pricing sensitivity, onboarding completion, and feed ad click-through ratio), each with a completed analysis run and seeded live-experiment data (plus an export on the first one), so the sidebar and history views are populated on first load. For Hugging Face Spaces, set `AB_SEED_DEMO_ON_STARTUP=true` in Space Settings.
+First-time setup (creates `.venv`, installs backend deps, builds the frontend):
 
-For persistent hosted state on Hugging Face Spaces, also set:
+```bash
+python scripts/run_local.py --bootstrap
+```
 
-- `AB_HF_SNAPSHOT_REPO` to the private dataset repo id, for example `liovina/ab-test-designer-snapshots`
-- `AB_HF_TOKEN` to a Hugging Face token with dataset write access, stored only as a Space Secret
-- `AB_HF_SNAPSHOT_INTERVAL_SECONDS` to control periodic snapshot uploads; default is `900`, and `0` disables the background loop
+Subsequent runs:
 
-With those variables configured, the backend restores the latest `projects.sqlite3` snapshot on startup, still runs the idempotent demo seed afterwards (so seeded live-experiment data survives a restore that predates it), uploads periodic dataset snapshots while the Space is running, and attempts one final push during shutdown.
+```bash
+python scripts/run_local.py
+```
+
+Seeded demo workspace (four sample projects with analysis runs and live-experiment data):
+
+```bash
+python scripts/run_local.py --seed-demo
+```
+
+Then open **http://127.0.0.1:8008**. The seed is idempotent and loads checkout conversion, pricing sensitivity, onboarding completion, and feed ad click-through ratio so the sidebar and history views are populated.
 
 [![GHCR](https://img.shields.io/github/v/tag/brownjuly2003-code/ab-test-research-designer?label=ghcr.io&logo=docker)](https://github.com/brownjuly2003-code/ab-test-research-designer/pkgs/container/ab-test-research-designer)
 
-Deploy your own: see [docs/DEPLOY.md](/ab-test-research-designer/guides/deploy/). Release prep files: [fly.toml](https://github.com/brownjuly2003-code/ab-test-research-designer/blob/main/fly.toml) and [docs/RELEASE_NOTES_v1.3.0.md](/ab-test-research-designer/guides/release_notes_v1-3-0/).
+Container and self-host packaging: [docs/DEPLOY.md](/ab-test-research-designer/guides/deploy/). Release prep files: [fly.toml](https://github.com/brownjuly2003-code/ab-test-research-designer/blob/main/fly.toml) and [docs/RELEASE_NOTES_v1.3.1.md](/ab-test-research-designer/guides/release_notes_v1-3-1/) (source prepared for **v1.3.1**; latest published release remains **v1.3.0** until tag/Release/GHCR complete). Publication and acceptance are GitHub (source, Actions, Pages, Releases, GHCR) plus this local runtime — not a hosted third-party demo.
 
 Sample import payload:
 
@@ -73,7 +84,7 @@ runs analysis, captures comparison and webhook views, and exports a report:
 ![Multi-project comparison](/ab-test-research-designer/demo/comparison-dashboard.png)
 ![Webhook manager](/ab-test-research-designer/demo/webhook-manager.png)
 
-The screenshots follow the real v1.1.0 path through the product: wizard overview, review step, and the post-analysis results dashboard.
+The screenshots follow the current product path: wizard overview, review step, and the post-analysis results dashboard.
 They then switch to saved-project comparison to show the multi-project power-curve and forest-plot dashboard with seeded snapshots.
 The final image shows the admin-side webhook manager with a seeded Slack-style subscription in the sidebar tools area. The Slack App flow adds OAuth installation and `/ab-test` commands alongside the older one-way webhook path.
 
@@ -115,8 +126,8 @@ Full inputs and outputs: [docs/case-studies/checkout-redesign.json](https://gith
 Post-v1.1.0 Tier 2/3 roadmap items are all landed as of 2026-04-25.
 
 **Landed:**
-- **Portfolio polish.** HF Space startup seed, v1.1.0 screenshots, case-study section, GHCR Docker publish, dynamic shields.io badges.
-- **Product quality.** Locale parity at 940 leaf keys across all shipped UI locales (en/ru/de/es/fr/zh/ar — including the Slack-App admin block), HF Dataset SQLite snapshot service, optional OpenAI/Anthropic adapter via browser-session token, Astro Starlight docs site at [brownjuly2003-code.github.io/ab-test-research-designer](https://brownjuly2003-code.github.io/ab-test-research-designer/), 10-template industry gallery.
+- **Portfolio polish.** Local startup seed / demo workspace, product screenshots, case-study section, GHCR Docker publish, dynamic shields.io badges.
+- **Product quality.** Locale parity at 940 leaf keys across all shipped UI locales (en/ru/de/es/fr/zh/ar — including the Slack-App admin block), optional OpenAI/Anthropic adapter via browser-session token, Astro Starlight docs site at [brownjuly2003-code.github.io/ab-test-research-designer](https://brownjuly2003-code.github.io/ab-test-research-designer/), 10-template industry gallery.
 - **Hardening.** Monte-Carlo distribution overlay with interactive probability slider, French / Simplified-Chinese / Arabic locales (+RTL for Arabic), extended Hypothesis property coverage (numerical stability + Bayesian edges + Monte-Carlo determinism), bundle optimization (main chunk 247 → 122 KB gzip via lazy-load locales + vendor chunks), optional Postgres backend via `AB_DATABASE_URL` with CI matrix coverage, Slack App integration with OAuth install + slash commands + interactive actions.
 
 **Dropped as out-of-scope for a portfolio/demo:** manual NVDA / JAWS audit (automated axe a11y coverage sufficient here).
@@ -185,21 +196,80 @@ The paired and omnibus rows are within-subject and multi-group designs respectiv
 
 ## Local setup
 
+This is the downloadable local product (clone or image on your machine). It is the supported way to run and evaluate the demo.
+
+Zero-config local runs use SQLite and need no secrets. Optional LLM provider tokens are pasted into the UI and remain browser-session-only rather than backend env.
+
+### No Docker, single-port product (recommended)
+
 Prerequisites:
 
-- Python 3.14 (the version CI tests and mypy targets)
-- Node.js LTS
+- Python 3.13+ (CI and mypy use Python 3.14)
+- Node.js LTS with npm
 - Git
+
+On the first run, opt in to the dependency downloads and locked frontend build:
+
+```bash
+python scripts/run_local.py --bootstrap
+```
+
+The runner prints every external command before executing it, creates `.venv`,
+installs `app/backend/requirements.txt`, runs `npm ci` plus the Vite production
+build, and then serves the UI and API together on `http://127.0.0.1:8008`.
+It does not copy `.env` or reuse inherited Postgres, remote-snapshot, or
+shared-auth secrets.
+
+Subsequent runs do not install or download anything:
+
+```bash
+python scripts/run_local.py
+```
+
+To populate the local SQLite workspace with the four demo projects:
+
+```bash
+python scripts/run_local.py --seed-demo
+```
+
+The following commands show the install, build, and manual backend-start steps
+only. They do not reproduce the runner's isolated SQLite, single-port, and
+inherited-secret-scrubbing environment. For the supported zero-secret local
+path, run `python scripts/run_local.py`; add `--bootstrap` on first setup.
+
+```bash
+python -m venv .venv
+# Activate .venv, then:
+python -m pip install -r app/backend/requirements.txt
+npm --prefix app/frontend ci
+npm --prefix app/frontend run build
+python -m uvicorn app.backend.app.main:app --host 127.0.0.1 --port 8008
+```
+
+To verify the local runner contract:
+
+```bash
+python -m pytest -p no:cacheprovider app/backend/tests/test_run_local_script.py -q
+```
+
+### Docker (optional)
+
+If Docker is available, the existing container path remains:
+
+```bash
+docker compose up --build
+```
+
+To seed container demo data on startup, set `AB_SEED_DEMO_ON_STARTUP=true`.
+For the supported local runner, prefer `python scripts/run_local.py --seed-demo`.
 
 Environment template:
 
 - start from [.env.example](https://github.com/brownjuly2003-code/ab-test-research-designer/blob/main/.env.example)
 - set `AB_API_TOKEN` if you want write-capable `/api/v1/*` routes protected
 - optionally set `AB_READONLY_API_TOKEN` for read-only access: diagnostics, readiness, docs, `GET` project routes, and the stateless calculation endpoints
-- optionally set `AB_PUBLIC_DEMO=true` to give anonymous visitors that same read-only scope (guest landing + calculators, no mutations) for a hosted demo
+- optionally set `AB_PUBLIC_DEMO=true` to give anonymous visitors that same read-only scope (guest landing + calculators, no mutations) for a self-hosted demo
 - optionally set `AB_WORKSPACE_SIGNING_KEY` to HMAC-sign exported workspace backups and require signed imports on that runtime
-- optionally set `AB_HF_SNAPSHOT_REPO` and `AB_HF_TOKEN` to restore/persist the SQLite workspace through a private Hugging Face Dataset snapshot
-- optionally set `AB_HF_SNAPSHOT_INTERVAL_SECONDS` to change the snapshot cadence; the default is `900`, and `0` disables the background snapshot task
 - rate limiting and auth-failure throttling are enabled by default; tune `AB_RATE_LIMIT_*` and `AB_AUTH_FAILURE_*` for stricter or looser local behavior
 - request body guards are enabled by default; tune `AB_MAX_REQUEST_BODY_BYTES` and `AB_MAX_WORKSPACE_BODY_BYTES` if you expect unusually large workspace bundles
 - when the backend is protected, paste the token into the frontend "API session token" field; it stays only in the current browser session and is not baked into the build
@@ -236,7 +306,7 @@ http://127.0.0.1:8008/readyz
 
 ```bash
 cd app/frontend
-npm install
+npm ci
 npm run dev
 ```
 

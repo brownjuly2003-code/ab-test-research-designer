@@ -102,128 +102,30 @@ docker run --rm --name ab-test-v1-slack ^
 
 Create the app from `slack/app-manifest.yml`, replace `{DEPLOY_HOST}` with the public HTTPS host, then open `/slack/install`. Rotate Slack credentials in the Slack App configuration, update runtime secrets, restart the backend, delete the affected `slack_installations` row if the bot token is being replaced, and reinstall the app.
 
-## Hugging Face Spaces Deploy (active hosted demo)
+## Publication path (GitHub + local)
 
-The current production demo lives on Hugging Face Spaces on the free CPU tier — no credit card required, Docker SDK, always-on.
-
-**Live URL:** https://liovina-ab-test-research-designer.hf.space
+Publication and acceptance for this project are **GitHub-only** (source, Actions,
+Pages, Releases, GHCR) plus the supported local runtime
+(`python scripts/run_local.py`). Hugging Face is **not** a supported publication
+or demo target (owner decision 2026-07-30). Optional legacy HF snapshot/deploy
+helpers may still exist in the repository for historical reference; they are
+outside closure and must not be treated as an active host of record.
 
 **Operator mode (`?admin=1`):** the public app shows only the planning wizard. All
 operator surfaces — the saved-project sidebar (projects, history, revisions,
 archived, workspace backup) and the **System** / **API keys** tabs (backend
 status, API session token, `AB_ADMIN_TOKEN`, Slack App, diagnostics, audit log,
 webhooks, raw endpoints) — are hidden and live behind admin mode. Open
-`…hf.space/?admin=1` to reveal them (persisted to `localStorage['ab-test:admin']`;
-clear with `?admin=0`). Logic: `app/frontend/src/lib/adminMode.ts`. The smoke
-flows (`app/frontend/src/test/e2e-smoke.spec.ts`, `scripts/run_local_smoke.py`)
+`http://127.0.0.1:8008/?admin=1` (or the equivalent self-hosted URL) to reveal
+them (persisted to `localStorage['ab-test:admin']`; clear with `?admin=0`).
+Logic: `app/frontend/src/lib/adminMode.ts`. The smoke flows
+(`app/frontend/src/test/e2e-smoke.spec.ts`, `scripts/run_local_smoke.py`)
 open `/?admin=1` so they can exercise those surfaces.
 
-Initial setup (one-time):
+## Fly.io Demo Deploy (optional self-host — not exercised by CI)
 
-1. Generate a write-scoped token at https://huggingface.co/settings/tokens
-2. Authenticate: `hf auth login --token <HF_TOKEN> --add-to-git-credential`
-3. Create the Space via API:
-
-```python
-from huggingface_hub import create_repo
-create_repo(
-    repo_id="liovina/ab-test-research-designer",
-    repo_type="space",
-    space_sdk="docker",
-    private=False,
-)
-```
-
-Required README frontmatter (already landed in `README.md`):
-
-```yaml
----
-title: AB Test Research Designer
-emoji: 🧪
-colorFrom: blue
-colorTo: green
-sdk: docker
-app_port: 8008
-license: mit
----
-```
-
-Note: `app_port` must match the port uvicorn listens on inside the container (`AB_PORT=8008` from `Dockerfile`). HF routes HTTPS traffic to that exact port.
-
-Sync code (HF rejects binary PNGs >LFS-threshold on direct git push, so the upload goes through
-the API). Always go through the script — never call `upload_folder` on the working tree by hand:
-
-```bash
-HF_TOKEN=*** python scripts/deploy_hf.py \
-    --health-url https://liovina-ab-test-research-designer.hf.space/health
-```
-
-`scripts/deploy_hf.py` is the single source of truth for what reaches the Space, and CI runs the
-same script. Two rules it enforces that a hand-rolled `upload_folder(folder_path=".")` does not:
-
-- **Only git-tracked files are published.** `upload_folder` walks the *working tree*, so a manual
-  call uploads whatever is lying around — internal audit reports, session handoffs, scratch tokens
-  — to a **public** Space. The script derives its allowlist from `git ls-files`, which is exactly
-  what a clean CI checkout contains. `scripts/deploy_hf.py --self-test` proves the filter.
-- **The Space mirrors the repo.** `upload_folder` only adds and updates; it never deletes. Without
-  the prune step a Space keeps every file any past upload left behind, including modules the repo
-  has since removed — a decommissioned `repository.py` sitting beside the `repository/` package
-  that replaced it. The script deletes whatever the upload no longer ships (keeping HF's own
-  `.gitattributes`).
-
-Preview what would be published without uploading:
-
-```bash
-python scripts/deploy_hf.py --dry-run
-```
-
-Practical notes (learned 2026-06-16, corrected 2026-07-09):
-- An HF write token may already sit in the OS git credential manager. **Check whose it is
-  before using it** — the account there is not necessarily the one that owns this Space:
-  `printf 'protocol=https\nhost=huggingface.co\n\n' | git credential fill` prints a
-  `username=` line. Note that the `hf` CLI can report "Not logged in" even when this
-  credential exists — they are separate stores; don't be misled.
-- Working-tree deploys used to require exporting a clean snapshot of `main` first, because
-  the upload carried `dist/`, caches and untracked notes. `scripts/deploy_hf.py` now filters
-  to git-tracked files itself, so run it straight from the checkout. If you ever bypass the
-  script, export the snapshot: `git archive main | tar -x -C D:/hfdeploy`, and use a **native
-  Windows path** — Git Bash `/tmp` and Windows-Python `/tmp` resolve differently, and the
-  upload fails with "is not a directory".
-- HF keeps the old container live during `RUNNING_BUILDING`, so the page does not
-  change instantly. Detect rollout by polling the live homepage's JS asset hash
-  for a **change** (`assets/index-<hash>.js`) — do NOT wait for a specific local
-  build hash, because HF's build environment produces a different hash than a
-  local `vite build`.
-
-Verify after HF finishes `APP_STARTING`:
-
-```bash
-curl https://liovina-ab-test-research-designer.hf.space/health
-# {"status":"ok","service":"AB Test Research Designer API","version":"1.1.0","environment":"demo"}
-```
-
-Space runtime posture — `.github/workflows/deploy-hf.yml` sets these before every upload
-(idempotent), so a manual deploy must not undo them:
-
-- `AB_ENV=demo` — a public host must never run the default `local` dev posture: `local` is the
-  only value that disables the webhook SSRF guard and the HTTPS-only webhook target rule. `demo`
-  keeps both active without triggering the `production` PostgreSQL/auth fail-fast contract.
-- `AB_PUBLIC_DEMO=true` — anonymous visitors get read-scope sessions (mutations 403).
-- `AB_TRUSTED_PROXY_HOPS=1` — measured on 2026-07-09 via the diagnostics network echo (see the
-  reverse-proxy section of [`docs/RUNBOOK.md`](RUNBOOK.md)): HF's router appends exactly one entry
-  to `X-Forwarded-For`, so each visitor gets their own rate-limit bucket. Do not raise this without
-  re-measuring — an over-declared hop count lets a visitor prepend entries and pick their own bucket.
-- `AB_API_TOKEN` (Space secret) — the operator write token.
-
-Known limits of the HF free tier:
-
-- container filesystem is ephemeral — SQLite data resets on every redeploy or container restart
-- 2 vCPU + 16 GB RAM, no GPU
-- docs/demo screenshots are referenced from `raw.githubusercontent.com` URLs since HF rejects large binaries without Xet storage
-
-## Fly.io Demo Deploy (alternative host — not the deployed demo)
-
-Hugging Face Spaces is the host of record for the public demo; the Fly.io path below is kept as a documented alternative and is not exercised by CI.
+The Fly.io path below is a documented optional self-host recipe. It is not
+exercised by CI and is not required for project closure.
 
 Open mode is recommended for a public showcase. This keeps the hosted demo anonymous and matches the default open runtime in the app.
 
@@ -271,7 +173,7 @@ curl http://127.0.0.1:8008/
 
 Expected responses:
 
-- `GET /health` -> `200` with `"status":"ok"` and `"version":"1.1.0"`.
+- `GET /health` -> `200` with `"status":"ok"` and the package version string.
 - `GET /readyz` -> `200` with `"status":"ready"` and all readiness checks marked `ok`.
 - `GET /api/v1/diagnostics` -> `200` and `storage.write_probe_ok=true`.
 - `GET /` -> `200` and HTML title `AB Test Research Designer`.

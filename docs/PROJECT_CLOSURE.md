@@ -99,21 +99,40 @@ Workflow runs observed on audited HEAD `a906ed2d` (push event): Tests
 `success`. A full re-statement of dependency-audit / PostgreSQL / Docker job IDs
 for `a906ed2d` is not claimed beyond those completed runs.
 
+## Owner decision: Hugging Face publication path retired (2026-07-30)
+
+Completed by owner decision on 2026-07-30 — **not** a verified public HF demo:
+
+- Hugging Face is **not** a publication, acceptance, or demo target for this
+  project going forward.
+- The public-HF-demo branch of the closure gate is **explicitly retired**.
+- GitHub-to-HF automation (`.github/workflows/deploy-hf.yml`,
+  `space-maintenance.yml`) is removed from the active tree; recovery is via
+  Git history only.
+- Optional legacy snapshot code may remain in the repository for historical
+  reference; it is **not** a supported publication target and is **outside**
+  closure. No active HF setup/deploy/recovery recipe is part of the gate.
+
 ## Owner-gated external items (not local code blockers)
 
-The product remains release-candidate until the owner completes:
+Owner authorization for the **GitHub-only** external path is **granted**
+(session 2026-07-30): push, tag/`v1.3.1` GitHub Release, and GHCR publication
+may proceed after fresh local verification. **Execution and evidence remain
+pending** — no release SHA, Actions run IDs, or GHCR digests are recorded yet.
 
-- a final release/tag with GHCR image and release evidence;
-- public Hugging Face demo verification on the closing release, or explicit
-  retirement;
-- any destructive HF snapshot corrupt/rollback drill (requires a disposable
-  repo/token; production demo state is out of bounds per
-  `docs/RELEASE_CHECKLIST.md`).
+Remaining external steps (not local code blockers):
 
-Push, release, tag, GHCR publish, and HF mutation still require explicit owner
-authorization. Publishing this documentation update (or any later commit)
-creates a new exact SHA and therefore needs fresh CI evidence on that SHA
-before treating it as the next code/CI closure baseline.
+- push of the closing commits and green GitHub Actions on that exact SHA;
+- patch release/tag `v1.3.1` with release evidence;
+- GHCR image publish evidence from `.github/workflows/docker-publish.yml`.
+
+Publishing the release commit creates a new exact SHA and therefore needs fresh
+CI evidence on that SHA before treating it as the next code/CI closure baseline.
+
+**Verified local (not a substitute for the GitHub gate):** the supported
+no-Docker runner (`python scripts/run_local.py --bootstrap` once, then
+`python scripts/run_local.py`, optional `--seed-demo`) on
+`http://127.0.0.1:8008`. That path is the accepted local demo evidence only.
 
 ## Future / reopen candidates (optional, not core-audit blockers)
 
@@ -126,8 +145,7 @@ Reopen only with an explicit product request:
   promotion;
 - Playwright RTL smoke for ComparisonDetails;
 - cold-start restore ordering before `ProjectRepository` construction;
-- worst-case compute wall-time benchmarks;
-- disposable Hugging Face recovery drills beyond the in-repo snapshot suite.
+- worst-case compute wall-time benchmarks.
 
 ## Preserved local artifacts
 

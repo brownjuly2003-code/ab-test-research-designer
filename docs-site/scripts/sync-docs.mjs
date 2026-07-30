@@ -31,6 +31,7 @@ const PUBLIC_DOCS = new Set([
   'RELEASE_NOTES_v1.1.0.md',
   'RELEASE_NOTES_v1.2.0.md',
   'RELEASE_NOTES_v1.3.0.md',
+  'RELEASE_NOTES_v1.3.1.md',
   'RULES.md',
   'RUNBOOK.md',
   'case-studies/README.md',

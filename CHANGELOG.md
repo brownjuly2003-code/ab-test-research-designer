@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-07-30
+
 ### Added
 
 - `docs/PROJECT_CLOSURE.md` freezes the shipped product scope, classifies
@@ -11,8 +13,17 @@
   install backend lock, build frontend dist, and serve the product on one port
   without Compose. Documented in README; covered by `test_run_local_script.py`.
 
+### Changed
+
+- Hugging Face publication path retired (owner decision 2026-07-30): current
+  operational docs and the public docs-site are local-first / GitHub-only;
+  GitHub-to-HF workflows `deploy-hf.yml` and `space-maintenance.yml` removed
+  from the active tree. Legacy optional snapshot code remains in-repo but is
+  not a supported publication target and is outside closure.
+
 ### Security
 
+- frontend `eslint-toolchain`: pin transitive `brace-expansion` to audit-clean `5.0.8` via npm `overrides` (GHSA-mh99-v99m-4gvg / CVE-2026-14257), plus a dual-API compat preload so minimatch@3 (eslint-plugin-react / jsx-a11y) still accepts brace globs while modern `.expand` consumers keep working. Lint runs a deterministic preflight; `npm audit --audit-level=high` is clean after clean install.
 - docs-site: pin transitive `svgo` to `4.0.2` via npm `overrides` (GHSA-2p49-hgcm-8545 / removeScripts). `npm audit --audit-level=high` is clean after clean install.
 - docs-site: replace compromised Astro lock/package resolution state
   (`7e5f2657`) so clean install, audit, tests, and production build stay green.
@@ -52,6 +63,8 @@
 - HF SQLite snapshots are now WAL-consistent and atomic: push stages via `sqlite3.Connection.backup()` (includes WAL-visible commits), runs `PRAGMA quick_check`, and uploads DB+metadata in one HF `create_commit`. Restore binds both artifacts to one remote revision, refuses corrupt/SHA-mismatched DBs without replacing a working file, and re-runs schema bootstrap after replace so schema `N-1` snapshots migrate to the build `user_version`.
 - HF SQLite restore keeps a pre-replace rollback copy and reverts the live DB if post-replace migrate/smoke fails; WAL/SHM sidecars are cleared on replace. Push/restore emit structured metrics (`snapshot_push` / `snapshot_restore`). Concurrent-writer backup integrity and fault-injected `create_commit` failure (previous revision still restorable) are covered by tests.
 - SQLite connections are now closed deterministically: `_BackendCore._transaction()` wraps every repository query (transaction scope + `close()`), replacing the bare `with self._connect()` pattern whose context manager only commits and leaves the file handle to the GC. Surfaced as ~4.5k `ResourceWarning`s once pytest-cov 7 stopped suppressing them; the postgres pooled wrapper gained a no-op `close()` since its `__exit__` already returns the connection to the pool.
+- Mobile topbar overflow: narrow viewports wrap `.topbar-inner` / `.topbar-controls` so language/theme controls no longer clip off-screen.
+- Landing WCAG AA / semantic-region gate: EmptyState demo list is a labeled `section`, accent tokens split fill vs on-surface (`--color-primary-fg`) with muted text raised for AA contrast, and the Playwright e2e smoke asserts axe WCAG 2.0/2.1 A/AA plus theme-settled contrast on the landing surface.
 
 ### Dependencies
 
