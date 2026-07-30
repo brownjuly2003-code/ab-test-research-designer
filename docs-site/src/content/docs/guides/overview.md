@@ -36,11 +36,11 @@ It combines:
 
 ## Project status
 
-The current product scope is feature-frozen for final closure. Historical and
-research-plan disposition, preserved local artifacts, and the remaining
-external publish/release/demo gates are recorded in
-[docs/PROJECT_CLOSURE.md](https://github.com/brownjuly2003-code/ab-test-research-designer/blob/main/docs/PROJECT_CLOSURE.md). Until those external gates
-pass, the status is **closure candidate**, not closed.
+The current product scope is feature-frozen. **[v1.3.1](https://github.com/brownjuly2003-code/ab-test-research-designer/releases/tag/v1.3.1)**
+is the published release (tag `v1.3.1`, commit `bb314ae15c86eaf2ade77d3a111a66030b77573e`).
+Historical/research-plan disposition, preserved local artifacts, and release
+evidence (Actions, GHCR) are recorded in
+[docs/PROJECT_CLOSURE.md](https://github.com/brownjuly2003-code/ab-test-research-designer/blob/main/docs/PROJECT_CLOSURE.md).
 
 ## Demo
 
@@ -68,7 +68,7 @@ Then open **http://127.0.0.1:8008**. The seed is idempotent and loads checkout c
 
 [![GHCR](https://img.shields.io/github/v/tag/brownjuly2003-code/ab-test-research-designer?label=ghcr.io&logo=docker)](https://github.com/brownjuly2003-code/ab-test-research-designer/pkgs/container/ab-test-research-designer)
 
-Container and self-host packaging: [docs/DEPLOY.md](/ab-test-research-designer/guides/deploy/). Release prep files: [fly.toml](https://github.com/brownjuly2003-code/ab-test-research-designer/blob/main/fly.toml) and [docs/RELEASE_NOTES_v1.3.1.md](/ab-test-research-designer/guides/release_notes_v1-3-1/) (source prepared for **v1.3.1**; latest published release remains **v1.3.0** until tag/Release/GHCR complete). Publication and acceptance are GitHub (source, Actions, Pages, Releases, GHCR) plus this local runtime — not a hosted third-party demo.
+Container and self-host packaging: [docs/DEPLOY.md](/ab-test-research-designer/guides/deploy/). Current published release: **[v1.3.1](https://github.com/brownjuly2003-code/ab-test-research-designer/releases/tag/v1.3.1)** ([release notes](/ab-test-research-designer/guides/release_notes_v1-3-1/); packaging: [fly.toml](https://github.com/brownjuly2003-code/ab-test-research-designer/blob/main/fly.toml)). Publication and acceptance are GitHub (source, Actions, Pages, Releases, GHCR) plus this local runtime — not a hosted third-party demo.
 
 Sample import payload:
 

@@ -6,6 +6,40 @@
 
 ## Журнал сессий
 
+### 2026-07-30 — v1.3.1 published (GitHub-only path COMPLETE)
+
+- **Published release:** tag `v1.3.1` @ `bb314ae15c86eaf2ade77d3a111a66030b77573e`
+  — https://github.com/brownjuly2003-code/ab-test-research-designer/releases/tag/v1.3.1
+- **Actions on release SHA (all `success`):**
+  - Tests [30534255932](https://github.com/brownjuly2003-code/ab-test-research-designer/actions/runs/30534255932)
+    (dependency audit, repo hygiene, local-runner smoke, Docker, frontend coverage,
+    statistical oracle, Ubuntu full verification, Windows verification, locale
+    content, PostgreSQL verification, Lighthouse, metrics badges);
+  - CodeQL [30534256094](https://github.com/brownjuly2003-code/ab-test-research-designer/actions/runs/30534256094);
+  - Pages/docs [30534256023](https://github.com/brownjuly2003-code/ab-test-research-designer/actions/runs/30534256023);
+  - GHCR publish [30534834319](https://github.com/brownjuly2003-code/ab-test-research-designer/actions/runs/30534834319)
+    (build, critical-vulnerability scan, multi-arch).
+- **GHCR:** `ghcr.io/brownjuly2003-code/ab-test-research-designer` tags
+  `v1.3.1`, `1.3.1`, `latest`, `sha-bb314ae` → digest
+  `sha256:1d02d8a09f790815127ef5c43792f3a3a809a0f872e6fa9434ed6ea957e8baac`.
+- **Fresh local release gate before tagging:**
+  `python scripts/verify_all.py --with-e2e --with-coverage --with-lighthouse --artifacts-dir .ci-artifacts`
+  — all checks passed (backend 1390 passed / 21 skipped / 91.50% coverage;
+  frontend 69 files / 437 tests; bundle 1,092,023 raw / 308,360 gzip;
+  Playwright E2E + smoke; Lighthouse 96/100/100/82; npm audits 0 vulns;
+  docs-site 8/8 tests, 23-page production build). Docker was **not** installed
+  locally; Docker + PostgreSQL jobs passed on the release SHA in Actions.
+- **Supported local runtime (unchanged):**
+  `python scripts/run_local.py --bootstrap` → `python scripts/run_local.py`
+  (optional `--seed-demo`) → `http://127.0.0.1:8008`.
+- **Still out of scope / known limitations (not converted to passed):**
+  HF publication path remains **retired** (not a demo/acceptance target);
+  live disposable HF remote drills remain **not run** / retired; optional
+  `future` reopen items unchanged; local Docker absence is historical for the
+  workstation, not a claim that Docker runtime was available locally.
+- **Plan closure:** GitHub-only owner publish gates for v1.3.1 are **DONE**.
+  Mandatory F-01…F-10 core remain closed. See `docs/PROJECT_CLOSURE.md`.
+
 ### 2026-07-30 — HF publication path retired (owner decision) + docs/workflows
 
 - **Owner decision (2026-07-30):** Hugging Face is **not** used for this project
@@ -18,12 +52,9 @@
   `deploy-hf.yml` and `space-maintenance.yml` deleted (Git-recoverable).
   Runtime snapshot code / `scripts/deploy_hf.py` retained but unsupported.
 - **Owner authorization (2026-07-30):** GitHub push, tag/`v1.3.1` Release, and
-  GHCR publication are **authorized**. Execution and evidence remain **pending**
-  (no release SHA / Actions run IDs / GHCR digests recorded yet).
-- **Remaining external gate (GitHub-only, authorized, not yet executed):** push +
-  green CI on the closing SHA, patch release/tag `v1.3.1`, GHCR evidence. No HF
-  verify, no disposable HF drill, no HF owner gate.
-- **Local evidence (verified path, not a substitute for GitHub publication):**
+  GHCR publication were **authorized**. **Superseded:** execution and evidence
+  for v1.3.1 are now recorded in the journal block above (published).
+- **Local evidence (verified path):**
   `python scripts/run_local.py --bootstrap` (first run), subsequent
   `python scripts/run_local.py`, seeded demo `python scripts/run_local.py --seed-demo`,
   UI/API `http://127.0.0.1:8008`.
@@ -32,12 +63,10 @@
 
 - **Audited implementation HEAD:** `a906ed2d3c6bf9e0409c3262f02f1add5d119cfc`
   (после dependency merges 2026-07-29).
-- **Last exact-SHA code/CI closure baseline:** `58f48b147e0963c768dce90b66dd3be78e2c86f6`
+- **Last exact-SHA pre-release code/CI closure baseline:** `58f48b147e0963c768dce90b66dd3be78e2c86f6`
   (Tests/CodeQL/dependency-audit/PostgreSQL/Docker evidence documented in
-  `docs/PROJECT_CLOSURE.md`).
-- **This docs refresh:** commit that contains the three tracked docs
-  (`docs/PROJECT_CLOSURE.md`, `plan_sol_23_07_26`, `CHANGELOG.md`); hash not
-  assigned until that commit is created.
+  `docs/PROJECT_CLOSURE.md`). **Superseded for publication by** release SHA
+  `bb314ae15c86eaf2ade77d3a111a66030b77573e` (tag `v1.3.1`).
 - **Mandatory audit items (2026-07-23, F-01…F-10 core):** **все закрыты** в
   коде и покрыты релевантными тестами. Обязательный code plan из
   `audit_gpt_23_07_26.md` **закрыт локально**.
@@ -56,10 +85,9 @@
   - Dependabot merges on `main`: `#129`, `#130`, `#131`, `#132`, `#134`;
     `#133` closed without merge (live check 2026-07-30).
 - **Classification of remaining non-core items:**
-  - `external gate` (GitHub-only): owner authorization **granted**; push,
-    release/tag `v1.3.1`, and GHCR evidence still **pending execution**; HF
-    verify/retire and disposable HF drill are **retired completed**, not open
-    gates;
+  - `external gate` (GitHub-only publish for v1.3.1): **COMPLETED** (tag,
+    Release, Actions, GHCR — journal block above); HF verify/retire and
+    disposable HF drill remain **retired**, not open gates;
   - `future` (optional reopen only): Bayesian MWE, explicit OpenAPI policy
     fields, export/history policy evidence, React Compiler / exhaustive-deps
     error promotion, RTL smoke, cold-start restore ordering, worst-case compute
@@ -750,7 +778,7 @@ workflow artifact: versions, seeds and deviations published ✅ CI artifact conf
 
 ---
 
-## ~~Шаг 10. Полный acceptance и recovery gate~~ ✅ DONE local / residual = external gate or future
+## ~~Шаг 10. Полный acceptance и recovery gate~~ ✅ DONE local + v1.3.1 publish / residual = known limits or future
 
 **Модель:** `gpt-5.6-sol`  
 **Reasoning:** `high`  
@@ -758,21 +786,22 @@ workflow artifact: versions, seeds and deviations published ✅ CI artifact conf
 **Размер:** M
 
 Этот шаг выполняется только после завершения 1–9 и не заменяется исторически зелёным CI.
-**Статус 2026-07-30:** local + CI evidence on `58f48b14` close the mandatory
-code/CI acceptance path; remaining items below are `external gate` or
-historical local-environment notes, not open code work.
+**Статус 2026-07-30:** local + CI evidence on `58f48b14` closed the mandatory
+pre-release code/CI path; **v1.3.1** publication evidence is on release SHA
+`bb314ae15c86eaf2ade77d3a111a66030b77573e` (see journal). Items below marked
+`retired` / `future` remain out of scope, not converted to passed.
 
 ### Обязательные проверки
 
-1. ~~Полный `scripts/verify_all.py` с backend/frontend coverage.~~ ✅ `--with-e2e --with-coverage`, green.
-2. Реальный PostgreSQL contract suite. ✅ CI evidence on `58f48b14` (24 passed); local Docker was unavailable in the original session.
-3. Docker build и secure compose verification. ✅ CI evidence on `58f48b14`; local Docker was unavailable in the original session.
+1. ~~Полный `scripts/verify_all.py` с backend/frontend coverage.~~ ✅ pre-tag fresh gate: `--with-e2e --with-coverage --with-lighthouse`, green (1390 backend / 437 frontend).
+2. Реальный PostgreSQL contract suite. ✅ CI on `58f48b14` and on release SHA Tests run `30534255932`; local Docker was unavailable on the workstation.
+3. Docker build и secure compose verification. ✅ CI on `58f48b14` and release SHA Tests run `30534255932`; local Docker was unavailable on the workstation.
 4. ~~Playwright E2E: smoke, locales/RTL, workspace, keys/webhooks, Slack ingress errors.~~ ✅ included in full local gate.
-5. ~~Lighthouse budgets.~~ ✅ `scripts/run_lighthouse_ci.py --port 0`, scores 96/96/100/82, assertions OK.
-6. `pip-audit` / `npm audit`. ✅ dependency-audit job on `58f48b14` green (backend no known vulns; frontend/docs-site 0); original local `pip-audit` timeout is historical only.
-7. CodeQL и container scan. ✅ CodeQL on `58f48b14` green / open alerts 0; container scan remains release/GHCR path (`external gate`).
-8. WAL snapshot → remote revision → clean checkout restore → migration → readiness → checksum/data verification. ✅ local suite + workspace backup green; live disposable HF remote drill = `external gate`.
-9. Fault drill: corrupt latest snapshot. ✅ local snapshot rollback/fault tests green; live remote corrupt-latest drill = `external gate` (disposable repo/token).
+5. ~~Lighthouse budgets.~~ ✅ local pre-tag gate scores 96/100/100/82; also CI Lighthouse on release SHA.
+6. `pip-audit` / `npm audit`. ✅ dependency-audit on release SHA green; local npm audits 0; original local `pip-audit` timeout is historical only.
+7. ~~CodeQL и container scan.~~ ✅ CodeQL run `30534256094` on release SHA; GHCR publish run `30534834319` completed critical-vulnerability scan + multi-arch publish.
+8. WAL snapshot → remote revision → clean checkout restore → migration → readiness → checksum/data verification. ✅ local suite + workspace backup green; live disposable HF remote drill = **retired** (HF path retired 2026-07-30), not a passed check.
+9. Fault drill: corrupt latest snapshot. ✅ local snapshot rollback/fault tests green; live remote corrupt-latest drill = **retired** (disposable HF repo), not a passed check.
 10. ~~`git diff --check`, generated API/docs/help pages, repo hygiene, clean expected status.~~ ✅ full gate checked generated artifacts; final diff/status checked before commit.
 
 ### Release acceptance matrix
@@ -809,8 +838,9 @@ historical local-environment notes, not open code work.
 ## Итоговый Definition of Done программы
 
 **Статус 2026-07-30:** mandatory code items **закрыты локально**. Owner decision
-retired the HF publication path. Remaining owner publish gates are GitHub-only
-(push/CI, release/tag, GHCR) and do not reopen the code plan.
+retired the HF publication path. GitHub-only owner publish gates for **v1.3.1**
+are **COMPLETE** (tag/Release/Actions/GHCR on `bb314ae15c86eaf2ade77d3a111a66030b77573e`).
+Optional `future` reopen items do not reopen the code plan.
 
 1. ~~HF snapshot доказанно включает WAL-visible committed state и восстанавливается атомарно с migrations.~~ ✅ шаг 2
 2. ~~Primary/holdout/timing (+ CUPED/ratio follow-up) используют одну canonical/exclusion population semantics.~~ ✅ шаг 3 + `e18e2a3d`/`530c6db2`
@@ -819,6 +849,7 @@ retired the HF publication path. Remaining owner publish gates are GitHub-only
 5. ~~`ship` требует practical, а не только statistical evidence.~~ ✅ шаг 6 core
 6. ~~API key scopes соответствуют реальным permissions.~~ ✅ шаг 7
 7. ~~Frontend использует generated contracts, полный i18n gate и lint/a11y checks.~~ ✅ шаги 8/10 local gate
-8. ~~Dependency scans green, scientific oracle воспроизводим; local recovery suite green.~~ ✅ шаги 1/9/10; live disposable HF drill **retired** (owner 2026-07-30), not an open gate
-9. ~~Code/CI evidence pinned to exact SHA `58f48b14`; audited implementation HEAD `a906ed2d`.~~ ✅ `docs/PROJECT_CLOSURE.md`
+8. ~~Dependency scans green, scientific oracle воспроизводим; local recovery suite green.~~ ✅ шаги 1/9/10; live disposable HF drill **retired** (owner 2026-07-30), not a passed remote check
+9. ~~Code/CI evidence pinned to exact SHAs; published release SHA `bb314ae15c86eaf2ade77d3a111a66030b77573e`.~~ ✅ `docs/PROJECT_CLOSURE.md` (pre-release baseline `58f48b14` retained for history)
 10. ~~HF publication path retired from active docs/workflows.~~ ✅ owner decision 2026-07-30
+11. ~~GitHub-only publish: tag `v1.3.1`, Release, green Actions, GHCR image.~~ ✅ journal 2026-07-30 published block

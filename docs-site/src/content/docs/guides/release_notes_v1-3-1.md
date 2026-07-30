@@ -34,7 +34,7 @@ UI quality follows the same patch: mobile topbar wrap so controls no longer over
 
 ## Upgrade Path
 
-1. Pull the `v1.3.1` image or source tree when the tag/image is published; no hand migrations required (schema upgrades apply on start).
+1. Pull the published `v1.3.1` image or source tree (tag `v1.3.1` / GHCR tags below); no hand migrations required (schema upgrades apply on start).
 2. Prefer the no-Docker local path for demos: `python scripts/run_local.py --bootstrap` once, then `python scripts/run_local.py` (optional `--seed-demo`) → `http://127.0.0.1:8008`.
 3. Operator surfaces (`/api/v1/keys`, `/api/v1/webhooks`) require static `AB_ADMIN_TOKEN`; issued API keys are only `read`/`write` (legacy `admin` scopes normalize to `write`).
 4. Automation that hits heavy `/api/v1/results*` or bandit simulation may receive `429 compute_capacity_exceeded` with `Retry-After` under load — treat as capacity, not a client bug.
@@ -49,4 +49,20 @@ UI quality follows the same patch: mobile topbar wrap so controls no longer over
 - `pip-audit -r app/backend/requirements.txt` / `-r app/backend/requirements-dev.txt` — no known CVEs at release time
 - Local health after seed: open `http://127.0.0.1:8008/health` and expect `"version":"1.3.1"`
 
-Publication evidence (tag, GitHub Release, green Actions on the release SHA, GHCR `v1.3.1` image) is recorded separately when those external steps complete — this document does not claim they are already done.
+## Publication evidence
+
+**v1.3.1** is the published release:
+
+| Item | Value |
+|---|---|
+| Release commit | `bb314ae15c86eaf2ade77d3a111a66030b77573e` |
+| Annotated tag | `v1.3.1` |
+| GitHub Release | https://github.com/brownjuly2003-code/ab-test-research-designer/releases/tag/v1.3.1 |
+| Tests | [run 30534255932](https://github.com/brownjuly2003-code/ab-test-research-designer/actions/runs/30534255932) `success` on the release SHA |
+| CodeQL | [run 30534256094](https://github.com/brownjuly2003-code/ab-test-research-designer/actions/runs/30534256094) `success` |
+| Pages / docs | [run 30534256023](https://github.com/brownjuly2003-code/ab-test-research-designer/actions/runs/30534256023) `success` |
+| GHCR publish | [run 30534834319](https://github.com/brownjuly2003-code/ab-test-research-designer/actions/runs/30534834319) `success` (build, critical-vuln scan, multi-arch) |
+| GHCR image | `ghcr.io/brownjuly2003-code/ab-test-research-designer` tags `v1.3.1`, `1.3.1`, `latest`, `sha-bb314ae` |
+| Immutable digest | `sha256:1d02d8a09f790815127ef5c43792f3a3a809a0f872e6fa9434ed6ea957e8baac` |
+
+Fresh local release gate before tagging: `python scripts/verify_all.py --with-e2e --with-coverage --with-lighthouse --artifacts-dir .ci-artifacts` — all checks passed (backend 1390 passed / 21 skipped / 91.50% coverage; frontend 437 tests; Lighthouse 96/100/100/82). Docker was not installed locally; Docker and PostgreSQL jobs on the release SHA passed in GitHub Actions.
