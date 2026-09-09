@@ -242,7 +242,7 @@ jobs:
       - name: Audit backend dependencies for known CVEs
         run: python -m pip_audit -r app/backend/requirements-dev.txt --progress-spinner off
 
-      # Both npm package roots are gated, not just Python. `npm audit` resolves the tree from
+      # All three npm package roots are gated, not just Python. `npm audit` resolves the tree from
       # the committed lockfile, so no `npm ci` is needed here. --audit-level=high fails the job
       # on any high/critical advisory; lower severities are reported but do not block.
       # Use working-directory, not `npm --prefix`: with no node_modules present, --prefix drops
@@ -254,6 +254,14 @@ jobs:
 
       - name: Audit docs-site npm dependencies for known CVEs
         working-directory: docs-site
+        run: npm audit --audit-level=high
+
+      # The eslint toolchain is a fourth separately locked tree (its own package.json,
+      # package-lock.json and `overrides`), so app/frontend's audit says nothing about it.
+      # Appended last on purpose: steps run sequentially and the first failure ends the job,
+      # so a new step placed earlier would mask the three trees already gated above.
+      - name: Audit eslint-toolchain npm dependencies for known CVEs
+        working-directory: app/frontend/eslint-toolchain
         run: npm audit --audit-level=high
 
   statistical-oracle:

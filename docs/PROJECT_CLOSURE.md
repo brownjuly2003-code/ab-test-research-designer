@@ -172,7 +172,15 @@ two; all three trees needed remediation once the job ran to completion. The
 resulting lock/pin changes are recorded under `## [Unreleased]` in
 `CHANGELOG.md`.
 
-Security maintenance of the three locked dependency trees continues after the
+That run covered only the three trees the job gated at the time. A fourth
+locked tree — `app/frontend/eslint-toolchain`, the side-by-side TypeScript
+runtime for ESLint, with its own `package.json`, `package-lock.json` and
+`overrides` — had no audit step at all, so it was never part of run
+34110678811 and its advisories surfaced only as Dependabot alerts. Its audit
+step was added afterwards, under the same contract and appended last so a
+failure there cannot mask the three trees gated before it.
+
+Security maintenance of the four locked dependency trees continues after the
 feature freeze. It is **not** a reopening of product scope: no method, endpoint,
 or surface is added, and the freeze declared under [Closing scope](#closing-scope)
 stands unchanged. The standing contract for this gate — which trees it covers,

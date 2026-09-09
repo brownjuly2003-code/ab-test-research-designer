@@ -40,6 +40,23 @@ editUrl: "https://github.com/brownjuly2003-code/ab-test-research-designer/edit/m
   without any override, but a floating range could re-adopt a then-vulnerable
   `4.x` on the next refresh. This is the raise-don't-drop rule in
   `docs/specs/dependency-audit-gate.md`.
+- eslint-toolchain (`app/frontend/eslint-toolchain`): `brace-expansion` `5.0.8` →
+  `5.0.9` (GHSA-rgw5-rvv9-x895) and `js-yaml` `4.3.0` → `4.3.2`
+  (GHSA-5p4m-2wfm-xmqj, GHSA-2883-xcg3-v3hh). The `5.0.8` value was itself an
+  `overrides` pin added in v1.3.1 to clear GHSA-mh99-v99m-4gvg / CVE-2026-14257,
+  and GHSA-rgw5-rvv9-x895 reports that version as bypassing that very
+  mitigation — the second instance in this run of a pin becoming the vulnerable
+  version (`svgo` above was the first), so the override is raised to `5.0.9`
+  rather than dropped, and `brace-expansion-compat-preflight.cjs` moves its
+  `EXPECTED_BE_VERSION` constant with it. `js-yaml` is transitive through
+  `eslint` and was reached by a lockfile refresh, with no new `overrides` entry.
+  This tree is separately locked — its own `package.json`, `package-lock.json`
+  and `overrides` — and **no CI step audited it before this change**, so
+  `app/frontend`'s audit said nothing about it and its advisories were visible
+  only as Dependabot alerts on the default branch. A fourth step now audits it
+  in `dependency-audit`, appended **last** on purpose: the job's steps run
+  sequentially and the first failure ends the job, so a failure in the newly
+  gated tree cannot mask the three trees restored earlier in this run.
 - One advisory is deliberately left unfixed. `@vitest/mocker`
   (GHSA-82fw-gwwq-j7x9) in `app/frontend` is moderate, below the CI
   `--audit-level=high` threshold, and its only fix moves `vitest` to `4.1.11`,
@@ -49,14 +66,15 @@ editUrl: "https://github.com/brownjuly2003-code/ab-test-research-designer/edit/m
   three. The `postcss` advisory previously expected to join it did **not** need
   this treatment — it was fixed in range as part of the docs-site work above, so
   `@vitest/mocker` is the only one left open in the whole run.
-- All three audit commands — `python -m pip_audit -r app/backend/requirements-dev.txt`,
-  `npm audit --audit-level=high` in `app/frontend`, and the same in `docs-site` —
-  have now been observed exiting 0 on one and the same tree (`82b270b08d`),
-  which is the acceptance `docs/specs/dependency-audit-gate.md` requires. That
-  spec, added alongside the backend fix, records the standing contract for the
-  gate: it covers three separately locked dependency trees, its steps run
-  sequentially so an earlier failure hides the later ones, and advisories are
-  cleared by upgrading rather than by suppression.
+- All four audit commands — `python -m pip_audit -r app/backend/requirements-dev.txt`,
+  `npm audit --audit-level=high` in `app/frontend`, the same in `docs-site`, and
+  the same in `app/frontend/eslint-toolchain` — have now been observed exiting 0
+  on one and the same working tree, which is the acceptance
+  `docs/specs/dependency-audit-gate.md` requires. That spec, added alongside the
+  backend fix, records the standing contract for the gate: it covers four
+  separately locked dependency trees, its steps run sequentially so an earlier
+  failure hides the later ones, and advisories are cleared by upgrading rather
+  than by suppression.
 
 ## [1.3.1] - 2026-07-30
 

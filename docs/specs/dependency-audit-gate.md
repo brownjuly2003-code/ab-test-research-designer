@@ -1,35 +1,50 @@
 # Capability: dependency-audit-gate
 
-The repository ships three separately locked dependency trees — the Python
+The repository ships four separately locked dependency trees — the Python
 backend (`app/backend/requirements*.txt`, compiled by `uv` with hashes), the
-frontend npm root (`app/frontend`), and the documentation site npm root
-(`docs-site`). CI gates all three in the single `dependency-audit` job of the
-`Tests` workflow. Because the job's steps run sequentially and each one fails
-the job, a failure in an earlier tree hides the state of the later ones.
+frontend npm root (`app/frontend`), the documentation site npm root
+(`docs-site`), and the eslint toolchain npm root
+(`app/frontend/eslint-toolchain`, the side-by-side TypeScript runtime for ESLint,
+which carries its own `package.json`, `package-lock.json` and `overrides`).
+CI gates all four in the single `dependency-audit` job of the `Tests` workflow.
+Because the job's steps run sequentially and each one fails the job, a failure
+in an earlier tree hides the state of the later ones.
 
 ## Requirement: the audit gate covers every locked dependency tree
 
 The `dependency-audit` CI job SHALL audit the backend lock, the frontend npm
-root, and the docs-site npm root on every push to `main`, on pull requests, and
-on the weekly schedule. A remediation SHALL NOT be considered complete until
-every one of the three commands has been observed exiting 0 on the same tree,
-because a green earlier step is not evidence about the steps behind it.
+root, the docs-site npm root, and the `app/frontend/eslint-toolchain` npm root
+on every push to `main`, on pull requests, and on the weekly schedule. A
+remediation SHALL NOT be considered complete until every one of the four
+commands has been observed exiting 0 on the same tree, because a green earlier
+step is not evidence about the steps behind it.
 
 ### Scenario: an earlier step masks a later failure
 
 - **GIVEN** the backend audit step fails on a known advisory
 - **WHEN** the `dependency-audit` job runs
-- **THEN** the frontend and docs-site audit steps are reported as skipped, and
-  their result on that commit is unknown rather than clean
+- **THEN** the frontend, docs-site and eslint-toolchain audit steps are reported
+  as skipped, and their result on that commit is unknown rather than clean
 
 ### Scenario: the whole gate is verified before the state is called green
 
 - **GIVEN** a change intended to restore the audit gate
 - **WHEN** the maintainer verifies the remediation
 - **THEN** `python -m pip_audit -r app/backend/requirements-dev.txt`,
-  `npm audit --audit-level=high` in `app/frontend`, and
-  `npm audit --audit-level=high` in `docs-site` have each been run on the same
-  working tree and each exited 0
+  `npm audit --audit-level=high` in `app/frontend`,
+  `npm audit --audit-level=high` in `docs-site`, and
+  `npm audit --audit-level=high` in `app/frontend/eslint-toolchain` have each
+  been run on the same working tree and each exited 0
+
+### Scenario: a locked tree exists but is not named in the CI job
+
+- **GIVEN** a directory with its own `package.json` and `package-lock.json`
+  that no step of the `dependency-audit` job audits
+- **WHEN** a high-severity advisory opens against a package locked in that tree
+- **THEN** the job still passes, the advisory surfaces only through Dependabot
+  alerts on the default branch rather than through the gate, and the fix is to
+  add an audit step for that tree — placed after the steps already gated, so
+  the new tree's failures cannot mask them
 
 ## Requirement: advisories are cleared by upgrading, not by suppression
 
