@@ -157,6 +157,29 @@ python scripts/run_local.py
 # open http://127.0.0.1:8008
 ```
 
+### Post-closure dependency maintenance (2026-09)
+
+The dependency-audit gate was clean on the v1.3.1 release SHA (see the table
+above). It regressed afterwards on advisories disclosed after publication — not
+on a defect in the shipped code, and not on anything the release evidence above
+got wrong.
+
+Observed evidence: the scheduled
+[Tests run 34110678811](https://github.com/brownjuly2003-code/ab-test-research-designer/actions/runs/34110678811)
+of 2026-09-07 on `main` failed in the `dependency-audit` job. Because that job's
+steps run sequentially, the first failing tree masked the state of the other
+two; all three trees needed remediation once the job ran to completion. The
+resulting lock/pin changes are recorded under `## [Unreleased]` in
+`CHANGELOG.md`.
+
+Security maintenance of the three locked dependency trees continues after the
+feature freeze. It is **not** a reopening of product scope: no method, endpoint,
+or surface is added, and the freeze declared under [Closing scope](#closing-scope)
+stands unchanged. The standing contract for this gate — which trees it covers,
+why an earlier step hides the later ones, and the rule that advisories are
+cleared by upgrading rather than by suppression — is
+`docs/specs/dependency-audit-gate.md`.
+
 ## Future / reopen candidates (optional, not core-audit blockers)
 
 Reopen only with an explicit product request:

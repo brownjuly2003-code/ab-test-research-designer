@@ -2,6 +2,57 @@
 
 ## [Unreleased]
 
+### Security
+
+- backend dev lock: `pypdf` raised from `6.14.2` to `6.16.1` in
+  `app/backend/requirements-dev.in` and the recompiled hashed
+  `requirements-dev.txt`, clearing the six advisories the audit reported against
+  `6.14.2` (PYSEC-2026-3655, PYSEC-2026-3656, CVE-2026-82398, CVE-2026-84309,
+  CVE-2026-84310, CVE-2026-84311). `6.16.1` is the lowest published version that
+  clears all six. `pypdf` is a dev/test-only dependency: `requirements.in`, the
+  runtime lock, and the Docker image are untouched.
+- frontend: `nanoid` `3.3.16` → `3.3.18` (GHSA-2v37-7h3g-55p8, reached through
+  `vite` → `postcss`) and `undici` `7.28.0` → `7.29.1` (GHSA-8xcm-r25x-g524,
+  GHSA-4cwx-7wf7-3272, GHSA-m8rv-5g2x-5cg5, GHSA-jr45-8vmc-qm54,
+  GHSA-v3r7-h72x-cjcm, reached through `jsdom`). Both fixed versions sit inside
+  the ranges their dependents already declare, so this is a `package-lock.json`
+  refresh with no `package.json` change and no new `overrides` entry.
+- docs-site: `astro` `7.1.5` → `7.3.2` (GHSA-26w7-cxv4-gfx2, critical remote
+  code execution through AVIF image optimization; GHSA-376h-93r7-7g6f,
+  authorization bypass from a missing path-segment boundary check when stripping
+  the configured base), `sharp` `0.35.3` → `0.35.4` (GHSA-rgj7-g3m4-5g8c,
+  libheif), `js-yaml` `4.3.0` → `4.3.2` (GHSA-5p4m-2wfm-xmqj,
+  GHSA-2883-xcg3-v3hh), and `nanoid` `3.3.12` → `3.3.18` (GHSA-28wg-ghj8-5hjv,
+  GHSA-2v37-7h3g-55p8). `postcss` came along in range at `8.5.19` → `8.5.28`, so
+  `docs-site` now reports zero vulnerabilities at any severity rather than only
+  above the gate threshold.
+- docs-site `overrides.svgo` raised from `4.0.2` to `4.1.0`. The exact `4.0.2`
+  pin was added in v1.3.1 to fix GHSA-2p49-hgcm-8545, and that pinned version is
+  itself covered by GHSA-w27v-7q3p-w38r and GHSA-4vpr-x523-8j87: a pin taken to
+  clear one advisory became the reported vulnerable version under a later one.
+  The override is raised rather than dropped so `svgo` stays exactly pinned
+  across lock refreshes: `astro` `7.3.2` declares `svgo: ^4.0.1` and resolves
+  without any override, but a floating range could re-adopt a then-vulnerable
+  `4.x` on the next refresh. This is the raise-don't-drop rule in
+  `docs/specs/dependency-audit-gate.md`.
+- One advisory is deliberately left unfixed. `@vitest/mocker`
+  (GHSA-82fw-gwwq-j7x9) in `app/frontend` is moderate, below the CI
+  `--audit-level=high` threshold, and its only fix moves `vitest` to `4.1.11`,
+  outside the exact `4.1.10` pin the frontend declares; it stays reported rather
+  than forced. `npm audit` surfaces it on three package nodes (`vitest`,
+  `@vitest/mocker`, `@vitest/coverage-v8`), but they are one advisory, not
+  three. The `postcss` advisory previously expected to join it did **not** need
+  this treatment — it was fixed in range as part of the docs-site work above, so
+  `@vitest/mocker` is the only one left open in the whole run.
+- All three audit commands — `python -m pip_audit -r app/backend/requirements-dev.txt`,
+  `npm audit --audit-level=high` in `app/frontend`, and the same in `docs-site` —
+  have now been observed exiting 0 on one and the same tree (`82b270b08d`),
+  which is the acceptance `docs/specs/dependency-audit-gate.md` requires. That
+  spec, added alongside the backend fix, records the standing contract for the
+  gate: it covers three separately locked dependency trees, its steps run
+  sequentially so an earlier failure hides the later ones, and advisories are
+  cleared by upgrading rather than by suppression.
+
 ## [1.3.1] - 2026-07-30
 
 ### Added
