@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:evidenceos:abx:schema:0.1:run",
+  "title": "ABX v0.1 evidence run",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "required_capabilities",
+    "run_id",
+    "protocol_revision_id",
+    "kind",
+    "status",
+    "started_at",
+    "completed_at",
+    "runner",
+    "source_snapshot_ids",
+    "metric_ids",
+    "queries",
+    "finding_ids",
+    "estimate_ids",
+    "extensions"
+  ],
+  "properties": {
+    "schema_version": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/schemaVersion"},
+    "required_capabilities": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/capability"}
+    },
+    "run_id": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/opaqueId"},
+    "parent_run_id": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/opaqueId"},
+    "protocol_revision_id": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/sha256"},
+    "kind": {"enum": ["preflight", "analysis"]},
+    "status": {"const": "succeeded"},
+    "started_at": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/utcTimestamp"},
+    "completed_at": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/utcTimestamp"},
+    "runner": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/runner"},
+    "source_snapshot_ids": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/opaqueId"}
+    },
+    "metric_ids": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/opaqueId"}
+    },
+    "queries": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/queryArtifact"}
+    },
+    "finding_ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/opaqueId"}
+    },
+    "estimate_ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/opaqueId"}
+    },
+    "decision_id": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/opaqueId"},
+    "extensions": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/extensions"}
+  }
+}

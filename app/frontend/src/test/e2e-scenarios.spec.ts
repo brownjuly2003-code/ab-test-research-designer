@@ -2,6 +2,7 @@
 // locale switching incl. RTL, workspace export→import roundtrip, webhook CRUD.
 // Uses the same backend-served build as e2e-smoke.spec.ts; runs serially (workers: 1).
 
+import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
 
 test("switches locale to Russian and Arabic RTL and persists the choice", async ({ page }) => {
@@ -51,6 +52,12 @@ test("exports the workspace and imports the same bundle back", async ({ page }) 
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toContain("ab-test-workspace-");
   const bundlePath = await download.path();
+  if (!bundlePath) throw new Error("Workspace export did not produce a local file.");
+  const workspaceBundle = JSON.parse(readFileSync(bundlePath, "utf8")) as {
+    projects?: unknown[];
+  };
+  const importedProjectCount = workspaceBundle.projects?.length ?? 0;
+  expect(importedProjectCount).toBeGreaterThan(0);
 
   // The Import button clicks a hidden file input; drive the input directly.
   await page
@@ -60,7 +67,8 @@ test("exports the workspace and imports the same bundle back", async ({ page }) 
     timeout: 20000
   });
   await expect(
-    page.getByText(/Imported workspace backup: 1 project\(s\)/).first()
+    page.getByText(
+      new RegExp(`Imported workspace backup: ${String(importedProjectCount)} project\\(s\\)`)
+    ).first()
   ).toBeVisible();
 });
-

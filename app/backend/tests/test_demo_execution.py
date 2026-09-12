@@ -6,32 +6,34 @@ timing, identity links, exclusions, holdout, per-user continuous outcomes). The 
 that this data lights up the live-stats blocks lives in ``test_startup_seed.py``.
 """
 
-from pathlib import Path
 import sys
+from pathlib import Path
 
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
+# random.Random is deterministic across runs/platforms, so the builders are reproducible.
+from random import Random  # noqa: E402
+
+from app.backend.app.constants import BOT_CONVERSION_EVENT_THRESHOLD  # noqa: E402
 from app.backend.app.demo_execution import (  # noqa: E402
-    AD_CTR_TEMPLATE_ID,
-    CHECKOUT_TEMPLATE_ID,
-    ONBOARDING_TEMPLATE_ID,
-    PRICING_TEMPLATE_ID,
     _ANCHOR,
     _LATE_OFFSET,
     _OUT_OF_ORDER_OFFSET,
     _SEED_BY_TEMPLATE,
+    AD_CTR_TEMPLATE_ID,
+    CHECKOUT_TEMPLATE_ID,
+    ONBOARDING_TEMPLATE_ID,
+    PRICING_TEMPLATE_ID,
     build_ad_ctr_execution,
     build_checkout_execution,
     build_onboarding_execution,
     build_pricing_execution,
 )
-from app.backend.app.constants import BOT_CONVERSION_EVENT_THRESHOLD  # noqa: E402
-from app.backend.app.services.template_service import load_built_in_templates  # noqa: E402
-
-# random.Random is deterministic across runs/platforms, so the builders are reproducible.
-from random import Random  # noqa: E402
+from app.backend.app.services.template_service import (
+    load_built_in_templates,  # noqa: E402
+)
 
 
 def _payload(template_id: str) -> dict:

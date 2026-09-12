@@ -467,6 +467,30 @@ List Webhook Deliveries
 
 Test Webhook
 
+### `GET /api/v2/runs`
+
+List Runs
+
+### `GET /api/v2/runs/{run_id}`
+
+Get Run
+
+### `POST /api/v2/runs/{run_id}/decisions`
+
+Record Persisted Decision
+
+### `POST /api/v2/runs/{run_id}/findings/{finding_id}:override`
+
+Override Persisted Finding
+
+### `POST /api/v2/runs/{run_id}/findings/{finding_id}:remediate`
+
+Remediate Persisted Finding
+
+### `GET /api/v2/runs/{run_id}:bundle`
+
+Download Persisted Bundle
+
 ### `POST /slack/commands`
 
 Slack Commands

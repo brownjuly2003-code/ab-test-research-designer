@@ -1,3 +1,5 @@
+import { availableParallelism } from "node:os";
+
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 
@@ -44,10 +46,17 @@ export default defineConfig({
     setupFiles: ["src/test/setup.ts"],
     // axe-driven a11y tests are CPU-bound: ~2-3s in isolation but 5-30s+ when one
     // jsdom worker per core competes for CPU. The vitest defaults (5s timeout,
-    // worker per core) made full local runs flaky; a higher ceiling plus a worker
-    // cap keeps the gate deterministic without slowing low-core CI runners.
+    // worker per core) made full local runs flaky, so the ceiling is 30s and every
+    // test inherits it -- a per-test override below this number is a lower ceiling,
+    // not a higher one, and 34 of them used to reintroduce the flake they predated.
     testTimeout: 30000,
-    maxWorkers: 8,
+    // A flat 8 is a cap on a workstation and an oversubscription on CI: the hosted
+    // runners have 4 vCPUs, so eight jsdom forks each got half a core and a 3s axe
+    // pass stretched past the timeout. windows-latest failed this way twice on
+    // 2026-09-07, on different files each time -- 165s wall for 541s of test CPU
+    // plus 452s of environment CPU. Bounding by the real core count keeps the same
+    // throughput (the suite is already CPU-saturated) at a fraction of the latency.
+    maxWorkers: Math.max(2, Math.min(8, availableParallelism())),
     // Coverage runs only in the dedicated CI job (`npm run test:coverage`):
     // instrumentation multiplies suite runtime, so it stays off the verify path.
     coverage: {

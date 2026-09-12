@@ -6,8 +6,8 @@ payload or a diagnostics payload — the three channels where it used to surface
 
 import json
 import logging
-from pathlib import Path
 import sys
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
@@ -18,7 +18,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 from app.backend.app.config import get_settings
 from app.backend.app.logging_utils import configure_logging, log_event
 from app.backend.app.main import create_app
-from app.backend.app.redaction import database_host, mask_inline_credentials, redact_database_url
+from app.backend.app.redaction import (
+    database_host,
+    mask_inline_credentials,
+    redact_database_url,
+)
 from app.backend.app.repository._postgres import PostgresBackend, _PostgresRow
 
 SECRET = "sup3r-s3cret-pw"
@@ -187,3 +191,21 @@ def test_mask_inline_credentials_is_a_second_layer_for_free_text() -> None:
 
     assert SECRET not in masked
     assert "***@db.internal" in masked
+
+
+def test_mask_inline_credentials_masks_libpq_password_query_parameter() -> None:
+    masked = mask_inline_credentials(
+        f"could not connect to postgresql://db.internal/ab_prod?sslpassword={SECRET}"
+    )
+
+    assert SECRET not in masked
+    assert "sslpassword=***" in masked
+
+
+def test_mask_inline_credentials_uses_the_last_at_sign_in_url_authority() -> None:
+    masked = mask_inline_credentials(
+        "could not connect to postgresql://ab_user:p@password-tail@db.internal/ab_prod"
+    )
+
+    assert "password-tail" not in masked
+    assert "postgresql://***@db.internal/ab_prod" in masked

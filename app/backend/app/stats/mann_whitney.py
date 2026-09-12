@@ -46,6 +46,7 @@ from math import ceil, comb, floor, isfinite, pi, sqrt
 from statistics import NormalDist, median
 from typing import Any
 
+from app.backend.app.stats.binary import standard_normal_sf
 from app.backend.app.stats.continuous import calculate_continuous_sample_size
 
 _STANDARD_NORMAL = NormalDist()
@@ -226,7 +227,7 @@ def mann_whitney_u_test(
     else:
         corrected = 0.0
     test_statistic = corrected / standard_deviation_u
-    asymptotic_p = 2.0 * (1.0 - _STANDARD_NORMAL.cdf(abs(test_statistic)))
+    asymptotic_p = 2.0 * standard_normal_sf(abs(test_statistic))
 
     # Exact p for a small, tie-free sample (the textbook-correct value in the small-n regime); the
     # tie-corrected normal approximation otherwise. The z statistic and the Hodges–Lehmann CI below

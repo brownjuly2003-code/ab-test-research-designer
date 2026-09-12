@@ -93,5 +93,5 @@ describe("Arabic RTL accessibility", () => {
     } finally {
       await view.unmount();
     }
-  }, 15000);
+  });
 });

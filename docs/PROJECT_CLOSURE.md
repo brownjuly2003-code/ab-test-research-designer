@@ -17,11 +17,12 @@ experiments, and product extensions require a separately authorized project.
 
 ## Plan disposition
 
-- The 78 tracked files under `docs/plans/` are implementation history, design
+- The files under `docs/plans/` are implementation history, design
   records, and superseded proposals. Their unchecked boxes are not an active
   backlog.
-- The executable tracked plan `plan_sol_23_07_26` (audit `audit_gpt_23_07_26.md`)
-  is **closed locally** for all mandatory code items F-01 through F-10 core.
+- The tracked [2026-07-23 release-hardening plan](plans/2026-07-23-release-hardening-plan.md)
+  (audit `audit_gpt_23_07_26.md`) is **closed locally** for all mandatory code
+  items F-01 through F-10 core.
 - The local untracked plans dated 2026-06-17, 2026-06-25, and 2026-06-29 are
   preserved without modification. They are research input, not closing-release
   commitments.
@@ -156,37 +157,6 @@ python scripts/run_local.py
 # optional: python scripts/run_local.py --seed-demo
 # open http://127.0.0.1:8008
 ```
-
-### Post-closure dependency maintenance (2026-09)
-
-The dependency-audit gate was clean on the v1.3.1 release SHA (see the table
-above). It regressed afterwards on advisories disclosed after publication — not
-on a defect in the shipped code, and not on anything the release evidence above
-got wrong.
-
-Observed evidence: the scheduled
-[Tests run 34110678811](https://github.com/brownjuly2003-code/ab-test-research-designer/actions/runs/34110678811)
-of 2026-09-07 on `main` failed in the `dependency-audit` job. Because that job's
-steps run sequentially, the first failing tree masked the state of the other
-two; all three trees needed remediation once the job ran to completion. The
-resulting lock/pin changes are recorded under `## [Unreleased]` in
-`CHANGELOG.md`.
-
-That run covered only the three trees the job gated at the time. A fourth
-locked tree — `app/frontend/eslint-toolchain`, the side-by-side TypeScript
-runtime for ESLint, with its own `package.json`, `package-lock.json` and
-`overrides` — had no audit step at all, so it was never part of run
-34110678811 and its advisories surfaced only as Dependabot alerts. Its audit
-step was added afterwards, under the same contract and appended last so a
-failure there cannot mask the three trees gated before it.
-
-Security maintenance of the four locked dependency trees continues after the
-feature freeze. It is **not** a reopening of product scope: no method, endpoint,
-or surface is added, and the freeze declared under [Closing scope](#closing-scope)
-stands unchanged. The standing contract for this gate — which trees it covers,
-why an earlier step hides the later ones, and the rule that advisories are
-cleared by upgrading rather than by suppression — is
-`docs/specs/dependency-audit-gate.md`.
 
 ## Future / reopen candidates (optional, not core-audit blockers)
 

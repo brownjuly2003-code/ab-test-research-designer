@@ -51,7 +51,7 @@ describe("SequentialBoundaryChart", () => {
     } finally {
       await view.unmount();
     }
-  }, 15000);
+  });
 
   it("renders an extra reference line for the current look", async () => {
     const view = await renderIntoDocument(<SequentialBoundaryChart boundaries={boundaries} currentLook={2} />);
@@ -63,7 +63,7 @@ describe("SequentialBoundaryChart", () => {
     } finally {
       await view.unmount();
     }
-  }, 15000);
+  });
 
   it("has no axe violations", async () => {
     const view = await renderIntoDocument(<SequentialBoundaryChart boundaries={boundaries} currentLook={3} />);
@@ -75,5 +75,5 @@ describe("SequentialBoundaryChart", () => {
     } finally {
       await view.unmount();
     }
-  }, 15000);
+  });
 });

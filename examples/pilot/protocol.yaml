@@ -1,0 +1,142 @@
+# External pilot protocol: one aggregate binary metric from a partner CSV.
+#
+# The source contract is `extensions.trialmark.aggregate-binary` (see the bottom
+# of this file). It accepts exactly one metric and exactly one CSV row; the
+# partner never sends user-level rows, a source path, or an identity.
+#
+# Run it with:
+#   python -m app.backend.app.evidence.cli run \
+#     --protocol examples/pilot/protocol.yaml \
+#     --source examples/pilot/aggregate.csv \
+#     --actor pilot-operator --out pilot.tmk
+spec_version: 0.1.0
+required_capabilities:
+  - protocol-core
+protocol:
+  protocol_id: external-pilot-checkout
+  title: External pilot checkout conversion
+  hypothesis: Treatment changes the checkout conversion rate at the terminal checkpoint.
+  owners:
+    - pilot_growth_team
+  created_at: "2026-09-07T00:00:00Z"
+freeze:
+  state: frozen
+  frozen_by: pilot_growth_team
+  frozen_at: "2026-09-07T00:01:00Z"
+population:
+  eligibility_expression: Subjects assigned by the partner's own experiment platform.
+  trigger_expression: Terminal aggregate checkpoint reported by the partner.
+  randomization_unit: user
+  analysis_population: intention_to_treat
+  exclusions:
+    - User-level records stay with the partner; only arm totals are shared.
+interventions:
+  - intervention_id: control
+    label: Control arm aggregate
+    kind: control
+    allocation: "0.45"
+    namespace: external_pilot_checkout
+    hash_version: assignment_v1
+  - intervention_id: treatment
+    label: Treatment arm aggregate
+    kind: treatment
+    allocation: "0.55"
+    namespace: external_pilot_checkout
+    hash_version: assignment_v1
+metrics:
+  primary:
+    - metric_id: metric_checkout_conversion
+      metric_version: pilot-v1
+      # sha256 of the canonical JSON of extensions.trialmark.aggregate-binary.metric.definition
+      definition_digest: sha256:b1a6c7cc900962f65b1981e353412a3fce6c82ee78d894ded0a1e9dfb32a1562
+  secondary: []
+  guardrails: []
+estimand:
+  estimand_id: estimand_checkout_conversion
+  population: intention_to_treat
+  baseline_intervention_id: control
+  comparison_intervention_ids:
+    - treatment
+  effect_measure: risk_difference
+  horizon: P14D
+  missing_data_rule: exclude
+design:
+  experiment_type: randomized
+  interference_assumption: no_interference
+  exposure_semantics: One assignment aggregate per arm is treated as exposure for this pilot.
+analysis:
+  method:
+    method_id: binary_pooled_z_newcombe
+    method_version: binary_pooled_z_newcombe_v1
+  alpha: "0.05"
+  power: "0.8"
+  stopping:
+    mode: fixed_horizon
+    look_count: 1
+  multiplicity:
+    method: none
+    family_ids: []
+  variance_reduction:
+    method: none
+    covariate_metric_ids: []
+  random_seed: 20260901
+telemetry:
+  subject_key: aggregate_subject
+  event_key: aggregate_event
+  occurred_at_key: time_since_start
+  exposure_event: aggregate_assignment
+  outcome_events:
+    - aggregate_metric_checkpoint
+  ordering: event_time
+  deduplication:
+    keys:
+      - aggregate_event
+    window: P1D
+  max_lateness: P0D
+  schema_versions:
+    - event_type: aggregate_assignment
+      version: pilot-v1
+      schema_digest: sha256:4937ce9031149ec2f5cd04a27e51ca296415ff4856ea4e4bf700091dc66ce31b
+    - event_type: aggregate_metric_checkpoint
+      version: pilot-v1
+      schema_digest: sha256:272f65a1c66d17f18ba326a2da6bfe29833422589121cac3c0e14478b7b4c2d3
+decision:
+  minimum_worthwhile_effect: 0
+  harm_rules: []
+  owners:
+    - pilot_growth_team
+  approval_policy:
+    roles:
+      - benchmark_reviewer
+    minimum_approvals: 1
+operations:
+  rollback_owner: pilot_growth_team
+  lag_budget_seconds: 0
+  alert_thresholds: []
+extensions:
+  trialmark.aggregate-binary:
+    schema_version: "1"
+    source_ref: pilot_source_alpha
+    evidence_type: external_pilot
+    partner_approved: true
+    metric:
+      name: Checkout conversion rate
+      direction: increase
+      unit: proportion
+      owner_ref: pilot_growth_team
+      definition:
+        aggregation: binary_rate
+        numerator: converted_subjects
+        denominator: assigned_subjects
+    observed_telemetry:
+      outcome_before_exposure_count: 0
+      duplicate_event_count: 0
+      unlinked_subject_count: 0
+      events_beyond_max_lateness_count: 0
+      schema_versions:
+        - event_type: aggregate_assignment
+          version: pilot-v1
+          schema_digest: sha256:4937ce9031149ec2f5cd04a27e51ca296415ff4856ea4e4bf700091dc66ce31b
+        - event_type: aggregate_metric_checkpoint
+          version: pilot-v1
+          schema_digest: sha256:272f65a1c66d17f18ba326a2da6bfe29833422589121cac3c0e14478b7b4c2d3

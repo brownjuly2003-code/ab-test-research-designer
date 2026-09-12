@@ -28,7 +28,7 @@ def chi_square_srm(
     )
 
     degrees_of_freedom = len(observed_counts) - 1
-    p_value = max(0.0, min(1.0, 1 - chi_square_cdf(chi_square, degrees_of_freedom)))
+    p_value = max(0.0, min(1.0, chi_square_sf(chi_square, degrees_of_freedom)))
     return chi_square, p_value, p_value < 0.001
 
 
@@ -38,12 +38,40 @@ def chi_square_cdf(x: float, degrees_of_freedom: int) -> float:
     return regularized_gamma_p(degrees_of_freedom / 2, x / 2)
 
 
+def chi_square_sf(x: float, degrees_of_freedom: int) -> float:
+    """Upper tail P(X2 > x), without subtracting the CDF from one.
+
+    The chi-square p-value is the upper tail, and ``1 - chi_square_cdf(x, df)``
+    reaches it through a subtraction that cancels away the significant digits
+    exactly where the p-value matters. ``regularized_gamma_q`` returns the same
+    quantity directly.
+    """
+    if x <= 0:
+        return 1.0
+    return regularized_gamma_q(degrees_of_freedom / 2, x / 2)
+
+
 def regularized_gamma_p(a: float, x: float) -> float:
     if x == 0:
         return 0.0
     if x < a + 1:
         return _gamma_series(a, x)
     return 1.0 - _gamma_continued_fraction(a, x)
+
+
+def regularized_gamma_q(a: float, x: float) -> float:
+    """Q(a, x) = 1 - P(a, x), taking whichever branch computes it directly.
+
+    The continued fraction converges on Q itself for x >= a + 1 -- the whole
+    upper tail -- so the branch that matters never subtracts. Below that the
+    series gives P and the subtraction is harmless, because P and Q are then
+    the same order of magnitude.
+    """
+    if x <= 0:
+        return 1.0
+    if x < a + 1.0:
+        return 1.0 - _gamma_series(a, x)
+    return _gamma_continued_fraction(a, x)
 
 
 def _gamma_series(a: float, x: float) -> float:

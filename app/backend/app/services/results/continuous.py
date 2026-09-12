@@ -14,7 +14,7 @@ from app.backend.app.stats.bootstrap_permutation import bootstrap_permutation_te
 from app.backend.app.stats.equivalence import tost_equivalence_test
 from app.backend.app.stats.mann_whitney import mann_whitney_u_test
 from app.backend.app.stats.quantile_te import quantile_treatment_effect_test
-from app.backend.app.stats.student_t import t_cdf, t_ppf
+from app.backend.app.stats.student_t import t_cdf, t_ppf, t_sf
 from app.backend.app.stats.trimmed_t import trimmed_means_t_test
 
 from .common import _bounded_probability, _degenerate_response, _verdict, _welch_df
@@ -43,13 +43,13 @@ def _continuous_t_response(
         )
 
     test_statistic = effect / standard_error
-    p_value = 2 * (1 - t_cdf(abs(test_statistic), degrees_of_freedom))
+    p_value = 2.0 * t_sf(abs(test_statistic), degrees_of_freedom)
     t_critical = t_ppf(1 - alpha / 2, degrees_of_freedom)
     ci_lower = effect - t_critical * standard_error
     ci_upper = effect + t_critical * standard_error
     relative_effect = (effect / control_mean * 100) if control_mean != 0 else 0.0
     is_significant = p_value < alpha
-    upper_tail = 1.0 - t_cdf(t_critical - abs(test_statistic), degrees_of_freedom)
+    upper_tail = t_sf(t_critical - abs(test_statistic), degrees_of_freedom)
     lower_tail = t_cdf(-t_critical - abs(test_statistic), degrees_of_freedom)
     power_achieved = upper_tail + lower_tail
 

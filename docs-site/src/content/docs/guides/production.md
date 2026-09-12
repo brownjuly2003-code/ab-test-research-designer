@@ -42,7 +42,7 @@ Any **one** of these satisfies the startup auth gate — each ends with anonymou
 | Bootstrap | What it gives you |
 | --- | --- |
 | `AB_API_TOKEN` | The write-scoped shared token. Simplest single-secret deployment. |
-| `AB_ADMIN_TOKEN` | Operator/bootstrap credential only. It unlocks `/api/v1/keys` and `/api/v1/webhooks` and issues the first write-scoped API key. Issued DB keys are never operator credentials — they are only `read` or `write`. Until a write key exists, mutating endpoints answer `401` — they are closed, not open. |
+| `AB_ADMIN_TOKEN` | Operator/bootstrap credential only. It unlocks `/api/v1/keys` and `/api/v1/webhooks` and issues the first write-scoped API key. Issued DB keys are never operator credentials — they are only `read` or `write`. Until a write key exists, mutating endpoints answer `401` — they are closed, not open. A write key may also carry `role`, the approval role its holder decides under; a decision recorded through it says `role_source: credential`, which is the only role provenance the service verifies. |
 | An active **write**-scoped API key already in the database | The steady state after the admin token has been retired. Write keys cannot manage keys/webhooks; keep or re-introduce `AB_ADMIN_TOKEN` for operator recovery. |
 
 A read-only token (`AB_READONLY_API_TOKEN`) or `AB_PUBLIC_DEMO` **alone** does not satisfy the gate.
@@ -137,6 +137,20 @@ PostgreSQL checks pass. It compares the schema version recorded in the database 
 this build requires (`503` while a migration is pending) and performs a real (rolled-back) write, so
 it catches a database that is unreachable, read-only, or behind the code.
 
+`/readyz` also reports `auth_mode`, because "ready" and "safe to send traffic to" are different
+questions and a deployment can answer yes to the first while every mutating endpoint accepts
+anonymous callers. The values are `token`, `readonly`, `dual_token`, `api_keys`, `hybrid`,
+`admin_only`, `public_demo` and `open`; only `open` means nothing gates a mutation. Production
+cannot report `open` — startup refuses to boot without auth material — so `open` on a staging or
+shared development instance means that instance lost its token. The same condition logs a
+`event=auth_open` warning once at startup.
+
+Note that `auth_mode` here is stricter than the field of the same name in
+`GET /api/v1/diagnostics`: the diagnostics value answers which of the two shared tokens and the API
+keys are in play, so it says `open` for an admin-token-only or public-demo deployment even though
+both already reject anonymous mutations. On a readiness probe that would be a lie in the dangerous
+direction, so those two cases have their own names.
+
 ## Ingestion: batch semantics, idempotency, limits
 
 Exposure and conversion events are ingested in batches (`POST /api/v1/experiments/{id}/exposures`
@@ -202,10 +216,6 @@ Diagnostics declare this explicitly:
 
 ## Retention and backup
 
-- **Legacy optional SQLite remote snapshot code.** The repository still contains optional
-  HF Dataset snapshot helpers (`AB_HF_*` env vars, unit-tested). They are **not** a supported
-  production backup path, not a publication target, and outside project closure. Prefer
-  managed PostgreSQL backups (below) or signed workspace exports for durable recovery.
 - **Backups.** Use managed PostgreSQL automated backups, or schedule `pg_dump`:
 
   ```bash

@@ -7,12 +7,24 @@ editUrl: "https://github.com/brownjuly2003-code/ab-test-research-designer/edit/m
 
 ## Build
 
-Build the release image from the repository root:
+Build the release image from a clean tracked checkout and stamp the exact
+commit:
 
 ```bash
-docker build -t ab-test-research-designer:1.0.0 -t ab-test-research-designer:latest .
+git diff --quiet HEAD -- || { echo "tracked files are dirty"; exit 1; }
+GIT_SHA="$(git rev-parse --verify 'HEAD^{commit}')"
+docker build --build-arg GIT_SHA="$GIT_SHA" -t ab-test-research-designer:1.0.0 -t ab-test-research-designer:latest .
 docker inspect ab-test-research-designer:1.0.0 --format '{{.Size}}'
 ```
+
+`GIT_SHA` must be the lowercase 40- or 64-character commit ID; do not use
+`unknown`. The build writes `/app/app/backend/BUILD_INFO.json` with
+`git_commit` set to that commit, `dirty=false`, and `tracked_digest` covering
+the StatsKernel source set. The
+runtime validates the stamp and source digest before loading the kernel, so it
+does not need `.git` or a Git executable. A malformed stamp or changed source
+fails closed; the Git fallback is only for development trees without
+`BUILD_INFO.json`.
 
 ### Pulling from GHCR
 
@@ -112,9 +124,8 @@ Create the app from `slack/app-manifest.yml`, replace `{DEPLOY_HOST}` with the p
 Publication and acceptance for this project are **GitHub-only** (source, Actions,
 Pages, Releases, GHCR) plus the supported local runtime
 (`python scripts/run_local.py`). Hugging Face is **not** a supported publication
-or demo target (owner decision 2026-07-30). Optional legacy HF snapshot/deploy
-helpers may still exist in the repository for historical reference; they are
-outside closure and must not be treated as an active host of record.
+or demo target (owner decision 2026-07-30); the legacy HF snapshot and deploy
+helpers were removed from the tree on 2026-08-23.
 
 **Operator mode (`?admin=1`):** the public app shows only the planning wizard. All
 operator surfaces — the saved-project sidebar (projects, history, revisions,

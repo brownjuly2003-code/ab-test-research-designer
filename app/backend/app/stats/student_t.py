@@ -105,6 +105,24 @@ def t_cdf(value: float, df: float) -> float:
     return 1.0 - half if value >= 0 else half
 
 
+def t_sf(value: float, df: float) -> float:
+    """Upper tail P(T > value) for Student-t, without the ``1 - cdf`` cancellation.
+
+    ``t_cdf`` already computes the tail: ``half`` is exactly P(T > |value|),
+    and the CDF is one minus it. Returning ``half`` directly keeps the tail
+    accurate to the continued-fraction tolerance instead of losing every digit
+    the subtraction cancels. Falls back to the normal tail on the same
+    degrees-of-freedom boundaries ``t_cdf`` uses.
+    """
+    if not math.isfinite(df) or df <= 0 or df >= _LARGE_DF:
+        return 0.5 * math.erfc(value / math.sqrt(2.0))
+    if not math.isfinite(value):
+        return 1.0 if value < 0 else 0.0
+    x = df / (df + value * value)
+    half = 0.5 * _betainc_regularized(df / 2.0, 0.5, x)
+    return half if value >= 0 else 1.0 - half
+
+
 def f_sf(f_value: float, df1: float, df2: float) -> float:
     """Survival function P(F > f_value) for the F distribution with ``(df1, df2)`` degrees of freedom.
 

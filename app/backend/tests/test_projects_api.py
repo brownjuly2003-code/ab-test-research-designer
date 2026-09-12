@@ -1,7 +1,7 @@
 import json
-from pathlib import Path
 import sys
 import uuid
+from pathlib import Path
 
 from fastapi.testclient import TestClient
 
@@ -742,7 +742,8 @@ def test_workspace_validate_rejects_duplicate_project_ids(monkeypatch) -> None:
         project_count = len(workspace_bundle["projects"])
         workspace_bundle["integrity"]["counts"]["projects"] = project_count
 
-        import hashlib, json
+        import hashlib
+        import json
         payload = {
             "schema_version": workspace_bundle["schema_version"],
             "generated_at": workspace_bundle["generated_at"],

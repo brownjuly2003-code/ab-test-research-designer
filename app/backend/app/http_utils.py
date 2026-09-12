@@ -54,7 +54,7 @@ PUBLIC_COMPUTE_PATHS = frozenset(
         "/api/v1/projects/compare",
     }
 )
-RATE_LIMITED_PATH_PREFIXES = ("/api/v1",)
+RATE_LIMITED_PATH_PREFIXES = ("/api/v1", "/api/v2")
 # Public Slack ingress lives outside /api/v1 and historically bypassed body/rate
 # limits (audit F-05). Only the signed POST endpoints are included — OAuth GETs
 # are not body-bearing attack surface.
@@ -159,7 +159,7 @@ class SlidingWindowRateLimiter:
 
 
 def is_protected_path(path: str) -> bool:
-    if path.startswith("/api/v1"):
+    if path.startswith(("/api/v1", "/api/v2")):
         return True
     if path in AUTH_PROTECTED_EXACT_PATHS:
         return True
@@ -270,7 +270,7 @@ def get_request_body_limit(path: str, method: str, settings: "Settings") -> int 
         return settings.max_slack_body_bytes
     if path in WORKSPACE_BUNDLE_PATHS:
         return settings.max_workspace_body_bytes
-    if path.startswith("/api/v1"):
+    if path.startswith(("/api/v1", "/api/v2")):
         return settings.max_request_body_bytes
     return None
 

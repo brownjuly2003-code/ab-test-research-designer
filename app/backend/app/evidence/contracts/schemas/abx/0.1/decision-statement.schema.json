@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:evidenceos:abx:schema:0.1:decision-statement",
+  "title": "ABX v0.1 unsigned DSSE decision statement",
+  "type": "object",
+  "required": ["payload", "payloadType", "signatures"],
+  "properties": {
+    "payload": {
+      "type": "string",
+      "minLength": 4,
+      "pattern": "^[A-Za-z0-9+/_-]+={0,2}$"
+    },
+    "payloadType": {"const": "application/vnd.in-toto+json"},
+    "signatures": {"type": "array", "maxItems": 0}
+  }
+}

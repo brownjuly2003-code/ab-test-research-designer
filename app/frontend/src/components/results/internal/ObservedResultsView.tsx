@@ -1,5 +1,6 @@
 import { type Dispatch, type SetStateAction, Suspense, lazy } from "react";
 import { useTranslation } from "react-i18next";
+import { LEGACY_RESULTS_LINEAGE_REFERENCES } from "../../../lib/experiment";
 import type { ResultsAnalysisResponse, SavedProject } from "../../../lib/experiment";
 import type { ProjectAnalysisRun } from "../../../lib/experiment";
 import type { ActualResultsState, BinaryResultsForm, ContinuousResultsForm, CountResultsForm, ObservedBaseMetricType, ObservedMetricType, ObservedTestSelection } from "../observedResultsShared";
@@ -233,12 +234,33 @@ export default function ObservedResultsView({
             <Icon name={resultsAnalysis.is_significant ? "check" : "info"} className="icon icon-inline" />
             <div style={{ display: "grid", gap: "6px" }}><strong>{resultsAnalysis.verdict}</strong><span>{resultsAnalysis.interpretation}</span></div>
           </div>
+          <section
+            className="callout"
+            role="note"
+            aria-labelledby="observed-results-lineage-title"
+            style={{ borderColor: "var(--color-warning)", background: "var(--color-warning-light)" }}
+          >
+            <Icon name="info" className="icon icon-inline" />
+            <div style={{ display: "grid", gap: "var(--space-2)" }}>
+              <strong id="observed-results-lineage-title">{t("results.observedResults.lineage.title")}</strong>
+              <span>{t("results.observedResults.lineage.summary", { available: 0, total: LEGACY_RESULTS_LINEAGE_REFERENCES.length })}</span>
+              <span className="muted">{t("results.observedResults.lineage.missing")}</span>
+              <ul className="list" style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)", listStyle: "none", margin: 0, padding: 0 }}>
+                {LEGACY_RESULTS_LINEAGE_REFERENCES.map((reference) => (
+                  <li className="pill" key={reference} style={{ background: "var(--color-warning-light)" }}>
+                    {t(`results.observedResults.lineage.references.${reference}`)}
+                  </li>
+                ))}
+              </ul>
+              <strong>{t("results.observedResults.lineage.notEvidence")}</strong>
+            </div>
+          </section>
           <div style={{ display: "grid", gap: "var(--space-3)", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))" }}>
             <div className="card"><strong>{t("results.observedResults.cards.effect")}</strong><div style={{ marginTop: "8px" }}>{formatObservedValue(resultsAnalysis.observed_effect, analysisMetricType, { signed: true, withUnit: true })}</div></div>
             <div className="card"><strong>{t("results.observedResults.cards.ciLabel", { percent: Math.round(resultsAnalysis.ci_level * 100) })}</strong><div style={{ marginTop: "8px" }}>[{formatObservedValue(resultsAnalysis.ci_lower, analysisMetricType, { withUnit: true })}, {formatObservedValue(resultsAnalysis.ci_upper, analysisMetricType, { withUnit: true })}]</div></div>
             <div className="card"><strong>{t("results.observedResults.cards.pValue")}</strong><div style={{ marginTop: "8px" }}>{formatPValue(resultsAnalysis.p_value)}</div></div>
             <div className="card"><strong>{t("results.observedResults.cards.testStatistic")}</strong><div style={{ marginTop: "8px" }}>{formatStat(resultsAnalysis.test_statistic)}</div></div>
-            <div className="card"><strong>{t("results.observedResults.cards.relativeChange")}</strong><div style={{ marginTop: "8px" }}>{resultsAnalysis.observed_effect_relative.toFixed(2)}%</div></div>
+            <div className="card"><strong>{t("results.observedResults.cards.relativeChange")}</strong><div style={{ marginTop: "8px" }}>{resultsAnalysis.observed_effect_relative == null ? "n/a" : `${resultsAnalysis.observed_effect_relative.toFixed(2)}%`}</div></div>
             <div className="card"><strong>{t("results.observedResults.cards.powerAchieved")}</strong><div style={{ marginTop: "8px" }}>{formatStat(resultsAnalysis.power_achieved)}</div></div>
             {resultsAnalysis.effect_size != null ? (
               <div className="card"><strong>{resultsAnalysis.effect_size_label ?? t("results.observedResults.cards.effectSize")}</strong><div style={{ marginTop: "8px" }}>{formatStat(resultsAnalysis.effect_size)}</div>{resultsAnalysis.effect_size_ci_lower != null ? (<div style={{ marginTop: "4px", fontSize: "0.85em", opacity: 0.75 }}>{t("results.observedResults.cards.ciLabel", { percent: Math.round(resultsAnalysis.ci_level * 100) })}: [{formatStat(resultsAnalysis.effect_size_ci_lower)}, {resultsAnalysis.effect_size_ci_upper != null ? formatStat(resultsAnalysis.effect_size_ci_upper) : "∞"}]</div>) : null}</div>

@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:evidenceos:abx:schema:0.1:decision",
+  "title": "ABX v0.1 decision record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "decision_id",
+    "content_digest",
+    "run_id",
+    "protocol_revision_id",
+    "policy",
+    "evidence",
+    "proposed_verdict",
+    "human_verdict",
+    "rationale",
+    "state",
+    "decided_at",
+    "decided_by",
+    "approvals",
+    "extensions"
+  ],
+  "properties": {
+    "schema_version": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/schemaVersion"},
+    "decision_id": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/opaqueId"},
+    "content_digest": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/sha256"},
+    "run_id": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/opaqueId"},
+    "cites_bundle_id": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/sha256"},
+    "protocol_revision_id": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/sha256"},
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["policy_id", "version", "minimum_worthwhile_effect", "harm_rule_codes", "approval_roles"],
+      "properties": {
+        "policy_id": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/opaqueId"},
+        "version": {"type": "string", "minLength": 1, "maxLength": 64},
+        "minimum_worthwhile_effect": {"type": "number"},
+        "harm_rule_codes": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]{2,63}$"}},
+        "approval_roles": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/opaqueId"}}
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["estimate_ids", "finding_ids"],
+      "properties": {
+        "estimate_ids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/opaqueId"}},
+        "finding_ids": {"type": "array", "uniqueItems": true, "items": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/opaqueId"}}
+      }
+    },
+    "proposed_verdict": {"enum": ["ship", "hold", "stop", "inconclusive"]},
+    "human_verdict": {"enum": ["ship", "hold", "stop", "inconclusive"]},
+    "rationale": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/nonEmptyText"},
+    "state": {"enum": ["proposed", "approved", "rejected"]},
+    "decided_at": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/utcTimestamp"},
+    "decided_by": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["actor_ref", "role"],
+      "properties": {
+        "actor_ref": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/actorRef"},
+        "role": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/opaqueId"},
+        "role_source": {"enum": ["credential", "asserted", "policy_default"]}
+      }
+    },
+    "approvals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["actor_ref", "role", "verdict", "approved_at"],
+        "properties": {
+          "actor_ref": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/actorRef"},
+          "role": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/opaqueId"},
+          "verdict": {"enum": ["approve", "reject"]},
+          "approved_at": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/utcTimestamp"}
+        }
+      }
+    },
+    "extensions": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/extensions"}
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": ["state"],
+        "properties": {"state": {"const": "approved"}}
+      },
+      "then": {
+        "properties": {"approvals": {"minItems": 1}}
+      }
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:evidenceos:abx:schema:0.1:finding",
+  "title": "ABX v0.1 validity finding",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "finding_id",
+    "content_digest",
+    "run_id",
+    "code",
+    "category",
+    "severity",
+    "state",
+    "blocking",
+    "summary",
+    "evidence",
+    "remediation",
+    "produced_at",
+    "extensions"
+  ],
+  "properties": {
+    "schema_version": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/schemaVersion"},
+    "finding_id": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/opaqueId"},
+    "content_digest": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/sha256"},
+    "run_id": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/opaqueId"},
+    "code": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]{2,63}$"},
+    "category": {"enum": ["protocol", "telemetry", "assignment", "power", "data_quality", "statistics", "privacy", "operations", "lineage"]},
+    "severity": {"enum": ["info", "warning", "error"]},
+    "state": {"enum": ["open", "resolved", "overridden"]},
+    "blocking": {"type": "boolean"},
+    "summary": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/nonEmptyText"},
+    "evidence": {
+      "type": "array",
+      "items": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/artifactPointer"}
+    },
+    "remediation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "guidance"],
+      "properties": {
+        "code": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]{2,63}$"},
+        "guidance": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/nonEmptyText"}
+      }
+    },
+    "override": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["actor_ref", "reason", "policy_version", "recorded_at"],
+      "properties": {
+        "actor_ref": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/actorRef"},
+        "reason": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/nonEmptyText"},
+        "policy_version": {"type": "string", "minLength": 1, "maxLength": 64},
+        "recorded_at": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/utcTimestamp"}
+      }
+    },
+    "produced_at": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/utcTimestamp"},
+    "extensions": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/extensions"}
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": ["state"],
+        "properties": {"state": {"const": "overridden"}}
+      },
+      "then": {"required": ["override"]}
+    }
+  ]
+}

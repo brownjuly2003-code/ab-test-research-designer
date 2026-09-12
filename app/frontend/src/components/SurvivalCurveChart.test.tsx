@@ -57,7 +57,7 @@ describe("SurvivalCurveChart", () => {
     } finally {
       await view.unmount();
     }
-  }, 15000);
+  });
 
   it("has no axe violations", async () => {
     const view = await renderIntoDocument(
@@ -76,5 +76,5 @@ describe("SurvivalCurveChart", () => {
     } finally {
       await view.unmount();
     }
-  }, 15000);
+  });
 });

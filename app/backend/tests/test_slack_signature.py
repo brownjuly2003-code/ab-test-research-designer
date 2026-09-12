@@ -1,9 +1,12 @@
-from pathlib import Path
 import sys
+from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
-from app.backend.app.slack.signature import build_slack_signature, verify_slack_signature
+from app.backend.app.slack.signature import (
+    build_slack_signature,
+    verify_slack_signature,
+)
 
 
 def test_verify_slack_signature_accepts_valid_request() -> None:

@@ -32,6 +32,8 @@ from math import sqrt
 from statistics import NormalDist
 from typing import Any
 
+from app.backend.app.stats.binary import standard_normal_sf
+
 _STANDARD_NORMAL = NormalDist()
 
 
@@ -155,7 +157,7 @@ def compare_ratios(
     effect = treatment_ratio - control_ratio
     standard_error = sqrt(variance)
     test_statistic = effect / standard_error
-    p_value = 2.0 * (1.0 - _STANDARD_NORMAL.cdf(abs(test_statistic)))
+    p_value = 2.0 * standard_normal_sf(abs(test_statistic))
     z_critical = _STANDARD_NORMAL.inv_cdf(1.0 - alpha / 2.0)
     ci_lower = effect - z_critical * standard_error
     ci_upper = effect + z_critical * standard_error

@@ -1,0 +1,36 @@
+{
+  "random_seed": 20260821,
+  "analysis_method": {"method_id": "newcombe", "method_version": "1"},
+  "allocations": [
+    {
+      "intervention_id": "control",
+      "allocation": "0.5",
+      "namespace": "checkout",
+      "hash_version": "assignment_v1"
+    },
+    {
+      "intervention_id": "treatment",
+      "allocation": "0.5",
+      "namespace": "checkout",
+      "hash_version": "assignment_v1"
+    }
+  ],
+  "metric_calibrations": [
+    {
+      "metric_id": "metric_conversion",
+      "metric_version": "v1",
+      "definition_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "calibration_source": "upstream_asserted",
+      "simulated_p_value_count": 10000,
+      "uniformity_p_value": "0.42"
+    },
+    {
+      "metric_id": "metric_refund",
+      "metric_version": "v1",
+      "definition_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "calibration_source": "upstream_asserted",
+      "simulated_p_value_count": 10000,
+      "uniformity_p_value": "0.37"
+    }
+  ]
+}

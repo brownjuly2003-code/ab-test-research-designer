@@ -7,9 +7,9 @@ repository mutation requires a write-capable token, and server-funded LLM calls
 sessions — guests must bring their own provider key.
 """
 
-from pathlib import Path
 import sys
 import uuid
+from pathlib import Path
 
 from fastapi.testclient import TestClient
 

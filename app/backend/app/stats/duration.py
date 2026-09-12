@@ -8,6 +8,7 @@ def estimate_experiment_duration_days(
     audience_share_in_test: float,
     traffic_split: Sequence[float],
     traffic_allocation_fraction: float = 1.0,
+    total_sample_size: int | None = None,
 ) -> dict[str, float]:
     if sample_size_per_variant <= 0:
         raise ValueError("sample_size_per_variant must be positive")
@@ -19,6 +20,8 @@ def estimate_experiment_duration_days(
         raise ValueError("traffic_split must contain positive values")
     if not 0 < traffic_allocation_fraction <= 1:
         raise ValueError("traffic_allocation_fraction must be between 0 (exclusive) and 1")
+    if total_sample_size is not None and total_sample_size <= 0:
+        raise ValueError("total_sample_size must be positive")
 
     total_weight = sum(traffic_split)
     effective_daily_traffic = expected_daily_traffic * audience_share_in_test
@@ -32,11 +35,15 @@ def estimate_experiment_duration_days(
     if daily_traffic_for_smallest_variant <= 0:
         raise ValueError("daily traffic for the smallest variant must be positive")
 
+    estimated_duration_days = (
+        ceil(total_sample_size / allocated_daily_traffic)
+        if total_sample_size is not None
+        else ceil(sample_size_per_variant / daily_traffic_for_smallest_variant)
+    )
+
     return {
         "effective_daily_traffic": effective_daily_traffic,
         "allocated_daily_traffic": allocated_daily_traffic,
         "daily_traffic_smallest_variant": daily_traffic_for_smallest_variant,
-        "estimated_duration_days": ceil(
-            sample_size_per_variant / daily_traffic_for_smallest_variant
-        ),
+        "estimated_duration_days": estimated_duration_days,
     }

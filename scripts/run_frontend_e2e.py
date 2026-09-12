@@ -111,6 +111,7 @@ def main() -> int:
             "AB_DB_PATH": str(db_path),
             "AB_HOST": BACKEND_HOST,
             "AB_PORT": str(backend_port),
+            "AB_SEED_DEMO_ON_STARTUP": "true",
         }
     )
 

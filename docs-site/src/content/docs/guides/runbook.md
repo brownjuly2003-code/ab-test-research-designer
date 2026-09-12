@@ -25,6 +25,17 @@ npm run dev
 
 Docker:
 
+Compose requires the exact source commit for `BUILD_INFO.json`. Set it once in
+the shell before any build:
+
+```powershell
+$env:GIT_SHA = (git rev-parse --verify 'HEAD^{commit}').Trim()
+```
+
+```bash
+export GIT_SHA="$(git rev-parse --verify 'HEAD^{commit}')"
+```
+
 ```bash
 docker compose up --build
 ```
@@ -128,17 +139,8 @@ python -m uvicorn app.backend.app.main:app --host 127.0.0.1 --port 8008
 Notes:
 
 - schema bootstrapping is automatic on startup via idempotent `CREATE TABLE IF NOT EXISTS`
-- SQLite-specific snapshot sync stays disabled on Postgres runtimes
 - `AB_DB_POOL_SIZE` controls the psycopg connection pool; increase it for multi-worker deploys
 - `AB_DB_PATH`, `AB_SQLITE_BUSY_TIMEOUT_MS`, `AB_SQLITE_JOURNAL_MODE`, and `AB_SQLITE_SYNCHRONOUS` still apply only to SQLite
-
-## Legacy SQLite remote snapshot (unsupported publication path)
-
-Optional HF Dataset snapshot code remains in the repository (`AB_HF_*` env vars and
-`SnapshotService`) and is covered by the in-repo unit suite. It is **not** a supported
-publication, demo, or production backup target (owner decision 2026-07-30) and is outside
-project closure. Do not use it as an operational recovery recipe; prefer signed workspace
-exports for portable SQLite demos and managed PostgreSQL backups for production.
 
 Migration guide from SQLite:
 

@@ -1,0 +1,16 @@
+{
+  "schema_version": "0.1.0",
+  "finding_id": "finding_01",
+  "content_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+  "run_id": "run_foundation_01",
+  "code": "ASSIGNMENT_IMBALANCE",
+  "category": "assignment",
+  "severity": "warning",
+  "state": "overridden",
+  "blocking": false,
+  "summary": "The finding claims an override without an override record.",
+  "evidence": [],
+  "remediation": {"code": "REVIEW_ASSIGNMENT", "guidance": "Review assignment telemetry."},
+  "produced_at": "2026-08-21T21:01:00Z",
+  "extensions": {}
+}

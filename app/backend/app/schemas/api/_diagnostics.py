@@ -198,3 +198,12 @@ class ReadinessResponse(BaseModel):
     status: str
     generated_at: str
     checks: list[ReadinessCheck]
+    # Whether anything at all gates a mutating request, reported next to the
+    # storage and frontend checks because an operator reading a readiness probe
+    # is asking "is this safe to send traffic to", and "ready" plus
+    # ``auth_mode: "open"`` is a different answer from "ready" alone. Production
+    # cannot reach "open": `main._verify_production_auth` refuses to boot without
+    # auth material unless AB_ALLOW_INSECURE_PRODUCTION says otherwise. It is not
+    # a failing check, because an open local instance is the normal way to
+    # develop against this service.
+    auth_mode: str

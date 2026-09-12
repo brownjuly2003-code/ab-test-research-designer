@@ -1,0 +1,202 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:evidenceos:abx:schema:0.1:manifest",
+  "title": "ABX v0.1 logical manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "abx_version",
+    "bundle_id",
+    "created_at",
+    "protocol_revision_id",
+    "run_id",
+    "hash_algorithm",
+    "required_capabilities",
+    "entries"
+  ],
+  "properties": {
+    "abx_version": {"const": "0.1.0"},
+    "bundle_id": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/sha256"},
+    "created_at": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/utcTimestamp"},
+    "protocol_revision_id": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/sha256"},
+    "run_id": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/opaqueId"},
+    "supersedes": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/sha256"},
+    "hash_algorithm": {"const": "sha256"},
+    "required_capabilities": {
+      "type": "array",
+      "minItems": 2,
+      "uniqueItems": true,
+      "items": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/capability"},
+      "allOf": [
+        {"contains": {"const": "protocol-core"}},
+        {"contains": {"const": "lineage-v1"}}
+      ]
+    },
+    "entries": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 512,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/entry"}
+    },
+    "extensions": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/extensions"}
+  },
+  "$defs": {
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "role", "media_type", "size", "digest"],
+      "properties": {
+        "path": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/safeRelativePath"},
+        "role": {"enum": ["protocol", "amendments", "run", "source", "metric", "method", "query", "finding", "estimate", "decision", "report", "schema"]},
+        "media_type": {"type": "string", "minLength": 1, "maxLength": 128},
+        "size": {"type": "integer", "minimum": 0, "maximum": 16777216},
+        "digest": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/sha256"},
+        "schema_id": {"type": "string", "minLength": 1, "maxLength": 256}
+      },
+      "allOf": [
+        {
+          "if": {"required": ["role"], "properties": {"role": {"const": "protocol"}}},
+          "then": {
+            "required": ["schema_id"],
+            "properties": {
+              "path": {"const": "protocol/protocol.json"},
+              "media_type": {"const": "application/json"},
+              "schema_id": {"const": "urn:evidenceos:abx:schema:0.1:protocol"}
+            }
+          }
+        },
+        {
+          "if": {"required": ["role"], "properties": {"role": {"const": "amendments"}}},
+          "then": {
+            "required": ["schema_id"],
+            "properties": {
+              "path": {"const": "protocol/amendments.json"},
+              "media_type": {"const": "application/json"},
+              "schema_id": {"const": "urn:evidenceos:abx:schema:0.1:amendments"}
+            }
+          }
+        },
+        {
+          "if": {"required": ["role"], "properties": {"role": {"const": "run"}}},
+          "then": {
+            "required": ["schema_id"],
+            "properties": {
+              "path": {"const": "run/run.json"},
+              "media_type": {"const": "application/json"},
+              "schema_id": {"const": "urn:evidenceos:abx:schema:0.1:run"}
+            }
+          }
+        },
+        {
+          "if": {"required": ["role"], "properties": {"role": {"const": "source"}}},
+          "then": {
+            "required": ["schema_id"],
+            "properties": {
+              "path": {"pattern": "^sources/[A-Za-z][A-Za-z0-9_.-]{0,127}\\.json$"},
+              "media_type": {"const": "application/json"},
+              "schema_id": {"const": "urn:evidenceos:abx:schema:0.1:source"}
+            }
+          }
+        },
+        {
+          "if": {"required": ["role"], "properties": {"role": {"const": "metric"}}},
+          "then": {
+            "required": ["schema_id"],
+            "properties": {
+              "path": {"pattern": "^metrics/[A-Za-z][A-Za-z0-9_.-]{0,127}\\.json$"},
+              "media_type": {"const": "application/json"},
+              "schema_id": {"const": "urn:evidenceos:abx:schema:0.1:metric"}
+            }
+          }
+        },
+        {
+          "if": {"required": ["role"], "properties": {"role": {"const": "method"}}},
+          "then": {
+            "required": ["schema_id"],
+            "properties": {
+              "path": {"const": "methods/profile.json"},
+              "media_type": {"const": "application/json"},
+              "schema_id": {"const": "urn:evidenceos:abx:schema:0.1:method-profile"}
+            }
+          }
+        },
+        {
+          "if": {"required": ["role"], "properties": {"role": {"const": "query"}}},
+          "then": {
+            "not": {"required": ["schema_id"]},
+            "properties": {
+              "path": {"pattern": "^queries/[0-9a-f]{64}\\.sql$"},
+              "media_type": {"const": "application/sql"}
+            }
+          }
+        },
+        {
+          "if": {"required": ["role"], "properties": {"role": {"const": "finding"}}},
+          "then": {
+            "required": ["schema_id"],
+            "properties": {
+              "path": {"pattern": "^diagnostics/[A-Za-z][A-Za-z0-9_.-]{0,127}\\.json$"},
+              "media_type": {"const": "application/json"},
+              "schema_id": {"const": "urn:evidenceos:abx:schema:0.1:finding"}
+            }
+          }
+        },
+        {
+          "if": {"required": ["role"], "properties": {"role": {"const": "estimate"}}},
+          "then": {
+            "required": ["schema_id"],
+            "properties": {
+              "path": {"pattern": "^estimates/[A-Za-z][A-Za-z0-9_.-]{0,127}\\.json$"},
+              "media_type": {"const": "application/json"},
+              "schema_id": {"const": "urn:evidenceos:abx:schema:0.1:estimate"}
+            }
+          }
+        },
+        {
+          "if": {"required": ["role"], "properties": {"role": {"const": "decision"}}},
+          "then": {
+            "required": ["schema_id"],
+            "oneOf": [
+              {
+                "properties": {
+                  "path": {"const": "decision/decision.json"},
+                  "media_type": {"const": "application/json"},
+                  "schema_id": {"const": "urn:evidenceos:abx:schema:0.1:decision"}
+                }
+              },
+              {
+                "properties": {
+                  "path": {"const": "decision/statement.dsse.json"},
+                  "media_type": {"const": "application/vnd.dsse.envelope.v1+json"},
+                  "schema_id": {"const": "urn:evidenceos:abx:schema:0.1:decision-statement"}
+                }
+              }
+            ]
+          }
+        },
+        {
+          "if": {"required": ["role"], "properties": {"role": {"const": "report"}}},
+          "then": {
+            "not": {"required": ["schema_id"]},
+            "properties": {
+              "path": {"const": "rendered/report.html"},
+              "media_type": {"const": "text/html"}
+            }
+          }
+        },
+        {
+          "if": {"required": ["role"], "properties": {"role": {"const": "schema"}}},
+          "then": {
+            "required": ["schema_id"],
+            "properties": {
+              "path": {"pattern": "^schemas/[A-Za-z][A-Za-z0-9_.-]{0,127}\\.schema\\.json$"},
+              "media_type": {"const": "application/schema+json"},
+              "schema_id": {"pattern": "^urn:evidenceos:abx:schema:0\\.1:[a-z][a-z0-9-]*$"}
+            }
+          }
+        }
+      ]
+    }
+  }
+}

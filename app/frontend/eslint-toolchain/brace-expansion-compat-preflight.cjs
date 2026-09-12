@@ -5,7 +5,7 @@
  * Must run under brace-expansion-compat-preload.cjs (node -r ...).
  * Fails hard if:
  *   - preload is absent
- *   - installed brace-expansion is not the safe 5.0.9 override target
+ *   - installed brace-expansion is not the safe 5.0.8 override target
  *   - dual API (callable + .expand) is missing
  *   - plugin-resolved minimatch@3 cannot match brace globs
  *   - modern minimatch@10 brace API regresses
@@ -19,7 +19,7 @@ const { createRequire } = require("module");
 const toolchainDir = __dirname;
 const requireFromToolchain = createRequire(path.join(toolchainDir, "package.json"));
 
-const EXPECTED_BE_VERSION = "5.0.9";
+const EXPECTED_BE_VERSION = "5.0.8";
 const BRACE_GLOB = "*.{ts,tsx}";
 const SAMPLE_FILE = "a.ts";
 

@@ -121,7 +121,7 @@ describe("SidebarPanel tab state", () => {
     } finally {
       await view.unmount();
     }
-  }, 15000);
+  });
 
   it("keeps the audit-log project filter across a trip to the Projects tab", async () => {
     const view = await renderIntoDocument(<SidebarPanel />);
@@ -145,7 +145,7 @@ describe("SidebarPanel tab state", () => {
     } finally {
       await view.unmount();
     }
-  }, 15000);
+  });
 });
 
 /**
@@ -195,5 +195,5 @@ describe("SidebarPanel workspace import", () => {
     } finally {
       await view.unmount();
     }
-  }, 15000);
+  });
 });

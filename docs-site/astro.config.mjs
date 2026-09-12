@@ -55,7 +55,6 @@ export default defineConfig({
         {
           label: 'Research',
           items: [
-            { label: 'Grey-market subscriptions', slug: 'guides/research-grey-market-digital-subscriptions' },
             { label: 'Case-study fixture', slug: 'guides/case-studies/readme' },
           ],
         },

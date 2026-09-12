@@ -1,0 +1,11 @@
+{
+  "schema_version": "0.1.0",
+  "source_snapshot_id": "source_fixture",
+  "source_ref": "postgresql://analyst:secret@db.example/evidence",
+  "kind": "postgresql",
+  "captured_at": "2026-08-21T20:55:00Z",
+  "fingerprint": {"method": "transaction_snapshot", "value": "snapshot-42", "strength": "strong"},
+  "engine": {"name": "postgresql", "version": "18"},
+  "schema_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+  "extensions": {}
+}

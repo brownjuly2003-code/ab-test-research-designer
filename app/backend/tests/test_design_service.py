@@ -1,10 +1,13 @@
-from pathlib import Path
 import sys
+from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
 from app.backend.app.services.calculations_service import calculate_experiment_metrics
-from app.backend.app.services.design_service import build_experiment_report, build_guardrail_section
+from app.backend.app.services.design_service import (
+    build_experiment_report,
+    build_guardrail_section,
+)
 from app.backend.app.stats.binary import calculate_detectable_mde_binary
 
 

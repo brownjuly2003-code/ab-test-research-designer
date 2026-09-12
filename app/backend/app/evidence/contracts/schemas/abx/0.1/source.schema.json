@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:evidenceos:abx:schema:0.1:source",
+  "title": "ABX v0.1 source snapshot",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "source_snapshot_id",
+    "source_ref",
+    "kind",
+    "captured_at",
+    "fingerprint",
+    "engine",
+    "schema_digest",
+    "extensions"
+  ],
+  "properties": {
+    "schema_version": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/schemaVersion"},
+    "source_snapshot_id": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/opaqueId"},
+    "source_ref": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/opaqueId"},
+    "kind": {"enum": ["duckdb_file", "postgresql", "dbt_manifest", "legacy", "synthetic"]},
+    "captured_at": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/utcTimestamp"},
+    "fingerprint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "value", "strength"],
+      "properties": {
+        "method": {"enum": ["content_sha256", "query_snapshot", "transaction_snapshot", "catalog_version", "synthetic_seed"]},
+        "value": {"type": "string", "minLength": 1, "maxLength": 512},
+        "strength": {"enum": ["strong", "bounded", "weak"]}
+      }
+    },
+    "engine": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version"],
+      "properties": {
+        "name": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/opaqueId"},
+        "version": {"type": "string", "minLength": 1, "maxLength": 64}
+      }
+    },
+    "schema_digest": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/sha256"},
+    "extensions": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/extensions"}
+  }
+}

@@ -39,7 +39,7 @@ from math import isfinite, sqrt
 from statistics import fmean
 from typing import Any
 
-from app.backend.app.stats.student_t import t_cdf, t_ppf
+from app.backend.app.stats.student_t import t_cdf, t_ppf, t_sf
 
 # Conventional default trimming fraction for Yuen's test (20% from each tail — Wilcox's default).
 DEFAULT_TRIM = 0.2
@@ -128,7 +128,7 @@ def trimmed_means_t_test(
         (d_control**2) / (h_control - 1) + (d_treatment**2) / (h_treatment - 1)
     )
 
-    p_value = _bounded_probability(2.0 * (1.0 - t_cdf(abs(test_statistic), degrees_of_freedom)))
+    p_value = _bounded_probability(2.0 * t_sf(abs(test_statistic), degrees_of_freedom))
 
     t_critical = t_ppf(1.0 - alpha / 2.0, degrees_of_freedom)
     margin = t_critical * standard_error
@@ -139,7 +139,7 @@ def trimmed_means_t_test(
     # non-centrality equal to the observed |t|, approximating the non-central t by a shifted central t
     # — the same shape the other distribution-free analyzers report.
     standardized = abs(test_statistic)
-    power_achieved = (1.0 - t_cdf(t_critical - standardized, degrees_of_freedom)) + t_cdf(
+    power_achieved = t_sf(t_critical - standardized, degrees_of_freedom) + t_cdf(
         -t_critical - standardized, degrees_of_freedom
     )
 

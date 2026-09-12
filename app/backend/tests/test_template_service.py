@@ -5,7 +5,6 @@ import yaml
 
 from app.backend.app.schemas.template import TemplateRecord
 
-
 TEMPLATES_DIR = Path(__file__).resolve().parents[1] / "templates"
 TEMPLATE_PATHS = sorted(TEMPLATES_DIR.glob("*.yaml"))
 

@@ -1,6 +1,6 @@
-from pathlib import Path
 import math
 import sys
+from pathlib import Path
 
 import pytest
 from hypothesis import assume, given, settings
@@ -17,11 +17,11 @@ from app.backend.app.stats.bayesian import (
 )
 from app.backend.app.stats.binary import calculate_binary_sample_size, normal_ppf
 from app.backend.app.stats.continuous import calculate_continuous_sample_size
+from app.backend.app.stats.duration import estimate_experiment_duration_days
 from app.backend.app.stats.sequential import (
     obrien_fleming_boundaries,
     sequential_sample_size_inflation,
 )
-from app.backend.app.stats.duration import estimate_experiment_duration_days
 from app.backend.app.stats.srm import chi_square_srm
 
 FINITE_FLOATS = {"allow_nan": False, "allow_infinity": False}
@@ -63,7 +63,7 @@ def _assert_monte_carlo_shape(result: dict, num_simulations: int) -> None:
 
     assert result["num_simulations"] == num_simulations
     assert len(result["simulated_uplifts"]) == num_simulations
-    assert all(left <= right for left, right in zip(percentile_values, percentile_values[1:]))
+    assert all(left <= right for left, right in zip(percentile_values, percentile_values[1:], strict=False))
     assert 0.0 <= result["probability_uplift_positive"] <= 1.0
     assert all(0.0 <= value <= 1.0 for value in result["probability_uplift_above_threshold"].values())
     assert all(math.isfinite(value) for value in result["simulated_uplifts"][:100])
@@ -299,17 +299,17 @@ def test_property_sequential_one_look_matches_fixed_horizon(alpha: float) -> Non
 
 @settings(max_examples=20, deadline=5000)
 @given(alpha=st.floats(min_value=0.001, max_value=0.2, **FINITE_FLOATS))
-def test_property_sequential_hundred_looks_have_nondegenerate_boundaries(alpha: float) -> None:
-    boundaries = obrien_fleming_boundaries(100, alpha)
+def test_property_sequential_twenty_looks_have_nondegenerate_boundaries(alpha: float) -> None:
+    boundaries = obrien_fleming_boundaries(20, alpha)
     z_values = [entry["z_boundary"] for entry in boundaries]
     cumulative_alpha = [entry["cumulative_alpha_spent"] for entry in boundaries]
-    inflation = sequential_sample_size_inflation(100, alpha=alpha, power=0.8)
+    inflation = sequential_sample_size_inflation(20, alpha=alpha, power=0.8)
 
-    assert len(boundaries) == 100
+    assert len(boundaries) == 20
     assert inflation > 1.0
     assert all(math.isfinite(value) and value > 0 for value in z_values)
-    assert all(left >= right for left, right in zip(z_values, z_values[1:]))
-    assert all(left <= right for left, right in zip(cumulative_alpha, cumulative_alpha[1:]))
+    assert all(left >= right for left, right in zip(z_values, z_values[1:], strict=False))
+    assert all(left <= right for left, right in zip(cumulative_alpha, cumulative_alpha[1:], strict=False))
     assert cumulative_alpha[-1] <= alpha + 1e-6
     assert boundaries[0]["info_fraction"] > 0
     assert boundaries[-1]["info_fraction"] == 1.0

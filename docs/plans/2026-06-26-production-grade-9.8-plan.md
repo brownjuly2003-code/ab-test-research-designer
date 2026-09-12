@@ -9,8 +9,9 @@
 ## СТАТУС (2026-06-26, остановка после Phase 2)
 - ✅ **Phase 1 ВЛИТА** (PR #27 → merge `f60e84a3`): coverage-гейт enforced ≥88%, ruff-гейт (F,I,B,C4,UP) поверх mypy strict, 0 TODO.
 - ✅ **Phase 2 ВЛИТА** (PR #28 → merge `7c26cb83`): `deploy-hf.yml` (workflow_dispatch + tag `v*`, НЕ на push) + `scripts/deploy_hf.py` (зеркало ручного рецепта + /health-smoke). Деплой держится (триггерится только вручную/тегом).
+- ❌ **HF-деплой ОТМЕНЁН (2026-08-23, T-03):** `scripts/deploy_hf.py` убран из дерева (`archive/scripts/`), `huggingface_hub` снят с runtime, CI `--self-test` удалён. Публикация — Docker/GHCR/fly, не HF Spaces. Ниже T2.1/T2.2 и T5.2 остаются как историческая запись Phase 2/5, не как актуальный план.
 - ⏳ **Phase 3 — СЛЕД. СЕССИЯ начинает здесь** (стат. доборы), затем Phase 4 (главный объём — продакшн), 5 (demo+deploy), 6 (переоценка).
-- ⚠️ **Перед первым CI-деплоем**: Юля задаёт repo-секрет `gh secret set HF_TOKEN` (write-токен `liovina`). Без него deploy-job падает с подсказкой (по дизайну).
+- ⚠️ **Перед первым CI-деплоем**: Юля задаёт repo-секрет `gh secret set HF_TOKEN` (write-токен `liovina`). Без него deploy-job падает с подсказкой (по дизайну). **Отменено 2026-08-23:** HF-токен больше не нужен.
 
 ## Старт (факты на 2026-06-26, main=`abe44277`, ось A полностью влита)
 - Coverage **91%** (badge), НЕ гейтится в CI. Tests 622 backend passed.

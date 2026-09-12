@@ -39,6 +39,14 @@ export type ApiBlobRequestOptions = {
   fallbackFilename: string;
 };
 
+export type ApiBinaryJsonRequestOptions = {
+  body: Blob;
+  headers?: Record<string, string>;
+  auth?: ApiAuthMode;
+  signal?: AbortSignal;
+  errorFallback: string;
+};
+
 function readApiSessionToken(): string {
   const storage = typeof globalThis !== "undefined" ? globalThis.sessionStorage : undefined;
   if (!storage) {
@@ -322,4 +330,33 @@ export async function apiBlobRequest(
     /filename="([^"]+)"/i.exec(response.headers.get("content-disposition") ?? "")?.[1] ??
     fallbackFilename;
   return { blob, filename };
+}
+
+/** Upload a binary artifact and decode the endpoint's typed JSON response. */
+export async function apiBinaryJsonRequest<T>(
+  path: string,
+  options: ApiBinaryJsonRequestOptions
+): Promise<T> {
+  const {
+    body,
+    headers: extraHeaders = {},
+    auth = "session",
+    signal,
+    errorFallback
+  } = options;
+  const withContentType =
+    "Content-Type" in extraHeaders
+      ? extraHeaders
+      : { "Content-Type": "application/octet-stream", ...extraHeaders };
+  const headers =
+    auth === "admin" ? buildAdminHeaders(withContentType) : buildHeaders(withContentType);
+
+  const response = await fetch(apiUrl(path), { method: "POST", headers, body, signal });
+  const data = await readJson<T & ApiErrorResponse>(response);
+
+  if (!response.ok) {
+    throw new Error(getErrorMessage(data, response, errorFallback));
+  }
+
+  return data;
 }

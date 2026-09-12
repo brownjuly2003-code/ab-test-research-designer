@@ -94,5 +94,5 @@ describe.each([
     } finally {
       await view.unmount();
     }
-  }, 15000);
+  });
 });

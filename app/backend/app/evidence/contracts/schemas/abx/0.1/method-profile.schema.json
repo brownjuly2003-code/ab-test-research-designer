@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:evidenceos:abx:schema:0.1:method-profile",
+  "title": "ABX v0.1 method guarantee profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "method_id",
+    "method_version",
+    "implementation_digest",
+    "test_estimand",
+    "interval_estimand",
+    "error_control",
+    "asymptotics",
+    "numeric_contract",
+    "determinism",
+    "assumptions",
+    "verification_evidence"
+  ],
+  "properties": {
+    "schema_version": {"const": "0.1.0"},
+    "method_id": {"const": "binary_pooled_z_newcombe"},
+    "method_version": {"const": "binary_pooled_z_newcombe_v1"},
+    "implementation_digest": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/sha256"},
+    "test_estimand": {"const": "risk_difference"},
+    "interval_estimand": {"const": "risk_difference"},
+    "error_control": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fixed_horizon", "nominal_alpha", "sidedness"],
+      "properties": {
+        "fixed_horizon": {"const": true},
+        "nominal_alpha": {"type": "number", "minimum": 0.001, "maximum": 0.1},
+        "sidedness": {"const": "two_sided"}
+      }
+    },
+    "asymptotics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["min_n_per_arm", "min_expected_count"],
+      "properties": {
+        "min_n_per_arm": {"const": 30},
+        "min_expected_count": {"const": 5}
+      }
+    },
+    "numeric_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rounding", "reference_implementation", "observed_max_deviation"],
+      "properties": {
+        "rounding": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["risk_difference_decimal_places", "p_value_decimal_places", "test_statistic_decimal_places"],
+          "properties": {
+            "risk_difference_decimal_places": {"const": 6},
+            "p_value_decimal_places": {"const": 6},
+            "test_statistic_decimal_places": {"const": 4}
+          }
+        },
+        "reference_implementation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["package", "version", "test", "interval"],
+          "properties": {
+            "package": {"const": "statsmodels"},
+            "version": {"const": "0.14.6"},
+            "test": {"const": "statsmodels.stats.proportion.proportions_ztest"},
+            "interval": {"const": "statsmodels.stats.proportion.confint_proportions_2indep(method='newcomb')"}
+          }
+        },
+        "observed_max_deviation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["test_statistic", "p_value", "confidence_interval"],
+          "properties": {
+            "test_statistic": {"type": "number", "minimum": 0},
+            "p_value": {"type": "number", "minimum": 0},
+            "confidence_interval": {"type": "number", "minimum": 0}
+          }
+        }
+      }
+    },
+    "determinism": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["closed_form"],
+      "properties": {"closed_form": {"const": true}}
+    },
+    "assumptions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["equal_allocation"],
+      "properties": {"equal_allocation": {"const": false}}
+    },
+    "verification_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["oracle_case_ids", "last_verified_commit"],
+      "properties": {
+        "oracle_case_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"const": "binary_pooled_z_newcombe"}
+        },
+        "last_verified_commit": {
+          "const": "5c65c0d309427d8a5c41536889daa790b982e7e1"
+        }
+      }
+    }
+  }
+}

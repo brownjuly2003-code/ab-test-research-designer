@@ -1,57 +1,123 @@
 """
 Group sequential design utilities using O'Brien-Fleming style boundaries.
 
-The implementation keeps the stats layer dependency-free and combines:
-- Lan-DeMets alpha spending for cumulative alpha bookkeeping
-- O'Brien-Fleming nominal z-boundaries for equally spaced looks
+The implementation keeps the stats layer dependency-free and numerically inverts
+the Lan-DeMets alpha-spending function for equally spaced looks.
 """
 
 import math
 from typing import Any
 
-from app.backend.app.stats.binary import normal_ppf, standard_normal_cdf
+from app.backend.app.stats.binary import normal_ppf
 
-_FINAL_BOUNDARY_ANCHORS = {
-    0.01: {1: 2.5758, 2: 2.58, 4: 2.609, 8: 2.648, 16: 2.684},
-    0.05: {1: 1.96, 2: 1.977, 4: 2.024, 8: 2.072, 16: 2.114},
-    0.1: {1: 1.6449, 2: 1.678, 4: 1.733, 8: 1.786, 16: 1.83},
-}
-_MAX_SEQUENTIAL_LOOKS = 100
+_MAX_SEQUENTIAL_LOOKS = 20
+_GAUSS_LEGENDRE_ORDER = 64
+_ROOT_ITERATIONS = 40
+_MIN_RESOLVABLE_ALPHA = 1e-12
 
 
-def _interpolate(value: float, points: list[tuple[float, float]]) -> float:
-    if value <= points[0][0]:
-        left_x, left_y = points[0]
-        right_x, right_y = points[1]
-        slope = (right_y - left_y) / (right_x - left_x)
-        return left_y + slope * (value - left_x)
+def _gauss_legendre_rule(order: int) -> tuple[tuple[float, ...], tuple[float, ...]]:
+    nodes = [0.0] * order
+    weights = [0.0] * order
+    for index in range((order + 1) // 2):
+        root = math.cos(math.pi * (index + 0.75) / (order + 0.5))
+        derivative = 0.0
+        for _ in range(20):
+            previous = 1.0
+            current = root
+            for degree in range(2, order + 1):
+                previous, current = (
+                    current,
+                    ((2 * degree - 1) * root * current - (degree - 1) * previous) / degree,
+                )
+            derivative = order * (root * current - previous) / (root * root - 1)
+            update = current / derivative
+            root -= update
+            if abs(update) < 1e-15:
+                break
 
-    for index in range(1, len(points)):
-        left_x, left_y = points[index - 1]
-        right_x, right_y = points[index]
-        if value <= right_x:
-            weight = (value - left_x) / (right_x - left_x)
-            return left_y + (right_y - left_y) * weight
-
-    left_x, left_y = points[-2]
-    right_x, right_y = points[-1]
-    slope = (right_y - left_y) / (right_x - left_x)
-    return right_y + slope * (value - right_x)
+        weight = 2 / ((1 - root * root) * derivative * derivative)
+        nodes[index] = -root
+        nodes[order - index - 1] = root
+        weights[index] = weight
+        weights[order - index - 1] = weight
+    return tuple(nodes), tuple(weights)
 
 
-def _interpolate_anchor_by_looks(n_looks: int, anchor_map: dict[int, float]) -> float:
-    points = sorted((math.log2(looks), value) for looks, value in anchor_map.items())
-    return _interpolate(math.log2(n_looks), points)
+_QUADRATURE_NODES, _QUADRATURE_WEIGHTS = _gauss_legendre_rule(_GAUSS_LEGENDRE_ORDER)
 
 
-def _final_boundary_z(n_looks: int, alpha: float) -> float:
-    adjustment_points: list[tuple[float, float]] = []
-    for anchor_alpha, anchor_map in sorted(_FINAL_BOUNDARY_ANCHORS.items()):
-        fixed_z = normal_ppf(1 - anchor_alpha / 2)
-        obf_z = _interpolate_anchor_by_looks(n_looks, anchor_map)
-        adjustment_points.append((anchor_alpha, obf_z - fixed_z))
+def _normal_density(value: float, variance: float) -> float:
+    return math.exp(-(value * value) / (2 * variance)) / math.sqrt(2 * math.pi * variance)
 
-    return normal_ppf(1 - alpha / 2) + _interpolate(alpha, adjustment_points)
+
+def _survival_state(
+    boundary_z: float,
+    information_fraction: float,
+    information_increment: float,
+    previous_nodes: tuple[float, ...] | None,
+    previous_weighted_density: tuple[float, ...] | None,
+) -> tuple[tuple[float, ...], tuple[float, ...], float]:
+    brownian_boundary = boundary_z * math.sqrt(information_fraction)
+    nodes = tuple(brownian_boundary * node for node in _QUADRATURE_NODES)
+    mapped_weights = tuple(brownian_boundary * weight for weight in _QUADRATURE_WEIGHTS)
+
+    if previous_nodes is None or previous_weighted_density is None:
+        densities = tuple(_normal_density(node, information_fraction) for node in nodes)
+    else:
+        densities = tuple(
+            sum(
+                weighted_density * _normal_density(node - previous_node, information_increment)
+                for previous_node, weighted_density in zip(
+                    previous_nodes, previous_weighted_density, strict=True
+                )
+            )
+            for node in nodes
+        )
+
+    weighted_density = tuple(
+        weight * density for weight, density in zip(mapped_weights, densities, strict=True)
+    )
+    return nodes, weighted_density, sum(weighted_density)
+
+
+def _invert_spending_boundary(
+    *,
+    information_fraction: float,
+    information_increment: float,
+    incremental_alpha: float,
+    previous_boundary_z: float,
+    previous_nodes: tuple[float, ...],
+    previous_weighted_density: tuple[float, ...],
+    previous_survival: float,
+) -> tuple[float, tuple[float, ...], tuple[float, ...], float]:
+    target_survival = previous_survival - incremental_alpha
+    lower = 0.0
+    upper = max(8.0, previous_boundary_z)
+
+    for _ in range(_ROOT_ITERATIONS):
+        midpoint = (lower + upper) / 2
+        _, _, survival = _survival_state(
+            midpoint,
+            information_fraction,
+            information_increment,
+            previous_nodes,
+            previous_weighted_density,
+        )
+        if survival < target_survival:
+            lower = midpoint
+        else:
+            upper = midpoint
+
+    boundary_z = (lower + upper) / 2
+    nodes, weighted_density, survival = _survival_state(
+        boundary_z,
+        information_fraction,
+        information_increment,
+        previous_nodes,
+        previous_weighted_density,
+    )
+    return boundary_z, nodes, weighted_density, survival
 
 
 def obrien_fleming_boundaries(
@@ -64,17 +130,54 @@ def obrien_fleming_boundaries(
         raise ValueError("alpha must be between 0 and 1")
 
     z_half_alpha = normal_ppf(1 - alpha / 2)
-    final_boundary = _final_boundary_z(n_looks, alpha)
+    information_increment = 1 / n_looks
     boundaries: list[dict[str, Any]] = []
     cumulative_alpha_spent = 0.0
+    previous_boundary_z = math.inf
+    previous_nodes: tuple[float, ...] | None = None
+    previous_weighted_density: tuple[float, ...] | None = None
+    previous_survival = 1.0
 
     for look in range(1, n_looks + 1):
         info_fraction = look / n_looks
-        cumulative_spent = 2 * (1 - standard_normal_cdf(z_half_alpha / math.sqrt(info_fraction)))
+        cumulative_spent = (
+            alpha
+            if look == n_looks
+            else math.erfc(z_half_alpha / math.sqrt(2 * info_fraction))
+        )
         incremental_alpha = max(0.0, cumulative_spent - cumulative_alpha_spent)
         cumulative_alpha_spent = cumulative_spent
-        z_boundary = final_boundary / math.sqrt(info_fraction)
-        nominal_alpha = 2 * (1 - standard_normal_cdf(z_boundary))
+
+        if previous_nodes is None or previous_weighted_density is None:
+            z_boundary = z_half_alpha / math.sqrt(info_fraction)
+            nodes, weighted_density, survival = _survival_state(
+                z_boundary,
+                info_fraction,
+                information_increment,
+                None,
+                None,
+            )
+        elif incremental_alpha <= _MIN_RESOLVABLE_ALPHA:
+            z_boundary = z_half_alpha / math.sqrt(info_fraction)
+            nodes, weighted_density, survival = _survival_state(
+                z_boundary,
+                info_fraction,
+                information_increment,
+                previous_nodes,
+                previous_weighted_density,
+            )
+        else:
+            z_boundary, nodes, weighted_density, survival = _invert_spending_boundary(
+                information_fraction=info_fraction,
+                information_increment=information_increment,
+                incremental_alpha=incremental_alpha,
+                previous_boundary_z=previous_boundary_z,
+                previous_nodes=previous_nodes,
+                previous_weighted_density=previous_weighted_density,
+                previous_survival=previous_survival,
+            )
+
+        nominal_alpha = math.erfc(z_boundary / math.sqrt(2))
 
         boundaries.append(
             {
@@ -87,6 +190,10 @@ def obrien_fleming_boundaries(
                 "is_final": look == n_looks,
             }
         )
+        previous_boundary_z = z_boundary
+        previous_nodes = nodes
+        previous_weighted_density = weighted_density
+        previous_survival = survival
 
     return boundaries
 

@@ -1,6 +1,6 @@
 # Base images pinned to multi-arch manifest digests (audit F-10); Dependabot
 # keeps them fresh via .github/dependabot.yml.
-FROM node:26-alpine@sha256:e88a35be04478413b7c71c455cd9865de9b9360e1f43456be5951032d7ac1a66 AS frontend-build
+FROM node:24-alpine@sha256:d32cdf619f63fe0471182d08996dd516c6275bb5fd31ae06e55a570bd9e1ad43 AS frontend-build
 
 WORKDIR /workspace/app/frontend
 
@@ -16,15 +16,15 @@ RUN npm run build
 
 FROM python:3.14-slim@sha256:d3400aa122fa42cf0af0dbe8ec3091b047eac5c8f7e3539f7135e86d855dc015 AS runtime
 
-# Stamped by CI (docker-publish passes the release commit); defaults to "unknown"
-# for builds that pass nothing, e.g. the HF Space build — the deploy script stamps
-# the Space variable AB_BUILD_SHA instead, which overrides this ENV at runtime.
-ARG GIT_SHA=unknown
+# Stamped by CI or the Compose caller. An omitted value fails closed when the
+# build information is validated below.
+ARG GIT_SHA
 ENV AB_BUILD_SHA=${GIT_SHA}
 LABEL org.opencontainers.image.revision=${GIT_SHA}
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/app
 ENV AB_HOST=0.0.0.0
 ENV AB_PORT=8008
 ENV AB_SERVE_FRONTEND_DIST=true
@@ -44,8 +44,14 @@ COPY app/backend/requirements.txt /tmp/requirements.txt
 # makes the hash check explicit rather than relying on pip's auto-enable.
 RUN pip install --no-cache-dir --require-hashes -r /tmp/requirements.txt
 
+COPY pyproject.toml /app/pyproject.toml
 COPY app /app/app
+RUN pip install --no-cache-dir --no-deps .
 COPY --from=frontend-build /workspace/app/frontend/dist /app/app/frontend/dist
+
+# Release builds stamp the exact kernel sources so the runtime never needs
+# either the repository metadata or a git executable.
+RUN python -c "import os; from pathlib import Path; from app.backend.app.evidence.stats_kernel import write_stats_kernel_build_info; write_stats_kernel_build_info(backend_root=Path('/app/app/backend'), git_commit=os.environ['AB_BUILD_SHA'])"
 
 # Run unprivileged. UID 1000 matches the user Hugging Face Spaces runs containers
 # as, so the same image works there without a second ownership pass. Only /app/data
@@ -56,6 +62,7 @@ RUN groupadd --gid 1000 app \
     && chown -R app:app /app/data
 
 USER app
+WORKDIR /app/data
 
 EXPOSE 8008
 

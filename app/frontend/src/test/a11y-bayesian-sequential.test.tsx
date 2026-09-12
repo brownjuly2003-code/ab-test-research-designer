@@ -76,7 +76,7 @@ describe("Bayesian and sequential results accessibility", () => {
     } finally {
       await view.unmount();
     }
-  }, 15000);
+  });
 
   it("renders SequentialBoundaryChart when sequential boundaries are available", async () => {
     const analysis = buildAnalysisResult({ metricType: "binary" });
@@ -100,5 +100,5 @@ describe("Bayesian and sequential results accessibility", () => {
     } finally {
       await view.unmount();
     }
-  }, 15000);
+  });
 });

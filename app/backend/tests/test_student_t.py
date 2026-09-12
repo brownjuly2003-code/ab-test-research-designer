@@ -1,6 +1,6 @@
-from pathlib import Path
-import sys
 import math
+import sys
+from pathlib import Path
 
 import pytest
 

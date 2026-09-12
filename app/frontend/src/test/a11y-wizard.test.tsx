@@ -116,7 +116,7 @@ describe("Wizard accessibility", () => {
     } finally {
       await view.unmount();
     }
-  }, 15000);
+  });
 
   it("has no critical or serious accessibility violations on the Hypothesis step", async () => {
     seedWizardPanelState(1);
@@ -137,7 +137,7 @@ describe("Wizard accessibility", () => {
     } finally {
       await view.unmount();
     }
-  }, 15000);
+  });
 
   it("has no critical or serious accessibility violations on the Setup step", async () => {
     seedWizardPanelState(2);
@@ -158,7 +158,7 @@ describe("Wizard accessibility", () => {
     } finally {
       await view.unmount();
     }
-  }, 15000);
+  });
 
   it("has no critical or serious accessibility violations on the Metrics step", async () => {
     seedWizardPanelState(3);
@@ -179,7 +179,7 @@ describe("Wizard accessibility", () => {
     } finally {
       await view.unmount();
     }
-  }, 15000);
+  });
 
   it("has no critical or serious accessibility violations on the Constraints step", async () => {
     seedWizardPanelState(4);
@@ -200,7 +200,7 @@ describe("Wizard accessibility", () => {
     } finally {
       await view.unmount();
     }
-  }, 15000);
+  });
 
   it("has no critical or serious accessibility violations on the Review step", async () => {
     seedWizardPanelState(sections.length);
@@ -221,5 +221,5 @@ describe("Wizard accessibility", () => {
     } finally {
       await view.unmount();
     }
-  }, 15000);
+  });
 });

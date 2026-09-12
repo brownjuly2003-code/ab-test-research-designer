@@ -1,0 +1,82 @@
+{
+  "abx_version": "0.1.0",
+  "bundle_id": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "created_at": "2026-08-21T21:00:00Z",
+  "protocol_revision_id": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "run_id": "run_foundation_01",
+  "hash_algorithm": "sha256",
+  "required_capabilities": ["lineage-v1", "protocol-core"],
+  "entries": [
+    {
+      "path": "decision/decision.json",
+      "role": "decision",
+      "media_type": "application/json",
+      "size": 900,
+      "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "schema_id": "urn:evidenceos:abx:schema:0.1:decision"
+    },
+    {
+      "path": "diagnostics/finding_01.json",
+      "role": "finding",
+      "media_type": "application/json",
+      "size": 700,
+      "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "schema_id": "urn:evidenceos:abx:schema:0.1:finding"
+    },
+    {
+      "path": "estimates/estimate_01.json",
+      "role": "estimate",
+      "media_type": "application/json",
+      "size": 1100,
+      "digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+      "schema_id": "urn:evidenceos:abx:schema:0.1:estimate"
+    },
+    {
+      "path": "metrics/metric_conversion.json",
+      "role": "metric",
+      "media_type": "application/json",
+      "size": 500,
+      "digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+      "schema_id": "urn:evidenceos:abx:schema:0.1:metric"
+    },
+    {
+      "path": "protocol/amendments.json",
+      "role": "amendments",
+      "media_type": "application/json",
+      "size": 400,
+      "digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+      "schema_id": "urn:evidenceos:abx:schema:0.1:amendments"
+    },
+    {
+      "path": "protocol/protocol.json",
+      "role": "protocol",
+      "media_type": "application/json",
+      "size": 2400,
+      "digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+      "schema_id": "urn:evidenceos:abx:schema:0.1:protocol"
+    },
+    {
+      "path": "queries/7777777777777777777777777777777777777777777777777777777777777777.sql",
+      "role": "query",
+      "media_type": "application/sql",
+      "size": 300,
+      "digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777"
+    },
+    {
+      "path": "run/run.json",
+      "role": "run",
+      "media_type": "application/json",
+      "size": 1300,
+      "digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+      "schema_id": "urn:evidenceos:abx:schema:0.1:run"
+    },
+    {
+      "path": "sources/source_fixture.json",
+      "role": "source",
+      "media_type": "application/json",
+      "size": 600,
+      "digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+      "schema_id": "urn:evidenceos:abx:schema:0.1:source"
+    }
+  ]
+}

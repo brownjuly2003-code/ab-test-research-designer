@@ -587,6 +587,19 @@
       "yes": "Sí",
       "no": "No",
       "ratioDisclaimer": "La métrica de este plan es un ratio. Analícela post-hoc en la sección dedicada «Métrica ratio (método delta)» más abajo: pegue allí los valores brutos del numerador y del denominador por usuario; es la misma prueba z por método delta que usa la ruta en vivo. En este formulario solo puede elegir una aproximación consciente: una prueba continua sobre un valor de ratio precalculado por usuario, o una prueba de tasa de Poisson sobre los eventos brutos del numerador respecto a la exposición del denominador.",
+      "lineage": {
+        "title": "Linaje de evidencia parcial",
+        "summary": "Hay {{available}} de {{total}} referencias obligatorias disponibles.",
+        "missing": "Referencias faltantes",
+        "notEvidence": "Esta lectura estadística heredada no es evidencia verificable de Trialmark.",
+        "references": {
+          "protocol": "Protocolo",
+          "metric": "Métrica",
+          "query": "Consulta",
+          "source": "Fuente",
+          "runner": "Entorno de ejecución"
+        }
+      },
       "fields": {
         "controlConversions": "Conversiones del control",
         "controlUsers": "Usuarios del control",

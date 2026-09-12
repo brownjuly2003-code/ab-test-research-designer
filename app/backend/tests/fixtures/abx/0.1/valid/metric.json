@@ -1,0 +1,14 @@
+{
+  "schema_version": "0.1.0",
+  "metric_id": "metric_conversion",
+  "metric_version": "v1",
+  "definition_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "name": "Checkout conversion",
+  "kind": "binary",
+  "direction": "increase",
+  "unit": "proportion",
+  "aggregation": "rate",
+  "owner_ref": "team_growth",
+  "source_snapshot_id": "source_fixture",
+  "extensions": {}
+}

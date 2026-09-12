@@ -6,10 +6,10 @@ fresh bucket per request by varying the header, so the header is only read once
 `AB_TRUSTED_PROXY_HOPS` declares how many proxies append to it.
 """
 
-from dataclasses import replace
-from pathlib import Path
 import sys
 import uuid
+from dataclasses import replace
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient

@@ -1,4 +1,5 @@
-from math import ceil, isfinite, sqrt
+from collections.abc import Sequence
+from math import ceil, isclose, isfinite, sqrt
 from statistics import NormalDist
 from typing import Any
 
@@ -70,6 +71,7 @@ def calculate_continuous_sample_size(
     alpha: float,
     power: float,
     variants_count: int = 2,
+    traffic_split: Sequence[float] | None = None,
 ) -> dict[str, Any]:
     if baseline_mean <= 0:
         raise ValueError("baseline_mean must be positive for relative MDE calculations")
@@ -83,6 +85,15 @@ def calculate_continuous_sample_size(
         raise ValueError("power must be between 0 and 1")
     if not 2 <= variants_count <= MAX_SUPPORTED_VARIANTS:
         raise ValueError(f"variants_count must be between 2 and {MAX_SUPPORTED_VARIANTS}")
+    if traffic_split is None:
+        allocation_weights = [1 / variants_count] * variants_count
+    else:
+        if len(traffic_split) != variants_count:
+            raise ValueError("traffic_split length must match variants_count")
+        if any(not isfinite(weight) or weight <= 0 for weight in traffic_split):
+            raise ValueError("traffic_split must contain positive finite values")
+        total_weight = sum(traffic_split)
+        allocation_weights = [weight / total_weight for weight in traffic_split]
 
     mde_absolute = baseline_mean * (mde_pct / 100)
     comparison_count = max(1, variants_count - 1)
@@ -91,12 +102,22 @@ def calculate_continuous_sample_size(
     z_power = NormalDist().inv_cdf(power)
 
     try:
-        sample_size_estimate = 2 * (((z_alpha + z_power) * std_dev) / mde_absolute) ** 2
+        common_factor = (((z_alpha + z_power) * std_dev) / mde_absolute) ** 2
+        control_weight = allocation_weights[0]
+        total_sample_size_estimate = max(
+            common_factor * (1 / control_weight + 1 / treatment_weight)
+            for treatment_weight in allocation_weights[1:]
+        )
     except OverflowError as exc:
         raise ValueError("continuous sample size is too large to be finite") from exc
-    if not isfinite(sample_size_estimate):
+    if not isfinite(total_sample_size_estimate):
         raise ValueError("continuous sample size is too large to be finite")
-    sample_size_per_variant = ceil(sample_size_estimate)
+    sample_size_per_variant = ceil(total_sample_size_estimate / variants_count)
+    total_sample_size = sample_size_per_variant * variants_count
+    allocation_is_equal = all(
+        isclose(weight, 1 / variants_count, rel_tol=0.0, abs_tol=1e-12)
+        for weight in allocation_weights
+    )
 
     return {
         "metric_type": "continuous",
@@ -108,9 +129,14 @@ def calculate_continuous_sample_size(
         "adjusted_alpha": adjusted_alpha,
         "power": power,
         "sample_size_per_variant": sample_size_per_variant,
-        "total_sample_size": sample_size_per_variant * variants_count,
+        "total_sample_size": total_sample_size,
         "assumptions": [
-            "Two-sample comparison of means with equal-sized variants.",
+            (
+                "Two-sample comparison of means with equal-sized variants."
+                if allocation_is_equal
+                else "Two-sample comparison of means sized for the planned traffic allocation; "
+                "sample_size_per_variant is the average required size across variants."
+            ),
             "MDE is interpreted as a relative uplift over the baseline mean.",
             (
                 f"Bonferroni-adjusted alpha is {adjusted_alpha:.6g} across {comparison_count} "

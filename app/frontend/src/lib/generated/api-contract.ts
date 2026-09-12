@@ -41,6 +41,7 @@ export type AnalysisRunSummary = {
 export type ApiKeyCreateRequest = {
   name: string;
   scope: "read" | "write";
+  role?: string | null;
   rate_limit_requests?: number | null;
   rate_limit_window_seconds?: number | null;
 };
@@ -49,6 +50,7 @@ export type ApiKeyCreateResponse = {
   id: string;
   name: string;
   scope: "read" | "write";
+  role?: string | null;
   created_at: string;
   last_used_at?: string | null;
   revoked_at?: string | null;
@@ -71,6 +73,7 @@ export type ApiKeyRecord = {
   id: string;
   name: string;
   scope: "read" | "write";
+  role?: string | null;
   created_at: string;
   last_used_at?: string | null;
   revoked_at?: string | null;
@@ -1145,6 +1148,55 @@ export type PairedResultsResponse = {
   interpretation: string;
 };
 
+export type PersistedBundleView = {
+  bundle_id: string;
+  verdicts: { [key: string]: string; };
+};
+
+export type PersistedDecisionRequest = {
+  verdict: "ship" | "hold" | "stop";
+  rationale: string;
+};
+
+export type PersistedOverrideRequest = {
+  reason: string;
+};
+
+export type PersistedRunPortfolio = {
+  runs: PersistedRunSummary[];
+};
+
+export type PersistedRunSummary = {
+  run_id: string;
+  protocol_revision_id: string;
+  kind: string;
+  status: string;
+  started_at: string;
+  completed_at: string;
+  sealed_at: string;
+  bundle_id: string;
+  verdicts: { [key: string]: string; };
+};
+
+export type PersistedRunView = {
+  run_id: string;
+  protocol_revision_id: string;
+  kind: string;
+  status: string;
+  started_at: string;
+  completed_at: string;
+  sealed_at: string;
+  protocol: { [key: string]: unknown; };
+  run: { [key: string]: unknown; };
+  sources: { [key: string]: unknown; }[];
+  metrics: { [key: string]: unknown; }[];
+  findings: { [key: string]: unknown; }[];
+  estimates: { [key: string]: unknown; }[];
+  decisions: { [key: string]: unknown; }[];
+  report_available: boolean;
+  bundle: PersistedBundleView;
+};
+
 export type PrePeriodEvent = {
   user_id: string;
   value: number;
@@ -1328,12 +1380,21 @@ export type ReadinessResponse = {
   status: string;
   generated_at: string;
   checks: ReadinessCheck[];
+  auth_mode: string;
 };
 
 export type RecommendationsSection = {
   before_launch: string[];
   during_test: string[];
   after_test: string[];
+};
+
+export type ResultsLineageDisclosure = {
+  status?: string;
+  origin?: string;
+  is_verifiable_evidence?: boolean;
+  available_references?: ("protocol" | "metric" | "query" | "source" | "runner")[];
+  missing_references?: ("protocol" | "metric" | "query" | "source" | "runner")[];
 };
 
 export type ResultsRequest = {
@@ -1347,7 +1408,7 @@ export type ResultsRequest = {
 export type ResultsResponse = {
   metric_type: string;
   observed_effect: number;
-  observed_effect_relative: number;
+  observed_effect_relative: number | null;
   control_rate?: number | null;
   treatment_rate?: number | null;
   ci_lower: number;
@@ -1359,6 +1420,7 @@ export type ResultsResponse = {
   power_achieved: number;
   verdict: string;
   interpretation: string;
+  lineage?: ResultsLineageDisclosure;
   effect_size?: number | null;
   effect_size_label?: string | null;
   effect_size_ci_lower?: number | null;

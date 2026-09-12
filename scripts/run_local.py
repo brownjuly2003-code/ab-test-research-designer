@@ -94,10 +94,6 @@ def build_environment(
     environment = dict(os.environ if base_environment is None else base_environment)
     exact_external_keys = {
         "AB_DATABASE_URL",
-        "AB_HF_TOKEN",
-        "AB_HF_SNAPSHOT_REPO",
-        "AB_HF_SNAPSHOT_INTERVAL_SECONDS",
-        "HF_TOKEN",
         "AB_API_TOKEN",
         "AB_READONLY_API_TOKEN",
         "AB_ADMIN_TOKEN",

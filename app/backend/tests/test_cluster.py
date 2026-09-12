@@ -4,14 +4,17 @@ Numbers are frozen against the literature and Monte Carlo in
 ``scratchpad/verify_cluster_design_effect.py`` (Kish 1965; Donner & Klar 2000; Hayes & Moulton 2009).
 """
 
-from pathlib import Path
 import sys
+from pathlib import Path
 
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
-from app.backend.app.stats.cluster import cluster_design_effect, inflate_for_cluster_design
+from app.backend.app.stats.cluster import (
+    cluster_design_effect,
+    inflate_for_cluster_design,
+)
 
 
 @pytest.mark.parametrize(

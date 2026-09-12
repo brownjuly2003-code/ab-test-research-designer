@@ -65,7 +65,7 @@ describe("WebhookManager accessibility", () => {
     } finally {
       await view.unmount();
     }
-  }, 15000);
+  });
 
   it("has no critical or serious accessibility violations when the create dialog is open", async () => {
     const view = await renderWebhookManager();
@@ -91,5 +91,5 @@ describe("WebhookManager accessibility", () => {
     } finally {
       await view.unmount();
     }
-  }, 15000);
+  });
 });

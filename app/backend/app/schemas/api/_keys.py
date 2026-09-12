@@ -12,6 +12,14 @@ class ApiKeyCreateRequest(BaseModel):
     # Issued keys are read or write only. Operator/bootstrap access is the static
     # AB_ADMIN_TOKEN, not a revocable DB key (audit F-09).
     scope: Literal["read", "write"]
+    # Approval role this key decides under, checked against the frozen protocol
+    # policy when a decision is recorded. The pattern is the ABX opaque-id one,
+    # because that is what the decision record accepts. Omitted means the key
+    # asserts no role and a decision falls back to the policy default.
+    role: str | None = Field(
+        default=None,
+        pattern=r"^[A-Za-z][A-Za-z0-9_.-]{0,127}$",
+    )
     rate_limit_requests: int | None = Field(default=None, ge=1)
     rate_limit_window_seconds: int | None = Field(default=None, ge=1)
 
@@ -20,6 +28,7 @@ class ApiKeyRecord(BaseModel):
     id: str
     name: str
     scope: Literal["read", "write"]
+    role: str | None = None
     created_at: str
     last_used_at: str | None = None
     revoked_at: str | None = None

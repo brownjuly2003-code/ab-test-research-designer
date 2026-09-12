@@ -1,0 +1,26 @@
+{
+  "schema_version": "0.1.0",
+  "method_id": "binary_pooled_z_newcombe",
+  "method_version": "binary_pooled_z_newcombe_v1",
+  "implementation_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "test_estimand": "risk_difference",
+  "interval_estimand": "risk_difference",
+  "error_control": {"fixed_horizon": true, "nominal_alpha": 0.05, "sidedness": "two_sided"},
+  "asymptotics": {"min_n_per_arm": 30, "min_expected_count": 5},
+  "numeric_contract": {
+    "rounding": {"risk_difference_decimal_places": 6, "p_value_decimal_places": 6, "test_statistic_decimal_places": 4},
+    "reference_implementation": {
+      "package": "statsmodels",
+      "version": "0.14.6",
+      "test": "statsmodels.stats.proportion.proportions_ztest",
+      "interval": "statsmodels.stats.proportion.confint_proportions_2indep(method='newcomb')"
+    },
+    "observed_max_deviation": {"test_statistic": 0.0000406056221140538, "p_value": 4.50466474712086e-7, "confidence_interval": 4.85022202845187e-7}
+  },
+  "determinism": {"closed_form": true},
+  "assumptions": {"equal_allocation": false},
+  "verification_evidence": {
+    "oracle_case_ids": ["binary_pooled_z_newcombe"],
+    "last_verified_commit": "5c65c0d309427d8a5c41536889daa790b982e7e1"
+  }
+}

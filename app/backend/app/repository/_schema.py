@@ -108,6 +108,7 @@ def create_api_key_tables(connection: sqlite3.Connection) -> None:
             name TEXT NOT NULL,
             key_hash TEXT NOT NULL UNIQUE,
             scope TEXT NOT NULL,
+            role TEXT,
             created_at TEXT NOT NULL,
             last_used_at TEXT,
             revoked_at TEXT,
@@ -463,6 +464,16 @@ def migrate_db(connection: sqlite3.Connection) -> None:
             connection.execute(
                 f"UPDATE {event_table} SET occurred_at = created_at WHERE occurred_at IS NULL"
             )
+
+    # Approval role on an issued key (I-01): a decision recorded through this key
+    # can say its role came from a credential rather than from the policy default.
+    # Nullable, so every key issued before this column keeps its old meaning.
+    api_key_columns = {
+        row["name"]
+        for row in connection.execute("PRAGMA table_info(api_keys)").fetchall()
+    }
+    if "role" not in api_key_columns:
+        connection.execute("ALTER TABLE api_keys ADD COLUMN role TEXT")
 
     # Webhook outbox (F-09): deliveries are queued in the database and claimed by a
     # worker under a lease, so retries survive a restart. Rows that were mid-flight

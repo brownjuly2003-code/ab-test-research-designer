@@ -1,8 +1,9 @@
 import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from threading import Barrier
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -17,16 +18,27 @@ except ImportError:  # pragma: no cover - exercised when deps are not installed 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
 from app.backend.app.config import get_settings
+from app.backend.app.evidence.jobs import (
+    EvidenceJob,
+    JobPublication,
+    claim_evidence_job,
+    create_evidence_job,
+    succeed_evidence_job,
+)
+from app.backend.app.evidence.sql_job_store import SqlEvidenceJobStore
+from app.backend.app.evidence.sql_run_store import SqlEvidenceRunStore
+from app.backend.app.evidence.storage import EvidenceJobCoordinator
 from app.backend.app.main import create_app
 from app.backend.app.repository import ProjectRepository, create_backend
 from app.backend.app.repository._migrations import (
     EXPECTED_POSTGRES_SCHEMA_VERSION,
     POSTGRES_MIGRATIONS,
 )
+from app.backend.tests.evidence_run_fixtures import completed_asos_run
 
 
 def test_create_backend_uses_sqlite_backend_for_sqlite_urls() -> None:
-    expected_backend = SimpleNamespace(backend_name="sqlite", supports_snapshots=True)
+    expected_backend = SimpleNamespace(backend_name="sqlite")
 
     with patch("app.backend.app.repository.SQLiteBackend", return_value=expected_backend) as sqlite_backend:
         with patch("app.backend.app.repository.PostgresBackend") as postgres_backend:
@@ -45,7 +57,7 @@ def test_create_backend_uses_sqlite_backend_for_sqlite_urls() -> None:
 
 
 def test_create_backend_uses_postgres_backend_for_postgresql_urls() -> None:
-    expected_backend = SimpleNamespace(backend_name="postgres", supports_snapshots=False)
+    expected_backend = SimpleNamespace(backend_name="postgres")
 
     with patch("app.backend.app.repository.SQLiteBackend") as sqlite_backend:
         with patch("app.backend.app.repository.PostgresBackend", return_value=expected_backend) as postgres_backend:
@@ -66,7 +78,6 @@ def test_create_backend_uses_postgres_backend_for_postgresql_urls() -> None:
 def test_project_repository_delegates_to_selected_backend() -> None:
     backend = SimpleNamespace(
         backend_name="postgres",
-        supports_snapshots=False,
         schema_version=7,
         list_projects=lambda include_archived=False: [{"id": "project-1", "include_archived": include_archived}],
     )
@@ -78,7 +89,6 @@ def test_project_repository_delegates_to_selected_backend() -> None:
         )
 
     assert repository.backend_name == "postgres"
-    assert repository.supports_snapshots is False
     assert repository.schema_version == 7
     assert repository.list_projects(include_archived=True) == [{"id": "project-1", "include_archived": True}]
     create_backend_mock.assert_called_once()
@@ -137,7 +147,6 @@ def test_postgres_backend_round_trips_project_reads_and_queries() -> None:
         continuous_project = repository.create_project(_payload("Continuous project", "continuous"))
 
         assert repository.backend_name == "postgres"
-        assert repository.supports_snapshots is False
         assert repository.get_project(binary_project["id"])["project_name"] == "Binary project"
         assert repository.query_projects(metric_type="binary")["projects"][0]["id"] == binary_project["id"]
         assert {project["id"] for project in repository.list_projects(include_archived=True)} == {
@@ -753,7 +762,6 @@ def test_readyz_uses_postgres_checks_without_sqlite_regression(monkeypatch) -> N
 
     repository = SimpleNamespace(
         backend_name="postgres",
-        supports_snapshots=False,
         schema_version=7,
         has_api_keys=lambda: False,
         set_webhook_service=lambda webhook_service: None,
@@ -934,3 +942,138 @@ def test_readyz_reports_503_when_the_database_is_behind_the_expected_schema(monk
         assert "pending migration" in checks["postgres_schema_version"]["detail"]
 
     get_settings.cache_clear()
+
+
+def test_postgres_evidence_job_store_enforces_the_cas_contract(
+    postgres_repository,
+) -> None:
+    now = datetime(2026, 8, 22, 17, 0, tzinfo=UTC)
+    job = create_evidence_job(
+        job_id="job_postgres_contract",
+        kind="analysis",
+        protocol_revision_id="sha256:" + "d" * 64,
+        request_digest="sha256:" + "e" * 64,
+        created_at=now,
+    )
+    store = postgres_repository.create_evidence_job_store()
+
+    assert store.create(job) is True
+    assert store.create(job) is False
+    coordinator = EvidenceJobCoordinator(store)
+    running = coordinator.claim(
+        job.job_id,
+        lease_token="postgres-worker:lease",
+        now=now + timedelta(seconds=1),
+        lease_expires_at=now + timedelta(seconds=31),
+    )
+    stale_success = succeed_evidence_job(
+        running,
+        publication=JobPublication(
+            run_id="run_postgres_contract",
+            bundle_id="sha256:" + "f" * 64,
+            artifact_ref="bundles/run_postgres_contract.tmk",
+        ),
+        lease_token="postgres-worker:lease",
+        now=now + timedelta(seconds=3),
+    )
+
+    assert coordinator.request_cancel(
+        job.job_id, now=now + timedelta(seconds=2)
+    ).status == "cancel_requested"
+    assert store.compare_and_swap(
+        stale_success, expected_revision=running.revision
+    ) is False
+    coordinator.recover_unfinished(now=now + timedelta(seconds=32))
+    persisted = store.get(job.job_id)
+    assert persisted is not None
+    assert persisted.status == "cancelled"
+    assert persisted.publication is None
+
+
+def test_postgres_evidence_job_store_serializes_first_init_and_concurrent_cas(
+    postgres_repository,
+) -> None:
+    with postgres_repository._backend._transaction() as connection:  # noqa: SLF001
+        connection.execute("DROP TABLE IF EXISTS run_artifacts")
+        connection.execute("DROP TABLE IF EXISTS evidence_artifacts")
+        connection.execute("DROP TABLE IF EXISTS evidence_run_capabilities")
+        connection.execute("DROP TABLE IF EXISTS evidence_runs")
+        connection.execute("DROP TABLE IF EXISTS evidence_jobs")
+        connection.execute("DROP TABLE IF EXISTS evidence_schema_migrations")
+    init_barrier = Barrier(2)
+
+    def initialize(_: int) -> SqlEvidenceJobStore:
+        init_barrier.wait(timeout=10)
+        return postgres_repository.create_evidence_job_store()
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        stores = list(executor.map(initialize, range(2)))
+
+    now = datetime(2026, 8, 22, 18, 0, tzinfo=UTC)
+    job = create_evidence_job(
+        job_id="job_postgres_concurrent",
+        kind="preflight",
+        protocol_revision_id="sha256:" + "1" * 64,
+        request_digest="sha256:" + "2" * 64,
+        created_at=now,
+    )
+    assert stores[0].create(job) is True
+    first_claim = claim_evidence_job(
+        job,
+        lease_token="postgres-worker:first",
+        now=now + timedelta(seconds=1),
+        lease_expires_at=now + timedelta(seconds=31),
+    )
+    second_claim = claim_evidence_job(
+        job,
+        lease_token="postgres-worker:second",
+        now=now + timedelta(seconds=1),
+        lease_expires_at=now + timedelta(seconds=31),
+    )
+    cas_barrier = Barrier(2)
+
+    def commit(pair: tuple[SqlEvidenceJobStore, EvidenceJob]) -> bool:
+        store, replacement = pair
+        cas_barrier.wait(timeout=10)
+        return store.compare_and_swap(replacement, expected_revision=0)
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        outcomes = list(
+            executor.map(
+                commit,
+                ((stores[0], first_claim), (stores[1], second_claim)),
+            )
+        )
+
+    assert sorted(outcomes) == [False, True]
+
+
+def test_postgres_evidence_run_store_round_trips_an_append_only_artifact_set(
+    postgres_repository,
+    tmp_path: Path,
+) -> None:
+    run = completed_asos_run()
+    coordinator = EvidenceJobCoordinator(postgres_repository.create_evidence_job_store())
+    started_at = datetime.fromisoformat(run.started_at[:-1] + "+00:00")
+    sealed_at = datetime.fromisoformat(run.sealed_at[:-1] + "+00:00")
+    coordinator.create(
+        create_evidence_job(
+            job_id=run.origin_job_id,
+            kind=run.kind,
+            protocol_revision_id=run.protocol_revision_id,
+            request_digest="sha256:" + "a" * 64,
+            created_at=started_at - timedelta(seconds=1),
+        )
+    )
+    coordinator.claim(
+        run.origin_job_id,
+        lease_token="postgres-worker:run-store",
+        now=started_at,
+        lease_expires_at=sealed_at + timedelta(days=1),
+    )
+    store = postgres_repository.create_evidence_run_store(tmp_path / "artifacts")
+
+    assert isinstance(store, SqlEvidenceRunStore)
+    assert store.create(run) is True
+    assert store.create(run) is False
+    assert store.get(run.run_id) == run

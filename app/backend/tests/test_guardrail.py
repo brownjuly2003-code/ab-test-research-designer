@@ -7,16 +7,15 @@ the harm is signed by direction, the breach decision and the one-sided p-value n
 a Monte-Carlo run under the null keeps the breach rate at the one-sided α (no false alarms).
 """
 
-from pathlib import Path
 import random
 import sys
+from pathlib import Path
 
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
 from app.backend.app.stats import guardrail
-
 
 # --- direction + status helpers -------------------------------------------------------
 

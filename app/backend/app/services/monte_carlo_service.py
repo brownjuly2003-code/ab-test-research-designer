@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from statistics import NormalDist
 from typing import Any, cast
 
 import numpy as np
@@ -9,6 +10,7 @@ PERCENTILE_LEVELS = (5, 25, 50, 75, 95)
 THRESHOLD_LEVELS = tuple(round(value / 100, 2) for value in range(1, 11))
 EPSILON = 1e-12
 BANDIT_CURVE_POINTS = 40
+_BETA_POSTERIOR_EXACT_MAX_TERMS = 5000
 
 
 def _as_probability(value: Any, field_name: str) -> float:
@@ -28,6 +30,140 @@ def _as_positive_int(value: Any, field_name: str) -> int:
 def _rate_to_count(rate: float, sample_size: int) -> int:
     count = int(round(rate * sample_size))
     return max(0, min(count, sample_size))
+
+
+def _log_beta(alpha: int, beta: int) -> float:
+    return math.lgamma(alpha) + math.lgamma(beta) - math.lgamma(alpha + beta)
+
+
+def _miller_beta_greater(
+    alpha_x: int,
+    beta_x: int,
+    alpha_y: int,
+    beta_y: int,
+) -> float:
+    log_term = (
+        _log_beta(alpha_y, beta_x + beta_y)
+        - math.log(beta_x)
+        - _log_beta(1, beta_x)
+        - _log_beta(alpha_y, beta_y)
+    )
+    log_terms = [log_term]
+    for index in range(1, alpha_x):
+        previous = index - 1
+        log_term += (
+            math.log(alpha_y + previous)
+            + math.log(beta_x + previous)
+            - math.log(alpha_y + previous + beta_x + beta_y)
+            - math.log(index)
+        )
+        log_terms.append(log_term)
+
+    anchor = max(log_terms)
+    return math.exp(anchor) * math.fsum(
+        math.exp(value - anchor) for value in log_terms
+    )
+
+
+def _large_shape_digamma(shape: int) -> float:
+    inverse = 1.0 / shape
+    inverse_squared = inverse * inverse
+    return (
+        math.log(shape)
+        - 0.5 * inverse
+        - inverse_squared / 12.0
+        + inverse_squared * inverse_squared / 120.0
+    )
+
+
+def _large_shape_trigamma(shape: int) -> float:
+    inverse = 1.0 / shape
+    inverse_squared = inverse * inverse
+    return (
+        inverse
+        + 0.5 * inverse_squared
+        + inverse * inverse_squared / 6.0
+        - inverse_squared * inverse_squared * inverse / 30.0
+    )
+
+
+def _logit_normal_beta_greater(
+    alpha_x: int,
+    beta_x: int,
+    alpha_y: int,
+    beta_y: int,
+) -> float:
+    mean_difference = (
+        _large_shape_digamma(alpha_x)
+        - _large_shape_digamma(beta_x)
+        - _large_shape_digamma(alpha_y)
+        + _large_shape_digamma(beta_y)
+    )
+    variance = sum(
+        _large_shape_trigamma(shape)
+        for shape in (alpha_x, beta_x, alpha_y, beta_y)
+    )
+    return NormalDist().cdf(mean_difference / math.sqrt(variance))
+
+
+def beta_probability_treatment_beats_control(
+    *,
+    control_users: int,
+    control_conversions: int,
+    treatment_users: int,
+    treatment_conversions: int,
+) -> float:
+    """Return P(treatment rate > control rate) under independent Beta(1, 1) priors."""
+    control_sample_size = _as_positive_int(control_users, "control_users")
+    treatment_sample_size = _as_positive_int(treatment_users, "treatment_users")
+    control_successes = int(control_conversions)
+    treatment_successes = int(treatment_conversions)
+    if not 0 <= control_successes <= control_sample_size:
+        raise ValueError("control_conversions must be between 0 and control_users")
+    if not 0 <= treatment_successes <= treatment_sample_size:
+        raise ValueError("treatment_conversions must be between 0 and treatment_users")
+
+    control_alpha = control_successes + 1
+    control_beta = control_sample_size - control_successes + 1
+    treatment_alpha = treatment_successes + 1
+    treatment_beta = treatment_sample_size - treatment_successes + 1
+    terms, complement, parameters = min(
+        (
+            (
+                treatment_alpha,
+                False,
+                (treatment_alpha, treatment_beta, control_alpha, control_beta),
+            ),
+            (
+                control_alpha,
+                True,
+                (control_alpha, control_beta, treatment_alpha, treatment_beta),
+            ),
+            (
+                control_beta,
+                False,
+                (control_beta, control_alpha, treatment_beta, treatment_alpha),
+            ),
+            (
+                treatment_beta,
+                True,
+                (treatment_beta, treatment_alpha, control_beta, control_alpha),
+            ),
+        ),
+        key=lambda candidate: candidate[0],
+    )
+    if terms > _BETA_POSTERIOR_EXACT_MAX_TERMS:
+        probability = _logit_normal_beta_greater(
+            treatment_alpha,
+            treatment_beta,
+            control_alpha,
+            control_beta,
+        )
+    else:
+        probability = _miller_beta_greater(*parameters)
+        if complement:
+            probability = 1.0 - probability
+    return min(1.0, max(0.0, probability))
 
 
 def _summarize_simulated_uplifts(uplifts: np.ndarray, *, num_simulations: int) -> dict[str, Any]:

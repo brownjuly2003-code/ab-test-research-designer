@@ -33,6 +33,13 @@ class Settings:
     cors_methods: tuple[str, ...]
     cors_headers: tuple[str, ...]
     frontend_dist_path: str
+    # Where persisted evidence runs keep their artifacts. Absolute by the time it
+    # reaches anyone: three call sites used to hold their own `Path(".trialmark") /
+    # "artifacts"`, which resolves against the current working directory, so a CLI
+    # run and an API server started from different directories wrote and read two
+    # different trees and `GET /api/v2/runs/{id}:bundle` answered 404 for a run that
+    # had just succeeded.
+    artifact_root: Path
     serve_frontend_dist: bool
     llm_base_url: str
     llm_timeout_seconds: float
@@ -99,6 +106,23 @@ class Settings:
     def uses_postgres(self) -> bool:
         """True when AB_DATABASE_URL points at PostgreSQL (the durable production backend)."""
         return urlparse(self.database_url).scheme in POSTGRES_URL_SCHEMES
+
+
+DEFAULT_ARTIFACT_ROOT = Path(".trialmark") / "artifacts"
+
+
+def _resolve_artifact_root(raw_value: str | None) -> Path:
+    """Absolute artifact root, resolved once against the working directory at load.
+
+    A relative default is right for a checkout and wrong for anything else, and
+    resolving it here rather than at each call site means every component of one
+    process agrees on the tree even when they are constructed from different
+    directories. Crossing processes -- a CLI run that an API server must serve --
+    needs `AB_ARTIFACT_ROOT` to be an absolute path; that is what the variable is
+    for.
+    """
+    value = (raw_value or "").strip()
+    return (Path(value) if value else DEFAULT_ARTIFACT_ROOT).expanduser().resolve()
 
 
 def _read_csv_env(name: str, default: tuple[str, ...]) -> tuple[str, ...]:
@@ -309,6 +333,7 @@ def get_settings() -> Settings:
         cors_methods=_read_csv_env("AB_CORS_METHODS", DEFAULT_CORS_METHODS),
         cors_headers=_read_csv_env("AB_CORS_HEADERS", DEFAULT_CORS_HEADERS),
         frontend_dist_path=os.getenv("AB_FRONTEND_DIST_PATH", str(default_frontend_dist_path)),
+        artifact_root=_resolve_artifact_root(os.getenv("AB_ARTIFACT_ROOT")),
         serve_frontend_dist=_read_bool_env("AB_SERVE_FRONTEND_DIST", True),
         llm_base_url=os.getenv("AB_LLM_BASE_URL", "http://localhost:8001"),
         llm_timeout_seconds=_read_float_env("AB_LLM_TIMEOUT_SECONDS", 60.0),

@@ -1,0 +1,322 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:evidenceos:abx:schema:0.1:protocol",
+  "title": "ABX v0.1 frozen protocol",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "spec_version",
+    "required_capabilities",
+    "protocol",
+    "freeze",
+    "population",
+    "interventions",
+    "metrics",
+    "estimand",
+    "design",
+    "analysis",
+    "telemetry",
+    "decision",
+    "operations",
+    "extensions"
+  ],
+  "properties": {
+    "spec_version": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/schemaVersion"},
+    "required_capabilities": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/capability"}
+    },
+    "protocol": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocol_id", "title", "hypothesis", "owners", "created_at"],
+      "properties": {
+        "protocol_id": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/opaqueId"},
+        "title": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/nonEmptyText"},
+        "hypothesis": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/nonEmptyText"},
+        "owners": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/actorRef"}
+        },
+        "created_at": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/utcTimestamp"}
+      }
+    },
+    "freeze": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "frozen_by", "frozen_at"],
+      "properties": {
+        "state": {"const": "frozen"},
+        "frozen_by": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/actorRef"},
+        "frozen_at": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/utcTimestamp"},
+        "parent_revision_id": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/sha256"}
+      }
+    },
+    "population": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["eligibility_expression", "trigger_expression", "randomization_unit", "analysis_population", "exclusions"],
+      "properties": {
+        "eligibility_expression": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/nonEmptyText"},
+        "trigger_expression": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/nonEmptyText"},
+        "randomization_unit": {"enum": ["user", "session", "account", "device", "cluster"]},
+        "analysis_population": {"enum": ["intention_to_treat", "per_protocol", "exposed"]},
+        "exclusions": {
+          "type": "array",
+          "items": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/nonEmptyText"}
+        }
+      }
+    },
+    "interventions": {
+      "type": "array",
+      "minItems": 2,
+      "items": {"$ref": "#/$defs/intervention"},
+      "contains": {
+        "type": "object",
+        "required": ["kind"],
+        "properties": {"kind": {"const": "control"}}
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["primary", "secondary", "guardrails"],
+      "properties": {
+        "primary": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/metricReference"}},
+        "secondary": {"type": "array", "items": {"$ref": "#/$defs/metricReference"}},
+        "guardrails": {"type": "array", "items": {"$ref": "#/$defs/metricReference"}}
+      }
+    },
+    "estimand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "estimand_id",
+        "population",
+        "baseline_intervention_id",
+        "comparison_intervention_ids",
+        "effect_measure",
+        "horizon",
+        "missing_data_rule"
+      ],
+      "properties": {
+        "estimand_id": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/opaqueId"},
+        "population": {"enum": ["intention_to_treat", "per_protocol", "exposed"]},
+        "baseline_intervention_id": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/opaqueId"},
+        "comparison_intervention_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/opaqueId"}
+        },
+        "effect_measure": {"type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[a-z][a-z0-9_]*$"},
+        "horizon": {"type": "string", "format": "duration"},
+        "missing_data_rule": {"enum": ["exclude", "zero", "censor", "model"]}
+      }
+    },
+    "design": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["experiment_type", "interference_assumption", "exposure_semantics"],
+      "properties": {
+        "experiment_type": {"enum": ["randomized", "cluster_randomized", "switchback", "factorial"]},
+        "interference_assumption": {"enum": ["no_interference", "partial_interference", "interference_expected"]},
+        "exposure_semantics": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/nonEmptyText"}
+      }
+    },
+    "analysis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "alpha", "power", "stopping", "multiplicity", "variance_reduction"],
+      "properties": {
+        "method": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["method_id", "method_version"],
+          "properties": {
+            "method_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-z][a-z0-9_]*$",
+              "not": {"const": "auto"}
+            },
+            "method_version": {"type": "string", "minLength": 1, "maxLength": 64}
+          }
+        },
+        "alpha": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/probabilityString"},
+        "power": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/probabilityString"},
+        "stopping": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["mode", "look_count"],
+          "properties": {
+            "mode": {"enum": ["fixed_horizon", "group_sequential", "always_valid"]},
+            "look_count": {"type": "integer", "minimum": 1, "maximum": 1000}
+          }
+        },
+        "multiplicity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["method", "family_ids"],
+          "properties": {
+            "method": {"enum": ["none", "holm", "benjamini_hochberg", "dunnett"]},
+            "family_ids": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/opaqueId"}
+            }
+          }
+        },
+        "variance_reduction": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["method", "covariate_metric_ids"],
+          "properties": {
+            "method": {"enum": ["none", "cuped", "stratification"]},
+            "covariate_metric_ids": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/opaqueId"}
+            }
+          }
+        },
+        "random_seed": {"type": "integer", "minimum": 0, "maximum": 9007199254740991}
+      }
+    },
+    "telemetry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "subject_key",
+        "event_key",
+        "occurred_at_key",
+        "exposure_event",
+        "outcome_events",
+        "ordering",
+        "deduplication",
+        "max_lateness",
+        "schema_versions"
+      ],
+      "properties": {
+        "subject_key": {"$ref": "#/$defs/fieldName"},
+        "event_key": {"$ref": "#/$defs/fieldName"},
+        "occurred_at_key": {"$ref": "#/$defs/fieldName"},
+        "exposure_event": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/opaqueId"},
+        "outcome_events": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/opaqueId"}
+        },
+        "ordering": {"enum": ["event_time", "ingest_time"]},
+        "deduplication": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["keys", "window"],
+          "properties": {
+            "keys": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/fieldName"}},
+            "window": {"type": "string", "format": "duration"}
+          }
+        },
+        "max_lateness": {"type": "string", "format": "duration"},
+        "schema_versions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/eventSchema"}
+        }
+      }
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["minimum_worthwhile_effect", "harm_rules", "owners", "approval_policy"],
+      "properties": {
+        "minimum_worthwhile_effect": {"type": "number"},
+        "harm_rules": {"type": "array", "items": {"$ref": "#/$defs/thresholdRule"}},
+        "owners": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/actorRef"}
+        },
+        "approval_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["roles", "minimum_approvals"],
+          "properties": {
+            "roles": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/opaqueId"}},
+            "minimum_approvals": {"type": "integer", "minimum": 1, "maximum": 32}
+          }
+        }
+      }
+    },
+    "operations": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rollback_owner", "lag_budget_seconds", "alert_thresholds"],
+      "properties": {
+        "rollback_owner": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/actorRef"},
+        "lag_budget_seconds": {"type": "integer", "minimum": 0, "maximum": 31536000},
+        "alert_thresholds": {"type": "array", "items": {"$ref": "#/$defs/thresholdRule"}}
+      }
+    },
+    "extensions": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/extensions"}
+  },
+  "$defs": {
+    "fieldName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z_][A-Za-z0-9_.-]*$"
+    },
+    "intervention": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["intervention_id", "label", "kind", "allocation", "namespace", "hash_version"],
+      "properties": {
+        "intervention_id": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/opaqueId"},
+        "label": {"type": "string", "minLength": 1, "maxLength": 256},
+        "kind": {"enum": ["control", "treatment"]},
+        "allocation": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/probabilityString"},
+        "namespace": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/opaqueId"},
+        "hash_version": {"type": "string", "minLength": 1, "maxLength": 64}
+      }
+    },
+    "metricReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["metric_id", "metric_version", "definition_digest"],
+      "properties": {
+        "metric_id": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/opaqueId"},
+        "metric_version": {"type": "string", "minLength": 1, "maxLength": 64},
+        "definition_digest": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/sha256"}
+      }
+    },
+    "eventSchema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["event_type", "version", "schema_digest"],
+      "properties": {
+        "event_type": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/opaqueId"},
+        "version": {"type": "string", "minLength": 1, "maxLength": 64},
+        "schema_digest": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/sha256"}
+      }
+    },
+    "thresholdRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "metric_id", "operator", "threshold"],
+      "properties": {
+        "code": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]{2,63}$"},
+        "metric_id": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/opaqueId"},
+        "operator": {"enum": ["lt", "lte", "gt", "gte"]},
+        "threshold": {"type": "number"}
+      }
+    }
+  }
+}

@@ -70,10 +70,25 @@ export type ResultsRequestPayload = {
   ranked?: ObservedResultsRankedPayload | null;
   count?: ObservedResultsCountPayload | null;
 };
+export const LEGACY_RESULTS_LINEAGE_REFERENCES = ["protocol", "metric", "query", "source", "runner"] as const;
+export type ResultsLineageDisclosure = {
+  readonly status: "partial";
+  readonly origin: "legacy_results";
+  readonly is_verifiable_evidence: false;
+  readonly available_references: readonly [];
+  readonly missing_references: typeof LEGACY_RESULTS_LINEAGE_REFERENCES;
+};
+export const LEGACY_RESULTS_LINEAGE_DISCLOSURE = {
+  status: "partial",
+  origin: "legacy_results",
+  is_verifiable_evidence: false,
+  available_references: [],
+  missing_references: LEGACY_RESULTS_LINEAGE_REFERENCES
+} as const satisfies ResultsLineageDisclosure;
 export type ResultsAnalysisResponse = {
   metric_type: "binary" | "continuous" | "equivalence" | "mann_whitney" | "bootstrap" | "quantile" | "trimmed_t" | "fisher_exact" | "boschloo_exact" | "barnard_exact" | "count" | "ratio";
   observed_effect: number;
-  observed_effect_relative: number;
+  observed_effect_relative: number | null;
   control_rate?: number | null;
   treatment_rate?: number | null;
   ci_lower: number;
@@ -85,6 +100,7 @@ export type ResultsAnalysisResponse = {
   power_achieved: number;
   verdict: string;
   interpretation: string;
+  lineage?: ResultsLineageDisclosure;
   effect_size?: number | null;
   effect_size_label?: string | null;
   effect_size_ci_lower?: number | null;
@@ -98,7 +114,10 @@ export type SavedObservedResults = {
   analysis: ObservedResultsAnalysisResponse;
   saved_at?: string | null;
 };
-export type AdditionalContextSection = NonNullable<ApiExperimentInputInput["additional_context"]> & {
+export type AdditionalContextSection = Omit<
+  NonNullable<ApiExperimentInputInput["additional_context"]>,
+  "observed_results"
+> & {
   observed_results?: SavedObservedResults | null;
 };
 export type AnalysisMode = "frequentist" | "bayesian";

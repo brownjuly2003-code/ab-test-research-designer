@@ -32,12 +32,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: '26'
+          node-version: '24'
           cache: npm
           cache-dependency-path: docs-site/package-lock.json
 
@@ -72,6 +72,14 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    # Only the public repository has a Pages site. This workflow also runs on the
+    # private `ab-evidence` mirror, where `actions/deploy-pages` answers 404
+    # ("Ensure GitHub Pages has been enabled") and reddens every push to main.
+    # Enabling Pages there is not an option: GitHub serves a private repository's
+    # Pages site publicly on this plan, which would publish the docs ahead of the
+    # decision that gates publication. The build job above still runs on both, so
+    # the docs build stays gated everywhere; only the publish step is scoped.
+    if: github.repository == 'brownjuly2003-code/ab-test-research-designer'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

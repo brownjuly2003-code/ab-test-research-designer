@@ -76,5 +76,5 @@ describe("PosteriorPlot", () => {
     } finally {
       await view.unmount();
     }
-  }, 15000);
+  });
 });

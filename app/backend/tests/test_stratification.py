@@ -6,16 +6,15 @@ stratum reduces to the unadjusted difference, the combine matches a hand calcula
 reduction may be negative when strata are unhelpful.
 """
 
+import sys
 from math import sqrt
 from pathlib import Path
-import sys
 
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
 from app.backend.app.stats import stratification
-
 
 # --- per-arm point + variance helpers -------------------------------------------------
 

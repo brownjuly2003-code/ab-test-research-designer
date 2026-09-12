@@ -89,7 +89,7 @@ def test_rejection_is_dual_to_adjusted_pvalue_threshold(procedure) -> None:  # t
     level = 0.05
     pvalues = [0.001, 0.008, 0.02, 0.04, 0.06, 0.2, 0.5, 0.9, 0.03, 0.011]
     result = procedure(pvalues, level)
-    for rejected, adjusted in zip(result["rejected"], result["adjusted_pvalues"]):
+    for rejected, adjusted in zip(result["rejected"], result["adjusted_pvalues"], strict=True):
         assert rejected == (adjusted <= level)
     assert result["num_rejected"] == sum(result["rejected"])
 
@@ -100,8 +100,8 @@ def test_rejection_set_respects_pvalue_ordering(procedure) -> None:  # type: ign
     # every rejected metric has a p-value at or below every non-rejected one.
     pvalues = [0.5, 0.001, 0.04, 0.2, 0.009, 0.03, 0.7, 0.012]
     result = procedure(pvalues, 0.05)
-    rejected_p = [p for p, r in zip(pvalues, result["rejected"]) if r]
-    kept_p = [p for p, r in zip(pvalues, result["rejected"]) if not r]
+    rejected_p = [p for p, r in zip(pvalues, result["rejected"], strict=True) if r]
+    kept_p = [p for p, r in zip(pvalues, result["rejected"], strict=True) if not r]
     if rejected_p and kept_p:
         assert max(rejected_p) <= min(kept_p)
 
@@ -109,7 +109,7 @@ def test_rejection_set_respects_pvalue_ordering(procedure) -> None:  # type: ign
 def test_bh_adjusted_pvalues_are_monotone_in_rank() -> None:
     pvalues = [0.5, 0.001, 0.04, 0.2, 0.009, 0.03, 0.7, 0.012, 0.06, 0.5]
     result = benjamini_hochberg(pvalues, 0.05)
-    by_rank = sorted(zip(pvalues, result["adjusted_pvalues"]), key=lambda pair: pair[0])
+    by_rank = sorted(zip(pvalues, result["adjusted_pvalues"], strict=True), key=lambda pair: pair[0])
     adjusted_in_rank_order = [adj for _, adj in by_rank]
     assert all(
         adjusted_in_rank_order[i] <= adjusted_in_rank_order[i + 1] + 1e-12
@@ -177,12 +177,12 @@ def _simulate_fdr(
 
         bh_rejected = benjamini_hochberg(pvalues, q=q)["rejected"]
         bh_r = sum(bh_rejected)
-        bh_v = sum(1 for rej, null in zip(bh_rejected, is_true_null) if rej and null)
+        bh_v = sum(1 for rej, null in zip(bh_rejected, is_true_null, strict=True) if rej and null)
         bh_fdp_total += bh_v / max(bh_r, 1)
 
         unc_rejected = [p <= q for p in pvalues]
         unc_r = sum(unc_rejected)
-        unc_v = sum(1 for rej, null in zip(unc_rejected, is_true_null) if rej and null)
+        unc_v = sum(1 for rej, null in zip(unc_rejected, is_true_null, strict=True) if rej and null)
         uncorrected_fdp_total += unc_v / max(unc_r, 1)
 
     return bh_fdp_total / n_sim, uncorrected_fdp_total / n_sim

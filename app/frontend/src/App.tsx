@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -9,6 +9,8 @@ import { useDraftStore } from "./stores/draftStore";
 import { useProjectStore } from "./stores/projectStore";
 import { useThemeStore } from "./stores/themeStore";
 import { useWizardStore } from "./stores/wizardStore";
+
+const WorkbenchPage = lazy(() => import("./features/preflight/WorkbenchPage"));
 
 const SUPPORTED_LANGUAGES = ["en", "ru", "de", "es", "fr", "zh", "ar"] as const;
 type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
@@ -30,6 +32,7 @@ export default function App() {
   const isEmptyState = showOnboarding && !isDirty && !activeProjectId && step === 0;
   const language = resolveLanguage(i18n.resolvedLanguage);
   const helpHref = language === "en" ? "/help.html" : `/help.${language}.html`;
+  const isWorkbenchRoute = /^\/runs(?:\/[^/]+)?\/?$/.test(window.location.pathname);
   // Operator surfaces (saved-project sidebar) are hidden from the public app.
   const [admin] = useState(isAdminMode);
 
@@ -59,6 +62,13 @@ export default function App() {
             </span>
           </a>
           <div className="topbar-controls">
+            <a
+              className="topbar-link"
+              href="/runs"
+              aria-current={isWorkbenchRoute ? "page" : undefined}
+            >
+              Trialmark Workbench
+            </a>
             <a className="topbar-link" href={helpHref}>
               {t("app.helpLink")}
             </a>
@@ -93,10 +103,28 @@ export default function App() {
         </div>
       </header>
       <main id="main-content" className="page" tabIndex={-1}>
-        <div className={admin ? "workspace workspace--admin" : "workspace"}>
-          <GlobalSideEffects />
-          {isEmptyState ? <OnboardingPanel /> : <ErrorBoundary><WizardPanel /></ErrorBoundary>}
-          {admin ? <ErrorBoundary><SidebarPanel /></ErrorBoundary> : null}
+        <div
+          className={
+            isWorkbenchRoute
+              ? "workspace workspace--workbench"
+              : admin
+                ? "workspace workspace--admin"
+                : "workspace"
+          }
+        >
+          {isWorkbenchRoute ? (
+            <ErrorBoundary>
+              <Suspense fallback={<p role="status">Opening Trialmark Workbench…</p>}>
+                <WorkbenchPage />
+              </Suspense>
+            </ErrorBoundary>
+          ) : (
+            <>
+              <GlobalSideEffects />
+              {isEmptyState ? <OnboardingPanel /> : <ErrorBoundary><WizardPanel /></ErrorBoundary>}
+              {admin ? <ErrorBoundary><SidebarPanel /></ErrorBoundary> : null}
+            </>
+          )}
         </div>
       </main>
     </>

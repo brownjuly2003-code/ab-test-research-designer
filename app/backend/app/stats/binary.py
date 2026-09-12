@@ -1,4 +1,5 @@
-from math import ceil, sqrt
+from collections.abc import Sequence
+from math import ceil, erfc, isclose, isfinite, sqrt
 from statistics import NormalDist
 from typing import Any
 
@@ -11,6 +12,19 @@ def normal_ppf(probability: float) -> float:
 
 def standard_normal_cdf(value: float) -> float:
     return NormalDist().cdf(value)
+
+
+def standard_normal_sf(value: float) -> float:
+    """Upper tail P(Z > value), computed without subtracting the CDF from one.
+
+    ``1 - cdf(z)`` cancels: at z = 2.2 it discards about two significant
+    digits, at z = 8 it is 7% wrong, and above z = 8.3 it returns exactly 0.0
+    because cdf(z) has already rounded to 1.0. The complementary error
+    function carries the tail directly and stays accurate to the last few
+    ulps everywhere. A two-sided p-value is ``2.0 * standard_normal_sf(abs(z))``,
+    which is exact: multiplying by two only changes the binary exponent.
+    """
+    return 0.5 * erfc(value / sqrt(2.0))
 
 
 def wilson_score_interval(successes: int, n: int, alpha: float) -> tuple[float, float]:
@@ -120,6 +134,7 @@ def calculate_binary_sample_size(
     alpha: float,
     power: float,
     variants_count: int = 2,
+    traffic_split: Sequence[float] | None = None,
 ) -> dict[str, Any]:
     if not 0 < baseline_rate < 1:
         raise ValueError("baseline_rate must be between 0 and 1 for binary metrics")
@@ -131,6 +146,15 @@ def calculate_binary_sample_size(
         raise ValueError("power must be between 0 and 1")
     if not 2 <= variants_count <= MAX_SUPPORTED_VARIANTS:
         raise ValueError(f"variants_count must be between 2 and {MAX_SUPPORTED_VARIANTS}")
+    if traffic_split is None:
+        allocation_weights = [1 / variants_count] * variants_count
+    else:
+        if len(traffic_split) != variants_count:
+            raise ValueError("traffic_split length must match variants_count")
+        if any(not isfinite(weight) or weight <= 0 for weight in traffic_split):
+            raise ValueError("traffic_split must contain positive finite values")
+        total_weight = sum(traffic_split)
+        allocation_weights = [weight / total_weight for weight in traffic_split]
 
     mde_absolute = baseline_rate * (mde_pct / 100)
     variant_rate = baseline_rate + mde_absolute
@@ -141,15 +165,34 @@ def calculate_binary_sample_size(
     adjusted_alpha = alpha / comparison_count
     z_alpha = NormalDist().inv_cdf(1 - adjusted_alpha / 2)
     z_power = NormalDist().inv_cdf(power)
-    pooled_rate = (baseline_rate + variant_rate) / 2
+    control_weight = allocation_weights[0]
+    total_sample_size_estimate = 0.0
 
-    numerator = (
-        z_alpha * sqrt(2 * pooled_rate * (1 - pooled_rate))
-        + z_power * sqrt(
-            baseline_rate * (1 - baseline_rate) + variant_rate * (1 - variant_rate)
-        )
-    ) ** 2
-    sample_size_per_variant = ceil(numerator / (mde_absolute**2))
+    for treatment_weight in allocation_weights[1:]:
+        pooled_rate = (
+            control_weight * baseline_rate + treatment_weight * variant_rate
+        ) / (control_weight + treatment_weight)
+        pair_total_estimate = (
+            z_alpha
+            * sqrt(
+                pooled_rate
+                * (1 - pooled_rate)
+                * (1 / control_weight + 1 / treatment_weight)
+            )
+            + z_power
+            * sqrt(
+                baseline_rate * (1 - baseline_rate) / control_weight
+                + variant_rate * (1 - variant_rate) / treatment_weight
+            )
+        ) ** 2 / (mde_absolute**2)
+        total_sample_size_estimate = max(total_sample_size_estimate, pair_total_estimate)
+
+    sample_size_per_variant = ceil(total_sample_size_estimate / variants_count)
+    total_sample_size = sample_size_per_variant * variants_count
+    allocation_is_equal = all(
+        isclose(weight, 1 / variants_count, rel_tol=0.0, abs_tol=1e-12)
+        for weight in allocation_weights
+    )
 
     return {
         "metric_type": "binary",
@@ -160,9 +203,14 @@ def calculate_binary_sample_size(
         "adjusted_alpha": adjusted_alpha,
         "power": power,
         "sample_size_per_variant": sample_size_per_variant,
-        "total_sample_size": sample_size_per_variant * variants_count,
+        "total_sample_size": total_sample_size,
         "assumptions": [
-            "Two-sided fixed-horizon test with equal variance approximation.",
+            (
+                "Two-sided fixed-horizon test with equal variance approximation."
+                if allocation_is_equal
+                else "Two-sided fixed-horizon test sized for the planned traffic allocation; "
+                "sample_size_per_variant is the average required size across variants."
+            ),
             "MDE is interpreted as a relative uplift over the baseline rate.",
             (
                 f"Bonferroni-adjusted alpha is {adjusted_alpha:.6g} across {comparison_count} "

@@ -5,7 +5,11 @@ import math
 
 from app.backend.app.i18n import translate
 from app.backend.app.schemas.api import ObservedResultsBinary, ResultsResponse
-from app.backend.app.stats.binary import newcombe_difference_interval, normal_ppf
+from app.backend.app.stats.binary import (
+    newcombe_difference_interval,
+    normal_ppf,
+    standard_normal_sf,
+)
 
 from .common import (
     _bounded_probability,
@@ -34,21 +38,8 @@ def _analyze_binary(obs: ObservedResultsBinary | None) -> ResultsResponse:
             0.0,
         )
     )
-
-    if standard_error == 0:
-        return _degenerate_response(
-            metric_type="binary",
-            ci_level=1 - obs.alpha,
-            control_rate=round(p1 * 100, 4),
-            treatment_rate=round(p2 * 100, 4),
-        )
-
-    test_statistic = effect / standard_error
-    p_value = 2 * (1 - standard_normal_cdf(abs(test_statistic)))
-    z_critical = normal_ppf(1 - obs.alpha / 2)
-    # Newcombe (1998) hybrid-score interval for the risk difference, replacing the Wald interval that
-    # mis-covers at small n or extreme rates. The p-value / verdict stay on the pooled z-test — only
-    # the reported interval estimate changes to the better-calibrated score construction.
+    # Newcombe (1998) hybrid-score interval stays informative even when the pooled z-test has zero
+    # standard error at the all-zero or all-one boundaries.
     ci_lower, ci_upper = newcombe_difference_interval(
         obs.treatment_conversions,
         obs.treatment_users,
@@ -56,7 +47,22 @@ def _analyze_binary(obs: ObservedResultsBinary | None) -> ResultsResponse:
         obs.control_users,
         obs.alpha,
     )
-    relative_effect = (effect / p1 * 100) if p1 > 0 else 0.0
+    relative_effect = round(effect / p1 * 100, 2) if p1 > 0 else None
+
+    if standard_error == 0:
+        return _degenerate_response(
+            metric_type="binary",
+            ci_level=1 - obs.alpha,
+            control_rate=round(p1 * 100, 4),
+            treatment_rate=round(p2 * 100, 4),
+            observed_effect_relative=relative_effect,
+            ci_lower=round(ci_lower * 100, 4),
+            ci_upper=round(ci_upper * 100, 4),
+        )
+
+    test_statistic = effect / standard_error
+    p_value = 2.0 * standard_normal_sf(abs(test_statistic))
+    z_critical = normal_ppf(1 - obs.alpha / 2)
     is_significant = p_value < obs.alpha
     power_achieved = standard_normal_cdf(
         abs(test_statistic) - z_critical
@@ -65,7 +71,7 @@ def _analyze_binary(obs: ObservedResultsBinary | None) -> ResultsResponse:
     return ResultsResponse(
         metric_type="binary",
         observed_effect=round(effect * 100, 4),
-        observed_effect_relative=round(relative_effect, 2),
+        observed_effect_relative=relative_effect,
         control_rate=round(p1 * 100, 4),
         treatment_rate=round(p2 * 100, 4),
         ci_lower=round(ci_lower * 100, 4),
@@ -118,4 +124,3 @@ def _interpretation_binary(
             "significance": significance_text,
         },
     )
-

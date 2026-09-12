@@ -155,5 +155,5 @@ describe("API keys accessibility", () => {
     } finally {
       await view.unmount();
     }
-  }, 15000);
+  });
 });

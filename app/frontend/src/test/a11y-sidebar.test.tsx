@@ -186,7 +186,7 @@ describe("Sidebar and modal accessibility", () => {
     } finally {
       await view.unmount();
     }
-  }, 15000);
+  });
 
   it("has no critical or serious accessibility violations on the System tab", async () => {
     const view = await renderIntoDocument(<SidebarPanel />);
@@ -214,7 +214,7 @@ describe("Sidebar and modal accessibility", () => {
     } finally {
       await view.unmount();
     }
-  }, 15000);
+  });
 
   it("has no critical or serious accessibility violations when the template gallery is open", async () => {
     const view = await renderIntoDocument(
@@ -237,7 +237,7 @@ describe("Sidebar and modal accessibility", () => {
     } finally {
       await view.unmount();
     }
-  }, 15000);
+  });
 
   it("has no critical or serious accessibility violations when shortcut help is open", async () => {
     const view = await renderIntoDocument(<ShortcutHelp onClose={vi.fn()} />);
@@ -255,7 +255,7 @@ describe("Sidebar and modal accessibility", () => {
     } finally {
       await view.unmount();
     }
-  }, 15000);
+  });
 
   it("has no critical or serious accessibility violations when project filters are visible", async () => {
     const view = await renderIntoDocument(<SidebarPanel />);
@@ -275,7 +275,7 @@ describe("Sidebar and modal accessibility", () => {
     } finally {
       await view.unmount();
     }
-  }, 15000);
+  });
 
   it("renders compare controls with stable test ids", async () => {
     const projectState = useProjectStore.getState();
@@ -316,7 +316,7 @@ describe("Sidebar and modal accessibility", () => {
     } finally {
       await view.unmount();
     }
-  }, 15000);
+  });
 
   it("has no critical or serious accessibility violations for workspace backup controls", async () => {
     const view = await renderIntoDocument(<SidebarPanel />);
@@ -346,5 +346,5 @@ describe("Sidebar and modal accessibility", () => {
     } finally {
       await view.unmount();
     }
-  }, 15000);
+  });
 });

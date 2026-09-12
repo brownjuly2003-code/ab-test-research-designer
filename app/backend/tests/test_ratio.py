@@ -27,7 +27,7 @@ def _sufficient(xs: list[float], ys: list[float]) -> dict[str, float]:
         "sum_x2": sum(x * x for x in xs),
         "sum_y": sum(ys),
         "sum_y2": sum(y * y for y in ys),
-        "sum_xy": sum(x * y for x, y in zip(xs, ys)),
+        "sum_xy": sum(x * y for x, y in zip(xs, ys, strict=True)),
     }
 
 
@@ -172,7 +172,7 @@ def test_delta_variance_differs_from_naive_when_correlated() -> None:
 
     # Naive per-user ratio r_i = y_i / x_i, variance of its mean = var(r)/n. This treats each user's
     # ratio as one observation and ignores that the denominator is itself random/correlated.
-    per_user = [y / x for x, y in zip(xs, ys)]
+    per_user = [y / x for x, y in zip(xs, ys, strict=True)]
     n = len(per_user)
     mean_r = sum(per_user) / n
     naive_variance = (sum((r - mean_r) ** 2 for r in per_user) / (n - 1)) / n

@@ -1,5 +1,6 @@
-from pathlib import Path
+import math
 import sys
+from pathlib import Path
 
 import pytest
 
@@ -31,6 +32,25 @@ def test_binary_calculation_returns_required_fields() -> None:
     )
     assert result["results"]["effective_daily_traffic"] == pytest.approx(7200)
     assert result["results"]["estimated_duration_days"] > 0
+
+
+def test_binary_calculation_sizes_and_schedules_ninety_ten_allocation() -> None:
+    base = {
+        "metric_type": "binary",
+        "baseline_value": 0.1,
+        "mde_pct": 10,
+        "alpha": 0.05,
+        "power": 0.8,
+        "expected_daily_traffic": 10_000,
+        "audience_share_in_test": 1.0,
+    }
+    balanced = calculate_experiment_metrics({**base, "traffic_split": [50, 50]})
+    unbalanced = calculate_experiment_metrics({**base, "traffic_split": [90, 10]})
+
+    assert unbalanced["results"]["total_sample_size"] > balanced["results"]["total_sample_size"]
+    assert unbalanced["results"]["estimated_duration_days"] == math.ceil(
+        unbalanced["results"]["total_sample_size"] / base["expected_daily_traffic"]
+    )
 
 
 def test_ratio_calculation_reduces_to_continuous_delta_method() -> None:

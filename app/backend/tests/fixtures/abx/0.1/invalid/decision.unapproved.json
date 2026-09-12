@@ -1,0 +1,17 @@
+{
+  "schema_version": "0.1.0",
+  "decision_id": "decision_01",
+  "content_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+  "run_id": "run_foundation_01",
+  "protocol_revision_id": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "policy": {"policy_id": "practical_v1", "version": "1", "minimum_worthwhile_effect": 0.01, "harm_rule_codes": [], "approval_roles": ["product_owner"]},
+  "evidence": {"estimate_ids": ["estimate_01"], "finding_ids": []},
+  "proposed_verdict": "ship",
+  "human_verdict": "ship",
+  "rationale": "This record claims approval without any approval evidence.",
+  "state": "approved",
+  "decided_at": "2026-08-21T21:05:00Z",
+  "decided_by": {"actor_ref": "owner_01", "role": "product_owner"},
+  "approvals": [],
+  "extensions": {}
+}

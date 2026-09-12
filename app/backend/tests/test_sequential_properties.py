@@ -1,13 +1,17 @@
-from pathlib import Path
 import math
 import sys
+from pathlib import Path
 
 from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
-from app.backend.app.stats.binary import calculate_binary_sample_size, normal_ppf, standard_normal_cdf
+from app.backend.app.stats.binary import (
+    calculate_binary_sample_size,
+    normal_ppf,
+    standard_normal_cdf,
+)
 from app.backend.app.stats.sequential import (
     obrien_fleming_boundaries,
     sequential_sample_size_inflation,
@@ -27,7 +31,7 @@ def test_sequential_cumulative_alpha_is_monotone_and_bounded(n_looks: int, alpha
     incremental = [entry["incremental_alpha"] for entry in boundaries]
 
     assert all(value >= 0 for value in incremental)
-    assert all(left <= right for left, right in zip(cumulative, cumulative[1:]))
+    assert all(left <= right for left, right in zip(cumulative, cumulative[1:], strict=False))
     assert cumulative[-1] <= alpha + 1e-6
 
 
@@ -39,7 +43,7 @@ def test_sequential_cumulative_alpha_is_monotone_and_bounded(n_looks: int, alpha
 def test_sequential_z_boundaries_decrease_across_looks(n_looks: int, alpha: float) -> None:
     z_values = [entry["z_boundary"] for entry in obrien_fleming_boundaries(n_looks, alpha)]
 
-    assert all(left >= right for left, right in zip(z_values, z_values[1:]))
+    assert all(left >= right for left, right in zip(z_values, z_values[1:], strict=False))
 
 
 @settings(max_examples=50, deadline=5000)

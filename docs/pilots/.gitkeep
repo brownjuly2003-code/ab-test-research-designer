@@ -1,0 +1,3 @@
+# Canonical <date>-<anon>.md pilot records only.
+# `trialmark gate3 --records docs/pilots` treats any other .md file here
+# as an error rather than skipping it, so keep notes somewhere else.

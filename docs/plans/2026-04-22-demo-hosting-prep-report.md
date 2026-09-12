@@ -6,7 +6,7 @@ Execution date: 2026-04-21
 
 - Created: `fly.toml`
 - Created: `scripts/seed_demo_workspace.py`
-- Created: `docs/RELEASE_NOTES_v1.0.0-github-draft.md`
+- Created: `docs/releases/drafts/RELEASE_NOTES_v1.0.0-github-draft.md`
 - Created: `docs/plans/2026-04-22-demo-hosting-prep-report.md`
 - Updated: `Dockerfile`
 - Updated: `docs/DEPLOY.md`

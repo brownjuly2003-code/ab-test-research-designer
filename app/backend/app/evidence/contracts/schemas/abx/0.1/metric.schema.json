@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:evidenceos:abx:schema:0.1:metric",
+  "title": "ABX v0.1 metric reference",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "metric_id",
+    "metric_version",
+    "definition_digest",
+    "name",
+    "kind",
+    "direction",
+    "unit",
+    "aggregation",
+    "source_snapshot_id",
+    "extensions"
+  ],
+  "properties": {
+    "schema_version": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/schemaVersion"},
+    "metric_id": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/opaqueId"},
+    "metric_version": {"type": "string", "minLength": 1, "maxLength": 64},
+    "definition_digest": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/sha256"},
+    "name": {"type": "string", "minLength": 1, "maxLength": 256},
+    "kind": {"enum": ["binary", "continuous", "count", "ratio", "survival", "categorical"]},
+    "direction": {"enum": ["increase", "decrease", "neutral"]},
+    "unit": {"type": "string", "minLength": 1, "maxLength": 64},
+    "aggregation": {"enum": ["mean", "sum", "rate", "ratio", "quantile", "hazard", "distribution"]},
+    "owner_ref": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/actorRef"},
+    "source_snapshot_id": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/opaqueId"},
+    "extensions": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/extensions"}
+  }
+}

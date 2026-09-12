@@ -180,7 +180,9 @@ def test_negative_events_raise() -> None:
 # 1436.4 -> 1437 users at unit exposure; Monte-Carlo power of the conditional binomial test at
 # that exposure = 0.799. scipy is cross-checked locally, not a dependency.
 
-from app.backend.app.stats.poisson_rate import calculate_poisson_rate_sample_size  # noqa: E402
+from app.backend.app.stats.poisson_rate import (
+    calculate_poisson_rate_sample_size,  # noqa: E402
+)
 
 
 def test_sizing_matches_frozen_reference() -> None:

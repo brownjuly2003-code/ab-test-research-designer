@@ -1,6 +1,6 @@
 import base64
-from pathlib import Path
 import sys
+from pathlib import Path
 
 from fastapi.testclient import TestClient
 

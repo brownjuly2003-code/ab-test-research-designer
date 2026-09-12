@@ -113,7 +113,6 @@ class _PooledPostgresConnection:
 
 class PostgresBackend(SQLiteBackend):
     backend_name = "postgres"
-    supports_snapshots = False
     # What this code REQUIRES the database to be. The version the database actually is gets read
     # back out of `schema_migrations`; readiness compares the two (see routes/system.readyz).
     schema_version = EXPECTED_POSTGRES_SCHEMA_VERSION
@@ -313,6 +312,7 @@ class PostgresBackend(SQLiteBackend):
                     name TEXT NOT NULL,
                     key_hash TEXT NOT NULL UNIQUE,
                     scope TEXT NOT NULL,
+                    role TEXT,
                     created_at TEXT NOT NULL,
                     last_used_at TEXT,
                     revoked_at TEXT,

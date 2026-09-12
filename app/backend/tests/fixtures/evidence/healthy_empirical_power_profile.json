@@ -1,0 +1,47 @@
+{
+  "protocol_digest": "sha256:d93e693310864d4de7f8beb896b9a544be6b48c9fa00911be2fdf2ffd71a8cf7",
+  "random_seed": 20260821,
+  "analysis_method": {"method_id": "newcombe", "method_version": "1"},
+  "target_power": "0.8",
+  "minimum_worthwhile_effect": "0.01",
+  "allocations": [
+    {
+      "intervention_id": "control",
+      "allocation": "0.5",
+      "namespace": "checkout",
+      "hash_version": "assignment_v1"
+    },
+    {
+      "intervention_id": "treatment",
+      "allocation": "0.5",
+      "namespace": "checkout",
+      "hash_version": "assignment_v1"
+    }
+  ],
+  "metric_results": [
+    {
+      "metric_id": "metric_conversion",
+      "metric_version": "v1",
+      "definition_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "power_source": "upstream_asserted",
+      "historical_distribution_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "simulation_count": 10000,
+      "evaluated_total_sample_size": 24000,
+      "achieved_power": "0.84",
+      "detectable_effect_at_evaluated_total_sample_size": "0.0095",
+      "recommended_total_sample_size": 22000
+    },
+    {
+      "metric_id": "metric_refund",
+      "metric_version": "v1",
+      "definition_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "power_source": "upstream_asserted",
+      "historical_distribution_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "simulation_count": 10000,
+      "evaluated_total_sample_size": 24000,
+      "achieved_power": "0.81",
+      "detectable_effect_at_evaluated_total_sample_size": "0.0099",
+      "recommended_total_sample_size": 23500
+    }
+  ]
+}

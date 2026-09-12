@@ -587,6 +587,19 @@
       "yes": "Ja",
       "no": "Nein",
       "ratioDisclaimer": "Die Metrik dieses Plans ist ein Ratio. Analysieren Sie sie post-hoc im eigenen Abschnitt „Ratio-Metrik (Delta-Methode)“ unten — fügen Sie dort die rohen Zähler- und Nenner-Werte pro Nutzer ein; es ist derselbe Delta-Methoden-z-Test wie auf dem Live-Pfad. In diesem Formular ist nur eine bewusste Näherung wählbar: ein kontinuierlicher Test auf einem vorberechneten Ratio-Wert pro Nutzer oder ein Poisson-Raten-Test auf den rohen Zähler-Ereignissen über der Nenner-Exposition.",
+      "lineage": {
+        "title": "Teilweise Evidenzherkunft",
+        "summary": "{{available}} von {{total}} erforderlichen Referenzen verfügbar.",
+        "missing": "Fehlende Referenzen",
+        "notEvidence": "Diese Legacy-Statistikausgabe ist kein verifizierbarer Trialmark-Nachweis.",
+        "references": {
+          "protocol": "Protokoll",
+          "metric": "Metrik",
+          "query": "Abfrage",
+          "source": "Quelle",
+          "runner": "Ausführungsumgebung"
+        }
+      },
       "fields": {
         "controlConversions": "Konversionen der Kontrollgruppe",
         "controlUsers": "Nutzer der Kontrollgruppe",

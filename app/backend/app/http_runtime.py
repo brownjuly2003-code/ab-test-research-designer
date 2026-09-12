@@ -2,9 +2,10 @@ import hmac
 import logging
 import uuid
 from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import UTC
 from time import perf_counter
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 from fastapi import FastAPI, HTTPException, Request, Response, status
 from fastapi.encoders import jsonable_encoder
@@ -41,6 +42,24 @@ if TYPE_CHECKING:
     from app.backend.app.config import Settings
     from app.backend.app.http_utils import SlidingWindowRateLimiter
     from app.backend.app.repository import ProjectRepository
+
+
+AuthScope = Literal["read", "write", "admin"]
+
+
+@dataclass(frozen=True, slots=True)
+class Principal:
+    actor_ref: str
+    scopes: frozenset[AuthScope]
+    # Approval role, checked against the run's frozen decision.approval_policy.
+    # None means "not declared", and the frozen policy's first approval role
+    # applies (see decisions._principal_identity).
+    role: str | None = None
+    # Where that role came from. "credential" means the issued API key carries
+    # it, which is the only source this process can verify; a role a caller
+    # merely states about itself is "asserted". A decision record keeps the
+    # distinction so a reader can tell a checked role from a claimed one.
+    role_source: Literal["credential", "asserted"] | None = None
 
 
 def create_runtime_counters() -> dict[str, int | float | str | None]:
@@ -102,7 +121,7 @@ def register_http_runtime(
     runtime_counters: dict[str, Any],
 ) -> tuple[
     Callable[[Request], None],
-    Callable[[Request], None],
+    Callable[[Request], Principal],
     Callable[[Request], None],
 ]:
     def record_runtime_response(
@@ -173,12 +192,23 @@ def register_http_runtime(
             return
         raise HTTPException(status_code=401, detail="Unauthorized")
 
-    def require_write_auth(request: Request) -> None:
+    def require_write_auth(request: Request) -> Principal:
         if not auth_enabled():
-            return
+            return Principal(actor_ref="local-operator", scopes=frozenset({"write"}))
         auth_scope = getattr(request.state, "auth_scope", None)
         if auth_scope in {"write", "admin"}:
-            return
+            actor_ref = getattr(request.state, "auth_actor_ref", None)
+            if not isinstance(actor_ref, str) or not actor_ref:
+                raise HTTPException(status_code=401, detail="Unauthorized")
+            auth_role = getattr(request.state, "auth_role", None)
+            role = auth_role if isinstance(auth_role, str) and auth_role else None
+            return Principal(
+                actor_ref=actor_ref,
+                scopes=frozenset({auth_scope}),
+                role=role,
+                # Only a role this process read off the stored key is a credential.
+                role_source="credential" if role else None,
+            )
         if auth_scope == "read":
             raise HTTPException(status_code=403, detail="Forbidden")
         raise HTTPException(status_code=401, detail="Unauthorized")
@@ -217,6 +247,8 @@ def register_http_runtime(
         request.state.auth_scope = None
         request.state.auth_source = None
         request.state.auth_key_id = None
+        request.state.auth_actor_ref = None
+        request.state.auth_role = None
         request.state.audit_actor = None
         request.state.admin_authenticated = False
         request.state.rate_limit_bucket_key = None
@@ -306,12 +338,14 @@ def register_http_runtime(
                     request.state.admin_authenticated = True
                     request.state.auth_scope = "admin"
                     request.state.auth_source = "admin_token"
+                    request.state.auth_actor_ref = "admin-operator"
                     request.state.audit_actor = "admin_token"
             auth_required = admin_only_path or auth_enabled()
             if auth_required and not request.state.admin_authenticated:
                 if settings.api_token and presented_token is not None and hmac.compare_digest(presented_token, settings.api_token):
                     request.state.auth_scope = "write"
                     request.state.auth_source = "legacy"
+                    request.state.auth_actor_ref = "legacy-write-token"
                     request.state.audit_actor = "legacy_token:write"
                 elif (
                     settings.readonly_api_token
@@ -320,6 +354,7 @@ def register_http_runtime(
                 ):
                     request.state.auth_scope = "read"
                     request.state.auth_source = "legacy"
+                    request.state.auth_actor_ref = "legacy-read-token"
                     request.state.audit_actor = "legacy_token:read"
                 elif presented_token is not None:
                     api_key = repository.authenticate_api_key(presented_token)
@@ -337,6 +372,8 @@ def register_http_runtime(
                     request.state.auth_scope = issued_scope
                     request.state.auth_source = "api_key"
                     request.state.auth_key_id = api_key["id"]
+                    request.state.auth_actor_ref = api_key["name"]
+                    request.state.auth_role = api_key.get("role")
                     request.state.audit_actor = f"api_key:{api_key['id']}"
                     request.state.rate_limit_bucket_key = f"api_key:{api_key['id']}"
                     request.state.rate_limit_requests = api_key.get("rate_limit_requests")
@@ -354,6 +391,7 @@ def register_http_runtime(
                     # Admin-only surfaces (keys/webhooks) keep rejecting.
                     request.state.auth_scope = "read"
                     request.state.auth_source = "anonymous"
+                    request.state.auth_actor_ref = "anonymous"
                     request.state.audit_actor = "anonymous"
                 elif admin_only_path and not settings.admin_token:
                     return reject_auth_request(

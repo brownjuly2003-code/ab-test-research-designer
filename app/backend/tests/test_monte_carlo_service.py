@@ -1,5 +1,6 @@
-from pathlib import Path
+import math
 import sys
+from pathlib import Path
 from time import perf_counter
 
 import pytest
@@ -9,6 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
 from app.backend.app.main import create_app
 from app.backend.app.services.monte_carlo_service import (
+    beta_probability_treatment_beats_control,
     simulate_comparison,
     simulate_thompson_sampling,
     simulate_uplift_distribution,
@@ -91,6 +93,51 @@ def test_simulate_uplift_distribution_is_wide_for_tiny_samples() -> None:
 
     width = result["percentiles"]["95"] - result["percentiles"]["5"]
     assert width > 0.3
+
+
+@pytest.mark.parametrize(
+    (
+        "control_users",
+        "control_conversions",
+        "treatment_users",
+        "treatment_conversions",
+    ),
+    (
+        (1000, 100, 1000, 123),
+        (30000, 17300, 25000, 14591),
+    ),
+)
+def test_beta_probability_matches_seeded_monte_carlo_cross_check(
+    control_users: int,
+    control_conversions: int,
+    treatment_users: int,
+    treatment_conversions: int,
+) -> None:
+    num_simulations = 200_000
+    probability = beta_probability_treatment_beats_control(
+        control_users=control_users,
+        control_conversions=control_conversions,
+        treatment_users=treatment_users,
+        treatment_conversions=treatment_conversions,
+    )
+    simulation = simulate_uplift_distribution(
+        baseline_conversion=control_conversions / control_users,
+        observed_conversion_a=control_conversions / control_users,
+        sample_size_a=control_users,
+        observed_conversion_b=treatment_conversions / treatment_users,
+        sample_size_b=treatment_users,
+        num_simulations=num_simulations,
+        seed=7107,
+    )
+    monte_carlo_probability = simulation["probability_uplift_positive"]
+    monte_carlo_standard_error = math.sqrt(
+        probability * (1.0 - probability) / num_simulations
+    )
+
+    assert monte_carlo_probability == pytest.approx(
+        probability,
+        abs=3.0 * monte_carlo_standard_error,
+    )
 
 
 def test_simulate_comparison_finishes_quickly_for_three_projects() -> None:
@@ -208,8 +255,8 @@ def test_thompson_sampling_regret_is_monotonic_and_beats_uniform() -> None:
     assert steps == sorted(steps)
     assert curve[-1]["step"] == 1000
     # Cumulative regret never decreases.
-    assert all(later >= earlier for earlier, later in zip(bandit, bandit[1:]))
-    assert all(later >= earlier for earlier, later in zip(uniform, uniform[1:]))
+    assert all(later >= earlier for earlier, later in zip(bandit, bandit[1:], strict=False))
+    assert all(later >= earlier for earlier, later in zip(uniform, uniform[1:], strict=False))
     # Thompson sampling accrues less regret than a uniform random split.
     assert result["final_bandit_regret"] < result["final_uniform_regret"]
     assert sum(result["arm_allocation"]) == pytest.approx(1.0)

@@ -1,5 +1,6 @@
-from pathlib import Path
+import math
 import sys
+from pathlib import Path
 
 from fastapi.testclient import TestClient
 
@@ -26,29 +27,38 @@ def test_five_looks_final_boundary() -> None:
     assert abs(boundaries[-1]["z_boundary"] - 2.04) < 0.1
 
 
-# Published two-sided O'Brien-Fleming final-look z-boundaries (equal increments,
-# Lan-DeMets alpha spending) as tabulated in the standard group-sequential
-# references (Jennison & Turnbull 2000; reproduced by gsDesign / EAST). Pinning
-# to these guards against silent drift in the boundary maths. K=3 and K=5 are
-# NOT anchor points in the implementation's table {1,2,4,8,16}, so they verify
-# the interpolation lands on the published value, not just the stored anchors.
-PUBLISHED_OBF_FINAL_Z = {
-    (2, 0.05): 1.977,
-    (3, 0.05): 2.004,  # non-anchor look -> exercises interpolation
-    (4, 0.05): 2.024,
-    (5, 0.05): 2.040,  # non-anchor look -> exercises interpolation
-    (4, 0.01): 2.609,
-    (4, 0.10): 1.733,
+# Two-sided Lan-DeMets O'Brien-Fleming final-look z-boundaries obtained by
+# numerically inverting the same cumulative spending function reported by the
+# API. These regression values keep the spending and boundary construction from
+# drifting apart again.
+COHERENT_OBF_FINAL_Z = {
+    (2, 0.05): 1.97931134,
+    (3, 0.05): 2.01524672,
+    (4, 0.05): 2.04263849,
+    (5, 0.05): 2.06350110,
+    (4, 0.01): 2.61484153,
+    (4, 0.10): 1.76566203,
 }
 
 
-def test_final_boundary_matches_published_obf_references() -> None:
-    for (n_looks, alpha), published_z in PUBLISHED_OBF_FINAL_Z.items():
+def test_final_boundary_matches_coherent_obf_references() -> None:
+    for (n_looks, alpha), expected_z in COHERENT_OBF_FINAL_Z.items():
         final_z = obrien_fleming_boundaries(n_looks, alpha=alpha)[-1]["z_boundary"]
-        assert abs(final_z - published_z) < 0.015, (
-            f"OBF final z for {n_looks} looks / alpha={alpha}: "
-            f"got {final_z}, published {published_z}"
+        assert abs(final_z - expected_z) < 2e-4, (
+            f"OBF final z for {n_looks} looks / alpha={alpha}: got {final_z}, expected {expected_z}"
         )
+
+
+def test_reported_spending_and_boundaries_use_one_construction() -> None:
+    boundaries = obrien_fleming_boundaries(4, alpha=0.05)
+
+    assert boundaries[0]["p_boundary"] == boundaries[0]["incremental_alpha"]
+    assert math.isclose(
+        sum(boundary["incremental_alpha"] for boundary in boundaries),
+        0.05,
+        rel_tol=0.0,
+        abs_tol=5e-6,
+    )
 
 
 def test_boundaries_monotone_decreasing() -> None:

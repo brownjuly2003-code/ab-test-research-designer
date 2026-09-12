@@ -586,6 +586,19 @@
       "yes": "是的",
       "no": "不",
       "ratioDisclaimer": "该计划的指标是比率。请在下方专门的「比率指标（Delta 方法）」板块中进行事后分析——在那里粘贴每位用户的原始分子值和分母值；它与实时路径使用相同的 Delta 方法 z 检验。本表单中只能选择有意识的近似：对预先计算的每用户比率值做连续检验，或对原始分子事件相对分母曝光量做泊松率检验。",
+      "lineage": {
+        "title": "部分证据血缘",
+        "summary": "{{total}} 个必需引用中有 {{available}} 个可用。",
+        "missing": "缺失的引用",
+        "notEvidence": "此旧版统计读数不是可验证的 Trialmark 证据。",
+        "references": {
+          "protocol": "协议",
+          "metric": "指标",
+          "query": "查询",
+          "source": "来源",
+          "runner": "运行器"
+        }
+      },
       "fields": {
         "controlConversions": "对照组转化数",
         "controlUsers": "对照组用户数",

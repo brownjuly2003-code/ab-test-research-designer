@@ -203,7 +203,8 @@ class LiveComparison(BaseModel):
     treatment: LiveArmStat
     analysis: ResultsResponse | None = None  # reuses the frequentist /results response shape
     probability_treatment_beats_control: float | None = None  # Bayesian P(B>A), binary only
-    sequential_significant: bool | None = None  # |z| crosses the current O'Brien-Fleming boundary
+    # |z| crosses the planned O'Brien-Fleming boundary; None between planned looks.
+    sequential_significant: bool | None = None
     always_valid: LiveAlwaysValidBlock | None = None  # anytime-valid mSPRT view, null until "ok"
     note: str | None = None
 
@@ -218,7 +219,7 @@ class LiveSequentialBlock(BaseModel):
     planned_sample_size_per_variant: int | None = None
     total_exposed: int = 0
     information_fraction: float | None = None
-    current_boundary_z: float | None = None
+    current_boundary_z: float | None = None  # Populated only at an exact planned look.
     note: str
 
 

@@ -18,8 +18,9 @@ _SCHEME_AUTHORITY_RE = re.compile(r"^(?P<scheme>[a-zA-Z][a-zA-Z0-9+.\-]*://)(?P<
 # libpq also accepts the password as a query parameter.
 _SENSITIVE_QUERY_RE = re.compile(r"(?i)(?<![\w-])(password|passwd|pwd|sslpassword)=([^&\s]*)")
 
-# Free-text fallback for arbitrary log lines: `scheme://user:pass@host`.
-_INLINE_CREDENTIALS_RE = re.compile(r"(?i)([a-zA-Z][a-zA-Z0-9+.\-]*://)[^\s/@]*:[^\s/@]*@")
+# Free-text fallback for arbitrary log lines. The greedy authority match ends at
+# the last `@`, including an unencoded `@` inside userinfo.
+_INLINE_CREDENTIALS_RE = re.compile(r"(?i)([a-zA-Z][a-zA-Z0-9+.\-]*://)[^\s/?#]*@")
 
 
 def redact_database_url(database_url: str) -> str:
@@ -58,5 +59,6 @@ def database_host(database_url: str) -> str:
 
 
 def mask_inline_credentials(value: str) -> str:
-    """Mask `scheme://user:pass@` credentials anywhere inside free text."""
-    return _INLINE_CREDENTIALS_RE.sub(rf"\1{REDACTED}@", value)
+    """Mask URL authority and libpq query credentials inside free text."""
+    redacted = _SENSITIVE_QUERY_RE.sub(rf"\1={REDACTED}", value)
+    return _INLINE_CREDENTIALS_RE.sub(rf"\1{REDACTED}@", redacted)

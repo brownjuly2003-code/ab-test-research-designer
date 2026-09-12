@@ -1,12 +1,13 @@
-from pathlib import Path
 import sys
+from pathlib import Path
 
-from fastapi.testclient import TestClient
 import pytest
+from fastapi.testclient import TestClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
 from app.backend.app.main import create_app
+from app.backend.app.schemas.api._results import ResultsLineageDisclosure
 
 
 def _project_payload(name: str) -> dict:
@@ -87,6 +88,27 @@ def test_results_endpoint_binary_significant() -> None:
     assert payload["is_significant"] is True
     assert payload["p_value"] < 0.05
     assert payload["observed_effect"] == pytest.approx(0.5, abs=0.01)
+    assert payload["lineage"] == {
+        "status": "partial",
+        "origin": "legacy_results",
+        "is_verifiable_evidence": False,
+        "available_references": [],
+        "missing_references": ["protocol", "metric", "query", "source", "runner"],
+    }
+
+
+@pytest.mark.parametrize(
+    "override",
+    [
+        {"available_references": ("runner",)},
+        {"missing_references": ("protocol", "metric", "query", "source")},
+    ],
+)
+def test_legacy_results_lineage_rejects_claims_beyond_available_provenance(
+    override: dict[str, tuple[str, ...]],
+) -> None:
+    with pytest.raises(ValueError):
+        ResultsLineageDisclosure(**override)
 
 
 def test_results_endpoint_binary_interpretation_reflects_custom_alpha() -> None:
@@ -196,6 +218,63 @@ def test_results_endpoint_binary_reports_newcombe_interval() -> None:
     # distinct, confirming the score construction is the one wired through, not the normal approximation.
 
 
+@pytest.mark.parametrize("conversions", (0, 100))
+def test_results_endpoint_binary_degenerate_reports_newcombe_interval(
+    conversions: int,
+) -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/results",
+        json={
+            "metric_type": "binary",
+            "binary": {
+                "control_conversions": conversions,
+                "control_users": 100,
+                "treatment_conversions": conversions,
+                "treatment_users": 100,
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["observed_effect"] == 0.0
+    if conversions == 0:
+        assert payload["observed_effect_relative"] is None
+    else:
+        assert payload["observed_effect_relative"] == 0.0
+    assert payload["ci_lower"] == pytest.approx(-3.6993, abs=1e-4)
+    assert payload["ci_upper"] == pytest.approx(3.6993, abs=1e-4)
+    assert payload["p_value"] == 1.0
+    assert payload["test_statistic"] == 0.0
+    assert payload["is_significant"] is False
+
+
+def test_results_endpoint_binary_zero_control_reports_undefined_relative_lift() -> None:
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/api/v1/results",
+        json={
+            "metric_type": "binary",
+            "binary": {
+                "control_conversions": 0,
+                "control_users": 1000,
+                "treatment_conversions": 10,
+                "treatment_users": 1000,
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["observed_effect"] == pytest.approx(1.0, abs=1e-4)
+    assert payload["observed_effect_relative"] is None
+    assert payload["ci_lower"] == pytest.approx(0.4048, abs=1e-4)
+    assert payload["ci_upper"] == pytest.approx(1.8309, abs=1e-4)
+
+
 def test_results_endpoint_continuous_significant() -> None:
     client = TestClient(create_app())
 
@@ -298,10 +377,13 @@ def test_project_update_can_persist_saved_observed_results() -> None:
 
     assert results_response.status_code == 200
 
+    legacy_analysis = results_response.json()
+    legacy_analysis.pop("lineage")
+
     updated_payload = _project_payload("Observed results")
     updated_payload["additional_context"]["observed_results"] = {
         "request": results_request,
-        "analysis": results_response.json(),
+        "analysis": legacy_analysis,
     }
 
     update_response = client.put(f"/api/v1/projects/{project_id}", json=updated_payload)
@@ -313,6 +395,14 @@ def test_project_update_can_persist_saved_observed_results() -> None:
 
     assert get_response.status_code == 200
     assert get_response.json()["payload"]["additional_context"]["observed_results"]["request"]["metric_type"] == "binary"
+    restored_analysis = get_response.json()["payload"]["additional_context"]["observed_results"]["analysis"]
+    assert restored_analysis["lineage"] == {
+        "status": "partial",
+        "origin": "legacy_results",
+        "is_verifiable_evidence": False,
+        "available_references": [],
+        "missing_references": ["protocol", "metric", "query", "source", "runner"],
+    }
 
 
 # --- Mann–Whitney (non-parametric, raw-sample) endpoint --------------------------------------

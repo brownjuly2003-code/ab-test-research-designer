@@ -28,7 +28,6 @@ from app.backend.app.repository._utils import JsonParam, compute_payload_diff
 
 class _BackendCore:
     backend_name = "sqlite"
-    supports_snapshots = True
     schema_version = 16
     payload_schema_version = 1
     workspace_schema_version = 3
@@ -130,15 +129,6 @@ class _BackendCore:
 
     def set_webhook_service(self, webhook_service: Any | None) -> None:
         self.webhook_service = webhook_service
-
-    def reinitialize_after_restore(self) -> None:
-        """Re-run schema bootstrap/migrations after a snapshot replaced the DB file.
-
-        Snapshot restore swaps the on-disk SQLite file under a live process. Callers
-        must invoke this before serving traffic so ``PRAGMA user_version`` reaches
-        the build's ``schema_version`` and readiness stays green.
-        """
-        self._init_db()
 
     @staticmethod
     def _create_revision(

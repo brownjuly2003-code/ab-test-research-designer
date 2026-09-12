@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:evidenceos:abx:schema:0.1:estimate",
+  "title": "ABX v0.1 estimate",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "estimate_id",
+    "content_digest",
+    "run_id",
+    "estimand_id",
+    "contrast",
+    "effect_measure",
+    "point_estimate",
+    "uncertainty",
+    "sample_size",
+    "lineage",
+    "produced_at",
+    "extensions"
+  ],
+  "properties": {
+    "schema_version": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/schemaVersion"},
+    "estimate_id": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/opaqueId"},
+    "content_digest": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/sha256"},
+    "run_id": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/opaqueId"},
+    "estimand_id": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/opaqueId"},
+    "contrast": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["baseline_intervention_id", "comparison_intervention_id"],
+      "properties": {
+        "baseline_intervention_id": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/opaqueId"},
+        "comparison_intervention_id": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/opaqueId"}
+      }
+    },
+    "effect_measure": {"type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[a-z][a-z0-9_]*$"},
+    "point_estimate": {"type": "number"},
+    "uncertainty": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "level", "lower", "upper"],
+      "properties": {
+        "kind": {"enum": ["confidence_interval", "credible_interval"]},
+        "level": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/probabilityString"},
+        "lower": {"type": "number"},
+        "upper": {"type": "number"},
+        "standard_error": {"type": "number", "minimum": 0},
+        "p_value": {"type": "number", "minimum": 0, "maximum": 1}
+      }
+    },
+    "sample_size": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["total", "groups"],
+      "properties": {
+        "total": {"type": "integer", "minimum": 0, "maximum": 9007199254740991},
+        "groups": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {"pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,127}$"},
+          "additionalProperties": {"type": "integer", "minimum": 0, "maximum": 9007199254740991}
+        }
+      }
+    },
+    "lineage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocol_revision_id", "metric", "query_ids", "source_snapshot_ids", "runner"],
+      "properties": {
+        "protocol_revision_id": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/sha256"},
+        "metric": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/metricLineage"},
+        "query_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/sha256"}
+        },
+        "source_snapshot_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/opaqueId"}
+        },
+        "runner": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/runner"}
+      }
+    },
+    "produced_at": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/utcTimestamp"},
+    "extensions": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/extensions"}
+  }
+}

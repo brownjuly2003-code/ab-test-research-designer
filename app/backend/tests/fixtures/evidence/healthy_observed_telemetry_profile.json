@@ -1,0 +1,11 @@
+{
+  "outcome_before_exposure_count": 0,
+  "duplicate_event_count": 0,
+  "unlinked_subject_count": 0,
+  "events_beyond_max_lateness_count": 0,
+  "schema_versions": [
+    {"event_type": "checkout_exposure", "version": "v1"},
+    {"event_type": "checkout_completed", "version": "v1"},
+    {"event_type": "refund_issued", "version": "v1"}
+  ]
+}

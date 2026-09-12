@@ -774,7 +774,9 @@ describe("App UI flow", () => {
     try {
       await flushEffects();
 
-      let link = view.container.querySelector(".topbar-link");
+      let link = Array.from(view.container.querySelectorAll(".topbar-link")).find(
+        (candidate) => candidate.textContent === "Theory"
+      );
       if (!(link instanceof HTMLAnchorElement)) {
         throw new Error("Topbar theory link was not rendered");
       }
@@ -787,7 +789,9 @@ describe("App UI flow", () => {
       });
       await flushEffects();
 
-      link = view.container.querySelector(".topbar-link");
+      link = Array.from(view.container.querySelectorAll(".topbar-link")).find(
+        (candidate) => candidate.textContent === "Теория"
+      );
       if (!(link instanceof HTMLAnchorElement)) {
         throw new Error("Topbar theory link disappeared after the language change");
       }

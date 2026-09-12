@@ -8,7 +8,7 @@ reason the method exists, so it is verified directly rather than trusted from th
 
 import random
 import sys
-from math import exp, log, sqrt
+from math import sqrt
 from pathlib import Path
 from statistics import NormalDist
 
@@ -23,7 +23,6 @@ from app.backend.app.stats.always_valid import (
     evaluate_always_valid,
     msprt_log_likelihood_ratio,
 )
-
 
 # --------------------------------------------------------------------------------------
 # Closed-form reference values (hand-computed from the formulae in the module docstring).

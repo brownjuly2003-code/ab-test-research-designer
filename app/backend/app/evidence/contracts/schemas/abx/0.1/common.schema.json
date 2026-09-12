@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:evidenceos:abx:schema:0.1:common",
+  "title": "ABX v0.1 common definitions",
+  "$defs": {
+    "schemaVersion": {
+      "const": "0.1.0"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "opaqueId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,127}$"
+    },
+    "capability": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+    },
+    "utcTimestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?Z$"
+    },
+    "decimalString": {
+      "type": "string",
+      "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?$"
+    },
+    "probabilityString": {
+      "type": "string",
+      "pattern": "^(?:0(?:\\.[0-9]+)?|1(?:\\.0+)?)$"
+    },
+    "nonEmptyText": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096
+    },
+    "safeRelativePath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 240,
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*\\\\)(?!.*(?:^|/)\\.\\.?(?:/|$))(?!.*//)[A-Za-z0-9][A-Za-z0-9._/-]*$"
+    },
+    "extensions": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)+$"
+      },
+      "additionalProperties": true
+    },
+    "actorRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,127}$"
+    },
+    "runner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version", "build_digest", "dependency_lock_digest"],
+      "properties": {
+        "name": {"$ref": "#/$defs/opaqueId"},
+        "version": {"type": "string", "minLength": 1, "maxLength": 64},
+        "build_digest": {"$ref": "#/$defs/sha256"},
+        "dependency_lock_digest": {"$ref": "#/$defs/sha256"},
+        "analyzer_version": {"type": "string", "minLength": 1, "maxLength": 64},
+        "policy_version": {"type": "string", "minLength": 1, "maxLength": 64},
+        "random_seed": {"type": "integer", "minimum": 0, "maximum": 9007199254740991}
+      }
+    },
+    "artifactPointer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifact_digest"],
+      "properties": {
+        "artifact_digest": {"$ref": "#/$defs/sha256"},
+        "json_pointer": {
+          "type": "string",
+          "maxLength": 512,
+          "pattern": "^(?:|/(?:[^~/]|~0|~1)*)$"
+        }
+      }
+    },
+    "queryArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "query_id",
+        "source_snapshot_id",
+        "dialect",
+        "statement_path",
+        "statement_digest",
+        "parameters_digest",
+        "input_aggregate_digests"
+      ],
+      "properties": {
+        "query_id": {"$ref": "#/$defs/sha256"},
+        "source_snapshot_id": {"$ref": "#/$defs/opaqueId"},
+        "dialect": {"enum": ["duckdb", "postgresql", "sqlite", "legacy"]},
+        "statement_path": {
+          "type": "string",
+          "pattern": "^queries/[0-9a-f]{64}\\.sql$"
+        },
+        "statement_digest": {"$ref": "#/$defs/sha256"},
+        "parameters_digest": {"$ref": "#/$defs/sha256"},
+        "input_aggregate_digests": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/sha256"},
+          "uniqueItems": true
+        },
+        "extensions": {"$ref": "#/$defs/extensions"}
+      }
+    },
+    "metricLineage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["metric_id", "metric_version", "metric_digest"],
+      "properties": {
+        "metric_id": {"$ref": "#/$defs/opaqueId"},
+        "metric_version": {"type": "string", "minLength": 1, "maxLength": 64},
+        "metric_digest": {"$ref": "#/$defs/sha256"}
+      }
+    }
+  }
+}

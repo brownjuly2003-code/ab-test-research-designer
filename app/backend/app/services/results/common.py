@@ -52,15 +52,18 @@ def _degenerate_response(
     ci_level: float,
     control_rate: float | None = None,
     treatment_rate: float | None = None,
+    observed_effect_relative: float | None = 0.0,
+    ci_lower: float = 0.0,
+    ci_upper: float = 0.0,
 ) -> ResultsResponse:
     return ResultsResponse(
         metric_type=metric_type,
         observed_effect=0.0,
-        observed_effect_relative=0.0,
+        observed_effect_relative=observed_effect_relative,
         control_rate=control_rate,
         treatment_rate=treatment_rate,
-        ci_lower=0.0,
-        ci_upper=0.0,
+        ci_lower=ci_lower,
+        ci_upper=ci_upper,
         ci_level=round(ci_level, 4),
         p_value=1.0,
         test_statistic=0.0,
@@ -73,4 +76,3 @@ def _degenerate_response(
 
 def _bounded_probability(value: float) -> float:
     return min(1.0, max(0.0, value))
-

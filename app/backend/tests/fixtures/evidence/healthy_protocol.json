@@ -1,0 +1,124 @@
+{
+  "spec_version": "0.1.0",
+  "required_capabilities": ["protocol-core"],
+  "protocol": {
+    "protocol_id": "protocol_checkout_01",
+    "title": "Checkout copy experiment",
+    "hypothesis": "Shorter copy increases completed checkout without material refund harm.",
+    "owners": ["team_growth"],
+    "created_at": "2026-08-21T20:00:00Z"
+  },
+  "freeze": {
+    "state": "frozen",
+    "frozen_by": "team_growth",
+    "frozen_at": "2026-08-21T20:45:00Z"
+  },
+  "population": {
+    "eligibility_expression": "eligible adult visitor in the checkout cohort",
+    "trigger_expression": "first checkout page view during the experiment window",
+    "randomization_unit": "user",
+    "analysis_population": "intention_to_treat",
+    "exclusions": ["internal traffic", "invalid assignment identity"]
+  },
+  "interventions": [
+    {
+      "intervention_id": "control",
+      "label": "Current checkout copy",
+      "kind": "control",
+      "allocation": "0.5",
+      "namespace": "checkout",
+      "hash_version": "assignment_v1"
+    },
+    {
+      "intervention_id": "treatment",
+      "label": "Short checkout copy",
+      "kind": "treatment",
+      "allocation": "0.5",
+      "namespace": "checkout",
+      "hash_version": "assignment_v1"
+    }
+  ],
+  "metrics": {
+    "primary": [
+      {
+        "metric_id": "metric_conversion",
+        "metric_version": "v1",
+        "definition_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      }
+    ],
+    "secondary": [],
+    "guardrails": [
+      {
+        "metric_id": "metric_refund",
+        "metric_version": "v1",
+        "definition_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      }
+    ]
+  },
+  "estimand": {
+    "estimand_id": "estimand_conversion_itt",
+    "population": "intention_to_treat",
+    "baseline_intervention_id": "control",
+    "comparison_intervention_ids": ["treatment"],
+    "effect_measure": "risk_difference",
+    "horizon": "P7D",
+    "missing_data_rule": "zero"
+  },
+  "design": {
+    "experiment_type": "randomized",
+    "interference_assumption": "no_interference",
+    "exposure_semantics": "The first valid assignment followed by a checkout page view is the exposure."
+  },
+  "analysis": {
+    "method": {"method_id": "newcombe", "method_version": "1"},
+    "alpha": "0.05",
+    "power": "0.8",
+    "stopping": {"mode": "fixed_horizon", "look_count": 1},
+    "multiplicity": {"method": "none", "family_ids": []},
+    "variance_reduction": {"method": "none", "covariate_metric_ids": []},
+    "random_seed": 20260821
+  },
+  "telemetry": {
+    "subject_key": "subject_key",
+    "event_key": "event_id",
+    "occurred_at_key": "occurred_at",
+    "exposure_event": "checkout_exposure",
+    "outcome_events": ["checkout_completed", "refund_issued"],
+    "ordering": "event_time",
+    "deduplication": {"keys": ["event_id"], "window": "P30D"},
+    "max_lateness": "P1D",
+    "schema_versions": [
+      {
+        "event_type": "checkout_exposure",
+        "version": "v1",
+        "schema_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      {
+        "event_type": "checkout_completed",
+        "version": "v1",
+        "schema_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      {
+        "event_type": "refund_issued",
+        "version": "v1",
+        "schema_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      }
+    ]
+  },
+  "decision": {
+    "minimum_worthwhile_effect": 0.01,
+    "harm_rules": [
+      {"code": "REFUND_HARM", "metric_id": "metric_refund", "operator": "gt", "threshold": 0.005}
+    ],
+    "owners": ["team_growth"],
+    "approval_policy": {"roles": ["product_owner"], "minimum_approvals": 1}
+  },
+  "operations": {
+    "rollback_owner": "team_growth",
+    "lag_budget_seconds": 3600,
+    "alert_thresholds": [
+      {"code": "INGEST_LAG", "metric_id": "metric_conversion", "operator": "gt", "threshold": 1800}
+    ]
+  },
+  "extensions": {}
+}

@@ -52,7 +52,7 @@ describe("ResultsPanel", () => {
     } finally {
       await view.unmount();
     }
-  }, 15000);
+  });
 
   it("groups results into four lifecycle stages with an anchor table of contents", async () => {
     const view = await renderIntoDocument(<ResultsPanel />);
@@ -76,7 +76,7 @@ describe("ResultsPanel", () => {
     } finally {
       await view.unmount();
     }
-  }, 15000);
+  });
 
   it("surfaces the Decision stage first once the experiment has live data", async () => {
     vi.stubGlobal(
@@ -107,5 +107,5 @@ describe("ResultsPanel", () => {
     } finally {
       await view.unmount();
     }
-  }, 15000);
+  });
 });

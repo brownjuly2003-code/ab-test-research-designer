@@ -1,0 +1,282 @@
+{
+  "spec_version": "0.1.0",
+  "required_capabilities": ["protocol-core"],
+  "protocol": {
+    "protocol_id": "protocol_655b908cd21da1691e01065c",
+    "title": "Checkout redesign",
+    "hypothesis": "Shorter checkout paths increase purchase conversion without material payment or refund harm.",
+    "owners": ["team_growth"],
+    "created_at": "2026-08-21T18:00:00Z"
+  },
+  "freeze": {
+    "state": "frozen",
+    "frozen_by": "team_growth",
+    "frozen_at": "2026-08-21T20:00:00Z"
+  },
+  "population": {
+    "eligibility_expression": "(new users on web) AND (new users only) AND (country equals \"US\") AND (account_age_days gte 7)",
+    "trigger_expression": "first checkout page view after a valid assignment",
+    "randomization_unit": "user",
+    "analysis_population": "intention_to_treat",
+    "exclusions": ["internal staff and bots"]
+  },
+  "interventions": [
+    {
+      "intervention_id": "intervention_e2219edbd7b5ac5988ddc939",
+      "label": "Current checkout",
+      "kind": "control",
+      "allocation": "0.6",
+      "namespace": "checkout",
+      "hash_version": "assignment_v1"
+    },
+    {
+      "intervention_id": "intervention_07c9d53415125fb574291008",
+      "label": "Two-step checkout",
+      "kind": "treatment",
+      "allocation": "0.25",
+      "namespace": "checkout",
+      "hash_version": "assignment_v1"
+    },
+    {
+      "intervention_id": "intervention_9ee91b3a89d707b720eca59a",
+      "label": "Guest checkout",
+      "kind": "treatment",
+      "allocation": "0.15",
+      "namespace": "checkout",
+      "hash_version": "assignment_v1"
+    }
+  ],
+  "metrics": {
+    "primary": [
+      {
+        "metric_id": "metric_10c1c0ff71338b383e360a87",
+        "metric_version": "legacy-v1",
+        "definition_digest": "sha256:10c1c0ff71338b383e360a87ec6edc133bf8806395ee85d0b99dd16dd7e58502"
+      }
+    ],
+    "secondary": [
+      {
+        "metric_id": "metric_73c54df23cc85fd5ca6bc03b",
+        "metric_version": "legacy-v1",
+        "definition_digest": "sha256:73c54df23cc85fd5ca6bc03b271c4d93a1b2feb3aad27e81bb7d85c4583753e9"
+      }
+    ],
+    "guardrails": [
+      {
+        "metric_id": "metric_d976e44e7a6f75e8cbdd76e3",
+        "metric_version": "legacy-v1",
+        "definition_digest": "sha256:d976e44e7a6f75e8cbdd76e352c8ab17f7a8bb21f442ed73881db24c1d88df9d"
+      },
+      {
+        "metric_id": "metric_fa69ef1b87bb730fcbaa4883",
+        "metric_version": "legacy-v1",
+        "definition_digest": "sha256:fa69ef1b87bb730fcbaa48839382591967090dc3e6b57359230fb98921822945"
+      }
+    ]
+  },
+  "estimand": {
+    "estimand_id": "estimand_e6b770b2796b9ca1c6247591",
+    "population": "intention_to_treat",
+    "baseline_intervention_id": "intervention_e2219edbd7b5ac5988ddc939",
+    "comparison_intervention_ids": [
+      "intervention_07c9d53415125fb574291008",
+      "intervention_9ee91b3a89d707b720eca59a"
+    ],
+    "effect_measure": "risk_difference",
+    "horizon": "P14D",
+    "missing_data_rule": "zero"
+  },
+  "design": {
+    "experiment_type": "randomized",
+    "interference_assumption": "partial_interference",
+    "exposure_semantics": "A valid assignment followed by the first checkout page view is the exposure."
+  },
+  "analysis": {
+    "method": {"method_id": "fisher_exact", "method_version": "legacy-fisher-v1"},
+    "alpha": "0.05",
+    "power": "0.8",
+    "stopping": {"mode": "group_sequential", "look_count": 3},
+    "multiplicity": {
+      "method": "holm",
+      "family_ids": [
+        "metric_10c1c0ff71338b383e360a87",
+        "metric_73c54df23cc85fd5ca6bc03b"
+      ]
+    },
+    "variance_reduction": {"method": "none", "covariate_metric_ids": []}
+  },
+  "telemetry": {
+    "subject_key": "subject_key",
+    "event_key": "event_id",
+    "occurred_at_key": "occurred_at",
+    "exposure_event": "checkout_exposure",
+    "outcome_events": [
+      "purchase_completed",
+      "add_to_cart",
+      "payment_error",
+      "refund_recorded"
+    ],
+    "ordering": "event_time",
+    "deduplication": {"keys": ["event_id"], "window": "P30D"},
+    "max_lateness": "P1D",
+    "schema_versions": [
+      {
+        "event_type": "purchase_completed",
+        "version": "v1",
+        "schema_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      {
+        "event_type": "add_to_cart",
+        "version": "v1",
+        "schema_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      {
+        "event_type": "payment_error",
+        "version": "v1",
+        "schema_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      {
+        "event_type": "refund_recorded",
+        "version": "v1",
+        "schema_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    ]
+  },
+  "decision": {
+    "minimum_worthwhile_effect": 0.0021,
+    "harm_rules": [
+      {
+        "code": "PAYMENT_ERROR_RATE_HARM",
+        "metric_id": "metric_d976e44e7a6f75e8cbdd76e3",
+        "operator": "gt",
+        "threshold": 2.64
+      },
+      {
+        "code": "REFUND_VALUE_HARM",
+        "metric_id": "metric_fa69ef1b87bb730fcbaa4883",
+        "operator": "gt",
+        "threshold": 18.9
+      }
+    ],
+    "owners": ["team_growth"],
+    "approval_policy": {"roles": ["product_owner", "data_scientist"], "minimum_approvals": 2}
+  },
+  "operations": {
+    "rollback_owner": "team_growth",
+    "lag_budget_seconds": 3600,
+    "alert_thresholds": [
+      {
+        "code": "INGEST_LAG",
+        "metric_id": "metric_10c1c0ff71338b383e360a87",
+        "operator": "gt",
+        "threshold": 1800
+      }
+    ]
+  },
+  "extensions": {
+    "legacy.ab-test": {
+      "source_project_id": "project_checkout_2026",
+      "source_payload": {
+        "project": {
+          "project_name": "Checkout redesign",
+          "domain": "e-commerce",
+          "product_type": "web app",
+          "platform": "web",
+          "market": "US",
+          "project_description": "Test shorter checkout paths for new customers."
+        },
+        "hypothesis": {
+          "change_description": "Offer shorter checkout paths",
+          "target_audience": "new users on web",
+          "business_problem": "checkout abandonment is high",
+          "hypothesis_statement": "Shorter checkout paths increase purchase conversion without material payment or refund harm.",
+          "what_to_validate": "conversion and guardrail impact",
+          "desired_result": "a worthwhile conversion increase"
+        },
+        "setup": {
+          "experiment_type": "ab",
+          "randomization_unit": "user",
+          "traffic_split": [60, 25, 15],
+          "expected_daily_traffic": 12000,
+          "audience_share_in_test": 0.6,
+          "variants_count": 3,
+          "inclusion_criteria": "new users only",
+          "exclusion_criteria": "internal staff and bots",
+          "namespace": {"id": "checkout", "range_start": 0.0, "range_end": 0.6},
+          "targeting_rules": [
+            {"attribute": "country", "operator": "equals", "value": "US"},
+            {"attribute": "account_age_days", "operator": "gte", "value": 7}
+          ]
+        },
+        "metrics": {
+          "primary_metric_name": "purchase_conversion",
+          "metric_type": "binary",
+          "baseline_value": 0.042,
+          "expected_uplift_pct": 8.0,
+          "mde_pct": 5.0,
+          "planned_test": "fisher_exact",
+          "alpha": 0.05,
+          "power": 0.8,
+          "secondary_metrics": ["add_to_cart_rate"],
+          "guardrail_metrics": [
+            {
+              "name": "Payment error rate",
+              "metric_type": "binary",
+              "baseline_rate": 2.4,
+              "direction": "increase_is_bad",
+              "non_inferiority_margin_pct": 10.0
+            },
+            {
+              "name": "Refund value",
+              "metric_type": "continuous",
+              "baseline_mean": 18.0,
+              "std_dev": 6.5,
+              "direction": "increase_is_bad",
+              "non_inferiority_margin_pct": 5.0
+            }
+          ]
+        },
+        "constraints": {
+          "seasonality_present": true,
+          "active_campaigns_present": false,
+          "returning_users_present": true,
+          "interference_risk": "medium",
+          "technical_constraints": "legacy event logging",
+          "legal_or_ethics_constraints": "none",
+          "known_risks": "tracking quality",
+          "deadline_pressure": "medium",
+          "long_test_possible": true,
+          "n_looks": 3,
+          "analysis_mode": "frequentist",
+          "credibility": 0.95
+        }
+      },
+      "metric_definitions": [
+        {
+          "metric_id": "metric_10c1c0ff71338b383e360a87",
+          "metric_version": "legacy-v1",
+          "definition_digest": "sha256:10c1c0ff71338b383e360a87ec6edc133bf8806395ee85d0b99dd16dd7e58502",
+          "definition": {"kind": "binary", "name": "purchase_conversion", "role": "primary"}
+        },
+        {
+          "metric_id": "metric_73c54df23cc85fd5ca6bc03b",
+          "metric_version": "legacy-v1",
+          "definition_digest": "sha256:73c54df23cc85fd5ca6bc03b271c4d93a1b2feb3aad27e81bb7d85c4583753e9",
+          "definition": {"kind": "unspecified", "name": "add_to_cart_rate", "role": "secondary"}
+        },
+        {
+          "metric_id": "metric_d976e44e7a6f75e8cbdd76e3",
+          "metric_version": "legacy-v1",
+          "definition_digest": "sha256:d976e44e7a6f75e8cbdd76e352c8ab17f7a8bb21f442ed73881db24c1d88df9d",
+          "definition": {"kind": "binary", "name": "Payment error rate", "role": "guardrail"}
+        },
+        {
+          "metric_id": "metric_fa69ef1b87bb730fcbaa4883",
+          "metric_version": "legacy-v1",
+          "definition_digest": "sha256:fa69ef1b87bb730fcbaa48839382591967090dc3e6b57359230fb98921822945",
+          "definition": {"kind": "continuous", "name": "Refund value", "role": "guardrail"}
+        }
+      ]
+    }
+  }
+}

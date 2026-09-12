@@ -42,6 +42,7 @@ proportional-hazards diagnostics (Schoenfeld residuals).
 import math
 from statistics import NormalDist
 
+from app.backend.app.stats.binary import standard_normal_sf
 from app.backend.app.stats.survival import MAX_SURVIVAL_TOTAL, _validate_arm
 
 _STANDARD_NORMAL = NormalDist()
@@ -131,7 +132,7 @@ def cox_ph_treatment_effect(
 
     standard_error = 1.0 / math.sqrt(information)
     z_statistic = beta / standard_error
-    p_value = 2.0 * (1.0 - _STANDARD_NORMAL.cdf(abs(z_statistic)))
+    p_value = 2.0 * standard_normal_sf(abs(z_statistic))
     p_value = min(1.0, max(0.0, p_value))
     z_critical = _STANDARD_NORMAL.inv_cdf(1.0 - alpha / 2.0)
     return {

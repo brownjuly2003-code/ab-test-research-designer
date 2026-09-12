@@ -9,11 +9,17 @@ workspace, diagnostics, execution) defined in the sibling modules.
 so tests can patch them here.
 """
 
-from typing import Any, Protocol
+from contextlib import AbstractContextManager
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Protocol
 from urllib.parse import unquote, urlparse
 
 from app.backend.app.repository._postgres import PostgresBackend
 from app.backend.app.repository._sqlite import SQLiteBackend
+
+if TYPE_CHECKING:
+    from app.backend.app.evidence.sql_job_store import SqlEvidenceJobStore
+    from app.backend.app.evidence.sql_run_store import SqlEvidenceRunStore
 
 __all__ = [
     "DatabaseBackend",
@@ -26,11 +32,12 @@ __all__ = [
 
 class DatabaseBackend(Protocol):
     backend_name: str
-    supports_snapshots: bool
     schema_version: int
     workspace_schema_version: int
 
     def set_webhook_service(self, webhook_service: Any | None) -> None: ...
+
+    def _transaction(self) -> AbstractContextManager[Any]: ...
 
 
 def _sqlite_path_from_database_url(database_url: str) -> str:
@@ -99,6 +106,20 @@ class ProjectRepository:
 
     def set_webhook_service(self, webhook_service: Any | None) -> None:
         self._backend.set_webhook_service(webhook_service)
+
+    def create_evidence_job_store(self) -> "SqlEvidenceJobStore":
+        from app.backend.app.evidence.sql_job_store import SqlEvidenceJobStore
+
+        return SqlEvidenceJobStore(self._backend)
+
+    def create_evidence_run_store(
+        self,
+        artifact_root: str | Path,
+    ) -> "SqlEvidenceRunStore":
+        from app.backend.app.evidence.artifact_store import FileArtifactStore
+        from app.backend.app.evidence.sql_run_store import SqlEvidenceRunStore
+
+        return SqlEvidenceRunStore(self._backend, FileArtifactStore(artifact_root))
 
     def close(self) -> None:
         backend_close = getattr(self._backend, "close", None)

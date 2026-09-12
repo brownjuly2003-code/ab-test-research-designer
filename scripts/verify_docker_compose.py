@@ -15,6 +15,29 @@ SERVICE_NAME = "ab-test-research-designer"
 WRITE_TOKEN = "verify-write-token"
 READONLY_TOKEN = "verify-readonly-token"
 WORKSPACE_SIGNING_KEY = "verify-workspace-signing-key"
+EXPECTED_ASOS_PROTOCOL_IDS = {
+    "asos-public-benchmark-26bd38",
+    "asos-public-benchmark-834947",
+    "asos-public-benchmark-d53f0e",
+}
+
+
+def resolve_source_commit() -> str:
+    completed = subprocess.run(
+        ["git", "rev-parse", "--verify", "HEAD^{commit}"],
+        cwd=ROOT_DIR,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    source_commit = completed.stdout.strip()
+    if completed.returncode != 0 or len(source_commit) not in {40, 64} or any(
+        character not in "0123456789abcdef" for character in source_commit
+    ):
+        raise SystemExit(
+            f"Failed to resolve the exact source commit: {completed.stderr.strip()}"
+        )
+    return source_commit
 
 
 def run_step(label: str, command: list[str], *, env: dict[str, str]) -> None:
@@ -93,6 +116,87 @@ def assert_runtime_is_unprivileged(env: dict[str, str]) -> None:
         raise SystemExit(f"Data directory is not writable by the unprivileged user: {probe.stderr.strip()}")
 
 
+def assert_b08_runtime_contract(env: dict[str, str]) -> None:
+    cli = subprocess.run(
+        ["docker", "compose", "exec", "-T", SERVICE_NAME, "trialmark", "--help"],
+        cwd=ROOT_DIR,
+        env=env,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if cli.returncode != 0 or "usage: trialmark" not in cli.stdout:
+        raise SystemExit(
+            "Trialmark CLI is unavailable in the image: "
+            f"{cli.stderr.strip() or cli.stdout.strip()}"
+        )
+
+    build_info_result = subprocess.run(
+        [
+            "docker",
+            "compose",
+            "exec",
+            "-T",
+            SERVICE_NAME,
+            "python",
+            "-c",
+            "from pathlib import Path; print(Path('/app/app/backend/BUILD_INFO.json').read_text())",
+        ],
+        cwd=ROOT_DIR,
+        env=env,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if build_info_result.returncode != 0:
+        raise SystemExit(
+            "Failed to read BUILD_INFO.json from the image: "
+            f"{build_info_result.stderr.strip()}"
+        )
+    try:
+        build_info = json.loads(build_info_result.stdout)
+    except json.JSONDecodeError as error:
+        raise SystemExit("Image BUILD_INFO.json is not valid JSON") from error
+    if build_info.get("git_commit") != env["GIT_SHA"]:
+        raise SystemExit(
+            "Image BUILD_INFO.json does not match the source commit: "
+            f"{build_info.get('git_commit')} != {env['GIT_SHA']}"
+        )
+    if build_info.get("dirty") is not False:
+        raise SystemExit("Image BUILD_INFO.json must record dirty=false")
+    tracked_digest = build_info.get("tracked_digest")
+    if not isinstance(tracked_digest, str) or not tracked_digest.startswith("sha256:"):
+        raise SystemExit("Image BUILD_INFO.json has no tracked source digest")
+
+    runs_status, runs_body = http_request("GET", "/api/v2/runs", token=env["AB_READONLY_API_TOKEN"])
+    if runs_status != 200:
+        raise SystemExit(f"Startup seed portfolio failed: {runs_status} {runs_body}")
+    runs_payload = json.loads(runs_body)
+    protocol_ids: set[str] = set()
+    for run in runs_payload.get("runs", []):
+        detail_status, detail_body = http_request(
+            "GET",
+            f"/api/v2/runs/{run['run_id']}",
+            token=env["AB_READONLY_API_TOKEN"],
+        )
+        if detail_status != 200:
+            raise SystemExit(
+                f"Startup-seeded run detail failed: {detail_status} {detail_body}"
+            )
+        detail = json.loads(detail_body)
+        protocol_id = detail.get("protocol", {}).get("protocol", {}).get("protocol_id")
+        if isinstance(protocol_id, str):
+            protocol_ids.add(protocol_id)
+    missing_protocols = EXPECTED_ASOS_PROTOCOL_IDS - protocol_ids
+    if missing_protocols:
+        raise SystemExit(
+            "Container startup did not seed the expected ASOS runs: "
+            + ", ".join(sorted(missing_protocols))
+        )
+
+    print("[docker-verify] Trialmark CLI, build identity, and startup seed passed")
+
+
 def wait_for_health(timeout_seconds: float) -> None:
     deadline = time.time() + timeout_seconds
     while time.time() < deadline:
@@ -117,12 +221,15 @@ def main() -> int:
     env.setdefault("AB_API_TOKEN", WRITE_TOKEN)
     env.setdefault("AB_READONLY_API_TOKEN", READONLY_TOKEN)
     env.setdefault("AB_WORKSPACE_SIGNING_KEY", WORKSPACE_SIGNING_KEY)
+    env["GIT_SHA"] = resolve_source_commit()
+    env["AB_SEED_DEMO_ON_STARTUP"] = "true"
 
     try:
         run_step("docker compose config", ["docker", "compose", "config"], env=env)
         run_step("docker compose up", ["docker", "compose", "up", "-d", "--build"], env=env)
         wait_for_health(args.timeout_seconds)
         assert_runtime_is_unprivileged(env)
+        assert_b08_runtime_contract(env)
 
         readonly_ready_status, readonly_ready_body = http_request(
             "GET",

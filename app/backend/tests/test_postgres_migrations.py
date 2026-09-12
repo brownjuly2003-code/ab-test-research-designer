@@ -11,8 +11,8 @@ Python. The live `old schema -> migrate -> current` drill against a real Postgre
 `test_postgres_backend.py`, which CI runs with testcontainers.
 """
 
-from pathlib import Path
 import sys
+from pathlib import Path
 from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))

@@ -207,6 +207,10 @@ body {
   align-items: start;
 }
 
+.workspace--workbench {
+  max-width: 1280px;
+}
+
 @media (max-width: 960px) {
   .workspace--admin {
     grid-template-columns: 1fr;

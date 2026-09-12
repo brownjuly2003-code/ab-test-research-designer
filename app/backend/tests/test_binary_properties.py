@@ -1,7 +1,8 @@
-from pathlib import Path
 import math
 import sys
+from pathlib import Path
 
+import numpy as np
 from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
@@ -12,6 +13,7 @@ from app.backend.app.services.results_service import analyze_results
 from app.backend.app.stats.binary import (
     calculate_binary_sample_size,
     calculate_detectable_mde_binary,
+    normal_ppf,
 )
 
 FINITE_FLOATS = {"allow_nan": False, "allow_infinity": False}
@@ -53,6 +55,33 @@ def test_binary_sample_size_is_positive_and_finite(params: dict[str, float | int
     assert summary["total_sample_size"] == summary["sample_size_per_variant"] * params["variants_count"]
     assert math.isfinite(summary["mde_absolute"])
     assert 0 < summary["adjusted_alpha"] <= params["alpha"]
+
+
+def test_binary_ninety_ten_allocation_achieves_requested_power() -> None:
+    summary = calculate_binary_sample_size(
+        baseline_rate=0.1,
+        mde_pct=10.0,
+        alpha=0.05,
+        power=0.8,
+        traffic_split=[90, 10],
+    )
+    total_sample_size = summary["total_sample_size"]
+    control_n = round(total_sample_size * 0.9)
+    treatment_n = total_sample_size - control_n
+
+    generator = np.random.Generator(np.random.PCG64(20260902))
+    control_conversions = generator.binomial(control_n, 0.1, size=100_000)
+    treatment_conversions = generator.binomial(treatment_n, 0.11, size=100_000)
+    pooled_rate = (control_conversions + treatment_conversions) / total_sample_size
+    standard_error = np.sqrt(
+        pooled_rate * (1 - pooled_rate) * (1 / control_n + 1 / treatment_n)
+    )
+    simulated_z = (
+        treatment_conversions / treatment_n - control_conversions / control_n
+    ) / standard_error
+    achieved_power = float(np.mean(np.abs(simulated_z) >= normal_ppf(0.975)))
+
+    assert 0.79 <= achieved_power <= 0.82
 
 
 @settings(max_examples=50, deadline=5000)

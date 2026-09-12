@@ -156,7 +156,7 @@ def test_two_informative_covariates_reduce_variance_more_than_one() -> None:
     # variance, strictly more than the single best covariate alone.
     x1 = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
     x2 = [2.0, 1.0, 5.0, 3.0, 6.0, 4.0]
-    ys = [3.0 * a + 2.0 * b for a, b in zip(x1, x2)]
+    ys = [3.0 * a + 2.0 * b for a, b in zip(x1, x2, strict=True)]
 
     var_y, sx_single, sxy_single = _sample_moments(ys, [x1])
     theta_single = cuped_theta(sx_single, sxy_single)

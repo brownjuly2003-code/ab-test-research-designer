@@ -1,10 +1,12 @@
-from pathlib import Path
 import math
 import sys
+from pathlib import Path
+from statistics import NormalDist
 
+import numpy as np
+import pytest
 from hypothesis import assume, given, settings
 from hypothesis import strategies as st
-import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
@@ -54,6 +56,29 @@ def test_continuous_sample_size_is_positive_and_finite(params: dict[str, float |
     assert summary["total_sample_size"] == summary["sample_size_per_variant"] * params["variants_count"]
     assert math.isfinite(summary["mde_absolute"])
     assert 0 < summary["adjusted_alpha"] <= params["alpha"]
+
+
+def test_continuous_ninety_ten_allocation_achieves_requested_power() -> None:
+    summary = calculate_continuous_sample_size(
+        baseline_mean=100.0,
+        std_dev=20.0,
+        mde_pct=5.0,
+        alpha=0.05,
+        power=0.8,
+        traffic_split=[90, 10],
+    )
+    total_sample_size = summary["total_sample_size"]
+    control_n = total_sample_size * 0.9
+    treatment_n = total_sample_size * 0.1
+    standard_error = 20.0 * math.sqrt(1 / control_n + 1 / treatment_n)
+    noncentrality = 5.0 / standard_error
+
+    generator = np.random.Generator(np.random.PCG64(20260902))
+    simulated_z = generator.normal(noncentrality, 1.0, size=100_000)
+    critical_z = NormalDist().inv_cdf(0.975)
+    achieved_power = float(np.mean(np.abs(simulated_z) >= critical_z))
+
+    assert 0.79 <= achieved_power <= 0.81
 
 
 @settings(max_examples=50, deadline=5000)

@@ -12,8 +12,8 @@ from app.backend.app.schemas.api import (
 )
 from app.backend.app.services.calculations_service import calculate_experiment_metrics
 from app.backend.app.services.monte_carlo_service import (
+    beta_probability_treatment_beats_control,
     simulate_continuous_uplift_distribution,
-    simulate_uplift_distribution,
 )
 from app.backend.app.services.results_service import (
     analyze_results,
@@ -119,21 +119,15 @@ def _binary_comparison(
     analysis = analyze_results(request)
     control_rate = control["converted_users"] / control["exposed_users"]
     treatment_rate = treatment["converted_users"] / treatment["exposed_users"]
-    # Passing baseline == control_rate makes the simulation compare treatment draws against
-    # control draws (true P(B>A)) rather than against a fixed baseline.
-    simulation = simulate_uplift_distribution(
-        baseline_conversion=control_rate,
-        observed_conversion_a=control_rate,
-        sample_size_a=control["exposed_users"],
-        observed_conversion_b=treatment_rate,
-        sample_size_b=treatment["exposed_users"],
-        num_simulations=_BAYESIAN_SIMULATIONS,
-        seed=_BAYESIAN_SEED,
-    )
     base["status"] = "ok"
     base["analysis"] = analysis.model_dump()
-    base["probability_treatment_beats_control"] = round(
-        simulation["probability_uplift_positive"], _BAYESIAN_PROBABILITY_DECIMALS
+    base["probability_treatment_beats_control"] = (
+        beta_probability_treatment_beats_control(
+            control_users=control["exposed_users"],
+            control_conversions=control["converted_users"],
+            treatment_users=treatment["exposed_users"],
+            treatment_conversions=treatment["converted_users"],
+        )
     )
     # Anytime-valid view over the same observed difference. Unpooled variance matches the variance
     # behind the displayed frequentist confidence interval, so the two readouts stay consistent.
@@ -353,10 +347,20 @@ def _build_sequential_block(
         }
 
     information_fraction = min(1.0, total_exposed / planned_total)
-    # The final-look boundary (info_fraction == 1) anchors the O'Brien-Fleming spending function;
-    # the critical value at the current information fraction is z_final / sqrt(fraction).
-    z_final = float(boundaries[-1]["z_boundary"])
-    current_boundary_z = z_final / math.sqrt(information_fraction) if information_fraction > 0 else None
+    # O'Brien-Fleming controls alpha only across the K looks fixed by the design. Dashboard reads
+    # between those looks use the always-valid block; treating every read as a new OBF look inflates
+    # type-I error. Ceil maps a fractional planned threshold to the first attainable user count.
+    planned_look: int | None = None
+    for look in range(1, n_looks + 1):
+        look_total = math.ceil(planned_total * look / n_looks)
+        if total_exposed == look_total:
+            planned_look = look
+            break
+    current_boundary_z = (
+        float(boundaries[planned_look - 1]["z_boundary"])
+        if planned_look is not None
+        else None
+    )
 
     if current_boundary_z is not None:
         for comparison in comparisons:

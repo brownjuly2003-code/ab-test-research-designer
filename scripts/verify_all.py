@@ -149,7 +149,7 @@ def main() -> int:
     )
     run_step(
         "backend lint (ruff)",
-        [sys.executable, "-m", "ruff", "check", "app/backend/app", "scripts"],
+        [sys.executable, "-m", "ruff", "check", "app/backend/app", "app/backend/tests", "scripts"],
         ROOT_DIR,
     )
     run_step(

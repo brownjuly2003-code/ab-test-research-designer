@@ -1,0 +1,88 @@
+{
+  "id": "project_checkout_2026",
+  "project_name": "Checkout redesign",
+  "payload_schema_version": 1,
+  "created_at": "2026-08-21T18:00:00Z",
+  "updated_at": "2026-08-21T19:30:00Z",
+  "payload": {
+    "project": {
+      "project_name": "Checkout redesign",
+      "domain": "e-commerce",
+      "product_type": "web app",
+      "platform": "web",
+      "market": "US",
+      "project_description": "Test shorter checkout paths for new customers."
+    },
+    "hypothesis": {
+      "change_description": "Offer shorter checkout paths",
+      "target_audience": "new users on web",
+      "business_problem": "checkout abandonment is high",
+      "hypothesis_statement": "Shorter checkout paths increase purchase conversion without material payment or refund harm.",
+      "what_to_validate": "conversion and guardrail impact",
+      "desired_result": "a worthwhile conversion increase"
+    },
+    "setup": {
+      "experiment_type": "ab",
+      "randomization_unit": "user",
+      "traffic_split": [60, 25, 15],
+      "expected_daily_traffic": 12000,
+      "audience_share_in_test": 0.6,
+      "variants_count": 3,
+      "inclusion_criteria": "new users only",
+      "exclusion_criteria": "internal staff and bots",
+      "namespace": {
+        "id": "checkout",
+        "range_start": 0.0,
+        "range_end": 0.6
+      },
+      "targeting_rules": [
+        {"attribute": "country", "operator": "equals", "value": "US"},
+        {"attribute": "account_age_days", "operator": "gte", "value": 7}
+      ]
+    },
+    "metrics": {
+      "primary_metric_name": "purchase_conversion",
+      "metric_type": "binary",
+      "baseline_value": 0.042,
+      "expected_uplift_pct": 8.0,
+      "mde_pct": 5.0,
+      "planned_test": "fisher_exact",
+      "alpha": 0.05,
+      "power": 0.8,
+      "secondary_metrics": ["add_to_cart_rate"],
+      "guardrail_metrics": [
+        {
+          "name": "Payment error rate",
+          "metric_type": "binary",
+          "baseline_rate": 2.4,
+          "direction": "increase_is_bad",
+          "non_inferiority_margin_pct": 10.0
+        },
+        {
+          "name": "Refund value",
+          "metric_type": "continuous",
+          "baseline_mean": 18.0,
+          "std_dev": 6.5,
+          "direction": "increase_is_bad",
+          "non_inferiority_margin_pct": 5.0
+        }
+      ]
+    },
+    "constraints": {
+      "seasonality_present": true,
+      "active_campaigns_present": false,
+      "returning_users_present": true,
+      "interference_risk": "medium",
+      "technical_constraints": "legacy event logging",
+      "legal_or_ethics_constraints": "none",
+      "known_risks": "tracking quality",
+      "deadline_pressure": "medium",
+      "long_test_possible": true,
+      "n_looks": 3,
+      "analysis_mode": "frequentist"
+    },
+    "additional_context": {
+      "llm_context": "Previous tests showed mixed results; this is not protocol evidence."
+    }
+  }
+}

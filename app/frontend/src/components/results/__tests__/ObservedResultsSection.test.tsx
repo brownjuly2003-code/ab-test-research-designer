@@ -53,6 +53,47 @@ describe("ObservedResultsSection", () => {
     }
   });
 
+  it("renders an undefined binary relative lift as n/a", async () => {
+    const response = {
+      metric_type: "binary",
+      observed_effect: 1,
+      observed_effect_relative: null,
+      control_rate: 0,
+      treatment_rate: 1,
+      ci_lower: 0.4048,
+      ci_upper: 1.8309,
+      ci_level: 0.95,
+      p_value: 0.0015,
+      test_statistic: 3.17,
+      is_significant: true,
+      power_achieved: 0.88,
+      verdict: "Statistically significant uplift at alpha=0.050",
+      interpretation: "Treatment improved conversion from a zero control rate."
+    };
+    const fetchMock = vi.fn(async (..._args: unknown[]) => ({ ok: true, json: async () => response }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const view = await renderIntoDocument(<ObservedResultsSection onResultsAnalysisChange={vi.fn()} />);
+    try {
+      await flushEffects();
+      const byId = (id: string) => view.container.querySelector<HTMLInputElement>(`#${id}`)!;
+      await changeValue(byId("results-control-conversions"), "0");
+      await changeValue(byId("results-control-users"), "1000");
+      await changeValue(byId("results-treatment-conversions"), "10");
+      await changeValue(byId("results-treatment-users"), "1000");
+
+      await click(findButton(view.container, "Analyze results"));
+      await flushEffects();
+
+      const relativeChangeCard = Array.from(view.container.querySelectorAll(".card")).find(
+        (card) => card.querySelector("strong")?.textContent === "Relative change"
+      );
+      expect(relativeChangeCard?.textContent).toBe("Relative changen/a");
+    } finally {
+      await view.unmount();
+    }
+  });
+
   it("runs a Fisher's exact analysis from the 2x2 counts on a binary plan", async () => {
     const response = {
       metric_type: "fisher_exact",
@@ -110,6 +151,18 @@ describe("ObservedResultsSection", () => {
       expect(view.container.textContent).toContain("Fisher's exact two-sided p-value");
       expect(view.container.textContent).toContain("1.3420");
       expect(view.container.textContent).toContain("526.3952");
+
+      // Responses saved before the lineage contract existed still fail closed in the UI.
+      const lineageDisclosure = view.container.querySelector(
+        '[role="note"][aria-labelledby="observed-results-lineage-title"]'
+      );
+      expect(lineageDisclosure).not.toBeNull();
+      expect(lineageDisclosure?.textContent).toContain("Partial evidence lineage");
+      expect(lineageDisclosure?.textContent).toContain("0 of 5 required references available");
+      for (const missingReference of ["Protocol", "Metric", "Query", "Source", "Runner"]) {
+        expect(lineageDisclosure?.textContent).toContain(missingReference);
+      }
+      expect(lineageDisclosure?.textContent).toContain("not verifiable Trialmark evidence");
     } finally {
       await view.unmount();
     }

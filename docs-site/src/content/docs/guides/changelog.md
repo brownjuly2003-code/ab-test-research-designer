@@ -7,74 +7,307 @@ editUrl: "https://github.com/brownjuly2003-code/ab-test-research-designer/edit/m
 
 ## [Unreleased]
 
+Entries below are a curated, non-exhaustive record from `d06b7a4f` onward,
+plus the Node 24 / Hugging Face hygiene commit `1e415f54`; the
+experimental evidence layer after `bb314ae1` is summarized here but remains
+unreleased. Git history is authoritative for its individual implementation
+commits.
+
+### Added
+
+- `scripts/gate_trialmark.py`, a focused gate over the evidence surface: ruff,
+  strict mypy, the 32 backend test files that cover the evidence modules, the
+  CLI, the persisted routes and the pilot records, then the frontend type check
+  and the preflight unit tests. Measured twice on this machine at 166.0s and
+  156.0s against a 180s target -- the difference is which cache happened to be
+  cold, mypy's or Vite's. It reports its per-step timings and never fails on
+  wall-clock, because a gate that fails when the machine is busy teaches people
+  to re-run it until it passes. `verify_all.py` remains the full gate and the
+  only one that clears a push; a missing test file breaks this one loudly
+  rather than silently testing less than its list claims.
+
+- `trialmark source validate --protocol <p.yaml> --source <data.csv>`
+  pre-flights a practitioner's aggregate CSV against a frozen protocol. It runs
+  the same checks `run` does -- schema, exactly one aggregate row, and the
+  metric `definition_digest` -- and touches nothing: no database, no run, no
+  bundle. The diagnostics became concrete in the process, for every caller and
+  not only this one: a schema mismatch now names the expected columns beside
+  the ones the file actually has, a row count says how many were found and
+  that the file looks row-level, and a digest mismatch prints both digests.
+  `pipeline.validate_binary_source` is the single implementation the pipeline
+  and the pre-flight share, so the two cannot drift into disagreeing about
+  whether a source matches its protocol.
+
+- `trialmark gate3 --records <dir> [--out <file.md>]` aggregates validated
+  external pilot records into the Gate 3 decision. Until now the gate was
+  evaluated by hand against prose. The aggregator reads only the records --
+  no clock, no network, no database -- so a cohort always yields the same
+  report and the same `report_digest`, and re-running writes identical bytes.
+  One participant counts as one cycle however many sessions they recorded, and
+  a criterion no cohort of records can measure (preflight detection) is
+  reported `unmeasured` rather than passed. An empty cohort decides `stop`
+  with every denominator at zero, and every verdict exits 0: `stop` is a
+  measurement, not a command failure.
+
+- Evidence CLI installs as the console command `trialmark` (`d06b7a4f`):
+  `pyproject.toml` `[project.scripts]` points at
+  `app.backend.app.evidence.cli:main`. Shipped subcommands are `pack`,
+  `verify`, `inspect`, persisted `run` / `decide`, and `runs list`. The B-05
+  workflow (`338777c6`) publishes verified analysis and append-only decision
+  bundles, reports `run_id`, `bundle_id`, and verdicts, and resolves principals
+  from `--actor`, `$USER`, or `local-operator`. After
+  `pip install -e . --no-deps` the command is on PATH; the gate still invokes
+  `python -m app.backend.app.evidence.cli`.
+
+- External pilot source profile `trialmark.aggregate-binary` (`b34e68e8`,
+  `c655aed2`): `trialmark run` accepts a one-row aggregate CSV
+  (`control_users,control_conversions,treatment_users,treatment_conversions`)
+  instead of ASOS Parquet, binding the partner's metric to the frozen protocol
+  through the canonical-JSON digest of `metric.definition`. The published
+  bundle stays aggregate-only and records the asserted telemetry counts as
+  `telemetry_profile_source: upstream_asserted`. A runnable protocol and CSV
+  live in `examples/pilot/`.
+- `trialmark pilot-session create|validate` (`b34e68e8`): writes and validates
+  the anonymous record of one observed external session as
+  `<date>-<anon_ref>.md`, taking its census from the published bundle and
+  accepting no source path and no participant identity. Reuse is recorded with
+  `--reuse-kind second_run|evidence_reopen`.
+- Decision bundles carry `decision/statement.dsse.json` (`97a2f5b0`): an
+  unsigned DSSE envelope around an in-toto Statement v1 whose subject is the
+  parent analysis bundle identity. `verify` reports statement type, predicate
+  type, subject, signature count, and whether the subject matches `supersedes`.
+- Analysis and blocked-preflight bundles carry schema-backed
+  `methods/profile.json` (`d9bbe7a4`): method id and version, estimands, error
+  control, asymptotics, numeric and determinism contracts, assumptions, oracle
+  evidence, and the bound implementation digest.
+
+### Changed
+
+- `app/backend/app/evidence/abx.py`, 2 132 lines, became the package
+  `app/backend/app/evidence/abx/`: `_core.py` (constants, digests, schema
+  validation), `zip_safety.py` (what the archive is allowed to be, before
+  anything reads it as evidence), `privacy.py`, `lineage.py` (reference
+  integrity and binding, one walk over the same documents), `verify.py` and
+  `pack.py`. The dependency graph is a DAG in that order, and `__init__.py`
+  re-exports every name the module exported, so no importer changed. The move
+  is mechanical: an AST comparison of all 70 top-level statements before and
+  after reports one difference, `_SCHEMA_ROOT`, which climbs one directory
+  because the file is now one deeper than the schemas.
+
+  `STATS_KERNEL_SOURCE_PATHS` lists the seven new modules in place of the one
+  old one, so **`stats_kernel.build_digest` changes**, as it did at `445c2879`.
+  Published bundles do not need repacking: a verifier compares a bundle's own
+  `methods/profile.json.implementation_digest` against the `run.runner
+  .build_digest` recorded inside that same bundle, never against the current
+  build. `test_build_identity_hashes_required_sources_lock_and_verified_commit`
+  now reads the package directory and fails if a new `abx/` module is missing
+  from the list -- otherwise a module could change the kernel without changing
+  its digest.
+
+  Four tests moved their patch target one module down, to where the name is
+  actually looked up (`abx.pack.os.link`, `abx.pack._fsync_directory`,
+  `abx._core.canonical_json_bytes`,
+  `abx.zip_safety._sequential_local_header_offsets`), and the comment-guard
+  test now reads every file in the package rather than one file, because which
+  submodule holds a comment is a refactoring detail.
+
+- The three functions in that package that were over 200 lines are not any
+  more. `_archive_preflight` (405 lines) became four checks that name what they
+  answer -- `_scan_local_records` walks the local file records in physical
+  order, `_check_central_directory` compares each central entry with the local
+  record it points at, `_check_archive_trailer` reads the Zip64 trailer and the
+  end-of-central-directory record, and `_check_member_inventory` checks the
+  members as a set, without reading the archive at all. `verify_logical_bundle`
+  (311) became `_scan_logical_members`, `_inventory_manifest_entries` and
+  `_verify_logical_entries`, which is the three passes it already made.
+  `_check_references` (483) gave up `_check_child_chain`, `_check_queries`,
+  `_check_metric_definitions` and `_check_method_profile`; what stays inline is
+  the run-versus-artifact tail, which reads too many of the resolved id maps to
+  be worth a ten-parameter signature. The longest function in the package is
+  now 182 lines. No condition, message, error code or ordering changed: the
+  blocks moved with their comments intact and the same `errors`/`result`
+  accumulator is threaded through, so diagnostics come out in the same order.
+
+- `dbt_manifest.py` and `legacy.py` moved to
+  `app/backend/app/evidence/reserved/` and no longer ship in the wheel, along
+  with the pinned `dbt/manifest/v12.json` they need. Neither had a production
+  importer; both are kept, not deleted, because phase G needs them and their
+  pinned schema is the expensive part to recover. Their tests moved to
+  `app/backend/tests/reserved/` and stay in the gate -- a reserved module that
+  stops compiling is one nobody can revive. `check_wheel_payload.py` now fails
+  the build if any `evidence/reserved/` member appears in a wheel, so the
+  pyproject exclusion cannot rot silently. Architecture §8.4 and §16.1 are
+  marked reserved.
+
+  `public_pilot_abx.py`, the third module the audit listed, stayed where it is.
+  It derives its `runner.build_digest` from the literal path strings in
+  `_RUNNER_SOURCE_PATHS`, and that digest sits in `run/run.json`, which is a
+  manifest entry -- so moving the file rotates the `bundle_id` of all three
+  published ASOS benchmark bundles. That is a decision about published
+  identifiers, not a refactor.
+
+- The evidence CLI imports what a command actually uses. `trialmark verify`
+  reads a ZIP and checks digests, but it used to load DuckDB, psycopg, numpy,
+  the repository and the whole pipeline first, because `cli.py` imported them
+  at module scope. They now load inside the handler that needs them, and the
+  median cold `verify` of the committed `d53f0e.tmk` fell from 1.394s to
+  0.570s over seven runs. `test_cli_cold_start.py` runs `verify` in a fresh
+  interpreter and fails if any of those modules appears in `sys.modules`
+  afterwards, because inside a test session they are all imported already and
+  the assertion would prove nothing. The JSON error envelope is unchanged: the
+  codes are resolved from the modules that are loaded, so an error still
+  reports as `run_not_found` or `source_invalid` rather than as a traceback.
+
+- Product brand is Trialmark; new bundle destinations use the `.tmk` suffix;
+  HTTP uses vendor media type `application/vnd.trialmark.bundle+zip`
+  (`8e3b5853`). ADR 0003/0004 stay as historical records (EvidenceOS / `.abx`
+  wording kept); the rename is recorded in ADR 0005. Module names, schema
+  `$id`, `urn:evidenceos:abx:*`, and `abx_version` stay as they are: ADR 0006
+  freezes them as the identifiers of bundle format 0.1, on the reading that
+  `abx` names the format while Trialmark names the product. They change only
+  with a format version 0.2, because a manifest entry's `schema_id` is inside
+  the bytes the manifest digest covers, so renaming rotates every `bundle_id`
+  ever issued.
+- Node 26 Current → Node 24 LTS in the Docker image and workflows
+  (`1e415f54`).
+- Lineage identifiers are bound to the content they name (`1965200d`):
+  `protocol_revision_id` to the RFC 8785 digest of `protocol.json`, metric
+  digest to stored `metric.json` bytes, SQL `statement_digest` to
+  `sha256(query.sql)`, `query_id` via the producer identity helper.
+  Degenerate runner digests are rejected. The three ASOS control bundles
+  stay `lineage: pass`; the Workbench demo fixture is expected
+  `lineage: fail` until plan item B-06.
+- Binding is reported per bundled metric (`ee3c1ae1`): `unbound_bindings` on
+  `verify`/`inspect`; `absent` is listed and accepted, `ambiguous` /
+  `unlocated` are listed and rejected. Central-directory relative offsets
+  stay authenticated against a layout shift. The offline verifier no longer
+  imports the DuckDB/PostgreSQL adapter layer: `query_identity_digest`
+  moved to the dependency-free
+  `app/backend/app/evidence/query_identity.py`, shared by producer and
+  verifier (`F-T-07-24`).
+
+### Removed
+
+- Hugging Face snapshot path (`1e415f54`): `SnapshotService` and its
+  startup branch, `ProjectRepository.supports_snapshots` /
+  `reinitialize_after_restore`, `scripts/deploy_hf.py`, the `AB_HF_*`
+  environment variables, and `huggingface_hub` from the runtime and
+  dev locks.
+
+### Fixed
+
+- DuckDB query deadlines are enforced by a retrying watchdog instead of one
+  timer shot. DuckDB clears its interrupt flag when a query starts, so an
+  interrupt delivered in the window between arming the deadline and execution
+  beginning was simply lost -- and at the millisecond budgets the adapter
+  accepts, that window is most of the wait. A lost interrupt left the query
+  running with no bound at all: on a contended Windows CI runner one 5 ms
+  budget outlived the 20-minute job. The watchdog now keeps interrupting until
+  the operation returns, and a regression test proves that swallowing the
+  first interrupt only delays the timeout instead of removing it.
+
+- Wheel payload (`d06b7a4f`): `[tool.setuptools.package-data]` now ships the
+  ABX/dbt schemas, i18n catalogs, and YAML templates (previously zero
+  non-.py files, so every subcommand failed on a non-editable install).
+  `app.backend.tests*` (108 test modules) and `app.backend.data` (live
+  `projects.sqlite3`) are excluded from the distribution. Payload is
+  guarded by `scripts/check_wheel_payload.py` and
+  `app/backend/tests/test_packaging_metadata.py` in the repo-hygiene job.
+
+- `GET /readyz` reports `auth_mode`, and startup logs a single `event=auth_open`
+  warning when nothing gates a mutating request. "Ready" and "safe to send
+  traffic to" are different questions, and a deployment could answer yes to the
+  first while every mutating endpoint accepted anonymous callers; the open state
+  was visible only as one INFO field among fifteen at boot. The readiness value
+  reserves `open` for a genuinely open surface: `get_auth_mode`, which backs the
+  diagnostics field of the same name, calls an admin-token-only or public-demo
+  deployment "open" even though both already reject anonymous mutations, so those
+  report `admin_only` and `public_demo` instead. Production cannot reach `open`
+  at all -- `main._verify_production_auth` refuses to boot without auth material.
+
+- A decision says where its role came from. `decided_by.role_source` is
+  `credential` when the authenticated API key carries the role -- the only
+  source the service verifies -- `asserted` when the caller named it
+  (`trialmark decide --role`), and `policy_default` when no role was declared
+  and the frozen policy's first approval role applied. Until now every decision
+  silently used the policy default and the record could not say so, which read
+  as if a role had been checked. Issued keys gained a nullable `role` column
+  (SQLite migration and PostgreSQL migration 18), `POST /api/v1/keys` accepts
+  it, and the field is optional in `decision.schema.json` so bundles recorded
+  before it stay valid.
+
+- A frozen policy asking for more than one approval is now refused with
+  `approval_quorum_unmet` (HTTP 409, CLI exit 1). Recording a decision writes
+  exactly one approval, the decider's own, and a run whose policy set
+  `minimum_approvals: 2` used to get an `approved` decision carrying half the
+  signatures its own policy demanded.
+
+- A finding action on a `finding_id` the run never carried answers 404 whatever
+  else that run has since recorded. `record_finding_state` checked the run's
+  state first, so `POST /api/v2/runs/{id}/findings/{unknown}:remediate` reported
+  409 "finding actions require a pre-decision run" against a run that already
+  carried a decision -- a conflict message about a resource that does not exist.
+  The existence check now runs directly after the run lookup; the pre-decision
+  and open-finding guards keep their own order behind it, so a finding that is
+  really there still conflicts.
+
+- `AB_ARTIFACT_ROOT` names the persisted-evidence artifact tree once, and
+  `Settings.artifact_root` resolves it to an absolute path at load. Three call
+  sites each held their own `Path(".trialmark") / "artifacts"`, which resolves
+  against the current working directory: an API server started anywhere other
+  than where the CLI ran served a different tree, so `GET
+  /api/v2/runs/{id}:bundle` answered 404 for a run that had just succeeded.
+  `pack --run` now defaults to the configured root instead of demanding
+  `--artifact-root`, `GET /readyz` reports the resolved path and whether it is
+  writable, and `docker-compose.yml` sets the variable under `/app/data` because
+  the image runs as uid 1000 and `/app` belongs to root.
+
+- Two-sided p-values no longer lose the tail to cancellation. `2 * (1 - cdf(z))`
+  discards about two significant digits at z = 2.2, is 7% wrong at z = 8, and
+  underflows to exactly `0.0` for z >= 8.3, so the most decisive results were
+  reported as `p = 0`. Three survival functions now carry the tail directly --
+  `standard_normal_sf` (`app/stats/binary.py`, `0.5 * erfc(z / sqrt(2))`),
+  `t_sf` (`app/stats/student_t.py`) and `chi_square_sf` with
+  `regularized_gamma_q` (`app/stats/srm.py`) -- and the 23 `1 - cdf` sites in 18
+  modules were converted, including `evidence/stats_kernel.py`,
+  `services/results/binary.py`, `services/results/continuous.py`,
+  `stats/paired.py`, `stats/survival.py` and `stats/trimmed_t.py`. Chi-square
+  with 3 degrees of freedom at x = 200 now returns `4.219e-43` instead of `0.0`.
+
+- ASOS benchmark bundle identity no longer depends on the host libm. `erfc` is
+  not correctly rounded, so Windows and Linux disagreed in the last two digits
+  of the estimate p-value, which rotated `bundle_id` per platform and reddened
+  `test_packs_deterministic_offline_asos_public_benchmark[26bd38]` on
+  `ubuntu-latest`. `_benchmark_p_value`
+  (`app/evidence/public_pilot_abx.py`) quantises the published p-value to 12
+  significant digits, which is far above the disagreement and far below the
+  reporting precision; it is the only value in these documents that leaves
+  IEEE-754 arithmetic. The three committed bundles and every pinned digest were
+  rotated, and re-packing under CPython 3.13 and 3.14 now yields the same
+  `bundle_id`.
+
 ### Security
 
-- backend dev lock: `pypdf` raised from `6.14.2` to `6.16.1` in
-  `app/backend/requirements-dev.in` and the recompiled hashed
-  `requirements-dev.txt`, clearing the six advisories the audit reported against
-  `6.14.2` (PYSEC-2026-3655, PYSEC-2026-3656, CVE-2026-82398, CVE-2026-84309,
-  CVE-2026-84310, CVE-2026-84311). `6.16.1` is the lowest published version that
-  clears all six. `pypdf` is a dev/test-only dependency: `requirements.in`, the
-  runtime lock, and the Docker image are untouched.
-- frontend: `nanoid` `3.3.16` → `3.3.18` (GHSA-2v37-7h3g-55p8, reached through
-  `vite` → `postcss`) and `undici` `7.28.0` → `7.29.1` (GHSA-8xcm-r25x-g524,
-  GHSA-4cwx-7wf7-3272, GHSA-m8rv-5g2x-5cg5, GHSA-jr45-8vmc-qm54,
-  GHSA-v3r7-h72x-cjcm, reached through `jsdom`). Both fixed versions sit inside
-  the ranges their dependents already declare, so this is a `package-lock.json`
-  refresh with no `package.json` change and no new `overrides` entry.
-- docs-site: `astro` `7.1.5` → `7.3.2` (GHSA-26w7-cxv4-gfx2, critical remote
-  code execution through AVIF image optimization; GHSA-376h-93r7-7g6f,
-  authorization bypass from a missing path-segment boundary check when stripping
-  the configured base), `sharp` `0.35.3` → `0.35.4` (GHSA-rgj7-g3m4-5g8c,
-  libheif), `js-yaml` `4.3.0` → `4.3.2` (GHSA-5p4m-2wfm-xmqj,
-  GHSA-2883-xcg3-v3hh), and `nanoid` `3.3.12` → `3.3.18` (GHSA-28wg-ghj8-5hjv,
-  GHSA-2v37-7h3g-55p8). `postcss` came along in range at `8.5.19` → `8.5.28`, so
-  `docs-site` now reports zero vulnerabilities at any severity rather than only
-  above the gate threshold.
-- docs-site `overrides.svgo` raised from `4.0.2` to `4.1.0`. The exact `4.0.2`
-  pin was added in v1.3.1 to fix GHSA-2p49-hgcm-8545, and that pinned version is
-  itself covered by GHSA-w27v-7q3p-w38r and GHSA-4vpr-x523-8j87: a pin taken to
-  clear one advisory became the reported vulnerable version under a later one.
-  The override is raised rather than dropped so `svgo` stays exactly pinned
-  across lock refreshes: `astro` `7.3.2` declares `svgo: ^4.0.1` and resolves
-  without any override, but a floating range could re-adopt a then-vulnerable
-  `4.x` on the next refresh. This is the raise-don't-drop rule in
-  `docs/specs/dependency-audit-gate.md`.
-- eslint-toolchain (`app/frontend/eslint-toolchain`): `brace-expansion` `5.0.8` →
-  `5.0.9` (GHSA-rgw5-rvv9-x895) and `js-yaml` `4.3.0` → `4.3.2`
-  (GHSA-5p4m-2wfm-xmqj, GHSA-2883-xcg3-v3hh). The `5.0.8` value was itself an
-  `overrides` pin added in v1.3.1 to clear GHSA-mh99-v99m-4gvg / CVE-2026-14257,
-  and GHSA-rgw5-rvv9-x895 reports that version as bypassing that very
-  mitigation — the second instance in this run of a pin becoming the vulnerable
-  version (`svgo` above was the first), so the override is raised to `5.0.9`
-  rather than dropped, and `brace-expansion-compat-preflight.cjs` moves its
-  `EXPECTED_BE_VERSION` constant with it. `js-yaml` is transitive through
-  `eslint` and was reached by a lockfile refresh, with no new `overrides` entry.
-  This tree is separately locked — its own `package.json`, `package-lock.json`
-  and `overrides` — and **no CI step audited it before this change**, so
-  `app/frontend`'s audit said nothing about it and its advisories were visible
-  only as Dependabot alerts on the default branch. A fourth step now audits it
-  in `dependency-audit`, appended **last** on purpose: the job's steps run
-  sequentially and the first failure ends the job, so a failure in the newly
-  gated tree cannot mask the three trees restored earlier in this run.
-- One advisory is deliberately left unfixed. `@vitest/mocker`
-  (GHSA-82fw-gwwq-j7x9) in `app/frontend` is moderate, below the CI
-  `--audit-level=high` threshold, and its only fix moves `vitest` to `4.1.11`,
-  outside the exact `4.1.10` pin the frontend declares; it stays reported rather
-  than forced. `npm audit` surfaces it on three package nodes (`vitest`,
-  `@vitest/mocker`, `@vitest/coverage-v8`), but they are one advisory, not
-  three. The `postcss` advisory previously expected to join it did **not** need
-  this treatment — it was fixed in range as part of the docs-site work above, so
-  `@vitest/mocker` is the only one left open in the whole run.
-- All four audit commands — `python -m pip_audit -r app/backend/requirements-dev.txt`,
-  `npm audit --audit-level=high` in `app/frontend`, the same in `docs-site`, and
-  the same in `app/frontend/eslint-toolchain` — have now been observed exiting 0
-  on one and the same working tree, which is the acceptance
-  `docs/specs/dependency-audit-gate.md` requires. That spec, added alongside the
-  backend fix, records the standing contract for the gate: it covers four
-  separately locked dependency trees, its steps run sequentially so an earlier
-  failure hides the later ones, and advisories are cleared by upgrading rather
-  than by suppression.
+- Privacy scanning now splits camelCase/PascalCase keys before checking
+  secret-bearing fields and rejects long numeric identifiers in sensitive
+  account/user/subject/phone fields, E.164 and Russian-format phone numbers,
+  valid IPv4/IPv6 addresses, and Windows/POSIX absolute filesystem paths
+  (T-11 / plan A-03). A 12-case adversarial corpus and boundary controls pin
+  the behaviour; all three ASOS control bundles remain `privacy: pass`.
+
+- Bundle ZIP transport is authenticated (`2ba57869`): archive and per-entry
+  comments and extra fields fail `integrity` (`entry_extra_field`); foreign
+  bytes before the first member, between members, and after EOCD fail
+  `integrity` (`archive_trailing_bytes`). The same commit derived a
+  `special_member` rejection from `external_attr` entry-type bits (always
+  on; `create_system` no longer switches the guard off). CD-only metadata
+  (`external_attr`, `create_version` / version-made-by, `internal_attr`)
+  is not authenticated.
+- `ee3c1ae1` removes the `special_member` rejection that `2ba57869` derived
+  from `external_attr` entry-type bits; directory entries are still
+  rejected by the platform-independent trailing-slash rule
+  (`unsafe_member_path`), symlink/special-file entry types are no longer
+  rejected — accepted risk `F-T-06-15`.
 
 ## [1.3.1] - 2026-07-30
 

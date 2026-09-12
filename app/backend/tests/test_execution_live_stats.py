@@ -7,19 +7,24 @@ the read endpoints (live-stats + pre-period ingestion).
 """
 
 import math
+import random
 import sys
 import uuid
 from pathlib import Path
+from statistics import NormalDist
 
+import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
-from app.backend.app.constants import MAX_CUPED_COVARIATES
+from app.backend.app.constants import DECISION_SHIP_PROBABILITY, MAX_CUPED_COVARIATES
 from app.backend.app.main import create_app
 from app.backend.app.repository import ProjectRepository
+from app.backend.app.services.live_stats.primary import _build_sequential_block
 from app.backend.app.services.live_stats_service import build_live_stats
+from app.backend.app.stats.sequential import obrien_fleming_boundaries
 from app.backend.app.stats.student_t import t_cdf, t_ppf
 
 # --- fixtures / builders --------------------------------------------------------------
@@ -102,6 +107,148 @@ def _aggregates(*arms: dict) -> dict:
     return {"experiment_id": "e", "metric_name": "purchase", "variations": list(arms)}
 
 
+def _log_beta(alpha: int, beta: int) -> float:
+    return math.lgamma(alpha) + math.lgamma(beta) - math.lgamma(alpha + beta)
+
+
+def _miller_beta_greater(
+    alpha_x: int,
+    beta_x: int,
+    alpha_y: int,
+    beta_y: int,
+) -> float:
+    log_terms = [
+        _log_beta(alpha_y + index, beta_x + beta_y)
+        - math.log(beta_x + index)
+        - _log_beta(1 + index, beta_x)
+        - _log_beta(alpha_y, beta_y)
+        for index in range(alpha_x)
+    ]
+    anchor = max(log_terms)
+    return math.exp(anchor) * math.fsum(
+        math.exp(log_term - anchor) for log_term in log_terms
+    )
+
+
+def _reference_probability_beta_greater(
+    control_users: int,
+    control_conversions: int,
+    treatment_users: int,
+    treatment_conversions: int,
+) -> float:
+    alpha_x = treatment_conversions + 1
+    beta_x = treatment_users - treatment_conversions + 1
+    alpha_y = control_conversions + 1
+    beta_y = control_users - control_conversions + 1
+    terms, complement, parameters = min(
+        (
+            (alpha_x, False, (alpha_x, beta_x, alpha_y, beta_y)),
+            (alpha_y, True, (alpha_y, beta_y, alpha_x, beta_x)),
+            (beta_y, False, (beta_y, alpha_y, beta_x, alpha_x)),
+            (beta_x, True, (beta_x, alpha_x, beta_y, alpha_y)),
+        ),
+        key=lambda candidate: candidate[0],
+    )
+    assert terms > 0
+    probability = _miller_beta_greater(*parameters)
+    return min(1.0, max(0.0, 1.0 - probability if complement else probability))
+
+
+def _normal_probability_from_counts(
+    control_users: int,
+    control_conversions: int,
+    treatment_users: int,
+    treatment_conversions: int,
+) -> float:
+    control_alpha = control_conversions + 1
+    control_beta = control_users - control_conversions + 1
+    treatment_alpha = treatment_conversions + 1
+    treatment_beta = treatment_users - treatment_conversions + 1
+    control_mean = control_alpha / (control_alpha + control_beta)
+    treatment_mean = treatment_alpha / (treatment_alpha + treatment_beta)
+    control_variance = (
+        control_alpha
+        * control_beta
+        / ((control_alpha + control_beta) ** 2 * (control_alpha + control_beta + 1))
+    )
+    treatment_variance = (
+        treatment_alpha
+        * treatment_beta
+        / (
+            (treatment_alpha + treatment_beta) ** 2
+            * (treatment_alpha + treatment_beta + 1)
+        )
+    )
+    return NormalDist().cdf(
+        (treatment_mean - control_mean)
+        / math.sqrt(control_variance + treatment_variance)
+    )
+
+
+def _p_b_beats_a_boundary_cases() -> tuple[tuple[int, int, int, int], ...]:
+    sample_sizes = (
+        (50, 50),
+        (100, 150),
+        (200, 100),
+        (500, 500),
+        (750, 1000),
+        (1000, 750),
+        (2500, 3000),
+        (5000, 5000),
+        (5001, 5001),
+        (6000, 7500),
+        (7500, 6000),
+        (10000, 10000),
+        (12000, 8000),
+        (25000, 30000),
+        (30000, 25000),
+        (50000, 40000),
+        (100000, 120000),
+    )
+    rng = random.Random(7107)
+    cases: list[tuple[int, int, int, int]] = []
+    for control_users, treatment_users in sample_sizes:
+        control_conversions = round(rng.uniform(0.02, 0.80) * control_users)
+        low = 0
+        high = treatment_users
+        while low < high:
+            treatment_conversions = (low + high) // 2
+            probability = _normal_probability_from_counts(
+                control_users,
+                control_conversions,
+                treatment_users,
+                treatment_conversions,
+            )
+            if probability >= DECISION_SHIP_PROBABILITY:
+                high = treatment_conversions
+            else:
+                low = treatment_conversions + 1
+        cases.extend(
+            (
+                (
+                    control_users,
+                    control_conversions,
+                    treatment_users,
+                    max(0, low - 1),
+                ),
+                (control_users, control_conversions, treatment_users, low),
+                (
+                    control_users,
+                    control_conversions,
+                    treatment_users,
+                    min(treatment_users, low + 1),
+                ),
+            )
+        )
+    cases.extend(((5000, 500, 5000, 551), (1000, 100, 1000, 123)))
+    assert len(cases) == 53
+    assert len(set(cases)) == 53
+    return tuple(cases)
+
+
+_P_B_BEATS_A_BOUNDARY_CASES = _p_b_beats_a_boundary_cases()
+
+
 def _cuped_arm(
     index: int, xs: list[float], ys: list[float]
 ) -> dict:
@@ -114,7 +261,7 @@ def _cuped_arm(
         "sum_x2": sum(x * x for x in xs),
         "sum_y": sum(ys),
         "sum_y2": sum(y * y for y in ys),
-        "sum_xy": sum(x * y for x, y in zip(xs, ys)),
+        "sum_xy": sum(x * y for x, y in zip(xs, ys, strict=True)),
     }
 
 
@@ -478,13 +625,46 @@ def test_live_stats_binary_comparison_runs_frequentist_and_bayesian() -> None:
     assert prob > 0.9  # treatment 12% clearly beats control 10%
 
 
-def test_live_stats_probability_rounded_to_monte_carlo_precision() -> None:
-    # P(treatment > control) is a 10k-draw Monte-Carlo estimate whose standard
-    # error is ~0.005, so the service rounds it to 3 decimals. Assert it never
-    # carries digits below that simulation-noise floor (no false precision).
-    binary = build_live_stats(
-        "e", _binary_design(), _aggregates(_arm(0, 5000, 500), _arm(1, 5000, 600))
-    )["comparisons"][0]["probability_treatment_beats_control"]
+@pytest.mark.parametrize(
+    (
+        "control_users",
+        "control_conversions",
+        "treatment_users",
+        "treatment_conversions",
+    ),
+    _P_B_BEATS_A_BOUNDARY_CASES,
+)
+def test_p_b_beats_a_boundary_has_no_decision_threshold_flip(
+    control_users: int,
+    control_conversions: int,
+    treatment_users: int,
+    treatment_conversions: int,
+) -> None:
+    exact_probability = _reference_probability_beta_greater(
+        control_users,
+        control_conversions,
+        treatment_users,
+        treatment_conversions,
+    )
+    comparison = build_live_stats(
+        "e",
+        _binary_design(),
+        _aggregates(
+            _arm(0, control_users, control_conversions),
+            _arm(1, treatment_users, treatment_conversions),
+        ),
+    )["comparisons"][0]
+    reported_probability = comparison["probability_treatment_beats_control"]
+
+    assert reported_probability == pytest.approx(exact_probability, abs=2.5e-4)
+    assert (reported_probability >= DECISION_SHIP_PROBABILITY) is (
+        exact_probability >= DECISION_SHIP_PROBABILITY
+    )
+
+
+def test_live_stats_continuous_probability_rounded_to_monte_carlo_precision() -> None:
+    # Continuous P(treatment > control) remains a 10k-draw Monte-Carlo estimate
+    # whose standard error is ~0.005, so it carries no digits past the third.
     continuous = build_live_stats(
         "e",
         _continuous_design(),
@@ -493,9 +673,8 @@ def test_live_stats_probability_rounded_to_monte_carlo_precision() -> None:
             _arm(1, 4, 4, value_sum=180.0, value_sq_sum=8600.0),
         ),
     )["comparisons"][0]["probability_treatment_beats_control"]
-    for prob in (binary, continuous):
-        assert prob is not None
-        assert round(prob, 3) == prob  # rounded; no precision past the 3rd decimal
+    assert continuous is not None
+    assert round(continuous, 3) == continuous
 
 
 def test_live_stats_comparison_insufficient_data_when_arm_too_small() -> None:
@@ -767,7 +946,7 @@ def test_live_stats_fixed_horizon_fraction_is_none_when_sizing_unavailable() -> 
     assert sequential["information_fraction"] is None
 
 
-def test_live_stats_sequential_active_with_boundary_when_multiple_looks() -> None:
+def test_live_stats_between_planned_looks_uses_anytime_valid_only() -> None:
     result = build_live_stats(
         "e", _binary_design(n_looks=3), _aggregates(_arm(0, 5000, 500), _arm(1, 5000, 600))
     )
@@ -775,10 +954,64 @@ def test_live_stats_sequential_active_with_boundary_when_multiple_looks() -> Non
     assert sequential["status"] == "active"
     assert sequential["planned_sample_size_per_variant"] > 0
     assert 0.0 < sequential["information_fraction"] <= 1.0
-    assert sequential["current_boundary_z"] is not None
-    # Early in the experiment the O'Brien-Fleming boundary is stricter than the live z,
-    # so the comparison is not yet sequential-significant even though the fixed-horizon test is.
-    assert result["comparisons"][0]["sequential_significant"] is False
+    assert sequential["current_boundary_z"] is None
+    assert result["comparisons"][0]["sequential_significant"] is None
+    assert result["comparisons"][0]["always_valid"] is not None
+
+
+def test_live_stats_obf_is_only_evaluated_at_planned_looks_and_controls_type_i(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    boundaries = obrien_fleming_boundaries(4, alpha=0.05)
+    calculation = {
+        "sequential_adjusted_sample_size": 100,
+        "sequential_boundaries": boundaries,
+    }
+    monkeypatch.setattr(
+        "app.backend.app.services.live_stats.primary.calculate_experiment_metrics",
+        lambda _: calculation,
+    )
+
+    eligible_boundaries: list[tuple[int, float]] = []
+    for total_exposed in range(1, 201):
+        comparisons = [
+            {"analysis": {"test_statistic": 0.0}, "sequential_significant": None}
+        ]
+        block = _build_sequential_block(
+            project_payload={},
+            n_looks=4,
+            variants_count=2,
+            total_exposed=total_exposed,
+            comparisons=comparisons,
+        )
+        if block["current_boundary_z"] is not None:
+            eligible_boundaries.append(
+                (total_exposed, float(block["current_boundary_z"]))
+            )
+
+    generator = np.random.Generator(np.random.PCG64(20260823))
+    increments = generator.standard_normal((20_000, 200))
+    z_paths = np.cumsum(increments, axis=1) / np.sqrt(np.arange(1, 201))
+    crossed = np.zeros(20_000, dtype=bool)
+    for total_exposed, boundary in eligible_boundaries:
+        crossed |= np.abs(z_paths[:, total_exposed - 1]) > boundary
+    false_positive_rate = float(np.mean(crossed))
+
+    assert false_positive_rate <= 0.055
+    assert [total for total, _ in eligible_boundaries] == [50, 100, 150, 200]
+
+    between_comparisons = [
+        {"analysis": {"test_statistic": 100.0}, "sequential_significant": None}
+    ]
+    between = _build_sequential_block(
+        project_payload={},
+        n_looks=4,
+        variants_count=2,
+        total_exposed=51,
+        comparisons=between_comparisons,
+    )
+    assert between["current_boundary_z"] is None
+    assert between_comparisons[0]["sequential_significant"] is None
 
 
 def test_live_stats_cuped_not_applicable_for_binary_metric() -> None:
@@ -1919,8 +2152,8 @@ def test_live_stats_route_reports_available_cuped_after_pre_period_ingest() -> N
 
     control_x = [10, 12, 14, 16, 18, 20]
     treatment_x = [11, 13, 15, 17, 19, 21]
-    pre_period = [{"user_id": u, "value": x} for u, x in zip(control, control_x)]
-    pre_period += [{"user_id": u, "value": x} for u, x in zip(treatment, treatment_x)]
+    pre_period = [{"user_id": u, "value": x} for u, x in zip(control, control_x, strict=True)]
+    pre_period += [{"user_id": u, "value": x} for u, x in zip(treatment, treatment_x, strict=True)]
     pre_resp = client.post(
         f"/api/v1/experiments/{project_id}/pre-period", json={"pre_period_values": pre_period}
     )
@@ -1936,10 +2169,10 @@ def test_live_stats_route_reports_available_cuped_after_pre_period_ingest() -> N
     control_y = [40, 45, 55, 60, 50, 48]
     treatment_y = [50, 55, 60, 70, 65, 58]
     conversions = [
-        {"user_id": u, "metric": "aov", "value": float(y)} for u, y in zip(control, control_y)
+        {"user_id": u, "metric": "aov", "value": float(y)} for u, y in zip(control, control_y, strict=True)
     ]
     conversions += [
-        {"user_id": u, "metric": "aov", "value": float(y)} for u, y in zip(treatment, treatment_y)
+        {"user_id": u, "metric": "aov", "value": float(y)} for u, y in zip(treatment, treatment_y, strict=True)
     ]
     assert (
         client.post(

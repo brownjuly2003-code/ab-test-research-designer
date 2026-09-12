@@ -1,0 +1,22 @@
+{
+  "schema_version": "0.1.0",
+  "finding_id": "finding_01",
+  "content_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+  "run_id": "run_foundation_01",
+  "code": "ASSIGNMENT_IMBALANCE",
+  "category": "assignment",
+  "severity": "warning",
+  "state": "overridden",
+  "blocking": false,
+  "summary": "The imbalance is inside the declared operational exception window.",
+  "evidence": [
+    {
+      "artifact_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+      "json_pointer": "/assignment_imbalance"
+    }
+  ],
+  "remediation": {"code": "REVIEW_ASSIGNMENT", "guidance": "Review assignment telemetry before recording a final decision."},
+  "override": {"actor_ref": "review_board", "reason": "Known synthetic fixture imbalance.", "policy_version": "override_v1", "recorded_at": "2026-08-21T21:02:00Z"},
+  "produced_at": "2026-08-21T21:01:00Z",
+  "extensions": {}
+}

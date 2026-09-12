@@ -1,18 +1,43 @@
 <!-- docs-site:index:start -->
-# AB Test Research Designer
+# Trialmark / AB Test Research Designer
+
+This repository contains two tracks.
+
+**Legacy (stable):** A/B research designer. Published release
+[`v1.3.1`](https://github.com/brownjuly2003-code/ab-test-research-designer/releases/tag/v1.3.1)
+(tag `v1.3.1`, commit `bb314ae15c86eaf2ade77d3a111a66030b77573e`) in the public
+repository [ab-test-research-designer](https://github.com/brownjuly2003-code/ab-test-research-designer).
+Seven UI locales. CI is green on the release tag.
+
+**Experimental evidence layer (`evidence-0.1` public preview):** the persisted application,
+Workbench, statistical preflight, sequential design, allocation-aware sizing,
+independent oracle, method guarantee profile, and DSSE decision statements are
+implemented through phase C. External validation remains gated.
+**Not a stable release; backward compatibility and external adoption are not
+claimed.** Reproduce the public ASOS tamper demo in the
+[`evidence-0.1` branch](https://github.com/brownjuly2003-code/ab-test-research-designer/tree/evidence-0.1).
+
+Start with the [documentation map](docs/README.md). Target architecture:
+[docs/architecture/TRIALMARK_ARCHITECTURE.md](docs/architecture/TRIALMARK_ARCHITECTURE.md).
+ADRs: [modular monolith](docs/adr/0003-evidenceos-modular-monolith.md),
+[ABX container](docs/adr/0004-abx-container-and-integrity.md),
+[Trialmark rename](docs/adr/0005-trialmark-rename.md),
+[format identifiers](docs/adr/0006-abx-format-identifiers.md).
+
+## Legacy baseline
 
 [![Release](https://img.shields.io/github/v/release/brownjuly2003-code/ab-test-research-designer?include_prereleases&display_name=tag)](https://github.com/brownjuly2003-code/ab-test-research-designer/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/brownjuly2003-code/ab-test-research-designer/blob/main/LICENSE)
 [![Python](https://img.shields.io/badge/python-3.14-blue.svg)](https://www.python.org/)
-[![Node](https://img.shields.io/badge/node-LTS-green.svg)](https://nodejs.org/)
+[![Node](https://img.shields.io/badge/node-24%20LTS-green.svg)](https://nodejs.org/)
 [![Tests](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/brownjuly2003-code/ab-test-research-designer/generated/badges/badges/tests.json)](https://github.com/brownjuly2003-code/ab-test-research-designer/actions/workflows/test.yml)
 [![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/brownjuly2003-code/ab-test-research-designer/generated/badges/badges/coverage.json)](https://github.com/brownjuly2003-code/ab-test-research-designer/actions/workflows/test.yml)
 [![Lighthouse](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/brownjuly2003-code/ab-test-research-designer/generated/badges/badges/lighthouse.json)](https://github.com/brownjuly2003-code/ab-test-research-designer/actions/workflows/test.yml)
 [![Docs](https://img.shields.io/badge/docs-astro--starlight-blue)](https://brownjuly2003-code.github.io/ab-test-research-designer/)
 
-Local-first experiment planning tool for A/B and multi-variant tests. Plan sample size and duration from the wizard, review deterministic statistical guidance (SRM, Bayesian, group-sequential, CUPED) plus design-time guardrail-metric recommendations, compare saved experiments side by side, and export decision-ready reports in seven languages (English, Russian, German, Spanish, French, Simplified Chinese, Arabic with RTL) — all against a local SQLite workspace with no cloud required.
+Local-first experiment planning tool for A/B and multi-variant tests. Plan sample size and duration from the wizard, review deterministic statistical guidance (SRM, Bayesian, group-sequential, CUPED) plus design-time guardrail-metric recommendations, compare saved experiments side by side, and export reports in the legacy UI in seven languages (English, Russian, German, Spanish, French, Simplified Chinese, Arabic with RTL) — all against a local SQLite workspace with no cloud required.
 
-Built with **FastAPI + React 19 + TypeScript + Vite + SQLite**, verified end-to-end via `scripts/verify_all.cmd --with-e2e` — the full backend and frontend unit suites (live total in the Tests badge above), Playwright E2E, Lighthouse CI, and axe accessibility checks. Backend line coverage is gated at 88%+ in CI; the Coverage badge shows the current value.
+Built with **FastAPI + React 19 + TypeScript + Vite + SQLite**. The published legacy release is verified end-to-end via `scripts/verify_all.cmd --with-e2e` — backend and frontend unit suites, Playwright E2E, Lighthouse CI, and axe accessibility checks. The Tests / Coverage / Lighthouse badges above report that public `ab-test-research-designer` release, not this fork's HEAD. Backend line coverage is gated at 88%+ in that CI.
 
 It combines:
 
@@ -31,15 +56,320 @@ It combines:
 
 ## Project status
 
-The current product scope is feature-frozen. **[v1.3.1](https://github.com/brownjuly2003-code/ab-test-research-designer/releases/tag/v1.3.1)**
-is the published release (tag `v1.3.1`, commit `bb314ae15c86eaf2ade77d3a111a66030b77573e`).
-Historical/research-plan disposition, preserved local artifacts, and release
-evidence (Actions, GHCR) are recorded in
+**Legacy stable v1.3.1** is the published A/B research designer
+(tag `v1.3.1`, commit `bb314ae15c86eaf2ade77d3a111a66030b77573e`). That track is
+feature-frozen. Historical/research-plan disposition, preserved local artifacts,
+and release evidence (Actions, GHCR) are recorded in
 [docs/PROJECT_CLOSURE.md](docs/PROJECT_CLOSURE.md).
+
+This repository's HEAD is a fork with the experimental evidence layer; it is
+not the published `v1.3.1` tag. The release evidence remains pinned to that tag;
+the experimental implementation status is recorded in this README, the
+[changelog](CHANGELOG.md), and the
+[Trialmark architecture](docs/architecture/TRIALMARK_ARCHITECTURE.md).
+
+## Trialmark persisted evidence CLI
+
+The experimental `trialmark` CLI runs a supported frozen YAML protocol against
+an aggregate source, persists the completed evidence run, and publishes an
+offline-verifiable `.tmk` bundle. It also records append-only human decisions,
+lists persisted runs, and writes anonymous external-pilot records.
+
+Questions, reproducibility reports, and requests for a 30-minute aggregate-CSV
+pilot are welcome through [GitHub Issues](https://github.com/brownjuly2003-code/ab-test-research-designer/issues/new).
+
+Two source profiles are supported, selected by the single `extensions` key the
+protocol declares:
+
+| `extensions` key | Source | Used by |
+| --- | --- | --- |
+| `trialmark.asos` | aggregate ASOS Parquet | the public benchmark and the demo |
+| `trialmark.aggregate-binary` | one-row aggregate CSV | external pilots |
+
+A protocol must declare exactly one of them.
+
+Run commands from the repository root after installing the backend dependencies
+described in [Local setup](#local-setup). The repository does not need an
+editable install:
+
+```text
+python -m app.backend.app.evidence.cli --help
+```
+
+To install the shorter console command without changing dependencies:
+
+```text
+python -m pip install -e . --no-deps
+trialmark --help
+```
+
+### Storage configuration
+
+Persisted commands use the application database selected by
+`AB_DATABASE_URL`, or by `AB_DB_PATH` when no database URL is set. Artifact
+payloads go to `AB_ARTIFACT_ROOT`, which defaults to `.trialmark/artifacts`
+relative to the current directory and is resolved to an absolute path once at
+startup.
+
+Set both for the whole workflow and no command needs a flag:
+
+```powershell
+$env:AB_DB_PATH = "D:\trialmark-data\trialmark.sqlite3"
+$env:AB_ARTIFACT_ROOT = "D:\trialmark-data\artifacts"
+```
+
+The relative default is fine inside one checkout and wrong as soon as two
+processes have different working directories: an API server started from
+elsewhere resolves `.trialmark/artifacts` against its own directory and
+answers `404` for a run the CLI had just written. `AB_ARTIFACT_ROOT` is the
+fix, and `GET /readyz` reports the resolved path and whether it is writable.
+
+`--artifact-root` still overrides it on `run`, `decide`, `runs list` and
+`pack --run`, for an operator working across two trees.
+
+### Run, verify, and decide
+
+Create and publish an analysis bundle:
+
+```text
+python -m app.backend.app.evidence.cli run --protocol protocol.yaml --source experiment.parquet --actor analyst-01 --out analysis.tmk
+```
+
+The JSON result includes `valid`, `run_id`, `bundle_id`, and the verifier
+`verdicts`. Save `run_id`; decisions cite the persisted analysis run, not the
+archive filename.
+
+Verify the archive without network or source access:
+
+```text
+python -m app.backend.app.evidence.cli verify analysis.tmk --offline --policy strict
+```
+
+Record a human decision as a new immutable child run and publish its bundle:
+
+```text
+python -m app.backend.app.evidence.cli decide --run RUN_ID_FROM_THE_ANALYSIS_RESULT --verdict ship --rationale "The verified evidence meets the frozen decision policy." --actor reviewer-01 --out approved.tmk
+
+python -m app.backend.app.evidence.cli verify approved.tmk --offline --policy strict
+```
+
+`--verdict` accepts `ship`, `hold`, or `stop`. If `--actor` is omitted, the
+CLI uses `$USER`, then `local-operator`. A decision never overwrites its parent;
+another decision creates another child run.
+
+`--role` names the approval role to decide under. It must be one the run's
+frozen `decision.approval_policy.roles` lists, or the command exits 1 with
+`role_not_permitted`. The recorded decision says where the role came from, in
+`decided_by.role_source`:
+
+| Value | Meaning |
+| --- | --- |
+| `credential` | The authenticated API key carries the role. The only source the service verifies. |
+| `asserted` | The caller named it (`--role`). Nothing here checks the claim. |
+| `policy_default` | No role was declared; the policy's first approval role applied. |
+
+Issue a key that carries a role with `POST /api/v1/keys` and a `role` field.
+A protocol whose `approval_policy.minimum_approvals` is above 1 cannot be
+decided at all: recording writes one approval, so the command exits 1 with
+`approval_quorum_unmet` rather than publish a decision that claims a quorum it
+does not have.
+
+The final decision member is `decision/statement.dsse.json`: an unsigned DSSE
+envelope whose payload is an in-toto Statement v1. Its subject SHA-256 is the
+parent analysis bundle identity, and its Trialmark decision predicate retains
+the reviewed decision record. `verify` reports the statement type, predicate
+type, subject, signature count, and whether the subject matches `supersedes`.
+An empty signature list provides digest binding, not signer identity; signing
+and Sigstore policy are outside this profile.
+
+### External pilot: one aggregate binary metric from a CSV
+
+An external partner never sends user-level rows. The `trialmark.aggregate-binary`
+profile accepts exactly one metric and exactly one CSV row with these four
+columns, in any order:
+
+```text
+control_users,control_conversions,treatment_users,treatment_conversions
+1000,100,1200,144
+```
+
+The protocol binds that source with an `extensions` block. The
+`definition_digest` of the primary metric is the SHA-256 of the canonical JSON
+of `metric.definition`, so the metric a partner reports and the metric the
+protocol froze cannot drift apart:
+
+```yaml
+extensions:
+  trialmark.aggregate-binary:
+    schema_version: "1"
+    source_ref: pilot_source_alpha
+    evidence_type: external_pilot
+    partner_approved: true
+    metric:
+      name: Checkout conversion rate
+      direction: increase
+      unit: proportion
+      owner_ref: pilot_growth_team
+      definition:
+        aggregation: binary_rate
+        numerator: converted_subjects
+        denominator: assigned_subjects
+    observed_telemetry:
+      outcome_before_exposure_count: 0
+      duplicate_event_count: 0
+      unlinked_subject_count: 0
+      events_beyond_max_lateness_count: 0
+      schema_versions:
+        - event_type: aggregate_assignment
+          version: pilot-v1
+          schema_digest: sha256:4937ce9031149ec2f5cd04a27e51ca296415ff4856ea4e4bf700091dc66ce31b
+        - event_type: aggregate_metric_checkpoint
+          version: pilot-v1
+          schema_digest: sha256:272f65a1c66d17f18ba326a2da6bfe29833422589121cac3c0e14478b7b4c2d3
+```
+
+Check the file before spending a session on it. `source validate` runs the
+same source checks a `run` would, and nothing else: no database, no run, no
+bundle, no writes anywhere.
+
+```text
+python -m app.backend.app.evidence.cli source validate --protocol examples/pilot/protocol.yaml --source examples/pilot/aggregate.csv
+```
+
+It answers `valid: true` with the metric id, the `definition_digest`, the
+columns it found and the four counts it read, or `valid: false` with the
+reason stated concretely enough to act on — the expected columns beside the
+ones the file actually has, `found 3` rows where one was required, or both
+digests when the protocol's metric and the source's definition have drifted
+apart. Exit status is 0 for a valid source and 1 otherwise.
+
+A complete, runnable pair lives in [`examples/pilot/`](examples/pilot/). It uses
+the same `run` / `verify` / `decide` commands as any other protocol:
+
+```text
+python -m app.backend.app.evidence.cli run --protocol examples/pilot/protocol.yaml --source examples/pilot/aggregate.csv --actor pilot-operator --out pilot.tmk
+
+python -m app.backend.app.evidence.cli verify pilot.tmk --offline --policy strict
+```
+
+The published bundle is aggregate-only: it carries no source path, no partner
+identity, and no rows. `observed_telemetry` is recorded as
+`telemetry_profile_source: upstream_asserted` — the partner asserts those
+counts, Trialmark does not observe them.
+
+### Recording an external pilot session
+
+`pilot-session` writes the anonymous record of one observed session. It reads
+the published bundle for its census and accepts no source path and no identity:
+
+```text
+python -m app.backend.app.evidence.cli pilot-session create --participant-ref anon_0123456789abcdef --source-ready-at 2026-09-07T10:00:00Z --bundle-ready-at 2026-09-07T10:12:00Z --outcome completed --bundle pilot.tmk --out docs/pilots/2026-09-07-anon_0123456789abcdef.md
+
+python -m app.backend.app.evidence.cli pilot-session validate docs/pilots/2026-09-07-anon_0123456789abcdef.md
+```
+
+`--participant-ref` must match `anon_<16 hex>`, and the filename must be exactly
+`<session-date>-<participant-ref>.md`, where the session date comes from
+`--source-ready-at`. `--outcome incomplete` records a session that produced no
+bundle and omits `--bundle`/`--bundle-ready-at`. A second observation of the
+same participant is recorded with `--reuse-kind second_run|evidence_reopen` and
+`--reuse-at`; both are required together. A record is never overwritten.
+
+### Deciding Gate 3 from the records
+
+`gate3` aggregates a directory of validated pilot records into the Gate 3
+decision. It reads nothing else -- no clock, no network, no database -- so the
+same cohort always produces the same report and the same `report_digest`:
+
+```text
+python -m app.backend.app.evidence.cli gate3 --records docs/pilots --out docs/gates/gate3_2026-09-08.md
+```
+
+Every `.md` file under `--records` must be a canonical pilot record. A file
+that is not one is an error, not a skip, because quietly dropping an
+unparseable record would take a partner out of the denominator and report the
+gate as better than it is. Keep notes elsewhere.
+
+Six criteria are reported with the arithmetic behind each verdict:
+
+| Criterion | Threshold |
+| --- | --- |
+| Completed pilots | at least 3 partner cycles completed protocol → preflight → bundle |
+| Repeated partner use | at least 2 partners started a second experiment or reopened evidence |
+| Time to first reviewable bundle | partner-session median at or under 900 seconds |
+| Preflight detection / harm | detection ≥ 90%, false blocking < 5% |
+| Displayed-estimate lineage | 100% of displayed estimates carry complete lineage |
+| Bundle privacy | no raw user-level pilot data enters a bundle |
+
+Two counting rules decide what the numbers mean. **One partner is one cycle**:
+two records from the same `participant_ref` count once toward completed cycles,
+and the second contributes only if it records reuse. **A criterion nobody
+measured is never reported as passed**: preflight detection is a property of
+the engineering suite rather than of a partner session, so this report always
+calls it `unmeasured` and says where it is measured instead. Thresholds stated
+as an absolute count can be measured as zero and therefore *fail* on an empty
+cohort; thresholds stated as a rate have no denominator to rate and stay
+`unmeasured`.
+
+The final verdict is `continue` when every criterion measurable from records
+passes, `stop` when no partner completed a cycle at all, and `pivot` in
+between. The exit status is 0 for all three: `stop` is a successful
+measurement of a disappointing cohort, not a failed command. Read `verdict`,
+not `$?`.
+
+List persisted runs and their bundle identities and verifier verdicts:
+
+```text
+python -m app.backend.app.evidence.cli runs list
+```
+
+All bundle destinations must end in `.tmk`, and the CLI refuses to overwrite
+an existing destination. Argument errors exit with status 2. Command or
+verification failures emit JSON and exit with status 1; successful commands
+exit with status 0.
 
 ## Demo
 
-The supported demo is the **local seeded product** on a single UI/API port.
+### Trialmark evidence demo in five minutes
+
+For the motivation, exact ASOS scope, observed result, and a repeatable
+tamper-demo, see
+[Evidence должно пережить вендора](docs/article/trialmark-asos-tamper-demo.md).
+
+The short real-product walkthrough below opens the generated MP4. It follows a
+persisted blocker through remediation, analysis, bundle review, and a separate
+human decision without using a mockup.
+
+[![Trialmark Workbench ASOS walkthrough](docs/demo/trialmark-workbench-demo.png)](docs/demo/trialmark-workbench-demo.mp4)
+
+With the development dependencies, Playwright Chromium, and `ffmpeg` available,
+regenerate both artifacts from the real local UI with:
+
+```bash
+python scripts/record_trialmark_demo.py
+```
+
+With the backend dependencies installed, run this from a clean checkout on
+macOS or another POSIX shell:
+
+```bash
+bash examples/demo/run_demo.sh
+```
+
+The script uses the committed aggregate-only ASOS `d53f0e` fixture. It first
+proves that a metric-role conflict, injected 90/10 assignment imbalance, and one
+late event each produce a specific blocking preflight finding. It then runs the
+corrected [frozen protocol](examples/demo/protocol.yaml), records an append-only
+human decision, verifies the final `.tmk` bundle offline, appends one byte to a
+copy, and proves strict verification rejects the changed archive. The JSON
+output includes the temporary output directory, both bundle identities, all
+three blocker codes, and the expected tamper-verification failure. The
+benchmark question and its limitations are recorded in
+[examples/demo/question.md](examples/demo/question.md).
+
+### Legacy local product demo
+
+The legacy UI demo is the **local seeded product** on a single UI/API port.
 
 First-time setup (creates `.venv`, installs backend deps, builds the frontend):
 
@@ -63,7 +393,7 @@ Then open **http://127.0.0.1:8008**. The seed is idempotent and loads checkout c
 
 [![GHCR](https://img.shields.io/github/v/tag/brownjuly2003-code/ab-test-research-designer?label=ghcr.io&logo=docker)](https://github.com/brownjuly2003-code/ab-test-research-designer/pkgs/container/ab-test-research-designer)
 
-Container and self-host packaging: [docs/DEPLOY.md](docs/DEPLOY.md). Current published release: **[v1.3.1](https://github.com/brownjuly2003-code/ab-test-research-designer/releases/tag/v1.3.1)** ([release notes](docs/RELEASE_NOTES_v1.3.1.md); packaging: [fly.toml](fly.toml)). Publication and acceptance are GitHub (source, Actions, Pages, Releases, GHCR) plus this local runtime — not a hosted third-party demo.
+Container and self-host packaging: [docs/DEPLOY.md](docs/DEPLOY.md). Legacy stable: **[v1.3.1](https://github.com/brownjuly2003-code/ab-test-research-designer/releases/tag/v1.3.1)** ([release notes](docs/RELEASE_NOTES_v1.3.1.md); packaging: [fly.toml](fly.toml)). Publication and acceptance of that release are GitHub (source, Actions, Pages, Releases, GHCR) plus this local runtime — not a hosted third-party demo.
 
 Sample import payload:
 
@@ -79,7 +409,7 @@ runs analysis, captures comparison and webhook views, and exports a report:
 ![Multi-project comparison](docs/demo/comparison-dashboard.png)
 ![Webhook manager](docs/demo/webhook-manager.png)
 
-The screenshots follow the current product path: wizard overview, review step, and the post-analysis results dashboard.
+The screenshots follow the legacy product path: wizard overview, review step, and the post-analysis results dashboard.
 They then switch to saved-project comparison to show the multi-project power-curve and forest-plot dashboard with seeded snapshots.
 The final image shows the admin-side webhook manager with a seeded Slack-style subscription in the sidebar tools area. The Slack App flow adds OAuth installation and `/ab-test` commands alongside the older one-way webhook path.
 
@@ -122,7 +452,7 @@ Post-v1.1.0 Tier 2/3 roadmap items are all landed as of 2026-04-25.
 
 **Landed:**
 - **Portfolio polish.** Local startup seed / demo workspace, product screenshots, case-study section, GHCR Docker publish, dynamic shields.io badges.
-- **Product quality.** Locale parity at 940 leaf keys across all shipped UI locales (en/ru/de/es/fr/zh/ar — including the Slack-App admin block), optional OpenAI/Anthropic adapter via browser-session token, Astro Starlight docs site at [brownjuly2003-code.github.io/ab-test-research-designer](https://brownjuly2003-code.github.io/ab-test-research-designer/), 10-template industry gallery.
+- **Product quality.** Locale parity at 940 leaf keys across all shipped legacy UI locales (en/ru/de/es/fr/zh/ar — including the Slack-App admin block), optional OpenAI/Anthropic adapter via browser-session token, Astro Starlight docs site at [brownjuly2003-code.github.io/ab-test-research-designer](https://brownjuly2003-code.github.io/ab-test-research-designer/), 10-template industry gallery.
 - **Hardening.** Monte-Carlo distribution overlay with interactive probability slider, French / Simplified-Chinese / Arabic locales (+RTL for Arabic), extended Hypothesis property coverage (numerical stability + Bayesian edges + Monte-Carlo determinism), bundle optimization (main chunk 247 → 122 KB gzip via lazy-load locales + vendor chunks), optional Postgres backend via `AB_DATABASE_URL` with CI matrix coverage, Slack App integration with OAuth install + slash commands + interactive actions.
 
 **Dropped as out-of-scope for a portfolio/demo:** manual NVDA / JAWS audit (automated axe a11y coverage sufficient here).
@@ -159,6 +489,12 @@ Post-v1.1.0 Tier 2/3 roadmap items are all landed as of 2026-04-25.
 - read-only aware frontend mode that hides write actions for read-only sessions while keeping every stateless calculator available; `AB_PUBLIC_DEMO=true` turns this into an anonymous public-demo entry with a guest landing over the seeded demo projects
 
 ## Statistical repertoire
+
+<!-- method-profile-table:start -->
+| Supported method | Estimands (test / interval) | Error control | Asymptotic floor | Numeric reference | Determinism / allocation | Oracle evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `binary_pooled_z_newcombe` (`binary_pooled_z_newcombe_v1`) | `risk_difference` / `risk_difference` | fixed horizon; two_sided; α=0.05 (bundle-specific) | n≥30/arm; expected count≥5 | statsmodels 0.14.6; max Δ(z/p/CI)=4.061e-05 / 4.505e-07 / 4.850e-07 | closed form=true; equal allocation required=false | `binary_pooled_z_newcombe` @ `5c65c0d3` |
+<!-- method-profile-table:end -->
 
 Post-hoc analysis (`POST /api/v1/results`, plus dedicated `/api/v1/results/ratio`, `/api/v1/results/categorical`, `/api/v1/results/paired`, `/api/v1/results/omnibus` and `/api/v1/results/survival` endpoints) covers twenty-two analyzers across independent two-sample, paired within-subject, omnibus (more-than-two-group), and survival (time-to-event) designs. Each request declares a `metric_type` (or a `test_type` on the dedicated endpoints); the backend validates the matching data shape and rejects mismatches.
 
@@ -200,7 +536,7 @@ Zero-config local runs use SQLite and need no secrets. Optional LLM provider tok
 Prerequisites:
 
 - Python 3.13+ (CI and mypy use Python 3.14)
-- Node.js LTS with npm
+- Node 24 LTS with npm
 - Git
 
 On the first run, opt in to the dependency downloads and locked frontend build:
@@ -250,6 +586,10 @@ python -m pytest -p no:cacheprovider app/backend/tests/test_run_local_script.py 
 ### Docker (optional)
 
 If Docker is available, the existing container path remains:
+
+```bash
+export GIT_SHA="$(git rev-parse --verify 'HEAD^{commit}')"
+```
 
 ```bash
 docker compose up --build
@@ -364,7 +704,7 @@ For the two-way Slack App, create an app from `slack/app-manifest.yml`, set `AB_
 
 ## Languages
 
-The UI ships with seven locales: **English** (default), **Russian**, **German**, **Spanish**, **French**, **Simplified Chinese**, and **Arabic**. Pick a language from the header switcher (the choice persists to `localStorage` under `ab-test:language`) or set `?lang=fr` on the URL to override auto-detection. Arabic also switches the document into `dir="rtl"` so the shell, panels, toasts, and warning callouts follow the reading direction automatically.
+The **legacy** UI ships with seven locales: **English** (default), **Russian**, **German**, **Spanish**, **French**, **Simplified Chinese**, and **Arabic**. Pick a language from the header switcher (the choice persists to `localStorage` under `ab-test:language`) or set `?lang=fr` on the URL to override auto-detection. Arabic also switches the document into `dir="rtl"` so the shell, panels, toasts, and warning callouts follow the reading direction automatically. The experimental evidence Workbench is English-only.
 
 The backend honors the `Accept-Language` header on export endpoints and localizes the markdown/HTML report headers plus warning and risk strings. Regional tags fall back to their primary language: `fr-CA` -> `fr`, `de-AT` -> `de`, `es-MX` -> `es`, `zh-CN` / `zh-TW` -> `zh`, `ar-SA` / `ar-EG` -> `ar`, and unsupported locales fall back to `en`.
 
@@ -380,6 +720,13 @@ Unsupported locales fall back to English. For instructions on adding another loc
 ## Docker
 
 Build and run the full stack through the backend-served frontend:
+
+```powershell
+$env:GIT_SHA = (git rev-parse --verify 'HEAD^{commit}').Trim()
+```
+
+On macOS/Linux, use `export GIT_SHA="$(git rev-parse --verify 'HEAD^{commit}')"`
+instead. Compose requires this exact commit to stamp `BUILD_INFO.json`.
 
 ```bash
 docker compose up --build
@@ -501,15 +848,17 @@ Current Lighthouse thresholds stay strict for accessibility and advisory for oth
 
 ## Documentation
 
-Active docs:
+Use the [documentation map](docs/README.md) to choose the right track.
 
-1. [docs/HISTORY.md](docs/HISTORY.md)
-2. [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-3. [docs/API.md](docs/API.md)
-4. [docs/RULES.md](docs/RULES.md)
-5. [docs/RUNBOOK.md](docs/RUNBOOK.md)
-6. [docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md)
-7. [CHANGELOG.md](CHANGELOG.md)
+- Trialmark: [target architecture](docs/architecture/TRIALMARK_ARCHITECTURE.md),
+  [ADRs](docs/adr/), and the
+  [ASOS tamper walkthrough](docs/article/trialmark-asos-tamper-demo.md).
+- Stable legacy product: [architecture](docs/ARCHITECTURE.md),
+  [API](docs/API.md), [rules](docs/RULES.md), and [runbook](docs/RUNBOOK.md).
+- Delivery and history: [deployment](docs/DEPLOY.md),
+  [production operations](docs/PRODUCTION.md),
+  [release checklist](docs/RELEASE_CHECKLIST.md),
+  [history](docs/HISTORY.md), and [changelog](CHANGELOG.md).
 
 ## Notes
 

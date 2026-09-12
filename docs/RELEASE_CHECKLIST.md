@@ -25,6 +25,7 @@
   - `python scripts/verify_workspace_backup.py --fixture`
   - if signed workspace imports are enabled, rerun with `AB_WORKSPACE_SIGNING_KEY` set
 - if Docker-related code changed, run:
+  - export the exact source commit as `GIT_SHA` (for example, `export GIT_SHA="$(git rev-parse --verify 'HEAD^{commit}')"`)
   - `docker compose build`
   - `docker compose up -d`
   - `curl http://127.0.0.1:8008/readyz`

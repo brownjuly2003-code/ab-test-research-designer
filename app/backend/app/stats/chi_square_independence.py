@@ -33,7 +33,7 @@ the service layer.
 import math
 from typing import Any
 
-from app.backend.app.stats.srm import chi_square_cdf
+from app.backend.app.stats.srm import chi_square_sf
 
 # Cap on total observations. The statistic is O(r·c) and the table dimensions are bounded by the
 # request schema, so this only guards against absurd magnitudes, mirroring the Fisher / Poisson caps.
@@ -109,7 +109,7 @@ def chi_square_independence_test(table: list[list[int]], alpha: float = 0.05) ->
             chi_square += diff * diff / expected
 
     degrees_of_freedom = (num_rows - 1) * (num_cols - 1)
-    p_value = max(0.0, min(1.0, 1.0 - chi_square_cdf(chi_square, degrees_of_freedom)))
+    p_value = max(0.0, min(1.0, chi_square_sf(chi_square, degrees_of_freedom)))
 
     # Cramér's V (association strength in [0, 1]). min_dim >= 1 since both dimensions are >= 2, and
     # chi_square <= total * min_dim mathematically, so V is bounded by 1.
@@ -167,7 +167,7 @@ def g_test_independence(table: list[list[int]], alpha: float = 0.05) -> dict[str
     g_statistic *= 2.0
 
     degrees_of_freedom = (num_rows - 1) * (num_cols - 1)
-    p_value = max(0.0, min(1.0, 1.0 - chi_square_cdf(g_statistic, degrees_of_freedom)))
+    p_value = max(0.0, min(1.0, chi_square_sf(g_statistic, degrees_of_freedom)))
 
     # Cramér's V from G (both are power-divergence statistics bounded by total * min_dim).
     min_dim = min(num_rows - 1, num_cols - 1)

@@ -44,8 +44,9 @@ import math
 from statistics import NormalDist, median
 from typing import Any
 
-from app.backend.app.stats.srm import chi_square_cdf
-from app.backend.app.stats.student_t import t_cdf, t_ppf
+from app.backend.app.stats.binary import standard_normal_sf
+from app.backend.app.stats.srm import chi_square_sf
+from app.backend.app.stats.student_t import t_ppf, t_sf
 
 _STANDARD_NORMAL = NormalDist()
 
@@ -99,7 +100,7 @@ def paired_t_test(
     standard_error = std_difference / math.sqrt(n_pairs)
     degrees_of_freedom = n_pairs - 1
     test_statistic = mean_difference / standard_error
-    p_value = 2.0 * (1.0 - t_cdf(abs(test_statistic), degrees_of_freedom))
+    p_value = 2.0 * t_sf(abs(test_statistic), degrees_of_freedom)
     t_critical = t_ppf(1 - alpha / 2, degrees_of_freedom)
     margin = t_critical * standard_error
     cohen_dz = mean_difference / std_difference
@@ -220,7 +221,7 @@ def wilcoxon_signed_rank_test(
     # Continuity correction pulls the statistic half a step toward its mean; the standardized value
     # is negative for statistic < mean, and the two-sided p doubles that lower tail.
     z_value = (statistic - mean_w + 0.5) / standard_deviation_w
-    p_value = 2.0 * _STANDARD_NORMAL.cdf(z_value) if z_value < 0 else 2.0 * (1.0 - _STANDARD_NORMAL.cdf(z_value))
+    p_value = 2.0 * standard_normal_sf(abs(z_value))
 
     rank_total = n_nonzero * (n_nonzero + 1) / 2.0
     rank_biserial = (w_plus - w_minus) / rank_total
@@ -298,7 +299,7 @@ def mcnemar_test(
     else:
         method = "chi_square"
         statistic = (abs(b - c) - 1) ** 2 / n_discordant
-        p_value = _bounded_probability(1.0 - chi_square_cdf(statistic, 1))
+        p_value = _bounded_probability(chi_square_sf(statistic, 1))
 
     proportion_difference = (b - c) / n_pairs if n_pairs > 0 else 0.0
     odds_ratio = b / c if c > 0 else None

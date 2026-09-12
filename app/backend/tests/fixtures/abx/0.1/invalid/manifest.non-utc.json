@@ -1,0 +1,19 @@
+{
+  "abx_version": "0.1.0",
+  "bundle_id": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "created_at": "2026-08-21T22:00:00+01:00",
+  "protocol_revision_id": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "run_id": "run_foundation_01",
+  "hash_algorithm": "sha256",
+  "required_capabilities": ["lineage-v1", "protocol-core"],
+  "entries": [
+    {
+      "path": "protocol/protocol.json",
+      "role": "protocol",
+      "media_type": "application/json",
+      "size": 2400,
+      "digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+      "schema_id": "urn:evidenceos:abx:schema:0.1:protocol"
+    }
+  ]
+}

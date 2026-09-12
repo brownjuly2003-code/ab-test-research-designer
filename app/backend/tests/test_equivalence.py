@@ -162,7 +162,10 @@ def test_type_one_error_under_boundary_truth() -> None:
 # power 0.80 gives n = 69 (closed form 68.51; Monte-Carlo Welch-TOST power 0.802); the second case
 # sigma 20 / margin 2.0 gives n = 1713 (analytic power 0.8001, n-1 -> 0.7998).
 
-from app.backend.app.stats.equivalence import calculate_tost_sample_size, tost_power  # noqa: E402
+from app.backend.app.stats.equivalence import (  # noqa: E402
+    calculate_tost_sample_size,
+    tost_power,
+)
 
 
 def test_sizing_matches_chow_shao_wang_example() -> None:

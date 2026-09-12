@@ -5,7 +5,7 @@
  * minimatch@3 does:  const expand = require('brace-expansion'); expand(pattern)
  * brace-expansion@5: module.exports = { expand, EXPANSION_MAX, ... }  (not callable)
  *
- * A plain npm override to an audit-clean brace-expansion@5 breaks brace globs such as
+ * A plain npm override to 5.0.8 is audit-clean but breaks brace globs such as
  * *.{ts,tsx} inside eslint-plugin-react / jsx-a11y (see jsx-eslint/eslint-plugin-react#4021).
  *
  * This preload wraps the *actual* installed brace-expansion@5 exports so that:
@@ -140,4 +140,5 @@ process.__abBraceExpansionCompatPreload = {
   active: true,
   file: path.resolve(__filename),
   expectedPackage: EXPECTED_NAME,
+  expectedSafeVersion: "5.0.8",
 };

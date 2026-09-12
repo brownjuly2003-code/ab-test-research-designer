@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:evidenceos:abx:schema:0.1:amendments",
+  "title": "ABX v0.1 protocol amendments",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "protocol_id", "amendments"],
+  "properties": {
+    "schema_version": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/schemaVersion"},
+    "protocol_id": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/opaqueId"},
+    "amendments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "amendment_id",
+          "from_revision_id",
+          "to_revision_id",
+          "reason",
+          "actor_ref",
+          "approved_at"
+        ],
+        "properties": {
+          "amendment_id": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/opaqueId"},
+          "from_revision_id": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/sha256"},
+          "to_revision_id": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/sha256"},
+          "reason": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/nonEmptyText"},
+          "actor_ref": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/actorRef"},
+          "approved_at": {"$ref": "urn:evidenceos:abx:schema:0.1:common#/$defs/utcTimestamp"}
+        }
+      }
+    }
+  }
+}

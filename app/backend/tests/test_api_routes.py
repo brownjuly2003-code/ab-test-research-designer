@@ -1,17 +1,21 @@
-from pathlib import Path
+import logging
 import sys
 import uuid
+from datetime import UTC, datetime
+from pathlib import Path
 
 import pytest
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
 import app.backend.app.main as main_module
 from app.backend.app.config import get_settings
-from app.backend.app.main import create_app
 from app.backend.app.llm.adapter import LocalOrchestratorAdapter
+from app.backend.app.main import create_app
 from app.backend.app.repository import ProjectRepository
+from app.backend.app.routes.system import create_system_router
 
 
 def _full_payload() -> dict:
@@ -2977,3 +2981,151 @@ def test_design_endpoint_carries_planned_test_into_the_report() -> None:
     # Frozen P2.1 reference: the full design path sizes exactly like /calculate (264, not 252).
     assert calculations["sample_size_per_variant"] == 264
     assert any("3/pi" in assumption for assumption in calculations["assumptions"])
+
+
+def _readyz_env(monkeypatch, **overrides: str) -> None:
+    """A readiness probe with no ambient auth and no frontend dist to look for."""
+    for name in ("AB_API_TOKEN", "AB_READONLY_API_TOKEN", "AB_ADMIN_TOKEN", "AB_PUBLIC_DEMO"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("AB_SERVE_FRONTEND_DIST", "false")
+    for name, value in overrides.items():
+        monkeypatch.setenv(name, value)
+    get_settings.cache_clear()
+
+
+def test_readyz_reports_auth_mode_open_when_nothing_gates_a_mutation(monkeypatch) -> None:
+    """"ready" and "open" are different answers and an operator needs both.
+
+    A local instance with no token is ready and wide open at the same time, so
+    readiness alone cannot tell an operator whether traffic is safe to send.
+    """
+    _readyz_env(monkeypatch)
+
+    with TestClient(create_app()) as client:
+        response = client.get("/readyz")
+
+    assert response.status_code == 200
+    assert response.json()["auth_mode"] == "open"
+    get_settings.cache_clear()
+
+
+def test_readyz_reports_auth_mode_token_when_a_write_token_is_configured(monkeypatch) -> None:
+    _readyz_env(monkeypatch, AB_API_TOKEN="super-secret-token")
+
+    with TestClient(create_app()) as client:
+        response = client.get("/readyz", headers={"Authorization": "Bearer super-secret-token"})
+
+    assert response.status_code == 200
+    assert response.json()["auth_mode"] == "token"
+    get_settings.cache_clear()
+
+
+class _ReadyzStubRepository:
+    """Enough repository for `/readyz`: a storage summary and an API-key answer."""
+
+    backend_name = "sqlite"
+    schema_version = 1
+
+    def __init__(self, *, has_keys: bool = False) -> None:
+        self._has_keys = has_keys
+
+    def has_api_keys(self) -> bool:
+        return self._has_keys
+
+    def get_diagnostics_summary(self) -> dict:
+        return {
+            "sqlite_user_version": self.schema_version,
+            "journal_mode": "WAL",
+            "write_probe_ok": True,
+            "write_probe_detail": "ok",
+        }
+
+
+def _readyz_auth_mode(monkeypatch, *, has_keys: bool = False, **overrides: str) -> str:
+    """Read `auth_mode` off the system router with the app's auth middleware out of the way.
+
+    An admin-only deployment closes `/readyz` to anonymous callers and the admin
+    token does not carry read scope, so the mode it reports is unreachable through
+    `create_app()`. Mounting the router alone keeps the branch under test.
+    """
+    _readyz_env(monkeypatch, **overrides)
+    settings = get_settings()
+    repository = _ReadyzStubRepository(has_keys=has_keys)
+    app = FastAPI()
+    app.include_router(create_system_router(settings, repository, {}, datetime.now(UTC)))
+    with TestClient(app) as client:
+        payload = client.get("/readyz").json()
+    get_settings.cache_clear()
+    assert isinstance(payload["auth_mode"], str)
+    return payload["auth_mode"]
+
+
+@pytest.mark.parametrize(
+    ("overrides", "has_keys", "expected"),
+    [
+        ({}, False, "open"),
+        ({"AB_API_TOKEN": "super-secret-token"}, False, "token"),
+        ({"AB_READONLY_API_TOKEN": "super-secret-token"}, False, "readonly"),
+        (
+            {"AB_API_TOKEN": "super-secret-token", "AB_READONLY_API_TOKEN": "another-secret"},
+            False,
+            "dual_token",
+        ),
+        ({}, True, "api_keys"),
+        ({"AB_API_TOKEN": "super-secret-token"}, True, "hybrid"),
+        ({"AB_ADMIN_TOKEN": "super-secret-admin-token"}, False, "admin_only"),
+        ({"AB_PUBLIC_DEMO": "true"}, False, "public_demo"),
+    ],
+)
+def test_readyz_reserves_open_for_a_genuinely_open_surface(
+    monkeypatch, overrides: dict[str, str], has_keys: bool, expected: str
+) -> None:
+    """`get_auth_mode` calls the last two cases "open"; `auth_enabled()` disagrees.
+
+    An admin token or public-demo mode already makes anonymous mutations answer
+    401, so reporting either as "open" on a readiness probe would be a lie in the
+    dangerous direction.
+    """
+    assert _readyz_auth_mode(monkeypatch, has_keys=has_keys, **overrides) == expected
+
+
+def _startup_warnings(app) -> list[logging.LogRecord]:
+    """Warnings the lifespan emits, collected past `configure_logging`.
+
+    `create_app()` calls `logging.basicConfig(force=True)`, which drops every
+    handler the root logger has -- caplog's included -- so the handler has to be
+    attached after the app is built and before the lifespan runs.
+    """
+    records: list[logging.LogRecord] = []
+
+    class _Collector(logging.Handler):
+        def emit(self, record: logging.LogRecord) -> None:
+            records.append(record)
+
+    collector = _Collector(level=logging.WARNING)
+    logger = logging.getLogger("app.backend.app.main")
+    logger.addHandler(collector)
+    try:
+        with TestClient(app):
+            pass
+    finally:
+        logger.removeHandler(collector)
+    return [record for record in records if record.getMessage().startswith("auth is open")]
+
+
+def test_startup_warns_once_when_the_auth_surface_is_open(monkeypatch) -> None:
+    """The open door is one INFO field among fifteen; it needs its own warning."""
+    _readyz_env(monkeypatch)
+
+    open_warnings = _startup_warnings(create_app())
+
+    assert len(open_warnings) == 1
+    assert open_warnings[0].fields["event"] == "auth_open"
+    get_settings.cache_clear()
+
+
+def test_startup_does_not_warn_when_a_token_is_configured(monkeypatch) -> None:
+    _readyz_env(monkeypatch, AB_API_TOKEN="super-secret-token")
+
+    assert _startup_warnings(create_app()) == []
+    get_settings.cache_clear()

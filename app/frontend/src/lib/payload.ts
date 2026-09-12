@@ -11,6 +11,7 @@ import type {
   HydratableExperimentInput,
   LoadedPayload
 } from "./types";
+import { LEGACY_RESULTS_LINEAGE_DISCLOSURE } from "./types";
 
 export const browserDraftStorageKey = "ab-test-research-designer:draft:v1";
 
@@ -417,7 +418,8 @@ export function hydrateLoadedPayload(
         },
         analysis: {
           ...observedResults.analysis,
-          metric_type: observedResults.analysis.metric_type === "continuous" ? "continuous" : "binary"
+          metric_type: observedResults.analysis.metric_type === "continuous" ? "continuous" : "binary",
+          lineage: LEGACY_RESULTS_LINEAGE_DISCLOSURE
         }
       }
     : undefined;

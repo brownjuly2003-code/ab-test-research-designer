@@ -1,10 +1,7 @@
-import asyncio
 import logging
-import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
-from pathlib import Path
 
 import uvicorn
 from fastapi import FastAPI, Request, Response
@@ -13,6 +10,7 @@ from starlette.middleware.base import RequestResponseEndpoint
 
 from app.backend.app.compute_admission import ComputeAdmissionController
 from app.backend.app.config import Settings, get_settings
+from app.backend.app.evidence.demo_seed import seed_asos_evidence_runs
 from app.backend.app.frontend_routes import register_frontend_routes
 from app.backend.app.http_runtime import (
     create_runtime_counters,
@@ -38,9 +36,9 @@ from app.backend.app.routes.slack import create_slack_router
 from app.backend.app.routes.system import create_system_router
 from app.backend.app.routes.templates import create_templates_router
 from app.backend.app.routes.webhooks import create_webhooks_router
+from app.backend.app.routes.workbench import create_workbench_router
 from app.backend.app.routes.workspace import create_workspace_router
 from app.backend.app.services.design_service import build_experiment_report
-from app.backend.app.services.snapshot_service import SnapshotService
 from app.backend.app.services.webhook_service import WebhookService
 from app.backend.app.startup_seed import seed_demo_workspace
 
@@ -64,6 +62,23 @@ def _verify_production_storage(repository: ProjectRepository) -> None:
     if not summary.get("write_probe_ok", False):
         detail = summary.get("write_probe_detail", "unknown error")
         raise RuntimeError(f"Production storage health check failed: {detail}")
+
+
+def _auth_material_present(settings: Settings, repository: ProjectRepository) -> bool:
+    """Whether anything at all would make `http_runtime.auth_enabled` true.
+
+    Kept next to the production check but deliberately looser than it: this asks
+    "is the door shut", where `_verify_production_auth` asks "can anyone write",
+    and a read-only token or public-demo mode answers yes to the first and no to
+    the second. A database that cannot be read counts as no keys; the storage
+    failure is reported by its own check rather than through this one.
+    """
+    if settings.api_token or settings.readonly_api_token or settings.admin_token or settings.public_demo:
+        return True
+    try:
+        return bool(repository.has_api_keys())
+    except Exception:  # pragma: no cover - storage failures surface through /readyz
+        return False
 
 
 def _verify_production_auth(settings: Settings, repository: ProjectRepository) -> None:
@@ -174,20 +189,7 @@ def create_app() -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-        snapshot_service: SnapshotService | None = None
-        snapshot_task: asyncio.Task[None] | None = None
         seed_enabled = settings.seed_demo_on_startup
-        snapshot_repo = (os.getenv("AB_HF_SNAPSHOT_REPO") or "").strip()
-        snapshot_token = (os.getenv("AB_HF_TOKEN") or "").strip()
-        snapshot_interval_raw = (os.getenv("AB_HF_SNAPSHOT_INTERVAL_SECONDS") or "900").strip()
-        try:
-            snapshot_interval_seconds = max(0, int(snapshot_interval_raw))
-        except ValueError:
-            snapshot_interval_seconds = 900
-            logger.warning(
-                "snapshot: invalid interval %r, using default 900",
-                snapshot_interval_raw,
-            )
 
         log_event(
             logger,
@@ -213,77 +215,43 @@ def create_app() -> FastAPI:
             workspace_signing_enabled=settings.workspace_signing_key is not None,
         )
 
-        if repository.supports_snapshots and snapshot_repo and snapshot_token:
-            snapshot_service = SnapshotService(
-                repo_id=snapshot_repo,
-                local_db_path=Path(settings.db_path),
-                hf_token=snapshot_token,
-                app_version=settings.app_version,
-                db_schema_version=repository.schema_version,
-                workspace_schema_version=repository.workspace_schema_version,
+        # An open write surface is normal on a laptop and never normal anywhere
+        # else, and the difference is invisible in an INFO line among fifteen
+        # other fields. Production cannot reach this branch without
+        # AB_ALLOW_INSECURE_PRODUCTION, which logs its own louder warning during
+        # `_verify_production_auth`, so this covers the environments in between --
+        # a staging box or a shared dev instance that quietly lost its token.
+        if not _auth_material_present(settings, repository):
+            log_event(
+                logger,
+                logging.WARNING,
+                "auth is open: no token, admin token, API key or public-demo mode is "
+                "configured, so every mutating endpoint accepts anonymous callers. "
+                "GET /readyz reports auth_mode=open.",
+                event="auth_open",
+                environment=settings.environment,
+                remediation=(
+                    "Set AB_API_TOKEN for a shared write token, or AB_ADMIN_TOKEN to issue "
+                    "write-scoped API keys. See docs/PRODUCTION.md."
+                ),
             )
-            def _post_restore_migrate() -> None:
-                # The DB file was replaced after ProjectRepository already opened the
-                # previous file and ran migrations. Re-bootstrap so schema N-1
-                # snapshots migrate to the build's user_version before readiness.
-                # SnapshotService keeps a rollback copy and reverts on failure here.
-                reinitialize = getattr(repository, "reinitialize_after_restore", None)
-                if callable(reinitialize):
-                    reinitialize()
-
-            restored = await snapshot_service.restore_latest(post_replace=_post_restore_migrate)
-            if restored:
-                # Keep the demo seed enabled after a restore: seed_demo_workspace is
-                # idempotent — it skips existing designs and any demo that already
-                # carries exposures, and only tops up missing execution data or a
-                # newly added demo on top of the restored snapshot. Snapshots that
-                # predate the execution seed (Phase 5) would otherwise leave the
-                # live-stats surface empty, so restoring must not disable the seed.
-                logger.info(
-                    "snapshot: restored from %s (demo seed tops up idempotently)",
-                    snapshot_service.last_restored_commit or "unknown",
-                )
-            elif settings.seed_demo_on_startup:
-                logger.info("snapshot: no snapshot available, falling back to seed")
-        elif not repository.supports_snapshots:
-            logger.info("snapshot: disabled for backend %s", repository.backend_name)
-        else:
-            logger.info("snapshot: disabled (env not set)")
 
         if seed_enabled:
             try:
                 seed_demo_workspace(settings, repository)
             except Exception:
                 logger.exception("demo-seed: failed")
+            if not settings.is_production:
+                try:
+                    seed_asos_evidence_runs(repository, artifact_root=settings.artifact_root)
+                except Exception:
+                    logger.exception("asos-evidence-seed: failed")
 
-        # Outbox worker starts once startup work (restore/seed) has settled; its
+        # Outbox worker starts once startup work (seed) has settled; its
         # first pass also drains deliveries left claimable by a previous process.
         webhook_service.start_worker()
 
-        if snapshot_service is not None and snapshot_interval_seconds > 0:
-            async def run_snapshot_loop() -> None:
-                while True:
-                    await asyncio.sleep(snapshot_interval_seconds)
-                    try:
-                        await snapshot_service.push_snapshot()
-                    except Exception:
-                        logger.exception("snapshot: periodic push failed")
-
-            snapshot_task = asyncio.create_task(run_snapshot_loop())
         yield
-        if snapshot_task is not None:
-            snapshot_task.cancel()
-            try:
-                await snapshot_task
-            except asyncio.CancelledError:
-                pass
-        if snapshot_service is not None:
-            try:
-                await asyncio.wait_for(snapshot_service.push_snapshot(), timeout=10)
-            except TimeoutError:
-                logger.warning("snapshot: final push timed out")
-            except Exception:
-                logger.warning("snapshot: final push failed", exc_info=True)
         webhook_service.shutdown(wait=True)
         repository_close = getattr(repository, "close", None)
         if callable(repository_close):
@@ -311,6 +279,7 @@ def create_app() -> FastAPI:
             {"name": "webhooks", "description": "Admin-only outbound webhook subscription management."},
             {"name": "slack", "description": "Slack App OAuth, slash commands, and interactive actions."},
             {"name": "workspace", "description": "Workspace backup, restore, and export utilities."},
+            {"name": "evidence", "description": "Evidence Workbench, ABX verification, and human decisions."},
             {"name": "system", "description": "Health, readiness, and runtime diagnostics."},
         ],
         lifespan=lifespan,
@@ -345,6 +314,10 @@ def create_app() -> FastAPI:
         auth_failure_limiter=auth_failure_limiter,
         runtime_counters=runtime_counters,
     )
+
+    def require_write_access(request: Request) -> None:
+        require_write_auth(request)
+
     register_exception_handlers(app, logger=logger, settings=settings)
     # Intentional runtime injection seam: bind the report builder onto the routes
     # module dynamically. Kept as setattr so it stays opaque to mypy --strict
@@ -356,7 +329,7 @@ def create_app() -> FastAPI:
             repository,
             request_rate_limiter,
             require_auth,
-            require_write_auth,
+            require_write_access,
         )
     )
     app.include_router(
@@ -365,7 +338,7 @@ def create_app() -> FastAPI:
             repository,
             request_rate_limiter,
             require_auth,
-            require_write_auth,
+            require_write_access,
         )
     )
     app.include_router(create_keys_router(settings, repository, require_admin_auth))
@@ -376,7 +349,7 @@ def create_app() -> FastAPI:
             repository,
             request_rate_limiter,
             require_auth,
-            require_write_auth,
+            require_write_access,
         )
     )
     app.include_router(
@@ -385,7 +358,7 @@ def create_app() -> FastAPI:
             repository,
             request_rate_limiter,
             require_auth,
-            require_write_auth,
+            require_write_access,
         )
     )
     app.include_router(
@@ -394,7 +367,7 @@ def create_app() -> FastAPI:
             repository,
             request_rate_limiter,
             require_auth,
-            require_write_auth,
+            require_write_access,
         )
     )
     app.include_router(
@@ -403,10 +376,18 @@ def create_app() -> FastAPI:
             repository,
             request_rate_limiter,
             require_auth,
-            require_write_auth,
+            require_write_access,
         )
     )
     app.include_router(create_export_router(settings, repository, request_rate_limiter, require_auth))
+    app.include_router(
+        create_workbench_router(
+            repository,
+            require_auth,
+            require_write_auth,
+            settings.artifact_root,
+        )
+    )
     app.include_router(create_slack_router(settings, repository))
     app.include_router(create_system_router(settings, repository, runtime_counters, started_at))
     register_frontend_routes(app, settings)

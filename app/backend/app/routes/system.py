@@ -1,3 +1,4 @@
+import os
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -71,6 +72,55 @@ def create_system_router(
             git_sha=settings.build_sha,
             environment=settings.environment,
         )
+
+    def _artifact_root_state() -> tuple[bool, str]:
+        """Whether persisted evidence runs have somewhere to land, and where.
+
+        The tree is created on first write, so the probe walks up to the nearest
+        path that exists and asks whether that is a writable directory: a root
+        that does not exist yet is fine, a root whose parent is read-only is not.
+        In the container the writable place is the data volume, which is why
+        `docker-compose.yml` sets `AB_ARTIFACT_ROOT` under `/app/data` -- `/app`
+        itself belongs to root and the process runs as uid 1000.
+        """
+        root = settings.artifact_root
+        existing = root
+        while not existing.exists() and existing != existing.parent:
+            existing = existing.parent
+        if not existing.is_dir():
+            return False, f"{root} — nearest existing path {existing} is not a directory"
+        if not os.access(existing, os.W_OK):
+            return False, f"{root} — {existing} is not writable"
+        if root == existing:
+            return True, f"{root} (writable)"
+        return True, f"{root} (writable; created on first run)"
+
+    def _readiness_auth_mode() -> str:
+        """The auth posture as an operator would state it, with "open" reserved for open.
+
+        `get_auth_mode` answers a narrower question -- which of the two shared
+        tokens and the API keys are in play -- so it returns "open" for a
+        deployment held by the admin token alone, or by AB_PUBLIC_DEMO, even
+        though `http_runtime.auth_enabled` is true in both and anonymous
+        mutations already answer 401. On a readiness probe that would be a lie
+        in the dangerous direction, so those two cases get their own names.
+
+        The API-key lookup is a database read; readyz already reads the database
+        for its storage checks, and a failure there must not turn a readiness
+        answer into a 500, so it degrades to "no keys" rather than propagating.
+        """
+        try:
+            api_keys_enabled = repository.has_api_keys()
+        except Exception:  # pragma: no cover - storage failure already reported above
+            api_keys_enabled = False
+        mode = get_auth_mode(settings.api_token, settings.readonly_api_token, api_keys_enabled)
+        if mode != "open":
+            return mode
+        if settings.admin_token:
+            return "admin_only"
+        if settings.public_demo:
+            return "public_demo"
+        return "open"
 
     @router.get("/readyz", response_model=ReadinessResponse)
     def readyz(response: Response) -> ReadinessResponse:
@@ -164,6 +214,14 @@ def create_system_router(
                 ),
             )
         )
+        artifact_root_ok, artifact_root_detail = _artifact_root_state()
+        checks.append(
+            ReadinessCheck(
+                name="artifact_root",
+                ok=artifact_root_ok,
+                detail=artifact_root_detail,
+            )
+        )
         checks.append(
             ReadinessCheck(
                 name="llm_config",
@@ -184,6 +242,7 @@ def create_system_router(
             status="ready" if ready else "degraded",
             generated_at=datetime.now(UTC).isoformat(),
             checks=checks,
+            auth_mode=_readiness_auth_mode(),
         )
 
     @router.get("/api/v1/diagnostics", response_model=DiagnosticsResponse)

@@ -124,6 +124,17 @@ POSTGRES_MIGRATIONS: Final[tuple[Migration, ...]] = (
             """,
         ),
     ),
+    Migration(
+        version=18,
+        name="api_key_role",
+        statements=(
+            # I-01: an issued key may carry the approval role its holder decides
+            # under, so a recorded decision can say the role came from a
+            # credential instead of the frozen policy's first role. Nullable:
+            # keys issued before this column keep the policy default.
+            "ALTER TABLE api_keys ADD COLUMN IF NOT EXISTS role TEXT",
+        ),
+    ),
 )
 
 # What the running code requires the database to be. Readiness compares the version actually

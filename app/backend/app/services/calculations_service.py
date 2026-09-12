@@ -81,6 +81,7 @@ def calculate_experiment_metrics(payload: dict[str, Any]) -> dict[str, Any]:
                 alpha=payload["alpha"],
                 power=payload["power"],
                 variants_count=variants_count,
+                traffic_split=traffic_split,
             )
         else:
             raise ValueError(f"Unsupported planned_test for binary metrics: {planned_test}")
@@ -124,6 +125,7 @@ def calculate_experiment_metrics(payload: dict[str, Any]) -> dict[str, Any]:
             alpha=payload["alpha"],
             power=payload["power"],
             variants_count=variants_count,
+            traffic_split=traffic_split,
         )
         if metric_type == "ratio":
             # A ratio metric R = E[Y]/E[X] is sized by the delta method: the per-user linearized value
@@ -214,6 +216,11 @@ def calculate_experiment_metrics(payload: dict[str, Any]) -> dict[str, Any]:
         audience_share_in_test=payload["audience_share_in_test"],
         traffic_split=traffic_split,
         traffic_allocation_fraction=traffic_allocation_fraction,
+        total_sample_size=(
+            calculation_summary["total_sample_size"]
+            if planned_test == "z_test" and metric_type in ("binary", "continuous", "ratio")
+            else None
+        ),
     )
 
     result = {
@@ -282,6 +289,7 @@ def calculate_experiment_metrics(payload: dict[str, Any]) -> dict[str, Any]:
             alpha=payload["alpha"],
             power=payload["power"],
             variants_count=variants_count,
+            traffic_split=traffic_split,
         )
         if cluster_design and avg_cluster_size is not None and icc is not None:
             # The design effect applies to the CUPED-reduced size too; leaving it individual-level
@@ -298,6 +306,7 @@ def calculate_experiment_metrics(payload: dict[str, Any]) -> dict[str, Any]:
             audience_share_in_test=payload["audience_share_in_test"],
             traffic_split=traffic_split,
             traffic_allocation_fraction=traffic_allocation_fraction,
+            total_sample_size=cuped_summary["total_sample_size"],
         )
         result["cuped_std"] = round(cuped_std, 4)
         result["cuped_sample_size_per_variant"] = cuped_summary["sample_size_per_variant"]

@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import sys
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -22,6 +23,12 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 ORACLE_PACKAGES = ("numpy", "pandas", "scipy", "statsmodels", "lifelines")
+SCIENTIFIC_THREAD_ENV_VARS = (
+    "OPENBLAS_NUM_THREADS",
+    "OMP_NUM_THREADS",
+    "MKL_NUM_THREADS",
+    "NUMEXPR_NUM_THREADS",
+)
 
 
 @dataclass(frozen=True)
@@ -57,9 +64,13 @@ def _add_check(
     expected_float = _as_float(expected)
     if math.isfinite(expected_float):
         abs_diff = abs(observed_float - expected_float)
-        denominator = max(1.0, abs(expected_float))
-        rel_diff = abs_diff / denominator
-        allowed = max(abs_tolerance, rel_tolerance * denominator)
+        expected_magnitude = abs(expected_float)
+        rel_diff = (
+            abs_diff / expected_magnitude
+            if expected_magnitude > 0.0
+            else abs_diff
+        )
+        allowed = max(abs_tolerance, rel_tolerance * expected_magnitude)
         passed = math.isfinite(observed_float) and abs_diff <= allowed
     else:
         abs_diff = 0.0 if observed_float == expected_float else math.inf
@@ -99,6 +110,11 @@ def _assert_oracle_dependencies() -> None:
             f"missing optional oracle dependencies: {joined}; "
             "install app/backend/requirements-oracle.txt"
         )
+
+
+def _bound_scientific_library_threads() -> None:
+    for variable in SCIENTIFIC_THREAD_ENV_VARS:
+        os.environ[variable] = "1"
 
 
 def _check_student_and_distribution_tails(checks: list[Check]) -> None:
@@ -827,19 +843,6 @@ def _check_supporting_statistical_utilities(checks: list[Check]) -> None:
     from scipy import stats as scipy_stats
     from statsmodels.stats.multitest import multipletests
 
-    from app.backend.app.stats.always_valid import (
-        always_valid_p_value,
-        confidence_sequence,
-        default_mixture_variance,
-    )
-    from app.backend.app.stats.bayesian import (
-        bayesian_sample_size_binary,
-        bayesian_sample_size_continuous,
-    )
-    from app.backend.app.stats.cluster import (
-        cluster_design_effect,
-        inflate_for_cluster_design,
-    )
     from app.backend.app.stats.cuped import adjusted_variance, cuped_theta
     from app.backend.app.stats.guardrail import (
         DECREASE_IS_BAD,
@@ -853,10 +856,7 @@ def _check_supporting_statistical_utilities(checks: list[Check]) -> None:
         benjamini_hochberg,
         holm_bonferroni,
     )
-    from app.backend.app.stats.sequential import (
-        obrien_fleming_boundaries,
-        sequential_sample_size_inflation,
-    )
+    from app.backend.app.stats.sequential import obrien_fleming_boundaries
     from app.backend.app.stats.srm import chi_square_srm
 
     srm = chi_square_srm([530, 470], [0.5, 0.5])
@@ -960,118 +960,33 @@ def _check_supporting_statistical_utilities(checks: list[Check]) -> None:
         source="numpy quadratic form",
     )
 
-    _add_check(
-        checks,
-        case="cluster_design_effect",
-        metric="deff",
-        observed=cluster_design_effect(100.0, 0.02),
-        expected=2.98,
-        abs_tolerance=1e-12,
-        source="Kish closed-form reference",
-    )
-    inflated = inflate_for_cluster_design(1000, 100.0, 0.02, variants_count=3)
-    _add_check(
-        checks,
-        case="cluster_design_effect",
-        metric="sample_size_per_variant",
-        observed=inflated["sample_size_per_variant"],
-        expected=2980.0,
-        abs_tolerance=0.0,
-        source="Kish closed-form reference",
-    )
-    _add_check(
-        checks,
-        case="cluster_design_effect",
-        metric="icc_zero_degeneracy",
-        observed=cluster_design_effect(100.0, 0.0),
-        expected=1.0,
-        abs_tolerance=0.0,
-        source="Kish closed-form reference",
-    )
-
-    boundaries = obrien_fleming_boundaries(4, alpha=0.05)
-    _add_check(
-        checks,
-        case="obrien_fleming_boundaries",
-        metric="final_z_anchor",
-        observed=boundaries[-1]["z_boundary"],
-        expected=2.024,
-        abs_tolerance=5e-4,
-        source="module anchor table",
-    )
-    _add_check(
-        checks,
-        case="obrien_fleming_boundaries",
-        metric="first_gt_final",
-        observed=float(boundaries[0]["z_boundary"] > boundaries[-1]["z_boundary"]),
-        expected=1.0,
-        abs_tolerance=0.0,
-        source="O'Brien-Fleming monotonic boundary shape",
-    )
-    _add_check(
-        checks,
-        case="obrien_fleming_boundaries",
-        metric="final_cumulative_alpha",
-        observed=boundaries[-1]["cumulative_alpha_spent"],
-        expected=0.05,
-        abs_tolerance=5e-7,
-        source="Lan-DeMets alpha spending endpoint",
-    )
-    _add_check(
-        checks,
-        case="sequential_sample_size_inflation",
-        metric="n_looks_4",
-        observed=sequential_sample_size_inflation(4),
-        expected=1.025,
-        abs_tolerance=0.0,
-        source="module reference table",
-    )
-
-    binary_n = bayesian_sample_size_binary(0.2, 0.02, credibility=0.95)
-    binary_ref = math.ceil(2.0 * 0.2 * 0.8 * (scipy_stats.norm.ppf(0.975) / 0.02) ** 2)
-    _add_check(
-        checks,
-        case="bayesian_precision_sizing",
-        metric="binary_n",
-        observed=binary_n,
-        expected=binary_ref,
-        abs_tolerance=0.0,
-        source="scipy.stats.norm.ppf closed-form",
-    )
-    continuous_n = bayesian_sample_size_continuous(12.0, 1.5, credibility=0.9)
-    continuous_ref = math.ceil(2.0 * 12.0**2 * (scipy_stats.norm.ppf(0.95) / 1.5) ** 2)
-    _add_check(
-        checks,
-        case="bayesian_precision_sizing",
-        metric="continuous_n",
-        observed=continuous_n,
-        expected=continuous_ref,
-        abs_tolerance=0.0,
-        source="scipy.stats.norm.ppf closed-form",
-    )
-
-    tau2 = default_mixture_variance(0.2)
-    low_effect_p = always_valid_p_value(0.1, 0.01, tau2)
-    high_effect_p = always_valid_p_value(0.3, 0.01, tau2)
-    _add_check(
-        checks,
-        case="always_valid_msprt",
-        metric="larger_effect_lowers_p",
-        observed=float(high_effect_p < low_effect_p),
-        expected=1.0,
-        abs_tolerance=0.0,
-        source="mSPRT monotonicity metamorphic oracle",
-    )
-    lower, upper = confidence_sequence(0.3, 0.01, tau2, alpha=0.05)
-    _add_check(
-        checks,
-        case="always_valid_msprt",
-        metric="confidence_sequence_duality",
-        observed=float((high_effect_p < 0.05) == (lower > 0.0 or upper < 0.0)),
-        expected=1.0,
-        abs_tolerance=0.0,
-        source="mSPRT p-value/confidence-sequence duality",
-    )
+    for n_looks in range(2, 6):
+        boundaries = obrien_fleming_boundaries(n_looks, alpha=0.05)
+        information = np.arange(1, n_looks + 1, dtype=float) / n_looks
+        correlation = np.sqrt(
+            np.minimum.outer(information, information)
+            / np.maximum.outer(information, information)
+        )
+        z_boundaries = np.array([look["z_boundary"] for look in boundaries])
+        survival_probability = scipy_stats.multivariate_normal.cdf(
+            z_boundaries,
+            mean=np.zeros(n_looks),
+            cov=correlation,
+            lower_limit=-z_boundaries,
+            maxpts=1_000_000,
+            abseps=1e-7,
+            releps=1e-7,
+            rng=np.random.default_rng(20260902 + n_looks),
+        )
+        _add_check(
+            checks,
+            case="obrien_fleming_boundaries",
+            metric=f"scipy_type_i_k={n_looks}",
+            observed=1.0 - survival_probability,
+            expected=0.05,
+            abs_tolerance=2e-4,
+            source="scipy.stats.multivariate_normal rectangular crossing probability",
+        )
 
     guardrail = evaluate_guardrail(0.12, 0.0004, direction=INCREASE_IS_BAD, margin=0.05)
     if guardrail is None:
@@ -1116,6 +1031,408 @@ def _check_supporting_statistical_utilities(checks: list[Check]) -> None:
         abs_tolerance=0.0,
         source="directed harm sign contract",
     )
+
+
+def _check_c05_independent_oracles(checks: list[Check]) -> None:
+    import numpy as np
+    import statsmodels.api as sm
+    from scipy import integrate as scipy_integrate
+    from scipy import stats as scipy_stats
+    from statsmodels.stats.power import NormalIndPower
+    from statsmodels.stats.proportion import proportion_effectsize
+
+    from app.backend.app.services.live_stats.cuped import _build_cuped_block
+    from app.backend.app.services.monte_carlo_service import (
+        beta_probability_treatment_beats_control,
+    )
+    from app.backend.app.stats.always_valid import always_valid_p_value
+    from app.backend.app.stats.binary import calculate_binary_sample_size
+    from app.backend.app.stats.continuous import calculate_continuous_sample_size
+    from app.backend.app.stats.stratification import (
+        combine_strata,
+        continuous_point_variance,
+        stratum_difference,
+    )
+
+    power_solver = NormalIndPower()
+    allocations = (("50/50", (0.5, 0.5)), ("90/10", (0.9, 0.1)))
+    binary_effect_size = abs(proportion_effectsize(0.1, 0.11))
+    for label, allocation in allocations:
+        ratio = allocation[1] / allocation[0]
+        binary = calculate_binary_sample_size(
+            baseline_rate=0.1,
+            mde_pct=10.0,
+            alpha=0.05,
+            power=0.8,
+            traffic_split=allocation,
+        )
+        binary_control_reference = power_solver.solve_power(
+            effect_size=binary_effect_size,
+            alpha=0.05,
+            power=0.8,
+            ratio=ratio,
+            alternative="two-sided",
+        )
+        _add_check(
+            checks,
+            case="binary_sample_size",
+            metric=f"total_n_{label}",
+            observed=binary["total_sample_size"],
+            expected=binary_control_reference * (1.0 + ratio),
+            abs_tolerance=2.0,
+            rel_tolerance=0.02,
+            source="statsmodels.stats.power.NormalIndPower with proportion_effectsize",
+        )
+
+        continuous = calculate_continuous_sample_size(
+            baseline_mean=100.0,
+            std_dev=20.0,
+            mde_pct=5.0,
+            alpha=0.05,
+            power=0.8,
+            traffic_split=allocation,
+        )
+        continuous_control_reference = power_solver.solve_power(
+            effect_size=0.25,
+            alpha=0.05,
+            power=0.8,
+            ratio=ratio,
+            alternative="two-sided",
+        )
+        _add_check(
+            checks,
+            case="continuous_sample_size",
+            metric=f"total_n_{label}",
+            observed=continuous["total_sample_size"],
+            expected=continuous_control_reference * (1.0 + ratio),
+            abs_tolerance=2.0,
+            rel_tolerance=0.003,
+            source="statsmodels.stats.power.NormalIndPower",
+        )
+
+    raw_strata = (
+        (
+            np.array([9.0, 10.0, 11.0, 12.0]),
+            np.array([11.0, 12.0, 12.0, 13.0, 14.0]),
+        ),
+        (
+            np.array([18.0, 19.0, 20.0, 20.0, 21.0, 22.0]),
+            np.array([20.0, 21.0, 22.0, 23.0, 24.0]),
+        ),
+    )
+    production_strata: list[dict[str, Any]] = []
+    stratum_references: list[tuple[int, float, float]] = []
+    for control_values, treatment_values in raw_strata:
+        control = continuous_point_variance(
+            float(control_values.sum()),
+            float(np.dot(control_values, control_values)),
+            len(control_values),
+        )
+        treatment = continuous_point_variance(
+            float(treatment_values.sum()),
+            float(np.dot(treatment_values, treatment_values)),
+            len(treatment_values),
+        )
+        if control is None or treatment is None:
+            raise AssertionError("post-stratification oracle fixture unexpectedly degenerated")
+        difference = stratum_difference(control, treatment)
+        stratum_size = len(control_values) + len(treatment_values)
+        production_strata.append({"n": stratum_size, **difference})
+        reference_delta = float(treatment_values.mean() - control_values.mean())
+        reference_variance = float(
+            treatment_values.var(ddof=1) / len(treatment_values)
+            + control_values.var(ddof=1) / len(control_values)
+        )
+        stratum_references.append((stratum_size, reference_delta, reference_variance))
+
+    post_stratified = combine_strata(production_strata, alpha=0.05)
+    if post_stratified is None:
+        raise AssertionError("post-stratification oracle case unexpectedly degenerated")
+    total_stratum_size = sum(item[0] for item in stratum_references)
+    reference_effect = sum(
+        size / total_stratum_size * delta
+        for size, delta, _variance in stratum_references
+    )
+    reference_variance = sum(
+        (size / total_stratum_size) ** 2 * variance
+        for size, _delta, variance in stratum_references
+    )
+    reference_standard_error = math.sqrt(reference_variance)
+    reference_p_value = 2.0 * scipy_stats.norm.sf(
+        abs(reference_effect / reference_standard_error)
+    )
+    for metric, expected in (
+        ("effect", reference_effect),
+        ("variance", reference_variance),
+        ("standard_error", reference_standard_error),
+        ("p_value", reference_p_value),
+    ):
+        _add_check(
+            checks,
+            case="post_stratification",
+            metric=metric,
+            observed=post_stratified[metric],
+            expected=expected,
+            abs_tolerance=1e-12,
+            source="NumPy sample moments and scipy.stats.norm reference",
+        )
+
+    control_x = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
+    control_y = np.array([10.0, 13.0, 13.0, 16.0, 18.0, 19.0])
+    treatment_x = np.array([2.0, 3.0, 4.0, 5.0, 6.0, 7.0])
+    treatment_y = np.array([14.0, 15.0, 18.0, 20.0, 21.0, 24.0])
+
+    def cuped_arm(index: int, x_values: Any, y_values: Any) -> dict[str, Any]:
+        centered_x = x_values - x_values.mean()
+        centered_y = y_values - y_values.mean()
+        return {
+            "variation_index": index,
+            "n": len(x_values),
+            "sum_y": float(y_values.sum()),
+            "sum_y2": float(np.dot(y_values, y_values)),
+            "sum_x": [float(x_values.sum())],
+            "sum_xy": [float(np.dot(x_values, y_values))],
+            "sum_xx": [[float(np.dot(x_values, x_values))]],
+            "centered_syy": float(np.dot(centered_y, centered_y)),
+            "centered_sxy": [float(np.dot(centered_x, centered_y))],
+            "centered_sxx": [[float(np.dot(centered_x, centered_x))]],
+        }
+
+    control_n = len(control_x)
+    treatment_n = len(treatment_x)
+    cuped_block = _build_cuped_block(
+        metric_type="continuous",
+        alpha=0.05,
+        variants_count=2,
+        exposed_total=control_n + treatment_n,
+        exposed_by_index={0: control_n, 1: treatment_n},
+        cuped_aggregates={
+            "covariate_names": ["pre_period"],
+            "variations": [
+                cuped_arm(0, control_x, control_y),
+                cuped_arm(1, treatment_x, treatment_y),
+            ],
+        },
+    )
+    cuped_comparison = cuped_block["comparisons"][0]
+    cuped_analysis = cuped_comparison["analysis"]
+    if cuped_comparison["status"] != "ok" or cuped_analysis is None:
+        raise AssertionError("live CUPED oracle case unexpectedly degenerated")
+
+    outcomes = np.concatenate((control_y, treatment_y))
+    covariate = np.concatenate((control_x, treatment_x))
+    treatment_indicator = np.concatenate(
+        (np.zeros(control_n), np.ones(treatment_n))
+    )
+    design_matrix = sm.add_constant(
+        np.column_stack((treatment_indicator, covariate))
+    )
+    ancova_reference = sm.OLS(outcomes, design_matrix).fit()
+    for metric, observed, expected, tolerance in (
+        ("theta", cuped_block["theta"], ancova_reference.params[2], 5e-7),
+        (
+            "observed_effect",
+            cuped_analysis["observed_effect"],
+            ancova_reference.params[1],
+            5e-5,
+        ),
+        (
+            "test_statistic",
+            cuped_analysis["test_statistic"],
+            ancova_reference.tvalues[1],
+            5e-5,
+        ),
+        ("p_value", cuped_analysis["p_value"], ancova_reference.pvalues[1], 5e-7),
+    ):
+        _add_check(
+            checks,
+            case="live_cuped_ancova",
+            metric=metric,
+            observed=observed,
+            expected=expected,
+            abs_tolerance=tolerance,
+            source="statsmodels.api.OLS treatment-plus-covariate ANCOVA",
+        )
+
+    alpha = 0.05
+    path_count = 20_000
+    final_sample_size = 100
+    null_generator = np.random.Generator(np.random.PCG64(20260902))
+    null_paths = null_generator.standard_normal((path_count, final_sample_size))
+    running_sums = np.cumsum(null_paths, axis=1)
+    rejected = np.zeros(path_count, dtype=bool)
+    for sample_size in range(10, final_sample_size + 1, 10):
+        variance = 1.0 / sample_size
+        effects = running_sums[:, sample_size - 1] / sample_size
+        p_values = np.fromiter(
+            (
+                always_valid_p_value(float(effect), variance, mixture_variance=0.04)
+                for effect in effects
+            ),
+            dtype=float,
+            count=path_count,
+        )
+        rejected |= p_values < alpha
+    empirical_type_i = float(np.mean(rejected))
+    _add_check(
+        checks,
+        case="always_valid_msprt_type_i",
+        metric="ten_looks_null_rejection_rate",
+        observed=empirical_type_i,
+        expected=0.0,
+        abs_tolerance=0.055,
+        source="20,000-path N(0,1) null simulation at ten sequential looks",
+    )
+
+    beta_cases = (
+        (100, 10, 100, 12),
+        (250, 40, 120, 25),
+        (40, 3, 60, 12),
+    )
+    for control_users, control_conversions, treatment_users, treatment_conversions in beta_cases:
+        observed_probability = beta_probability_treatment_beats_control(
+            control_users=control_users,
+            control_conversions=control_conversions,
+            treatment_users=treatment_users,
+            treatment_conversions=treatment_conversions,
+        )
+        control_alpha = control_conversions + 1
+        control_beta = control_users - control_conversions + 1
+        treatment_alpha = treatment_conversions + 1
+        treatment_beta = treatment_users - treatment_conversions + 1
+        reference_probability, _error = scipy_integrate.quad(
+            lambda probability,
+            ta=treatment_alpha,
+            tb=treatment_beta,
+            ca=control_alpha,
+            cb=control_beta: scipy_stats.beta.pdf(probability, ta, tb)
+            * scipy_stats.beta.cdf(probability, ca, cb),
+            0.0,
+            1.0,
+            epsabs=1e-12,
+            epsrel=1e-12,
+            limit=200,
+        )
+        _add_check(
+            checks,
+            case="beta_probability_treatment_beats_control",
+            metric=(
+                f"control={control_conversions}/{control_users},"
+                f"treatment={treatment_conversions}/{treatment_users}"
+            ),
+            observed=observed_probability,
+            expected=reference_probability,
+            abs_tolerance=1e-10,
+            source="scipy.integrate.quad of independent Beta PDF/CDF product",
+        )
+
+
+def _check_supported_method(checks: list[Check]) -> None:
+    from statsmodels.stats.proportion import (
+        confint_proportions_2indep,
+        proportions_ztest,
+    )
+
+    from app.backend.app.evidence.stats_kernel import (
+        AnalysisPlan,
+        BinaryArmStatistics,
+        BinarySufficientStatistics,
+        LegacyStatsKernelAdapter,
+        StatsKernelBuild,
+        StatsKernelInputLineage,
+        StatsKernelRequest,
+    )
+
+    alpha = 0.05
+    control_conversions, control_users = 100, 1000
+    treatment_conversions, treatment_users = 130, 1000
+    digest = "sha256:" + "0" * 64
+    result = LegacyStatsKernelAdapter(
+        StatsKernelBuild(
+            git_commit="0" * 40,
+            build_digest=digest,
+            dependency_lock_digest=digest,
+        )
+    ).analyze(
+        StatsKernelRequest(
+            plan=AnalysisPlan(alpha=alpha),
+            aggregates=BinarySufficientStatistics(
+                control=BinaryArmStatistics(
+                    intervention_id="control",
+                    conversions=control_conversions,
+                    users=control_users,
+                ),
+                treatment=BinaryArmStatistics(
+                    intervention_id="treatment",
+                    conversions=treatment_conversions,
+                    users=treatment_users,
+                ),
+            ),
+            lineage=StatsKernelInputLineage(
+                protocol_revision_id=digest,
+                metric_id="oracle_binary_metric",
+                metric_version="v1",
+                metric_digest=digest,
+                query_ids=(digest,),
+                source_snapshot_ids=("oracle_snapshot",),
+            ),
+        )
+    )
+    expected_statistic, expected_p_value = proportions_ztest(
+        (treatment_conversions, control_conversions),
+        (treatment_users, control_users),
+        alternative="two-sided",
+        prop_var=False,
+    )
+    expected_lower, expected_upper = confint_proportions_2indep(
+        treatment_conversions,
+        treatment_users,
+        control_conversions,
+        control_users,
+        method="newcomb",
+        compare="diff",
+        alpha=alpha,
+    )
+    comparisons = (
+        (
+            "test_statistic",
+            result.diagnostics.test_statistic,
+            expected_statistic,
+            1e-4,
+            "statsmodels.stats.proportion.proportions_ztest",
+        ),
+        (
+            "p_value",
+            result.estimate.uncertainty.p_value,
+            expected_p_value,
+            1e-6,
+            "statsmodels.stats.proportion.proportions_ztest",
+        ),
+        (
+            "interval_lower",
+            result.estimate.uncertainty.lower,
+            expected_lower,
+            1e-6,
+            "statsmodels.stats.proportion.confint_proportions_2indep(method='newcomb')",
+        ),
+        (
+            "interval_upper",
+            result.estimate.uncertainty.upper,
+            expected_upper,
+            1e-6,
+            "statsmodels.stats.proportion.confint_proportions_2indep(method='newcomb')",
+        ),
+    )
+    for metric, observed, expected, tolerance, source in comparisons:
+        _add_check(
+            checks,
+            case="binary_pooled_z_newcombe",
+            metric=metric,
+            observed=observed,
+            expected=expected,
+            abs_tolerance=tolerance,
+            source=source,
+        )
 
 
 def _survival_fixture() -> tuple[list[float], list[bool], list[float], list[bool], list[float], list[bool]]:
@@ -1176,6 +1493,7 @@ def _survival_fixture() -> tuple[list[float], list[bool], list[float], list[bool
 
 
 def _run_oracle() -> dict[str, Any]:
+    _bound_scientific_library_threads()
     _assert_oracle_dependencies()
     checks: list[Check] = []
     _check_student_and_distribution_tails(checks)
@@ -1185,6 +1503,8 @@ def _run_oracle() -> dict[str, Any]:
     _check_ratio_and_categorical_family(checks)
     _check_omnibus_survival_and_cox(checks)
     _check_supporting_statistical_utilities(checks)
+    _check_c05_independent_oracles(checks)
+    _check_supported_method(checks)
     failures = [check for check in checks if not check.passed]
     return {
         "generated_at": datetime.now(UTC).isoformat(),

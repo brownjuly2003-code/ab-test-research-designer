@@ -35,7 +35,6 @@ const PUBLIC_DOCS = new Set([
   'RULES.md',
   'RUNBOOK.md',
   'case-studies/README.md',
-  'research-grey-market-digital-subscriptions.md',
 ]);
 
 let trackedDocsRel = null;

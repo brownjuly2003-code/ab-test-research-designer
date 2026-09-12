@@ -7,7 +7,7 @@ import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
 
 <CardGrid>
   <Card title="Environment variables" icon="document">
-    67
+    65
   </Card>
   <Card title="Slack manifest" icon="puzzle">
     present
@@ -28,6 +28,7 @@ import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
 | `AB_API_TOKEN` | Auth | `None` |
 | `AB_APP_NAME` | Application | `AB Test Research Designer API` |
 | `AB_APP_VERSION` | Application | `1.3.1` |
+| `AB_ARTIFACT_ROOT` | Application | `None` |
 | `AB_AUTH_FAILURE_LIMIT` | Runtime guard | `20` |
 | `AB_AUTH_FAILURE_WINDOW_SECONDS` | Runtime guard | `60` |
 | `AB_BUILD_SHA` | Application | `None` |
@@ -47,9 +48,6 @@ import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
 | `AB_FRONTEND_DIST_PATH` | Application | `str(default_frontend_dist_path` |
 | `AB_HEAVY_RATE_LIMIT_REQUESTS` | Runtime guard | `30` |
 | `AB_HEAVY_RATE_LIMIT_WINDOW_SECONDS` | Runtime guard | `60` |
-| `AB_HF_SNAPSHOT_INTERVAL_SECONDS` | Snapshot and seed | `None` |
-| `AB_HF_SNAPSHOT_REPO` | Snapshot and seed | `None` |
-| `AB_HF_TOKEN` | Auth | `None` |
 | `AB_HOST` | HTTP | `127.0.0.1` |
 | `AB_LLM_BACKOFF_MULTIPLIER` | LLM | `2.0` |
 | `AB_LLM_BASE_URL` | LLM | `http://localhost:8001` |
@@ -74,7 +72,7 @@ import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
 | `AB_RETENTION_CONVERSIONS_DAYS` | Application | `0` |
 | `AB_RETENTION_EXPOSURES_DAYS` | Application | `0` |
 | `AB_RETENTION_WEBHOOK_DELIVERIES_DAYS` | Application | `0` |
-| `AB_SEED_DEMO_ON_STARTUP` | Snapshot and seed | `False` |
+| `AB_SEED_DEMO_ON_STARTUP` | Demo seed | `False` |
 | `AB_SERVE_FRONTEND_DIST` | Application | `True` |
 | `AB_SLACK_CLIENT_ID` | Slack | `None` |
 | `AB_SLACK_CLIENT_SECRET` | Slack | `None` |
@@ -111,5 +109,5 @@ import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
 </div>
 
 <Aside type="tip" title="Source">
-  Generated from <code>app/backend/app/config.py</code>, <code>app/backend/app/main.py</code> and <code>slack/app-manifest.yml</code>. The build reads text files only and does not import the backend.
+  Generated from <code>app/backend/app/config.py</code> and <code>slack/app-manifest.yml</code>. The build reads text files only and does not import the backend.
 </Aside>

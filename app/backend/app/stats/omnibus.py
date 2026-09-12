@@ -45,7 +45,7 @@ import math
 from statistics import mean, median
 from typing import Any
 
-from app.backend.app.stats.srm import chi_square_cdf
+from app.backend.app.stats.srm import chi_square_sf
 from app.backend.app.stats.student_t import f_sf
 
 # Cap on total observations across all groups. The statistics are O(N log N) (ranking) / O(N)
@@ -199,7 +199,7 @@ def kruskal_wallis_test(groups: list[list[float]], alpha: float = 0.05) -> dict[
     ) - 3 * (total_n + 1)
     h_statistic = h_raw / correction
     df = k - 1
-    p_value = _bounded_probability(1.0 - chi_square_cdf(h_statistic, df))
+    p_value = _bounded_probability(chi_square_sf(h_statistic, df))
     # ε² = H / (N − 1) ∈ [0, 1] — the rank analogue of η² (Tomczak & Tomczak 2014).
     epsilon_squared = h_statistic / (total_n - 1)
 

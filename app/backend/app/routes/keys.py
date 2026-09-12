@@ -36,6 +36,7 @@ def create_keys_router(
         api_key = repository.create_api_key(
             name=payload.name,
             scope=payload.scope,
+            role=payload.role,
             rate_limit_requests=payload.rate_limit_requests,
             rate_limit_window_seconds=payload.rate_limit_window_seconds,
         )

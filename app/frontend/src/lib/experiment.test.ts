@@ -259,6 +259,47 @@ describe("experiment helpers", () => {
     ]);
   });
 
+  it("hydrates legacy observed results without lineage as fail-closed partial", () => {
+    const normalized = buildApiPayload(cloneInitialState());
+    normalized.additional_context.observed_results = {
+      request: {
+        metric_type: "binary",
+        binary: {
+          control_conversions: 100,
+          control_users: 1000,
+          treatment_conversions: 120,
+          treatment_users: 1000
+        }
+      },
+      analysis: {
+        metric_type: "binary",
+        observed_effect: 2,
+        observed_effect_relative: 20,
+        control_rate: 10,
+        treatment_rate: 12,
+        ci_lower: -0.8,
+        ci_upper: 4.8,
+        ci_level: 0.95,
+        p_value: 0.16,
+        test_statistic: 1.4,
+        is_significant: false,
+        power_achieved: 0.29,
+        verdict: "Not statistically significant",
+        interpretation: "Legacy result"
+      }
+    };
+
+    const hydrated = hydrateLoadedPayload(normalized);
+
+    expect(hydrated.additional_context.observed_results?.analysis.lineage).toEqual({
+      status: "partial",
+      origin: "legacy_results",
+      is_verifiable_evidence: false,
+      available_references: [],
+      missing_references: ["protocol", "metric", "query", "source", "runner"]
+    });
+  });
+
   it("hydrates persisted CUPED values back into wizard-friendly state and enables the toggle", () => {
     const state: Parameters<typeof buildApiPayload>[0] = {
       ...cloneInitialState(),

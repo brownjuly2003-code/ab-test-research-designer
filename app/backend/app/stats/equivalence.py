@@ -25,7 +25,7 @@ from statistics import NormalDist
 from typing import Any
 
 from app.backend.app.constants import MAX_SUPPORTED_VARIANTS
-from app.backend.app.stats.student_t import t_cdf, t_ppf
+from app.backend.app.stats.student_t import t_cdf, t_ppf, t_sf
 
 _STANDARD_NORMAL = NormalDist()
 
@@ -75,7 +75,7 @@ def tost_equivalence_test(
 
     # Lower one-sided test rejects H0: effect <= -margin when (effect + margin) / SE is large positive.
     t_lower = (effect + margin) / standard_error
-    p_lower = 1.0 - t_cdf(t_lower, df)
+    p_lower = t_sf(t_lower, df)
     # Upper one-sided test rejects H0: effect >= +margin when (effect - margin) / SE is large negative.
     t_upper = (effect - margin) / standard_error
     p_upper = t_cdf(t_upper, df)

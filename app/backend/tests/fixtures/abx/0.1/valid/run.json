@@ -1,0 +1,36 @@
+{
+  "schema_version": "0.1.0",
+  "required_capabilities": ["lineage-v1", "protocol-core"],
+  "run_id": "run_foundation_01",
+  "protocol_revision_id": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "kind": "analysis",
+  "status": "succeeded",
+  "started_at": "2026-08-21T21:00:00Z",
+  "completed_at": "2026-08-21T21:01:00Z",
+  "runner": {
+    "name": "legacy_stats_kernel",
+    "version": "1.3.1",
+    "build_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "dependency_lock_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "analyzer_version": "newcombe_v1",
+    "policy_version": "practical_v1",
+    "random_seed": 20260821
+  },
+  "source_snapshot_ids": ["source_fixture"],
+  "metric_ids": ["metric_conversion"],
+  "queries": [
+    {
+      "query_id": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+      "source_snapshot_id": "source_fixture",
+      "dialect": "duckdb",
+      "statement_path": "queries/7777777777777777777777777777777777777777777777777777777777777777.sql",
+      "statement_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+      "parameters_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "input_aggregate_digests": ["sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"]
+    }
+  ],
+  "finding_ids": ["finding_01"],
+  "estimate_ids": ["estimate_01"],
+  "decision_id": "decision_01",
+  "extensions": {}
+}

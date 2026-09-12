@@ -4,6 +4,7 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
+        GIT_SHA: ${GIT_SHA:?GIT_SHA must be the exact source commit}
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-}
     image: ab-test-research-designer:local
     restart: unless-stopped
@@ -24,9 +25,14 @@ services:
       AB_MAX_WORKSPACE_BODY_BYTES: ${AB_MAX_WORKSPACE_BODY_BYTES:-8388608}
       AB_LOG_LEVEL: ${AB_LOG_LEVEL:-INFO}
       AB_LOG_FORMAT: ${AB_LOG_FORMAT:-plain}
+      AB_SEED_DEMO_ON_STARTUP: ${AB_SEED_DEMO_ON_STARTUP:-false}
       AB_SQLITE_BUSY_TIMEOUT_MS: ${AB_SQLITE_BUSY_TIMEOUT_MS:-5000}
       AB_SQLITE_JOURNAL_MODE: ${AB_SQLITE_JOURNAL_MODE:-WAL}
       AB_SQLITE_SYNCHRONOUS: ${AB_SQLITE_SYNCHRONOUS:-NORMAL}
+      # Persisted evidence artifacts belong on the data volume. The default is
+      # relative to the working directory, which in the image is /app -- owned by
+      # root, while the process runs as uid 1000 -- so it must be set here.
+      AB_ARTIFACT_ROOT: ${AB_ARTIFACT_ROOT:-/app/data/trialmark/artifacts}
     security_opt:
       - no-new-privileges:true
     cap_drop:

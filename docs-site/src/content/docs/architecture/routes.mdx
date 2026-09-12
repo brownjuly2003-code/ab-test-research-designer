@@ -7,10 +7,10 @@ import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
 
 <CardGrid>
   <Card title="Total endpoints" icon="rocket">
-    80
+    86
   </Card>
   <Card title="Source files" icon="document">
-    12
+    13
   </Card>
 </CardGrid>
 
@@ -30,6 +30,7 @@ import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
 | `app/backend/app/routes/templates.py` | 5 |
 | `app/backend/app/routes/webhooks.py` | 7 |
 | `app/backend/app/routes/workspace.py` | 3 |
+| `app/backend/app/routes/workbench.py` | 6 |
 
 ## All Routes
 
@@ -110,6 +111,12 @@ import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
 | <span class="route-method route-method-get">GET</span> | `/api/v1/workspace/export` | `app/backend/app/routes/workspace.py` |
 | <span class="route-method route-method-post">POST</span> | `/api/v1/workspace/import` | `app/backend/app/routes/workspace.py` |
 | <span class="route-method route-method-post">POST</span> | `/api/v1/workspace/validate` | `app/backend/app/routes/workspace.py` |
+| <span class="route-method route-method-get">GET</span> | `/api/v2/runs` | `app/backend/app/routes/workbench.py` |
+| <span class="route-method route-method-get">GET</span> | `/api/v2/runs/{run_id}` | `app/backend/app/routes/workbench.py` |
+| <span class="route-method route-method-get">GET</span> | `/api/v2/runs/{run_id}:bundle` | `app/backend/app/routes/workbench.py` |
+| <span class="route-method route-method-post">POST</span> | `/api/v2/runs/{run_id}/decisions` | `app/backend/app/routes/workbench.py` |
+| <span class="route-method route-method-post">POST</span> | `/api/v2/runs/{run_id}/findings/{finding_id}:override` | `app/backend/app/routes/workbench.py` |
+| <span class="route-method route-method-post">POST</span> | `/api/v2/runs/{run_id}/findings/{finding_id}:remediate` | `app/backend/app/routes/workbench.py` |
 | <span class="route-method route-method-get">GET</span> | `/health` | `app/backend/app/routes/system.py` |
 | <span class="route-method route-method-get">GET</span> | `/readyz` | `app/backend/app/routes/system.py` |
 | <span class="route-method route-method-post">POST</span> | `/slack/commands` | `app/backend/app/routes/slack.py` |

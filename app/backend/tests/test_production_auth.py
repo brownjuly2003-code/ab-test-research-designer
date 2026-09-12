@@ -44,7 +44,6 @@ class _ProductionRepository(ProjectRepository):
     """
 
     backend_name = "postgres"
-    supports_snapshots = False
 
 
 def _production_repository_factory(db_path: Path) -> Any:

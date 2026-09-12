@@ -587,6 +587,19 @@
       "yes": "yes",
       "no": "no",
       "ratioDisclaimer": "This plan's metric is a ratio. Analyze it post-hoc in the dedicated \"Ratio metric (delta method)\" section below — paste the raw per-user numerator and denominator values there; it runs the same delta-method z-test the live path uses. In this form you can only choose a conscious approximation: a continuous test on a precomputed per-user ratio value, or a Poisson rate test on the raw numerator events over denominator exposure.",
+      "lineage": {
+        "title": "Partial evidence lineage",
+        "summary": "{{available}} of {{total}} required references available.",
+        "missing": "Missing references",
+        "notEvidence": "This legacy statistical readout is not verifiable Trialmark evidence.",
+        "references": {
+          "protocol": "Protocol",
+          "metric": "Metric",
+          "query": "Query",
+          "source": "Source",
+          "runner": "Runner"
+        }
+      },
       "fields": {
         "controlConversions": "Control conversions",
         "controlUsers": "Control users",

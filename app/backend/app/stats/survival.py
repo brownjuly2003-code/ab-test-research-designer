@@ -64,7 +64,7 @@ from statistics import NormalDist
 from typing import Any
 
 from app.backend.app.stats.cuped import solve_linear_system
-from app.backend.app.stats.srm import chi_square_cdf
+from app.backend.app.stats.srm import chi_square_sf
 
 # Cap on total observations across both arms. Kaplan-Meier is O(N log N) (sorting) and the log-rank is
 # O(U · 1) over the U distinct event times, so this only guards against absurd magnitudes; the per-arm
@@ -209,7 +209,7 @@ def log_rank_test(
         return None
 
     chi_square = (observed1 - expected1) ** 2 / variance
-    p_value = min(1.0, max(0.0, 1.0 - chi_square_cdf(chi_square, 1)))
+    p_value = min(1.0, max(0.0, chi_square_sf(chi_square, 1)))
     return {
         "chi_square": chi_square,
         "df": 1,
@@ -321,7 +321,7 @@ def weighted_k_sample_log_rank_test(
         return None
 
     df = k - 1
-    p_value = min(1.0, max(0.0, 1.0 - chi_square_cdf(chi_square, df)))
+    p_value = min(1.0, max(0.0, chi_square_sf(chi_square, df)))
     return {
         "chi_square": chi_square,
         "df": df,

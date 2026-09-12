@@ -1,5 +1,5 @@
-from pathlib import Path
 import sys
+from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
@@ -52,9 +52,14 @@ def test_regression_srm_zero_observed_group_is_extreme_srm() -> None:
     assert p_value < 0.001
 
 
-def test_regression_sequential_hundred_looks_are_supported() -> None:
-    boundaries = obrien_fleming_boundaries(100, alpha=0.05)
+def test_regression_sequential_twenty_looks_are_supported() -> None:
+    boundaries = obrien_fleming_boundaries(20, alpha=0.05)
 
-    assert len(boundaries) == 100
-    assert boundaries[0]["info_fraction"] == 0.01
+    assert len(boundaries) == 20
+    assert boundaries[0]["info_fraction"] == 0.05
     assert boundaries[-1]["info_fraction"] == 1.0
+
+
+def test_regression_sequential_more_than_twenty_looks_are_rejected() -> None:
+    with pytest.raises(ValueError, match="between 1 and 20"):
+        obrien_fleming_boundaries(21, alpha=0.05)

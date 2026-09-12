@@ -71,6 +71,7 @@ def api_key_row_to_record(row: sqlite3.Row) -> dict[str, Any]:
         "id": row["id"],
         "name": row["name"],
         "scope": row["scope"],
+        "role": row["role"],
         "created_at": row["created_at"],
         "last_used_at": row["last_used_at"],
         "revoked_at": row["revoked_at"],

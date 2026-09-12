@@ -1,0 +1,13 @@
+{
+  "schema_version": "0.1.0",
+  "protocol_id": "protocol_checkout_01",
+  "amendments": [
+    {
+      "amendment_id": "amendment_01",
+      "from_revision_id": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "to_revision_id": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "actor_ref": "team_growth",
+      "approved_at": "2026-08-21T20:30:00Z"
+    }
+  ]
+}

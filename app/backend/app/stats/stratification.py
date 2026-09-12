@@ -35,6 +35,8 @@ from math import isfinite, sqrt
 from statistics import NormalDist
 from typing import Any
 
+from app.backend.app.stats.binary import standard_normal_sf
+
 _STANDARD_NORMAL = NormalDist()
 
 
@@ -130,7 +132,7 @@ def combine_strata(strata: list[dict[str, Any]], alpha: float = 0.05) -> dict[st
 
     standard_error = sqrt(variance)
     test_statistic = effect / standard_error
-    p_value = 2.0 * (1.0 - _STANDARD_NORMAL.cdf(abs(test_statistic)))
+    p_value = 2.0 * standard_normal_sf(abs(test_statistic))
     z_critical = _STANDARD_NORMAL.inv_cdf(1.0 - alpha / 2.0)
     # Achieved power of the two-sided z-test at the observed effect (same form as the binary /
     # continuous / ratio estimators): P(reject | observed |z|) = Φ(|z|−z_crit) + Φ(−z_crit−|z|).

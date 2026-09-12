@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "generate:types": "python ../../scripts/generate_frontend_api_types.py",
+    "typecheck": "tsc --noEmit -p .",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",

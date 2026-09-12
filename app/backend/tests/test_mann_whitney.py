@@ -18,7 +18,6 @@ from app.backend.app.stats.mann_whitney import (
     mann_whitney_u_test,
 )
 
-
 # --- closed form vs hand computation (cross-checked against scipy asymptotic) ---------------
 
 

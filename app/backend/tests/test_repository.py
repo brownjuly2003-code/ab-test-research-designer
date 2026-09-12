@@ -1,17 +1,17 @@
 import json
-from pathlib import Path
 import sqlite3
-from contextlib import closing
 import sys
 import uuid
+from contextlib import closing
+from pathlib import Path
 
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
-from app.backend.app.repository import _workspace as workspace_module
-from app.backend.app.repository import ProjectRepository
 from app.backend.app.errors import ApiError
+from app.backend.app.repository import ProjectRepository
+from app.backend.app.repository import _workspace as workspace_module
 from app.backend.app.schemas.api import WorkspaceBundle
 
 
@@ -168,6 +168,7 @@ def test_repository_migrates_api_keys_table_and_audit_key_id_column() -> None:
         "name",
         "key_hash",
         "scope",
+        "role",
         "created_at",
         "last_used_at",
         "revoked_at",

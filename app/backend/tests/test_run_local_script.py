@@ -24,8 +24,6 @@ def test_local_environment_pins_sqlite_and_scrubs_hosted_secrets(
             "KEEP_ME": "yes",
             "AB_ENV": "production",
             "AB_DATABASE_URL": "postgresql://remote/ab",
-            "AB_HF_TOKEN": "parent-hf-token",
-            "AB_HF_SNAPSHOT_REPO": "owner/private",
             "AB_API_TOKEN": "parent-api-token",
             "AB_ADMIN_TOKEN": "parent-admin-token",
             "AB_PUBLIC_DEMO": "true",
@@ -42,8 +40,6 @@ def test_local_environment_pins_sqlite_and_scrubs_hosted_secrets(
     assert environment["AB_PUBLIC_DEMO"] == "false"
     assert environment["AB_SEED_DEMO_ON_STARTUP"] == "false"
     assert "AB_DATABASE_URL" not in environment
-    assert "AB_HF_TOKEN" not in environment
-    assert "AB_HF_SNAPSHOT_REPO" not in environment
     assert "AB_API_TOKEN" not in environment
     assert "AB_ADMIN_TOKEN" not in environment
 
@@ -118,9 +114,6 @@ def test_ci_smokes_fresh_checkout_single_port_runner() -> None:
     assert "services" not in job
     assert job["env"] == {
         "AB_DATABASE_URL": "postgresql://ci-must-ignore.invalid/abtest",
-        "AB_HF_TOKEN": "ci-must-ignore",
-        "AB_HF_SNAPSHOT_REPO": "owner/ci-must-ignore",
-        "HF_TOKEN": "ci-must-ignore",
         "AB_API_TOKEN": "ci-must-ignore",
         "AB_SLACK_BOT_TOKEN": "ci-must-ignore",
     }
@@ -134,7 +127,7 @@ def test_ci_smokes_fresh_checkout_single_port_runner() -> None:
     )
     assert any(
         step.get("uses", "").startswith("actions/setup-node@")
-        and step.get("with", {}).get("node-version") == "26"
+        and step.get("with", {}).get("node-version") == "24"
         for step in steps
     )
 

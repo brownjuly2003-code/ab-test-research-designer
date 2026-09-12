@@ -58,7 +58,7 @@ flowchart TD
 | --- | --- | --- |
 | `always_valid` | `_validate`, `msprt_log_likelihood_ratio`, `always_valid_p_value`, `confidence_sequence`, `evaluate_always_valid`, `default_mixture_variance` | `app/backend/app/stats/always_valid.py` |
 | `bayesian` | `bayesian_sample_size_binary`, `bayesian_sample_size_continuous` | `app/backend/app/stats/bayesian.py` |
-| `binary` | `normal_ppf`, `standard_normal_cdf`, `wilson_score_interval`, `newcombe_difference_interval`, `calculate_detectable_mde_binary`, `calculate_binary_sample_size` | `app/backend/app/stats/binary.py` |
+| `binary` | `normal_ppf`, `standard_normal_cdf`, `standard_normal_sf`, `wilson_score_interval`, `newcombe_difference_interval`, `calculate_detectable_mde_binary`, `calculate_binary_sample_size` | `app/backend/app/stats/binary.py` |
 | `bootstrap_permutation` | `_bounded_probability`, `_percentile`, `bootstrap_permutation_test` | `app/backend/app/stats/bootstrap_permutation.py` |
 | `chi_square_independence` | `_validate_contingency_table`, `chi_square_independence_test`, `g_test_independence` | `app/backend/app/stats/chi_square_independence.py` |
 | `cluster` | `cluster_design_effect`, `inflate_for_cluster_design` | `app/backend/app/stats/cluster.py` |
@@ -76,10 +76,10 @@ flowchart TD
 | `poisson_rate` | `_bounded_probability`, `_binomial_logpmf`, `poisson_rate_test`, `calculate_poisson_rate_sample_size` | `app/backend/app/stats/poisson_rate.py` |
 | `quantile_te` | `_bounded_probability`, `_quantile`, `quantile_treatment_effect_test` | `app/backend/app/stats/quantile_te.py` |
 | `ratio` | `_bounded_probability`, `ratio_sufficient_moments`, `ratio_estimate`, `compare_ratios` | `app/backend/app/stats/ratio.py` |
-| `sequential` | `_interpolate`, `_interpolate_anchor_by_looks`, `_final_boundary_z`, `obrien_fleming_boundaries`, `sequential_sample_size_inflation` | `app/backend/app/stats/sequential.py` |
-| `srm` | `chi_square_srm`, `chi_square_cdf`, `regularized_gamma_p`, `_gamma_series`, `_gamma_continued_fraction` | `app/backend/app/stats/srm.py` |
+| `sequential` | `_gauss_legendre_rule`, `_normal_density`, `_survival_state`, `_invert_spending_boundary`, `obrien_fleming_boundaries`, `sequential_sample_size_inflation` | `app/backend/app/stats/sequential.py` |
+| `srm` | `chi_square_srm`, `chi_square_cdf`, `chi_square_sf`, `regularized_gamma_p`, `regularized_gamma_q`, `_gamma_series`, `_gamma_continued_fraction` | `app/backend/app/stats/srm.py` |
 | `stratification` | `_bounded_probability`, `binary_point_variance`, `continuous_point_variance`, `stratum_difference`, `combine_strata`, `variance_reduction_pct` | `app/backend/app/stats/stratification.py` |
-| `student_t` | `_betacf`, `_betainc_regularized`, `t_cdf`, `f_sf`, `t_ppf` | `app/backend/app/stats/student_t.py` |
+| `student_t` | `_betacf`, `_betainc_regularized`, `t_cdf`, `t_sf`, `f_sf`, `t_ppf` | `app/backend/app/stats/student_t.py` |
 | `survival` | `_validate_arm`, `kaplan_meier_estimate`, `log_rank_test`, `weighted_k_sample_log_rank_test` | `app/backend/app/stats/survival.py` |
 | `trimmed_t` | `_bounded_probability`, `_winsorized_ssd_and_trimmed_mean`, `trimmed_means_t_test` | `app/backend/app/stats/trimmed_t.py` |
 | `unconditional_exact` | `_binomial_row`, `_sup_product_binomial`, `_fisher_one_sided_matrices`, `_boschloo_two_sided_p_value`, `_pooled_wald_z`, `_barnard_two_sided_p_value`, `barnard_exact_test`, `boschloo_exact_test` | `app/backend/app/stats/unconditional_exact.py` |

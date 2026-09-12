@@ -5,8 +5,7 @@
  *
  * Always loads brace-expansion dual-API preload and runs the compat preflight
  * before ESLint so minimatch@3 brace globs stay correct under the audit-clean
- * brace-expansion override (the pinned version lives in
- * brace-expansion-compat-preflight.cjs as EXPECTED_BE_VERSION).
+ * brace-expansion@5.0.8 override.
  */
 import { spawnSync } from "node:child_process";
 import path from "node:path";

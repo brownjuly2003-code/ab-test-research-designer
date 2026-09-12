@@ -33,7 +33,7 @@ jobs:
             verify_args: "--skip-smoke"
 
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
@@ -41,7 +41,7 @@ jobs:
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: "26"
+          node-version: "24"
           cache: "npm"
           cache-dependency-path: |
             app/frontend/package-lock.json
@@ -93,14 +93,11 @@ jobs:
     timeout-minutes: 15
     env:
       AB_DATABASE_URL: postgresql://ci-must-ignore.invalid/abtest
-      AB_HF_TOKEN: ci-must-ignore
-      AB_HF_SNAPSHOT_REPO: owner/ci-must-ignore
-      HF_TOKEN: ci-must-ignore
       AB_API_TOKEN: ci-must-ignore
       AB_SLACK_BOT_TOKEN: ci-must-ignore
 
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
@@ -108,7 +105,7 @@ jobs:
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: "26"
+          node-version: "24"
           cache: "npm"
           cache-dependency-path: app/frontend/package-lock.json
 
@@ -174,7 +171,7 @@ jobs:
     timeout-minutes: 5
 
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
@@ -194,10 +191,10 @@ jobs:
 
   repo-hygiene:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
 
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
@@ -209,10 +206,16 @@ jobs:
       - name: Check no internal archive/ or root audit_*.md is tracked
         run: python scripts/check_repo_hygiene.py
 
-      # check_repo_hygiene guards the git index; this guards the public HF Space, which is
-      # uploaded from the working tree and so leaks a different set of files.
-      - name: Verify the HF Space publish filter excludes internal notes
-        run: python scripts/deploy_hf.py --self-test
+      # The wheel gate builds with --no-build-isolation, so the backend must be
+      # present in this job's interpreter; setup-python ships pip but not setuptools.
+      - name: Install packaging toolchain for the wheel gate
+        run: python -m pip install "setuptools>=77" wheel
+
+      - name: Verify wheel-payload detector
+        run: python scripts/check_wheel_payload.py --self-test
+
+      - name: Check built wheel ships runtime resources and no tests
+        run: python scripts/check_wheel_payload.py
 
       # The seven help*.html theory pages are build artifacts of one template + string
       # tables; fail if a committed page was hand-edited past its generator.
@@ -224,7 +227,7 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
@@ -232,7 +235,7 @@ jobs:
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: "26"
+          node-version: "24"
 
       - name: Install pip-audit
         run: python -m pip install pip-audit==2.10.0
@@ -242,7 +245,7 @@ jobs:
       - name: Audit backend dependencies for known CVEs
         run: python -m pip_audit -r app/backend/requirements-dev.txt --progress-spinner off
 
-      # All three npm package roots are gated, not just Python. `npm audit` resolves the tree from
+      # Both npm package roots are gated, not just Python. `npm audit` resolves the tree from
       # the committed lockfile, so no `npm ci` is needed here. --audit-level=high fails the job
       # on any high/critical advisory; lower severities are reported but do not block.
       # Use working-directory, not `npm --prefix`: with no node_modules present, --prefix drops
@@ -256,14 +259,6 @@ jobs:
         working-directory: docs-site
         run: npm audit --audit-level=high
 
-      # The eslint toolchain is a fourth separately locked tree (its own package.json,
-      # package-lock.json and `overrides`), so app/frontend's audit says nothing about it.
-      # Appended last on purpose: steps run sequentially and the first failure ends the job,
-      # so a new step placed earlier would mask the three trees already gated above.
-      - name: Audit eslint-toolchain npm dependencies for known CVEs
-        working-directory: app/frontend/eslint-toolchain
-        run: npm audit --audit-level=high
-
   statistical-oracle:
     # Runs on every PR/main push, so changes to stats/services/results/decision code cannot merge
     # without fresh differential evidence. The workflow schedule/manual triggers keep the oracle
@@ -272,7 +267,7 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
@@ -319,7 +314,7 @@ jobs:
       AB_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/abtest
 
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
@@ -339,7 +334,7 @@ jobs:
       AB_WORKSPACE_SIGNING_KEY: verify-workspace-signing-key
 
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
@@ -353,7 +348,7 @@ jobs:
     needs: verify
 
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
@@ -361,7 +356,7 @@ jobs:
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: "26"
+          node-version: "24"
           cache: "npm"
           cache-dependency-path: app/frontend/package-lock.json
 
@@ -399,11 +394,11 @@ jobs:
     timeout-minutes: 25
 
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: "26"
+          node-version: "24"
           cache: "npm"
           cache-dependency-path: app/frontend/package-lock.json
 
@@ -433,7 +428,7 @@ jobs:
       contents: write
 
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
@@ -443,13 +438,13 @@ jobs:
           python-version: "3.14"
 
       - name: Download verify metrics artifact
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: verify-metrics
           path: .badge-inputs
 
       - name: Download Lighthouse artifact
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: lighthouseci
           path: .badge-inputs/lighthouseci

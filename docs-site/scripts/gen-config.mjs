@@ -6,11 +6,8 @@ import { parse } from 'yaml';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = join(__dirname, '..', '..');
-// main.py reads the HF snapshot vars directly (AB_HF_SNAPSHOT_REPO etc.),
-// so the matrix must scan it alongside config.py.
 const ENV_SOURCE_FILES = [
   join(PROJECT_ROOT, 'app', 'backend', 'app', 'config.py'),
-  join(PROJECT_ROOT, 'app', 'backend', 'app', 'main.py'),
 ];
 const SLACK_MANIFEST = join(PROJECT_ROOT, 'slack', 'app-manifest.yml');
 const OUT_FILE = join(__dirname, '..', 'src', 'content', 'docs', 'architecture', 'config.mdx');
@@ -51,7 +48,7 @@ function groupForEnv(name) {
   if (name.includes('DB') || name.includes('DATABASE') || name.includes('SQLITE')) return 'Data store';
   if (name.includes('RATE') || name.includes('BODY') || name.includes('FAILURE')) return 'Runtime guard';
   if (name.includes('LLM')) return 'LLM';
-  if (name.includes('HF') || name.includes('SNAPSHOT') || name.includes('SEED')) return 'Snapshot and seed';
+  if (name.includes('SEED')) return 'Demo seed';
   if (name.includes('CORS') || name.includes('HOST') || name.includes('PORT')) return 'HTTP';
   return 'Application';
 }
@@ -134,7 +131,7 @@ ${slackRows}
 </div>
 
 <Aside type="tip" title="Source">
-  Generated from <code>app/backend/app/config.py</code>, <code>app/backend/app/main.py</code> and <code>slack/app-manifest.yml</code>. The build reads text files only and does not import the backend.
+  Generated from <code>app/backend/app/config.py</code> and <code>slack/app-manifest.yml</code>. The build reads text files only and does not import the backend.
 </Aside>
 `;
 

@@ -191,10 +191,47 @@ class ResultsRequest(BaseModel):
         return self
 
 
+ResultsLineageReference = Literal["protocol", "metric", "query", "source", "runner"]
+_REQUIRED_RESULTS_LINEAGE_REFERENCES: tuple[ResultsLineageReference, ...] = (
+    "protocol",
+    "metric",
+    "query",
+    "source",
+    "runner",
+)
+
+
+class ResultsLineageDisclosure(BaseModel):
+    """Fail-closed provenance status for the legacy observed-results calculator.
+
+    This legacy analyzer response family does not bind its readout to frozen Trialmark artifacts.
+    Keeping the exact missing-reference set in the response prevents a statistical readout from
+    being mistaken for verifiable evidence.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    status: Literal["partial"] = "partial"
+    origin: Literal["legacy_results"] = "legacy_results"
+    is_verifiable_evidence: Literal[False] = False
+    available_references: tuple[ResultsLineageReference, ...] = ()
+    missing_references: tuple[ResultsLineageReference, ...] = (
+        _REQUIRED_RESULTS_LINEAGE_REFERENCES
+    )
+
+    @model_validator(mode="after")
+    def validate_fail_closed_disclosure(self) -> "ResultsLineageDisclosure":
+        if self.available_references:
+            raise ValueError("legacy results cannot claim available lineage references")
+        if self.missing_references != _REQUIRED_RESULTS_LINEAGE_REFERENCES:
+            raise ValueError("legacy results must report every required lineage reference as missing")
+        return self
+
+
 class ResultsResponse(BaseModel):
     metric_type: str
     observed_effect: float
-    observed_effect_relative: float
+    observed_effect_relative: float | None
     control_rate: float | None = None
     treatment_rate: float | None = None
     ci_lower: float
@@ -206,6 +243,7 @@ class ResultsResponse(BaseModel):
     power_achieved: float
     verdict: str
     interpretation: str
+    lineage: ResultsLineageDisclosure = Field(default_factory=ResultsLineageDisclosure)
     # Populated by the rank-sum analyzer: a distribution-level effect size (rank-biserial
     # correlation) and its i18n label. ``None`` for the mean-based binary / continuous / ratio paths.
     effect_size: float | None = None

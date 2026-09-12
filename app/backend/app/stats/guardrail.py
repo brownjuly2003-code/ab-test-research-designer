@@ -41,6 +41,8 @@ from math import sqrt
 from statistics import NormalDist
 from typing import Any
 
+from app.backend.app.stats.binary import standard_normal_sf
+
 _STANDARD_NORMAL = NormalDist()
 
 # Harm-direction codes shared with the schema layer.
@@ -109,7 +111,7 @@ def evaluate_guardrail(
     test_statistic = (harm - margin) / standard_error
     # One-sided p-value for H1: harm > margin. A negative z (the treatment improves the metric, or
     # the harm sits below the margin) yields p -> 1, never a false breach.
-    p_value = _bounded_probability(1.0 - _STANDARD_NORMAL.cdf(test_statistic))
+    p_value = _bounded_probability(standard_normal_sf(test_statistic))
     z_critical = _STANDARD_NORMAL.inv_cdf(1.0 - alpha)
     harm_lower_bound = harm - z_critical * standard_error
     # Duality: lower bound clears the margin  <=>  z > z_crit  <=>  p < alpha.

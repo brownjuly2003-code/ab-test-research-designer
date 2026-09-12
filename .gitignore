@@ -15,7 +15,9 @@ venv/
 .pytest_cache/
 .pytest_basetemp/
 .mypy_cache/
+.ruff_cache/
 .hypothesis/
+.astro/
 .qa/
 .docker-cli/
 pytest-cache-files-*/
@@ -28,6 +30,7 @@ node_modules/
 # builds
 dist/
 build/
+*.egg-info/
 app/frontend/playwright-report/
 app/frontend/test-results/
 .lighthouseci/
@@ -43,12 +46,12 @@ app/frontend/test-results/
 exports/*
 !exports/.gitkeep
 
+# local Trialmark workspace (runtime database, artifacts, and bundles)
+/.trialmark/
+
 # archive/ — internal planning docs + smoke/verify run artifacts.
 # Untracked from the public repo on 2026-06-17 (kept locally, never committed).
 /archive/
-
-# internal audit reports — kept local, never in the public repo
-/audit_*.md
 
 # verify artifacts (CI uploads these; should not be tracked)
 .ci-artifacts/
@@ -63,25 +66,31 @@ app/frontend/coverage/
 # mkdocs build output (deployed via gh-pages branch)
 /site/
 
-# research artifacts (Kimi/Codex traces, large)
-research/*.log
+# docs-site/public/demo/ — derived, not source. docs-site/scripts/sync-docs.mjs
+# (copyDemoAssets) recopies every tracked docs/demo asset into it on each build,
+# so tracking the copies duplicated ~3 MB of binaries in the tree.
+docs-site/public/demo/
+
+
+# research artifacts (LLM briefs and traces). Moved to archive/research/ on
+# 2026-09-07: they are working notes, not part of the published project.
+/research/
 
 
 # local operator credentials (never commit)
 /_space_write_token_*.txt
 
 # internal notes: audit reports, session handoffs, agent scratch.
-# Three layers keep these out of anything published:
+# Two layers keep these out of anything published:
 #   1. here — they cannot enter the git index by accident;
-#   2. scripts/check_repo_hygiene.py — CI fails if one is tracked anyway;
-#   3. scripts/deploy_hf.py — the HF Space upload publishes only git-tracked files,
-#      because it reads the working tree and the Space is public.
+#   2. scripts/check_repo_hygiene.py — CI fails if one is tracked anyway.
 /audit_*.md
-/plan_*.md
+/plan_*
 /actual_plan.md
 /_*.md
 /.claude/
 /.cx_polls/
+/.grok-prompts/
 
 # local research / handoff / assessment notes (root-level, never published;
 # policy decided 2026-07-09). Standalone public candidates such as
@@ -98,7 +107,14 @@ research/*.log
 /research_kimi_23_05_26.md
 /tails_plan_06_07_26.md
 /pic.png
+/hh_bot.log
 
 # local scratch verification scripts and captured tool output
 /scratchpad/
 coverage-backend.json
+
+# myflow controller state (local workflow bookkeeping)
+/.myflow/
+
+# local workflow scratch
+/.workflow/

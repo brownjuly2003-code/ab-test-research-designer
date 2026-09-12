@@ -8,8 +8,17 @@ the public repository again:
   run artifacts. Useful locally, noise (and a presentation hit) in public.
 * root ``audit_*.md`` — internal audit reports (``audit_opus_*.md``,
   ``audit_kimi_*.md``, ``audit_codex_*.md``, etc.).
-* root ``plan_*.md`` — internal remediation plans that accompany the audit
-  reports (added 2026-07-18; nested ``docs/plans/**`` stays public).
+* root ``plan_*`` — internal remediation plans that accompany the audit
+  reports, including extensionless files (nested ``docs/plans/**`` stays public).
+
+The 2026-09-07 audit (F-12) added three more classes:
+
+* ``research/**`` — LLM briefs and traces; working notes, now in
+  ``archive/research/``.
+* ``docs-site/public/demo/**`` — derived copies of ``docs/demo/**`` that
+  ``sync-docs.mjs`` regenerates on every build; tracking them duplicated ~3 MB.
+* ``scripts/update_ai_state*.py`` — a personal helper hard-coded to a path
+  outside this repository.
 
 Both are ignored via ``.gitignore`` now, but ``git add -f`` or a future
 ``.gitignore`` edit could silently re-introduce them. This gate fails CI the
@@ -38,9 +47,15 @@ def classify(path: str) -> str | None:
         return "internal archive/ doc or run artifact"
     if "/" not in path and path.startswith("audit_") and path.endswith(".md"):
         return "internal root-level audit report"
-    if "/" not in path and path.startswith("plan_") and path.endswith(".md"):
+    if "/" not in path and path.startswith("plan_"):
         return "internal root-level plan file"
+    if path == "research" or path.startswith("research/"):
+        return "LLM research brief or trace (belongs in archive/research/)"
+    if path.startswith("docs-site/public/demo/"):
+        return "derived demo asset (sync-docs.mjs recopies it from docs/demo/ on each build)"
     name = path.rsplit("/", 1)[-1]
+    if path.startswith("scripts/") and name.startswith("update_ai_state") and name.endswith(".py"):
+        return "personal helper script bound to a path outside this repository"
     if name.endswith((".sqlite3", ".db")):
         return "local database file"
     # A WAL/SHM/journal sidecar holds rows that have not been checkpointed into the
@@ -82,11 +97,18 @@ def self_test() -> int:
         "audit_kimi_2026-04-26.md",
         "audit_кодекс_2026-04-27.md",
         "plan_fable_18_07_26.md",
+        "plan_sol_23_07_26",
         "app/backend/data/projects.sqlite3",
         "app/backend/data/projects.sqlite3-wal",
         "app/backend/data/projects.sqlite3-shm",
         "app/backend/data/projects.sqlite3-journal",
         "tmp/scratch.db",
+        "research/kimi_brief.md",
+        "research/screenshots/srm-detected-chi20.png",
+        "research",
+        "docs-site/public/demo/wizard-overview.png",
+        "scripts/update_ai_state_new.py",
+        "scripts/update_ai_state.py",
     ]
     must_pass = [
         "README.md",
@@ -97,6 +119,11 @@ def self_test() -> int:
         "scripts/check_repo_hygiene.py",
         "archived_examples/sample.md",  # 'archive' prefix but different top-level dir
         "docs/journal.md",  # ends in 'journal' but not '-journal': a doc, not a sidecar
+        "docs/demo/wizard-overview.png",  # the source asset stays tracked; only the copy is derived
+        "docs-site/public/logo.svg",  # other docs-site public assets are real sources
+        "docs-site/src/content/docs/index.mdx",
+        "app/backend/app/research_notes.py",  # 'research' prefix in a filename, not the top-level dir
+        "scripts/update_ai_state_new.md",  # only the .py helper is personal
     ]
     failures: list[str] = []
     for path in must_flag:
@@ -139,13 +166,13 @@ def main(argv: list[str] | None = None) -> int:
         for path, reason in violations:
             print(f"  {path}  ({reason})", file=sys.stderr)
         print(
-            "\nThese were untracked on 2026-06-17 and must stay out of the public tree. "
+            "\nThese files must stay out of the public tree. "
             "Remove with `git rm --cached <path>` and confirm `.gitignore` still covers them.",
             file=sys.stderr,
         )
         return 1
 
-    print(f"[repo-hygiene] OK: {len(paths)} tracked file(s), no archive/ or root audit_*/plan_*.md leaks.")
+    print(f"[repo-hygiene] OK: {len(paths)} tracked file(s), no archive/ or root audit_*/plan_* leaks.")
     return 0
 
 
