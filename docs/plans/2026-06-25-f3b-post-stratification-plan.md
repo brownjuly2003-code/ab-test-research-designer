@@ -94,12 +94,12 @@ stratum, average the estimand on each stratum, weighting by the strata size».
 
 > **dual-SQL (Postgres) НЕ проверен локально** (нет Docker на Windows): `test_postgres_backend_
 > stratified_aggregates_round_trip` среди 12 skip. Валидация — CI `verify-postgres` при push +
-> (рекомендация Юли) прогон на `deproject-mac`. push/PR/merge — по слову Юли (эта сессия: «продолжи
+> (рекомендация владельца) прогон на `deproject-mac`. push/PR/merge — по слову владельца (эта сессия: «продолжи
 > работу» → локальный коммит на ветке `feat/post-stratification`, stacked поверх F3a PR #25).
 
 > **dual-SQL (Postgres) НЕ проверить на Windows** ([[no-docker-on-windows]]) — PG round-trip среди skip.
-> Валидация — CI `verify-postgres` при push + (рекомендация Юли) прогон на `deproject-mac`.
-> push/PR/merge — по слову Юли (эта сессия: «продолжи работу», НЕ «реши сам» → локальный коммит).
+> Валидация — CI `verify-postgres` при push + (рекомендация владельца) прогон на `deproject-mac`.
+> push/PR/merge — по слову владельца (эта сессия: «продолжи работу», НЕ «реши сам» → локальный коммит).
 
 ## Risks / гочи
 - Conditional vs Neyman-точная дисперсия post-stratification: берём conditional (на observed strata
@@ -110,4 +110,4 @@ stratum, average the estimand on each stratum, weighting by the strata size».
   the number of strata is large and strata poorly chosen») — показывать честно (не клампить в 0).
 - Контракт: `stratified` — НОВОЕ поле рядом с `cuped`; не ломать существующее.
 - schema_version 10→11 бампать в реальном пути + api diagnostics-тесте, НЕ в мок-делегации PG-теста.
-- push/PR/merge/deploy — НЕ /auto: по слову Юли.
+- push/PR/merge/deploy — НЕ /auto: по слову владельца.

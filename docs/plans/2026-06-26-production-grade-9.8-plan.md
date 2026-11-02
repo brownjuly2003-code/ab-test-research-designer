@@ -1,6 +1,6 @@
 # AB_TEST → production-grade 9.8/10 (2026-06-26)
 
-Цель (запрос Юли): поднять ВСЕ 6 измерений `eval.md` до **9.8/10**, включая
+Цель (запрос владельца): поднять ВСЕ 6 измерений `eval.md` до **9.8/10**, включая
 продакшн-готовность — «сделать продукт для реальной работы, по-максимуму».
 Это сознательный выход за прежнюю рамку local-first MVP → настоящая платформа.
 
@@ -10,7 +10,7 @@
 - ✅ **Phase 1 ВЛИТА** (PR #27 → merge `f60e84a3`): coverage-гейт enforced ≥88%, ruff-гейт (F,I,B,C4,UP) поверх mypy strict, 0 TODO.
 - ✅ **Phase 2 ВЛИТА** (PR #28 → merge `7c26cb83`): `deploy-hf.yml` (workflow_dispatch + tag `v*`, НЕ на push) + `scripts/deploy_hf.py` (зеркало ручного рецепта + /health-smoke). Деплой держится (триггерится только вручную/тегом).
 - ⏳ **Phase 3 — СЛЕД. СЕССИЯ начинает здесь** (стат. доборы), затем Phase 4 (главный объём — продакшн), 5 (demo+deploy), 6 (переоценка).
-- ⚠️ **Перед первым CI-деплоем**: Юля задаёт repo-секрет `gh secret set HF_TOKEN` (write-токен `liovina`). Без него deploy-job падает с подсказкой (по дизайну).
+- ⚠️ **Перед первым CI-деплоем**: Владелец задаёт repo-секрет `gh secret set HF_TOKEN` (write-токен `liovina`). Без него deploy-job падает с подсказкой (по дизайну).
 
 ## Старт (факты на 2026-06-26, main=`abe44277`, ось A полностью влита)
 - Coverage **91%** (badge), НЕ гейтится в CI. Tests 622 backend passed.
@@ -40,7 +40,7 @@
 ## Phase 2 — Автоматизация деплоя (CI/процесс → 9.8)
 - [x] **T2.1 GH Action `deploy-hf.yml`** — `workflow_dispatch` (+ on tag `v*`): `git archive main` → `upload_folder` на HF Space через секрет `HF_TOKEN` (репо-секрет, токен `liovina`). `ignore_patterns` как в `docs/DEPLOY.md`. → Verify: ручной dispatch зелёный, Space обновился (смена asset-хэша).
 - [x] **T2.2** Пост-деплой smoke в workflow (`/health`-poll в `deploy_hf.py`). → Verify: job падает при нездоровом Space.
-- ⚠️ Секрет `HF_TOKEN` в репо: Юля задаёт `gh secret set HF_TOKEN` (свой токен — НЕ печатать/коммитить).
+- ⚠️ Секрет `HF_TOKEN` в репо: Владелец задаёт `gh secret set HF_TOKEN` (свой токен — НЕ печатать/коммитить).
 
 ## Phase 3 — Стат. глубина доборы (→ 9.8)
 - [ ] **T3.1 F2 ratio sizing + post-hoc `/results`.** delta-power для ratio (sample size) + ratio в ручном анализаторе `/results` (сейчас ratio только на live). → Verify: тест sizing vs sim, post-hoc endpoint, i18n×7.
@@ -72,7 +72,7 @@
 - [ ] Coverage-гейт + автодеплой в CI; 0 TODO; eval.md переоценён.
 
 ## Notes / constraints
-- Не /auto явно, но Юля «по-максимуму» + «реши сам» по AB_TEST → локальные коммиты сама, PR по зелёному CI, деплой санкционирован. Push/merge — паттерн оси A (зелёный CI → merge).
+- Не /auto явно, но владелец «по-максимуму» + «реши сам» по AB_TEST → локальные коммиты сама, PR по зелёному CI, деплой санкционирован. Push/merge — паттерн оси A (зелёный CI → merge).
 - **Нет Docker на Windows** ([[no-docker-on-windows]]) → dual-backend SQL (вся Phase 4) валидируется в CI `verify-postgres` + прогон на Mac `deproject-mac` (конфиг как CI: postgres:16, db `abtest`, env `AB_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/abtest`).
 - Не гонять полный pytest+vitest+build параллельно на Win (thrashing) — серийно; аддитив доверять CI.
 - Порядок рычага: P1/P2 дёшевы и разблокируют (гейты+деплой) → P3 (стат) → **P4 (главный объём, production)** → P5 (demo+deploy) → P6 (verify+переоценка).

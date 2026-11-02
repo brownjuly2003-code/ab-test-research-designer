@@ -67,13 +67,13 @@
 
 > **dual-SQL (Postgres) НЕ проверен локально** (нет Docker на Windows): 11 PG round-trip тестов
 > skip, среди них новый `test_postgres_backend_multi_cuped_aggregates_round_trip`. Валидация —
-> CI `verify-postgres` + (рекомендация Юли) прогон на `deproject-mac`. push/PR/merge — по слову Юли.
+> CI `verify-postgres` + (рекомендация владельца) прогон на `deproject-mac`. push/PR/merge — по слову владельца.
 
 ## Risks / гочи
 - **dual-SQL multi-cov нельзя проверить на Windows** (нет Docker/PG). Полагаюсь на CI `verify-postgres`;
-  Mac-прогон (`deproject-mac`, конфиг как CI) — явный шаг для Юли перед/после merge. [[no-docker-on-windows]]
+  Mac-прогон (`deproject-mac`, конфиг как CI) — явный шаг для владельца перед/после merge. [[no-docker-on-windows]]
 - Коллинеарные ковариаты → вырожденная Σxx: солвер должен честно вернуть «не решается» → fallback на
   unadjusted (θ=0), не падать. Тест на коллинеарность обязателен.
 - Контракт: НЕ ломать `theta` (фронт/доки на него опираются) — оставить, добавлять рядом.
 - Миграция данных идемпотентна (ON CONFLICT) — повторный старт не дублирует.
-- push/PR/merge/deploy — НЕ /auto: по слову Юли (в этой сессии «реши сам» не звучало).
+- push/PR/merge/deploy — НЕ /auto: по слову владельца (в этой сессии «реши сам» не звучало).

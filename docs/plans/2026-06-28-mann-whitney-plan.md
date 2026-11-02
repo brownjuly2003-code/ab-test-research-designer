@@ -1,11 +1,11 @@
 # AB_TEST — Mann–Whitney U (Wilcoxon rank-sum): non-parametric two-sample analyzer
 
-> **Зачем.** Запрос Юли 2026-06-28: «насколько широко покрыты A/B-тесты? Тест Манна-Уитни есть?».
+> **Зачем.** Запрос владельца 2026-06-28: «насколько широко покрыты A/B-тесты? Тест Манна-Уитни есть?».
 > Аудит: **нет** — весь continuous-путь параметрический (z/Student-t по среднему + CUPED), непараметрики
 > нет нигде (grep по `app/`, аудитам, планам, handoff — пусто). Это главный gap по широте: продуктовые
 > continuous-метрики (revenue, time-on-site, AOV) сильно скошены с тяжёлыми хвостами, где t/z по среднему
 > чувствителен к выбросам. Mann–Whitney проверяет сдвиг распределения / стохастическое доминирование,
-> устойчив к выбросам, не требует нормальности. Юля выбрала «2-3» → этот срез (полный) + затем F3.
+> устойчив к выбросам, не требует нормальности. Владелец выбрал «2-3» → этот срез (полный) + затем F3.
 
 ## Ключевое design-решение
 Mann–Whitney **ранговый** → нужны **сырые значения по юнитам**, а не сводка (mean/std/n). Текущий
@@ -51,7 +51,7 @@ Hodges & Lehmann 1963 (оценка сдвига). Объединённое ра
 - [ ] Mann–Whitney доступен на `/results` (`metric_type:"mann_whitney"`, raw samples), корректные U/z/p/CLES/HL+CI.
 - [ ] Property + Monte-Carlo (type-I≈α, мощность↑) зелёные; ties-поправка проверена; degenerate обработан.
 - [ ] Контракт/локали(14)/mypy-strict/tsc/vitest/build в порядке; UI без emoji/stock-icon ([[no-emoji-no-stock-icons]]).
-- [ ] Отдельный PR; push/PR/merge — по слову Юли (не /auto). Память + handoff обновлены.
+- [ ] Отдельный PR; push/PR/merge — по слову владельца (не /auto). Память + handoff обновлены.
 
 ## PR B (F3 multi-covariate CUPED + stratification) — УЖЕ ВЛИТО В MAIN (проверено 2026-06-28)
 **Re-implement НЕ нужно.** План 2026-06-25 устарел: F3 доделан за прошедшие дни. Проверено по коду в HEAD:
@@ -63,7 +63,7 @@ Hodges & Lehmann 1963 (оценка сдвига). Объединённое ра
 - F3b post-stratification: `stats/stratification.py` + `_build_stratified_block` + frontend.
 - Тесты: `test_cuped_math.py` + `test_stratification.py` — 29 passed.
 Решение `cuped_theta` сделано на stdlib (Gaussian elimination), НЕ numpy — точнее плана (держит stats пакет
-без зависимостей). Следующая ось/фича — на усмотрение Юли (Mann–Whitney sizing? exact small-sample p? quantile TE?).
+без зависимостей). Следующая ось/фича — на усмотрение владельца (Mann–Whitney sizing? exact small-sample p? quantile TE?).
 
 ## Риски / гочи
 - Raw-sample вход новый — продумать парсинг чисел в UI (запятая-десятичная vs разделитель). Cap длины массива.

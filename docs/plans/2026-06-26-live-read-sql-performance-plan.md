@@ -1,6 +1,6 @@
 # Live-read SQL performance at scale (2026-06-26)
 
-Workstream (1) of Юля's chosen next steps (handoff #20): the live-read rollups degraded badly at
+Workstream (1) of the owner's chosen next steps (handoff #20): the live-read rollups degraded badly at
 scale — CUPED ran ~9s on 3000 covariate users, and the demo had to be seeded ≤2000/arm to stay
 responsive. Goal: make the live-read path fast and **linear**, touching the verified dual-backend
 stats-SQL as little as possible (indexes before restructuring).

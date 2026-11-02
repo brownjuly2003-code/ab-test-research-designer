@@ -1,6 +1,6 @@
 # Ratio metrics: analyzable + delta-method sizing + demo (Phase 3 T3.1, 2026-06-26)
 
-Workstream (2) of Юля's chosen next steps (handoff #20). The ratio live-stats block (F2 delta
+Workstream (2) of the owner's chosen next steps (handoff #20). The ratio live-stats block (F2 delta
 method) only renders for an **analyzed** project, but `routes/analysis._build_calculation_payload`
 rejected ratio sizing with a 422 — so a ratio experiment could never be analyzed and its live block
 never surfaced, and no ratio demo could exist. This makes ratio a first-class, analyzable metric and
